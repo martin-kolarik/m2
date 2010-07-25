@@ -43,7 +43,6 @@ TYPE
 CLASS CContainer IMPLEMENTS IContainer;
    PRIVATE VAR
       Models : maps.CStringMap;
-      Lock : Sync.RWLOCK;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
@@ -71,11 +70,6 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
    PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
-   
-   PRIVATE PROCEDURE LockWrite() : BOOLEAN;
-   PRIVATE PROCEDURE UnlockWrite();
-   PRIVATE PROCEDURE LockRead() : BOOLEAN;
-   PRIVATE PROCEDURE UnlockRead();
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -92,10 +86,6 @@ CLASS IMPLEMENTATION CContainer;
       m : maps.TPStringStringMap;
       s : TPCString;
    BEGIN
-      IF NOT LockWrite() THEN
-         RETURN;
-      END;
-      
       Models.Reset();
       WHILE Models.MoveNext() DO
          CASE Models.Current^[0] OF
@@ -118,8 +108,6 @@ CLASS IMPLEMENTATION CContainer;
          END; // CASE
       END; // WHILE
       Models.Dispose();
-      
-      UnlockWrite();
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -131,10 +119,6 @@ CLASS IMPLEMENTATION CContainer;
       name : StringsO.CString;
       s : POINTER TO StringsO.CString;
    BEGIN
-      IF NOT LockWrite() THEN
-         RETURN;
-      END;
-      
       name.FromOA( L" ." );
       name.AppendOA( Name ); 
 
@@ -158,8 +142,6 @@ CLASS IMPLEMENTATION CContainer;
          DISPOSE( m );
          Models.Remove( name );
       END;
-
-      UnlockWrite();
    END RemoveOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -170,13 +152,10 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"b." );
       name.AppendOA( Name );
-      IF NOT LockWrite() THEN
-         RETURN;
-      ELSIF Models.Contains( name ) THEN
+      IF Models.Contains( name ) THEN
          Models.Remove( name );
       END;
       Models.Add( name, PTR( Model ));
-      UnlockWrite();
    END AddBooleanOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -188,14 +167,11 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"s." );
       name.AppendOA( Name );
-      IF NOT LockWrite() THEN
-         RETURN;
-      ELSIF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model ) THEN
          NEW( model );
          Models.Add( name, model );
       END;
       model^.Assign( Model );
-      UnlockWrite();
    END AddStringOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -206,16 +182,12 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"l." );
       name.AppendOA( Name );
-      IF NOT LockWrite() THEN
-         Model := NIL;
-         RETURN;
-      ELSIF Models.Get( name, OUT Model ) THEN
+      IF Models.Get( name, OUT Model ) THEN
          Model^.Dispose();
       ELSE
          NEW( Model );
          Models.Add( name, Model );
       END;
-      UnlockWrite();
    END AddListOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -226,16 +198,12 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"m." );
       name.AppendOA( Name );
-      IF NOT LockWrite() THEN
-         Model := NIL;
-         RETURN;
-      ELSIF Models.Get( name, OUT Model ) THEN
+      IF Models.Get( name, OUT Model ) THEN
          Model^.Dispose();
       ELSE
          NEW( Model );
          Models.Add( name, Model );
       END;
-      UnlockWrite();
    END AddMapOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -246,13 +214,10 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"f." );
       name.AppendOA( Name );
-      IF NOT LockWrite() THEN
-         RETURN;
-      ELSIF Models.Contains( name ) THEN
+      IF Models.Contains( name ) THEN
          Models.Remove( name );
       END;
       Models.Add( name, PTR( Handler ));
-      UnlockWrite();
    END AddFunctionHandlerOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -264,14 +229,11 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"v." );
       name.AppendOA( Name );
-      IF NOT LockWrite() THEN
-         RETURN;
-      ELSIF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model ) THEN
          NEW( model );
          Models.Add( name, model );
       END;
       model^.Assign( Model );
-      UnlockWrite();
    END AddVariable;
 
 (*--------------------------------------------------------------------------------*)
@@ -283,14 +245,10 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"b." );
       name.AppendOA( Name );
-      IF NOT LockRead() THEN
-         RETURN FALSE;
-      ELSIF NOT Models.Get( name, OUT model ) THEN
-         UnlockRead();
+      IF NOT Models.Get( name, OUT model ) THEN
          RETURN FALSE;
       END;
       Model := BOOLEAN( LOPTRLONGWORD( model ));
-      UnlockRead();
       RETURN TRUE;
    END GetBooleanOA;
 
@@ -304,11 +262,8 @@ CLASS IMPLEMENTATION CContainer;
      // try model string
       name.FromOA( L"s." );
       name.AppendOA( Name );
-      IF NOT LockRead() THEN
-         RETURN FALSE;
-      ELSIF Models.Get( name, OUT model ) THEN
+      IF Models.Get( name, OUT model ) THEN
          Model.Assign( model^ );
-         UnlockRead();
          RETURN TRUE;
       END;
       // try variable
@@ -316,11 +271,9 @@ CLASS IMPLEMENTATION CContainer;
       name.AppendOA( Name );
       IF Models.Get( name, OUT model ) THEN
          Model.Assign( model^ );
-         UnlockRead();
          RETURN TRUE;
       END;
       // no variable nor string found
-      UnlockRead();
       RETURN FALSE;
    END GetStringOA;
 
@@ -333,14 +286,10 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"l." );
       name.AppendOA( Name );
-      IF NOT LockRead() THEN
-         RETURN FALSE;
-      ELSIF NOT Models.Get( name, OUT model ) THEN
-         UnlockRead();
+      IF NOT Models.Get( name, OUT model ) THEN
          RETURN FALSE;
       END;
       Model := model;
-      UnlockRead();
       RETURN TRUE;
    END GetListOA;
 
@@ -353,14 +302,10 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"m." );
       name.AppendOA( Name );
-      IF NOT LockRead() THEN
-         RETURN FALSE;
-      ELSIF NOT Models.Get( name, OUT model ) THEN
-         UnlockRead();
+      IF NOT Models.Get( name, OUT model ) THEN
          RETURN FALSE;
       END;
       Model := model;
-      UnlockRead();
       RETURN TRUE;
    END GetMapOA;
 
@@ -373,13 +318,10 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"f." );
       name.AppendOA( Name );
-      IF NOT LockRead() THEN
-         RETURN FALSE;
-      ELSIF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model ) THEN
          RETURN FALSE;
       END;
       Handler := model;
-      UnlockRead();
       RETURN TRUE;
    END GetFunctionHandlerOA;
 
@@ -416,10 +358,6 @@ CLASS IMPLEMENTATION CContainer;
          END; // CASE
       END;
 
-      IF NOT LockWrite() THEN
-         RETURN FALSE;
-      END;
-      
       CASE modelType OF
       //-----
       | mtQualification : // ok, find in map or list by key
@@ -443,8 +381,6 @@ CLASS IMPLEMENTATION CContainer;
             list^.Remove( sindex2 );
             list^.Add( sindex2, value );
          END;
-
-         UnlockWrite();
          RETURN TRUE;
 
       //-----
@@ -479,8 +415,6 @@ CLASS IMPLEMENTATION CContainer;
             ELSE
                GOTO Error;
             END;
-
-            UnlockWrite();
             RETURN TRUE;
 
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
@@ -496,8 +430,6 @@ CLASS IMPLEMENTATION CContainer;
             ELSE
                GOTO Error;
             END;
-
-            UnlockWrite();
             RETURN TRUE;
 
          // ELSE fall down to error
@@ -529,8 +461,6 @@ CLASS IMPLEMENTATION CContainer;
             IF PFunctionCalled <> NIL THEN
                PFunctionCalled^ := PFunctionCalled^ OR boolean;
             END;
-
-            UnlockWrite();
             RETURN boolean;
             
          // ELSE fall to error
@@ -547,8 +477,6 @@ CLASS IMPLEMENTATION CContainer;
          ELSE // fall to string
             AddStringOA( OA( model.Length-1, model.rawData ), value );
          END;
-
-         UnlockWrite();
          RETURN TRUE;
 
       //-----
@@ -559,8 +487,6 @@ CLASS IMPLEMENTATION CContainer;
       value.FromOA( L'##unknown model: ' );
       value.Append( model );
       value.AppendOA( L"" );
-
-      UnlockWrite();
       RETURN FALSE;
    END SetModelValue;
 
@@ -597,10 +523,6 @@ CLASS IMPLEMENTATION CContainer;
          END; // CASE
       END;
    
-      IF NOT LockRead() THEN
-         RETURN FALSE;
-      END;
-      
       CASE modelType OF
       //-----
       | mtQualification : // ok, find in map or list by key
@@ -622,8 +544,6 @@ CLASS IMPLEMENTATION CContainer;
          ELSIF ( list <> NIL ) AND NOT list^.Get( sindex2, OUT value ) THEN
             GOTO Error;
          END;
-
-         UnlockRead();
          RETURN TRUE;
 
       //-----
@@ -655,8 +575,6 @@ CLASS IMPLEMENTATION CContainer;
             ELSIF NOT map^.ElementAt( index, OUT sindex1, OUT value ) THEN
                GOTO Error;
             END;
-
-            UnlockRead();
             RETURN TRUE;
 
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
@@ -669,8 +587,6 @@ CLASS IMPLEMENTATION CContainer;
             ELSIF NOT list^.ElementAt( index, OUT value, OUT sindex1 ) THEN
                GOTO Error;
             END;
-
-            UnlockRead();
             RETURN TRUE;
 
          // ELSE fall to error
@@ -703,8 +619,6 @@ CLASS IMPLEMENTATION CContainer;
             IF PFunctionCalled <> NIL THEN
                PFunctionCalled^ := PFunctionCalled^ OR boolean;
             END;
-
-            UnlockRead();
             RETURN boolean;
           
          // ELSE fall to error
@@ -714,8 +628,6 @@ CLASS IMPLEMENTATION CContainer;
       ELSE // mtUnknown or others
          // test string
          IF GetStringOA( OA( model.Length-1, model.rawData ), OUT value ) THEN
-
-            UnlockRead();
             RETURN TRUE;
          
          // test boolean
@@ -725,8 +637,6 @@ CLASS IMPLEMENTATION CContainer;
             ELSE
                value.FromOA( FALSE_STRING );
             END;
-
-            UnlockRead();
             RETURN TRUE;
 
          END;
@@ -737,8 +647,6 @@ CLASS IMPLEMENTATION CContainer;
    Error:
       value.FromOA( L'##unknown model: ' );
       value.Append( model );
-
-      UnlockRead();
       RETURN FALSE;
    END GetModelValue;
 
@@ -857,6 +765,278 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
+BEGIN FINALLY
+   Dispose();
+END CContainer;
+
+(*================================================================================*)
+
+CLASS CSynchronizedContainer IMPLEMENTS IContainer;
+   PRIVATE VAR
+      Container : CContainer;
+      Lock : Sync.RWLOCK;
+
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
+
+   PUBLIC VIRTUAL PROCEDURE AddBooleanOA( CONST Name : ARRAY OF WCHAR; Model : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // creates string in model
+   PUBLIC VIRTUAL PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model
+   PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
+   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
+
+   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
+
+   PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+
+   // There can be more active mappings, each identified by ControllerURI.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
+   PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
+   PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   
+   PRIVATE PROCEDURE LockWrite() : BOOLEAN;
+   PRIVATE PROCEDURE UnlockWrite();
+   PRIVATE PROCEDURE LockRead() : BOOLEAN;
+   PRIVATE PROCEDURE UnlockRead();
+END CSynchronizedContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CSynchronizedContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   BEGIN
+      IF LockWrite() THEN
+         Container.Dispose();
+         UnlockWrite();
+      END;
+   END Dispose;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR );
+   BEGIN
+      IF LockWrite() THEN
+         Container.RemoveOA( Name );
+         UnlockWrite();
+      END;
+   END RemoveOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddBooleanOA( CONST Name : ARRAY OF WCHAR; Model : BOOLEAN );
+   BEGIN
+      IF LockWrite() THEN
+         Container.AddBooleanOA( Name, Model );
+         UnlockWrite();
+      END;
+   END AddBooleanOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // creates string in model
+   BEGIN
+      IF LockWrite() THEN
+         Container.AddStringOA( Name, Model );
+         UnlockWrite();
+      END;
+   END AddStringOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model
+   BEGIN
+      IF LockWrite() THEN
+         Container.AddListOA( Name, OUT Model );
+         UnlockWrite();
+      END;
+   END AddListOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
+   BEGIN
+      IF LockWrite() THEN
+         Container.AddMapOA( Name, OUT Model );
+         UnlockWrite();
+      END;
+   END AddMapOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
+   BEGIN
+      IF LockWrite() THEN
+         Container.AddFunctionHandlerOA( Name, Handler );
+         UnlockWrite();
+      END;
+   END AddFunctionHandlerOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
+   BEGIN
+      IF LockWrite() THEN
+         Container.AddVariable( Name, Model );
+         UnlockWrite();
+      END;
+   END AddVariable;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
+   VAR
+      b : BOOLEAN := FALSE;
+   BEGIN
+      IF LockRead() THEN
+         b := Container.GetBooleanOA( Name, OUT Model );
+         UnlockRead();
+      END;
+      RETURN b;
+   END GetBooleanOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
+   VAR
+      b : BOOLEAN := FALSE;
+   BEGIN
+      IF LockRead() THEN
+         b := Container.GetStringOA( Name, OUT Model );
+         UnlockRead();
+      END;
+      RETURN b;
+   END GetStringOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
+   VAR
+      b : BOOLEAN := FALSE;
+   BEGIN
+      IF LockRead() THEN
+         b := Container.GetListOA( Name, OUT Model );
+         UnlockRead();
+      END;
+      RETURN b;
+   END GetListOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
+   VAR
+      b : BOOLEAN := FALSE;
+   BEGIN
+      IF LockRead() THEN
+         b := Container.GetMapOA( Name, OUT Model );
+         UnlockRead();
+      END;
+      RETURN b;
+   END GetMapOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
+   VAR
+      b : BOOLEAN := FALSE;
+   BEGIN
+      IF LockRead() THEN
+         b := Container.GetFunctionHandlerOA( Name, OUT Handler );
+         UnlockRead();
+      END;
+      RETURN b;
+   END GetFunctionHandlerOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   VAR
+      b : BOOLEAN := FALSE;
+   BEGIN
+      IF LockRead() THEN
+         b := Container.SetModelValue( Request, model, value, PFunctionCalled  );
+         UnlockRead();
+      END;
+      RETURN b;
+   END SetModelValue;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   VAR
+      b : BOOLEAN := FALSE;
+   BEGIN
+      IF LockRead() THEN
+         b := Container.GetModelValue( Request, model, OUT value, PFunctionCalled  );
+         UnlockRead();
+      END;
+      RETURN b;
+   END GetModelValue;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   BEGIN
+      RETURN Container.Format( Request, FailOnError, Source, MessageSource, language, OUT Formatted );
+   END Format;
+
+(*--------------------------------------------------------------------------------*)
+
+   // There can be more active mappings, each identified by ControllerURI. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
+   BEGIN
+      IF LockWrite() THEN
+         Container.ResetModelInViewNames( ControllerURI );
+         UnlockWrite();
+      END;
+   END ResetModelInViewNames;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
+   BEGIN
+      IF LockWrite() THEN
+         Container.SetModelInViewName( ControllerURI, FullModel, InViewName );
+         UnlockWrite();
+      END;
+   END SetModelInViewName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   VAR
+      b : BOOLEAN := FALSE;
+   BEGIN
+      IF LockRead() THEN
+         b := Container.GetModelByInViewName( ControllerURI, InViewName, OUT FullModel );
+         UnlockRead();
+      END;
+      RETURN b;
+   END GetModelByInViewName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   BEGIN
+      IF LockWrite() THEN
+         Container.ResetModelValues( Request, ControllerURI );
+         UnlockWrite();
+      END;
+   END ResetModelValues;
+
+(*--------------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE LockWrite() : BOOLEAN;
    VAR
       locked : BOOLEAN;
@@ -893,9 +1073,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-BEGIN FINALLY
-   Dispose();
-END CContainer;
+END CSynchronizedContainer;
 
 (*================================================================================*)
 
@@ -1351,7 +1529,7 @@ CLASS IMPLEMENTATION CMVC;
       controller : TPController;
       controllerURI : StringsO.CString;
       containerMap : syncmaps.TPPtrSyncMap;
-      container : POINTER TO CContainer;
+      container : POINTER TO CSynchronizedContainer;
       fallbackFlag : BOOLEAN := FALSE;
       functionCalled : BOOLEAN;
       InputStream : IOO.TPStream;
@@ -1481,7 +1659,7 @@ CLASS IMPLEMENTATION CMVC;
    PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : HttpSrv.TPSession );
    VAR
       containerMap : syncmaps.TPPtrSyncMap;
-      container : POINTER TO CContainer;
+      container : POINTER TO CSynchronizedContainer;
    BEGIN
       IF NOT Session^.Get( SESSION_MVC, OUT containerMap ) THEN
          RETURN;
