@@ -1587,8 +1587,6 @@ CLASS IMPLEMENTATION CMVC;
                container^.GetModelValue( request, connectionData.Current^, OUT modelValue, ADR( functionCalled )) AND // ...only if the parameter is known
                NOT functionCalled THEN // ...and only if Get does not call -- then it cannot be set
             container^.SetModelValue( request, connectionData.Current^, connectionData.CurrentData^, ADR( functionCalled ));
-         ELSE
-            functionCalled := FALSE;
          END;
       END; // WHILE
       connectionData.Dispose();

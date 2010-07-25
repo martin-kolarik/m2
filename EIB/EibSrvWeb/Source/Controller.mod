@@ -343,7 +343,6 @@ CLASS IMPLEMENTATION CController;
       s : StringsO.CString;
       uri : StringsO.CString;
       version : StringsO.CString;
-      i : CARDINAL;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
@@ -352,14 +351,12 @@ CLASS IMPLEMENTATION CController;
          role := EibSrvWeb.roleGuest;
       END;
       
-      FOR i := 0 TO 100000 DO
-         Request.ModelContainer^.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
-         Request.ModelContainer^.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
-         Request.ModelContainer^.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
-         Request.ModelContainer^.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
-         Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
-         Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
-      END;
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
 
       version.FromOA( ProductVersion );
       Request.ModelContainer^.AddStringOA( VERSION, version );
