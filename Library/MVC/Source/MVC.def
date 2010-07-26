@@ -82,8 +82,19 @@ END IHttpResponse;
 
 (*--------------------------------------------------------------------------------*)
 
+TYPE
+   TCallResult = (
+      crSuccess,
+      crUnknownFunction,
+      crMissingParameter,
+      crCallFailed
+   );
+   
+CONST
+   crsCalled = TCallResult{crSuccess, crCallFailed};
+
 INTERFACE IFunctionHandler;
-   PROCEDURE Call( CONST Request : IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
+   PROCEDURE Call( CONST Request : IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : TCallResult;
 END IFunctionHandler;
 
 (*--------------------------------------------------------------------------------*)

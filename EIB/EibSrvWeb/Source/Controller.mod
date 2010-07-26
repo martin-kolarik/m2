@@ -167,7 +167,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : mvc.TCallResult;
    VAR
       b : BOOLEAN;
       name, s, value1, value2 : StringsO.CString;
@@ -175,39 +175,43 @@ CLASS IMPLEMENTATION CController;
    BEGIN
       IF FunctionName.EqualsOA( FN_SET ) THEN
          IF Parameters.Count < 2 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
          Parameters.ElementAt( 1, OUT s, OUT value1 );
-         RETURN _Web^.SetValue( Request.RequestSource, name, value1 );
+         IF _Web^.SetValue( Request.RequestSource, name, value1 ) THEN
+            RETURN mvc.crSuccess;
+         ELSE
+            RETURN mvc.crCallFailed;
+         END;
 
       ELSIF FunctionName.EqualsOA( FN_GET ) THEN
          IF Parameters.Count < 1 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
          IF NOT _Web^.GetValue( name, OUT value1 ) THEN
-            RETURN FALSE;
+            RETURN mvc.crCallFailed;
          ELSIF RetVal <> NIL THEN
             RetVal^.Assign( value1 );
          END;
-         RETURN TRUE;
+         RETURN mvc.crSuccess;
          
       ELSIF FunctionName.EqualsOA( FN_GETWIX ) THEN
          IF Parameters.Count < 1 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
          IF NOT _Web^.GetWixValue( name, OUT value1 ) THEN
-            RETURN FALSE;
+            RETURN mvc.crCallFailed;
          ELSIF RetVal <> NIL THEN
             RetVal^.Assign( value1 );
          END;
-         RETURN TRUE;
+         RETURN mvc.crSuccess;
          
       ELSIF FunctionName.EqualsOA( FN_EQUAL ) THEN
          IF Parameters.Count < 2 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
             Parameters.ElementAt( 1, OUT s, OUT value2 );
@@ -217,11 +221,11 @@ CLASS IMPLEMENTATION CController;
                RetVal^.FromOA( FALSE_S );
             END;
          END;
-         RETURN TRUE;
+         RETURN mvc.crSuccess;
          
       ELSIF FunctionName.EqualsOA( FN_NOTEQUAL ) THEN
          IF Parameters.Count < 2 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
             Parameters.ElementAt( 1, OUT s, OUT value2 );
@@ -231,11 +235,11 @@ CLASS IMPLEMENTATION CController;
                RetVal^.FromOA( TRUE_S );
             END;
          END;
-         RETURN TRUE;
+         RETURN mvc.crSuccess;
          
       ELSIF FunctionName.EqualsOA( FN_LESS ) THEN
          IF Parameters.Count < 2 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
             Parameters.ElementAt( 1, OUT s, OUT value2 );
@@ -250,11 +254,11 @@ CLASS IMPLEMENTATION CController;
                RetVal^.FromOA( FALSE_S );
             END;
          END;
-         RETURN TRUE;
+         RETURN mvc.crSuccess;
          
       ELSIF FunctionName.EqualsOA( FN_LESSEQUAL ) THEN
          IF Parameters.Count < 2 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
             Parameters.ElementAt( 1, OUT s, OUT value2 );
@@ -269,11 +273,11 @@ CLASS IMPLEMENTATION CController;
                RetVal^.FromOA( FALSE_S );
             END;
          END;
-         RETURN TRUE;
+         RETURN mvc.crSuccess;
          
       ELSIF FunctionName.EqualsOA( FN_GREATER ) THEN
          IF Parameters.Count < 2 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
             Parameters.ElementAt( 1, OUT s, OUT value2 );
@@ -288,11 +292,11 @@ CLASS IMPLEMENTATION CController;
                RetVal^.FromOA( FALSE_S );
             END;
          END;
-         RETURN TRUE;
+         RETURN mvc.crSuccess;
          
       ELSIF FunctionName.EqualsOA( FN_GREATEREQUAL ) THEN
          IF Parameters.Count < 2 THEN
-            RETURN FALSE;
+            RETURN mvc.crMissingParameter;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
             Parameters.ElementAt( 1, OUT s, OUT value2 );
@@ -307,10 +311,10 @@ CLASS IMPLEMENTATION CController;
                RetVal^.FromOA( FALSE_S );
             END;
          END;
-         RETURN TRUE;
+         RETURN mvc.crSuccess;
          
       ELSE
-         RETURN FALSE;
+         RETURN mvc.crUnknownFunction;
       END;
    END Call;
 

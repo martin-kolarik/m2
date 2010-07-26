@@ -457,7 +457,7 @@ CLASS IMPLEMENTATION CContainer;
                   EXIT;
                END;
             END; // LOOP
-            boolean := functionHandler^.Call( Request, sindex1, REF parameters, NIL );
+            boolean := functionHandler^.Call( Request, sindex1, REF parameters, NIL ) IN crsCalled;
             IF PFunctionCalled <> NIL THEN
                PFunctionCalled^ := PFunctionCalled^ OR boolean;
             END;
@@ -615,7 +615,7 @@ CLASS IMPLEMENTATION CContainer;
                   EXIT;
                END;
             END; // LOOP
-            boolean := functionHandler^.Call( Request, sindex1, REF parameters, ADR( value ));
+            boolean := functionHandler^.Call( Request, sindex1, REF parameters, ADR( value )) IN crsCalled;
             IF PFunctionCalled <> NIL THEN
                PFunctionCalled^ := PFunctionCalled^ OR boolean;
             END;
