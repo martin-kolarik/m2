@@ -1,3 +1,18 @@
+Version 1.2.1285/R 26.7.2010
+- BUG: #214, heavily communicating SDAP/XMLSocket clients could block server
+       after client disconnect in infinite wait. Next, the server was not able
+       to reconnect KNX connection if it had been lost.
+- BUG: #215, race condition in web server caused server crash. The race condition
+       occured if single HTTP client asked particular page more times during a short
+       time.
+- BUG: #223, users defined through admin web interface were lost after server restart.
+- BUG: #225, javascript function CorrectNumber worked improperly for value 0 send
+       as being not string.
+- CHG: #224, if server's function (Get, Set) failed operating KNX, whole call was
+       taken as failed and function call remained visible in browser URI. Now
+       the function is meant as failed only if it is missing or it has bad number
+       of the parameters.
+
 Version 1.2.1227/R 22.5.2010
 - BUG: #208, "System.Licensing.SerialNumber" contained invalid XML characters, which
        damaged XMLSocket transfer of the item

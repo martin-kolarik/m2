@@ -185,7 +185,7 @@ CLASS IMPLEMENTATION CEibSvc;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
    BEGIN
-      // ASSERT( FALSE );
+      ASSERT( FALSE );
    
       // get confiuration file path
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
