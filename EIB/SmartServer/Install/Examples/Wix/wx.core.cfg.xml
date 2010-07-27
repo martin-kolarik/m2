@@ -1,0 +1,22 @@
+<xml vstExpanded="True">
+	<TwxThread name="TwxThread" enabled="True" GUID="{F4BAAF16-7D74-4B7B-914A-4973EF489679}">
+		<TWxDevTMEHttpGet URL="http://127.0.0.1:6005/SmartServer/User/getwix.pt.xml" IP="http://127.0.0.1:6005/SmartServer/User/getwix.pt.xml" Port="80" name="NeNo kancelář" TypeDev="TME-XML" enabled="True" GUID="{AB9DA4DA-F31F-4024-B431-43C9B2DD21FA}" vstExpanded="True">
+			<TDoubleSDataPoint name="Temperature" enabled="True" GUID="{4861ECA7-1D35-4CE0-9264-1C3511DB0DF5}" DPTypeName="Temperature">
+				<TWixSDataPointEx name="Temperature" enabled="True" GUID="{EAD96C81-FD24-483C-84F5-B7398FFAE078}" DPTypeName="Temperature" AddCoef="0" MultipleCoef="1" UnitStr="° C" DecDigCount="1" GraphRefCount="1" InputDisplayType="0" vstExpanded="False">
+					<SectionDivider Count="2" Value0="pod 0" Value1="v rozsahu 0 - 100" Bound0="0" Value2="nad 100" Bound1="100"/>
+					<ColorSection Count="5" Value0="0" Value1="16711680" Bound0="0" Value2="65280" Bound1="25" Value3="33023" Bound2="50" Value4="255" Bound3="75" Value5="0" Bound4="100"/>
+				</TWixSDataPointEx>
+			</TDoubleSDataPoint>
+		</TWxDevTMEHttpGet>
+	</TwxThread>
+	<TwxThread name="TwxThread" enabled="True" GUID="{4470156A-210B-4297-9E38-C955EC3AC752}">
+		<TWxDevTMEHttpGet URL="http://127.0.0.1:6005/SmartServer/User/getwix2.pt.xml" IP="http://127.0.0.1:6005/SmartServer/User/getwix2.pt.xml" Port="80" name="NeNo světlo" TypeDev="TME-XML" vstExpanded="True" enabled="True" GUID="{84E84EF7-8029-4E51-A59A-4A2FB8883E21}">
+			<TDoubleSDataPoint name="Temperature" enabled="True" GUID="{1447452C-43A7-4B72-86D9-F1CE8CB65058}" DPTypeName="Temperature">
+				<TWixSDataPointEx name="Světlo" enabled="True" GUID="{E3C5E660-9300-44E2-935F-3EDF157B0546}" DPTypeName="Temperature" AddCoef="0" MultipleCoef="1" UnitStr="" DecDigCount="1" GraphRefCount="0" InputDisplayType="1" vstExpanded="False">
+					<SectionDivider Count="2" Value0="vypnuto" Value1="zapnuto" Bound0="0" Value2="zapnuto" Bound1="1"/>
+					<ColorSection Count="5" Value0="0" Value1="16711680" Bound0="0" Value2="65280" Bound1="25" Value3="33023" Bound2="50" Value4="255" Bound3="75" Value5="0" Bound4="100"/>
+				</TWixSDataPointEx>
+			</TDoubleSDataPoint>
+		</TWxDevTMEHttpGet>
+	</TwxThread>
+</xml>

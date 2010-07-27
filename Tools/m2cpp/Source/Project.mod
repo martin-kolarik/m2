@@ -176,8 +176,8 @@ CLASS IMPLEMENTATION CProject;
       Units.Add( LModule );
     END;
     IF ( CallerCU <> LModule ) AND ( LModule^.CompileState = DOM.csPending ) THEN
-      ASSIGN( n1, OA( CallerCU^.Name.Length, CallerCU^.Name.szData ));
-      ASSIGN( n2, OA( LModule^.Name.Length, LModule^.Name.szData ));
+      ASSIGN( n1, OA( CallerCU^.Name.Length, CallerCU^.Name.Data ));
+      ASSIGN( n2, OA( LModule^.Name.Length, LModule^.Name.Data ));
       CallerCU^.M2^.SemErrForcedSNS( err._CircularImport, n1, err._CircularImportIsCompiled, n2 );
     ELSIF CompileImmediatelly AND ( LModule^.CompileState = DOM.csUnknown ) THEN
       PreviousCC := CurrentM;

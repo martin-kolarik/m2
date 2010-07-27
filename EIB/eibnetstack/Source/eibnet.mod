@@ -7,7 +7,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Log IMPORT
-   logger, TDebugLevel, dldMessage, dldTrace, dldDebug;
+   logger, TDebugLevel, ldMessage, ldTrace, dldDebug;
 
 IMPORT
    dns,
@@ -22,8 +22,8 @@ PROCEDURE LogSHPAI( Logger : log.TPLogger; Level : TDebugLevel; Prefix, S : ARRA
 VAR
    Address : ARRAY [0..63] OF WCHAR;
 BEGIN
-   HPAI.Address.GetAddressOA( TRUE, OUT Address );
-   Logger^.LogSS( dldTrace, Prefix, S, Address );
+   HPAI.Address.ToOA( TRUE, OUT Address );
+   Logger^.LogSS( ldTrace, 0, Prefix, S, Address );
 END LogSHPAI;
 
 (*--------------------------------------------------------------------------------*)
@@ -33,11 +33,11 @@ VAR
    Address : ARRAY [0..63] OF WCHAR;
    n : ARRAY [0..15] OF WCHAR;
 BEGIN
-   HPAI.Address.GetAddressOA( TRUE, OUT Address );
+   HPAI.Address.ToOA( TRUE, OUT Address );
    Strings.PrependW( REF Address, L" " );
    Strings.FromCARD32W( C, 10, OUT n );
    Strings.PrependW( REF Address, n );
-   Logger^.LogSS( dldTrace, Prefix, S, Address );
+   Logger^.LogSS( ldTrace, 0, Prefix, S, Address );
 END LogSCHPAI;         
 
 (*================================================================================*)
@@ -240,13 +240,13 @@ CLASS IMPLEMENTATION CConnection;
       CASE TTimers( LOPTRLONGWORD( TimerId )) OF
       //----
       | tiConnect :
-         _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"CONNECT timeout" );
+         _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"CONNECT timeout" );
 
          DeviceDisconnect();
 
       //----
       | tiDisconnect :
-         _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"DISCONNECT timeout: ", CARDINAL( ChannelId ));
+         _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"DISCONNECT timeout: ", CARDINAL( ChannelId ));
 
          DeviceDisconnect();
 
@@ -255,20 +255,20 @@ CLASS IMPLEMENTATION CConnection;
          CASE IOState OF
          | ioWaitTCON1 :
             IF _Mode = cmRouting THEN // timeout elapsed without routing error notification, finish routing
-               _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"ROUTING L_CON ok" );
+               _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"ROUTING L_CON ok" );
 
                IOState := ioReady;
                On_L_CON( eib_status.essOK );
             
             ELSE  // resend data
-               _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"T_CON timeout, repeat SEND: ", CARDINAL( ChannelId ));
+               _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"T_CON timeout, repeat SEND: ", CARDINAL( ChannelId ));
 
                IOState := ioWaitTCON2;
                DoSend();
             END;
 
          | ioWaitTCON2 :
-            _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"T_CON timeout, kill SEND: ", CARDINAL( ChannelId ));
+            _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"T_CON timeout, kill SEND: ", CARDINAL( ChannelId ));
 
             // INC( OutSeq ); // prepare next writing -- unable to do, if remote peer does not ACKs packet, it expects ONLY the next one... Maybe, it should accept newer packets, but it does not do so
             INC( SendErr ); // increment connection recovery counter
@@ -326,10 +326,10 @@ CLASS IMPLEMENTATION CConnection;
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
       END;
       IF b THEN
-         _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"LISTENing on port: ", _Socket^.LocalAddress.Port );
-         LogSHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECT request: ", HPAIData );
+         _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"LISTENing on port: ", _Socket^.LocalAddress.Port );
+         LogSHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECT request: ", HPAIData );
       ELSE
-         _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"CONNECT (listen) cannot start" );
+         _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"CONNECT (listen) cannot start" );
          _Socket := NIL;
 
          // #100, tiAutoReconnect starts in OnDisconnect. But OnDisconnect is not called if Connect is not called (as here when returning).
@@ -354,11 +354,11 @@ CLASS IMPLEMENTATION CConnection;
          ai.Port := _Socket^.LocalAddress.Port;
          HPAISelf.Address := ai;
 
-         ai.SetAddressOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
+         ai.FromOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
          _Socket^.MulticastGroup := ai;
          IOState := ioReady;
 
-         LogSHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECTed in SCANNING mode: ", HPAIData );
+         LogSHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECTed in SCANNING mode: ", HPAIData );
          RETURN Sync.arCompleted;
 
       //-----
@@ -367,7 +367,7 @@ CLASS IMPLEMENTATION CConnection;
          IOState := ioReady;
          OnConnect();
 
-         LogSHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECTed in ROUTING mode: ", HPAIData );
+         LogSHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECTed in ROUTING mode: ", HPAIData );
          RETURN Sync.arCompleted;
 
       //-----
@@ -412,12 +412,12 @@ CLASS IMPLEMENTATION CConnection;
    BEGIN
       IF Abortive AND ( IOState <> ioDisconnected ) THEN
          abortive := TRUE;
-         _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"DISCONNECT forced as abortive" );
+         _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"DISCONNECT forced as abortive" );
       ELSIF Disconnected THEN
          RETURN Sync.arCompleted;
       END;
 
-      LogSCHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
+      LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
 
       DataDisconnect();
 
@@ -439,13 +439,13 @@ CLASS IMPLEMENTATION CConnection;
    PUBLIC PROCEDURE SendPacket( CONST EMI : eib_def.TPacket ) : Sync.TAsyncResult;
    BEGIN
       IF ( IOState = ioDisconnected ) OR ( IOState = ioConnecting ) OR ( IOState = ioDisconnecting ) THEN
-         _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"SEND request when disconnected" );
+         _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"SEND request when disconnected" );
          RETURN Sync.arCannotStart;
       ELSIF _Mode = cmScanning THEN
-         _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"SEND request in scanning mode" );
+         _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"SEND request in scanning mode" );
          RETURN Sync.arCannotStart;
       ELSIF IOState <> ioReady THEN
-         _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"SEND request when not ready: ", CARDINAL( ChannelId ));
+         _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"SEND request when not ready: ", CARDINAL( ChannelId ));
          RETURN Sync.arAlreadyPending;
       END;
       SELF.EMI := EMI;
@@ -476,8 +476,8 @@ CLASS IMPLEMENTATION CConnection;
       | cmScanning, cmRouting : // do nohing, unfortunately, for routing source of UDP packet contains unicast address, not multicast, so checking cannot be done
       ELSE // some tunneling mode
          IF DEBUG AND ( ia <> HPAIData.Address ) THEN // check for error
-            _Logger^.LogSH( dldMessage, DEBUG_PREFIX, L"Packet from unexpected source, REJECTED: ", CARDINAL( packet^.Service ));
-            _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
+            _Logger^.LogSH( ldMessage, 0, DEBUG_PREFIX, L"Packet from unexpected source, REJECTED: ", CARDINAL( packet^.Service ));
+            _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
          END;
       END; // CASE
       
@@ -488,8 +488,8 @@ CLASS IMPLEMENTATION CConnection;
          | core.SEARCH_RESPONSE,
            core.DESCRIPTION_RESPONSE :
          ELSE
-            _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected in SCANNING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
-            _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
+            _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected in SCANNING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
             RETURN;
          END; // Service
       //-----
@@ -499,8 +499,8 @@ CLASS IMPLEMENTATION CConnection;
            core.ROUTING_INDICATION,
            core.ROUTING_LOST_MESSAGE :
          ELSE
-            _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected in ROUTING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
-            _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
+            _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected in ROUTING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
             RETURN;
          END; // Service
       //-----
@@ -509,8 +509,8 @@ CLASS IMPLEMENTATION CConnection;
          | core.DESCRIPTION_RESPONSE :
          | core.CONNECT_RESPONSE :
             IF IOState <> ioConnecting THEN
-               _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
-               _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
+               _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
                RETURN;
             END;
          | core.CONNECTIONSTATE_RESPONSE,
@@ -518,19 +518,19 @@ CLASS IMPLEMENTATION CConnection;
            core.TUNNELING_REQUEST,
            core.TUNNELING_ACK :
             IF IOState NOT IN iosConnected THEN
-               _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
-               _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
+               _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
                RETURN;
             END;
          | core.DISCONNECT_RESPONSE :
             IF IOState <> ioDisconnecting THEN
-               _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
-               _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
+               _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
                RETURN;
             END;
          ELSE
-            _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected in TUNNELING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
-            _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
+            _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected in TUNNELING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
             RETURN;
          END;
       //-----
@@ -542,70 +542,70 @@ CLASS IMPLEMENTATION CConnection;
          IF core.TPSearchResponse( packet )^.Valid THEN
             OnSearchResponse( core.TPSearchResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DESCRIPTION_RESPONSE :
          IF core.TPDescriptionResponse( packet )^.Valid THEN
             OnDescriptionResponse( core.TPDescriptionResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.ROUTING_INDICATION :
          IF core.TPRoutingIndication( packet )^.Valid THEN
             OnRoutingIndication( core.TPRoutingIndication( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.ROUTING_LOST_MESSAGE :
          IF core.TPRoutingLostMessage( packet )^.Valid THEN
             OnRoutingLostMessage( core.TPRoutingLostMessage( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.CONNECT_RESPONSE :
          IF core.TPConnectResponse( packet )^.Valid THEN
             OnConnectResponse( core.TPConnectResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.CONNECTIONSTATE_RESPONSE :
          IF core.TPConnectionStateResponse( packet )^.Valid THEN
             OnConnectionStateResponse( core.TPConnectionStateResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DISCONNECT_REQUEST :
          IF core.TPDisconnectRequest( packet )^.Valid THEN
             OnDisconnectRequest( core.TPDisconnectRequest( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DISCONNECT_RESPONSE :
          IF core.TPDisconnectResponse( packet )^.Valid THEN
             OnDisconnectResponse( core.TPDisconnectResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.TUNNELING_REQUEST :
          IF core.TPTunnelingRequest( packet )^.Valid THEN
             OnTunnelingRequest( core.TPTunnelingRequest( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.TUNNELING_ACK :
          IF core.TPTunnelingACK( packet )^.Valid THEN
             OnTunnelingACK( core.TPTunnelingACK( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       END; // main case
    END OnDatagramReceived;
@@ -614,7 +614,7 @@ CLASS IMPLEMENTATION CConnection;
 
    LOCAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
    BEGIN
-      _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"Stop LISTENing on port: ", ServerSocket^.LocalAddress.Port );
+      _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"Stop LISTENing on port: ", ServerSocket^.LocalAddress.Port );
       
       IF _Socket = ServerSocket THEN
          _Socket := NIL;
@@ -702,7 +702,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PRIVATE PROCEDURE OnRoutingLostMessage( CONST packet : core.RoutingLostMessage );
    BEGIN
-      _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"ROUTING L_CON error, lost: ", CARDINAL( packet.LostCount ));
+      _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"ROUTING L_CON error, lost: ", CARDINAL( packet.LostCount ));
 
       StopTimer( PTR( tiACK ));
       IOState := ioReady;
@@ -728,14 +728,14 @@ CLASS IMPLEMENTATION CConnection;
          AltInSeq := 0;
          OutSeq := 0;
 
-         LogSCHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECTed in TUNNELING mode: ", CARDINAL( ChannelId ), HPAIData );
+         LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECTed in TUNNELING mode: ", CARDINAL( ChannelId ), HPAIData );
 
          HbRepeat := maximalHbRepeat;
          StartTimer( PTR( tiHeartbeat ), core.HEART_BEAT_PERIOD, TRUE );
 
          OnConnect();
       ELSE
-         LogSCHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECT failure: ", CARDINAL( packet.Status ), HPAIData );
+         LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECT failure: ", CARDINAL( packet.Status ), HPAIData );
 
          DeviceDisconnect();
       END;
@@ -746,7 +746,7 @@ CLASS IMPLEMENTATION CConnection;
    PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : core.ConnectionStateResponse );
    BEGIN
       IF packet.Status = core.E_NO_ERROR THEN
-         LogSCHPAI( _Logger, dldDebug, DEBUG_PREFIX, L"HEARTBEAT response: ", CARDINAL( ChannelId ), HPAIData );
+         LogSCHPAI( _Logger, ldDebug, 0, DEBUG_PREFIX, L"HEARTBEAT response: ", CARDINAL( ChannelId ), HPAIData );
 
          StopTimer( PTR( tiHeartbeatRepeat ));
          HbRepeat := maximalHbRepeat;
@@ -755,7 +755,7 @@ CLASS IMPLEMENTATION CConnection;
             Disconnect( FALSE );
          END;
       ELSE
-         LogSCHPAI( _Logger, dldDebug, DEBUG_PREFIX, L"HEARTBEAT error: ", CARDINAL( packet.Status ), HPAIData );
+         LogSCHPAI( _Logger, ldDebug, 0, DEBUG_PREFIX, L"HEARTBEAT error: ", CARDINAL( packet.Status ), HPAIData );
 
          ProcessHbFailure();
       END;
@@ -768,7 +768,7 @@ CLASS IMPLEMENTATION CConnection;
       dr : core.DisconnectResponse;
    BEGIN
       IF NOT Disconnected THEN
-         LogSCHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"remote DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
+         LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"remote DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
 
          DataDisconnect();
 
@@ -796,12 +796,12 @@ CLASS IMPLEMENTATION CConnection;
       pSeq : CARD8 := packet.Sequence;
    BEGIN
       IF packet.ChannelId <> ChannelId THEN
-         _Logger^.LogSC( dldMessage, DEBUG_PREFIX, L"RECEIVE unexpected channel: ", CARDINAL( ChannelId ));
-         _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"RECEIVE unexpected data: ", ADR( packet ), packet.Length );
+         _Logger^.LogSC( ldMessage, 0, DEBUG_PREFIX, L"RECEIVE unexpected channel: ", CARDINAL( ChannelId ));
+         _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"RECEIVE unexpected data: ", ADR( packet ), packet.Length );
          RETURN; // ignore
 
       ELSIF pSeq + 1 < CARD8( AltInSeq ) THEN
-         _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"RECEIVE out of order: ", CARDINAL( ChannelId ), PTR( pSeq ));
+         _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"RECEIVE out of order: ", CARDINAL( ChannelId ), PTR( pSeq ));
          RETURN; // ignore
       END;
 
@@ -811,7 +811,7 @@ CLASS IMPLEMENTATION CConnection;
       _Socket^.SendToOA( OA( tack.Length-1, ADR( tack )), HPAIData.Address );
 
       IF pSeq < CARD8( AltInSeq ) THEN
-         _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, L"RECEIVE previous: ", CARDINAL( ChannelId ), PTR( pSeq ));
+         _Logger^.LogSCP( ldTrace, 0, DEBUG_PREFIX, L"RECEIVE previous: ", CARDINAL( ChannelId ), PTR( pSeq ));
          RETURN;
       END;
 
@@ -824,7 +824,7 @@ CLASS IMPLEMENTATION CConnection;
          ELSE
             LogPacket( FALSE, L"SEND R_CON ok", EMI, ADR( packet ), packet.Length, FALSE );
          END;
-         _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"SEND R_CON status: ", CARDINAL( ChannelId ), PTR( EMI.GetError() ));
+         _Logger^.LogSCP( ldDebug, 0, DEBUG_PREFIX, L"SEND R_CON status: ", CARDINAL( ChannelId ), PTR( EMI.GetError() ));
 
          // IOState := ioReady; -- not to set here, CConnection is ready after T_CON, L_ACK is matter of EIB and stack itself (and ACKTimeout is set there, of course)
          // ioReady is set in OnTunnelingACK.
@@ -839,7 +839,7 @@ CLASS IMPLEMENTATION CConnection;
          On_L_IND( EMI );
 
       ELSE // L_REQ???
-         _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, L"RECEIVE unexpected code: ", CARDINAL( ChannelId ), PTR( EMI.Code ));
+         _Logger^.LogSCP( ldTrace, 0, DEBUG_PREFIX, L"RECEIVE unexpected code: ", CARDINAL( ChannelId ), PTR( EMI.Code ));
       END;
 
       AltInSeq := InSeq + 1; // use self -- this could be less in case of error
@@ -854,15 +854,15 @@ CLASS IMPLEMENTATION CConnection;
       Status : core.TStatus;
    BEGIN
       IF packet.ChannelId <> ChannelId THEN
-         _Logger^.LogSC( dldMessage, DEBUG_PREFIX, L"SEND T_CON unexpected channel: ", CARDINAL( ChannelId ));
-         _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"SEND T_CON unexpected data: ", ADR( packet ), packet.Length );
+         _Logger^.LogSC( ldMessage, 0, DEBUG_PREFIX, L"SEND T_CON unexpected channel: ", CARDINAL( ChannelId ));
+         _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"SEND T_CON unexpected data: ", ADR( packet ), packet.Length );
          RETURN; // ignore
       END;
          
       Status := packet.Status;
-      IF NOT _Logger^.Filtered( dldDebug, DEBUG_PREFIX ) THEN
-         _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"SEND T_CON status: ", CARDINAL( ChannelId ), PTR( Status ));
-         _Logger^.LogSH( dldDebug, DEBUG_PREFIX, L"SEND T_CON seq: ", CARDINAL( packet.Sequence ));
+      IF NOT _Logger^.Filtered( ldDebug, 0, DEBUG_PREFIX ) THEN
+         _Logger^.LogSCP( ldDebug, 0, DEBUG_PREFIX, L"SEND T_CON status: ", CARDINAL( ChannelId ), PTR( Status ));
+         _Logger^.LogSH( ldDebug, 0, DEBUG_PREFIX, L"SEND T_CON seq: ", CARDINAL( packet.Sequence ));
       END;
 
       IF packet.Sequence = CARD8( OutSeq ) THEN
@@ -958,7 +958,7 @@ CLASS IMPLEMENTATION CConnection;
       IF currentState = ioDisconnected THEN
          RETURN;
       END;
-      LogSCHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"DISCONNECTed: ", CARDINAL( ChannelId ), HPAIData );
+      LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"DISCONNECTed: ", CARDINAL( ChannelId ), HPAIData );
 
       StopTimer( PTR( tiDisconnect ));
       IF _Socket <> NIL THEN
@@ -987,7 +987,7 @@ CLASS IMPLEMENTATION CConnection;
          DEC( HbRepeat );
       END;
 
-      LogSCHPAI( _Logger, dldDebug, DEBUG_PREFIX, L"HEARTBEAT probe: ", CARDINAL( ChannelId ), HPAIData );
+      LogSCHPAI( _Logger, ldDebug, 0, DEBUG_PREFIX, L"HEARTBEAT probe: ", CARDINAL( ChannelId ), HPAIData );
 
       hb.ControlHPAI := HPAISelf;
       hb.ChannelId := ChannelId;
@@ -1004,7 +1004,7 @@ CLASS IMPLEMENTATION CConnection;
       seq : CARDINAL;
       out : ARRAY [0..63] OF WCHAR;
    BEGIN
-      IF NOT _Logger^.Filtered( dldTrace, DEBUG_PREFIX ) THEN
+      IF NOT _Logger^.Filtered( ldTrace, 0, DEBUG_PREFIX ) THEN
          out := text;
          IF selfPacket THEN
             Strings.AppendW( REF out, L" [S]" ); 
@@ -1018,22 +1018,22 @@ CLASS IMPLEMENTATION CConnection;
          address := packet.GetDestinationAddress();
          IF address.GetAddressType() = eib_def.addressGroup THEN
             address.GetGroupAddress3( TRUE, OUT s );
-            Strings.AppendW( REF out, L" group: " ); _Logger^.LogSS( dldTrace, DEBUG_PREFIX, out, s );
+            Strings.AppendW( REF out, L" group: " ); _Logger^.LogSS( ldTrace, 0, DEBUG_PREFIX, out, s );
          ELSE
-            Strings.AppendW( REF out, L" not group" ); _Logger^.LogS( dldTrace, DEBUG_PREFIX, out );
+            Strings.AppendW( REF out, L" not group" ); _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, out );
          END;
          IF NOT outputFlag AND ( InSeq <> AltInSeq ) THEN
-            Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSH( dldTrace, DEBUG_PREFIX, out, AltInSeq );
+            Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSH( ldTrace, 0, DEBUG_PREFIX, out, AltInSeq );
          END;
 
-         IF NOT _Logger^.Filtered( dldDebug, DEBUG_PREFIX ) THEN
+         IF NOT _Logger^.Filtered( ldDebug, 0, DEBUG_PREFIX ) THEN
             IF outputFlag THEN
                seq := CARDINAL( CARD8( OutSeq ));
             ELSE
                seq := CARDINAL( CARD8( InSeq ));
             END;
-            Strings.ConcatW( OUT out, text, L" seq: " ); _Logger^.LogSH( dldDebug, DEBUG_PREFIX, out, seq );
-            Strings.ConcatW( OUT out, text, L" data: " ); _Logger^.LogSB( dldDebug, DEBUG_PREFIX, out, data, dataLen );
+            Strings.ConcatW( OUT out, text, L" seq: " ); _Logger^.LogSH( ldDebug, 0, DEBUG_PREFIX, out, seq );
+            Strings.ConcatW( OUT out, text, L" data: " ); _Logger^.LogSB( ldDebug, 0, DEBUG_PREFIX, out, data, dataLen );
          END;
       END;
    END LogPacket;

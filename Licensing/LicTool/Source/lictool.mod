@@ -2,6 +2,8 @@ MODULE lictool;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
    array,
@@ -9,6 +11,7 @@ IMPORT
    cphcommon,
    Defs,
    Engine,
+   Exceptions,
    FIO,
    FIOO,
    FSO,
@@ -38,6 +41,7 @@ CONST
    Builder = TRUE;
    Licensor = TRUE;
    Client = TRUE;
+   Activator = TRUE;
 #else
    Supervisor = FALSE;
    #if Target #contains L"Builder" #then
@@ -113,7 +117,7 @@ TYPE
    TPParameters = POINTER TO ARRAY [0..0] OF PWCHAR;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain( argc : INTEGER; argp : TPParameters; enpv : TPParameters ) : INTEGER;
+PROCEDURE Main( argc : INTEGER; argp : TPParameters ) : INTEGER;
 #restore
 VAR
    args : lists.CStringList;
@@ -193,9 +197,9 @@ VAR
          err^.WriteOA( L'  the file name was not specified', TRUE );
          RETURN 300;
       END;
-      lines.Clear();
+      lines.Dispose();
       TRY
-         fs.FromPath( OA( path.Length-1, path.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( path.Length-1, path.Data ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
          err^.WriteOA( L'  the file "', FALSE ); err^.Write( path, FALSE ); err^.WriteOA( '" cannot be opened', TRUE );
          err^.WriteOA( L'  ', FALSE ); err^.WriteExc( e, TRUE );
@@ -264,7 +268,7 @@ VAR
    BEGIN
       tw.Stream := ADR( fs );
 
-      hash.hashs( OA( owner.Length-1, owner.rawData ), OUT hPId );
+      hash.hashs( OA( owner.Length-1, owner.Data ), OUT hPId );
 
       cphcommon.ToHex( hPId, OUT s );
       err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
@@ -276,7 +280,7 @@ VAR
       mb.Length := mb.Size;
       mb.Zero();
       mb.Length := 0;
-      mb.AppendOA( OA( owner.Length << 1 - 1, owner.rawData ));
+      mb.AppendOA( OA( owner.Length << 1 - 1, owner.Data ));
       mb.Length := mb.Size;
       a := mb.Data;
 
@@ -313,7 +317,11 @@ VAR
          IF i MOD 16 = 0 THEN
             tw.WriteOA( L"      ", FALSE );
          END;
-         Strings.FromCARD32W( CARDINAL( mb[i] ), 10, OUT s ); tw.WriteOA( s, FALSE ); 
+         TRY
+            Strings.FromCARD32W( CARDINAL( mb[i] ), 10, OUT s ); tw.WriteOA( s, FALSE ); 
+         CATCH e : Exceptions.CModula2Exception DO
+            EXIT; // stop the loop
+         END;
       END;
       tw.LineEnd();
       tw.WriteOA( L"   );", TRUE );
@@ -885,7 +893,9 @@ BEGIN
       END; // WHILE sns
       
       ls.Store( data, FALSE );
+   #endif
 
+   #if Client #or Activator #then
    | opQueryRegistration :
       IF pathOrFilter.Empty THEN
          err^.WriteOA( L'  the product name was not specified', TRUE );
@@ -945,7 +955,7 @@ BEGIN
       END;
 
       // common expiration settings
-      IF NOT expBegin.Empty AND NOT dtb.FromStringOA( OA( expBegin.Length-1, expBegin.rawData ), dateFormat ) THEN
+      IF NOT expBegin.Empty AND NOT dtb.FromStringOA( OA( expBegin.Length-1, expBegin.Data ), dateFormat ) THEN
          err^.WriteOA( L'  the begin date is not valid', TRUE );
          RETURN 209;
       END;
@@ -958,7 +968,7 @@ BEGIN
             END;
             jd := time.GetCurrentJD() + time.DaysToJDC( i * 31 );
             dte.FromJD( jd, 0, 0 );
-         ELSIF NOT dte.FromStringOA( OA( expEnd.Length-1, expEnd.rawData ), dateFormat ) THEN
+         ELSIF NOT dte.FromStringOA( OA( expEnd.Length-1, expEnd.Data ), dateFormat ) THEN
             err^.WriteOA( L'  the end date is not valid', TRUE );
             RETURN 211;
          END;
@@ -1106,13 +1116,13 @@ BEGIN
    #if Supervisor #then
    //-----
    | opProductHash :
-		hash.hashs( OA( owner.Length-1, owner.rawData ), OUT hPID );
+		hash.hashs( OA( owner.Length-1, owner.Data ), OUT hPID );
       cphcommon.ToHex( hPID, OUT s );
       err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
 
    //-----
    | opOwnerHash :
-		hash.hashs( OA( owner.Length-1, owner.rawData ), OUT hOwner );
+		hash.hashs( OA( owner.Length-1, owner.Data ), OUT hOwner );
       cphcommon.ToHex( hOwner, OUT s );
       err^.WriteOA( L'  ohash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
 
@@ -1145,7 +1155,7 @@ BEGIN
             err^.WriteOA( L'  product "', FALSE ); err^.Write( item^.ProductId, FALSE ); err^.WriteOA( L'"', TRUE );
 
             #if Supervisor #then
-               hash.hashs( OA( item^.ProductId.Length-1, item^.ProductId.rawData ), OUT hPID );
+               hash.hashs( OA( item^.ProductId.Length-1, item^.ProductId.Data ), OUT hPID );
                cphcommon.ToHex( hPID, OUT s );
                err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             #endif
@@ -1173,7 +1183,7 @@ BEGIN
                   err^.WriteOA( L'    mhash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
 
                   IF Items.ltUnnamed NOT IN Items.TPLicence( item )^.Type THEN
-                     hash.hashs( OA( Items.TPLicence( item )^.Owner.Length-1, Items.TPLicence( item )^.Owner.rawData ), OUT hOwner );
+                     hash.hashs( OA( Items.TPLicence( item )^.Owner.Length-1, Items.TPLicence( item )^.Owner.Data ), OUT hOwner );
                      cphcommon.ToHex( hOwner, OUT s );
                      err^.WriteOA( L'    ohash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
                      err^.WriteOA( L'    licence is bound to owner', TRUE );
@@ -1303,6 +1313,6 @@ BEGIN
    #endif
 
    RETURN 0;
-END wmain;
+END Main;
 
 END lictool.

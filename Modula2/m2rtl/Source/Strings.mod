@@ -9,17 +9,18 @@ FROM Strings IMPORT
 IMPORT
 	Languages,
 	lrconv,
+	Storage,
 	windows,
 	winnls;
 
 PROCEDURE MoveA( CONST Source : ADDRESS; Destination : ADDRESS; Chars : CARDINAL );
 BEGIN
-	windows.MoveMemory( Destination, ADDRESS( Source ), Chars );
+	Storage.Move( Source, Destination, Chars );
 END MoveA;
 
 PROCEDURE MoveW( CONST Source : ADDRESS; Destination : ADDRESS; Chars : CARDINAL );
 BEGIN
-	windows.MoveMemory( Destination, ADDRESS( Source ), Chars << 1 );
+	Storage.Move( Source, Destination, Chars << 1 );
 END MoveW;
 
 PROCEDURE IncA( CONST Source : ADDRESS; Chars : CARDINAL ) : ADDRESS;
@@ -96,6 +97,12 @@ VAR
 	l : PTR;
 	src, dst, stop : PWCHAR;
 BEGIN
+   IF  HIGH( String ) < 0 THEN
+      RETURN;
+   ELSIF HIGH( Operand1 ) < 0 THEN
+      String[0] := 0W;
+      RETURN;
+   END;
 	src := PWCHAR( ADR( Operand1 ));
 	dst := ADR( String );
 	stop := INC( src, ( MIN2( HIGH( String ), HIGH( Operand1 )) + 1 ) << 1 );
@@ -294,7 +301,7 @@ END PadRightW;
 	
 PROCEDURE TrimStartW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimStartDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimStartDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimStartW;
 
 PROCEDURE TrimStartDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );
@@ -333,7 +340,7 @@ END TrimStartDelimitersSW;
 
 PROCEDURE TrimEndW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimEndDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimEndDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimEndW;
 
 PROCEDURE TrimEndDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );
@@ -384,7 +391,7 @@ END TrimEndDelimitersSW;
 
 PROCEDURE TrimW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimW;
 
 PROCEDURE TrimDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );
@@ -631,6 +638,7 @@ BEGIN
 		IF l = 0 THEN
 			RETURN -1;
 		END;
+		DEC( l );
 	END;
 	FOR i := FromIndex TO l DO
 		IF Source[i] IN Any THEN
@@ -653,6 +661,7 @@ BEGIN
 		IF l = 0 THEN
 			RETURN -1;
 		END;
+		DEC( l );
 	END;
 	FOR i := FromIndex TO l DO
 		IF Source[i] IN Any THEN
@@ -873,15 +882,15 @@ END SubstringW;
 
 PROCEDURE ItemW( CONST Source : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
 BEGIN
-	RETURN ItemMW( LENGTH( Source ), ADR( Source ), Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT Substring );
+	RETURN ItemMW( LENGTH( Source ), ADR( Source ), Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT Substring, NIL );
 END ItemW;
 
 PROCEDURE ItemSW( CONST Source : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
 BEGIN
-	RETURN ItemSMW( LENGTH( Source ), ADR( Source ), Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT Substring );
+	RETURN ItemSMW( LENGTH( Source ), ADR( Source ), Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT Substring, NIL );
 END ItemSW;
 
-PROCEDURE ItemMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
+PROCEDURE ItemMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR; pFilled : PCARDINAL ) : CARDINAL;
 VAR
 	i, j, p : CARDINAL;
 BEGIN
@@ -895,6 +904,9 @@ BEGIN
 	LOOP
 		IF i >= SourceLen THEN
 			Substring[0] := 0W;
+			IF pFilled <> NIL THEN
+			   pFilled^ := 0;
+			END;
 			RETURN -1;
 		ELSE
 			j := i;
@@ -904,6 +916,9 @@ BEGIN
 		END;
 		IF p = ItemIndex THEN
 			ASSIGN( Substring, OA( i-j-1, Source@[j<<1] ));
+			IF pFilled <> NIL THEN
+			   pFilled^ := i-j;
+			END;
 		END;
 		IF SkipEmpty THEN
 		   WHILE ( i < SourceLen ) AND ( Source@[i<<1]^ IN Delimiters ) DO
@@ -920,7 +935,7 @@ BEGIN
 	END;
 END ItemMW;
 
-PROCEDURE ItemSMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
+PROCEDURE ItemSMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR; pFilled : PCARDINAL ) : CARDINAL;
 VAR
 	i, j, p : CARDINAL;
 BEGIN
@@ -934,6 +949,9 @@ BEGIN
 	LOOP
 		IF i >= SourceLen THEN
 			Substring[0] := 0W;
+			IF pFilled <> NIL THEN
+			   pFilled^ := 0;
+			END;
 			RETURN -1;
 		ELSE
 			j := i;
@@ -943,6 +961,9 @@ BEGIN
 		END;
 		IF p = ItemIndex THEN
 			ASSIGN( Substring, OA( i-j-1, Source@[j<<1] ));
+			IF pFilled <> NIL THEN
+			   pFilled^ := i-j;
+			END;
 		END;
 		IF SkipEmpty THEN
 		   WHILE ( i < SourceLen ) AND ( Source@[i<<1]^ IN Delimiters ) DO
@@ -961,25 +982,32 @@ END ItemSMW;
 
 PROCEDURE ToA( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF CHAR ) : BOOLEAN; // CodePage can be 0
 VAR
-	f, l : CARDINAL;
+   filled : CARDINAL;
 BEGIN
-	l := MIN2( LENGTH( Source ), HIGH( Destination )+1 );
-	f := l;
+   RETURN ToMA( LENGTH( Source ), ADR( Source ), CodePage, HIGH( Destination )+1, ADR( Destination ), OUT filled );
+END ToA;
+
+PROCEDURE ToMA( SourceCharLen : CARDINAL; CONST Source : PWCHAR; CodePage : CARDINAL; DestinationCharSpace : CARDINAL; Destination : PCHAR; OUT FilledChar : CARDINAL ) : BOOLEAN; // CodePage can be 0, FALSE is returned mostly if Destination is too small
+VAR
+   filled : CARDINAL := 0;
+	l : CARDINAL := MIN2( SourceCharLen, DestinationCharSpace );
+BEGIN
 	IF l > 0 THEN
 		IF CodePage = 0 THEN
 			CodePage := winnls.CP_ACP;
 		END;
-		l := winnls.WideCharToMultiByte( CodePage, 0, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1, NIL, NIL );
-		ASSERTLOG( l > 0 );
-		IF l = 0 THEN
+		filled := winnls.WideCharToMultiByte( CodePage, 0, Source, l, Destination, DestinationCharSpace, NIL, NIL );
+		ASSERTLOG( filled > 0 );
+		IF filled = 0 THEN
 		   RETURN FALSE;
 		END;
 	END;
-	IF l < HIGH( Destination ) THEN
-		Destination[l] := CHAR( 0 );
+	IF filled < DestinationCharSpace THEN
+		Destination@[filled]^ := CHAR( 0 );
 	END;
+	FilledChar := filled;
 	RETURN TRUE;
-END ToA;
+END ToMA;
 
 PROCEDURE ToAStream( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
 BEGIN
@@ -988,29 +1016,35 @@ END ToAStream;
 
 PROCEDURE ToW( CONST Source : ARRAY OF CHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR ) : BOOLEAN; // CodePage can be 0
 VAR
-	f, l : CARDINAL;
+   filled : CARDINAL;
 BEGIN
-	l := LENGTH( Source );
-	f := l;
-	IF l > 0 THEN
+   RETURN ToMW( LENGTH( Source ), ADR( Source ), CodePage, HIGH( Destination )+1, ADR( Destination ), OUT filled );
+END ToW;
+
+PROCEDURE ToMW( SourceCharLen : CARDINAL; CONST Source : PCHAR; CodePage : CARDINAL; DestinationCharSpace : CARDINAL; Destination : PWCHAR; OUT FilledChar : CARDINAL ) : BOOLEAN; // FALSE is returned mostly if Destination is too small
+VAR
+   filled : CARDINAL := 0;
+BEGIN
+	IF SourceCharLen > 0 THEN
 		IF CodePage = 0 THEN
 			CodePage := winnls.CP_ACP;
 		END;
 		IF CodePage = winnls.CP_UTF8 THEN
-			l := winnls.MultiByteToWideChar( CodePage, 0, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1 );
+			filled := winnls.MultiByteToWideChar( CodePage, 0, Source, SourceCharLen, Destination, DestinationCharSpace );
 		ELSE
-			l := winnls.MultiByteToWideChar( CodePage, winnls.MB_PRECOMPOSED, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1 );
+			filled := winnls.MultiByteToWideChar( CodePage, winnls.MB_PRECOMPOSED, Source, SourceCharLen, Destination, DestinationCharSpace );
 		END;
-		ASSERTLOG( l > 0 );
-		IF l = 0 THEN
+		ASSERTLOG( filled > 0 );
+		IF filled = 0 THEN
 		   RETURN FALSE;
 		END;
 	END;
-	IF l < HIGH( Destination ) THEN
-		Destination[l] := 0W;
+	IF filled < DestinationCharSpace THEN
+		Destination@[filled<<1]^ := 0W;
 	END;
+	FilledChar := filled;
 	RETURN TRUE;
-END ToW;
+END ToMW;	
 
 PROCEDURE ToWStream( CONST Source : ARRAY OF BYTE; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
 BEGIN

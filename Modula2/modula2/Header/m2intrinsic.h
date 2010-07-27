@@ -91,8 +91,8 @@ inline WCHAR LOWFW_( WCHAR ch ) throw()
 # endif
 
 namespace Storage {
-  __Storage_MI void (M2ALLOCATE)( ADDRESS* ptr, CARDINAL size ) throw();
-  __Storage_MI void (M2DEALLOCATE)( ADDRESS* ptr ) throw();
+  __Storage_MI void (M2ALLOCATE)( M2ADDRESS* ptr, CARDINAL size ) throw();
+  __Storage_MI void (M2DEALLOCATE)( M2ADDRESS* ptr ) throw();
 }
 # define __M2ALLOCATE Storage::M2ALLOCATE
 # define __M2DEALLOCATE Storage::M2DEALLOCATE
@@ -114,6 +114,30 @@ inline void OBJECT::operator delete(void* ptr) throw()
 {
   __M2DEALLOCATE(&ptr);
 } // OBJECT::operator delete
+
+inline void* __cdecl operator new(size_t size) throw()
+{
+  void* ptr;
+  __M2ALLOCATE(&ptr, size);
+  return ptr;
+}
+
+inline void __cdecl operator delete(void* ptr) throw()
+{
+  __M2DEALLOCATE(&ptr);
+}
+
+inline void* __cdecl operator new[](size_t size) throw()
+{
+  void* ptr;
+  __M2ALLOCATE(&ptr, size);
+  return ptr;
+}
+
+inline void __cdecl operator delete[](void* ptr) throw()
+{
+  __M2DEALLOCATE(&ptr);
+}
 
 # endif // # ifndef _M2INTRINSIC_Storage_
 

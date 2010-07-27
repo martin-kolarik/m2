@@ -3,14 +3,14 @@
     <!-- TOOLS -->
     <PropertyGroup>
         <!-- VCD Condition="$(VCD)==''">$(MSD)\</VCD -->
-        <CL>&quot;$(VCD)cl&quot; /c /D"_ATL_MIN_CRT"</CL>
+        <CL>&quot;$(VCD)cl&quot; /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
         <LINK>&quot;$(VCD)link&quot; /map /nodefaultlib</LINK>
         <LIB>&quot;$(VCD)lib&quot; /nodefaultlib</LIB>
         <RC>&quot;$(VCD)rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
         <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
         <MTT>mt -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
 
-        <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2><!-- povolit CPPexc -->
+        <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2>
         <M2D>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2D>
         <XRSDEF>&quot;$(RootBuildPath)\Bin\xrsc&quot; -D -O$(SourceDir)</XRSDEF>
         <XRSBIN>&quot;$(RootBuildPath)\Bin\xrsc&quot; -B -O$(IntermediateDir) -P$(MSBuildProjectName).</XRSBIN>
@@ -19,6 +19,7 @@
         <LICSIGN>&quot;$(RootBuildPath)\Bin\licbuild&quot; -S</LICSIGN>
         <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
         <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
+        <RUNTEST>&quot;$(RootBuildPath)\Bin\runtest&quot; -F</RUNTEST>
 
         <CompileProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</CompileProductId>
         <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
@@ -33,19 +34,21 @@
     <PropertyGroup>
         <M2CTRL>-DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName) -DLicenceMachineId:$(LicenceMachineId)</M2CTRL>
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug)</M2CTRL>
+        <M2CTRL Condition="$(CPPExceptions)=='on'">$(M2CTRL) -SE</M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
-        <CLCTRL>/Zp8 /J /Gy /GR /Gr /GF /GS- /Oi /Zi /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
-        <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /EHsc</CLCTRL>
+        <CLCTRL>/Zp8 /J /Gy /Gr /Gs /GF /GS- /Oi /Zi /Wp64</CLCTRL><!-- Gs commits stack, its default commit threshold is 4K, the same as linker sets for initial stack commit -->
+        <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /GR /EHsc</CLCTRL>
+        <CLCTRL Condition="$(CPPExceptions)!='on'">$(CLCTRL) /GR-</CLCTRL>
+        <!-- CLCTRL>$(CLCTRL) /W4 /wd4018 /wd4100 /wd4102 /wd4127 /wd4146 /wd4245</CLCTRL -->
         <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
-        <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST:NO delayimp.lib</LINKCTRL>
-        <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST delayimp.lib</LINKCTRL>
-        <MT Condition="$(Result)=='Program'">$(MT);#1</MT>
-        <MT Condition="$(Result)=='Dynamic'">$(MT);#2</MT>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <M2CTRL Condition ="$(PublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
-        <M2CTRL Condition ="$(PublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
+        <LINKCTRL>/OPT:REF /OPT:NOWIN98 /MERGE:.rdata=.text /IGNORE:4049 /IGNORE:4199 /IGNORE:4210 /IGNORE:4217 delayimp.lib</LINKCTRL>
+        <LINKCTRL Condition="$(ResultSubsystem)=='Console'">$(LINKCTRL) /SUBSYSTEM:CONSOLE</LINKCTRL>
+        <LINKCTRL Condition="$(ResultSubsystem)=='GUI'">$(LINKCTRL) /SUBSYSTEM:WINDOWS</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Static'">$(LINKCTRL) /MANIFEST:NO</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Dynamic'">$(LINKCTRL) /MANIFEST</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Private'">$(LINKCTRL) /MANIFEST:NO /SAFESEH:NO</LINKCTRL>
+        <MT Condition="$(Result)=='Program' And $(CLib)!='Private'">$(MT);#1</MT>
+        <MT Condition="$(Result)=='Dynamic' And $(CLib)!='Private'">$(MT);#2</MT>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(ConfigurationName)=='Release'">
@@ -62,7 +65,7 @@
         <M2CTRL>$(M2CTRL) -SS</M2CTRL>
         <CLCTRL>$(CLCTRL)</CLCTRL>
         <CLCTRL Condition="$(CLib)=='Static'">$(CLCTRL) /MTd</CLCTRL>
-        <CLCTRL Condition="$(CLib)!='Static'">$(CLCTRL) /MDd</CLCTRL>
+        <CLCTRL Condition="$(CLib)=='Dynamic'">$(CLCTRL) /MDd</CLCTRL>
         <RCCTRL>$(RCCTRL) -DDEBUG</RCCTRL>
         <LINKCTRL>$(LINKCTRL) /DEBUG</LINKCTRL>
     </PropertyGroup>
@@ -70,9 +73,16 @@
         <M2CTRL>$(M2CTRL) -SD</M2CTRL>
         <CLCTRL>$(CLCTRL) /GL /O2</CLCTRL>
         <CLCTRL Condition="$(CLib)=='Static'">$(CLCTRL) /MT</CLCTRL>
-        <CLCTRL Condition="$(CLib)!='Static'">$(CLCTRL) /MD</CLCTRL>
+        <CLCTRL Condition="$(CLib)=='Dynamic'">$(CLCTRL) /MD</CLCTRL>
         <RCCTRL>$(RCCTRL)</RCCTRL>
         <LINKCTRL>$(LINKCTRL) /DEBUG</LINKCTRL>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <M2CTRL Condition ="$(PublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(PublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
+        <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(LibraryName) -LD</M2TESTCTRL>
+        <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(LibraryName)_test -LD</M2TESTCTRL>
     </PropertyGroup>
 
     <!-- INPUTS -->
@@ -125,7 +135,8 @@
     <!-- DEFINITIONS TOGETHER -->
     <PropertyGroup>
         <M2DEF>$(M2CTRL) $(M2LANG) $(M2INPUTS)</M2DEF>
-        <M2TDEF>-T -QI $(M2DEF)</M2TDEF>
+        <M2TIMEDEF>-T -QI $(M2DEF)</M2TIMEDEF>
+        <M2TESTDEF>$(M2TESTCTRL) $(M2LANG) $(M2INPUTS)</M2TESTDEF>
         <CLDEF>$(CLCTRL) $(CLLANG) $(CLINPUTS)</CLDEF>
         <RCDEF>$(RCCTRL) $(RCLANG) $(RCINPUTS)</RCDEF>
         <LINKDEF>$(LINKCTRL) $(BUILDOUTPUT) $(LINKBASE)</LINKDEF>

@@ -5,6 +5,7 @@
     <!-- 1 -->
     <PropertyGroup>
         <ComponentType>Product</ComponentType>
+        <ClientLicensing>on</ClientLicensing>
 
         <ProductId>NeNo.EibSrv</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
@@ -12,12 +13,15 @@
         <ProductNote></ProductNote>
         <!-- DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod -->
 
-        <FileDisplayName>EIB/KNX Server</FileDisplayName>
-        <FileDescription>EIB/KNX group object server</FileDescription>
+        <FileDisplayName>SmartServer</FileDisplayName>
+        <FileDescription>EIB/KNX SmartServer</FileDescription>
+
+        <ClientLicensing>on</ClientLicensing>
     </PropertyGroup>
 
     <PropertyGroup>
         <ResultName>EibSrv</ResultName>
+        <TestExec>off</TestExec>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -26,7 +30,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvsvc;$(RootPath)\EIB\EibSrvWeb;$(RootPath)\EIB\EibSrv"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvsvc;$(RootPath)\EIB\EibSrvWeb;$(RootPath)\EIB\SmartServer"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Component\sccore;Component\scmvc;Library\DeviceIO;EIB\srvcore;EIB\EibSrvWeb"/>

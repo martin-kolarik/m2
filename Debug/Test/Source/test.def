@@ -19,9 +19,13 @@ TYPE
    TPTest = POINTER TO ITest;
    TPTests = POINTER TO ITests;
    
+#save, option( dll_export => on )
+
 INTERFACE IHost;
    READONLY PROPERTY
-      Log : log.TPLogger;
+      Log : log.TPILogger;
+      Output : log.TPIOutput;
+      FastEvaluation : BOOLEAN;
    PROPERTY
       Progress : CARDINAL; // percent
    // optional
@@ -41,6 +45,8 @@ INTERFACE ITests( iobject.IObject ); // CID in : Development.Tests
    // for test creation
    PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : TPTest );
 END ITests;
+
+#restore   
 
 (*================================================================================*)
    

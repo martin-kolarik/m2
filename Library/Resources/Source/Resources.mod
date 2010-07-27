@@ -144,23 +144,17 @@ CLASS IMPLEMENTATION CResources;
 
 //---------------------------------------------------------------------------
 
-  PUBLIC INDEX CResources GET( Id : CARDINAL ) : PWCHAR; // zero-terminated
-  BEGIN
-    IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) THEN
-      IF _Texts = NIL THEN // fall down
-      ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
-        RETURN TPTexts( _Texts )^[ Id ].Text;
-      ELSIF _FallbackTexts = NIL THEN // fall down
-      ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
-        RETURN TPTexts( _FallbackTexts )^[ Id ].Text;
+   PUBLIC INDEX CResources GET( Id : CARDINAL ) : PWCHAR; // zero-terminated
+   VAR
+      length : CARDINAL;
+      text : PWCHAR;
+   BEGIN
+      IF AcquireText( Id, OUT text, OUT length, OA( -1, PWCHAR( NIL ))) THEN
+         RETURN text;
+      ELSE
+         RETURN NIL;
       END;
-    END;
-    IF GlobalFallback THEN
-      RETURN PWCHAR( ADR( fallback ));
-    ELSE
-      RETURN NIL;
-    END;
-  END CResources;
+   END CResources;
     
 //---------------------------------------------------------------------------
 
@@ -230,7 +224,7 @@ CLASS IMPLEMENTATION CResources;
       RETURN FALSE;
     END;
     l := FIO.Size( f );
-    ALLOCATE( Bin, l );
+    ALLOCATE( OUT Bin, l );
     IF FIO.RdBin( f, Bin^, l ) <> l THEN
        FIO.Close( f );
       RETURN FALSE;
@@ -240,166 +234,159 @@ CLASS IMPLEMENTATION CResources;
     RETURN TRUE;
   END LoadBIN;
   
-//---------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
-  BEGIN
-    IF ( _Resource <> NIL ) OR ( Id < _Resource^.TextCount ) THEN
-      IF _Texts = NIL THEN // fall down
-      ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
-        Length := TPTexts( _Texts )^[ Id ].Length;
-        Text := TPTexts( _Texts )^[ Id ].Text;
-        RETURN TRUE;
-      ELSIF _FallbackTexts = NIL THEN // fall down
-      ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
-        Length := TPTexts( _FallbackTexts )^[ Id ].Length;
-        Text := TPTexts( _FallbackTexts )^[ Id ].Text;
-        RETURN TRUE;
+   PUBLIC PROPERTY LanguageCount GET : CARDINAL;
+   BEGIN
+      RETURN _Resource^.SlotCount;
+   END LanguageCount;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetLanguage( LangIndex : CARDINAL; OUT Lang : Languages.TLanguage ) : BOOLEAN;
+   BEGIN
+      IF LangIndex < _Resource^.SlotCount THEN
+         Lang := _Stub^.Slots^[LangIndex].LangBySource;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
-    END;
-    IF GlobalFallback THEN
-      Length := SIZE( fallback ) >> 1;
-      Text := PWCHAR( ADR( fallback ));
-      RETURN TRUE;
-    ELSE
-      RETURN FALSE;
-    END;
-  END GetText;
+   END GetLanguage;
 
-//---------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
-  VAR
-    Index : CARDINAL;
-  BEGIN
-    IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) AND SearchLanguage( Language, OUT Index ) THEN
-      Length := _Stub^.Slots^[ Index ].Texts^[ Id ].Length;
-      Text := _Stub^.Slots^[ Index ].Texts^[ Id ].Text;
-    ELSIF GlobalFallback THEN
-      Length := SIZE( fallback ) >> 1;
-      Text := PWCHAR( ADR( fallback ));
-    ELSE
-      RETURN FALSE;
-    END;
-    RETURN TRUE;
-  END GetTextL;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE FillText( Id : CARDINAL; OUT Text : ARRAY OF WCHAR ) : BOOLEAN;
-  BEGIN
-    IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) THEN
-      IF _Texts = NIL THEN // fall down
-      ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
-        ASSIGN( Text, OA( TPTexts( _Texts )^[ Id ].Length - 1, TPTexts( _Texts )^[ Id ].Text ));
-        RETURN TRUE;
-      ELSIF _FallbackTexts = NIL THEN // fall down
-      ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
-        ASSIGN( Text, OA( TPTexts( _FallbackTexts )^[ Id ].Length - 1, TPTexts( _FallbackTexts )^[ Id ].Text ));
-        RETURN TRUE;
+   PUBLIC PROCEDURE GetRFC1766( LangIndex : CARDINAL; OUT Lang : Languages.TRFC1766 ) : BOOLEAN;
+   VAR
+      L : Languages.TLanguage;
+   BEGIN
+      IF NOT GetLanguage( LangIndex, OUT L ) THEN
+         RETURN FALSE;
+      ELSE
+         RETURN Languages.LanguageToRFC1766( L, OUT Lang );
       END;
-    END;
-    IF GlobalFallback THEN
-      ASSIGN( Text, fallback );
-      RETURN TRUE;
-    ELSE
-      RETURN FALSE;
-    END;
-  END FillText;
+   END GetRFC1766;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ContainsLanguage( Lang : Languages.TLanguage ) : BOOLEAN;
+   VAR
+      Index : CARDINAL;
+   BEGIN
+      RETURN SearchLanguage( Lang, OUT Index );
+   END ContainsLanguage;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ContainsRFC1766( Lang : Languages.TRFC1766 ) : BOOLEAN;
+   VAR
+      L : Languages.TLanguage;
+   BEGIN
+      IF Languages.RFC1766ToLanguage( Lang, OUT L ) THEN
+         RETURN ContainsLanguage( L );
+      ELSE
+         RETURN FALSE;
+      END;
+   END ContainsRFC1766;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+   BEGIN
+      RETURN AcquireText( Id, OUT Text, OUT Length, OA( -1, PWCHAR( NIL )));
+   END GetText;
 
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE FillTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : ARRAY OF WCHAR ) : BOOLEAN;
-  VAR
-    Index : CARDINAL;
-  BEGIN
-    IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) AND SearchLanguage( Language, OUT Index ) THEN
-      ASSIGN( Text, OA( _Stub^.Slots^[ Index ].Texts^[ Id ].Length - 1, _Stub^.Slots^[ Index ].Texts^[ Id ].Text ));
-    ELSIF GlobalFallback THEN
-      ASSIGN( Text, fallback );
-    ELSE
-      RETURN FALSE;
-    END;
-    RETURN TRUE;
-  END FillTextL;
+   PUBLIC PROCEDURE GetTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+   BEGIN
+      RETURN AcquireTextL( Language, Id, OUT Text, OUT Length, OA( -1, PWCHAR( NIL )));
+   END GetTextL;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE FillText( Id : CARDINAL; OUT Text : ARRAY OF WCHAR ) : BOOLEAN;
+   VAR
+      length : CARDINAL;
+      text : PWCHAR;
+   BEGIN
+      IF AcquireText( Id, OUT text, OUT length, OA( -1, PWCHAR( NIL ))) THEN
+         ASSIGN( Text, OA( length-1, text ));
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END FillText;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE FillTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : ARRAY OF WCHAR ) : BOOLEAN;
+   VAR
+      length : CARDINAL;
+      text : PWCHAR;
+   BEGIN
+      IF AcquireTextL( Language, Id, OUT text, OUT length, OA( -1, PWCHAR( NIL ))) THEN
+         ASSIGN( Text, OA( length-1, text ));
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END FillTextL;
   
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE Text( Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
-  BEGIN
-    IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) THEN
-      IF _Texts = NIL THEN // fall down
-      ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
-        RETURN TPTexts( _Texts )^[ Id ].Text;
-      ELSIF _FallbackTexts = NIL THEN // fall down
-      ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
-        RETURN TPTexts( _FallbackTexts )^[ Id ].Text;
+   PUBLIC PROCEDURE Text( Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
+   VAR
+      length : CARDINAL;
+      text : PWCHAR;
+   BEGIN
+      IF AcquireText( Id, OUT text, OUT length, Fallback ) THEN
+         RETURN text;
+      ELSE
+         RETURN NIL;
       END;
-    END;
-    IF ( HIGH( Fallback ) <> 0 ) AND ( ADR( Fallback ) <> NIL ) THEN
-      RETURN ADR( Fallback );
-    ELSIF GlobalFallback THEN
-      RETURN PWCHAR( ADR( fallback ));
-    ELSE
-      RETURN NIL;
-    END;
-  END Text;
+   END Text;
 
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE Length( Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : CARDINAL;
-  BEGIN
-    IF ( _Resource <> NIL ) OR ( Id < _Resource^.TextCount ) THEN
-      IF _Texts = NIL THEN // fall down
-      ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
-        RETURN TPTexts( _Texts )^[ Id ].Length;
-      ELSIF _FallbackTexts = NIL THEN // fall down
-      ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
-        RETURN TPTexts( _FallbackTexts )^[ Id ].Length;
+   PUBLIC PROCEDURE Length( Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : CARDINAL;
+   VAR
+      length : CARDINAL;
+      text : PWCHAR;
+   BEGIN
+      IF AcquireText( Id, OUT text, OUT length, Fallback ) THEN
+         RETURN length;
+      ELSE
+         RETURN 0;
       END;
-    END;
-    IF ( HIGH( Fallback ) <> 0 ) AND ( ADR( Fallback ) <> NIL ) THEN
-      RETURN LENGTH( Fallback );
-    ELSIF GlobalFallback THEN
-      RETURN SIZE( fallback ) >> 1;
-    ELSE
-      RETURN 0;
-    END;
-  END Length;
+   END Length;
 
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE TextL( Language : Languages.TLanguage; Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
-  VAR
-    Index : CARDINAL;
-  BEGIN
-    IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) AND SearchLanguage( Language, OUT Index ) THEN
-      RETURN _Stub^.Slots^[ Index ].Texts^[ Id ].Text;
-    ELSIF ( HIGH( Fallback ) <> 0 ) AND ( ADR( Fallback ) <> NIL ) THEN
-      RETURN ADR( Fallback );
-    ELSIF GlobalFallback THEN
-      RETURN PWCHAR( ADR( fallback ));
-    ELSE
-      RETURN NIL;
-    END;
-  END TextL;
+   PUBLIC PROCEDURE TextL( Language : Languages.TLanguage; Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
+   VAR
+      length : CARDINAL;
+      text : PWCHAR;
+   BEGIN
+      IF AcquireTextL( Language, Id, OUT text, OUT length, Fallback ) THEN
+         RETURN text;
+      ELSE
+         RETURN NIL;
+      END;
+   END TextL;
 
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE LengthL( Language : Languages.TLanguage; Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : CARDINAL;
-  VAR
-    Index : CARDINAL;
-  BEGIN
-    IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) AND SearchLanguage( Language, OUT Index ) THEN
-      RETURN _Stub^.Slots^[ Index ].Texts^[ Id ].Length;
-    ELSIF ( HIGH( Fallback ) <> 0 ) AND ( ADR( Fallback ) <> NIL ) THEN
-      RETURN LENGTH( Fallback );
-    ELSIF GlobalFallback THEN
-      RETURN SIZE( fallback ) >> 1;
-    ELSE
-      RETURN 0;
-    END;
-  END LengthL;
+   PUBLIC PROCEDURE LengthL( Language : Languages.TLanguage; Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : CARDINAL;
+   VAR
+      length : CARDINAL;
+      text : PWCHAR;
+   BEGIN
+      IF AcquireTextL( Language, Id, OUT text, OUT length, Fallback ) THEN
+         RETURN length;
+      ELSE
+         RETURN 0;
+      END;
+   END LengthL;
 
 //---------------------------------------------------------------------------
 
@@ -439,7 +426,69 @@ CLASS IMPLEMENTATION CResources;
     RETURN FALSE;
   END SearchLanguage;
 
-//---------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE AcquireText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL; Fallback : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      IF ( _Resource <> NIL ) OR ( Id < _Resource^.TextCount ) THEN
+         IF _Texts = NIL THEN
+            // fall down
+         ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
+            Length := TPTexts( _Texts )^[ Id ].Length;
+            Text := TPTexts( _Texts )^[ Id ].Text;
+            RETURN TRUE;
+         ELSIF _FallbackTexts = NIL THEN
+            // fall down
+         ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
+            Length := TPTexts( _FallbackTexts )^[ Id ].Length;
+            Text := TPTexts( _FallbackTexts )^[ Id ].Text;
+            RETURN TRUE;
+         END;
+      END;
+      IF ADR( Fallback ) <> NIL THEN
+         Length := LENGTH( Fallback );
+         Text := ADR( Fallback );
+      ELSIF GlobalFallback THEN
+         Length := SIZE( fallback ) >> 1;
+         Text := PWCHAR( ADR( fallback ));
+      ELSE
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
+   END AcquireText;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE AcquireTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL; Fallback : ARRAY OF WCHAR ) : BOOLEAN;
+   VAR
+      Index : CARDINAL;
+   BEGIN
+      IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) THEN
+         IF SearchLanguage( Language, OUT Index ) THEN
+            Length := _Stub^.Slots^[ Index ].Texts^[ Id ].Length;
+            Text := _Stub^.Slots^[ Index ].Texts^[ Id ].Text;
+            RETURN TRUE;
+         ELSIF _FallbackTexts = NIL THEN
+            // fall down
+         ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
+            Length := TPTexts( _FallbackTexts )^[ Id ].Length;
+            Text := TPTexts( _FallbackTexts )^[ Id ].Text;
+            RETURN TRUE;
+         END;
+      END;       
+      IF ADR( Fallback ) <> NIL THEN
+         Length := LENGTH( Fallback );
+         Text := ADR( Fallback );
+      ELSIF GlobalFallback THEN
+         Length := SIZE( fallback ) >> 1;
+         Text := PWCHAR( ADR( fallback ));
+      ELSE
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
+   END AcquireTextL;
+
+(*--------------------------------------------------------------------------------*)
 
   PRIVATE PROCEDURE Notify( Lang, Texts : BOOLEAN );
   BEGIN
@@ -471,7 +520,7 @@ CLASS IMPLEMENTATION CResources;
         _Resource := NIL;
       END;
       _Mode := rmSelfMemory;
-      REALLOCATE( _Resource, Bin^.BinLength );
+      REALLOCATE( REF _Resource, Bin^.BinLength );
       Storage.Move( Bin, _Resource, Bin^.BinLength );
     ELSE
       CASE _Mode OF
@@ -496,7 +545,7 @@ CLASS IMPLEMENTATION CResources;
     i, j, l : INTEGER;
   BEGIN
     l := SIZE( TResourceData ) + _Resource^.SlotCount * ( SIZE( TLanguageSlot ) + _Resource^.TextCount * SIZE( TText ));
-    REALLOCATE( _Stub, l );
+    REALLOCATE( REF _Stub, l );
     Storage.Move( _Resource, _Stub, l );
     
     // adjust main offsets
@@ -580,7 +629,7 @@ CLASS IMPLEMENTATION CPlainResources;
         L := MAX2( _TextsAllocated << 1, 256 );
         _Langs.Reset();
         WHILE _Langs.MoveNext() DO
-          REALLOCATE( _Langs.CurrentData, L * SIZE( TText ));
+          REALLOCATE( REF _Langs.CurrentData, L * SIZE( TText ));
           Storage.Fill( INC( _Langs.CurrentData, _TextsAllocated * SIZE( TText )), ( L - _TextsAllocated ) * SIZE( TText ), 0 );
         END; // END
         _TextsAllocated := L;
@@ -597,7 +646,7 @@ CLASS IMPLEMENTATION CPlainResources;
     BEGIN
       IF NOT _Langs.Get( Lang, OUT Texts ) THEN
         L := _TextsAllocated * SIZE( TText );
-        ALLOCATE( Texts, L );
+        ALLOCATE( OUT Texts, L );
         Storage.Fill( Texts, L, 0 );
         _Langs.Add( Lang, Texts );
       END;
@@ -606,7 +655,7 @@ CLASS IMPLEMENTATION CPlainResources;
       L := LENGTH( String ) + 1;
       IF _PoolBytes + L << 1 > _PoolAllocated THEN
         _PoolAllocated := ( _PoolBytes + L << 1 + 4095 ) DIV 4096 * 4096;
-        REALLOCATE( _Pool, _PoolAllocated << 1 );
+        REALLOCATE( REF _Pool, _PoolAllocated << 1 );
       END;
       Strings.MoveW( ADR( String ), _Pool@[ _PoolBytes ], L );
 
@@ -640,7 +689,7 @@ CLASS IMPLEMENTATION CPlainResources;
       l :=  c * SIZE( TText );
       cl := _Langs.Count;
       al := SIZE( TResourceData ) +  cl * ( SIZE( TLanguageSlot ) + l ) + _PoolBytes;
-      ALLOCATE( _Resource, al );
+      ALLOCATE( OUT _Resource, al );
 
       // main record
       WITH _Resource^ DO

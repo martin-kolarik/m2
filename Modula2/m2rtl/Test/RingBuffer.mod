@@ -23,6 +23,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       Ring : SyncQueue.RingBuffer;
       Exit : CARDINAL := 0;
+      Limit : CARD64 := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    INTERNAL PROCEDURE Round( Mode : TMode; RingSize : CARDINAL ) : BOOLEAN;
@@ -71,6 +72,12 @@ CLASS IMPLEMENTATION CTest;
       Size : CARDINAL;
    BEGIN
       SELF.Host := Host;
+      
+      IF Host^.FastEvaluation THEN
+         Limit := 10000;
+      ELSE
+         Limit := 500000;
+      END;
    
       FOR Mode := NN TO PC DO
          FOR Size := 0 TO HIGH( sizes ) DO
@@ -147,7 +154,7 @@ CLASS IMPLEMENTATION CTest;
       LOOP
          Ring.WriteOA( C64 ); // also waits for Produce
          INC( C64 );
-         IF C64 > 500000 THEN
+         IF C64 > Limit THEN
             EXIT;
          ELSIF Exit = 1 THEN
             EXIT;
@@ -166,11 +173,11 @@ CLASS IMPLEMENTATION CTest;
          Ring.ReadOA( OUT C64 ); // also waits for consume
          IF C64 <> P64+1 THEN
             Strings.FromCARD64W( C64, 10, OUT sC64 ); Strings.FromCARD64W( P64, 10, OUT sP64 );
-            Host^.Log^.LogSSS( log.dlcError, L"", L"Failed on numbers: ", sC64, sP64 );
+            Host^.Log^.LogSSS( log.lcError, 0, L"", L"Failed on numbers: ", sC64, sP64 );
             Exit := 1;
             EXIT;
          END;
-         IF C64 = 500000 THEN
+         IF C64 = Limit THEN
             EXIT;
          ELSIF Exit = 1 THEN
             EXIT;

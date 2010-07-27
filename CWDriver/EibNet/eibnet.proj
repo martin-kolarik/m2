@@ -7,6 +7,7 @@
         <ComponentType>Product</ComponentType>
         <SetupLicensing>on</SetupLicensing>
 
+        <ProductGUID>841A3212-2680-4ed4-9307-D2964EE55842</ProductGUID>
         <ProductUpgradeGUID>3A9E965F-7926-4c49-B119-F21E6E0109B2</ProductUpgradeGUID>
 
         <ProductId>SmartControl.EIBNet.CWDriver</ProductId>
@@ -26,9 +27,9 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvcore;$(RootPath)\CWDriver\eibnetdrv"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvcore;$(RootPath)\CWDriver\eibnetdrv;$(RootPath)\CWDriver\eibnet"/>
 
-        <Components Include="component\sccore;CWDriver\eibnetdrv;EIB\checkcfg;EIB\discover"/>
+        <Components Include="component\sccore;CWDriver\eibnetdrv;EIB\checkcfg;EIB\discover;Licensing\LicTool"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

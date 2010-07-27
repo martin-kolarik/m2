@@ -4,7 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM log IMPORT
-   dldError, dldMessage, dldTrace, dldDebug;
+   ldError, ldMessage, ldTrace, ldDebug;
   
 FROM driver IMPORT
    R;
@@ -213,7 +213,7 @@ CLASS IMPLEMENTATION CSDAP;
          END;
          
          IF ( _Client <> NIL ) AND NOT _Client^.Connected THEN
-            _Logger.LogS( Log.dldTrace, LOG_NAME, L"Not connected, try to connect again" );
+            _Logger.LogS( Log.ldTrace, 0, LOG_NAME, L"Not connected, try to connect again" );
             _Client^.Connect( _Host );                  
          END;
          
@@ -248,7 +248,7 @@ CLASS IMPLEMENTATION CSDAP;
             EventSink^.OnConnected();
          END;
       ELSE
-         _Logger.LogSC( Log.dldTrace, LOG_NAME, L"Connect error:", Error );
+         _Logger.LogSC( Log.ldTrace, 0, LOG_NAME, L"Connect error:", Error );
       END;
    END OnConnect;
 
@@ -257,7 +257,7 @@ CLASS IMPLEMENTATION CSDAP;
    PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    BEGIN
       IF Result <> Sync.arCompleted THEN
-         _Logger.LogSC( Log.dldTrace, LOG_NAME, L"Disconnect error:", Error );
+         _Logger.LogSC( Log.ldTrace, 0, LOG_NAME, L"Disconnect error:", Error );
       END;
       IF EventSink <> NIL THEN
          EventSink^.OnDisconnected( Result );

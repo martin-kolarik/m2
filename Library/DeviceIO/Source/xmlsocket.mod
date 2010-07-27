@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       ASSERTLOG( NOT _Clients.Contains( Connection ));
       
       IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_XMLS ) THEN
-         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         Connection^.RemoteAddress.ToOA( TRUE, OUT address );
          _NetworkLogger^.LogSS( log.dlcError, LOG_XMLS, "CONNECT:", address );
       END;
 
@@ -236,7 +236,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Client : TPClient;
    BEGIN
       IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_XMLS ) THEN
-         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         Connection^.RemoteAddress.ToOA( TRUE, OUT address );
          _NetworkLogger^.LogSS( log.dlcError, LOG_XMLS, "DISCONNECT:", address );
       END;
 
@@ -258,12 +258,12 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Client : TPClient;
       sd : ARRAY [0..63] OF WCHAR;
    BEGIN
-      Connection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      _CommonLogger^.LogSS( log.dldDebug, LOG_XMLS, "RCV: ", sd );
-      _CommonLogger^.LogSC( log.dldDebug, LOG_XMLS, "  length: ", DataLen );
+      Connection^.RemoteAddress.ToOA( TRUE, OUT sd );
+      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_XMLS, "RCV: ", sd );
+      _CommonLogger^.LogSC( log.ldDebug, 0, LOG_XMLS, "  length: ", DataLen );
 
       IF NOT _Clients.Get( Connection, OUT Client ) THEN
-         _CommonLogger^.LogS( log.dldDebug, LOG_XMLS, "  to: unknown connection" );
+         _CommonLogger^.LogS( log.ldDebug, 0, LOG_XMLS, "  to: unknown connection" );
          RETURN;
       END;
    
@@ -291,7 +291,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             RETURN;
          END;
          
-         Parse( Client, OA( i - SIZE( LEAD_XMLSOCKET ), PCHAR( Client^.RBuffer.Data@[SIZE( LEAD_XMLSOCKET )-1] ) )); // slice data inside LEADING and TRAILING
+         Parse( Connection, Client, OA( i - SIZE( LEAD_XMLSOCKET ), PCHAR( Client^.RBuffer.Data@[SIZE( LEAD_XMLSOCKET )-1] ) )); // slice data inside LEADING and TRAILING
          
          Client^.RBuffer.RemoveStart( i + SIZE( TRAIL_XMLSOCKET )-1 );
       END; // LOOP
@@ -325,7 +325,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       // client's presence must be recheck, because scheduled send can arrive after client disconnect
       Connection := Items^[0];
       IF NOT _Clients.Get( Connection, OUT Client ) THEN
-         _CommonLogger^.LogS( log.dldDebug, LOG_XMLS, "SND: after disconnect" );
+         _CommonLogger^.LogS( log.ldDebug, 0, LOG_XMLS, "SND: after disconnect" );
          RETURN;
       END;
 
@@ -334,7 +334,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       i := 1;
       l := Items^.Count;
       WHILE i < l DO
-         IO^.IOh( IOO.dirRead, Items^[i], REF value, NIL );
+         IO^.IOh( NIL, IOO.dirRead, Items^[i], REF value, NIL );
          Client^.AddItem( Items^[i], value );
          INC( i );
       END; // WHILE
@@ -344,10 +344,11 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Parse( Client : ADDRESS; Data : ARRAY OF CHAR );
+   PRIVATE PROCEDURE Parse( Connection : netconndispatch.TConnectionHandle; Client : ADDRESS; Data : ARRAY OF CHAR );
    TYPE
       TOperation = ( opAsk, opConnect, opDisconnect, opNotify );
    VAR
+      iaddr : inetaddr.INETADDR;
       high : INTEGER;
       ia, ic, id, in, i, j, current : INTEGER;
       Name, Value : ARRAY [0..511] OF WCHAR;
@@ -486,7 +487,8 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             END;
             HandleRead( Name, REF readRequests );
          ELSE
-            HandleWrite( Name, Value );
+            iaddr := GetRemoteAddress( Connection );
+            HandleWrite( iaddr, Name, Value );
          END;
          
       END; // LOOP
@@ -519,14 +521,10 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name : StringsO.CString;
    BEGIN
       Name.FromOA( NameOA );
-      _CommonLogger^.LogSS( log.dldTrace, LOG_XMLS, "GET ", NameOA );
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "GET ", NameOA );
 
-      IF NOT Device^.IO()^.Running THEN
-         _CommonLogger^.LogS( log.dldDebug, LOG_XMLS, "  device is not running, nothing GET" );
-         RETURN;
-
-      ELSIF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
-         _CommonLogger^.LogSS( log.dldTrace, LOG_XMLS, "  unknown name, nothing GET: ", NameOA );
+      IF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
+         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing GET: ", NameOA );
          RETURN;
 
       ELSE
@@ -537,26 +535,33 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE HandleWrite( CONST NameOA, Value : ARRAY OF WCHAR );
+   PRIVATE PROCEDURE HandleWrite( CONST ia : inetaddr.INETADDR; CONST NameOA, Value : ARRAY OF WCHAR );
    VAR
+      d : StringsO.CString;
       Hash : ns.THash;
-      io : iovalue.Value;
+      inetaddr : ARRAY [0..63] OF WCHAR;
       Name : StringsO.CString;
+      Originator : io.CSimpleOriginator;
+      value : iovalue.Value;
    BEGIN
       Name.FromOA( NameOA );
-      _CommonLogger^.LogSSSS( log.dldTrace, LOG_XMLS, "SET ", NameOA, L" ", Value );
+      _CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "SET ", NameOA, L" ", Value );
 
       IF NOT Device^.IO()^.Running THEN
-         _CommonLogger^.LogS( log.dldDebug, LOG_XMLS, "  device is not running, nothing SET" );
+         _CommonLogger^.LogS( log.ldDebug, 0, LOG_XMLS, "  device is not running, nothing SET" );
          RETURN;
 
       ELSIF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
-         _CommonLogger^.LogSS( log.dldTrace, LOG_XMLS, "  unknown name, nothing SET: ", NameOA );
+         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing SET: ", NameOA );
          RETURN;
 
       ELSE
-         io.FromStringOA( Value, FALSE );
-         Device^.IO()^.IOh( IOO.dirWrite, Hash, REF io, NIL );
+         ia.ToOA( TRUE, OUT inetaddr );
+         d.FromOA( LOG_XMLS ); d.AppendOA( L"/" ); d.AppendOA( inetaddr );
+         Originator.SetDescription( d );
+
+         value.FromStringOA( Value, FALSE );
+         Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF value, NIL );
       END;         
    END HandleWrite;
 
@@ -584,8 +589,18 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 (*--------------------------------------------------------------------------------*)
 
    FINALLY CXMLSocketServer();
+   VAR
+      Client : TPClient;
    BEGIN
+      _Clients.Reset();
+      WHILE _Clients.MoveNext() DO
+         Client := _Clients.CurrentData;
+         _Device^.UnadviseAll( Client );
+         _Device^.LeaveClient( Client );
+         DISPOSE( Client );
+      END; // WHILE
       _Clients.Dispose();
+
       _SendQueue.Clear();
    END CXMLSocketServer;
 
@@ -609,10 +624,10 @@ CLASS IMPLEMENTATION CClient;
    
       FOR i := 0 TO HIGH( Item ) DO
 
-         IF NOT Server^.CommonLogger^.Filtered( log.dldTrace, LOG_XMLS ) THEN
+         IF NOT Server^.CommonLogger^.Filtered( log.ldTrace, 0, LOG_XMLS ) THEN
             Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
             s := Value[i].String;
-            Server^.CommonLogger^.LogSSSS( log.dldTrace, LOG_XMLS, "ADV ", OA( n.Length-1, n.rawData ), L" ", OA( s.Length-1, s.rawData ));
+            Server^.CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "ADV ", OA( n.Length-1, n.Data ), L" ", OA( s.Length-1, s.Data ));
          END;
 
          IF Result[i] IN Sync.arsCompletions THEN
@@ -643,11 +658,13 @@ CLASS IMPLEMENTATION CClient;
 
       WBuffer.AppendOA( OA( SIZE( LEAD_NAME )-2, ADR( LEAD_NAME ))); WBuffer.AppendByte( TRAIL );
       Server^.Device^.Mapper()^.HashToName( Item, OUT S );
+      S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_NAME )-2, ADR( TRAIL_NAME ))); WBuffer.AppendByte( TRAIL );
       
       WBuffer.AppendOA( OA( SIZE( LEAD_VALUE )-2, ADR( LEAD_VALUE ))); WBuffer.AppendByte( TRAIL );
       S := Value.String;
+      S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_VALUE )-2, ADR( TRAIL_VALUE ))); WBuffer.AppendByte( TRAIL );
       

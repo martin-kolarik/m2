@@ -20,6 +20,11 @@ IMPORT
   
 (*===========================================================================*)
 
+CONST
+   LIMIT = 1000;
+
+(*---------------------------------------------------------------------------*)
+
 TYPE
    TPTest = POINTER TO CTest;
 
@@ -50,6 +55,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       ClientConnection : rawconnection.TPTCPConnection := NIL;
       ClientCount : CARDINAL := 0;
       ServerCount : CARDINAL := 0;
+      Limit : INTEGER := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
@@ -136,6 +142,12 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
       ServerListener.Test := ADR( SELF );
       ClientListener.Test := ADR( SELF );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 20;
+      ELSE
+         Limit := LIMIT;
+      END;
 
       SCmsgqueuethread.Startup();
       threadpool.Startup();
@@ -159,7 +171,7 @@ CLASS IMPLEMENTATION CTest;
       ClientConnection^.Open( L'iris:4444', FALSE, sync.FORSAFETY );
       // wait
       LOOP
-         IF lastCount >= 1000 THEN
+         IF lastCount >= Limit THEN
             EXIT;
          END;
          WaitForMessages( 10 );
@@ -167,7 +179,7 @@ CLASS IMPLEMENTATION CTest;
             lastCount := sync.IGet( REF ClientCount );
             IF ClientConnection^.Open( L'iris:4444', FALSE, sync.FORSAFETY ) = sync.arCannotStart THEN
                // this is returned if connection cannot start connecting due to pending disconnect
-               Host^.Log^.LogS( log.dlcError, L"", L"Unexpected connection Open result" );   
+               Host^.Log^.LogS( log.lcError, 0, L"", L"Unexpected connection Open result" );   
                DEC( lastCount ); // force repeat Open
             END;
          END;

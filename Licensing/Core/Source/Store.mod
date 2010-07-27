@@ -2,12 +2,12 @@ IMPLEMENTATION MODULE Store;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
-   
 FROM Log IMPORT
    logger, dldTrace;
-
 FROM Debug IMPORT
    Assertion, LogAssertionW;
+FROM Exceptions IMPORT
+   StoreException, TestIfCatched, RetrieveException;
 
 IMPORT
    bitarray,
@@ -188,7 +188,8 @@ CLASS IMPLEMENTATION CFileStorage;
             filter^.Extension( OUT s );
             Strings.AppendW( REF pathOA, s );
 
-            LocalItems.Clear(); LocalItems.Add( item );
+            LocalItems.Clear(); // LocalItems is temporary storage (references to ItemsToStore), do not call dispose
+            LocalItems.Add( item );
             filter^.StoreFile( pathOA, LocalItems );
          END;
       //-----
@@ -198,7 +199,7 @@ CLASS IMPLEMENTATION CFileStorage;
          LOOP
             // search products
             someDirty := FALSE;
-            LocalItems.Clear();
+            LocalItems.Clear(); // LocalItems is temporary storage (references to ItemsToStore), do not call dispose
             FOR i := 0 TO count-1 DO
                IF processed[i] THEN
                   CONTINUE;
@@ -579,7 +580,7 @@ CLASS IMPLEMENTATION CINIFilter;
             list := Items.TPInfo( item )^.List;
             list^.Reset();
             WHILE list^.MoveNext() DO
-               INI.SetKeyStr( OA( list^.Current^.Length-1, list^.Current^.rawData ), list^.CurrentData^, FALSE );
+               INI.SetKeyStr( OA( list^.Current^.Length-1, list^.Current^.Data ), list^.CurrentData^, FALSE );
             END; // WHILE
             INI.SetKeyStr( L"data", item^.TransportData, FALSE );
          END;

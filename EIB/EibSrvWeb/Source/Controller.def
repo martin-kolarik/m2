@@ -22,6 +22,10 @@ CONST
    DATA_LOG_PAGE = L"datalog";
    SYSTEM_LOG_PAGE = L"syslog";
    IO_PAGE = L"io";
+   USERS_PAGE = L"users";
+   ROLE_EDIT_PAGE = L"roleEdit";
+   USER_EDIT_PAGE = L"userEdit";
+   USER_LOGIN_PAGE = L"userLogin";
 
 (*--------------------------------------------------------------------------------*)
 
@@ -35,7 +39,7 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PUBLIC VIRTUAL PROCEDURE ResolvePath( Context : PTR; CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
    
    // IFunctionHandler
-   PUBLIC VIRTUAL PROCEDURE Call( CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
 
    // IMIMEResolver
    PUBLIC VIRTUAL PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
@@ -56,8 +60,13 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
 
    PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE InvalidateUser( CONST Request : mvc.IHttpRequest );
 
 END CController;
 

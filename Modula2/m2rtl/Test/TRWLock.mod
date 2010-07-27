@@ -148,7 +148,7 @@ CLASS IMPLEMENTATION CTest;
          windows.CloseHandle( Threads[i] );
          INC( Total, CARD64( Counts[i] ));
       END;
-      Host^.Log^.LogSC( log.dlcError, L"", L"  readers in avg got: ", CARD32( Total DIV CARD64( ReaderCount )) );
+      Host^.Log^.LogSC( log.lcError, 0, L"", L"  readers in avg got: ", CARD32( Total DIV CARD64( ReaderCount )) );
       Success := TRUE;
 
       Host^.StopPhase();
@@ -165,6 +165,10 @@ CLASS IMPLEMENTATION CTest;
       i : CARDINAL;
       stop : CARDINAL := INIT_COUNT DIV ReaderCount;
    BEGIN
+      IF Host^.FastEvaluation THEN
+         stop := stop DIV 100;
+      END;
+   
       LOOP
          RWLock.LockWrite( Sync.FOREVER );
 
@@ -202,8 +206,8 @@ CLASS IMPLEMENTATION CTest;
             FOR i := 1 TO HIGH( Shared ) DO
                INC( value );
                IF value <> Shared[i] THEN // error
-                  Host^.Log^.LogSC( log.dlcError, L"", L"Expected value: ", value );
-                  Host^.Log^.LogSC( log.dlcError, L"", L"   found value: ", Shared[i] );
+                  Host^.Log^.LogSC( log.lcError, 0, L"", L"Expected value: ", value );
+                  Host^.Log^.LogSC( log.lcError, 0, L"", L"   found value: ", Shared[i] );
                END;
             END;
          

@@ -2,6 +2,8 @@ MODULE TRunInPipe;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
   FIOO,
@@ -45,7 +47,7 @@ CLASS IMPLEMENTATION CRunInPipe;
        tr.Stream := out;
        tr.Encoding := Languages.cp_Console();
        WHILE tr.ReadLine( OUT s, Sync.FOREVER, TRUE ) IN Sync.arsCompletions DO
-         Host^.Log^.LogS( log.dlcInfo, L"", OAsz( s.szData ));
+         Host^.Log^.LogS( log.dlcInfo, L"", OAsz( s.Data ));
        END; // while
 
      CATCH e : IOO.CIOException DO

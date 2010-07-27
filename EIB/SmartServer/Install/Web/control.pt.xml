@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+  <html>
+      <head>
+          <title>NeNo KNX/EIBSrv</title>
+          <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+      </head>
+      <body>
+          <div class="shell">
+              <div class="shell-topstrip"></div>
+              <div class="canvas">
+
+                  <div class="top">
+                  </div>
+
+                  <div class="middle">
+                      <div id="menu">
+                          <p><a href="status">${msg.menu.status}</a></p>
+                          <p><a href="control">${msg.menu.control}</a></p>
+                          <p><a href="datalog">${msg.menu.datalog}</a></p>
+                          <p><a href="syslog">${msg.menu.syslog}</a></p>
+                          <p><a href="io">${msg.menu.io}</a></p>
+                          <p> </p>
+                          <p><a href="users">${msg.menu.users}</a></p>
+                          <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
+                      </div>
+
+                      <div class="content">
+
+                        <h1>${msg.control.interfaces}</h1>
+                        <table cellpadding="0px" cellspacing="0px">
+                          <pt:foreach model="names" index="index" item="name">
+                            <tr>
+                              <td>${name}</td><td class="spare"> </td>
+                                <pt:choose>
+                                  <pt:when condition="${runStatus[index]}">
+                                    <td><span class="green">${msg.control.running}</span></td><td class="spare"> </td>
+                                    <td><a href="?stop=${indexes[index]}"><span class="red">[${msg.control.stop}]</span></a></td>
+                                  </pt:when>
+                                  <pt:otherwise>
+                                    <td><span class="red">${msg.control.stopped}</span></td><td class="spare"> </td>
+                                    <td><a href="?start=${indexes[index]}"><span class="green">[${msg.control.start}]</span></a></td>
+                                  </pt:otherwise>
+                                </pt:choose>
+                            </tr>
+                          </pt:foreach>
+                        </table>
+
+                        <h1>${msg.control.configuration}</h1>
+                        <pt:form  method="post" action="control">
+                          <pt:input model="configFile" class="configFile"/> <input type="submit" value="${msg.control.loadConfigFile}"/> <a href="?download=1">[${msg.control.downloadConfig}]</a>
+                        </pt:form>
+                        <div class="log"><pre class="log">${configLog}</pre></div>
+
+                      </div>
+                  </div>
+
+                  <div class="bottom">
+                    <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
+                  </div>
+
+              </div>
+          </div>
+      </body>
+  </html>
+</pageTemplate>

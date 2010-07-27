@@ -265,7 +265,7 @@ END CTest;
   END;
   R.Stream := ADR( F );
   WHILE R.ReadLine( OUT S, Sync.FOREVER, TRUE ) = Sync.arCompleted DO
-    FIO.WrStrW( f, OAsz( S.szData )); FIO.WrLnW( f );
+    FIO.WrStrW( f, OAsz( S.Data )); FIO.WrLnW( f );
   END; // WHILE
 
   TRY
@@ -276,7 +276,7 @@ END CTest;
   R.Stream := ADR( F );
   R.CommentaryStart := S;
   WHILE R.ReadLine( OUT S, Sync.FOREVER, TRUE ) = Sync.arCompleted DO
-    FIO.WrStrW( f, OAsz( S.szData )); FIO.WrLnW( f );
+    FIO.WrStrW( f, OAsz( S.Data )); FIO.WrLnW( f );
   END; // WHILE
 
   TRY
@@ -298,7 +298,7 @@ END CTest;
   R.StartReading();
   WHILE R.Peek( OUT a, OUT l ) DO
     R.ReadLine( OUT S, Sync.FOREVER, TRUE );
-    FIO.WrStrW( f, OAsz( S.szData )); FIO.WrLnW( f );
+    FIO.WrStrW( f, OAsz( S.Data )); FIO.WrLnW( f );
   END; // WHILE
 END Test;
 *)

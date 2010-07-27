@@ -21,6 +21,11 @@ IMPORT
   
 (*===========================================================================*)
 
+CONST
+   LIMIT = 100000;
+
+(*---------------------------------------------------------------------------*)
+
 TYPE
    TPTest = POINTER TO CTest;
 
@@ -59,6 +64,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       ServerListener : CServerListener;
       ServerSocket : netsocket.DSocket;
+      Limit : INTEGER := 0;
       
       Reader : CReader;
       Writer : CWriter;
@@ -100,7 +106,7 @@ CLASS IMPLEMENTATION CReader;
     _Ptr := 0; // reset reading
 
     IF DetectPrevious AND ( PINTEGER( _Data )^ <> PrevCount+1 ) THEN
-       Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Failed: ", PCARDINAL( _Data )^ );
+       Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Failed: ", PCARDINAL( _Data )^ );
     END;
     INC( PrevCount );
   END CompleteData;
@@ -153,6 +159,12 @@ CLASS IMPLEMENTATION CTest;
       ServerListener.Test := ADR( SELF );
       Reader.Test := ADR( SELF );
       Writer.Test := ADR( SELF );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 100;
+      ELSE
+         Limit := LIMIT;
+      END;
 
       SCmsgqueuethread.Startup();
       threadpool.Startup();
@@ -187,7 +199,7 @@ CLASS IMPLEMENTATION CTest;
          IF ClientSocket.Send( ADR( Writer ), windows.INFINITE, TRUE ) = sync.arCompleted THEN
             INC( Count );
           END;
-          IF Count = 100000 THEN
+          IF Count = Limit THEN
             EXIT;
           END;
       END; // LOOP
@@ -224,7 +236,7 @@ CLASS IMPLEMENTATION CTest;
       LOOP
          IF ( Count = 0 ) OR Writer.Completed THEN
             INC( Count );
-            IF Count = 100000 THEN
+            IF Count = Limit THEN
               EXIT;
             END;
 
@@ -271,7 +283,7 @@ CLASS IMPLEMENTATION CTest;
          IF ClientSocket.Send( ADR( Writer ), windows.INFINITE, TRUE ) = sync.arCompleted THEN
             INC( Count );
           END;
-          IF Count = 100000 THEN
+          IF Count = Limit THEN
             EXIT;
           END;
       END; // LOOP
@@ -309,7 +321,7 @@ CLASS IMPLEMENTATION CTest;
       LOOP
          IF ( Count = 0 ) OR Writer.Completed THEN
             INC( Count );
-            IF Count = 100000 THEN
+            IF Count = Limit THEN
               EXIT;
             END;
 

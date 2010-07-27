@@ -181,6 +181,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
       Path : ARRAY [0..260] OF WCHAR;
+      Result : Sync.TAsyncResult := Sync.arCannotStart;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
    BEGIN
@@ -206,13 +207,15 @@ CLASS IMPLEMENTATION CEibSvc;
          s2.FromOA( defaultConfiguration );
       END;
       FIOO.PathAdd( REF s1, s2 );
-      cfg.LoadPath( OA( s1.Length-1, s1.rawData ));
+      cfg.LoadPath( OA( s1.Length-1, s1.Data ));
       
       INIfile.ConfigureBufferedLog( cfg, L"", REF Log.logger()^, OUT line );
+      Log.logger()^.LocalTime := TRUE;
       INIfile.ConfigureLoggerFilter( cfg, L"", REF CommonFilter, OUT line );
       Log.logger()^.Filter := ADR( CommonFilter );
 
       INIfile.ConfigureBufferedLog( cfg, L"datalog", REF DataLogger, OUT line );
+      DataLogger.LocalTime := TRUE;
       
       HttpLogger.SetUpByLogger( Log.logger()^ );
       INIfile.ConfigureLog( cfg, L"httplog", REF HttpLogger, OUT line );
@@ -222,6 +225,7 @@ CLASS IMPLEMENTATION CEibSvc;
 
       NetworkLogger.SetUpByLogger( Log.logger()^ );
       INIfile.ConfigureLog( cfg, L"networklog", REF NetworkLogger, OUT line );
+      NetworkLogger.LocalTime := TRUE;
       INIfile.ConfigureLoggerFilter( cfg, L"", REF NetworkFilter, OUT line );
       NetworkLogger.Filter := ADR( NetworkFilter );
       
@@ -235,9 +239,7 @@ CLASS IMPLEMENTATION CEibSvc;
       
       configuration[0].Type := device.citIString;
       configuration[0].iString := ADR( s1 );
-      IF EIB^.Configure( configuration, ADR( ConfigLogger )) = Sync.arCompleted THEN
-         EIB^.Start();
-      END;
+      Result := EIB^.Configure( configuration, ADR( ConfigLogger ));
       
       ASSERT( Adviser = NIL );
       NEW( Adviser );
@@ -272,6 +274,9 @@ CLASS IMPLEMENTATION CEibSvc;
       
       IF Web.Init( 6005, L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
+      END;
+      IF Result = Sync.arCompleted THEN
+         EIB^.Start();
       END;
 
       SetServiceState( Service.ssRunning, 0 );
@@ -366,15 +371,15 @@ END CEibSvc;
 VAR
    EibSvc : CEibSvc;
 
-#save, call( convention => cdecl )
-PROCEDURE wmain( argc : CARDINAL; argp, envp : ADDRESS ) : CARDINAL;
-#restore
+# save, call( convention => cdecl )
+PROCEDURE Main( argc : INTEGER; argp : ADDRESS ) : INTEGER;
+# restore
 VAR
    PService : Service.TPService := ADR( EibSvc );
 BEGIN
    Service.Run( OA( 0, ADR( PService )), FALSE, 0 );
    RETURN 0;
-END wmain;
+END Main;
 
 (*================================================================================*)
 

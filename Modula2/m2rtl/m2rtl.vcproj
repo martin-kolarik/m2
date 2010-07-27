@@ -86,6 +86,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Source\ilog.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\iobject.mod"
 				>
 			</File>
@@ -212,10 +216,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Test\Merge.mod"
-				>
-			</File>
-			<File
 				RelativePath=".\Test\RingBuffer.mod"
 				>
 			</File>
@@ -240,11 +240,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Test\TExceptionToString.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Test\timetest.mod"
 				>
 			</File>
 			<File
 				RelativePath=".\Test\TIntegerQueue.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\TLogger.mod"
 				>
 			</File>
 			<File
@@ -261,6 +269,14 @@
 			</File>
 			<File
 				RelativePath=".\Test\TRWLock.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\TryThrowCatchSpeed.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\TSEH.mod"
 				>
 			</File>
 			<File

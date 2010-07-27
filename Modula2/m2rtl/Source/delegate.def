@@ -12,8 +12,7 @@ IMPORT
 
 //--------------------------------------------------------------------------------
 
-FINAL CLASS CDelegateException( Exceptions.CException );
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+FINAL CLASS CDelegateException( Exceptions.CGenericException );
 END CDelegateException;
 
 PROCEDURE DelegateException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CDelegateException;

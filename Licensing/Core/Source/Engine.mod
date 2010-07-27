@@ -38,7 +38,7 @@ BEGIN
          END;
       END;
    END; // FOR
-   items.Clear();
+   items.Clear(); // items were copied to localItems, do not dispose them
    FOR i := 0 TO localItems.Count-1 DO
       items.Add( localItems[i] );
    END; // FOR
@@ -200,7 +200,7 @@ BEGIN
          DISPOSE( item );
       END;
    END; // FOR
-   items.Clear();
+   items.Clear(); // items were copied to localItems, do not dispose them
    FOR i := 0 TO localItems.Count-1 DO
       items.Add( localItems[i] );
    END; // FOR
@@ -213,22 +213,23 @@ VAR
    ls : Store.CFileStorage;
    lsINI : Store.CINIFilter;
    uq : Uniquer.CUniquer;
-   uqDisc : Uniquer.DiscSource;
-   uqMAC : Uniquer.MACSource;
+   #if #contains( LicenceMachineId, L"D" ) #then
+      uqDisc : Uniquer.DiscSource;
+   #endif
+   #if #contains( LicenceMachineId, L"M" ) #then
+      uqMAC : Uniquer.MACSource;
+   #endif
 BEGIN
    data.Strategy := array.astrgListInArray;
    ls.Filters^.Add( ADR( lsINI ), 0 );
 
    // keep the code same as in lec.mod
-   IF Strings.IndexOfCharW( LicenceMachineId, L"M", 0 ) <> -1 THEN
+   #if #contains( LicenceMachineId, L"M" ) #then
       uq.Sources^.Add( ADR( uqMAC ), 0 );
-   END;
-   IF Strings.IndexOfCharW( LicenceMachineId, L"D", 0 ) <> -1 THEN
+   #endif
+   #if #contains( LicenceMachineId, L"D" ) #then
       uq.Sources^.Add( ADR( uqDisc ), 0 );
-   END;
-   IF uq.Sources^.Empty THEN
-      uq.Sources^.Add( ADR( uqDisc ), 0 );
-   END;
+   #endif
 
    // first load common storage
    ls.Load( L"*", REF data, FALSE, TRUE );
@@ -291,8 +292,12 @@ VAR
    lsINI : Store.CINIFilter;
    product : Items.TPProduct;
    uq : Uniquer.CUniquer;
-   uqDisc : Uniquer.DiscSource;
-   uqMAC : Uniquer.MACSource;
+   #if #contains( LicenceMachineId, L"D" ) #then
+      uqDisc : Uniquer.DiscSource;
+   #endif
+   #if #contains( LicenceMachineId, L"M" ) #then
+      uqMAC : Uniquer.MACSource;
+   #endif
 BEGIN
    Engine.LoadProducts( Path, L"", ProductIdFilter, OUT data ); // data contains products (a top level items)
    IF data.Empty THEN
@@ -328,15 +333,12 @@ BEGIN
       info^.Created := time.NowUTC();
 
       // keep the code same as in engine.mod
-      IF Strings.IndexOfCharW( LicenceMachineId, L"M", 0 ) <> -1 THEN
+      #if #contains( LicenceMachineId, L"M" ) #then
          uq.Sources^.Add( ADR( uqMAC ), 0 );
-      END;
-      IF Strings.IndexOfCharW( LicenceMachineId, L"D", 0 ) <> -1 THEN
+      #endif
+      #if #contains( LicenceMachineId, L"D" ) #then
          uq.Sources^.Add( ADR( uqDisc ), 0 );
-      END;
-      IF uq.Sources^.Empty THEN
-         uq.Sources^.Add( ADR( uqDisc ), 0 );
-      END;
+      #endif
       info^.UId := uq.UId( info^.ProductId );
    END; // IF create new info
    

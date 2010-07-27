@@ -21,6 +21,8 @@ BEGIN
       Name := L"completed";
    | arPartCompleted :
       Name := L"completed partialy";
+   | arAlreadyCompleted :
+      Name := L"already completed (done nothing)";
    | arNoData :
       Name := L"no data";
    | arPending :
@@ -1327,7 +1329,7 @@ CLASS IMPLEMENTATION WriteBuffer;
       result := _Lock.LockRead( FORSAFETY );
       ASSERTLOG( result <> arTimeout );
       readFrom := _Head + Index;
-      IF INTEGER( readFrom - _Tail ) > 0 THEN
+      IF INTEGER( readFrom - _Tail ) >= 0 THEN
          _Lock.UnlockRead();
          RETURN FALSE;
       END;

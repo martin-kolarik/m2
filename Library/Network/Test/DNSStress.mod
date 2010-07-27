@@ -21,6 +21,11 @@ IMPORT
   
 (*===========================================================================*)
 
+CONST
+   LIMIT = 16;
+
+(*---------------------------------------------------------------------------*)
+
 TYPE
    TPTest = POINTER TO CTest;
 
@@ -41,6 +46,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       Notifier : CDNS;
       Results : ARRAY [0..63] OF TRISTATE;
+      Limit : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 END CTest;
@@ -61,15 +67,15 @@ CLASS IMPLEMENTATION CDNS;
       Strings.AppendW( REF request, L": " );
       IF Result = 0 THEN
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
-         Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"Success: ", request );   
+         Test^.Host^.Log^.LogSS( log.lcInfo, 0, L"", L"Success: ", request );   
          FOR i := 0 TO HIGH( Address ) DO
-            Address[i].GetAddressOA( TRUE, OUT s );
-            Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"  found: ", s );   
+            Address[i].ToOA( TRUE, OUT s );
+            Test^.Host^.Log^.LogSS( log.lcInfo, 0, L"", L"  found: ", s );   
          END;
       ELSE
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 0;
          Strings.FromErrorW( Result, OUT s );
-         Test^.Host^.Log^.LogSSS( log.dlcError, L"", L"Failure: ", request, s );   
+         Test^.Host^.Log^.LogSSS( log.lcError, 0, L"", L"Failure: ", request, s );   
       END;
   END OnAddressFound;
   
@@ -85,11 +91,11 @@ CLASS IMPLEMENTATION CDNS;
       IF Result = 0 THEN
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
          Name.ToOA( OUT s );
-         Test^.Host^.Log^.LogSSS( log.dlcInfo, L"", L"Success: ", request, s );   
+         Test^.Host^.Log^.LogSSS( log.lcInfo, 0, L"", L"Success: ", request, s );   
       ELSE
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 0;
          Strings.FromErrorW( Result, OUT s );
-         Test^.Host^.Log^.LogSSS( log.dlcError, L"", L"Failure: ", request, s );   
+         Test^.Host^.Log^.LogSSS( log.lcError, 0, L"", L"Failure: ", request, s );   
       END;
    END OnNameFound;
 
@@ -116,11 +122,17 @@ CLASS IMPLEMENTATION CTest;
       av4 : CARDINAL;
       Completed : BOOLEAN;
       h : PTR;
-      i, j : CARDINAL;
+      i : CARDINAL;
       Failure1, Failure2 : BOOLEAN;
    BEGIN
       SELF.Host := Host;
       Notifier.Test := ADR( SELF );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 8;
+      ELSE
+         Limit := LIMIT;
+      END;
 
       SCmsgqueuethread.Startup();
       threadpool.Startup();
@@ -133,7 +145,7 @@ CLASS IMPLEMENTATION CTest;
       END;
       // run
       // FOR j := 1 TO 255 DO
-         FOR i := 1 TO 16 DO
+         FOR i := 1 TO Limit DO
             av4 := winsock.htonl( 217 << 24 + 112 << 16 + 162 << 8 + i );
             A.FromV4( av4 );
             A.Port := 110;
@@ -144,7 +156,7 @@ CLASS IMPLEMENTATION CTest;
       REPEAT
          sync.Sleep( 100 );
          Completed := TRUE;
-         FOR i := 1 TO 16 DO
+         FOR i := 1 TO Limit DO
             IF Results[i] = -1 THEN
                Completed := FALSE;
                EXIT;
@@ -153,7 +165,7 @@ CLASS IMPLEMENTATION CTest;
       UNTIL Completed;
       // check
       Failure1 := FALSE;
-      FOR i := 1 TO 16 DO
+      FOR i := 1 TO Limit DO
          Failure1 := Failure1 OR ( Results[i] = 0 );
       END;      
       IF Failure1 THEN

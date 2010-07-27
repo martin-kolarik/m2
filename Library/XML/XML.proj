@@ -19,6 +19,10 @@
         <Modules Include="DOM;XMLWriter;XMLSerializer;XMLReader"/>
     </ItemGroup>
 
+    <PropertyGroup>
+        <ProductCLControl>/UWIN32_LEAN_AND_MEAN</ProductCLControl><!-- rewrite default value, undefine the symbol -->
+    </PropertyGroup>
+
     <!-- 4 -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>
 

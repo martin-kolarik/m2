@@ -1,0 +1,26 @@
+#
+# copy as build-user.properties and fill with correct values
+#
+lib.store.dir=../../../Java_libraries
+
+# local
+local.tomcat.home=C:\\Program Files\\Apache Software Foundation\\Tomcat 5.5
+local.tomcat.url=http://localhost:8080
+local.tomcat.username=
+local.tomcat.password=
+
+# prototype
+prototype.licensing.hibernate.properties.file=${licensing.dir}/hibernate-prototype.properties
+
+prototype.tomcat.home=C:\\Program Files\\Apache Software Foundation\\Tomcat 5.5
+prototype.tomcat.url=http://localhost:8080
+prototype.tomcat.username=
+prototype.tomcat.password=
+
+# release
+release.licensing.hibernate.properties.file=${licensing.dir}/hibernate-release.properties
+
+release.tomcat.home=C:\\Program Files\\Apache Software Foundation\\Tomcat 5.5
+release.tomcat.url=http://localhost:8080
+release.tomcat.username=
+release.tomcat.password=

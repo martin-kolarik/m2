@@ -70,7 +70,7 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StartPhase( L"Run HTTP server" );
       
-      T.Run( FALSE );
+      T.Start( FALSE );
       Sync.Sleep( 1000000 );
       T.Stop( TRUE );
       httpsrv.Cleanup();

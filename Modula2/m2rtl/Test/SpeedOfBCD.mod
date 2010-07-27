@@ -2,7 +2,6 @@ MODULE SpeedOfBCD;
 
 IMPORT
   windows,
-  math,
   Storage,
   Strings;
 

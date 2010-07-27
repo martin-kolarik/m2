@@ -8,9 +8,9 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Dynamic</CLib>
+        <CLib>Private</CLib>
         <LeakChecking>off</LeakChecking>
-        <ClientLicensing>off</ClientLicensing>
+        <SetupLicensing>on</SetupLicensing>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='DevSDAPBridgeSvc'">

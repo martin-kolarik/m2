@@ -9,7 +9,7 @@ IMPLEMENTATION MODULE eib_def;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
   Storage,
@@ -88,7 +88,7 @@ CLASS IMPLEMENTATION CAddress;
   BEGIN
     Type := addressPhysical;
     Address.APILo := CARD8( Device );
-    Address.APIHi := CARD8( Area << 4 OR Line AND 0FH );
+    Address.APIHi := CARD8(( Area << 4 ) OR ( Line AND 0FH ));
   END SetPhysicalAddress2;
 
 (*---------------------------------------------------------------------------*)
@@ -161,7 +161,7 @@ CLASS IMPLEMENTATION CAddress;
   BEGIN
     Type := addressGroup3;
     Address.APILo := CARD8( SubGroup );
-    Address.APIHi := CARD8( MainGroup AND 01FH ) << 3 OR CARD8( MiddleGroup AND 07H );
+    Address.APIHi := ( CARD8( MainGroup AND 01FH ) << 3 ) OR CARD8( MiddleGroup AND 07H );
   END SetGroupAddress2;
 
 (*---------------------------------------------------------------------------*)
@@ -233,7 +233,7 @@ CLASS IMPLEMENTATION CAddress;
   BEGIN
     Type := addressGroup2;
     Address.APILo := CARD8( SubGroup );
-    Address.APIHi := CARD8( MainGroup AND 01FH ) << 3 OR CARD8( SubGroup AND 0700H ) >> 8;
+    Address.APIHi := ( CARD8( MainGroup AND 01FH ) << 3 ) OR ( CARD8( SubGroup AND 0700H ) >> 8 );
   END SetGroupAddress4;
 
 (*---------------------------------------------------------------------------*)
@@ -1126,7 +1126,7 @@ CLASS IMPLEMENTATION EMIPacket;
       END; // CASE
     //-----
     | eitTime:
-      Value.SetTime( TDay( CARDINAL( Data[0] ) AND 0E0H >> 5 ), CARDINAL( Data[0] ) AND 01FH, CARDINAL( Data[1] ), CARDINAL( Data[2] ));
+      Value.SetTime( TDay(( CARDINAL( Data[0] ) AND 0E0H ) >> 5 ), CARDINAL( Data[0] ) AND 01FH, CARDINAL( Data[1] ), CARDINAL( Data[2] ));
     //-----
     | eitDate:
       IF CARDINAL( Data[2] ) < 90 THEN
@@ -1136,12 +1136,12 @@ CLASS IMPLEMENTATION EMIPacket;
       END;
     //-----
     | eitValue, eitValueRange:
-      V := CARDINAL( Data[0] ) << 8 AND 0700H + CARDINAL( Data[1] );
+      V := ( CARDINAL( Data[0] ) << 8 ) AND 0700H + CARDINAL( Data[1] );
       IF CARD8( Data[0] ) AND 080H <> 0 THEN
         V := V OR 0FFFFF800H;
       END;
       LR := 0.01 * LONGREAL( INTEGER( V ));
-      i := INTEGER( Data[0] ) >> 3 AND 0FH;
+      i := ( INTEGER( Data[0] ) >> 3 ) AND 0FH;
       WHILE i > 0 DO
         LR := LR * 2.0;
         DEC( i );
@@ -1175,7 +1175,7 @@ CLASS IMPLEMENTATION EMIPacket;
     //-----
     | eitAccess:
       Value.SetAccess( 
-        CARDINAL( Data[0] ) << 16 OR CARDINAL( Data[1] ) << 8 OR CARDINAL( Data[2] ),
+        CARDINAL(( Data[0] ) << 16 ) OR ( CARDINAL( Data[1] ) << 8 ) OR CARDINAL( Data[2] ),
         TAccessFlagSet( CARDINAL( Data[3] ) >> 4 ),
         CARDINAL( Data[3] ) AND 0FH
       );
@@ -1218,6 +1218,7 @@ CLASS IMPLEMENTATION EMIPacket;
     sw : ARRAY [0..1] OF WCHAR;
     b : BOOLEAN;
     Up, Down : BOOLEAN;
+    ValueInt : INTEGER;
   BEGIN
     CASE Value.Type OF
     //-----
@@ -1298,49 +1299,22 @@ CLASS IMPLEMENTATION EMIPacket;
       END;
       LR := LR * 100.0;
       Exp := 0;
-      WHILE LR > 2047.0 DO
+      WHILE ABS( LR ) > 2047.0 DO
         INC( Exp );
         LR := LR / 2.0;
       END;
+      ValueInt := INTEGER( LR );
       IF Exp > 15 THEN
         Data[0] := BYTE( CARD8( Data[1] ) OR 07FH );
         Data[1] := 0FFH;
       ELSE
-        Data[0] := BYTE( CARD8( Data[0] ) OR Exp << 3 OR CARD8( INTEGER( LR ) >> 8 AND 07H ));
-        Data[1] := BYTE( INTEGER( LR ) AND 0FFH );
+        Data[0] := BYTE( CARD8( Data[0] ) OR ( Exp << 3 ) OR CARD8(( ValueInt >> 8 ) AND 07H ));
+        Data[1] := BYTE( ValueInt AND 0FFH );
       END;
     //-----
     | eitValueRange:
-      NetworkControl := NetworkControl - ncmDataLength + ncsDataLength3;
-      TransportControl := TransportControl - acmEISData;
-      LR := Value.GetValueRange( LoRange, HiRange );
-      IF LR = 0.0 THEN
-        Data[0] := 0; Data[1] := 0;
-        RETURN;
-      ELSIF LR < 0.0 THEN
-        Data[0] := 080H;
-      ELSE
-        Data[0] := 0;
-      END;
-      LR := ABS( LR ) * 100.0;
-      LoRange := ABS( LoRange ) * 100.0;
-      HiRange := ABS( HiRange ) * 100.0;
-      IF HiRange > LoRange THEN
-        LoRange := HiRange;
-      END;
-      Exp := 0;
-      WHILE LoRange > 2047.0 DO
-        INC( Exp );
-        LR := LR / 2.0;
-        LoRange := LoRange / 2.0;
-      END;
-      IF Exp > 15 THEN
-        Data[0] := BYTE( CARD8( Data[0] ) OR 07FH );
-        Data[1] := 0FFH;
-      ELSE
-        Data[0] := BYTE( CARD8( Data[0] ) OR Exp << 3 OR CARD8( INTEGER( LR ) >> 8 AND 07H ));
-        Data[1] := BYTE( INTEGER( LR ) AND 0FFH );
-      END;
+      // not implemented
+      ASSERTLOG( FALSE );
     //-----
     | eitScaling:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength2;
@@ -1396,7 +1370,7 @@ CLASS IMPLEMENTATION EMIPacket;
       Data[0] := BYTE( i >> 16 );
       Data[1] := BYTE(( i >> 8 ) AND 0FFH );
       Data[2] := BYTE( i AND 0FFH );
-      Data[3] := BYTE( CARDINAL( Flags ) << 4 OR Index AND 0FH );
+      Data[3] := BYTE( CARDINAL( Flags ) << 4 OR ( Index AND 0FH ));
     //-----
     | eitChar:
       sw[0] := Value.GetChar();

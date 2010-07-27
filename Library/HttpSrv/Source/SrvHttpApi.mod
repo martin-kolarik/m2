@@ -158,7 +158,7 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
       
       Response.Headers.UnknownHeaderCount := CARD16( UnknownCache.Count );
       IF Response.Headers.UnknownHeaderCount > 0 THEN
-         REALLOCATE( UnknownHeaderBuffer, UnknownCache.Count * SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
+         REALLOCATE( REF UnknownHeaderBuffer, UnknownCache.Count * SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
 
          i := 0;
          UnknownCache.Reset();
@@ -929,7 +929,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
          Strings.FromCARD32W( Port, 10, OUT s );
          UrlPrefix.PrependOA( s );
          UrlPrefix.PrependOA( L"http://+:" );
-         Error := httpapi.HttpAddUrl( _HttpQueue, UrlPrefix.szData, NIL );
+         Error := httpapi.HttpAddUrl( _HttpQueue, UrlPrefix.Data, NIL );
          IF Error <> 0 THEN
             RETURN Sync.arCannotStart;
          END;
@@ -940,7 +940,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
          Strings.FromCARD32W( SslPort, 10, OUT s );
          UrlPrefix.PrependOA( s );
          UrlPrefix.PrependOA( L"https://+:" );
-         Error := httpapi.HttpAddUrl( _HttpQueue, UrlPrefix.szData, NIL );
+         Error := httpapi.HttpAddUrl( _HttpQueue, UrlPrefix.Data, NIL );
          IF Error <> 0 THEN
             RETURN Sync.arCannotStart;
          END;

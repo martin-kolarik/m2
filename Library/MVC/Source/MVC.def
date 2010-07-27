@@ -6,6 +6,7 @@ IMPORT
    accesslist,
    FSO,
    IOO,
+   inetaddr,
    HttpCommon,
    HttpSrv,
    Languages,
@@ -38,54 +39,15 @@ END IMessageSource;
 
 (*--------------------------------------------------------------------------------*)
 
-INTERFACE IFunctionHandler;
-   PROCEDURE Call( CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
-END IFunctionHandler;
-
-(*--------------------------------------------------------------------------------*)
-
 INTERFACE IMIMEResolver;
    PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 END IMIMEResolver;
 
 (*--------------------------------------------------------------------------------*)
 
-INTERFACE IContainer;
-   // control
-   PROCEDURE Dispose(); // data, not self
-   PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
-
-   // controller side
-   PROCEDURE AddBooleanOA( CONST Name : ARRAY OF WCHAR; Model : BOOLEAN );
-   PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString );
-   PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model, client uses it to fill data
-   PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model, client uses it to fill data
-   PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
-
-   PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
-   PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
-   PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
-   PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
-   PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
-   
-   PROCEDURE ResetFunctionCallsMemo();
-   PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
-   
-   // view side
-   PROCEDURE SetModelValue( CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data, including message texts. MessageSource can be NIL.
-   
-   // There can be more active mappings, each identified by ControllerURI.
-   PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
-   PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
-   PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
-END IContainer;
-   
-(*--------------------------------------------------------------------------------*)
-
 INTERFACE IHttpRequest;
    READONLY PROPERTY
+      RequestSource : inetaddr.INETADDR;
       RequestVerb : HttpCommon.TVerb;
       FullURI : StringsO.CString;
       AbsoluteURI : StringsO.CString;
@@ -119,6 +81,53 @@ END IHttpResponse;
 
 (*--------------------------------------------------------------------------------*)
 
+INTERFACE IFunctionHandler;
+   PROCEDURE Call( CONST Request : IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
+END IFunctionHandler;
+
+(*--------------------------------------------------------------------------------*)
+
+CONST
+   TRUE_STRING = L"true";
+   FALSE_STRING = L"false";
+
+INTERFACE IContainer;
+   // control
+   PROCEDURE Dispose(); // data, not self
+   PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
+
+   // controller side
+   PROCEDURE AddBooleanOA( CONST Name : ARRAY OF WCHAR; Model : BOOLEAN );
+   PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString );
+   PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model, client uses it to fill data
+   PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model, client uses it to fill data
+   PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
+
+   PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
+
+   PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
+   PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN; // able to return variables too
+   PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
+   PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
+   PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
+   
+   PROCEDURE ResetFunctionCallsMemo();
+   PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
+   
+   // view side
+   PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data, including message texts. MessageSource can be NIL.
+   
+   // There can be more active mappings, each identified by ControllerURI.
+   PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
+   PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
+   PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+END IContainer;
+   
+(*--------------------------------------------------------------------------------*)
+
 TYPE
    TViewOutputType = (
       votBuffer,
@@ -129,12 +138,20 @@ TYPE
 // IView.Format*Stream implementor SHALL set ContentType and ContentLength/Chunked for its content. Higer level has not sufficient information to do it.
 // IView.Format*Buffer implementor SHALL set ContentType for its content. Higer level has not sufficient information to do it. ContentLength/Chunk is set by MVC.
 INTERFACE IView;
+
+   // formatting
    READONLY PROPERTY
       OutputType : TViewOutputType;
    PROCEDURE FormatToBuffer( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    PROCEDURE FormatToInputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PROCEDURE FormatToOutputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   
+   // authentication
+   PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+
+   // cleanup, releasing
    PROCEDURE Release();
+
 END IView;
 
 (*--------------------------------------------------------------------------------*)
@@ -167,7 +184,8 @@ PROCEDURE Cleanup();
 
 //================================================================================
 
-PROCEDURE httpStatusCodeView( StatusCode : HttpCommon.THttpResponse ) : TPView;
+PROCEDURE httpStatusCodeSystemView( StatusCode : HttpCommon.THttpResponse ) : TPView;
+PROCEDURE httpStatusCodeCustomView( CONST resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse ) : TPView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
 PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; resolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; dispositionFlag : BOOLEAN; CONST mimeResolver : TPMIMEResolver; mimeResolverContext : PTR ) : TPView;
 PROCEDURE absoluteRedirectView( CONST FullURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST ContextRelativeURI : ARRAY OF WCHAR ) : TPView;

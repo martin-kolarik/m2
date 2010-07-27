@@ -52,8 +52,8 @@ CLASS INETADDR;
    PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
    PUBLIC OPERATOR <>( CONST Operand : INETADDR ) : BOOLEAN;
 
-   PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
-   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   PUBLIC PROCEDURE ToOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   PUBLIC PROCEDURE FromOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    
    PUBLIC PROCEDURE Clear();
    PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
@@ -61,13 +61,13 @@ CLASS INETADDR;
 
    PUBLIC PROCEDURE FromV4( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR, network order
    PUBLIC PROCEDURE FromV6( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR6
-   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS, SOCKADDR_IN, SOCKADDR_IN6, MUST be supplied with correct HIGH
+   PUBLIC PROCEDURE FromBOA( CONST storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS, SOCKADDR_IN, SOCKADDR_IN6, MUST be supplied with correct HIGH
    PUBLIC PROCEDURE FromM( CONST storage : PBYTE ); // e.g. SOCKADDR_IN, SOCKADDR_IN6, length is determined by sa_family member
 
    PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
    PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
-   PUBLIC PROCEDURE ToAddressOA( OUT IPAddr : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns only address bytes, ignoring V4, V6 differences
-   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns whole storage structure, filled is set by real length of address
+   PUBLIC PROCEDURE ToAddressBOA( OUT IPAddr : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns only address bytes (e.g. not protocol type), ignoring V4, V6 differences
+   PUBLIC PROCEDURE ToBOA( OUT storage : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns whole storage structure (e.g. including procotol type), filled is set by real length of address
 
    INITIALLY INETADDR();
 END INETADDR;

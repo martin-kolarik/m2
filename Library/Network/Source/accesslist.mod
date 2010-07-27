@@ -35,7 +35,7 @@ CLASS IMPLEMENTATION CAccessList;
       addressOA : inetaddr.TRFC2553;
       filled : CARDINAL;
    BEGIN
-      IPAddress.ToAddressOA( OUT addressOA, OUT filled );
+      IPAddress.ToAddressBOA( OUT addressOA, OUT filled );
       Mask( REF addressOA, MaskLen );
       _Rules.AddOA( addressOA, ( PTR( Type ) << 31 ) OR PTR( MaskLen ));
    END AddRule;
@@ -56,7 +56,7 @@ CLASS IMPLEMENTATION CAccessList;
       ELSE
          i := HIGH( AddressPortPrefixLen );
       END;
-      address.SetAddressOA( OA( i, ADR( AddressPortPrefixLen )), 0 );
+      address.FromOA( OA( i, ADR( AddressPortPrefixLen )), 0 );
       AddRule( Type, address, prefixLen );
    END AddRuleOA;
 
@@ -64,7 +64,7 @@ CLASS IMPLEMENTATION CAccessList;
 
    PUBLIC PROCEDURE AddRuleS( Type : TAccessType; CONST AddressPortPrefixLen : StringsO.IString );
    BEGIN
-      AddRuleOA( Type, OA( AddressPortPrefixLen.Length-1, AddressPortPrefixLen.rawData ));
+      AddRuleOA( Type, OA( AddressPortPrefixLen.Length-1, AddressPortPrefixLen.Data ));
    END AddRuleS;
 
 (*--------------------------------------------------------------------------------*)
@@ -88,7 +88,7 @@ CLASS IMPLEMENTATION CAccessList;
    BEGIN
       rules.Reset();
       WHILE rules.MoveNext() DO
-         IPAddress.ToAddressOA( OUT addressOA, OUT filled );
+         IPAddress.ToBOA( OUT addressOA, OUT filled );
          Mask( REF addressOA, LOPTRLONGWORD( rules.CurrentData ) AND 07FFFFFFFH );
    
          rules.Current^.ToOA( OUT patternOA, OUT filled );

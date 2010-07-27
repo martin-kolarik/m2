@@ -4,37 +4,38 @@ DEFINITION MODULE Exceptions;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
+(*================================================================================*)
+
 #save, option( dll_export => on )
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-ABSTRACT CLASS Exception; // first ancestor of all exceptions
+CLASS Exception; // first ancestor of all exceptions, language base
    PUBLIC READONLY VAR
       Code : CARDINAL := 0;
       NestedException : POINTER TO Exception := NIL;
 
-   INTERNAL ABSTRACT PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   PUBLIC ABSTRACT PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT S : ARRAY OF WCHAR ); // default number as is
+   PUBLIC VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR ); // default RTTI.Name
+   PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
 END Exception;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-CLASS CException( Exception );
+CLASS CGenericException( Exception );
    PUBLIC READONLY VAR
       Text : ARRAY [0..255] OF WCHAR;
       Originator : ARRAY [0..255] OF WCHAR;
 
-   PUBLIC PROCEDURE Init( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CException;
+   PUBLIC PROCEDURE Init( Code : CARDINAL; NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CGenericException;
    PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
+END CGenericException;
 
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-END CException;
+(*--------------------------------------------------------------------------------*)
 
-//--------------------------------------------------------------------------------
+PROCEDURE GenericException( Code : CARDINAL; NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CGenericException;
 
-PROCEDURE GenericException( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CException;
-
-//--------------------------------------------------------------------------------
+(*================================================================================*)
 
 TYPE
   TModula2Exception = (
@@ -46,21 +47,34 @@ TYPE
     mexInvalidObjectState
   );
 
-FINAL CLASS CModula2Exception( CException );
+FINAL CLASS CModula2Exception( CGenericException );
    PUBLIC READONLY VAR
       Kind : TModula2Exception;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT S : ARRAY OF WCHAR );
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TModula2Exception ) : CModula2Exception;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
 END CModula2Exception;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-PROCEDURE Modula2Exception( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR; Exception : TModula2Exception ) : CModula2Exception;
+PROCEDURE Modula2Exception( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TModula2Exception ) : CModula2Exception;
 
-//--------------------------------------------------------------------------------
+(*================================================================================*)
+// Modula2 intrinsic try/catch native support
+
+PROCEDURE THROW_( Source : POINTER TO Exception );
+PROCEDURE CATCHED_( catchRtti : ADDRESS ) : BOOLEAN;
+PROCEDURE RETRIEVE_() : ADDRESS;
+
+CONST
+   StoreException ::= THROW_;
+   TestIfCatched ::= CATCHED_;
+   RetrieveException ::= RETRIEVE_;
+
+(*--------------------------------------------------------------------------------*)
 
 #restore
+
+(*================================================================================*)
 
 END Exceptions.

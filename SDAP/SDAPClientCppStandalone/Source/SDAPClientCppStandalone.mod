@@ -255,7 +255,7 @@ CLASS IMPLEMENTATION CSDAPClient;
             i := Line.ItemS( StringsO.WCHARS{L" "}, 0, 0, FALSE, OUT s );
             Line.ItemS( StringsO.WCHARS{L" "}, i, 0, FALSE, OUT t );
             IF NOT s.Empty AND NOT t.Empty AND ( _ClientNotifier <> NIL ) THEN
-               _ClientNotifier^.OnReceive( OA( s.Length-1, s.szData ), OA( t.Length-1, t.szData ));
+               _ClientNotifier^.OnReceive( OA( s.Length-1, s.Data ), OA( t.Length-1, t.szData ));
             END;
 
             DEC( _DataCount );

@@ -16,6 +16,7 @@ IMPORT
   iphlpapi,
   iptypes,
   lists,
+  log,
   msghandler,
   msgqueue,
   netpool,
@@ -25,6 +26,9 @@ IMPORT
   threadpool,
   winerror,
   WS2TcpIp;
+
+CONST
+   logPrefix = L"netsrv";
 
 (*================================================================================*)
 
@@ -66,7 +70,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
       family : CARDINAL;
       flags : CARDINAL;
    BEGIN
-      DEALLOCATE( Buffer );
+      DEALLOCATE( OUT Buffer );
       Reset();
 
       IF IPV4 AND IPV6 THEN
@@ -88,9 +92,9 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
          RETURN ADR( SELF );
       END;
       
-      ALLOCATE( Buffer, bufferSize );
+      ALLOCATE( OUT Buffer, bufferSize );
       IF iphlpapi.GetAdaptersAddresses( family, flags, NIL, Buffer, ADR( bufferSize )) <> winerror.ERROR_SUCCESS THEN
-         DEALLOCATE( Buffer );
+         DEALLOCATE( OUT Buffer );
       END;
 
       RETURN ADR( SELF );
@@ -116,7 +120,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
          Current := Current^.Next;
       END;
       IF Current = NIL THEN
-         DEALLOCATE( Buffer );
+         DEALLOCATE( OUT Buffer );
          RETURN FALSE;
       ELSE
          INC( _Index );
@@ -240,7 +244,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
          RETURN FALSE;
       END;
 
-      Address.FromOA( OA( a^.Address.iSockaddrLength-1, a^.Address.lpSockaddr ));
+      Address.FromBOA( OA( a^.Address.iSockaddrLength-1, a^.Address.lpSockaddr ));
       Preferred := a^.DadState = iptypes.IpDadStatePreferred;
       Scope := Address.Scope;
       
@@ -265,7 +269,7 @@ BEGIN
    Buffer := NIL;
    Current := NIL;
 FINALLY   
-   DEALLOCATE( Buffer );
+   DEALLOCATE( OUT Buffer );
 END CInterfaceEnumerator;
 
 (*================================================================================*)
@@ -342,7 +346,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   _FDHandle : threadpool.TPoolHandle;
   _FDMessager : msghandler.TPMessageHandler;
   _FDMessage : msghandler.Message;
-  _Delegate : threadpool.CMessageHandlerDelegate;
+  _Delegate : threadpool.TPMessageHandlerDelegate;
 
   CBMode : IOO.TCallbackMode := IOO.cbmDefault;
   MQueue : msgqueue.CMessageQueue;
@@ -420,6 +424,10 @@ CLASS IMPLEMENTATION CIPServer;
     IF _FDHandle <> NIL THEN
       netpool.pool()^.Abort( REF _FDHandle );
     END;
+    IF _Delegate <> NIL THEN
+      _Delegate^.Release();
+      _Delegate := NIL;
+    END;
     SUPER.Dispose();
   END Dispose;
 
@@ -463,7 +471,9 @@ CLASS IMPLEMENTATION CIPServer;
         ELSIF Sockets.Get( Message.Socket, OUT Creator ) THEN
           Creator^.OnListen( Message.Socket );
         ELSE
-          Message.Socket^.Flush();
+          // flush should not be called here as the socket has already been deallocated
+          // Message.Socket^.Flush();
+          log.logger()^.LogSP( log.ldMessage, 0, logPrefix, L"Socket not found for cmAccept", Message.Socket );
         END;
       //-----
       | cmDataArrived :
@@ -472,7 +482,9 @@ CLASS IMPLEMENTATION CIPServer;
         ELSIF Sockets.Get( Message.Socket, OUT Creator ) THEN
           Creator^.OnDatagramReceived( Message.Socket );
         ELSE
-          Message.Socket^.Flush();
+          // flush should not be called here as the socket has already been deallocated
+          // Message.Socket^.Flush();
+          log.logger()^.LogSP( log.ldMessage, 0, logPrefix, L"Socket not found for cmDataArrived", Message.Socket );
         END;
       END; // CASE
     END; // WHILE
@@ -502,8 +514,12 @@ CLASS IMPLEMENTATION CIPServer;
     END;
     CBMode := Mode;
     IF CBMode = IOO.cbmPooled THEN
+      IF _Delegate = NIL THEN
+         NEW( _Delegate );
+         _Delegate^.Handler := ADR( SELF );
+      END;
       IF _FDHandle = NIL THEN
-        netpool.pool()^.WaitMessage( ADR( _Delegate ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+        netpool.pool()^.WaitMessage( _Delegate, 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
       END;
       MQueue.Consumer := _FDMessager;
       MQueue.ConsumerMsg := ADR( _FDMessage );
@@ -550,7 +566,7 @@ CLASS IMPLEMENTATION CIPServer;
       Message.CloseTime := AutomaticCloseTimeMS;
       Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
       IF Result NOT IN Sync.arsStarts THEN
-         Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+         Strings.FromCARD32W( MQueue.Count, 10, OUT countString );
          ASSERTLOG( Result <> Sync.arTimeout, countString );
          Socket^.Release();
          RETURN -1;
@@ -580,7 +596,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Type := Type;
     Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
     IF Result NOT IN Sync.arsStarts THEN
-      Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+      Strings.FromCARD32W( MQueue.Count, 10, OUT countString );
       ASSERTLOG( Result <> Sync.arTimeout );
     END;
   END StopListenServer;
@@ -597,7 +613,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Socket := Socket;
     Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
     IF Result NOT IN Sync.arsStarts THEN
-      Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+      Strings.FromCARD32W( MQueue.Count, 10, OUT countString );
       ASSERTLOG( Result <> Sync.arTimeout );
     END;
   END StopListenSocket;
@@ -642,7 +658,7 @@ CLASS IMPLEMENTATION CIPServer;
 BEGIN
   _FDHandle := NIL;
   _FDMessager := NIL;
-  _Delegate.Handler := ADR( SELF );
+  _Delegate := NIL;
   MQueue.Init( 32, SIZE( TMessage ));
   MQueue.Consumer := ADR( SELF );
   SocketNotifier.Server := ADR( SELF );

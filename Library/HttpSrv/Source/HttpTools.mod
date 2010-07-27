@@ -2,9 +2,12 @@ IMPLEMENTATION MODULE HttpTools;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
    cphcommon,
+   Exceptions,
    Languages,
    lists,
    StorageO,
@@ -40,7 +43,7 @@ END FormatDateJD;
 
 PROCEDURE DecodeDate( CONST Encoded : StringsO.IString; OUT Decoded : time.DateTime ) : BOOLEAN;
 BEGIN
-   RETURN Decoded.FromLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), OA( Encoded.Length-1, Encoded.rawData ), HTTP_TIME_FORMAT );
+   RETURN Decoded.FromLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), OA( Encoded.Length-1, Encoded.Data ), HTTP_TIME_FORMAT );
 END DecodeDate;
 
 (*---------------------------------------------------------------------------*)
@@ -123,21 +126,24 @@ BEGIN
    CASE Content OF
    | contentDefault :
       appendCharset := FALSE;
-      s.FromOA( L"application/octet-stream" );
+      s.FromOA( CONTENT_TYPE_BINARY );
    | contentTextPlain :
-      s.FromOA( L"text/plain" );
+      s.FromOA( CONTENT_TYPE_TEXT );
    | contentTextHTML :
-      s.FromOA( L"text/html" );
+      s.FromOA( CONTENT_TYPE_HTML );
+   | contentTextXHTML :
+      appendCharset := FALSE;
+      s.FromOA( CONTENT_TYPE_XHTML );
    | contentTextXML :
-      s.FromOA( L"text/xml" );
+      s.FromOA( CONTENT_TYPE_XML );
    | contentTextCSS :
-      s.FromOA( L"text/css" );
+      s.FromOA( CONTENT_TYPE_CSS );
    ELSE
       appendCharset := FALSE;
       highF := FileName.Length-1;
       IF highF < 0 THEN
          IF Fallback THEN
-            ContentHeader.FromOA( L"application/octet-stream" );
+            ContentHeader.FromOA( CONTENT_TYPE_BINARY );
             RETURN TRUE;
          ELSE
             RETURN FALSE;
@@ -149,16 +155,17 @@ BEGIN
       
       IF f.EndsWithOA( L"txt" ) THEN
          appendCharset := TRUE;
-         s.FromOA( L"text/plain" );
+         s.FromOA( CONTENT_TYPE_TEXT );
       ELSIF f.EndsWithOA( L"htm" ) OR f.EndsWithOA( L"html" ) THEN
          appendCharset := TRUE;
-         s.FromOA( L"text/html" );
+         s.FromOA( CONTENT_TYPE_HTML );
+      ELSIF f.EndsWithOA( L"xhtml" ) THEN
+         s.FromOA( CONTENT_TYPE_XHTML );
       ELSIF f.EndsWithOA( L"xml" ) THEN
-         appendCharset := TRUE;
-         s.FromOA( L"text/xml" );
+         s.FromOA( CONTENT_TYPE_XML );
       ELSIF f.EndsWithOA( L"css" ) THEN
          appendCharset := TRUE;
-         s.FromOA( L"text/css" );
+         s.FromOA( CONTENT_TYPE_CSS );
 
       ELSIF f.EndsWithOA( L"png" ) THEN
          s.FromOA( L"image/png" );
@@ -166,28 +173,34 @@ BEGIN
          s.FromOA( L"image/gif" );
       ELSIF f.EndsWithOA( L"jpg" ) OR f.EndsWithOA( L"jpeg" ) THEN
          s.FromOA( L"image/jpeg" );
+      ELSIF f.EndsWithOA( L"svg" ) THEN
+         s.FromOA( L"image/svg+xml" );
 
       ELSIF f.EndsWithOA( L"exe" ) OR f.EndsWithOA( L"dll" ) OR f.EndsWithOA( L"obj" ) OR f.EndsWithOA( L"lib" ) THEN
-         s.FromOA( L"application/octet-stream" );
+         s.FromOA( CONTENT_TYPE_BINARY );
       ELSIF f.EndsWithOA( L"zip" ) THEN
          s.FromOA( L"application/zip" );
       ELSIF f.EndsWithOA( L"cab" ) THEN
          s.FromOA( L"application/vnd.ms-cab-compressed" );
       ELSIF f.EndsWithOA( L"msi" ) THEN
-         s.FromOA( L"application/octet-stream" );
+         s.FromOA( CONTENT_TYPE_BINARY );
       ELSIF f.EndsWithOA( L"pdf" ) THEN
          s.FromOA( L"application/pdf" );
 
       ELSIF Fallback THEN
-         s.FromOA( L"application/octet-stream" );
+         s.FromOA( CONTENT_TYPE_BINARY );
       ELSE
          RETURN FALSE;
       END;
       
    END;
-   IF appendCharset AND NOT RFC1766Code.Empty THEN
-      s.AppendOA( L"; charset=" );
-      s.Append( RFC1766Code );
+   IF appendCharset THEN
+      IF RFC1766Code.Empty THEN
+         s.AppendOA( L"; charset=utf-8" );
+      ELSE
+         s.AppendOA( L"; charset=" );
+         s.Append( RFC1766Code );
+      END;
    END;
 
    ContentHeader.Assign( s );
@@ -219,7 +232,7 @@ BEGIN
       RETURN FALSE;
    END;
    firstItem.Trim();
-   RETURN Languages.RFC1766ToLanguage( OA( firstItem.Length-1, firstItem.szData ), OUT language );
+   RETURN Languages.RFC1766ToLanguage( OA( firstItem.Length-1, firstItem.Data ), OUT language );
 END DecodeLanguage;
 
 (*---------------------------------------------------------------------------*)
@@ -274,35 +287,40 @@ BEGIN
 
       i := 0;
       l := mb^.Length;
-      WHILE i < l DO
-         ch := mb^[i];
-         IF ch = C"%" THEN // decode three %XX characters
-            IF i+2 >= l THEN
-               EXIT; // errorneous input
+      TRY
+         WHILE i < l DO
+            ch := mb^[i];
+            IF ch = C"%" THEN // decode three %XX characters
+               IF i+2 >= l THEN
+                  EXIT; // errorneous input
+               END;
+               cphcommon.FromHexByteA( OA( 1, PCHAR( mb^.Data@[i+1] )), OUT byte );
+               mb^[i] := byte;
+               mb^.Remove( i+1, 2 );
+               DEC( l, 2 );
+
+            ELSIF ch = C"=" THEN // remember split position (length)
+               bl.CurrentData := PTR( i );
+               mb^[i] := C"=";
+               
+            ELSIF ch = C"&" THEN // here it can only be an & escape
+               mb^[i] := C"&";
+               mb^.Remove( i+1, 4 );
+               DEC( l, 4 );
+
+            ELSIF XFormFlag AND ( ch = C"+" ) THEN // replace + with spaces
+               mb^[i] := C" ";
+
+            ELSE
+               mb^[i] := ch;
             END;
-            cphcommon.FromHexByteA( OA( 1, PCHAR( mb^.Data@[i+1] )), OUT byte );
-            mb^[i] := byte;
-            mb^.Remove( i+1, 2 );
-            DEC( l, 2 );
-
-         ELSIF ch = C"=" THEN // remember split position (length)
-            bl.CurrentData := PTR( i );
-            mb^[i] := C"=";
             
-         ELSIF ch = C"&" THEN // here it can only be an & escape
-            mb^[i] := C"&";
-            mb^.Remove( i+1, 4 );
-            DEC( l, 4 );
-
-         ELSIF XFormFlag AND ( ch = C"+" ) THEN // replace + with spaces
-            mb^[i] := C" ";
-
-         ELSE
-            mb^[i] := ch;
+            INC( i );
          END;
-         
-         INC( i );
-      END;
+      CATCH m : Exceptions.CModula2Exception DO
+         Decoded.Clear();
+         RETURN;
+      END; // TRY
       
       IF Languages.IsUTF8( OA( i-1, mb^.Data )) THEN
          s.FromOAA( Languages.cp_UTF8, OA( i-1, PCHAR( mb^.Data )));
@@ -317,12 +335,12 @@ BEGIN
    WHILE sl.MoveNext() DO
       // first part
       i := INTEGER( LOPTRLONGWORD( sl.CurrentData ));
-      s.FromOA( OA( i-1, sl.Current^.rawData ));
+      s.FromOA( OA( i-1, sl.Current^.Data ));
 
       // second part
       l := sl.Current^.Length;
       IF i+1 <= l THEN
-         sd.FromOA( OA( l-i-2, sl.Current^.rawData@[(i+1)<<1] ));
+         sd.FromOA( OA( l-i-2, sl.Current^.Data@[(i+1)<<1] ));
       ELSE
          sd.Clear();
       END;

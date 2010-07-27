@@ -24,7 +24,7 @@ TYPE
    TPParamStringArray = POINTER TO TParamStringArray;
   
 # save, call( convention => cdecl )
-PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
+PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 # restore
 LABEL
    Error;
@@ -60,7 +60,7 @@ BEGIN
 
    Args.Reset();
    WHILE Args.MoveNext() DO
-      IF DI.StartFromPathOA( OA( Args.Current^.Length-1, Args.Current^.rawData ), FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
+      IF DI.StartFromPathOA( OA( Args.Current^.Length-1, Args.Current^.Data ), FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
          REPEAT
             stdout^.WriteOA( L"  ", FALSE ); stdout^.Write( DI.Path, FALSE ); stdout^.WriteOA( 9W, FALSE );
 
@@ -85,7 +85,7 @@ Error:
    errout^.WriteOA( OAsz( R[Texts._UsageInfo] ), TRUE );
 
    RETURN -1;
-END wmain;
+END Main;
   
 (*================================================================================*)
 

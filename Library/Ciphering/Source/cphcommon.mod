@@ -181,7 +181,17 @@ END BASE64ByteCount;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
-  Tibase64table = ARRAY [WCHAR(0)..WCHAR(255)] OF CARDINAL;
+   WCHARS = WCHAR[ WCHAR(0)..WCHAR(127) ];
+
+CONST
+   BASE64_CHARS = WCHARS{
+      L"A", L"B", L"C", L"D", L"E", L"F", L"G", L"H", L"I", L"J", L"K", L"L", L"M", L"N", L"O", L"P", L"Q", L"R", L"S", L"T", L"U", L"V", L"W", L"X", L"Y", L"Z",
+      L"a", L"b", L"c", L"d", L"e", L"f", L"g", L"h", L"i", L"j", L"k", L"l", L"m", L"n", L"o", L"p", L"q", L"r", L"s", L"t", L"u", L"v", L"w", L"x", L"y", L"z",
+      L"0", L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8", L"9", L"+", L"/"
+   };
+
+TYPE
+   Tibase64table = ARRAY [WCHAR(0)..WCHAR(255)] OF CARDINAL;
 
 CONST
    ibase64table = Tibase64table(
@@ -197,25 +207,31 @@ CONST
 
 PROCEDURE FromBASE64( CONST In : ARRAY OF WCHAR; OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
 VAR
-   i, il : PWCHAR;
-   o : PBYTE;
+   i, ie : PWCHAR;
+   len : CARDINAL;
+   o, oe : PBYTE;
    u : CARDINAL;
    u1 : PBYTE := PBYTE( ADR( u )@[1] );
    u2 : PBYTE := PBYTE( ADR( u )@[2] );
 BEGIN
    Filled := 0;
-   IF HIGH( In ) = -1 THEN
+   len := LENGTH( In );
+   IF len = 0 THEN
       RETURN TRUE;
-   ELSIF HIGH( In ) AND 3 <> 3 THEN
+   ELSIF len AND 3 <> 0 THEN
       RETURN FALSE;
    END;
-   u := MIN2( 3 * HIGH( In ) DIV 4, HIGH( Out ));
 
-   o := ADR( Out );
 	i := PWCHAR( ADR( In ));
-	il := INC( i, 8 * (u+1) DIV 3 );
-	WHILE i <> il DO
+	ie := INC( i, len * SIZE( WCHAR ));
+   o := ADR( Out );
+   oe := INC( o, HIGH( Out )+1 );
+
+	WHILE ( i <> ie ) AND ( o <> oe ) DO
 	   IF i^ > WCHAR( 255 ) THEN
+   	   INC( i, 2 );
+	      CONTINUE;
+	   ELSIF i^ NOT IN BASE64_CHARS THEN
    	   INC( i, 2 );
 	      CONTINUE;
 	   END;
@@ -227,7 +243,7 @@ BEGIN
 	   u := u OR ( ibase64table[i^] << 12 );
 	   INC( i, 2 );
 	   IF i^ = L"=" THEN // stop char
-   	   o^ := u2^;
+   	   o^ := u2^; // safe
 	      INC( o );
 	      EXIT;
 	   END;
@@ -235,8 +251,11 @@ BEGIN
 	   u := u OR ( ibase64table[i^] << 06 );
 	   INC( i, 2 );
 	   IF i^ = L"=" THEN // stop char
-   	   o^ := u2^;
+   	   o^ := u2^; // safe
 	      INC( o );
+	      IF o = oe THEN 
+	         EXIT;
+	      END;
    	   o^ := u1^;
 	      INC( o );
 	      EXIT;
@@ -245,10 +264,16 @@ BEGIN
 	   u := u OR   ibase64table[i^];
 	   INC( i, 2 );
 
-	   o^ := u2^;
+	   o^ := u2^; // safe
 	   INC( o );
+      IF o = oe THEN 
+         EXIT;
+      END;
 	   o^ := u1^;
 	   INC( o );
+      IF o = oe THEN 
+         EXIT;
+      END;
 	   o^ := BYTE( u );
 	   INC( o );
 	END; // WHILE

@@ -356,8 +356,12 @@ CLASS IMPLEMENTATION ASrvStream;
                   Strings.FromCARD64A( CARD64( L ), 16, OUT _ChunkBuffer );
                   chLen := LENGTH( _ChunkBuffer );
                   chBuffer.FromOA( OA( chLen+1, ADR( _ChunkBuffer )), FALSE ); // chLen+1 automatically sets length to data + CR + LF
-                  chBuffer[chLen] := 13; // add CR
-                  chBuffer[chLen+1] := 10; // add LF
+                  TRY
+                     chBuffer[chLen] := 13; // add CR
+                     chBuffer[chLen+1] := 10; // add LF
+                  CATCH UNHANDLED DO
+                     // impossible
+                  END;
                   Result := SendData( chBuffer );
                   IF Result <> Sync.arCompleted THEN
                      _DataSent := TRUE;
@@ -639,26 +643,35 @@ CLASS IMPLEMENTATION ASrvStream;
       END;
    
       Writer.Stream := StreamToSend;
-      Writer.WriteElementStartOA( L"html" );
-         Writer.WriteElementStartOA( L"body" );
+      Writer.WriteElementStartOA( L"", L"html" );
+         Writer.WriteElementStartOA( L"", L"body" );
          
             CASE StatusCode OF
             | HttpCommon.httpres_301, HttpCommon.httpres_302, HttpCommon.httpres_303, HttpCommon.httpres_304, HttpCommon.httpres_307 : // workaround m2cpp bug
                ResponseHeaders^.Get( HttpCommon.Location, OUT Location );
 
-               Writer.WriteElementStringOA( L"h1", L"Server notification" );
-               Writer.WriteElementStartOA( L"p" );
+               Writer.WriteElementStringOA( L"", L"h1", L"Server notification" );
+               Writer.WriteElementStartOA( L"", L"p" );
                   Writer.WriteStringOA( L"The page should be redirected by client to " );
-                  Writer.WriteElementStartOA( L"a" );
-                     Writer.WriteAttributeStringOA( L"href", OA( Location.Length-1, Location.rawData ));
+                  Writer.WriteElementStartOA( L"", L"a" );
+                     Writer.WriteAttributeStringOA( L"", L"href", OA( Location.Length-1, Location.Data ));
                      Writer.WriteString( Location );
                   Writer.WriteElementEnd();
                   Writer.WriteStringOA( L". Please, click the link to move to correct page." );
                Writer.WriteElementEnd();
 
-            ELSE // not redirect
-               Writer.WriteElementStringOA( L"h1", L"Unable to handle HTTP request." );
-               Writer.WriteElementStartOA( L"p" );
+            | HttpCommon.httpres_401 :
+               Writer.WriteElementStringOA( L"", L"h1", L"Unauthorized access" );
+               Writer.WriteElementStartOA( L"", L"p" );
+                  Writer.WriteStringOA( L"The server responded with HTTP status code " );
+                  Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
+                  Writer.WriteStringOA( n );
+                  Writer.WriteStringOA( L". Please, log in to server and repeat the request." );
+               Writer.WriteElementEnd();
+
+            ELSE
+               Writer.WriteElementStringOA( L"", L"h1", L"Unable to handle HTTP request" );
+               Writer.WriteElementStartOA( L"", L"p" );
                   Writer.WriteStringOA( L"The server responded with HTTP status code " );
                   Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
                   Writer.WriteStringOA( n );
@@ -1064,7 +1077,7 @@ CLASS IMPLEMENTATION HttpWorker;
       END;
       
       IF NOT logger^.Filtered( dlcError, LOG_HTTP ) THEN
-         _Stream^.RemoteAddress.GetAddressOA( FALSE, OUT sOA );
+         _Stream^.RemoteAddress.ToOA( FALSE, OUT sOA );
          s.FromOA( sOA );
          s.AppendOA( L" - - [" );
 
@@ -1103,7 +1116,7 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( sOA );
          END; // IF chunked
 
-         logger^.LogS( dlcError, LOG_HTTP, OA( s.Length-1, s.rawData ));
+         logger^.LogS( dlcError, LOG_HTTP, OA( s.Length-1, s.Data ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1207,7 +1220,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       l := cphcommon.BASE64CharCount( SIZE( sessionid ));
       cookie.Size := l;
       cookie.Length := l;
-      cphcommon.ToBASE64( sessionid, OUT OA( l-1, PWCHAR( cookie.rawData )));
+      cphcommon.ToBASE64( sessionid, OUT OA( l-1, PWCHAR( cookie.Data )));
       
       NEW( session );
       session^.Init( cookie, rootPath );
@@ -1462,7 +1475,7 @@ CLASS IMPLEMENTATION ASrvCommon;
             uri := _PreparedStream^.RequestURI;
             currentProcessor := _Processors.Current;
             currentHolder := _Processors.CurrentData;
-            IF currentProcessor^.AppliesFor( Verb, OA( uri.Length-1, uri.rawData ), OUT WantsSession ) THEN
+            IF currentProcessor^.AppliesFor( Verb, OA( uri.Length-1, uri.Data ), OUT WantsSession ) THEN
                foundProcessor := currentProcessor;
                EXIT;
             END;

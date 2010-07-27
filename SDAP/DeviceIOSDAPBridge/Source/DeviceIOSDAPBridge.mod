@@ -4,6 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
+   cllv,
    FIO,
    INIFile,
    iobject,
@@ -83,7 +84,7 @@ CLASS IMPLEMENTATION ABridge;
 
          // check and renew the connection
          IF NOT _Connecting AND NOT _SDAPClient^.Connected THEN
-            _Logger.LogS( log.dldTrace, LOG_NAME, L"Not connected to SDAP server trying again." );
+            _Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Not connected to SDAP server trying again." );
 
             _Connecting := TRUE;
             _SDAPClient^.Connect( _SDAPHost );
@@ -98,6 +99,10 @@ CLASS IMPLEMENTATION ABridge;
             END;
             _TickCounter := _PeriodCounter;
 
+            IF _Result.Counted OR _Result.Expired THEN
+               CONTINUE;
+            END;
+
             // get values from device and send them to SDAP
             _Data.Reset();
             WHILE _Data.MoveNext() DO
@@ -105,17 +110,19 @@ CLASS IMPLEMENTATION ABridge;
                IF item^.Direction <> IOO.dirRead THEN
                   CONTINUE;
                END;
+               _Result.Inc();
 
-               IF NOT _Logger.Filtered( log.dldDebug, LOG_NAME ) THEN
-                  _Logger.LogSS( log.dldDebug, LOG_NAME, L"Querying: ", OA( item^.SDAPName.Length-1, item^.SDAPName.rawData ));
+               IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+                  _Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Querying: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ));
                END;
 
                cb.Reset();
-               Result := item^.Device^.IO()^.IOh( IOO.dirRead, item^.Hash, REF value, ADR( cb ));
+               value.Dispose();
+               Result := item^.Device^.IO()^.IOh( NIL, IOO.dirRead, item^.Hash, REF value, ADR( cb ));
                IF ( Result <> Sync.arCompleted ) AND ( Result <> Sync.arPending ) THEN
                   s.FromOA( L"Error in IOh read: " );
                   s.Append( item^.SDAPName );
-                  _Logger.LogSR( log.dldTrace, L"IO", OA( s.Length-1, s.rawData ), Result );
+                  _Logger.LogSR( log.ldTrace, 0, L"IO", OA( s.Length-1, s.Data ), Result );
                   CONTINUE;
                END;
                Result := cb.WaitCompletion( Sync.FORSAFETY, OUT value );
@@ -126,12 +133,12 @@ CLASS IMPLEMENTATION ABridge;
 
                   s.FromOA( L"Error waiting read completion: " );
                   s.Append( item^.SDAPName );
-                  _Logger.LogSR( log.dldTrace, L"IO", OA( s.Length-1, s.rawData ), Result );
+                  _Logger.LogSR( log.ldTrace, 0, L"IO", OA( s.Length-1, s.Data ), Result );
                   CONTINUE;
                END;
 
-               IF NOT _Logger.Filtered( log.dldDebug, LOG_NAME ) THEN
-                  _Logger.LogSS( log.dldDebug, LOG_NAME, L"Got value: ", OA( valueString.Length-1,  valueString.rawData ));
+               IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+                  _Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Got value: ", OA( valueString.Length-1,  valueString.Data ));
                END;
 
                // send value using SDAPClient
@@ -139,7 +146,7 @@ CLASS IMPLEMENTATION ABridge;
                IF Result <> Sync.arCompleted THEN
                   s.FromOA( L"Error sending by SDAP: " );
                   s.Append( item^.SDAPName );
-                  _Logger.LogSR( log.dldTrace, LOG_NAME, OA( s.Length-1, s.rawData ), Result );
+                  _Logger.LogSR( log.ldTrace, 0, LOG_NAME, OA( s.Length-1, s.Data ), Result );
                END;
             END; // WHILE
             
@@ -152,6 +159,10 @@ CLASS IMPLEMENTATION ABridge;
                   _WriteLock.Unlock();
                   EXIT;
                END;
+               
+               IF _Result.Counted OR _Result.Expired THEN
+                  CONTINUE;
+               END;
 
                _Data.Reset();
                WHILE _Data.MoveNext() DO
@@ -161,18 +172,19 @@ CLASS IMPLEMENTATION ABridge;
                   ELSIF NOT item^.SDAPName.Equals( sdapName ) THEN
                      CONTINUE;
                   END;
+                  _Result.Inc();
 
-                  IF NOT _Logger.Filtered( log.dldDebug, LOG_NAME ) THEN
-                     _Logger.LogSSSS( log.dldDebug, LOG_NAME, L"Writing: ", OA( item^.SDAPName.Length-1, item^.SDAPName.rawData ), L"", OA( valueString.Length-1, valueString.rawData ));
+                  IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+                     _Logger.LogSSSS( log.ldDebug, 0, LOG_NAME, L"Writing: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ), L"", OA( valueString.Length-1, valueString.Data ));
                   END;
 
                   cb.Reset();
                   value.String := valueString;
-                  Result := item^.Device^.IO()^.IOh( IOO.dirWrite, item^.Hash, REF value, ADR( cb ));
+                  Result := item^.Device^.IO()^.IOh( NIL, IOO.dirWrite, item^.Hash, REF value, ADR( cb ));
                   IF Result <> Sync.arPending THEN
                      s.FromOA( L"Error in IOh write: " );
                      s.Append( item^.SDAPName );
-                     _Logger.LogSR( log.dldTrace, LOG_NAME, OA( s.Length-1, s.rawData ), Result );
+                     _Logger.LogSR( log.ldTrace, 0, LOG_NAME, OA( s.Length-1, s.Data ), Result );
                      CONTINUE;
                   END;
                   Result := cb.WaitCompletion( Sync.FORSAFETY, OUT value );
@@ -181,7 +193,7 @@ CLASS IMPLEMENTATION ABridge;
 
                      s.FromOA( L"Error waiting write completion: " );
                      s.Append( item^.SDAPName );
-                     _Logger.LogSR( log.dldTrace, LOG_NAME, OA( s.Length-1, s.rawData ), Result );
+                     _Logger.LogSR( log.ldTrace, 0, LOG_NAME, OA( s.Length-1, s.Data ), Result );
                      CONTINUE;
                   END;
 
@@ -193,7 +205,7 @@ CLASS IMPLEMENTATION ABridge;
 
       END; // LOOP
 
-      _SDAPClient^.Close();
+      _SDAPClient^.Disconnect();
       RETURN 0;
    END OnRun;
 
@@ -267,7 +279,7 @@ CLASS IMPLEMENTATION ABridge;
 	      IF addonText <> NIL THEN
 	         msg.Append( addonText^ );
 	      END;
-	      Log^.LogFilePos( log.dlcError, L"SDAP Bridge", L"", OA( msg.Length-1, msg.rawData ), line, 0 );
+	      Log^.LogFilePos( log.dlcError, L"SDAP Bridge", L"", OA( msg.Length-1, msg.Data ), line, 0 );
 	   END LogError;
 
 	   (*----------*)
@@ -319,7 +331,7 @@ CLASS IMPLEMENTATION ABridge;
 
          deviceId.FromOA( secDevicePrefix );
          deviceId.Append( devices.Current^ );
-         IF NOT iniFile^.SetSection( OA( deviceId.Length-1, deviceId.rawData )) THEN
+         IF NOT iniFile^.SetSection( OA( deviceId.Length-1, deviceId.Data )) THEN
             LogError( 0, Texts._DeviceSectionMissing, ADR( deviceId ));
             CONTINUE;
          ELSIF NOT iniFile^.GetKeyStr( keyLibrary, OUT l, OUT value ) THEN
@@ -327,10 +339,10 @@ CLASS IMPLEMENTATION ABridge;
             CONTINUE;
          END;   
          
-         FIO.MakePathW( exePath, OA( value.Length-1, value.rawData ), OUT devPath );
+         FIO.MakePathW( exePath, OA( value.Length-1, value.Data ), OUT devPath );
          _Loader.AddLibrary( devPath, ADR( value )); // value contains LibraryName
          value.AppendOA( DEVICE_CLASS_NAME_SUFFIX );
-         CASE _Loader.CreateObject( OA( value.Length-1, value.rawData ), OUT dev ) OF
+         CASE _Loader.CreateObject( OA( value.Length-1, value.Data ), OUT dev ) OF
          //----
          | iobject.lrSuccess :
             src.Type := device.citINIFileSection;
@@ -392,7 +404,7 @@ CLASS IMPLEMENTATION ABridge;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
             IF EQUALS( key, keyPeriod ) THEN
                CONTINUE;
-            ELSIF NOT GetHash( OA( value.Length-1, value.rawData ), OUT dev, OUT hash ) THEN
+            ELSIF NOT GetHash( OA( value.Length-1, value.Data ), OUT dev, OUT hash ) THEN
                LogError( l, Texts._DataItemNotFound, ADR( value ));
                CONTINUE;
             END;
@@ -430,8 +442,13 @@ CLASS IMPLEMENTATION ABridge;
    VAR
       dev : device.TPDevice;
       Result : Sync.TAsyncResult := Sync.arCannotStart;
+      s : FIO.PathStrW;
    BEGIN
-      _Logger.LogS( log.dldMessage, L"IOSDAPBridge", L"Started" );
+      _Logger.LogS( log.ldMessage, 0, L"IOSDAPBridge", L"Started" );
+
+      _Result.Reset( lec.bhBestCase );
+      FIO.GetModuleDirW( L"", OUT s );
+      lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF _Result );
 
       _Devices.Reset();
       WHILE _Devices.MoveNext() DO
@@ -466,7 +483,7 @@ CLASS IMPLEMENTATION ABridge;
          dev^.IO()^.Stop();
       END; // WHILE
 
-      _Logger.LogS( log.dldMessage, L"IOSDAPBridge", L"Stopped" );
+      _Logger.LogS( log.ldMessage, 0, L"IOSDAPBridge", L"Stopped" );
    END Stop;
 
 (*--------------------------------------------------------------------------------*)
@@ -481,10 +498,10 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnClose( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    BEGIN
       // intentionaly empty
-   END OnClose;
+   END OnDisconnect;
 
 (*--------------------------------------------------------------------------------*)
 

@@ -249,7 +249,7 @@ PROCEDURE Startup();
 BEGIN
    IF GMQT = NIL THEN
       NEW( GMQT );
-      GMQT^.Run( TRUE );
+      GMQT^.Start( TRUE );
    END;
 END Startup;
 

@@ -8,7 +8,7 @@ FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
   
 FROM log IMPORT
-  dldError, dldTrace, dldDebug;
+  ldError, ldTrace, ldDebug;
 
 IMPORT
   cllv,
@@ -405,7 +405,7 @@ CLASS IMPLEMENTATION CDriver;
   
       PROCEDURE Error( ErrorCode, ErrorLine : CARDINAL );
       BEGIN
-         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.rawData ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
       END Error;
 
   //----------
@@ -428,7 +428,7 @@ CLASS IMPLEMENTATION CDriver;
     ValueList : lists.TPPtrList;
   BEGIN
       TRY
-         fs.FromPath( OA( ParametersFilePath.Length-1, ParametersFilePath.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), FIOO.imOpenRead );
       CATCH : IOO.CIOException DO
          Error( Texts._CannotOpenPar, 0 );
          GOTO Fail;
@@ -456,7 +456,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Fail;
          ELSE
             INCL( RStatus, rsGlobalKey );
-            digest.DigestOA( digest.sha256, OA( cs.Length-1, cs.rawData ), OUT GlobalKey );
+            digest.DigestOA( digest.sha256, OA( cs.Length-1, cs.Data ), OUT GlobalKey );
          END;
       END;
       IF TS.GetKeyStr( knDelimiter, OUT ErrorLine, OUT cs ) THEN
@@ -821,7 +821,7 @@ CLASS IMPLEMENTATION CDriver;
         c := Events.Count;
         EventsLock.Unlock();
 
-        Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+        Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Count ", c );
 
         OutValue.Integer := c; 
         RETURN;
@@ -829,8 +829,8 @@ CLASS IMPLEMENTATION CDriver;
       ELSIF EQUALS( si, L'get' ) THEN
       (*
         IF Result.Counted OR Result.Expired THEN
-          Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
-          Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+          Logger.LogS( ldDebug, 0, logPrefix, L"Event.Get clear buffer" );
+          Logger.LogS( ldDebug, 0, logPrefix, L"RS- rsEventPending" );
 
           EventsLock.Lock();
           Events.Dispose();
@@ -851,7 +851,7 @@ CLASS IMPLEMENTATION CDriver;
         EventsLock.Unlock();
 
         IF b THEN
-          Logger.LogSC( dldDebug, logPrefix, L"Event.Dequeue ", CARDINAL( PELE^.Event.Event ));
+          Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Dequeue ", CARDINAL( PELE^.Event.Event ));
 
           CASE PELE^.Event.Event OF
           //-----
@@ -994,7 +994,7 @@ CLASS IMPLEMENTATION CDriver;
             b := FALSE;
           END; // CASE
           IF b THEN
-            IAddress.GetAddressOA( FALSE, OUT n );
+            IAddress.ToOA( FALSE, OUT n );
             SW.AppendOA( n ); SW.AppendOA( L"-" );
             Strings.FromCARD32W( IAddress.Port, 10, OUT n );
             SW.AppendOA( n );
@@ -1021,7 +1021,7 @@ CLASS IMPLEMENTATION CDriver;
           IF SW.Length < OutValueLimit THEN
             DISPOSE( PELE );
           ELSE // wait for longer string, enter record back
-            Logger.LogS( dldDebug, logPrefix, L"Event.Enqueue back" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Event.Enqueue back" );
 
             EventsLock.Lock();
             Events.InsertFirst( PELE );
@@ -1030,7 +1030,7 @@ CLASS IMPLEMENTATION CDriver;
           RETURN;
 
         ELSE
-          Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+          Logger.LogS( ldDebug, 0, logPrefix, L"RS- rsEventPending" );
 
           GOTO Success;
         END;
@@ -1729,7 +1729,7 @@ CLASS IMPLEMENTATION CDriver;
       Events.Append( PELE );
       EventsLock.Unlock();
 
-      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/client ", CARDINAL( evConnect ));
+      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evConnect/client ", CARDINAL( evConnect ));
 
       ClientsLock.Lock();
       b := SearchNet( REF Clients, PELE^.Event.Address, PClientLE );
@@ -1751,7 +1751,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
     ELSE // remote connect
-      Logger.LogSC( dldDebug, logPrefix, L"Remote connection detected: ", CARDINAL( RStatus ));
+      Logger.LogSC( ldDebug, 0, logPrefix, L"Remote connection detected: ", CARDINAL( RStatus ));
 
       ClientsLock.Lock();
 
@@ -1782,7 +1782,7 @@ CLASS IMPLEMENTATION CDriver;
       INCL( RStatus, rsEventsPending );
     END;
     EventsLock.Unlock();
-    Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (1)" );
+    Logger.LogS( ldDebug, 0, logPrefix, L"RS+ rsEventPending, fire dcfException (1)" );
 
     CallbackProc( CallbackId, drv_def.dcfException, NIL );
   END OnConnect;
@@ -1804,7 +1804,7 @@ CLASS IMPLEMENTATION CDriver;
     Events.Append( PELE );
     EventsLock.Unlock();
 
-    Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDisconnect", CARDINAL( evDisconnect ));
+    Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDisconnect", CARDINAL( evDisconnect ));
 
     // remove remote client stub
     ClientsLock.Lock();
@@ -1831,7 +1831,7 @@ CLASS IMPLEMENTATION CDriver;
       INCL( RStatus, rsEventsPending );
     END;
     EventsLock.Unlock();
-    Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (2)" );
+    Logger.LogS( ldDebug, 0, logPrefix, L"RS+ rsEventPending, fire dcfException (2)" );
 
     CallbackProc( CallbackId, drv_def.dcfException, NIL );
   END OnDisconnect;
@@ -1856,21 +1856,21 @@ CLASS IMPLEMENTATION CDriver;
     CRC := TPPacket( PData )^.CRC; TPPacket( PData )^.CRC := 0;
     CRCValid := crc.crc32( crc.crc32i, OA( DataLen-1, PData )) = CRC;
 
-    Logger.LogSC( dldDebug, logPrefix, L"OnReceive bytes ", DataLen );
+    Logger.LogSC( ldDebug, 0, logPrefix, L"OnReceive bytes ", DataLen );
 
     CASE TPPacket( PData )^.TR OF
     | trGroup :
       ClientsLock.Lock();
 
       IF NOT SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE ) THEN
-        Logger.LogS( dldError, logPrefix, L"Connection for group data not found, leaving receiving" );
+        Logger.LogS( ldError, 0, logPrefix, L"Connection for group data not found, leaving receiving" );
         ClientsLock.Unlock();
         RETURN;
       
       ELSIF NOT CRCValid THEN
         PClientLE^.PClient^.Disconnect( PConnection );
 
-        Logger.LogS( dldTrace, logPrefix, L"Disconnect, bad CRC" );
+        Logger.LogS( ldTrace, 0, logPrefix, L"Disconnect, bad CRC" );
         ClientsLock.Unlock();
         RETURN;
 
@@ -1901,7 +1901,7 @@ CLASS IMPLEMENTATION CDriver;
       PELE^.Event.Address := PConnection^.RemoteAddress;
       PELE^.Event.Error := 0;
 
-      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/remote ", CARDINAL( evConnect ));
+      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evConnect/remote ", CARDINAL( evConnect ));
 
       EventsLock.Lock();
       Events.Append( PELE );
@@ -1912,7 +1912,7 @@ CLASS IMPLEMENTATION CDriver;
         INCL( RStatus, rsEventsPending );
       END;
       EventsLock.Unlock();
-      Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (3)" );
+      Logger.LogS( ldDebug, 0, logPrefix, L"RS+ rsEventPending, fire dcfException (3)" );
 
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
 
@@ -1920,17 +1920,17 @@ CLASS IMPLEMENTATION CDriver;
       NEW( PELE );
       IF TPPacket( PData )^.TR = trString THEN
          PELE^.Event.Event := evDataReceived1;
-         Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived1 ", CARDINAL( evDataReceived1 ));
+         Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDataReceived1 ", CARDINAL( evDataReceived1 ));
       ELSE
          PELE^.Event.Event := evStructReceived1;
-         Logger.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived1 ", CARDINAL( evStructReceived1 ));
+         Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evStructReceived1 ", CARDINAL( evStructReceived1 ));
       END;
       
       ClientsLock.Lock();
       b := SearchNet( REF Clients, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
       ClientsLock.Unlock();
       IF NOT b THEN
-        Logger.LogS( dldError, logPrefix, L"Connection for string/struct data not found, leaving receiving" );
+        Logger.LogS( ldError, 0, logPrefix, L"Connection for string/struct data not found, leaving receiving" );
         RETURN;
       END;
 
@@ -1942,21 +1942,21 @@ CLASS IMPLEMENTATION CDriver;
       IF CRCValid THEN
          IF TPPacket( PData )^.TR = trString THEN
             PELE^.Event.Event := evDataReceived2Success;
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2Success ", CARDINAL( evDataReceived2Success ));
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDataReceived2Success ", CARDINAL( evDataReceived2Success ));
          ELSE
             PELE^.Event.Event := evStructReceived2Success;
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2Success ", CARDINAL( evStructReceived2Success ));
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evStructReceived2Success ", CARDINAL( evStructReceived2Success ));
          END;
          PELE^.Event.PacketLen := DataLen;
-         ALLOCATE( PELE^.Event.PPacket, DataLen );
+         ALLOCATE( OUT PELE^.Event.PPacket, DataLen );
          Storage.Move( PData, PELE^.Event.PPacket, DataLen );
       ELSE
          IF TPPacket( PData )^.TR = trString THEN
             PELE^.Event.Event := evDataReceived2BadCRC;
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2BadCRC ", CARDINAL( evDataReceived2BadCRC ));
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDataReceived2BadCRC ", CARDINAL( evDataReceived2BadCRC ));
          ELSE
             PELE^.Event.Event := evStructReceived2BadCRC;
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2BadCRC ", CARDINAL( evStructReceived2BadCRC ));
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evStructReceived2BadCRC ", CARDINAL( evStructReceived2BadCRC ));
          END;
       END;
 
@@ -1969,12 +1969,12 @@ CLASS IMPLEMENTATION CDriver;
         INCL( RStatus, rsEventsPending );
       END;
       EventsLock.Unlock();
-      Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (4)" );
+      Logger.LogS( ldDebug, 0, logPrefix, L"RS+ rsEventPending, fire dcfException (4)" );
 
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
 
     ELSE
-      Logger.LogSC( dldTrace, logPrefix, L"Unrecognized packet ", CARDINAL( TPPacket( PData )^.TR  ));
+      Logger.LogSC( ldTrace, 0, logPrefix, L"Unrecognized packet ", CARDINAL( TPPacket( PData )^.TR  ));
     
     END;
   END OnReceive;

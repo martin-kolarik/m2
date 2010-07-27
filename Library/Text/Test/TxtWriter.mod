@@ -1,5 +1,8 @@
 MODULE TxtWriter;
 
+FROM Exceptions IMPORT
+   TestIfCatched;
+
 IMPORT
   FIO,
   FIOO,

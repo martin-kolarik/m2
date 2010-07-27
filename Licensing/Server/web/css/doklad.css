@@ -1,0 +1,116 @@
+body {
+	padding: 0;
+	margin: 0;
+	text-align: center;
+	font-size: 12px;
+	font-family: Tahoma, Arial, Helvetica, sans-serif;
+	background-color: white;
+	color: Black;
+}
+table, tr, td {
+	font-size: 100%;
+}
+a {
+	text-decoration: none;
+	color: White;
+	font-weight: bold;
+}
+a:hover {
+	text-decoration: underline;
+}
+@media screen {
+div {
+	background-color: #EDEDED;
+	height: 35px;
+	_height: 45px;
+	padding-top: 10px;
+}
+}
+@media print {
+div { display: none; }
+}
+div span {
+	display: block;
+	margin: 0 auto;
+	width: 144px;
+}
+div a {
+	line-height: 24px;
+	margin-left: 10px;
+	float: left;
+	height: 24px;
+}
+a#print {
+	background-image: url(../img/button-52.gif);
+	width: 53px;
+}
+a#close {
+	background-image: url(../img/button-70.gif);
+	width: 71px;
+}
+table {
+	clear: both;
+	width: 455px;
+	margin: 50px auto;
+	border-collapse: collapse;
+}
+table td {
+	text-align: left;
+	padding: 10px;
+	line-height: 1.4em;
+}
+.right {
+	text-align: right;
+}
+.center {
+	text-align: center;
+}
+tr#trd td {
+	font-weight: bold;
+	padding: 20px 10px;
+}
+tr#snd td, tr#trd td, tr.item td, tr#fifth td {
+	border: 1px solid black;
+}
+tr#trd td, tr.item td {
+	border-bottom: none;
+}
+tr.item td {
+	padding: 0 10px 20px 10px;
+	vertical-align: top;
+}
+tr.item td, tr#fifth td {
+	border-top: none;
+}
+tr#fifth td#c2, tr#fifth td#c3 {
+	padding: 0;
+	text-align: center;
+	margin: 0;
+}
+tr#fifth span {
+	padding: 20px 10px;
+	font-weight: bold;
+	border: 2px solid black;
+	border-top-width: 3px;
+	display: block;
+}
+tr#fifth td#c2 span {
+	border-right: none;
+}
+tr#fifth td#c3 span {
+	border-left: none;
+}
+tr#fifth td#c1, small {
+	font-size: 0.9em;
+}
+tr#last td {
+	padding: 20px 10px;
+	font-size: 0.9em;
+}
+tr#last td em {
+	font-style: normal;
+	float: left;
+	display: block;
+	width: 70px;
+	height: 100px;
+}

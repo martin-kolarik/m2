@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context path="/Licensing" antiJARLocking="true" antiResourceLocking="true">
+    <Resource name="jdbc/Licensing"
+              auth="Container"
+              type="javax.sql.DataSource" 
+              username="`username`"
+              password="`password`"
+              driverClassName="`driverClassName`" 
+              url="`url`" 
+              maxActive="1"
+              maxIdle="1"
+              testOnBorrow="true"
+              testWhileIdle="true"/>
+</Context>

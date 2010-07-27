@@ -962,7 +962,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      Logger.LogS( log.dldMessage, L"AirMotion", L"Started" );
+      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Started" );
       RETURN Connection.OpenS( _HostAddress, TRUE, 500 );
    END Start;
 
@@ -971,7 +971,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
       Connection.Close();
-      Logger.LogS( log.dldMessage, L"AirMotion", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Stopped" );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -980,12 +980,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF PoolHandle = _TxTimeoutHandle THEN
          _TxTimeoutHandle := NIL;
-         Logger.LogS( log.dldTrace, L"", L"Tx timeout" );
+         Logger.LogS( log.ldTrace, 0, L"", L"Tx timeout" );
          Automaton^.EventTimeout();
 
       ELSIF PoolHandle = _RxTimeoutHandle THEN
          _RxTimeoutHandle := NIL;
-         Logger.LogS( log.dldTrace, L"", L"Rx timeout" );
+         Logger.LogS( log.ldTrace, 0, L"", L"Rx timeout" );
          Automaton^.EventTimeout();
 
       END;
@@ -1182,7 +1182,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       TxBuffer : StorageO.CMemoryBuffer;
    BEGIN
       IF NOT Connection.Connected THEN
-         Logger.LogS( log.dldTrace, L"", L"Disconnected, trying to reconnect" );
+         Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
          Connection.OpenS( _HostAddress, TRUE, 500 );
       END;
    
@@ -1201,7 +1201,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          StartTimeout( _RxTimeout, REF _RxTimeoutHandle );
       END;
 
-      Logger.LogSCB( log.dldDebug, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
+      Logger.LogSCB( log.ldDebug, 0, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
       Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
       IF Result = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -1229,13 +1229,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       ChkSumOK : BOOLEAN := TRUE;
    BEGIN
       IF Result <> Sync.arCompleted THEN
-         Logger.LogSC( log.dldError, L'', L'rx error: ', CARDINAL( Result ));
+         Logger.LogSC( log.ldError, 0, L'', L'rx error: ', CARDINAL( Result ));
          OnRx( Result, LRxBuffer );
          RxBuffer.Clear();
          RETURN FALSE;
       ELSIF NOT Data.Empty THEN
          RxBuffer.Append( Data );
-         Logger.LogSCB( log.dldDebug, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+         Logger.LogSCB( log.ldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
       END;
 
       (* // TODO
@@ -1377,7 +1377,7 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN

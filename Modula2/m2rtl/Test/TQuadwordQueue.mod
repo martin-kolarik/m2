@@ -19,6 +19,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       QQ   : SyncQueue.QuadwordQueue;
       Exit : CARDINAL := 0;
+      Limit : INT64 := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    INTERNAL PROCEDURE Round( RingSize : CARDINAL ) : BOOLEAN;
@@ -66,6 +67,12 @@ CLASS IMPLEMENTATION CTest;
       Size : CARDINAL;
    BEGIN
       SELF.Host := Host;
+      
+      IF Host^.FastEvaluation THEN
+         Limit := 50000;
+      ELSE
+         Limit := 500000;
+      END;
    
       FOR Size := 0 TO HIGH( sizes ) DO
          Failure := NOT Round( sizes[Size] ) OR Failure;
@@ -122,7 +129,8 @@ CLASS IMPLEMENTATION CTest;
       LOOP
          QQ.Enqueue( I64, TRUE, Sync.FOREVER );
          INC( I64 );
-         IF I64 > 500000 THEN
+         
+         IF I64 > Limit THEN
             EXIT;
          ELSIF Exit = 1 THEN
             EXIT;
@@ -141,11 +149,11 @@ CLASS IMPLEMENTATION CTest;
          QQ.Dequeue( OUT I64, TRUE, Sync.FOREVER );
          IF I64 <> P64+1 THEN
             Strings.FromINT64W( I64, 10, OUT sI64 ); Strings.FromINT64W( P64, 10, OUT sP64 );
-            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sI64, L"/", sP64 );
+            Host^.Log^.LogSSSS( log.lcError, 0, L"", L"Failed on numbers: ", sI64, L"/", sP64 );
             Exit := 1;
             EXIT;
          END;
-         IF I64 = 500000 THEN
+         IF I64 = Limit THEN
             EXIT;
          ELSIF Exit = 1 THEN
             EXIT;

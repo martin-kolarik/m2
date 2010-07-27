@@ -139,7 +139,7 @@ CLASS IMPLEMENTATION CItem;
    PUBLIC PROPERTY CreatedString SET( CONST Value : StringsO.CString );
    BEGIN
       State := TItemState{isDirty};
-      IF Value.Empty OR NOT _Created.FromStringOA( OA( Value.Length-1, Value.rawData ), dateFormat ) THEN
+      IF Value.Empty OR NOT _Created.FromStringOA( OA( Value.Length-1, Value.Data ), dateFormat ) THEN
          _Created.Clear();
       END;
    END CreatedString;
@@ -162,7 +162,7 @@ CLASS IMPLEMENTATION CItem;
       IF len = 0 THEN
          SHA256.DigestSaltOA( SELF, salt, OUT digest ); // this products undecryptable data
       ELSE
-         SHA256.DigestSaltOA( OA( 2*len-1, Hash.rawData ), salt, OUT digest );
+         SHA256.DigestSaltOA( OA( 2*len-1, Hash.Data ), salt, OUT digest );
       END;
       
       LanguagesO.ToMB( _TransportData, Languages.cp_UTF8, FALSE, REF M );
@@ -195,7 +195,7 @@ CLASS IMPLEMENTATION CItem;
       i := cphcommon.BASE64CharCount( len );
       _TransportData.Size := i;
       _TransportData.Length := i;
-      data := PBYTE( _TransportData.rawData );
+      data := PBYTE( _TransportData.Data );
       cphcommon.ToBASE64( OA( len-1, M.Data ), OUT OA( i-1, PWCHAR( data )));
    END EncodeTransportData;
 
@@ -219,7 +219,7 @@ CLASS IMPLEMENTATION CItem;
       M.Size := i;
       M.Length := i;
       data := M.Data;
-      IF NOT cphcommon.FromBASE64( OA( len-1, _TransportData.rawData ), OUT OA( i-1, data ), OUT len ) THEN
+      IF NOT cphcommon.FromBASE64( OA( len-1, _TransportData.Data ), OUT OA( i-1, data ), OUT len ) THEN
          RETURN FALSE;
       END;
       
@@ -235,7 +235,7 @@ CLASS IMPLEMENTATION CItem;
       IF i = 0 THEN
          RETURN FALSE;
       ELSE
-         SHA256.DigestSaltOA( OA( 2*i-1, Hash.rawData ), salt, OUT digest );
+         SHA256.DigestSaltOA( OA( 2*i-1, Hash.Data ), salt, OUT digest );
       END;
 
       // uncrypt it
@@ -533,7 +533,7 @@ CLASS IMPLEMENTATION CLockedItem;
       c := cphcommon.BASE64CharCount( SIZE( Uniquer.TUId ));
       s.Size := c;
       s.Length := c;
-      a := s.rawData;
+      a := s.Data;
       cphcommon.ToBASE64( UId, OUT OA( s.Length-1, a ));
       RETURN s;
    END UIdString;
@@ -548,7 +548,7 @@ CLASS IMPLEMENTATION CLockedItem;
       IF Value.Length <> cphcommon.BASE64CharCount( SIZE( Uniquer.TUId )) THEN
          RETURN;
       END;
-      cphcommon.FromBASE64( OA( Value.Length-1, Value.rawData ), OUT UId, OUT c );
+      cphcommon.FromBASE64( OA( Value.Length-1, Value.Data ), OUT UId, OUT c );
    END UIdString;
 
 (*--------------------------------------------------------------------------------*)
@@ -838,7 +838,7 @@ CLASS IMPLEMENTATION CActivation;
    PUBLIC PROPERTY StartsString SET( CONST Value : StringsO.CString );
    BEGIN
       State := TItemState{isDirty};
-      IF Value.Empty OR NOT _Starts.FromStringOA( OA( Value.Length-1, Value.rawData ), dateFormat ) THEN
+      IF Value.Empty OR NOT _Starts.FromStringOA( OA( Value.Length-1, Value.Data ), dateFormat ) THEN
          _Starts.Clear();
       ELSE
          Starts := _Starts;
@@ -879,7 +879,7 @@ CLASS IMPLEMENTATION CActivation;
    PUBLIC PROPERTY ExpiresString SET( CONST Value : StringsO.CString );
    BEGIN
       State := TItemState{isDirty};
-      IF Value.Empty OR NOT _Expires.FromStringOA( OA( Value.Length-1, Value.rawData ), dateFormat ) THEN
+      IF Value.Empty OR NOT _Expires.FromStringOA( OA( Value.Length-1, Value.Data ), dateFormat ) THEN
          _Expires.Clear();
       ELSE
          Expires := _Expires;

@@ -32,12 +32,21 @@
                             <File Id="DeviceIOSDAPBridge.DLL" Name="SDAPBrdg.dll" LongName="DeviceIOSDAPBridge.dll" Source="DeviceIOSDAPBridge.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             <ServiceControl Id="SVCControlBridgeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
-                        <!-- Component Guid="E221959E-E8C4-412d-95A4-018C096D2A2F" Id="ToolSvcInst">
+                        <Component Guid="E221959E-E8C4-412d-95A4-018C096D2A2F" Id="ToolSvcInst">
                             <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
-                        </Component -->
+                        </Component>
                         <Component Id="Licence" Guid="23DDE166-5696-4e0a-93F0-027EFACF7910">
+                            <File Id="Licence" Name="Licence.lic" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" DiskId="1" Vital="yes" KeyPath="yes" />
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
+                        <?if $(var.LanguageName)=cs ?>
+                        <Component Id="Documentation" Guid="F7129C66-A91A-4b8f-AC40-FC08805C9CC6">
+                            <File Id="SDAPBridge.pdf" Name="SDAPBrdg.pdf" LongName="SDAPBridge.pdf" Source="..\Doc\SDAPBridge_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SDAPBridge" />
+                            </File>
+                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
+                        </Component>
+                        <?endif ?>
                         <Component Id="DefaultConfiguration" Guid="801CD0FE-6B06-4067-A2CC-F7BB6C56C7BB">
                             <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -86,7 +95,8 @@
             <ComponentRef Id="RuntimeLib" />
             <ComponentRef Id="BridgeLib" />
             <ComponentRef Id="Licence" />
-            <!-- ComponentRef Id="ToolSvcInst" / -->
+            <ComponentRef Id="ToolSvcInst" />
+            <ComponentRef Id="Documentation" />
             <ComponentRef Id="DefaultConfiguration" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />

@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<HWVisualEditor Version="0.0">
+  <ChannelBoxes>
+    <ChannelBox ChannelTypeGuid="2974506a-1c82-4423-aca9-761a6629e2de">
+      <Text>DOMAT line - MODBUS RTU TCP/Serial [Serial channel (RS232/RS485)]</Text>
+      <ChannelInstanceGUID>57166f71-c891-4cda-adcb-e269d5a6ce44</ChannelInstanceGUID>
+    </ChannelBox>
+    <ChannelBox ChannelTypeGuid="a03eea23-7859-44d4-9ee1-3765cc91aee8">
+      <Text>tcp - KNX/EIB SmartServer client [TCP channel]</Text>
+      <ChannelInstanceGUID>cce9470a-a703-4d46-84f5-50729242f992</ChannelInstanceGUID>
+    </ChannelBox>
+  </ChannelBoxes>
+  <DeviceBoxes>
+    <DeviceBox DeviceToolGuid="3784738c-ee06-48b1-bcba-8c0208b62a56">
+      <Text>Generic</Text>
+      <AssociatedChannelTool.ChannelInstanceGUID>57166f71-c891-4cda-adcb-e269d5a6ce44</AssociatedChannelTool.ChannelInstanceGUID>
+    </DeviceBox>
+    <DeviceBox DeviceToolGuid="511c71b0-cf9a-4edf-b802-3caf608d314a">
+      <Text>MMIO</Text>
+      <AssociatedChannelTool.ChannelInstanceGUID>57166f71-c891-4cda-adcb-e269d5a6ce44</AssociatedChannelTool.ChannelInstanceGUID>
+      <CommunicationVariables>
+        <CommunicationVariableGUID>72c8ff03-9474-4ad9-9af5-092f597693c3</CommunicationVariableGUID>
+        <CommunicationVariableGUID>430969c6-d5fc-4587-9d14-a5b091be316d</CommunicationVariableGUID>
+        <CommunicationVariableGUID>101f885c-a3fa-4567-a2ea-abecd012a6a3</CommunicationVariableGUID>
+        <CommunicationVariableGUID>9862701f-8f8c-4244-8123-7953deb0c881</CommunicationVariableGUID>
+        <CommunicationVariableGUID>f473bd08-ccef-45f4-9eaf-f034628f58b1</CommunicationVariableGUID>
+        <CommunicationVariableGUID>39d01e69-4eec-4b2d-bf4d-4981cad1fe6c</CommunicationVariableGUID>
+        <CommunicationVariableGUID>5df168b1-5d9b-428f-a506-e4416378507c</CommunicationVariableGUID>
+        <CommunicationVariableGUID>e61caeae-bb6b-447f-885f-97e1d84add92</CommunicationVariableGUID>
+        <CommunicationVariableGUID>a31ddac1-096e-41b4-a785-2f8c40fbb086</CommunicationVariableGUID>
+        <CommunicationVariableGUID>ffb32dd5-fda8-4ffc-ad70-e4f6aebc9517</CommunicationVariableGUID>
+        <CommunicationVariableGUID>7efdc73d-6716-4758-9d94-2e34350ef02f</CommunicationVariableGUID>
+        <CommunicationVariableGUID>7f0f080a-d988-4db8-801c-c2fdb7fc17b8</CommunicationVariableGUID>
+        <CommunicationVariableGUID>9b24cb72-22e6-407e-a5a6-e5307ae135a9</CommunicationVariableGUID>
+        <CommunicationVariableGUID>8aa09a41-1490-4e66-8231-60b442ef1730</CommunicationVariableGUID>
+        <CommunicationVariableGUID>9b8e39f8-df22-411c-bfa0-c63bf8565b38</CommunicationVariableGUID>
+        <CommunicationVariableGUID>2022c634-bd94-429b-acf0-1bdea196ed67</CommunicationVariableGUID>
+        <CommunicationVariableGUID>e804d6b1-3b7d-429e-958e-21f21705853b</CommunicationVariableGUID>
+      </CommunicationVariables>
+    </DeviceBox>
+    <DeviceBox DeviceToolGuid="3784738c-ee06-48b1-bcba-8c0208b62a56">
+      <Text>Generic</Text>
+      <AssociatedChannelTool.ChannelInstanceGUID>cce9470a-a703-4d46-84f5-50729242f992</AssociatedChannelTool.ChannelInstanceGUID>
+    </DeviceBox>
+  </DeviceBoxes>
+</HWVisualEditor>

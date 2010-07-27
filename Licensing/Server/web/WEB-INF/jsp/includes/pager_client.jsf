@@ -1,0 +1,43 @@
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+
+<c:url value="" var="pageUrl"/>
+<pg:pager pager="${pager}" url="${pageUrl}">
+    
+    <div id="podtab">
+        <div id="pager">
+            <span>Stránka:</span>
+            
+            <pg:prev activeId="krtActive" uriId="krtUri" pageNumberId="krtPage">
+                <a href="<c:url value='${krtUri}'/>">&lt;</a>
+            </pg:prev>
+            
+            <pg:pages activeId="krtActive" uriId="krtUri" iteratePageNumberId="krtPage">
+                <c:choose>
+                    <c:when test="${krtActive}">
+                        <a class="act" href="<c:url value='${krtUri}'/>">${krtPage}</a>
+                    </c:when>
+                    <c:otherwise>
+                        <a href="<c:url value='${krtUri}'/>">${krtPage}</a>    
+                    </c:otherwise>  
+                </c:choose>
+            </pg:pages>
+            
+            <pg:next activeId="krtActive" uriId="krtUri" pageNumberId="krtPage">
+                <a href="<c:url value='${krtUri}'/>">&gt;</a>
+            </pg:next>
+            
+        </div>
+        <div id="items">
+            <span>Položek:</span>
+            <a href='<c:url value="?items=-5"/>' id="minus">-</a>
+            <a href='<c:url value="?items=5"/>' id="plus">+</a>
+        </div>
+        <div id="pages">
+            <span>Záznam:</span>
+            <strong><c:out value="${pager.displayFrom}"/> - <c:out value="${pager.displayTo}"/></strong> / <c:out value="${pager.count}"/>
+        </div>
+    </div>
+</pg:pager>
+
+
+

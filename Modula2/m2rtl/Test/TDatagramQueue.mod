@@ -121,7 +121,7 @@ CLASS IMPLEMENTATION CTest;
       
       DQ.Size := RingSize;
       DQ.ItemSize := SIZE( CARD32 );
-      DQ.FlushSleep := 0;
+      DQ.FlushSleep := 1;
       DQ.Clear();
       
       ThreadIndex := 0;
@@ -188,9 +188,16 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       IF DQ.Produce = NIL THEN
          Items := 50000 DIV MAX2( 1, ThreadCount DIV 5 );
+         IF Host^.FastEvaluation THEN
+            Items := Items DIV 200;
+         END;
       ELSE
          Items := 1000 DIV ThreadCount;
+         IF Host^.FastEvaluation THEN
+            Items := Items DIV 200;
+         END;
       END;
+      
       LOOP
          LOOP
             Result := DQ.EnqueueOA( C32, TRUE, 1000 );
@@ -222,7 +229,7 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       LOOP
          LOOP
-            Result := DQ.DequeueOA( OUT C32, TRUE, 1000 );
+            Result := DQ.DequeueOA( OUT C32, TRUE, 10 );
             IF Result = Sync.arCompleted THEN
                EXIT;
             ELSIF Exit = 1 THEN
@@ -237,7 +244,7 @@ CLASS IMPLEMENTATION CTest;
          C32 := C32 AND 0FFFFFFH;
          IF C32 <> Last[Index]+1 THEN
             Strings.FromCARD32W( C32, 10, OUT sC32 ); Strings.FromCARD32W( Last[Index], 10, OUT sP32 );
-            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sC32, L"/", sP32 );
+            Host^.Log^.LogSSSS( log.lcError, 0, L"", L"Failed on numbers: ", sC32, L"/", sP32 );
             Exit := 1;
             EXIT;
          END;

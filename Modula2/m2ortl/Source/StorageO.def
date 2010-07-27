@@ -146,13 +146,12 @@ TYPE
 		aexUnitTooBig
 	);
 
-FINAL CLASS CAllocatorException( Exceptions.CException );
+FINAL CLASS CAllocatorException( Exceptions.CGenericException );
    PUBLIC READONLY VAR
       Kind : TAllocatorException;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT Code : ARRAY OF WCHAR );
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TAllocatorException ) : CAllocatorException;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
 END CAllocatorException;
 
 PROCEDURE AllocatorException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TAllocatorException ) : CAllocatorException;
@@ -189,9 +188,9 @@ ABSTRACT CLASS CAAllocator;
 		Backlog         : CARDINAL; // minimal allocated space, even if memory is deallocated
 		Limit           : CARDINAL;
 
-	PUBLIC ABSTRACT PROCEDURE Allocate( OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN;
-	PUBLIC ABSTRACT PROCEDURE Deallocate( REF a : ADDRESS );
-	PUBLIC ABSTRACT PROCEDURE Reallocate( REF a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+	PUBLIC ABSTRACT PROCEDURE Allocate( OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
+	PUBLIC ABSTRACT PROCEDURE Deallocate( REF a : ADDRESS ) THROWS CAllocatorException;
+	PUBLIC ABSTRACT PROCEDURE Reallocate( REF a : ADDRESS; size : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
 	
 	INTERNAL PROCEDURE CommitPages( Count : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
 	INTERNAL VIRTUAL PROCEDURE PageCommitted( Index : CARDINAL ); // callback

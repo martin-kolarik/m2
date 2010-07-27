@@ -1410,7 +1410,7 @@ CLASS IMPLEMENTATION CDriver;
         CASE PCARD8( PFrame )^ OF
         | 006H :
           IF rsWaitACK IN RStatus THEN
-            Serial.Logger.LogS( Log.dldTrace, Name, L'RX ACK during expect ACK' );
+            Serial.Logger.LogS( Log.ldTrace, 0, Name, L'RX ACK during expect ACK' );
             RStatus := RStatus - TRStatus{rsWaitACK} + TRStatus{rsWaitResponse};
             CASE Expect OF
             | 0B1H, 0B0H, 0CAH :
@@ -1421,7 +1421,7 @@ CLASS IMPLEMENTATION CDriver;
           END;
         | 015H :
           IF rsWaitACK IN RStatus THEN
-            Serial.Logger.LogSC( Log.dldTrace, Name, L'RX NAK during expect ACK ', CARDINAL( PFrame^.F.Cmd ));
+            Serial.Logger.LogSC( Log.ldTrace, 0, Name, L'RX NAK during expect ACK ', CARDINAL( PFrame^.F.Cmd ));
             RStatus := RStatus - TRStatus{rsWaitACK};
             ResetRxTimeout();
           END;
@@ -1436,14 +1436,14 @@ CLASS IMPLEMENTATION CDriver;
       CASE PFrame^.F.Cmd OF
       //-----
       | 092H : // NAK = NAK, NAK = unrecognized command
-        Serial.Logger.LogSC( Log.dldTrace, Name, L'RX NAK during expect ACK ', CARDINAL( PFrame^.F.Cmd ));
+        Serial.Logger.LogSC( Log.ldTrace, 0, Name, L'RX NAK during expect ACK ', CARDINAL( PFrame^.F.Cmd ));
       //-----
       | 090H, 091, 0A0H : // power-on message, reset confirmation, mode switched
         Automaton( osInit );
       //-----
       | 0B1H, 0C1H, 0B0H, 0CAH :
         IF ( rsWaitResponse IN RStatus ) AND ( PFrame^.F.Cmd = Expect ) THEN
-          Serial.Logger.LogSC( Log.dldTrace, Name, L'RX DATA during expect DATA ', CARDINAL( Expect ));
+          Serial.Logger.LogSC( Log.ldTrace, 0, Name, L'RX DATA during expect DATA ', CARDINAL( Expect ));
           RStatus := RStatus - TRStatus{rsWaitResponse} + TRStatus{rsHaveData};
           ResetRxTimeout();
         END;
@@ -1452,14 +1452,14 @@ CLASS IMPLEMENTATION CDriver;
           IF OS >= osRunning1 THEN
             ParseData( PFrame, L );
           ELSE
-            Serial.Logger.LogS( Log.dldDebug, Name, L'RX DATA before initialization finish' );
+            Serial.Logger.LogS( Log.ldDebug, 0, Name, L'RX DATA before initialization finish' );
           END;
         ELSE
           ParseData( PFrame, L );
         END;
       //-----
       ELSE // log unparsed data
-        Serial.Logger.LogSC( Log.dldDebug, Name, L'RX unparsed data ', CARDINAL( PFrame^.F.Cmd ));
+        Serial.Logger.LogSC( Log.ldDebug, 0, Name, L'RX unparsed data ', CARDINAL( PFrame^.F.Cmd ));
       END;
 
     ELSE
@@ -1469,10 +1469,10 @@ CLASS IMPLEMENTATION CDriver;
 
       IF Result = Sync.arTimeout THEN
         LastErrorCode := ceRxTimeout;
-        Serial.Logger.LogS( Log.dldError, Name, L'RX timeout' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX timeout' );
       ELSIF Result <> Sync.arCompleted THEN
         LastErrorCode := drv_def.ecValueProcessing;
-        Serial.Logger.LogS( Log.dldError, Name, L'RX ? unknown error ' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX ? unknown error ' );
       END;
 
     END;
@@ -1577,7 +1577,7 @@ CLASS IMPLEMENTATION CDriver;
       Expect := 0CAH;
     END; // CASE OS
 
-    Serial.Logger.LogSC( Log.dldError, Name, L'TX request ', CARDINAL( Frame.F.Cmd ));
+    Serial.Logger.LogSC( Log.ldError, 0, Name, L'TX request ', CARDINAL( Frame.F.Cmd ));
 
     SetRxTimeout( RxACKTimeout, Length + 3 );
     Serial.Tx( OA( Length-1, ADR( Frame )), FALSE, 0, 0, RxSafetyTimeout );
@@ -1636,7 +1636,7 @@ CLASS IMPLEMENTATION CDriver;
     Overflow : INTEGER;
     Step : CARDINAL;
   BEGIN
-    Serial.Logger.LogSC( Log.dldError, Name, L'RX parsing ', CARDINAL( PData^.F.Cmd ));
+    Serial.Logger.LogSC( Log.ldError, 0, Name, L'RX parsing ', CARDINAL( PData^.F.Cmd ));
 
     CASE PData^.F.Cmd OF
     //-----
@@ -1651,7 +1651,7 @@ CLASS IMPLEMENTATION CDriver;
         Automaton( osHaveStatus );
       ELSE
         Automaton( osFailure );
-        Serial.Logger.LogSC( Log.dldError, Name, L'RX unsupported mode, switching OFF ', ScanMode );
+        Serial.Logger.LogSC( Log.ldError, 0, Name, L'RX unsupported mode, switching OFF ', ScanMode );
       END;
 
     //-----
@@ -1671,7 +1671,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       Count := CARDINAL( TPCurrentResponse( PData )^.Description AND 001FFH );
       IF Count = 0 THEN
-        Serial.Logger.LogS( Log.dldError, Name, L'RX data zero count' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX data zero count' );
         RETURN;
       END;
       IF ScanningAngle = 100 THEN
@@ -1757,28 +1757,28 @@ CLASS IMPLEMENTATION CDriver;
 
       Fields[ActiveFieldSet]['A'] := TPFieldsStatus( PData )^.FieldA;
       IF Fields[ActiveFieldSet]['A'] AND NOT FieldsPrevious[ActiveFieldSet]['A'] THEN
-        Serial.Logger.LogS( Log.dldError, Name, L'RX field A FINISH' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX field A FINISH' );
         AddEvent( NIL, evFinish, etField, 1, 0, 0, 0 );
       ELSIF NOT Fields[ActiveFieldSet]['A'] AND FieldsPrevious[ActiveFieldSet]['A'] THEN
-        Serial.Logger.LogS( Log.dldError, Name, L'RX field A ALARM' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX field A ALARM' );
         AddEvent( NIL, evSetOff, etField, 1, 0, 0, 0 );
       END;
       FieldsPrevious[ActiveFieldSet]['A'] := Fields[ActiveFieldSet]['A'];
       Fields[ActiveFieldSet]['B'] := TPFieldsStatus( PData )^.FieldB;
       IF Fields[ActiveFieldSet]['B'] AND NOT FieldsPrevious[ActiveFieldSet]['B'] THEN
-        Serial.Logger.LogS( Log.dldError, Name, L'RX field B FINISH' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX field B FINISH' );
         AddEvent( NIL, evFinish, etField, 2, 0, 0, 0 );
       ELSIF NOT Fields[ActiveFieldSet]['B'] AND FieldsPrevious[ActiveFieldSet]['B'] THEN
-        Serial.Logger.LogS( Log.dldError, Name, L'RX field B ALARM' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX field B ALARM' );
         AddEvent( NIL, evSetOff, etField, 2, 0, 0, 0 );
       END;
       FieldsPrevious[ActiveFieldSet]['B'] := Fields[ActiveFieldSet]['B'];
       Fields[ActiveFieldSet]['C'] := TPFieldsStatus( PData )^.FieldC;
       IF Fields[ActiveFieldSet]['C']  AND NOT FieldsPrevious[ActiveFieldSet]['C'] THEN
-        Serial.Logger.LogS( Log.dldError, Name, L'RX field C FINISH' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX field C FINISH' );
         AddEvent( NIL, evFinish, etField, 3, 0, 0, 0 );
       ELSIF NOT Fields[ActiveFieldSet]['C']  AND FieldsPrevious[ActiveFieldSet]['C'] THEN
-        Serial.Logger.LogS( Log.dldError, Name, L'RX field C ALARM' );
+        Serial.Logger.LogS( Log.ldError, 0, Name, L'RX field C ALARM' );
         AddEvent( NIL, evSetOff, etField, 3, 0, 0, 0 );
       END;
       FieldsPrevious[ActiveFieldSet]['C'] := Fields[ActiveFieldSet]['C'];
@@ -1830,7 +1830,7 @@ CLASS IMPLEMENTATION CDriver;
     ResetRxTimeout();
     IF RxDataTimeout > 0 THEN
       INCL( RStatus, rsRxTimeout );
-      Serial.Logger.LogSC( Log.dldTrace, Name, L'RX timeout set to: ', RxDataTimeout + AddOn );
+      Serial.Logger.LogSC( Log.ldTrace, 0, Name, L'RX timeout set to: ', RxDataTimeout + AddOn );
       StartTimer( tiRx, RxDataTimeout, TRUE );
       RxTimeoutPeriod := RxDataTimeout + AddOn;
       RxTimeoutTime := time.UptimeMS() + RxTimeoutPeriod;
@@ -1843,7 +1843,7 @@ CLASS IMPLEMENTATION CDriver;
   BEGIN
     IF rsRxTimeout IN RStatus THEN
       EXCL( RStatus, rsRxTimeout );
-      Serial.Logger.LogS( Log.dldTrace, Name, L'RX timeout reset' );
+      Serial.Logger.LogS( Log.ldTrace, 0, Name, L'RX timeout reset' );
       StopTimer( tiRx );
     END;
   END ResetRxTimeout;
@@ -1899,21 +1899,21 @@ CLASS IMPLEMENTATION CDriver;
         ELSIF i - CandidateToNew > MovementThreshold THEN
           IF SampleActive THEN
             // STOP EVENT
-            Serial.Logger.LogSS( Log.dldError, Name, L'EV finish 1 on zone: ', Zone^.Id );
+            Serial.Logger.LogSS( Log.ldError, 0, Name, L'EV finish 1 on zone: ', Zone^.Id );
             AddEvent( Zone, evFinish, etZone, i, A[i], MeanData[i], 0 );
             A[i] := 0;
           END;
           // NEW EVENT
           INC( CurrentId );
           A[CandidateToNew] := CurrentId;
-          Serial.Logger.LogSS( Log.dldError, Name, L'EV set off 1 on zone: ', Zone^.Id );
+          Serial.Logger.LogSS( Log.ldError, 0, Name, L'EV set off 1 on zone: ', Zone^.Id );
           AddEvent( Zone, evSetOff, etZone, CandidateToNew, CurrentId, LMean, LDiff );
           CandidateToNew := -1;
           LMean := 0; LDiff := 0; LNAVG := 0;
         ELSIF SampleActive AND ( CandidateToNew <> i ) THEN
           // MOVED EVENT
           A[CandidateToNew] := A[i];
-          Serial.Logger.LogSS( Log.dldError, Name, L'EV moved 1 on zone: ', Zone^.Id );
+          Serial.Logger.LogSS( Log.ldError, 0, Name, L'EV moved 1 on zone: ', Zone^.Id );
           AddEvent( Zone, evMovement, etZone, CandidateToNew, A[CandidateToNew], LMean, LDiff );
           CandidateToNew := -1;
           LMean := 0; LDiff := 0; LNAVG := 0;
@@ -1941,24 +1941,24 @@ CLASS IMPLEMENTATION CDriver;
             CandidateToNew := Middle;
           ELSIF ABS( Middle - CandidateToFinish ) > MovementThreshold THEN // the event is new, stop previous
             // STOP EVENT
-            Serial.Logger.LogSS( Log.dldError, Name, L'EV finish 2 on zone: ', Zone^.Id );
+            Serial.Logger.LogSS( Log.ldError, 0, Name, L'EV finish 2 on zone: ', Zone^.Id );
             AddEvent( Zone, evFinish, etZone, CandidateToFinish, A[CandidateToFinish], MeanData[CandidateToFinish], 0 );
             A[CandidateToFinish] := 0;
             // NEW EVENT
             INC( CurrentId );
             A[Middle] := CurrentId;
-            Serial.Logger.LogSS( Log.dldError, Name, L'EV set off 2 on zone: ', Zone^.Id );
+            Serial.Logger.LogSS( Log.ldError, 0, Name, L'EV set off 2 on zone: ', Zone^.Id );
             AddEvent( Zone, evSetOff, etZone, Middle, CurrentId, LMean, LDiff );
           ELSIF CandidateToFinish <> Middle THEN
             // MOVED EVENT
             A[Middle] := A[CandidateToFinish];
             A[CandidateToFinish] := 0;
-            Serial.Logger.LogSS( Log.dldError, Name, L'EV moved 2 on zone: ', Zone^.Id );
+            Serial.Logger.LogSS( Log.ldError, 0, Name, L'EV moved 2 on zone: ', Zone^.Id );
             AddEvent( Zone, evMovement, etZone, Middle, A[Middle], LMean, LDiff );
           END;
         ELSIF CandidateToFinish > -1 THEN
           // STOP EVENT
-          Serial.Logger.LogSS( Log.dldError, Name, L'EV finish on 3 zone: ', Zone^.Id );
+          Serial.Logger.LogSS( Log.ldError, 0, Name, L'EV finish on 3 zone: ', Zone^.Id );
           AddEvent( Zone, evFinish, etZone, CandidateToFinish, A[CandidateToFinish], MeanData[CandidateToFinish], 0 );
           A[CandidateToFinish] := 0;
         END;
@@ -2057,7 +2057,7 @@ CLASS IMPLEMENTATION CDriver;
           // NEW EVENT
           INC( CurrentId );
           A[CandidateToNew] := CurrentId;
-          Serial.Logger.LogSS( Log.dldError, Name, L'EV set off 3 on zone: ', Zone^.Id );
+          Serial.Logger.LogSS( Log.ldError, 0, Name, L'EV set off 3 on zone: ', Zone^.Id );
           AddEvent( Zone, evSetOff, etZone, CandidateToNew, CurrentId, LMean, LDiff );
         END;
 

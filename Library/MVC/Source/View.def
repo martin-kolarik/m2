@@ -21,6 +21,7 @@ TYPE
    TPStatusCodeView = POINTER TO CStatusCodeView;
 
 CLASS CStatusCodeView IMPLEMENTS MVC.IView;
+
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
@@ -28,6 +29,7 @@ CLASS CStatusCodeView IMPLEMENTS MVC.IView;
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( StatusCode : HttpCommon.THttpResponse );   
@@ -42,6 +44,7 @@ TYPE
    TPFileView = POINTER TO CFileView;
 
 CLASS CFileView IMPLEMENTS MVC.IView;
+
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
@@ -49,6 +52,7 @@ CLASS CFileView IMPLEMENTS MVC.IView;
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; ResolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; DispositionFlag : BOOLEAN; CONST MIMEResolver : MVC.TPMIMEResolver; MIMEResolverContext : PTR );
@@ -68,6 +72,7 @@ TYPE
    TPRedirectView = POINTER TO CRedirectView;
 
 CLASS CRedirectView IMPLEMENTS MVC.IView;
+
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
@@ -75,6 +80,7 @@ CLASS CRedirectView IMPLEMENTS MVC.IView;
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST URIIsAbsolute : BOOLEAN; URIOrControllerName : ARRAY OF WCHAR );   
@@ -97,6 +103,7 @@ CLASS CRawHTMLView IMPLEMENTS MVC.IView;
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
@@ -111,6 +118,7 @@ TYPE
    TPRawTextView = POINTER TO CRawTextView;
 
 CLASS CRawTextView IMPLEMENTS MVC.IView;
+
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
@@ -118,6 +126,7 @@ CLASS CRawTextView IMPLEMENTS MVC.IView;
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST text, downloadName : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN );
@@ -132,6 +141,18 @@ END CRawTextView;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
+   TLoadState = (
+      lsNotLoaded,
+      lsLoadedForFirst,
+      lsAlreadyLoaded,
+      lsLoadError
+   );
+   
+   TParseMode = (
+      pmFormat,
+      pmAuthentication
+   );
+
    TElementStartAction = (
       esaError,
       esaProcessedInDeep,
@@ -140,16 +161,18 @@ TYPE
    );
    
    TWhere = (
+      whInAccess,
       whInForm,
       whInInput,
       whInSelect,
-      whInOption      
+      whInOption
    );
 
 TYPE
    TPPageTemplateView = POINTER TO CPageTemplateView;
 
 CLASS CPageTemplateView IMPLEMENTS MVC.IView;
+
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
@@ -157,6 +180,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
@@ -167,7 +191,9 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
       Writer : xmlwriter.CXMLWriter;
       Resolver : FSO.TPFilePathResolver;
       ViewName : StringsO.CString;
+      LoadState : TLoadState;
 
+      ParseMode : TParseMode;
       Prefix : StringsO.CString;
       PrefixCondition : StringsO.CString;
       Sources : stacks.CPtrStack;
@@ -175,14 +201,19 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
       FormModel : StringsO.CString;
       CurrentViewNameIndex : CARDINAL;
       
+      AuthMethod : StringsO.CString;
+      AuthTokens : lists.TPStringStringList;
+      
       ErrorElement : StringsO.CString;
       ErrorModel : StringsO.CString;
       ErrorText : StringsO.CString;
       
-   PRIVATE PROCEDURE ParseRoot() : BOOLEAN;
-   PRIVATE PROCEDURE Parse( emit, limitToPTOnly, balanced : BOOLEAN ) : BOOLEAN; // normally, Parse is entered after detecting element start. Element end must be detected inside. But, if reading from node buffer, one could want read pair-by-pair buffer content only. This requires balanced = TRUE to not to read out end of element.
-   PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
+   PRIVATE PROCEDURE ParseRoot( parseMode : TParseMode; xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE Parse( emit, limitToPTOnly : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodePrefix, nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
    PRIVATE PROCEDURE ParseElement( CONST attributes : lists.CStringStringList; isEmpty, limitToPTOnly : BOOLEAN; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseAccess( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseRole( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseChoose() : BOOLEAN;
    PRIVATE PROCEDURE ParseFor( CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseForeach( CONST attributes : lists.CStringStringList ) : BOOLEAN;
@@ -192,18 +223,46 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE ParseFormSelect( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseFormOption( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
+   PRIVATE PROCEDURE ParseVariable( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE GetFormAction( CONST attributes : lists.CStringStringList; OUT formAction : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormModel( CONST attributes : lists.CStringStringList; OUT formModel : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormId( CONST attributes : lists.CStringStringList; OUT formId : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT isEmpty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
    PRIVATE PROCEDURE CopyAttributes( ptFlag : BOOLEAN; CONST attributes : lists.CStringStringList; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR );
    PRIVATE PROCEDURE WriteFormNameAttribute( CONST model : StringsO.IString );
+   PRIVATE PROCEDURE LoadTextContents( OUT Text : StringsO.CString ) : BOOLEAN;
 
    PRIVATE PROCEDURE SetModelBoolean( CONST model : StringsO.IString; value : BOOLEAN );
    PRIVATE PROCEDURE EvaluateBoolean( CONST Value : StringsO.IString ) : BOOLEAN;
    
    PRIVATE PROCEDURE SetError( CONST Element : StringsO.IString; Model : StringsO.TPString; CONST Text : ARRAY OF WCHAR );
    PRIVATE PROCEDURE FormatError();
+   PRIVATE PROCEDURE Load() : TLoadState; // return is copy of LoadState member
 END CPageTemplateView;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPErrorPageView = POINTER TO CErrorPageView;
+
+CLASS CErrorPageView IMPLEMENTS MVC.IView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
+
+   // IView
+   PUBLIC VIRTUAL READONLY PROPERTY
+      OutputType : MVC.TViewOutputType;
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse );
+   
+   PRIVATE VAR
+      PageTemplateView : TPPageTemplateView;
+      StatusCode : HttpCommon.THttpResponse;
+END CErrorPageView;
 
 (*================================================================================*)
 

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+  <html>
+      <head>
+          <title>NeNo KNX/EIBSrv</title>
+          <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+      </head>
+      <body>
+          <div class="shell">
+              <div class="shell-topstrip"></div>
+              <div class="canvas">
+
+                  <div class="top">
+                  </div>
+
+                  <div class="middle">
+                      <div id="menu">
+                          <p><a href="status">${msg.menu.status}</a></p>
+                          <p pt:condition="${isAdmin}"><a href="datalog">${msg.menu.control}</a></p>
+                          <p><a href="datalog">${msg.menu.datalog}</a></p>
+                          <p pt:condition="${isAdmin}"><a href="syslog">${msg.menu.syslog}</a></p>
+                          <p><a href="io">${msg.menu.io}</a></p>
+                          <p> </p>
+                          <p pt:condition="${isAdmin}"><a href="users">${msg.menu.users}</a></p>
+                          <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
+                      </div>
+
+                      <div class="content">
+
+                        <h1>${msg.io.read}</h1>
+                        <pt:form  method="post" action="io">
+                          <pt:formid model="formId" formid="read"/>
+                          <pt:input model="readName" class="ioName"/> <input type="submit" value="${msg.io.doRead}"/>
+                          <pt:choose condition="${readName}">
+                            <pt:when condition="${readFailed}"><span class="red">${msg.io.readFailure}</span></pt:when>
+                            <pt:otherwise><span class="green">${msg.io.readSuccessValue} ${readValue}</span></pt:otherwise>
+                          </pt:choose>
+                        </pt:form>
+
+                        <h1>${msg.io.write}</h1>
+                        <pt:form  method="post" action="io">
+                          <pt:formid model="formId" formid="write"/>
+                          <pt:input model="writeName" class="ioName"/> <pt:input model="writeValue" class="ioValue"/> <input type="submit" value="${msg.io.doWrite}"/>
+                          <pt:choose condition="${writeName}">
+                            <pt:when condition="${writeFailed}"><span class="red">${msg.io.writeFailure}</span></pt:when>
+                            <pt:otherwise><span class="green">${msg.io.writeSuccess}</span></pt:otherwise>
+                          </pt:choose>
+                        </pt:form>
+
+                      </div>
+                  </div>
+
+                  <div class="bottom">
+                    <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
+                  </div>
+
+              </div>
+          </div>
+      </body>
+  </html>
+</pageTemplate>

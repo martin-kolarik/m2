@@ -16,8 +16,8 @@
 
     <!-- 4 -->
     <ItemGroup>
-        <Interface Include="kernel32;user32"/>
-        <InterfaceWithDelayLoad Include="shell32"/>
+        <Interface Include="kernel32;user32;shell32"/>
+        <InterfaceWithDelayLoad Include="dbghelp"/>
     </ItemGroup>
 
 </Project>
