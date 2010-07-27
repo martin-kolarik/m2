@@ -69,10 +69,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
-      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+      Host^.Log^.LogSS( log.lcInfo, 0, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -86,10 +86,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
-      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+      Host^.Log^.LogSS( log.lcInfo, 0, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -102,10 +102,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
-      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+      Host^.Log^.LogSS( log.lcInfo, 0, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -118,10 +118,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
-      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+      Host^.Log^.LogSS( log.lcInfo, 0, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -139,10 +139,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
-      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+      Host^.Log^.LogSS( log.lcInfo, 0, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -156,10 +156,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
-      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+      Host^.Log^.LogSS( log.lcInfo, 0, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -172,10 +172,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
-      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+      Host^.Log^.LogSS( log.lcInfo, 0, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -188,10 +188,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
-      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length, S.Data ));
+      Host^.Log^.LogSS( log.lcInfo, 0, L"", "Average (us): ", OA( S.Length, S.Data ));
 
       Host^.StopPhase();
 
@@ -201,7 +201,7 @@ CLASS IMPLEMENTATION CTest;
       S1.Clear();
       S1 := S;
       IF ( S1.Data <> S.Data ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers (1) mismatch" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Data pointers (1) mismatch" );
          Result := test.trFailure;
       END;
       
@@ -209,7 +209,7 @@ CLASS IMPLEMENTATION CTest;
       S2.Clear();
       S1 := S2;
       IF ( S1.Data <> S2.Data ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers (2) mismatch" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Data pointers (2) mismatch" );
          Result := test.trFailure;
       END;
       
@@ -217,7 +217,7 @@ CLASS IMPLEMENTATION CTest;
       S2.FromOA( L"Long long very long string, over prealocated buffer size -- this is to replace S1" );
       S1 := S2;
       IF ( S1.Data <> S2.Data ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers (3) mismatch" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Data pointers (3) mismatch" );
          Result := test.trFailure;
       END;
       
@@ -225,7 +225,7 @@ CLASS IMPLEMENTATION CTest;
       S2.FromOA( L"Long long very long string, over prealocated buffer size -- this is to replace S1" );
       S1.Copy( S2 );
       IF ( S1.Data = S2.Data ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers (4) mismatch" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Data pointers (4) mismatch" );
          Result := test.trFailure;
       END;
       
@@ -241,7 +241,7 @@ CLASS IMPLEMENTATION CTest;
       S3 := S;
       S4 := S;
       IF ( S1.Data <> S.Data ) OR ( S2.Data <> S.Data ) OR ( S3.Data <> S.Data ) OR ( S4.Data <> S.Data ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers mismatch" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Data pointers mismatch" );
          Result := test.trFailure;
       END;
 
@@ -255,13 +255,13 @@ CLASS IMPLEMENTATION CTest;
       S3 := S2;
       S4 := S3;
       IF ( S1.Data <> S.Data ) OR ( S2.Data <> S.Data ) OR ( S3.Data <> S.Data ) OR ( S4.Data <> S.Data ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers mismatch" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Data pointers mismatch" );
          Result := test.trFailure;
       END;
       
       S3.Dispose();
       IF ( S1.Data <> S.Data ) OR ( S2.Data <> S.Data ) OR ( S3.Data <> NIL ) OR ( S4.Data <> S.Data ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers mismatch" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Data pointers mismatch" );
          Result := test.trFailure;
       END;
 
@@ -273,56 +273,56 @@ CLASS IMPLEMENTATION CTest;
       S1 := S;
       S1[2] := L"A";
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"TeAplate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Index set error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Index set error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.Append( S );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"TemplateTemplate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Append error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Append error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.AppendOA( L"Append" );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"TemplateAppend" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"AppendOA error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"AppendOA error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.Prepend( S );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"TemplateTemplate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Prepend error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Prepend error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.PrependOA( L"Prepend" );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"PrependTemplate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"PrependOA error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"PrependOA error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.Insert( 2, S );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"TeTemplatemplate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Insert error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Insert error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.InsertOA( 2, L"Insert" );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"TeInsertmplate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"InsertOA error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"InsertOA error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.Remove( 2, 2 );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"Telate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Remove error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Remove error" );
          Result := test.trFailure;
       END;
 
@@ -331,98 +331,98 @@ CLASS IMPLEMENTATION CTest;
       S3.FromOA( L"nqm" );
       S1.Replace( S2, S3 );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"Tenqmate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Replace error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Replace error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.ReplaceOA( L"mpl", L"nqm" );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"Tenqmate" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"ReplaceOA error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"ReplaceOA error" );
          Result := test.trFailure;
       END;
       
       S1.FromOA( L" Template " );
       S1.Trim();
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"Template" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Trim error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Trim error" );
          Result := test.trFailure;
       END;
 
       S1 := S;
       S1.Lowerize();
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"template" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Lowerize error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Lowerize error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.Capitalize();
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"TEMPLATE" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Capitalize error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Capitalize error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromOA( L"Ahoj" );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"Ahoj" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromOA error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromOA error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromOAA( 0, C"Ahoj" );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"Ahoj" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromOAA error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromOAA error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromUTF8( C"Ahoj" );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"Ahoj" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromUTF8 error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromUTF8 error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromINT32( -32, 16 );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"-20" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromINT32 error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromINT32 error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromCARD32( 32, 16 );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"20" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromCARD32 error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromCARD32 error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromINT64( -32, 16 );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"-20" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromINT64 error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromINT64 error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromCARD64( 32, 16 );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"20" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromCARD64 error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromCARD64 error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromLONGREAL( -3.2, FALSE );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"-3.2" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromLONGREAL error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromLONGREAL error" );
          Result := test.trFailure;
       END;
       
       S1 := S;
       S1.FromLONGREALExt( -3.2, 5, -1, FALSE, L"," );
       IF ( S1.Data = S.Data ) OR NOT S1.EqualsOA( L"-3,2000" ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"FromLONGREALExt error" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"FromLONGREALExt error" );
          Result := test.trFailure;
       END;
       
@@ -436,7 +436,7 @@ CLASS IMPLEMENTATION CTest;
       S3.Copy( S1 );
       S4.Copy( S2 );
       IF ( S1.Data <> S2.Data ) OR ( S1.Data = S3.Data ) OR ( S1.Data = S4.Data ) OR ( S3.Data = S4.Data ) THEN
-         Host^.Log^.LogS( log.dlcError, L"", L"Pointers in not expected state" );
+         Host^.Log^.LogS( log.lcError, 0, L"", L"Pointers in not expected state" );
          Result := test.trFailure;
       END;
       
@@ -470,7 +470,7 @@ CLASS IMPLEMENTATION CTest;
          S1.Assign( SFromAssign );
          S2.Assign( S1 );
          IF ( S1.Data <> SFromAssign.Data ) OR ( S2.Data <> S1.Data ) THEN
-            Host^.Log^.LogS( log.dlcError, L"", L"Pointers in not expected state (1)" );
+            Host^.Log^.LogS( log.lcError, 0, L"", L"Pointers in not expected state (1)" );
          END;
          S1.Dispose();
          S2.Dispose();
@@ -480,7 +480,7 @@ CLASS IMPLEMENTATION CTest;
          S1.Copy( SFromAssign );
          S2.Assign( S1 );
          IF ( S1.Data = SFromAssign.Data ) OR ( S2.Data <> S1.Data ) THEN
-            Host^.Log^.LogS( log.dlcError, L"", L"Pointers in not expected state (2)" );
+            Host^.Log^.LogS( log.lcError, 0, L"", L"Pointers in not expected state (2)" );
          END;
          S1.Dispose();
          S2.Dispose();

@@ -64,13 +64,13 @@ CLASS IMPLEMENTATION CTest;
 
          WHILE Reader.ReadChar( OUT Ch, Sync.FOREVER, TRUE ) = Sync.arCompleted DO
             IF Ch <> WCHAR( Template[Index] ) THEN
-               Host^.Log^.LogS( log.dlcError, L"", L"Unexpected char found" );
+               Host^.Log^.LogS( log.lcError, 0, L"", L"Unexpected char found" );
                Result := test.trFailure;
             END;
             INC( Index );
          END;
          IF Index < HIGH( Template ) + 1 THEN
-            Host^.Log^.LogS( log.dlcError, L"", L"Some char unread" );
+            Host^.Log^.LogS( log.lcError, 0, L"", L"Some char unread" );
          END;
          
          RETURN Result;
@@ -88,13 +88,13 @@ CLASS IMPLEMENTATION CTest;
 
          WHILE Reader.ReadCharS( OUT Ch ) DO
             IF Ch <> WCHAR( Template[Index] ) THEN
-               Host^.Log^.LogS( log.dlcError, L"", L"Unexpected char found" );
+               Host^.Log^.LogS( log.lcError, 0, L"", L"Unexpected char found" );
                Result := test.trFailure;
             END;
             INC( Index );
          END;
          IF Index < HIGH( Template ) + 1 THEN
-            Host^.Log^.LogS( log.dlcError, L"", L"Some char unread" );
+            Host^.Log^.LogS( log.lcError, 0, L"", L"Some char unread" );
          END;
          
          RETURN Result;
@@ -115,7 +115,7 @@ CLASS IMPLEMENTATION CTest;
             Reader.ReadLine( OUT Line, Sync.FOREVER, TRUE );
          END;
          IF NOT Line.Equals( line ) THEN
-            Host^.Log^.LogS( log.dlcError, L"", L"line1 differs" );
+            Host^.Log^.LogS( log.lcError, 0, L"", L"line1 differs" );
             Result := test.trFailure;
          END;
 
@@ -126,7 +126,7 @@ CLASS IMPLEMENTATION CTest;
             Reader.ReadLine( OUT Line, Sync.FOREVER, TRUE );
          END;
          IF NOT Line.Equals( line ) THEN
-            Host^.Log^.LogS( log.dlcError, L"", L"line2 differs" );
+            Host^.Log^.LogS( log.lcError, 0, L"", L"line2 differs" );
             Result := test.trFailure;
          END;
 
@@ -137,7 +137,7 @@ CLASS IMPLEMENTATION CTest;
             Reader.ReadLine( OUT Line, Sync.FOREVER, TRUE );
          END;
          IF NOT Line.Equals( line ) THEN
-            Host^.Log^.LogS( log.dlcError, L"", L"line3 differs" );
+            Host^.Log^.LogS( log.lcError, 0, L"", L"line3 differs" );
             Result := test.trFailure;
          END;
          
@@ -148,7 +148,7 @@ CLASS IMPLEMENTATION CTest;
             Reader.ReadLine( OUT Line, Sync.FOREVER, TRUE );
          END;
          IF NOT Line.Equals( line ) THEN
-            Host^.Log^.LogS( log.dlcError, L"", L"line4 differs" );
+            Host^.Log^.LogS( log.lcError, 0, L"", L"line4 differs" );
             Result := test.trFailure;
          END;
 
