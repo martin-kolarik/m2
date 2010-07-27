@@ -405,7 +405,7 @@ END CBufferOutput;
 
 (*===========================================================================*)
 
-// inside CSimplePtrArray also only IOutputs are stored, which is not too clean. Keep it on mind!!
+// inside CSimplePtrArray only IOutputs are also stored, which is not too clean. Keep it on mind!!
 // DO NOT LOCK anything inside, the class is fully locked from outside
 CLASS CSimplePtrArray;
 
@@ -572,6 +572,273 @@ CLASS IMPLEMENTATION CSimplePtrArray;
 
 BEGIN
 END CSimplePtrArray;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CGenericAppender;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
+   VAR
+      filter : iLog.TPIFilter := Sync.IGetPtr( REF _Filter );
+      i : CARDINAL;
+   BEGIN
+      IF ( filter <> NIL ) AND filter^.FilteredFullCheck( Level, FilterData, Logger, Prefix, Message ) THEN
+         RETURN;
+      END;
+
+      _Outputs^.LockRead();
+      IF NOT _Outputs^.Empty THEN // although it was already tested, anybody could change it after the check
+         FOR i := 0 TO _Outputs^.Count-1 DO
+            _Outputs^[i]^.Append( Level, FilterData, Logger, Prefix, Message );
+         END;
+      END;
+      _Outputs^.UnlockRead();
+   END Append;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddOutput( CONST Output : TPIOutput );
+   BEGIN
+      _Outputs^.LockWrite();
+      _Outputs^.Add( Output );
+      _Outputs^.UnlockWrite();
+   END AddOutput;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE RemoveOutput( CONST Output : TPIOutput );
+   BEGIN
+      _Outputs^.LockWrite();
+      _Outputs^.Remove( Output );
+      _Outputs^.UnlockWrite();
+   END RemoveOutput;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE SetName( CONST Name : ARRAY OF WCHAR );
+   BEGIN
+      _Name := Name;
+   END SetName;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetName( OUT Name : ARRAY OF WCHAR );
+   BEGIN
+      Name := _Name;
+   END GetName;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Filter GET : TPIFilter;
+   BEGIN
+      RETURN Sync.IGetPtr( REF _Filter );
+   END Filter;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Filter SET( Value : TPIFilter );
+   BEGIN
+      Sync.IExchgPtr( REF _Filter, Value );
+   END Filter;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL PROPERTY Empty GET : BOOLEAN;
+   VAR
+      b : BOOLEAN;
+   BEGIN
+      _Outputs^.LockRead();
+      b := _Outputs^.Empty;
+      _Outputs^.UnlockRead();
+      RETURN b;
+   END Empty;
+  
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   NEW( _Outputs );
+   _Name[0] := 0W;
+   _Filter := NIL;
+FINALLY
+   DISPOSE( _Outputs );
+END CGenericAppender;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CBaseAppender;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Output GET : TOutput;
+   BEGIN
+      RETURN _Output;
+   END Output;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Output SET( Value : TOutput );
+   VAR
+      b : BOOLEAN;
+   BEGIN
+      b := outKernel IN Value;
+      IF b <> ( outKernel IN _Output ) THEN
+         IF b THEN
+            AddOutput( ADR( _KernelOutput ));
+         ELSE
+            RemoveOutput( ADR( _KernelOutput ));
+         END;
+      END;
+      b := outFile IN Value;
+      IF b <> ( outFile IN _Output ) THEN
+         IF b THEN
+            AddOutput( ADR( _FileOutput ));
+         ELSE
+            RemoveOutput( ADR( _FileOutput ));
+         END;
+      END;
+      _Output := Value;
+   END Output;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Level GET : TLevel;
+   BEGIN
+      RETURN _LevelFilter.Level;
+   END Level;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Level SET( Value : TLevel );
+   BEGIN
+      _LevelFilter.Level := Value;
+   END Level;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Filter GET : TPIFilter;
+   BEGIN
+      IF SUPER.Filter = TPIFilter( ADR( _LevelFilter )) THEN
+         RETURN NIL;
+      ELSE
+         RETURN SUPER.Filter;
+      END;
+   END Filter;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Filter SET( Value : TPIFilter );
+   BEGIN
+      IF Value = NIL THEN
+         SUPER.Filter := ADR( _LevelFilter );
+      ELSE
+         SUPER.Filter := Value;
+      END;
+   END Filter;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AllowedFilterDataBits GET : PTR;
+   BEGIN
+      RETURN _LevelFilter.AllowedFilterDataBits;
+   END AllowedFilterDataBits;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AllowedFilterDataBits SET( Value : PTR );
+   BEGIN
+      _LevelFilter.AllowedFilterDataBits := Value;
+   END AllowedFilterDataBits;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY TimeStamps GET : BOOLEAN;
+   BEGIN
+      RETURN _KernelOutput.TimeStamps;
+   END TimeStamps;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY TimeStamps SET( Value : BOOLEAN );
+   BEGIN
+      _KernelOutput.TimeStamps := Value;
+      _FileOutput.TimeStamps := Value;
+   END TimeStamps;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Levels GET : BOOLEAN;
+   BEGIN
+      RETURN _KernelOutput.TimeStamps;
+   END Levels;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Levels SET( Value : BOOLEAN );
+   BEGIN
+      _KernelOutput.Levels := Value;
+      _FileOutput.Levels := Value;
+   END Levels;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Names GET : BOOLEAN;
+   BEGIN
+      RETURN _KernelOutput.Names;
+   END Names;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Names SET( Value : BOOLEAN );
+   BEGIN
+      _KernelOutput.Names := Value;
+      _FileOutput.Names := Value;
+   END Names;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LocalTime GET : BOOLEAN;
+   BEGIN
+      RETURN _KernelOutput.LocalTime;
+   END LocalTime;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LocalTime SET( Value : BOOLEAN );
+   BEGIN
+      _KernelOutput.Names := LocalTime;
+      _FileOutput.Names := LocalTime;
+   END LocalTime;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
+   BEGIN
+      _FileOutput.SetFile( LogFile );
+      IF LogFile[0] = 0W THEN
+         Output := _Output - TOutput{outFile};
+      END;
+   END SetLogFile;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      RETURN _FileOutput.GetFile( OUT LogFile ); 
+   END GetLogFile;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   _Output := TOutput{};
+   Output := TOutput{outKernel};
+   Filter := ADR( _LevelFilter );
+
+   #if #defined LIBRARY #then
+      ConfigureByRegistry( REF SELF, LIBRARY );
+   #endif
+END CBaseAppender;
 
 (*===========================================================================*)
 
@@ -938,273 +1205,16 @@ CLASS IMPLEMENTATION CBaseLogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
-   VAR
-      filter : iLog.TPIFilter := Sync.IGetPtr( REF _Filter );
-      i : CARDINAL;
-   BEGIN
-      IF ( filter <> NIL ) AND filter^.FilteredFullCheck( Level, FilterData, Logger, Prefix, Message ) THEN
-         RETURN;
-      END;
-
-      _Outputs^.LockRead();
-      IF NOT _Outputs^.Empty THEN // although it was already tested, anybody could change it after the check
-         FOR i := 0 TO _Outputs^.Count-1 DO
-            _Outputs^[i]^.Append( Level, FilterData, Logger, Prefix, Message );
-         END;
-      END;
-      _Outputs^.UnlockRead();
-   END Append;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AddOutput( CONST Output : TPIOutput );
-   BEGIN
-      _Outputs^.LockWrite();
-      _Outputs^.Add( Output );
-      _Outputs^.UnlockWrite();
-   END AddOutput;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE RemoveOutput( CONST Output : TPIOutput );
-   BEGIN
-      _Outputs^.LockWrite();
-      _Outputs^.Remove( Output );
-      _Outputs^.UnlockWrite();
-   END RemoveOutput;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE SetName( CONST Name : ARRAY OF WCHAR );
-   BEGIN
-      _Name := Name;
-   END SetName;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE GetName( OUT Name : ARRAY OF WCHAR );
-   BEGIN
-      Name := _Name;
-   END GetName;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Filter GET : TPIFilter;
-   BEGIN
-      RETURN Sync.IGetPtr( REF _Filter );
-   END Filter;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Filter SET( Value : TPIFilter );
-   BEGIN
-      Sync.IExchgPtr( REF _Filter, Value );
-   END Filter;
-
-(*---------------------------------------------------------------------------*)
-
    PRIVATE INLINE PROCEDURE Filtered( Level : TLevel; FilterData : PTR ) : BOOLEAN;
    VAR
-      b : BOOLEAN;
-      filter : iLog.TPIFilter := Sync.IGetPtr( REF _Filter );
+      filter : iLog.TPIFilter := Filter;
    BEGIN
-      IF ( filter <> NIL ) AND filter^.FilteredFastCheck( Level, FilterData ) THEN
-         b := TRUE;
-      ELSE
-         _Outputs^.LockRead();
-         b := _Outputs^.Empty;
-         _Outputs^.UnlockRead();
-      END;
-      RETURN b;
+      RETURN ( filter <> NIL ) AND filter^.FilteredFastCheck( Level, FilterData ) OR Empty;
    END Filtered;
 
 (*---------------------------------------------------------------------------*)
 
-BEGIN
-   NEW( _Outputs );
-   _Name[0] := 0W;
-   _Filter := NIL;
-   RegisterAppender( ADR( SELF ));
-FINALLY
-   ForgetAppender( ADR( SELF ));
-   DISPOSE( _Outputs );
 END CBaseLogger;
-
-(*===========================================================================*)
-
-CLASS IMPLEMENTATION CPlainLogger;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Output GET : TOutput;
-   BEGIN
-      RETURN _Output;
-   END Output;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Output SET( Value : TOutput );
-   VAR
-      b : BOOLEAN;
-   BEGIN
-      b := outKernel IN Value;
-      IF b <> ( outKernel IN _Output ) THEN
-         IF b THEN
-            AddOutput( ADR( _KernelOutput ));
-         ELSE
-            RemoveOutput( ADR( _KernelOutput ));
-         END;
-      END;
-      b := outFile IN Value;
-      IF b <> ( outFile IN _Output ) THEN
-         IF b THEN
-            AddOutput( ADR( _FileOutput ));
-         ELSE
-            RemoveOutput( ADR( _FileOutput ));
-         END;
-      END;
-      _Output := Value;
-   END Output;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Level GET : TLevel;
-   BEGIN
-      RETURN _LevelFilter.Level;
-   END Level;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Level SET( Value : TLevel );
-   BEGIN
-      _LevelFilter.Level := Value;
-   END Level;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Filter GET : TPIFilter;
-   BEGIN
-      IF SUPER.Filter = TPIFilter( ADR( _LevelFilter )) THEN
-         RETURN NIL;
-      ELSE
-         RETURN SUPER.Filter;
-      END;
-   END Filter;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Filter SET( Value : TPIFilter );
-   BEGIN
-      IF Value = NIL THEN
-         SUPER.Filter := ADR( _LevelFilter );
-      ELSE
-         SUPER.Filter := Value;
-      END;
-   END Filter;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY AllowedFilterDataBits GET : PTR;
-   BEGIN
-      RETURN _LevelFilter.AllowedFilterDataBits;
-   END AllowedFilterDataBits;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY AllowedFilterDataBits SET( Value : PTR );
-   BEGIN
-      _LevelFilter.AllowedFilterDataBits := Value;
-   END AllowedFilterDataBits;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY TimeStamps GET : BOOLEAN;
-   BEGIN
-      RETURN _KernelOutput.TimeStamps;
-   END TimeStamps;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY TimeStamps SET( Value : BOOLEAN );
-   BEGIN
-      _KernelOutput.TimeStamps := Value;
-      _FileOutput.TimeStamps := Value;
-   END TimeStamps;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Levels GET : BOOLEAN;
-   BEGIN
-      RETURN _KernelOutput.TimeStamps;
-   END Levels;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Levels SET( Value : BOOLEAN );
-   BEGIN
-      _KernelOutput.Levels := Value;
-      _FileOutput.Levels := Value;
-   END Levels;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Names GET : BOOLEAN;
-   BEGIN
-      RETURN _KernelOutput.Names;
-   END Names;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Names SET( Value : BOOLEAN );
-   BEGIN
-      _KernelOutput.Names := Value;
-      _FileOutput.Names := Value;
-   END Names;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY LocalTime GET : BOOLEAN;
-   BEGIN
-      RETURN _KernelOutput.LocalTime;
-   END LocalTime;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY LocalTime SET( Value : BOOLEAN );
-   BEGIN
-      _KernelOutput.Names := LocalTime;
-      _FileOutput.Names := LocalTime;
-   END LocalTime;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
-   BEGIN
-      _FileOutput.SetFile( LogFile );
-      IF LogFile[0] = 0W THEN
-         Output := _Output - TOutput{outFile};
-      END;
-   END SetLogFile;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
-   BEGIN
-      RETURN _FileOutput.GetFile( OUT LogFile ); 
-   END GetLogFile;
-
-(*---------------------------------------------------------------------------*)
-
-BEGIN
-   _Output := TOutput{};
-   Output := TOutput{outKernel};
-   Filter := ADR( _LevelFilter );
-
-   #if #defined LIBRARY #then
-      ConfigureByRegistry( REF SELF, LIBRARY );
-   #endif
-END CPlainLogger;
 
 (*===========================================================================*)
 
@@ -1269,16 +1279,18 @@ END CBufferedLogger;
 
 (*===========================================================================*)
 
-PROCEDURE ConfigureByRegistry( REF _logger : CBaseLogger; CONST SectionName : ARRAY OF WCHAR ) : BOOLEAN; // loads also all outputs
+PROCEDURE ConfigureByRegistry( REF _appender : iLog.IAppender; CONST SectionName : ARRAY OF WCHAR ) : BOOLEAN; // loads also all outputs
+TYPE
+   TPBaseAppender = POINTER TO CBaseAppender;
 VAR
    AllowedBits : CARD64;
+   appender : TPBaseAppender;
    Cached : CARDINAL;
    DataSize : CARDINAL;
    Dir : FIO.PathStrW;
    hkey : winreg.HKEY;
    Key, Data : TString;
    LSectionName : TString;
-   logger : TPPlainLogger;
    PData : PBYTE := PBYTE( ADR( Data ));
    RegType : CARDINAL;
    res : CARDINAL;
@@ -1307,49 +1319,49 @@ BEGIN
          CONTINUE;
       END;
 
-      IF NOT( _logger INHERITS CPlainLogger ) THEN
+      IF NOT( _appender INHERITS CBaseAppender ) THEN
          CONTINUE;
       END;
-      logger := TPPlainLogger( ADR( _logger ));
+      appender := TPBaseAppender( ADR( _appender ));
 
       DataSize := SIZE( Data );
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkTarget ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) OR
          ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkOutput ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
          LOW( Data );
          IF EQUALS( Data, OAsz( GetKeyword( ckvKernel )) ) THEN
-            logger^.Output := outsKernel;
+            appender^.Output := outsKernel;
          ELSIF EQUALS( Data, OAsz( GetKeyword( ckvFile )) ) THEN
-            logger^.Output := outsFile;
+            appender^.Output := outsFile;
          END;
       END;
 
       DataSize := SIZE( Data );
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkTimeStamps ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
          LOW( Data );
-         logger^.TimeStamps := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
+         appender^.TimeStamps := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
       END;
 
       DataSize := SIZE( Data );
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkLevels ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
          LOW( Data );
-         logger^.Levels := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
+         appender^.Levels := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
       END;
 
       DataSize := SIZE( Data );
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkNames ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
          LOW( Data );
-         logger^.Names := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
+         appender^.Names := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
       END;
 
       DataSize := SIZE( Data );
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkLocalTime ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
          LOW( Data );
-         logger^.LocalTime := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
+         appender^.LocalTime := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
       END;
 
       DataSize := SIZE( Data );
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkFile ), NIL, ADR( RegType ), PData, ADR( DataSize )) <> 0 ) OR ( RegType <> windows.REG_SZ ) THEN
-         logger^.GetLogFile( OUT Data );
+         appender^.GetLogFile( OUT Data );
          IF Data[0] = 0W THEN
             FIO.GetModuleDirW( EMITW( %dll ), OUT Dir );
             IF Dir[0] = 0W THEN
@@ -1359,20 +1371,20 @@ BEGIN
             FIO.MakePathW( Dir, Data, OUT Data );
          END;
       END;
-      logger^.SetLogFile( Data );
+      appender^.SetLogFile( Data );
 
       DataSize := SIZE( Data );
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkLevel ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) OR
          ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkFilter ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
          LOW( Data );
          IF EQUALS( Data, OAsz( GetKeyword( ckvError )) ) OR EQUALS( Data, OAsz( GetKeyword( ckvDebugFailure )) ) THEN
-            logger^.Level := ldError;
+            appender^.Level := ldError;
          ELSIF EQUALS( Data, OAsz( GetKeyword( ckvError )) ) OR EQUALS( Data, OAsz( GetKeyword( ckvDebugMessage )) ) THEN
-            logger^.Level := ldMessage;
+            appender^.Level := ldMessage;
          ELSIF EQUALS( Data, OAsz( GetKeyword( ckvWarning )) ) OR EQUALS( Data, OAsz( GetKeyword( ckvDebugTrace )) ) THEN
-            logger^.Level := ldTrace;
+            appender^.Level := ldTrace;
          ELSIF EQUALS( Data, OAsz( GetKeyword( ckvInfo )) ) OR EQUALS( Data, OAsz( GetKeyword( ckvDebugAll )) ) THEN
-            logger^.Level := ldDebug;
+            appender^.Level := ldDebug;
          END;
       END;
       
@@ -1380,20 +1392,20 @@ BEGIN
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkAllowedFilterBits ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) AND
          Strings.ToCARD64W( Data, 16, OUT AllowedBits ) THEN
          IF SIZE( PTR ) = SIZE( LONGWORD ) THEN
-            logger^.AllowedFilterDataBits := CARD32( AllowedBits );
+            appender^.AllowedFilterDataBits := CARD32( AllowedBits );
          ELSE
-            logger^.AllowedFilterDataBits := AllowedBits;
+            appender^.AllowedFilterDataBits := AllowedBits;
          END;
       END;
 
-      IF NOT( _logger INHERITS CBufferedLogger ) THEN
+      IF NOT( _appender INHERITS CBufferedLogger ) THEN
          CONTINUE;
       END;
 
       DataSize := SIZE( Data );
       IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkCached ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) AND
          Strings.ToCARD32W( Data, 10, OUT Cached ) THEN
-         TPBufferedLogger( logger )^.BufferSize := Cached;
+         TPBufferedLogger( appender )^.BufferSize := Cached;
       END;
 
       winreg.RegCloseKey( hkey );
@@ -1403,27 +1415,32 @@ END ConfigureByRegistry;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE ConfigureByLogger( REF logger : CBaseLogger; CONST sourceLogger : CBaseLogger ); // DOES NOT LOAD any output
+PROCEDURE ConfigureByAppender( REF appender : iLog.IAppender; CONST sourceAppender : iLog.IAppender ); // DOES NOT LOAD any output
+TYPE
+   TPBaseAppender = POINTER TO CBaseAppender;
 VAR
+   dst : TPBaseAppender;
    s : TString;
+   src : TPBaseAppender;
 BEGIN
-   sourceLogger.GetName( OUT s ); logger.SetName( s );
+   sourceAppender.GetName( OUT s ); appender.SetName( s );
 
-   IF ( logger IS CPlainLogger ) AND ( sourceLogger IS CPlainLogger ) THEN
-      TPPlainLogger( ADR( logger ))^.Level := TPPlainLogger( ADR( sourceLogger ))^.Level;
-      TPPlainLogger( ADR( logger ))^.AllowedFilterDataBits := TPPlainLogger( ADR( sourceLogger ))^.AllowedFilterDataBits;
-      TPPlainLogger( ADR( logger ))^.TimeStamps := TPPlainLogger( ADR( sourceLogger ))^.TimeStamps;
-      TPPlainLogger( ADR( logger ))^.Levels := TPPlainLogger( ADR( sourceLogger ))^.Levels;
-      TPPlainLogger( ADR( logger ))^.Names := TPPlainLogger( ADR( sourceLogger ))^.Names;
-      TPPlainLogger( ADR( logger ))^.LocalTime := TPPlainLogger( ADR( sourceLogger ))^.LocalTime;
-      TPPlainLogger( ADR( logger ))^.GetLogFile( OUT s ); TPPlainLogger( ADR( sourceLogger ))^.SetLogFile( s );
+   IF ( appender IS CBaseAppender ) AND ( sourceAppender IS CBaseAppender ) THEN
+      src := TPBaseAppender( ADR( sourceAppender )); dst := TPBaseAppender( ADR( appender ));
+      dst^.Level := src^.Level;
+      dst^.AllowedFilterDataBits := src^.AllowedFilterDataBits;
+      dst^.TimeStamps := src^.TimeStamps;
+      dst^.Levels := src^.Levels;
+      dst^.Names := src^.Names;
+      dst^.LocalTime := src^.LocalTime;
+      src^.GetLogFile( OUT s ); dst^.SetLogFile( s );
    END;
 
-   IF ( logger IS CBufferedLogger ) AND ( sourceLogger IS CBufferedLogger ) THEN
-      TPBufferedLogger( ADR( logger ))^.BufferMode := TPBufferedLogger( ADR( sourceLogger ))^.BufferMode;
-      TPBufferedLogger( ADR( logger ))^.BufferSize := TPBufferedLogger( ADR( sourceLogger ))^.BufferSize;
+   IF ( appender IS CBufferedLogger ) AND ( sourceAppender IS CBufferedLogger ) THEN
+      TPBufferedLogger( dst )^.BufferMode := TPBufferedLogger( src )^.BufferMode;
+      TPBufferedLogger( dst )^.BufferSize := TPBufferedLogger( src )^.BufferSize;
    END;
-END ConfigureByLogger;
+END ConfigureByAppender;
 
 (*===========================================================================*)
 
@@ -1566,6 +1583,8 @@ END GetKeyword;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   Registry.Register( ADR( Logger ));
 FINALLY
+   Registry.Forget( ADR( Logger ));
    Registry.Clear();
 END log.

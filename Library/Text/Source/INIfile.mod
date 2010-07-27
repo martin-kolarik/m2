@@ -10,6 +10,7 @@ FROM Exceptions IMPORT
 IMPORT
    FIOO,
    IOO,
+   Log,
    TextReader,
    TextWriter,
    Strings,
@@ -494,9 +495,10 @@ END CINIFile;
 
 (*================================================================================*)
 
-PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBaseLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF _appender : iLog.IAppender; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 VAR
    AllowedBits : CARD64;
+   appender : Log.TPAppender;
    Cached : CARDINAL;
    cs : StringsO.CString;
    EnumerateState : PTR;
@@ -511,14 +513,13 @@ VAR
    LocalTime : TRISTATE := -1;
    Names : TRISTATE := -1;
    Output : Log.TOutput := Log.outsNone;
-   plainLogger : Log.TPPlainLogger;
    TimeStamps : TRISTATE := -1;
 BEGIN
    IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( OAsz( Log.GetKeyword( Log.cksLog )) ) THEN
    
-      IF logger INHERITS Log.CPlainLogger THEN
-         plainLogger := Log.TPPlainLogger( ADR( logger ));
-         Level := plainLogger^.Level;
+      IF _appender INHERITS Log.CBaseAppender THEN
+         appender := Log.TPAppender( ADR( _appender ));
+         Level := appender^.Level;
       END;
 
       EnumerateState := 0;
@@ -641,19 +642,19 @@ BEGIN
 
    END;
    
-   IF logger INHERITS Log.CPlainLogger THEN
-      plainLogger^.SetLogFile( OA( File.Length-1, File.Data ));
+   IF _appender INHERITS Log.CBaseAppender THEN
+      appender^.SetLogFile( OA( File.Length-1, File.Data ));
       IF Output <> Log.outsNone THEN
-         plainLogger^.Output := Output;
+         appender^.Output := Output;
       END;
-      plainLogger^.Level := Level;
-      plainLogger^.TimeStamps := TimeStamps = 1;
-      plainLogger^.Levels := Levels = 1;
-      plainLogger^.Names := Names = 1;
-      plainLogger^.LocalTime := LocalTime = 1;
+      appender^.Level := Level;
+      appender^.TimeStamps := TimeStamps = 1;
+      appender^.Levels := Levels = 1;
+      appender^.Names := Names = 1;
+      appender^.LocalTime := LocalTime = 1;
    END;
-   IF logger INHERITS Log.CBufferedLogger THEN
-      Log.TPBufferedLogger( plainLogger )^.BufferSize := Cached;
+   IF _appender INHERITS Log.CBufferedLogger THEN
+      Log.TPBufferedLogger( appender )^.BufferSize := Cached;
    END;
    
    RETURN clrSuccess;

@@ -6,7 +6,7 @@ FROM Storage IMPORT
 IMPORT
    IOO,
    list,
-   Log,
+   iLog,
    LoggerFilter,
    StringsO,
    TextReader,
@@ -69,7 +69,7 @@ TYPE
       clrBadCachedNumber
    );
 
-PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBaseLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : iLog.IAppender; OUT errorLine : CARDINAL ) : TConfigureLogResult;
   // if SectionName is empty, default "log" section name is used
   // configures all known log.* classes
 

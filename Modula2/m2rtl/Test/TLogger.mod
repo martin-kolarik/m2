@@ -163,12 +163,8 @@ CLASS IMPLEMENTATION CTest;
       //==========
       Host^.StartPhase( L"Chaining of appenders" );
       
-      //==========
-      Host^.StartPhase( L"Creation and deletion of IAppender -- controlled" );
-      
-      //==========
-      Host^.StartPhase( L"Creation and deletion of IAppender -- automatic" );
-      
+      Host^.StopPhase();
+
       l^.RemoveOutput( Host^.Output );
       RETURN test.trSuccess;
    END Run;

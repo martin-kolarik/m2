@@ -22,11 +22,13 @@ TYPE
    TOutput = SET OF TOutputItem;
    
    TPLevelAndBitsFilter = POINTER TO CLevelAndBitsFilter;
-   TPPlainLogger = POINTER TO CPlainLogger;
+   TPBaseAppender = POINTER TO CBaseAppender;
+   TPBaseLogger = POINTER TO CBaseLogger;
    TPBufferedLogger = POINTER TO CBufferedLogger;
    
 CONST
-   TPLogger ::= TPPlainLogger;
+   TPAppender ::= TPBaseAppender;
+   TPLogger ::= TPBaseLogger;
    
 CONST
    outsNone    = TOutput{};
@@ -157,7 +159,64 @@ END CBufferOutput;
 TYPE
    TPOutputs = POINTER TO CSimplePtrArray;
 
-CLASS CBaseLogger IMPLEMENTS iLog.ILogger, iLog.IAppender;
+CLASS CGenericAppender IMPLEMENTS iLog.IAppender;
+
+   // IAppender -- method should check filter thoroughly
+   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
+
+   PUBLIC VIRTUAL PROCEDURE SetName( CONST Name : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE GetName( OUT Name : ARRAY OF WCHAR );
+
+   PUBLIC VIRTUAL PROCEDURE AddOutput( CONST Output : TPIOutput );
+   PUBLIC VIRTUAL PROCEDURE RemoveOutput( CONST Output : TPIOutput );
+
+   // SELF
+   PUBLIC PROPERTY
+      Filter : TPIFilter;
+
+   PRIVATE VAR
+      _Outputs : TPOutputs;
+      _Filter : TPIFilter;
+   INTERNAL VAR
+      _Name : ARRAY [0..63] OF WCHAR;
+   INTERNAL READONLY PROPERTY
+      Empty : BOOLEAN;
+  
+END CGenericAppender;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CBaseAppender( CGenericAppender );
+
+   // SELF
+   PUBLIC PROPERTY
+      Output : TOutput; // switches output to single output (leaves only single appender)
+      Level : TLevel;
+      AllowedFilterDataBits : PTR;
+      Filter : TPIFilter; // to override default inherited filter
+      TimeStamps : BOOLEAN; // prints timestamps, default TRUE --> AFormatter
+      Levels : BOOLEAN; // prints debug level of message, default TRUE --> AFormatter
+      Names : BOOLEAN; // prints names/prefixes of message, default TRUE --> AFormatter
+      LocalTime : BOOLEAN; // uses local time instead of UTC --> AFormatter
+
+   PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
+
+   // privates
+   PRIVATE VAR
+      _Output : TOutput; // default is no output
+      _LevelFilter : CLevelAndBitsFilter;
+      _KernelOutput : CKernelOutput;
+      _FileOutput : CFileOutput;
+  
+END CBaseAppender;
+
+CONST
+   CAppender ::= CBaseAppender;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CBaseLogger( CBaseAppender ) IMPLEMENTS iLog.ILogger;
 
    // ILogger
    PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN; // not neccessarily uses some filter, but it is more helpful
@@ -181,61 +240,18 @@ CLASS CBaseLogger IMPLEMENTS iLog.ILogger, iLog.IAppender;
    PUBLIC VIRTUAL PROCEDURE LogSR( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
    PUBLIC VIRTUAL PROCEDURE LogExc( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.Exception );
    PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
-   
-   // IAppender -- method should check filter thoroughly
-   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
 
-   PUBLIC VIRTUAL PROCEDURE SetName( CONST Name : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE GetName( OUT Name : ARRAY OF WCHAR );
+   // SELF   
+   PRIVATE INLINE PROCEDURE Filtered( Level : TLevel; FilterData : PTR ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE AddOutput( CONST Output : TPIOutput );
-   PUBLIC VIRTUAL PROCEDURE RemoveOutput( CONST Output : TPIOutput );
-
-   // SELF
-   PUBLIC PROPERTY
-      Filter : TPIFilter;
-
-   PRIVATE VAR
-      _Outputs : TPOutputs;
-      _Name : ARRAY [0..63] OF WCHAR;
-      _Filter : TPIFilter;
-  
-   PRIVATE INLINE PROCEDURE Filtered( Level : TLevel; FilterData : PTR ) : BOOLEAN; // fast check
 END CBaseLogger;
+
+CONST
+   CLogger ::= CBaseLogger;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CPlainLogger( CBaseLogger );
-
-   // SELF
-   PUBLIC PROPERTY
-      Output : TOutput; // switches output to single output (leaves only single appender)
-      Level : TLevel;
-      AllowedFilterDataBits : PTR;
-      Filter : TPIFilter; // to override default inherited filter
-      TimeStamps : BOOLEAN; // prints timestamps, default TRUE --> AFormatter
-      Levels : BOOLEAN; // prints debug level of message, default TRUE --> AFormatter
-      Names : BOOLEAN; // prints names/prefixes of message, default TRUE --> AFormatter
-      LocalTime : BOOLEAN; // uses local time instead of UTC --> AFormatter
-
-   PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
-
-   // privates
-   PRIVATE VAR
-      _Output : TOutput; // default is no output
-      _LevelFilter : CLevelAndBitsFilter;
-      _KernelOutput : CKernelOutput;
-      _FileOutput : CFileOutput;
-  
-END CPlainLogger;
-
-CONST
-   CLogger ::= CPlainLogger;
-
-(*===========================================================================*)
-
-CLASS CBufferedLogger( CPlainLogger );
+CLASS CBufferedLogger( CBaseLogger );
   
    // SELF
    PUBLIC PROPERTY
@@ -256,14 +272,14 @@ END CBufferedLogger;
 
 (*===========================================================================*)
 
-PROCEDURE ConfigureByRegistry( REF logger : CBaseLogger; CONST SectionName : ARRAY OF WCHAR ) : BOOLEAN; // DOES NOT copy any output, does not load filter, returns if the section was found
-PROCEDURE ConfigureByLogger( REF logger : CBaseLogger; CONST sourceLogger : CBaseLogger ); // DOES NOT copy any output, does not load filter
-  // both functions configure all types of loggers
+PROCEDURE ConfigureByRegistry( REF appender : iLog.IAppender; CONST SectionName : ARRAY OF WCHAR ) : BOOLEAN; // DOES NOT copy any output, does not load filter, returns if the section was found
+PROCEDURE ConfigureByAppender( REF appender : iLog.IAppender; CONST sourceAppender : iLog.IAppender ); // DOES NOT copy any output, does not load filter
+  // both functions configure all types of appenders/loggers
 
 (*===========================================================================*)
-// internally, map of loggers is maintained to be able to connects logger outputs by name for everybody
+// registry of appenders stores a group of appenders, which can be looked up by their names
+// global map stores ab initio system logger named "default"
 
-// Classes derived from CBaseLogger MUST NOT be registered, they are registered automatically
 PROCEDURE RegisterAppender( Appender : iLog.TPIAppender );
 PROCEDURE ForgetAppender( Appender : iLog.TPIAppender );
 PROCEDURE GetAppender( CONST Name : ARRAY OF WCHAR; OUT Appender : iLog.TPIAppender ) : BOOLEAN;
