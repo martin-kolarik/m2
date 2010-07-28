@@ -240,9 +240,9 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       ASSERTLOG( NOT _Clients.Contains( Connection ));
       
-      IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_SDAP ) THEN
+      IF NOT _NetworkLogger^.FilteredFastCheck( log.lcError, 0 ) THEN
          Connection^.RemoteAddress.ToOA( TRUE, OUT address );
-         _NetworkLogger^.LogSS( log.dlcError, LOG_SDAP, "CONNECT:", address );
+         _NetworkLogger^.LogSS( log.lcError, 0, LOG_SDAP, "CONNECT:", address );
       END;
 
       NEW( Client );
@@ -263,9 +263,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       address : ARRAY [0..63] OF WCHAR;
       Client : TPClient;
    BEGIN
-      IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_SDAP ) THEN
+      IF NOT _NetworkLogger^.FilteredFastCheck( log.lcError, 0 ) THEN
          Connection^.RemoteAddress.ToOA( TRUE, OUT address );
-         _NetworkLogger^.LogSS( log.dlcError, LOG_SDAP, "DISCONNECT:", address );
+         _NetworkLogger^.LogSS( log.lcError, 0, LOG_SDAP, "DISCONNECT:", address );
       END;
 
       IF _Clients.Get( Connection, OUT Client ) THEN
@@ -620,9 +620,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.AppendOA( L" " );
       s.Append( S );
 
-      _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ACK: ", OA( s.Length-1, s.rawData ));
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
       
-      SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+      SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
    END ACKS;
 
 (*--------------------------------------------------------------------------------*)
@@ -720,7 +720,7 @@ CLASS IMPLEMENTATION CClient;
             s := n;
             s.AppendOA( L" " ); s.Append( Value[i].String );
 
-            IF NOT Server^.CommonLogger^.Filtered( log.ldTrace, 0, LOG_SDAP ) THEN
+            IF NOT Server^.CommonLogger^.FilteredFastCheck( log.ldTrace, 0 ) THEN
                Server^.CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ADV: ", OA( s.Length-1, s.Data ));
             END;
 

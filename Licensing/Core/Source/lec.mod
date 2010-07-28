@@ -5,7 +5,7 @@ FROM Debug IMPORT
 
 #if DEBUG #then
 FROM log IMPORT
-   CLogger, dldDebug;
+   CLogger, ldDebug;
 #endif
    
 IMPORT
@@ -225,7 +225,7 @@ CLASS IMPLEMENTATION CResult;
       NEW( product );
 
       #if DEBUG #then
-         Log.Level := dldDebug;
+         Log.Level := ldDebug;
       #endif
 
       IF pitem^.HasChilds THEN

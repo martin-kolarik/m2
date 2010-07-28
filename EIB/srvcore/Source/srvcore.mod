@@ -542,8 +542,8 @@ CLASS IMPLEMENTATION CEIBServer;
 	      Log^.LogSS( log.ldMessage, 0, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
 	      RETURN Sync.arCompleted;
 	   ELSE
-         Log^.LogFilePos( log.dlcError, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.Data ), OA( message.Length-1, message.Data ), line, 0 );
-	      Log^.LogSS( log.dlcInfo, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
+         Log^.LogFilePos( log.lcError, 0, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.Data ), OA( message.Length-1, message.Data ), line, 0 );
+	      Log^.LogSS( log.lcInfo, 0, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
 	      RETURN Sync.arCannotStart;
 	   END;
 	END Configure;

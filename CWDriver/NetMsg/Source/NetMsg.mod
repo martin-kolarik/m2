@@ -405,7 +405,7 @@ CLASS IMPLEMENTATION CDriver;
   
       PROCEDURE Error( ErrorCode, ErrorLine : CARDINAL );
       BEGIN
-         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.lcError, 0, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
       END Error;
 
   //----------

@@ -198,7 +198,7 @@ BEGIN
    lg.TimeStamps := FALSE;
    lg.Levels := FALSE;
    lg.Names := FALSE;
-   lg.Method := log.dmNone;
+   lg.Output := log.outsNone;
    lg.BufferSize := 1;
    lg.BufferMode := log.bmStoreFirst;
 
@@ -222,7 +222,7 @@ BEGIN
    lg.TimeStamps := FALSE;
    lg.Levels := FALSE;
    lg.Names := FALSE;
-   lg.Method := log.dmNone;
+   lg.Output := log.outsNone;
    lg.BufferSize := 1;
    lg.BufferMode := log.bmStoreFirst;
 

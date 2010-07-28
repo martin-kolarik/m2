@@ -1147,7 +1147,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF addonText <> NIL THEN
             msg.Append( addonText^ );
          END;
-         Log^.LogFilePos( log.dlcError, L"AirMotion", L"", OA( msg.Length-1, msg.rawData ), line, 0 );
+         Log^.LogFilePos( log.lcError, 0, L"AirMotion", L"", OA( msg.Length-1, msg.rawData ), line, 0 );
       END LogError;
 
       (*----------*)

@@ -279,7 +279,7 @@ CLASS IMPLEMENTATION ABridge;
 	      IF addonText <> NIL THEN
 	         msg.Append( addonText^ );
 	      END;
-	      Log^.LogFilePos( log.dlcError, L"SDAP Bridge", L"", OA( msg.Length-1, msg.Data ), line, 0 );
+	      Log^.LogFilePos( log.lcError, 0, L"SDAP Bridge", L"", OA( msg.Length-1, msg.Data ), line, 0 );
 	   END LogError;
 
 	   (*----------*)
