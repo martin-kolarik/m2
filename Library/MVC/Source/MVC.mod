@@ -1561,6 +1561,7 @@ CLASS IMPLEMENTATION CMVC;
       IF NOT containerMap^.Get( controller, OUT container ) THEN
          NEW( container );
          containerMap^.Add( controller, container );
+         controller^.InitializeModelContainer( REF container^ );
       END;
       
       // decode URL or form, if present
@@ -1598,7 +1599,7 @@ CLASS IMPLEMENTATION CMVC;
       buffer.Size := 16384; // initial size
       view := NIL;
       
-      IF NOT controller^.ProcessRequest( fallbackFlag, request, OUT view ) THEN
+      IF NOT controller^.ProcessRequest( fallbackFlag, REF request, OUT view ) THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSIF view = NIL THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
@@ -1658,6 +1659,7 @@ CLASS IMPLEMENTATION CMVC;
    VAR
       containerMap : syncmaps.TPPtrSyncMap;
       container : POINTER TO CSynchronizedContainer;
+      controller : TPController;
    BEGIN
       IF NOT Session^.Get( SESSION_MVC, OUT containerMap ) THEN
          RETURN;
@@ -1665,7 +1667,11 @@ CLASS IMPLEMENTATION CMVC;
       
       containerMap^.Reset();
       WHILE containerMap^.MoveNext() DO
+         controller := containerMap^.Current;
          container := containerMap^.CurrentData;
+
+         controller^.CleanupModelContainer( REF container^ );
+
          DISPOSE( container );
       END; // WHILE
 

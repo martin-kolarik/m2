@@ -1,3 +1,6 @@
+Version 1.2.1291/R 30.7.2010
+- BUG: #226, functions (get, getwix) were not registered for admin pages (index etc.)
+
 Version 1.2.1285/R 26.7.2010
 - BUG: #214, heavily communicating SDAP/XMLSocket clients could block server
        after client disconnect in infinite wait. Next, the server was not able

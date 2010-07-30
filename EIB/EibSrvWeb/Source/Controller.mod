@@ -336,7 +336,33 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
+   VAR
+      version : StringsO.CString;
+   BEGIN
+      Container.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
+
+      version.FromOA( ProductVersion );
+      Container.AddStringOA( VERSION, version );
+   END InitializeModelContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : mvc.IContainer );
+   BEGIN
+   END CleanupModelContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
    VAR
       authMethodInfo : StringsO.CString;
       authorized : BOOLEAN := FALSE;
@@ -346,7 +372,6 @@ CLASS IMPLEMENTATION CController;
       roleName : StringsO.CString;
       s : StringsO.CString;
       uri : StringsO.CString;
-      version : StringsO.CString;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
@@ -355,16 +380,6 @@ CLASS IMPLEMENTATION CController;
          role := EibSrvWeb.roleGuest;
       END;
       
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
-
-      version.FromOA( ProductVersion );
-      Request.ModelContainer^.AddStringOA( VERSION, version );
-
       IF Fallback THEN
          uri := Request.ControllerURI;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
@@ -374,10 +389,6 @@ CLASS IMPLEMENTATION CController;
             View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
          
          ELSE // no call during the request
-            // ??? TODO, functions persist, should they be available for all pages, after this call ???
-            Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
-            Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
-            Request.ModelContainer^.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
 
             // handle authentication
@@ -912,9 +923,6 @@ CLASS IMPLEMENTATION CController;
          View := mvc.redirectView( IO_PAGE );
          RETURN TRUE;
       END;
-
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
 
       Request.ModelContainer^.AddStringOA( IO_FORM_ID, empty );
       Request.ModelContainer^.AddStringOA( IO_READ_NAME, rname );

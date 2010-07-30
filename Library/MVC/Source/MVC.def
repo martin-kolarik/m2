@@ -166,7 +166,10 @@ END IView;
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IController;
-   PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : IHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE InitializeModelContainer( REF Container : IContainer ); // called when container is created, usually with new session
+   PROCEDURE CleanupModelContainer( REF Container : IContainer ); // called when container is deleted, usually when session expires
+
+   PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : IHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
 END IController;
 
 (*--------------------------------------------------------------------------------*)
