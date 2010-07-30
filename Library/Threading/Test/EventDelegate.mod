@@ -60,7 +60,7 @@ CLASS IMPLEMENTATION CDelegate;
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
       IF CheckThread AND NOT msgqueuethread.global()^.SelfContext THEN
-         Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
+         Test^.Host^.Log^.LogS( log.lcError, 0, L"", L"Completion in unexpected thread" );   
       END;
       sync.IInc( REF Test^.Count );
    END OnHandle;
@@ -151,7 +151,7 @@ CLASS IMPLEMENTATION CTest;
          // initiate
          FOR i := 0 TO lcount-1 DO
             IF NOT Pool^.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, EA[i], OUT PH[i] ) THEN
-               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
+               Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
          END; // FOR
@@ -191,7 +191,7 @@ CLASS IMPLEMENTATION CTest;
          // initiate
          FOR i := 0 TO lcount-1 DO
             IF NOT Pool^.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, EA[i], OUT PH[i] ) THEN
-               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
+               Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
          END; // FOR
@@ -233,7 +233,7 @@ CLASS IMPLEMENTATION CTest;
          FOR i := 0 TO lcount-1 DO
             FOR j := 0 TO 10-1 DO
                IF NOT Pool^.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, EA[i], OUT PH[i*10+j] ) THEN
-                  Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i*10+j );
+                  Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to start wait for index: ", i*10+j );
                   INC( Count ); // force failure reporting
                END;
             END; // FOR
@@ -275,7 +275,7 @@ CLASS IMPLEMENTATION CTest;
          FOR i := 0 TO lcount-1 DO
             FOR j := 0 TO 10-1 DO
                IF NOT Pool^.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, EA[i], OUT PH[i*10+j] ) THEN
-                  Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i*10+j );
+                  Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to start wait for index: ", i*10+j );
                   INC( Count ); // force failure reporting
                END;
             END; // FOR

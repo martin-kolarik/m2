@@ -4,6 +4,9 @@ IMPLEMENTATION MODULE driver;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+   
+FROM Exceptions IMPORT
+  TestIfCatched, RetrieveException;   
 
 FROM log IMPORT
   ldTrace, ldDebug;
@@ -62,7 +65,7 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       SymbolicName.ToOA( OUT ClientName );
       Strings.ConcatW( OUT LongName, logName, ClientName );
-      Logger.SetLogName( LongName );
+      Logger.SetName( LongName );
 
       SELF.CallbackId := CallbackId;
       SELF.CallbackProc := PCallback;
@@ -89,9 +92,9 @@ CLASS IMPLEMENTATION CDriver;
       b : BOOLEAN;
    BEGIN
       TRY
-         fs.FromPath( OA( ParFilePath.Length-1, ParFilePath.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( ParFilePath.Length-1, ParFilePath.Data ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
          RETURN FALSE;
       END; // try
       tr.Stream := ADR( fs );
@@ -101,20 +104,20 @@ CLASS IMPLEMENTATION CDriver;
       b := TS.Load( tr );
       fs.Close( FALSE );
       IF NOT b THEN
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
          RETURN FALSE;
       END;
 
-      Logger.SetUpByRegistry( LIBRARY );
+      log.ConfigureByRegistry( REF Logger, LIBRARY );
       CASE INIFile.ConfigureLog( TS, L"", REF Logger, OUT line ) OF
       | INIFile.clrUnknownTarget :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
          RETURN FALSE;
       | INIFile.clrUnknownLevel :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
          RETURN FALSE;
       | INIFile.clrTargetFileMissingFile :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;
 
@@ -138,11 +141,11 @@ CLASS IMPLEMENTATION CDriver;
       
       IF TS.SetSection( snDevice ) THEN
          IF NOT TS.GetKeyStr( knHost, OUT line, OUT Host ) THEN
-            Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._MissingHostKey ] ), 0, 0 );
+            Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._MissingHostKey ] ), 0, 0 );
             RETURN FALSE;
          END;
       ELSE
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._MissingDeviceSection ] ), 0, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._MissingDeviceSection ] ), 0, 0 );
          RETURN FALSE;
       END;
       
@@ -468,7 +471,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
 
          ELSE
-            Logger.LogSSSS( ldTrace, 0, logPrefix, L"DQP unknown event procedure '", OA( S2.Length-1, S2.rawData ), L"'", L"" );
+            Logger.LogSSSS( ldTrace, 0, logPrefix, L"DQP unknown event procedure '", OA( S2.Length-1, S2.Data ), L"'", L"" );
             CS.FromOA( L'error: unknown driver procedure' );
             GOTO Return;
          END;
@@ -488,7 +491,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Return;
          END;
 
-         Logger.LogSSSS( ldDebug, 0, logPrefix, L"DQP 'set',", OA( S2.Length-1, S2.rawData ), OA( S3.Length-1, S3.rawData ), L"" );
+         Logger.LogSSSS( ldDebug, 0, logPrefix, L"DQP 'set',", OA( S2.Length-1, S2.Data ), OA( S3.Length-1, S3.Data ), L"" );
          SDAP.Set( S2, S3 );
 
       ELSIF S1.EqualsOA( L'ask' ) THEN
@@ -498,7 +501,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Return;
          END;
          
-         Logger.LogSS( ldDebug, 0, logPrefix, L"DQP 'ask',", OA( S2.Length-1, S2.rawData ));
+         Logger.LogSS( ldDebug, 0, logPrefix, L"DQP 'ask',", OA( S2.Length-1, S2.Data ));
          SDAP.Ask( S2 );
 
       ELSIF S1.EqualsOA( L'advise' ) THEN
@@ -510,7 +513,7 @@ CLASS IMPLEMENTATION CDriver;
          SDAP.Unadvise();
 
       ELSE
-         Logger.LogSSSS( ldTrace, 0, logPrefix, L"DQP unknown procedure '", OA( S1.Length-1, S1.rawData ), L"'", L"" );
+         Logger.LogSSSS( ldTrace, 0, logPrefix, L"DQP unknown procedure '", OA( S1.Length-1, S1.Data ), L"'", L"" );
          CS.FromOA( L'error: unknown driver procedure' );
          GOTO Return;
       END;
@@ -550,7 +553,7 @@ CLASS IMPLEMENTATION CDriver;
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
-      Logger.LogSSSS( ldDebug, 0, logPrefix, L"'advise' event,", OA( Address.Length-1, Address.rawData ), OA( Value.Length-1, Value.rawData ), L"" );
+      Logger.LogSSSS( ldDebug, 0, logPrefix, L"'advise' event,", OA( Address.Length-1, Address.Data ), OA( Value.Length-1, Value.Data ), L"" );
 
       NEW( exceptionItem );
       exceptionItem^.Address.Assign( Address );

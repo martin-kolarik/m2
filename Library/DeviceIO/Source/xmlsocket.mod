@@ -213,9 +213,9 @@ CLASS IMPLEMENTATION CXMLSocketServer;
    BEGIN
       ASSERTLOG( NOT _Clients.Contains( Connection ));
       
-      IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_XMLS ) THEN
+      IF NOT _NetworkLogger^.FilteredFastCheck( log.lcError, 0 ) THEN
          Connection^.RemoteAddress.ToOA( TRUE, OUT address );
-         _NetworkLogger^.LogSS( log.dlcError, LOG_XMLS, "CONNECT:", address );
+         _NetworkLogger^.LogSS( log.lcError, 0, LOG_XMLS, "CONNECT:", address );
       END;
 
       NEW( Client );
@@ -235,9 +235,9 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       address : ARRAY [0..63] OF WCHAR;
       Client : TPClient;
    BEGIN
-      IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_XMLS ) THEN
+      IF NOT _NetworkLogger^.FilteredFastCheck( log.lcError, 0 ) THEN
          Connection^.RemoteAddress.ToOA( TRUE, OUT address );
-         _NetworkLogger^.LogSS( log.dlcError, LOG_XMLS, "DISCONNECT:", address );
+         _NetworkLogger^.LogSS( log.lcError, 0, LOG_XMLS, "DISCONNECT:", address );
       END;
 
       IF _Clients.Get( Connection, OUT Client ) THEN
@@ -624,7 +624,7 @@ CLASS IMPLEMENTATION CClient;
    
       FOR i := 0 TO HIGH( Item ) DO
 
-         IF NOT Server^.CommonLogger^.Filtered( log.ldTrace, 0, LOG_XMLS ) THEN
+         IF NOT Server^.CommonLogger^.FilteredFastCheck( log.ldTrace, 0 ) THEN
             Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
             s := Value[i].String;
             Server^.CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "ADV ", OA( n.Length-1, n.Data ), L" ", OA( s.Length-1, s.Data ));

@@ -596,7 +596,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	      IF addonText <> NIL THEN
 	         msg.Append( addonText^ );
 	      END;
-	      Log^.LogFilePos( log.dlcError, L"StiebelHP", L"", OA( msg.Length-1, msg.Data ), line, 0 );
+	      Log^.LogFilePos( log.lcError, 0, L"StiebelHP", L"", OA( msg.Length-1, msg.Data ), line, 0 );
 	   END LogError;
 
 	   (*----------*)
@@ -1004,12 +1004,12 @@ CLASS IMPLEMENTATION CIO;
          IF TimeFormat.Empty THEN // use default format
             b := dt.ToStringOA( L"HH:mm:ss", FALSE, TRUE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format: HH:mm:ss" );
+               DeviceCommunicator.Logger.LogS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format: HH:mm:ss" );
             END;
          ELSE
             b := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogSS( log.dldTrace, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.rawData ));
             END;
          END;
          dt.Day := Item^.Peer^.Items[eiDay]^.Value.Integer;
@@ -1022,12 +1022,12 @@ CLASS IMPLEMENTATION CIO;
          IF DateFormat.Empty THEN
             b := dt.ToStringOA( L"yyyy-MM-dd", TRUE, FALSE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format: yyyy-MM-dd" );
+               DeviceCommunicator.Logger.LogS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format: yyyy-MM-dd" );
             END;
          ELSE
             b := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogSS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.rawData ));
             END;
          END;
          dt.Minute := Item^.Peer^.Items[eiMinute]^.Value.Integer;

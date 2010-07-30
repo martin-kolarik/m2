@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE Store;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 FROM Log IMPORT
-   logger, dldTrace;
+   logger, ldTrace;
 FROM Debug IMPORT
    Assertion, LogAssertionW;
 FROM Exceptions IMPORT
@@ -466,16 +466,16 @@ CLASS IMPLEMENTATION CINIFilter;
 	   fs : FIOO.CFileStream;
 	   l : CARDINAL;
 	   tr : TextReader.CTextReader;
-	   key : ARRAY [0..63] OF WCHAR;
+	   key : StringsO.CString;
 	   INI : INIfile.CINIFile;
 	   item : Items.TPItem;
-	   section : ARRAY [0..63] OF WCHAR;
+	   section : StringsO.CString;
 	   value : StringsO.CString;
 	BEGIN
 	   TRY
          fs.FromPath( File, FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
-         logger()^.LogExc( dldTrace, EMITW( %lprocedure ), e );
+         logger()^.LogExc( ldTrace, 0, EMITW( %lprocedure ), e );
          RETURN;
       END;
       tr.Stream := ADR( fs );
@@ -484,7 +484,7 @@ CLASS IMPLEMENTATION CINIFilter;
 
       es := 0;
       WHILE INI.EnumerateSections( REF es, OUT l, OUT section, TRUE ) DO
-         IF EQUALS( section, L"product" ) THEN
+         IF section.EqualsOA( L"product" ) THEN
             item := NEW( Items.CProduct );
 
             INI.GetKeyStr( L"id", OUT l, OUT item^.ProductId );
@@ -495,7 +495,7 @@ CLASS IMPLEMENTATION CINIFilter;
             INI.GetKeyStr( L"note", OUT l, OUT Items.TPProduct( item )^.Note );
             INI.GetKeyStr( L"data", OUT l, OUT item^.TransportData );
 
-         ELSIF EQUALS( section, L"licence" ) THEN
+         ELSIF section.EqualsOA( L"licence" ) THEN
             item := NEW( Items.CLicence );
 
             INI.GetKeyStr( L"created", OUT l, OUT item^.CreatedString );
@@ -503,7 +503,7 @@ CLASS IMPLEMENTATION CINIFilter;
             INI.GetKeyStr( L"owner", OUT l, OUT Items.TPLicence( item )^.Owner );
             INI.GetKeyStr( L"data", OUT l, OUT item^.TransportData );
 
-         ELSIF EQUALS( section, L"activation" ) THEN
+         ELSIF section.EqualsOA( L"activation" ) THEN
             item := NEW( Items.CActivation );
 
             INI.GetKeyStr( L"created", OUT l, OUT item^.CreatedString );
@@ -512,17 +512,17 @@ CLASS IMPLEMENTATION CINIFilter;
             INI.GetKeyStr( L"expires", OUT l, OUT Items.TPActivation( item )^.ExpiresString );
             INI.GetKeyStr( L"data", OUT l, OUT item^.TransportData );
 
-         ELSIF EQUALS( section, L"info" ) THEN
+         ELSIF section.EqualsOA( L"info" ) THEN
             item := NEW( Items.CInfo );
 
             ies := 0;
             WHILE INI.EnumerateKeys( REF ies, OUT l, OUT key, OUT value ) DO
-               IF EQUALS( key, L"id" ) THEN
+               IF key.EqualsOA( L"id" ) THEN
                   item^.ProductId := value;
-               ELSIF EQUALS( key, L"data" ) THEN
+               ELSIF key.EqualsOA( L"data" ) THEN
                   item^.TransportData := value;
                ELSE
-                  Items.TPInfo( item )^.List^.AddOA( key, value );
+                  Items.TPInfo( item )^.List^.Add( key, value );
                END;
             END; // WHILE
 
@@ -589,7 +589,7 @@ CLASS IMPLEMENTATION CINIFilter;
 	   TRY
          fs.FromPath( File, FIOO.imCreate );
       CATCH e : IOO.CIOException DO
-         logger()^.LogExc( dldTrace, EMITW( %lprocedure ), e );
+         logger()^.LogExc( ldTrace, 0, EMITW( %lprocedure ), e );
          RETURN;
       END;
       tw.Stream := ADR( fs );

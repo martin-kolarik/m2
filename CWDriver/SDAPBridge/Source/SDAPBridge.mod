@@ -111,8 +111,8 @@ CLASS IMPLEMENTATION CSDAP;
       LongName : ARRAY [0..255] OF WCHAR;
    BEGIN
       Strings.ConcatW( OUT LongName, L"SDAPBridge.", ClientName );
-      _Logger.SetUpByLogger( LoggerToClone );
-      _Logger.SetLogName( LongName );
+      log.ConfigureByAppender( REF _Logger, LoggerToClone );
+      _Logger.SetName( LongName );
 
       IF _Client <> NIL THEN
          _Client^.Disconnect();
