@@ -172,7 +172,7 @@ CLASS CGenericAppender IMPLEMENTS iLog.IAppender;
 
    // SELF
    PUBLIC PROPERTY
-      Filter : TPIFilter;
+      Filter : TPIFilter; // returns _Filter as is
 
    PRIVATE VAR
       _Outputs : TPOutputs;
@@ -194,7 +194,7 @@ CLASS CBaseAppender( CGenericAppender );
       Output : TOutput; // switches output to single output (leaves only single appender)
       Level : TLevel;
       AllowedFilterDataBits : PTR;
-      Filter : TPIFilter; // to override default inherited filter
+      Filter : TPIFilter; // to override default inherited filter,  returns _Filter only if it is set, internal filter used in the opposite case is never returned
       TimeStamps : BOOLEAN; // prints timestamps, default TRUE --> AFormatter
       Levels : BOOLEAN; // prints debug level of message, default TRUE --> AFormatter
       Names : BOOLEAN; // prints names/prefixes of message, default TRUE --> AFormatter

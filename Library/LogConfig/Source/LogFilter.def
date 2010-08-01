@@ -15,6 +15,9 @@ IMPORT
 
 #save, option( dll_export => on )
 
+TYPE
+   TPLogFilter = POINTER TO CLogFilter;
+
 CLASS CLogFilter( log.CLevelAndBitsFilter );
 
    // IFilter
