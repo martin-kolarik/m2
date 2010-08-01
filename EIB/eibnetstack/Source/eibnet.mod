@@ -7,10 +7,11 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Log IMPORT
-   logger, TDebugLevel, ldMessage, ldTrace, dldDebug;
+   logger, ldMessage, ldTrace, ldDebug;
 
 IMPORT
    dns,
+   Log,
    Strings;
 
 (*================================================================================*)
@@ -18,7 +19,7 @@ IMPORT
 CONST
    DEBUG_PREFIX = L"EibNet.Connection";
 
-PROCEDURE LogSHPAI( Logger : log.TPLogger; Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR; CONST HPAI : core.HostProtocolAddressInformation );
+PROCEDURE LogSHPAI( Logger : log.TPLogger; Level : Log.TLevel; Prefix, S : ARRAY OF WCHAR; CONST HPAI : core.HostProtocolAddressInformation );
 VAR
    Address : ARRAY [0..63] OF WCHAR;
 BEGIN
@@ -28,7 +29,7 @@ END LogSHPAI;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE LogSCHPAI( Logger : log.TPLogger; Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR; C : CARDINAL; CONST HPAI : core.HostProtocolAddressInformation );
+PROCEDURE LogSCHPAI( Logger : log.TPLogger; Level : Log.TLevel; Prefix, S : ARRAY OF WCHAR; C : CARDINAL; CONST HPAI : core.HostProtocolAddressInformation );
 VAR
    Address : ARRAY [0..63] OF WCHAR;
    n : ARRAY [0..15] OF WCHAR;
@@ -327,7 +328,7 @@ CLASS IMPLEMENTATION CConnection;
       END;
       IF b THEN
          _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"LISTENing on port: ", _Socket^.LocalAddress.Port );
-         LogSHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECT request: ", HPAIData );
+         LogSHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"CONNECT request: ", HPAIData );
       ELSE
          _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"CONNECT (listen) cannot start" );
          _Socket := NIL;
@@ -358,7 +359,7 @@ CLASS IMPLEMENTATION CConnection;
          _Socket^.MulticastGroup := ai;
          IOState := ioReady;
 
-         LogSHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECTed in SCANNING mode: ", HPAIData );
+         LogSHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"CONNECTed in SCANNING mode: ", HPAIData );
          RETURN Sync.arCompleted;
 
       //-----
@@ -367,7 +368,7 @@ CLASS IMPLEMENTATION CConnection;
          IOState := ioReady;
          OnConnect();
 
-         LogSHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECTed in ROUTING mode: ", HPAIData );
+         LogSHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"CONNECTed in ROUTING mode: ", HPAIData );
          RETURN Sync.arCompleted;
 
       //-----
@@ -417,7 +418,7 @@ CLASS IMPLEMENTATION CConnection;
          RETURN Sync.arCompleted;
       END;
 
-      LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
+      LogSCHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
 
       DataDisconnect();
 
@@ -728,14 +729,14 @@ CLASS IMPLEMENTATION CConnection;
          AltInSeq := 0;
          OutSeq := 0;
 
-         LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECTed in TUNNELING mode: ", CARDINAL( ChannelId ), HPAIData );
+         LogSCHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"CONNECTed in TUNNELING mode: ", CARDINAL( ChannelId ), HPAIData );
 
          HbRepeat := maximalHbRepeat;
          StartTimer( PTR( tiHeartbeat ), core.HEART_BEAT_PERIOD, TRUE );
 
          OnConnect();
       ELSE
-         LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"CONNECT failure: ", CARDINAL( packet.Status ), HPAIData );
+         LogSCHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"CONNECT failure: ", CARDINAL( packet.Status ), HPAIData );
 
          DeviceDisconnect();
       END;
@@ -746,7 +747,7 @@ CLASS IMPLEMENTATION CConnection;
    PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : core.ConnectionStateResponse );
    BEGIN
       IF packet.Status = core.E_NO_ERROR THEN
-         LogSCHPAI( _Logger, ldDebug, 0, DEBUG_PREFIX, L"HEARTBEAT response: ", CARDINAL( ChannelId ), HPAIData );
+         LogSCHPAI( _Logger, ldDebug, DEBUG_PREFIX, L"HEARTBEAT response: ", CARDINAL( ChannelId ), HPAIData );
 
          StopTimer( PTR( tiHeartbeatRepeat ));
          HbRepeat := maximalHbRepeat;
@@ -755,7 +756,7 @@ CLASS IMPLEMENTATION CConnection;
             Disconnect( FALSE );
          END;
       ELSE
-         LogSCHPAI( _Logger, ldDebug, 0, DEBUG_PREFIX, L"HEARTBEAT error: ", CARDINAL( packet.Status ), HPAIData );
+         LogSCHPAI( _Logger, ldDebug, DEBUG_PREFIX, L"HEARTBEAT error: ", CARDINAL( packet.Status ), HPAIData );
 
          ProcessHbFailure();
       END;
@@ -768,7 +769,7 @@ CLASS IMPLEMENTATION CConnection;
       dr : core.DisconnectResponse;
    BEGIN
       IF NOT Disconnected THEN
-         LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"remote DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
+         LogSCHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"remote DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
 
          DataDisconnect();
 
@@ -860,7 +861,7 @@ CLASS IMPLEMENTATION CConnection;
       END;
          
       Status := packet.Status;
-      IF NOT _Logger^.Filtered( ldDebug, 0, DEBUG_PREFIX ) THEN
+      IF NOT _Logger^.FilteredFastCheck( ldDebug, 0 ) THEN
          _Logger^.LogSCP( ldDebug, 0, DEBUG_PREFIX, L"SEND T_CON status: ", CARDINAL( ChannelId ), PTR( Status ));
          _Logger^.LogSH( ldDebug, 0, DEBUG_PREFIX, L"SEND T_CON seq: ", CARDINAL( packet.Sequence ));
       END;
@@ -958,7 +959,7 @@ CLASS IMPLEMENTATION CConnection;
       IF currentState = ioDisconnected THEN
          RETURN;
       END;
-      LogSCHPAI( _Logger, ldTrace, 0, DEBUG_PREFIX, L"DISCONNECTed: ", CARDINAL( ChannelId ), HPAIData );
+      LogSCHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"DISCONNECTed: ", CARDINAL( ChannelId ), HPAIData );
 
       StopTimer( PTR( tiDisconnect ));
       IF _Socket <> NIL THEN
@@ -987,7 +988,7 @@ CLASS IMPLEMENTATION CConnection;
          DEC( HbRepeat );
       END;
 
-      LogSCHPAI( _Logger, ldDebug, 0, DEBUG_PREFIX, L"HEARTBEAT probe: ", CARDINAL( ChannelId ), HPAIData );
+      LogSCHPAI( _Logger, ldDebug, DEBUG_PREFIX, L"HEARTBEAT probe: ", CARDINAL( ChannelId ), HPAIData );
 
       hb.ControlHPAI := HPAISelf;
       hb.ChannelId := ChannelId;
@@ -1004,7 +1005,7 @@ CLASS IMPLEMENTATION CConnection;
       seq : CARDINAL;
       out : ARRAY [0..63] OF WCHAR;
    BEGIN
-      IF NOT _Logger^.Filtered( ldTrace, 0, DEBUG_PREFIX ) THEN
+      IF NOT _Logger^.FilteredFastCheck( ldTrace, 0 ) THEN
          out := text;
          IF selfPacket THEN
             Strings.AppendW( REF out, L" [S]" ); 
@@ -1026,7 +1027,7 @@ CLASS IMPLEMENTATION CConnection;
             Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSH( ldTrace, 0, DEBUG_PREFIX, out, AltInSeq );
          END;
 
-         IF NOT _Logger^.Filtered( ldDebug, 0, DEBUG_PREFIX ) THEN
+         IF NOT _Logger^.FilteredFastCheck( ldDebug, 0 ) THEN
             IF outputFlag THEN
                seq := CARDINAL( CARD8( OutSeq ));
             ELSE

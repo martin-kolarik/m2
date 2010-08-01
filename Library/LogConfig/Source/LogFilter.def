@@ -15,7 +15,7 @@ IMPORT
 
 #save, option( dll_export => on )
 
-CLASS CLoggerFilter( log.CLevelAndBitsFilter );
+CLASS CLogFilter( log.CLevelAndBitsFilter );
 
    // IFilter
    PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : iLog.TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
@@ -28,7 +28,7 @@ CLASS CLoggerFilter( log.CLevelAndBitsFilter );
    PRIVATE VAR
       _Filter : lists.CStringList;
 
-END CLoggerFilter;
+END CLogFilter;
 
 #restore
 

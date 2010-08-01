@@ -661,7 +661,9 @@ BEGIN
    NEW( _Outputs );
    _Name[0] := 0W;
    _Filter := NIL;
+   _Registered := FALSE;
 FINALLY
+   ASSERTLOG( NOT _Registered );
    DISPOSE( _Outputs );
 END CGenericAppender;
 
@@ -1451,8 +1453,8 @@ CLASS CLoggerRegistry;
       
    PUBLIC PROCEDURE Clear();
       
-   PUBLIC PROCEDURE Register( Appender : TPIAppender );
-   PUBLIC PROCEDURE Forget( Appender : TPIAppender );
+   PUBLIC PROCEDURE Register( CONST Appender : iLog.IAppender );
+   PUBLIC PROCEDURE Forget( CONST Appender : iLog.IAppender );
    PUBLIC PROCEDURE Get( CONST Name : ARRAY OF WCHAR; OUT Appender : TPIAppender ) : BOOLEAN;
 
 END CLoggerRegistry;
@@ -1472,19 +1474,36 @@ CLASS IMPLEMENTATION CLoggerRegistry;
       
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Register( Appender : TPIAppender );
+   PUBLIC PROCEDURE Register( CONST Appender : iLog.IAppender );
+   TYPE
+      TPGenericAppender = POINTER TO CGenericAppender;
    BEGIN
       _Loggers.LockWrite();
-      _Loggers.Add( Appender );
+      _Loggers.Add( ADR( Appender ));
+      IF Appender IS CGenericAppender THEN
+         TPGenericAppender( ADR( Appender ))^._Registered := TRUE;
+      END;
       _Loggers.UnlockWrite();
    END Register;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Forget( Appender : TPIAppender );
+   PUBLIC PROCEDURE Forget( CONST Appender : iLog.IAppender );
+   TYPE
+      TPGenericAppender = POINTER TO CGenericAppender;
+   VAR
+      i : INTEGER;
    BEGIN
       _Loggers.LockWrite();
-      _Loggers.Remove( Appender );
+      _Loggers.Remove( ADR( Appender ));
+      IF NOT _Loggers.Empty THEN
+         FOR i := 0 TO _Loggers.Count-1 DO
+            _Loggers[i]^.RemoveOutput( ADR( Appender ));
+         END;
+      END;
+      IF Appender IS CGenericAppender THEN
+         TPGenericAppender( ADR( Appender ))^._Registered := FALSE;
+      END;
       _Loggers.UnlockWrite();
    END Forget;
 
@@ -1524,14 +1543,14 @@ VAR
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE RegisterAppender( Appender : iLog.TPIAppender );
+PROCEDURE RegisterAppender( CONST Appender : iLog.IAppender );
 BEGIN
    Registry.Register( Appender );
 END RegisterAppender;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE ForgetAppender( Appender : iLog.TPIAppender );
+PROCEDURE ForgetAppender( CONST Appender : iLog.IAppender );
 BEGIN
    Registry.Forget( Appender );
 END ForgetAppender;
@@ -1583,8 +1602,8 @@ END GetKeyword;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   Registry.Register( ADR( Logger ));
+   Registry.Register( Logger );
 FINALLY
-   Registry.Forget( ADR( Logger ));
+   Registry.Forget( Logger );
    Registry.Clear();
 END log.

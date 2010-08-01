@@ -1280,7 +1280,7 @@ CLASS IMPLEMENTATION CMVC;
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSIF view = NIL THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
-         _Logger^.LogS( Log.dlcError, L"MVC", L"Controller returned TRUE but it did not prepare View." );
+         _Logger^.LogS( Log.lcError, 0, L"MVC", L"Controller returned TRUE but it did not prepare View." );
          ASSERTLOG( FALSE, L"Controller returned TRUE but it did not prepare View." );
       ELSE
          Connection^.StatusCode := HttpCommon.httpres_200;
@@ -1296,7 +1296,7 @@ CLASS IMPLEMENTATION CMVC;
                Connection^.ResponseLength := CARD64( buffer.Length );
                Result := Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
                IF Result NOT IN Sync.arsCompletions THEN
-                  _Logger^.LogS( Log.dlcError, L"MVC", L"Failure when writing output buffer to stream." );
+                  _Logger^.LogS( Log.lcError, 0, L"MVC", L"Failure when writing output buffer to stream." );
                END;
             END;
          //-----
@@ -1320,7 +1320,7 @@ CLASS IMPLEMENTATION CMVC;
          | votOutputStream :
             IF NOT view^.FormatToOutputStream( request, REF response, Connection^.Stream ) THEN
                Connection^.StatusCode := HttpCommon.httpres_500;
-               _Logger^.LogS( Log.dlcError, L"MVC", L"Failure when formatting View to output stream." );
+               _Logger^.LogS( Log.lcError, 0, L"MVC", L"Failure when formatting View to output stream." );
             END;
          ELSE
             ASSERTLOG( FALSE );
@@ -1624,7 +1624,7 @@ CLASS IMPLEMENTATION CMVCHolder;
       s : StringsO.CString;
    BEGIN
       IF context[0] = 0W THEN
-         Log.logger()^.LogS( Log.dlcError, L"MVC", L"Client requests unnamed context." );
+         Log.logger()^.LogS( Log.lcError, 0, L"MVC", L"Client requests unnamed context." );
          ASSERTLOG( FALSE );
          s.FromOA( L" bad context" );
       ELSE

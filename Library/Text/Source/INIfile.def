@@ -6,8 +6,6 @@ FROM Storage IMPORT
 IMPORT
    IOO,
    list,
-   iLog,
-   LoggerFilter,
    StringsO,
    TextReader,
    TextWriter;
@@ -54,37 +52,6 @@ CLASS CINIFile;
    PUBLIC PROCEDURE SetKeyReal( CONST Key : ARRAY OF WCHAR; lr : LONGREAL; Multiple : BOOLEAN ): BOOLEAN;
    // PROCEDURE SetKeyBin ( 
 END CINIFile;
-
-(*================================================================================*)
-// helpers
-
-TYPE
-   TConfigureLogResult = (
-      clrSuccess,
-      clrKeyAlreadyKnown,
-      clrUnknownTarget,
-      clrUnknownLevel,
-      clrTargetFileMissingFile,
-      clrBadAllowedBits,
-      clrBadCachedNumber
-   );
-
-PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : iLog.IAppender; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-  // if SectionName is empty, default "log" section name is used
-  // configures all known log.* classes
-
-(*--------------------------------------------------------------------------------*)
-
-TYPE
-   TConfigureLoggerFilterResult = (
-      clfrSuccess,
-      clfrUnknownLevel,
-      clfrUnknownPolicy,
-      clfrMissingPattern
-   );
-
-PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF filter : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
-  // if SectionName is empty, default "log" section name is used
 
 (*================================================================================*)
 

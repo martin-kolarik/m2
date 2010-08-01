@@ -101,14 +101,14 @@ CLASS IMPLEMENTATION CSerialHandler;
 		Strings.ToA( Parameters, 0, OUT ParametersA );
 		IF SerialLink.OpenLinkEx( DriverA, ChannelA, ParametersA, FALSE, FALSE, ErrorStringA, ComLink, ComSession ) THEN
 			IF log <> NIL THEN
-   			log^.LogSS( Log.dlcInfo, L'', L'init success on ', Channel );
+   			log^.LogSS( Log.lcInfo, 0, L'', L'init success on ', Channel );
 			END;
 			Logger.LogSS( Log.ldDebug, 0, L'', L'init success on ', Channel );
 			RETURN TRUE;
 		ELSE
 			Strings.ToW( ErrorStringA, 0, OUT ErrorStringW );
 			IF log <> NIL THEN
-   			log^.LogSSSS( Log.dlcError, L'', L'init failed on ', Channel, L': ', ErrorStringW );
+   			log^.LogSSSS( Log.lcError, 0, L'', L'init failed on ', Channel, L': ', ErrorStringW );
 			END;
 			Logger.LogSSSS( Log.ldError, 0, L'', L'init failed on ', Channel, L': ', ErrorStringW );
 			RETURN FALSE;

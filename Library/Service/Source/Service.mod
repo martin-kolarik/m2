@@ -73,7 +73,7 @@ CLASS IMPLEMENTATION AService;
 
 (*---------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE LogEvent( ErrorCode : CARDINAL; CONST ErrorText : ARRAY OF WCHAR ); // ErrorCode -1 means SUCCESS but with dlcError verbosity
+  LOCAL PROCEDURE LogEvent( ErrorCode : CARDINAL; CONST ErrorText : ARRAY OF WCHAR ); // ErrorCode -1 means SUCCESS but with lcError verbosity
   VAR
     DebugLevel : Log.TLevel;
     LocalErrorText : ARRAY [0..255] OF WCHAR;

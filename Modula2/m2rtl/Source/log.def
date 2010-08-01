@@ -177,10 +177,11 @@ CLASS CGenericAppender IMPLEMENTS iLog.IAppender;
    PRIVATE VAR
       _Outputs : TPOutputs;
       _Filter : TPIFilter;
-   INTERNAL VAR
-      _Name : ARRAY [0..63] OF WCHAR;
    INTERNAL READONLY PROPERTY
       Empty : BOOLEAN;
+   LOCAL VAR
+      _Name : ARRAY [0..63] OF WCHAR;
+      _Registered : BOOLEAN;
   
 END CGenericAppender;
 
@@ -280,8 +281,8 @@ PROCEDURE ConfigureByAppender( REF appender : iLog.IAppender; CONST sourceAppend
 // registry of appenders stores a group of appenders, which can be looked up by their names
 // global map stores ab initio system logger named "default"
 
-PROCEDURE RegisterAppender( Appender : iLog.TPIAppender );
-PROCEDURE ForgetAppender( Appender : iLog.TPIAppender );
+PROCEDURE RegisterAppender( CONST Appender : iLog.IAppender );
+PROCEDURE ForgetAppender( CONST Appender : iLog.IAppender );
 PROCEDURE GetAppender( CONST Name : ARRAY OF WCHAR; OUT Appender : iLog.TPIAppender ) : BOOLEAN;
 
 (*===========================================================================*)

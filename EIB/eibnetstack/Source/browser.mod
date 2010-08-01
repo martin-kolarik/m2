@@ -6,7 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Log IMPORT
-   logger, dldTrace;
+   logger, ldTrace;
 
 (*================================================================================*)
 

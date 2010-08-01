@@ -1,0 +1,44 @@
+DEFINITION MODULE LogConfig;
+
+IMPORT
+   iLog,
+   INIFile,
+   LogFilter;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TConfigureLogResult = (
+      clrSuccess,
+      clrKeyAlreadyKnown,
+      clrUnknownTarget,
+      clrUnknownLevel,
+      clrTargetFileMissingFile,
+      clrBadAllowedBits,
+      clrBadCachedNumber
+   );
+
+PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : iLog.IAppender; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+  // if SectionName is empty, default "log" section name is used
+  // configures all known log.* classes
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TConfigureLoggerFilterResult = (
+      clfrSuccess,
+      clfrUnknownLevel,
+      clfrUnknownPolicy,
+      clfrMissingPattern
+   );
+
+PROCEDURE ConfigureLogFilter( CONST ini : INIFile.CINIFile; CONST SectionName : ARRAY OF WCHAR; REF filter : LogFilter.CLogFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
+  // if SectionName is empty, default "log" section name is used
+
+(*================================================================================*)
+
+#restore
+
+END LogConfig.
