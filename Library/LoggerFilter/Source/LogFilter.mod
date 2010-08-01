@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE LoggerFilter;
+IMPLEMENTATION MODULE LogFilter;
 
 IMPORT
    Strings;
@@ -60,4 +60,4 @@ END CLoggerFilter;
 
 (*===========================================================================*)
 
-END LoggerFilter.
+END LogFilter.
