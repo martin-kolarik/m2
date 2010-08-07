@@ -18,9 +18,9 @@ IMPORT
    io,
    INIfile,
    inetaddr,
+   lists,
    Log,
    LogConfig,
-   LogFilter,
    msgqueuethread,
    netinit,
    Registry,
@@ -72,12 +72,11 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       Configuration : StringsO.TPString;
       
    PRIVATE VAR
-      CommonFilter : LogFilter.CLogFilter;
+      LogAppenders : lists.CPtrList;
       ConfigLogger : Log.CBufferedLogger;
       DataLogger : Log.CBufferedLogger; 
       HttpLogger : Log.CLogger; 
       NetworkLogger : Log.CLogger; 
-      NetworkFilter : LogFilter.CLogFilter;
       EIB : srvcore.TPEIBServer := NIL;
       Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
@@ -210,25 +209,21 @@ CLASS IMPLEMENTATION CEibSvc;
       FIOO.PathAdd( REF s1, s2 );
       cfg.LoadPath( OA( s1.Length-1, s1.Data ));
       
-      LogConfig.ConfigureLog( cfg, L"", REF Log.logger()^, OUT line );
+      LogConfig.ConfigureLog( cfg, L"", REF Log.logger()^, REF LogAppenders, OUT line );
       Log.logger()^.LocalTime := TRUE;
-      LogConfig.ConfigureLogFilter( cfg, L"", REF CommonFilter, OUT line );
-      Log.logger()^.Filter := ADR( CommonFilter );
 
-      LogConfig.ConfigureLog( cfg, L"datalog", REF DataLogger, OUT line );
+      LogConfig.ConfigureLog( cfg, L"datalog", REF DataLogger, REF LogAppenders, OUT line );
       DataLogger.LocalTime := TRUE;
       
       Log.ConfigureByAppender( REF HttpLogger, Log.logger()^ );
-      LogConfig.ConfigureLog( cfg, L"httplog", REF HttpLogger, OUT line );
+      LogConfig.ConfigureLog( cfg, L"httplog", REF HttpLogger, REF LogAppenders, OUT line );
       HttpLogger.TimeStamps := FALSE;
       HttpLogger.Levels := FALSE;
       HttpLogger.Names := FALSE;
 
       Log.ConfigureByAppender( REF NetworkLogger, Log.logger()^ );
-      LogConfig.ConfigureLog( cfg, L"networklog", REF NetworkLogger, OUT line );
+      LogConfig.ConfigureLog( cfg, L"networklog", REF NetworkLogger, REF LogAppenders, OUT line );
       NetworkLogger.LocalTime := TRUE;
-      LogConfig.ConfigureLogFilter( cfg, L"", REF NetworkFilter, OUT line );
-      NetworkLogger.Filter := ADR( NetworkFilter );
       
       ASSERT( EIB = NIL );
       NEW( EIB );
@@ -338,6 +333,7 @@ CLASS IMPLEMENTATION CEibSvc;
 
       ConfigLogger.BufferClear();      
       DataLogger.BufferClear();
+      LogConfig.DisposeAppenderList( REF LogAppenders );
 
       // do this sooner than scinit.Cleanup, because scinit.Cleanup is called from different thread
       netinit.Cleanup();

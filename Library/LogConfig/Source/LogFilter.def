@@ -13,7 +13,7 @@ IMPORT
 
 (*===========================================================================*)
 
-#save, option( dll_export => on )
+// #save, option( dll_export => on ), the class is local
 
 TYPE
    TPLogFilter = POINTER TO CLogFilter;
@@ -33,7 +33,7 @@ CLASS CLogFilter( log.CLevelAndBitsFilter );
 
 END CLogFilter;
 
-#restore
+// #restore
 
 (*===========================================================================*)
 
