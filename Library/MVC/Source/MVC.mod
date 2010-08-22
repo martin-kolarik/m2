@@ -672,8 +672,8 @@ CLASS IMPLEMENTATION CContainer;
          // get }
          mi := i + 2;
          j := Formatted.IndexOfOA( L"}", mi );
-         IF j = mi+1 THEN
-            CONTINUE;
+         IF j = mi THEN
+            RETURN FALSE;
          END;
 
          // resolve and replace model
