@@ -6,7 +6,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM Storage IMPORT
-   REALLOCATE;
+   REALLOCATE, DEALLOCATE;
 
 FROM Strings IMPORT
    LowerizeW;
@@ -191,7 +191,7 @@ CLASS IMPLEMENTATION CFileOutput;
       messageA : ARRAY [0..strlen-1] OF CHAR;
    BEGIN
       _Lock.Lock();
-      IF ( _FileName = NIL ) OR ( _FileName^ = 0W ) THEN
+      IF _FileNameLength = 0 THEN
          TrySetFileToDefault();
       END;
       f := FIO.AppendW( OAsz( _FileName ), FIO.TFileShare{FIO.fsRead} );
@@ -211,7 +211,13 @@ CLASS IMPLEMENTATION CFileOutput;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetFile( CONST File : ARRAY OF WCHAR );
+   VAR
+      l : CARDINAL := LENGTH( File );
    BEGIN
+      IF l = 0 THEN
+         _FileNameLength := 0;
+         RETURN;
+      END;
       _FileNameLength := LENGTH( File ) + FIO.LongPathPrefixLength + 1;
       REALLOCATE( REF _FileName, _FileNameLength ); // +1 for zero end
       FIO.GetLongPathW( File, OUT OA( _FileNameLength-1, _FileName ));
@@ -247,6 +253,8 @@ CLASS IMPLEMENTATION CFileOutput;
 BEGIN
    _FileName := NIL;
    _FileNameLength := 0;
+FINALLY
+   DEALLOCATE( OUT _FileName );   
 END CFileOutput;
 
 (*===========================================================================*)
@@ -816,7 +824,7 @@ CLASS IMPLEMENTATION CBaseAppender;
    PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
    BEGIN
       _FileOutput.SetFile( LogFile );
-      IF LogFile[0] = 0W THEN
+      IF ( HIGH( LogFile ) < 0 ) OR ( LogFile[0] = 0W ) THEN
          Output := _Output - TOutput{outFile};
       END;
    END SetLogFile;

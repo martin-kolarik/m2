@@ -515,13 +515,13 @@ VAR
    Output : Log.TOutput := Log.outsNone;
    TimeStamps : TRISTATE := -1;
 BEGIN
+   IF _appender INHERITS Log.CBaseAppender THEN
+      appender := Log.TPAppender( ADR( _appender ));
+      Level := appender^.Level;
+   END;
+
    IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( OAsz( Log.GetKeyword( Log.cksLog )) ) THEN
    
-      IF _appender INHERITS Log.CBaseAppender THEN
-         appender := Log.TPAppender( ADR( _appender ));
-         Level := appender^.Level;
-      END;
-
       EnumerateState := 0;
       WHILE ini.EnumerateKeys( REF EnumerateState, OUT errorLine, OUT key, OUT cs ) DO
 
