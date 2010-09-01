@@ -52,6 +52,7 @@ CONST
    
    LOGIN_USERNAME = L"username";
    LOGIN_PASSWORD = L"password";
+   LOGOUT_NEXT_PAGE = L"nextpage";
    
    DATETIME_FORMAT_CS = L"d. MMMM H.mm:ss";
    DATETIME_FORMAT_EN = L"MMMM d, H:mm:ss";
@@ -431,7 +432,13 @@ CLASS IMPLEMENTATION CController;
       
       ELSIF Request.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
          InvalidateUser( Request );
-         View := mvc.redirectView( LOGIN_PAGE );
+         IF Request.ModelContainer^.GetStringOA( LOGOUT_NEXT_PAGE, OUT s ) THEN
+            View := mvc.redirectView( OA( s.Length-1, s.rawData ));
+            s.Clear();
+            Request.ModelContainer^.AddStringOA( LOGOUT_NEXT_PAGE, s ); // empty, prepare redirect during logout
+         ELSE
+            View := mvc.redirectView( INDEX_PAGE );
+         END;
          RETURN TRUE;
       
       // context directly accessed
@@ -570,6 +577,9 @@ CLASS IMPLEMENTATION CController;
          View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to status page
+         sp.Clear();
+         Request.ModelContainer^.AddStringOA( LOGOUT_NEXT_PAGE, sp ); // empty, prepare redirect during logout
+
          Request.Session^.Remove( SESSION_LOGGED );
          Request.Session^.Add( SESSION_LOGGED, ADR( SELF ));
          View := mvc.redirectView( STATUS_PAGE );
