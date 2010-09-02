@@ -688,11 +688,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseRoot( parseMode : TParseMode; xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
    VAR
       appendCharset : BOOLEAN := FALSE;
+      content : HttpTools.TContent;
       encoding : StringsO.CString;
       haveContentType : BOOLEAN := FALSE;
       haveDeclaration : BOOLEAN := FALSE;
       haveXHTML : BOOLEAN := FALSE;
       haveNS : BOOLEAN := FALSE;
+      rfc1766 : StringsO.CString;
       rootName : StringsO.CString;
       xmle : xmlreader.TXMLError;
       value : StringsO.CString;
@@ -764,6 +766,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                         Writer.XMLDeclaration := xhtmlSupported;
                      ELSIF value.EqualsOA( L"none" ) THEN // when explicitely stated, that XML decl shoud not be emitted, do not emit it
                         Writer.XMLDeclaration := FALSE;
+                        Writer.Fragment := TRUE; // allow writing text without enclosing root tag (but it is still possible)
                      ELSE // in other cases, assume default XML output
                         Writer.XMLDeclaration := xhtmlSupported;
                      END;
@@ -774,15 +777,26 @@ CLASS IMPLEMENTATION CPageTemplateView;
                         RETURN FALSE;
                      END;
                      haveContentType := TRUE;
-                     haveXHTML := value.ContainsOA( HttpTools.CONTENT_TYPE_XHTML );
+
+                     IF HttpTools.DecodeContent( value, OUT content, OUT rfc1766 ) THEN
+                        haveXHTML := content = HttpTools.contentTextXHTML;
+                     ELSE
+                        haveXHTML := FALSE;
+                        content := HttpTools.contentUnknown;
+                     END;
                      IF NOT haveXHTML THEN // use mime type as is, no logic can be applied; handle encoding
                         contentTypeRequest := value;
-                        IF value.ContainsOA( HttpTools.CONTENT_TYPE_TEXT ) OR value.ContainsOA( HttpTools.CONTENT_TYPE_HTML ) OR value.ContainsOA( HttpTools.CONTENT_TYPE_CSS ) THEN
-                           IF NOT contentTypeRequest.ContainsOA( HttpTools.CHARSET_PREFIX ) THEN // supply content type with source encoding
-                              appendCharset := TRUE;
-                           END;
+                        IF content IN HttpTools.ENCODING_SENSITIVE_CONTENT THEN
+                           appendCharset := rfc1766.Empty; // supply content type with source encoding, only if it is not known
                         END;
-                        // do not affect XMLDeclaration, author may set it upon his needs
+                        IF content = HttpTools.contentUnknown THEN // content was not successfully decoded
+                           // do not affect XMLDeclaration, author may set it upon his needs
+                        ELSIF content IN HttpTools.TAGGED_CONTENT THEN
+                           // do not affect XMLDeclaration, author may set it upon his needs
+                        ELSE
+                           Writer.XMLDeclaration := FALSE; // formats without tagged content cannot emit XMLDeclaration
+                           Writer.Fragment := TRUE;
+                        END;
                      ELSIF xhtmlSupported THEN // ok, use XHTML, it will be OK in client; do not handle encoding, client takes XML declaration including encoding
                         contentTypeRequest := value; // XHTML
                         Writer.XMLDeclaration := TRUE; // XHTML mime type requires valid XML

@@ -49,6 +49,26 @@ CLASS IMPLEMENTATION CXMLWriter;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Fragment GET : BOOLEAN;
+   BEGIN
+      RETURN _Fragment;
+   END Fragment;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Fragment SET( Value : BOOLEAN );
+   BEGIN
+      IF xwsStarted IN _State	THEN // the flag cannot be changed when already started
+         RETURN;
+      END;
+      _Fragment := Value;
+      IF _Fragment THEN
+         INCL( _State, xwsStarted );
+      END;
+   END Fragment;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE WriteElementString( CONST NSPrefix, Element : ARRAY OF WCHAR; CONST String : StringsO.CString );
    BEGIN
       WriteElementStartOA( NSPrefix, Element );
@@ -83,10 +103,10 @@ CLASS IMPLEMENTATION CXMLWriter;
       WriteEOL(); WriteIndent(); WriteOAA( C'<' );
 
       IF INSIDE( 0, NSPrefix ) AND ( NSPrefix[0] <> 0W ) THEN
-         WriteOA( NSPrefix, FALSE );
+         WriteOA( NSPrefix );
          WriteOAA( C":" );
       END;
-      WriteOA( Element, FALSE );
+      WriteOA( Element );
 
       _Stack.PushOA( NSPrefix );
       _Stack.PushOA( Element );
@@ -116,20 +136,20 @@ CLASS IMPLEMENTATION CXMLWriter;
       ELSIF HaveText THEN
          WriteOAA( C'</' );
          IF NOT NSPrefix.Empty THEN
-            Write( REF NSPrefix, FALSE );
+            Write( NSPrefix );
             WriteOAA( C":" );
          END;
-         Write( REF Element, FALSE );
+         Write( Element );
          WriteOAA( C'>' );
       ELSE
          WriteEOL();
          WriteIndent();
          WriteOAA( C'</' );
          IF NOT NSPrefix.Empty THEN
-            Write( REF NSPrefix, FALSE );
+            Write( NSPrefix );
             WriteOAA( C":" );
          END;
-         Write( REF Element, FALSE );
+         Write( Element );
          WriteOAA( C'>' );
       END;
    END WriteElementEnd;
@@ -154,10 +174,10 @@ CLASS IMPLEMENTATION CXMLWriter;
 
       WriteOAA( C" " );
       IF INSIDE( 0, NSPrefix ) AND ( NSPrefix[0] <> 0W ) THEN
-         WriteOA( NSPrefix, FALSE );
+         WriteOA( NSPrefix );
          WriteOAA( C":" );
       END;
-      WriteOA( Attribute, FALSE ); WriteOAA( C'="' );
+      WriteOA( Attribute ); WriteOAA( C'="' );
    END WriteAttributeStartOA;
 
 (*---------------------------------------------------------------------------*)
@@ -186,14 +206,19 @@ CLASS IMPLEMENTATION CXMLWriter;
          WriteOAA( C'>' ); // close leading of current element, continue in the line
          _Stack.StoreData( 1 ); // signalize we are in text
       END;
-      Write( REF S, TRUE );
+
+      // escape reserved characters
+      S.ReplaceOA( L"&", L"&amp;" );
+      S.ReplaceOA( L"<", L"&lt;" );
+      S.ReplaceOA( L">", L"&gt;" );
+      S.ReplaceOA( L'"', L"&quot;" );
+
+      Write( S );
    END WriteString;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE WriteUnescapedString( CONST String : StringsO.CString );
-   VAR
-      S : StringsO.CString := String;
    BEGIN
       IF xwsStarted NOT IN _State THEN
          RETURN;
@@ -204,12 +229,14 @@ CLASS IMPLEMENTATION CXMLWriter;
          WriteOAA( C'>' ); // close leading of current element, continue in the line
          _Stack.StoreData( 1 ); // signalize we are in text
       END;
-      Write( REF S, FALSE );
+      Write( String );
    END WriteUnescapedString;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE WriteStringOA( CONST String : ARRAY OF WCHAR );
+   VAR
+      S : StringsO.CString;
    BEGIN
       IF xwsStarted NOT IN _State THEN
          RETURN;
@@ -220,7 +247,15 @@ CLASS IMPLEMENTATION CXMLWriter;
          WriteOAA( C'>' ); // close leading of current element, continue in the line
          _Stack.StoreData( 1 ); // signalize we are in text
       END;
-      WriteOA( String, TRUE );
+
+      S.FromOA( String );
+      // escape reserved characters
+      S.ReplaceOA( L"&", L"&amp;" );
+      S.ReplaceOA( L"<", L"&lt;" );
+      S.ReplaceOA( L">", L"&gt;" );
+      S.ReplaceOA( L'"', L"&quot;" );
+
+      Write( S );
    END WriteStringOA;
    
 (*---------------------------------------------------------------------------*)
@@ -237,7 +272,7 @@ CLASS IMPLEMENTATION CXMLWriter;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Write( REF String : StringsO.CString; Escape : BOOLEAN );
+   PRIVATE PROCEDURE Write( CONST String : StringsO.CString );
    VAR
       Buffer : ARRAY [0..1023] OF CHAR;
       i, l, sl : CARDINAL;
@@ -246,13 +281,6 @@ CLASS IMPLEMENTATION CXMLWriter;
       sl := String.Length;
       IF ( sl = 0 ) OR ( _Stream = NIL ) THEN
          RETURN;
-      END;
-      IF Escape THEN
-         String.ReplaceOA( L"&", L"&amp;" );
-         String.ReplaceOA( L"<", L"&lt;" );
-         String.ReplaceOA( L">", L"&gt;" );
-         String.ReplaceOA( L'"', L"&quot;" );
-         sl := String.Length;
       END;
       i := 0;
       s := String.rawData;
@@ -269,12 +297,12 @@ CLASS IMPLEMENTATION CXMLWriter;
    
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE INLINE PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR; Escape : BOOLEAN );
+   PRIVATE INLINE PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR );
    VAR
       S : StringsO.CString;
    BEGIN
       S.FromOA( String );
-      Write( REF S, Escape );
+      Write( S );
    END WriteOA;
 
 (*---------------------------------------------------------------------------*)
