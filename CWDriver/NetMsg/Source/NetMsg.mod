@@ -8,7 +8,7 @@ FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
   
 FROM log IMPORT
-  dldTrace, dldDebug;
+  dldError, dldTrace, dldDebug;
 
 IMPORT
   cllv,
@@ -944,30 +944,30 @@ CLASS IMPLEMENTATION CDriver;
           | evDataReceived2Success, evStructReceived2Success :
             CASE PELE^.Event.PPacket^.TR OF
             | trString :
-					c := PELE^.Event.PacketLen - hdr;
-					IF c = 0 THEN
-						SW.Clear();
-					ELSE
-						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
-					END;
-			   | trStruct :
-					c := PELE^.Event.PacketLen - hdr;
-					IF c = 0 THEN
-						SW.Clear();
-					ELSE
-						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
-					END;
+                    c := PELE^.Event.PacketLen - hdr;
+                    IF c = 0 THEN
+                        SW.Clear();
+                    ELSE
+                        SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
+                    END;
+               | trStruct :
+                    c := PELE^.Event.PacketLen - hdr;
+                    IF c = 0 THEN
+                        SW.Clear();
+                    ELSE
+                        SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
+                    END;
 
-					// detach data, name of record will become data
-					i := SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
-					IF S.Empty THEN
-					   SW.FromOA( L"$empty" );
-					ELSIF NOT Records.Get( S, OUT List ) THEN
-					   SW.FromOA( L"$unknown " );
-					   SW.Append( S );
-					ELSE // decompose data
-					   
-					   List^.Reset();
+                    // detach data, name of record will become data
+                    i := SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
+                    IF S.Empty THEN
+                       SW.FromOA( L"$empty" );
+                    ELSIF NOT Records.Get( S, OUT List ) THEN
+                       SW.FromOA( L"$unknown " );
+                       SW.Append( S );
+                    ELSE // decompose data
+                       
+                       List^.Reset();
                   i := SW.ItemS( structItemSep, i, 0, FALSE, OUT S );
                   WHILE ( i <> -1 ) AND List^.MoveNext() DO
                      iovalue.TPValue( List^.Current )^.FromString( S, TRUE );
@@ -975,8 +975,8 @@ CLASS IMPLEMENTATION CDriver;
                   END; // WHILE
                   SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
                   SW := S;
-					  
-		         END;
+                      
+                 END;
             END;
 
           //-----
