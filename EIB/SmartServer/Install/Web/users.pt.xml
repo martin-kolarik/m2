@@ -22,7 +22,7 @@
                           <p><a href="io">${msg.menu.io}</a></p>
                           <p> </p>
                           <p><a href="users">${msg.menu.users}</a></p>
-                          <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
+                          <p class="logout"><a href="logout?nextpage=login">${msg.menu.logout}</a></p>
                       </div>
 
                       <div class="content">
