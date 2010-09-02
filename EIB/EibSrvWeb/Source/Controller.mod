@@ -392,25 +392,32 @@ CLASS IMPLEMENTATION CController;
          ELSE // no call during the request
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
 
-            // handle authentication
-            IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
-               RETURN FALSE;
-            END;
-            // authMethodInfo is ignored now, method is always native
-            IF authTokens.Empty OR ( role = EibSrvWeb.roleSystemAdministrator ) THEN // if page does not want to authorize or if admin is logged
-               authorized := TRUE;
-            ELSE// check role
-               Request.ModelContainer^.GetStringOA( ROLE_NAME, OUT roleName );
-               authTokens.Reset();
-               WHILE authTokens.MoveNext() DO
-                  IF authTokens.CurrentData^.Equals( roleName ) THEN // authorized
-                     authorized := TRUE;
-                     EXIT;
-                  END;
-               END; // WHILE
-            END;
+            Request.ModelContainer^.GetStringOA( ROLE_NAME, OUT roleName );
+            IF NOT roleName.Empty THEN // only if somebody is logged authentication takes sense
+
+               // handle authentication
+               IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
+                  RETURN FALSE;
+               END;
+               // authMethodInfo is ignored now, method is always native
+
+               IF authTokens.Empty OR ( role = EibSrvWeb.roleSystemAdministrator ) THEN // if page does not want to authorize or if admin is logged
+                  authorized := TRUE;
+               ELSE // check role
+                  authTokens.Reset();
+                  WHILE authTokens.MoveNext() DO
+                     IF authTokens.CurrentData^.Equals( roleName ) THEN // authorized
+                        authorized := TRUE;
+                        EXIT;
+                     END;
+                  END; // WHILE
+               END;
+
+            END; // if NOT roleName.Empty
             
-            IF NOT authorized THEN // redirect to login page
+            IF authorized THEN
+               Request.ModelContainer^.AddBooleanOA( USER_LOGGED, Request.Session^.Get( SESSION_LOGGED, OUT data ) AND ( data = PTR( ADR( SELF ))) );
+            ELSE // redirect to login page
                IF Request.ModelContainer^.GetStringOA( USER_LOGIN_SOURCE_PAGE, OUT s ) THEN // repeated attempt to authorize, leave MESSAGE intact
                   Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
                END;
@@ -423,8 +430,7 @@ CLASS IMPLEMENTATION CController;
          RETURN TRUE;
    
       ELSIF Request.ControllerURI.EqualsOA( INDEX_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( USER_LOGGED, Request.Session^.Get( SESSION_LOGGED, OUT data ) AND ( data = PTR( ADR( SELF ))) );
-         View := mvc.pageTemplateView( ADR( SELF ), INDEX_VIEW );
+         View := mvc.redirectView( INDEX_VIEW );
          RETURN TRUE;
       
       ELSIF Request.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
@@ -443,7 +449,7 @@ CLASS IMPLEMENTATION CController;
       
       // context directly accessed
       ELSIF Request.ControllerURI.Empty THEN
-         View := mvc.redirectView( INDEX_PAGE );
+         View := mvc.redirectView( INDEX_VIEW );
          RETURN TRUE;
 
       // user login must be processed before system login redirect         
