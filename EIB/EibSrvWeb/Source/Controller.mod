@@ -392,29 +392,24 @@ CLASS IMPLEMENTATION CController;
          ELSE // no call during the request
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
 
-            Request.ModelContainer^.GetStringOA( ROLE_NAME, OUT roleName );
-            IF NOT roleName.Empty THEN // only if somebody is logged authentication takes sense
+            // handle authentication
+            IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
+               RETURN FALSE;
+            END;
+            // authMethodInfo is ignored now, method is always native
 
-               // handle authentication
-               IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
-                  RETURN FALSE;
-               END;
-               // authMethodInfo is ignored now, method is always native
+            IF authTokens.Empty OR ( role = EibSrvWeb.roleSystemAdministrator ) THEN // if page does not want to authorize or if admin is logged
+               authorized := TRUE;
+            ELSIF Request.ModelContainer^.GetStringOA( ROLE_NAME, OUT roleName ) THEN // check role, it takes sense only if is somebody is logged
+               authTokens.Reset();
+               WHILE authTokens.MoveNext() DO
+                  IF authTokens.CurrentData^.Equals( roleName ) THEN // authorized
+                     authorized := TRUE;
+                     EXIT;
+                  END;
+               END; // WHILE
+            END;
 
-               IF authTokens.Empty OR ( role = EibSrvWeb.roleSystemAdministrator ) THEN // if page does not want to authorize or if admin is logged
-                  authorized := TRUE;
-               ELSE // check role
-                  authTokens.Reset();
-                  WHILE authTokens.MoveNext() DO
-                     IF authTokens.CurrentData^.Equals( roleName ) THEN // authorized
-                        authorized := TRUE;
-                        EXIT;
-                     END;
-                  END; // WHILE
-               END;
-
-            END; // if NOT roleName.Empty
-            
             IF authorized THEN
                Request.ModelContainer^.AddBooleanOA( USER_LOGGED, Request.Session^.Get( SESSION_LOGGED, OUT data ) AND ( data = PTR( ADR( SELF ))) );
             ELSE // redirect to login page
