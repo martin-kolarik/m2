@@ -183,6 +183,7 @@ INTERFACE IMVC;
    PROCEDURE ForgetFallbackController();
    
    PROPERTY
+      SessionValidity : CARDINAL; // seconds
       MessageSourcePath : StringsO.CString;
       Logger : Log.TPILogger;
       AccessList : accesslist.TPAccessList;

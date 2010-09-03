@@ -888,6 +888,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          knDeny = L"deny";
       knWebRoot = L"web_root";
       knMessageFile = L"message_file";
+      knSessionValidity = L"session_validity";
    VAR
       authinfo : StringsO.CString;
       es : PTR;
@@ -896,6 +897,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Path : ARRAY [0..260] OF WCHAR;
       sOA : ARRAY [0..63] OF WCHAR;
       s : StringsO.CString;
+      sessionValidity : CARDINAL;
    BEGIN
       Stop();
 
@@ -922,6 +924,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          END;
          IF cfg.GetKeyStr( knMessageFile, OUT line, OUT _MessageFile ) THEN
             _MessageFile.ReplaceOA( L"%exedir%", Path );
+         END;
+         IF cfg.GetKeyInt( knSessionValidity, OUT line, OUT sessionValidity ) THEN
+            _SessionValidity := sessionValidity;
          END;
       END;
       IF _RootDir.Empty THEN
@@ -995,6 +1000,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       ASSERT( _MVC = NIL );
       _MVC := mvc.mvc( OA( _Context.Length-1, _Context.rawData ));
+      _MVC^.SessionValidity := _SessionValidity;
       _MVC^.MessageSourcePath := _MessageFile;
       _MVC^.Logger := _HttpLogger;
       _MVC^.AccessList := ADR( _AccessList );
@@ -1241,6 +1247,7 @@ BEGIN
    _DeviceNames := NIL;
    _Devices := NIL;
    _Port := 8080;
+   _SessionValidity := 30 * 60 * 1000; // 30 minutes
    _Running := FALSE;
    _Controller := NIL;
    _StartedTime := 0;

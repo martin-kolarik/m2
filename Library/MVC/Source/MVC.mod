@@ -1428,6 +1428,7 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
    // IHttpProcessor
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestLogger : Log.TPILogger;
+      SessionValidityMS : CARDINAL;
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession );
@@ -1446,6 +1447,7 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
    PUBLIC VIRTUAL PROCEDURE ForgetFallbackController();
 
    PUBLIC VIRTUAL PROPERTY
+      SessionValidity : CARDINAL; // seconds
       MessageSourcePath : StringsO.CString;
       Logger : Log.TPILogger;
       AccessList : accesslist.TPAccessList;
@@ -1458,6 +1460,7 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
       _Context : StringsO.CString;
       _Controllers : syncmaps.CStringSyncMap;
       _FallbackController : TPController;
+      _SessionValidity : CARDINAL := 30 * 60 * 1000; // 30 minutes
       _MessageSourcePath : StringsO.CString;
       _Messages : Resources.TPPlainResources;
       _MessagesLock : Sync.LOCK;
@@ -1485,6 +1488,17 @@ CLASS IMPLEMENTATION CMVC;
       RETURN _Logger;
    END RequestLogger;
 
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY SessionValidityMS GET : CARDINAL;
+   BEGIN
+      IF _SessionValidity > Sync.FOREVER DIV 1000 THEN
+         RETURN Sync.FOREVER;
+      ELSE
+         RETURN _SessionValidity * 1000;
+      END;
+   END SessionValidityMS;
+      
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
@@ -1793,6 +1807,20 @@ CLASS IMPLEMENTATION CMVC;
    BEGIN
       _FallbackController := NIL;
    END ForgetFallbackController;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY SessionValidity GET : CARDINAL; // seconds
+   BEGIN
+      RETURN _SessionValidity;
+   END SessionValidity;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY SessionValidity SET( Value : CARDINAL ); // seconds
+   BEGIN
+      _SessionValidity := Value;
+   END SessionValidity;
 
 //--------------------------------------------------------------------------------
 
