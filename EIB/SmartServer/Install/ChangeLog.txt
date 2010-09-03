@@ -1,3 +1,19 @@
+Version 1.2.1312/R 3.9.2010
+- BUG: #227, model name of length 1 character was not recognized in pt.xml files
+       properly, which could cause various problems with pt.xml rendering (infinite
+       looping in pt:for etc.).
+- BUG: #229, index.pt.xml does not use pt:access and thus it is not able being protected
+       from unauthorized access
+- BUG: #230, pt.xml without target root element was not rendered, text files (js, txt) were
+       impossible to render.
+- BUG: #232, if session expired during userLogin.pt.xml page displayed, SmartServer
+       redirected web to admin login page. Now it redirects to index page.
+- NEW: #228, logout page was extended with "nextpage=<page>" parameter to redirect web
+       after logout. Default behavior was changed from redirecting to login page to
+       redirecting to index page.
+- NEW: #231, session validity time is now configurable using "session_validity" parameter
+       of "[server]" section.
+
 Version 1.2.1291/R 30.7.2010
 - BUG: #226, functions (get, getwix) were not registered for admin pages (index etc.)
 
