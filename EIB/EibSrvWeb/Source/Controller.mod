@@ -456,7 +456,7 @@ CLASS IMPLEMENTATION CController;
             Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.invalidLoginOrSessionExpired", OUT s );
             Request.ModelContainer^.AddStringOA( MESSAGE, s );
 
-            View := mvc.redirectView( LOGIN_PAGE );
+            View := mvc.redirectView( INDEX_VIEW );
             RETURN TRUE;
          END;
 
