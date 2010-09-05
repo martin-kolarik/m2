@@ -1247,7 +1247,7 @@ BEGIN
    _DeviceNames := NIL;
    _Devices := NIL;
    _Port := 8080;
-   _SessionValidity := 30 * 60 * 1000; // 30 minutes
+   _SessionValidity := 30 * 60; // 30 minutes
    _Running := FALSE;
    _Controller := NIL;
    _StartedTime := 0;
