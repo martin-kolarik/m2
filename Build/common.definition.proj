@@ -99,6 +99,7 @@
         <CPPExceptions Condition="$(CPPExceptions)==''">off</CPPExceptions>
         <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
         <LicenceMachineId Condition="$(LicenceMachineId)==''">M</LicenceMachineId><!-- M = MAC, D = disc, MD = MAC + Disc -->
+        <UACElevation Condition="$(UACElevation)==''">off</UACElevation>
 
         <Test Condition="$(Test)==''">on</Test>
     </PropertyGroup>
