@@ -246,7 +246,6 @@
     <Target Name="CPPs" Condition="(@(DEFFiles)!='' or @(MODFiles)!='')"
             Inputs="@(DEFFilesDir);@(MODFilesDir)"
             Outputs="@(DEFFilesDir -> '$(HeaderDir)\%(Filename).h');@(MODFilesDir -> '$(IntermediateDir)\%(Filename).cpp')">
-        <Message Importance="high" Text="$(M2PROD)" />
         <Exec WorkingDirectory="$(SourceDir)"
               Command="$(M2) $(M2PROD) $(M2DEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFilesDir -> '%(FileName).def', ' ') @(MODFilesDir -> '%(FileName).mod', ' ')"/>
     </Target>
@@ -340,7 +339,7 @@
         <Exec Condition="$(Result)=='Program'"
               WorkingDirectory="$(IntermediateDir)"
               Command="$(LINK) $(LINKDEF) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
-        <Exec Condition="$(Result)!='Static' And $(CLib)=='Dynamic'"
+        <Exec Condition="$(Result)=='Program' Or $(CLib)=='Dynamic'"
               Command="$(MT)"/>
     </Target>
 
