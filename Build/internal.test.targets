@@ -25,8 +25,8 @@
         <TestOutput>$(OutputDir)\$(MSBuildProjectName).test.dll</TestOutput>
         <TestDLL>$(RootDir)\$(TestComponent)\$(OutputDir)\test.dll</TestDLL><!-- TODO, test.dll should be a symbolic name -->
         <TestFactoryDir>$(RootDir)\$(TestComponent)\$(SourceDir)</TestFactoryDir>
-        <TestFactoryDEF>$(TestFactoryDir)\$(TestFactoryName).def</TestFactoryDEF>
-        <TestFactoryMOD>$(TestFactoryDir)\$(TestFactoryName).mod</TestFactoryMOD>
+        <TestFactoryDEF Condition="$(TestFactoryName)!=''">$(TestFactoryDir)\$(TestFactoryName).def</TestFactoryDEF>
+        <TestFactoryMOD Condition="$(TestFactoryName)!=''">$(TestFactoryDir)\$(TestFactoryName).mod</TestFactoryMOD>
     </PropertyGroup>
 
     <!-- file names, sources, intermediates, outputs for TESTs -->

@@ -6,8 +6,6 @@ FROM Storage IMPORT
 IMPORT
    IOO,
    list,
-   Log,
-   LoggerFilter,
    StringsO,
    TextReader,
    TextWriter;
@@ -39,8 +37,8 @@ CLASS CINIFile;
    PUBLIC PROCEDURE DeleteSection( CONST Section : ARRAY OF WCHAR ) : BOOLEAN; // operates first section of the name
    // PROCEDURE DeleteKey( CONST Section : ARRAY OF WCHAR ) : BOOLEAN;
 
-   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : ARRAY OF WCHAR; SetAsActive : BOOLEAN ) : BOOLEAN;
-   PUBLIC PROCEDURE EnumerateKeys( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : StringsO.IString; SetAsActive : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateKeys( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Key, Value : StringsO.IString ) : BOOLEAN;
 
    PUBLIC PROCEDURE GetKeyStr( CONST Key : ARRAY OF WCHAR; OUT Line : CARDINAL; OUT String : StringsO.IString ): BOOLEAN;
    PUBLIC PROCEDURE GetKeyBool( CONST Key : ARRAY OF WCHAR; OUT Line : CARDINAL; OUT b : BOOLEAN ): BOOLEAN;
@@ -54,34 +52,6 @@ CLASS CINIFile;
    PUBLIC PROCEDURE SetKeyReal( CONST Key : ARRAY OF WCHAR; lr : LONGREAL; Multiple : BOOLEAN ): BOOLEAN;
    // PROCEDURE SetKeyBin ( 
 END CINIFile;
-
-(*================================================================================*)
-// helpers
-
-TYPE
-   TConfigureLogResult = (
-      clrSuccess,
-      clrUnknownTarget,
-      clrUnknownLevel,
-      clrTargetFileMissingFile
-   );
-
-PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-PROCEDURE ConfigureBufferedLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBufferedLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-  // if SectionName is empty, default "log" section name is used
-
-(*--------------------------------------------------------------------------------*)
-
-TYPE
-   TConfigureLoggerFilterResult = (
-      clfrSuccess,
-      clfrUnknownLevel,
-      clfrUnknownPolicy,
-      clfrMissingPattern
-   );
-
-PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF filter : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
-  // if SectionName is empty, default "log" section name is used
 
 (*================================================================================*)
 

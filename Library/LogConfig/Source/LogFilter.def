@@ -1,4 +1,4 @@
-DEFINITION MODULE LoggerFilter;
+DEFINITION MODULE LogFilter;
 
 (*===========================================================================*)
 
@@ -13,15 +13,15 @@ IMPORT
 
 (*===========================================================================*)
 
-#save, option( dll_export => on )
+// #save, option( dll_export => on ), the class is local
 
-CLASS CLoggerFilter IMPLEMENTS iLog.IFilter;
+TYPE
+   TPLogFilter = POINTER TO CLogFilter;
+
+CLASS CLogFilter( log.CLevelAndBitsFilter );
 
    // IFilter
-   PUBLIC VIRTUAL PROPERTY
-      Level : log.TDebugLevel; // what (and less) will be present in log
-   
-   PUBLIC VIRTUAL PROCEDURE Filtered( Level : iLog.TDebugLevel; CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : iLog.TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
 
    // SELF   
    PUBLIC PROCEDURE Reset();
@@ -30,12 +30,11 @@ CLASS CLoggerFilter IMPLEMENTS iLog.IFilter;
    // privates
    PRIVATE VAR
       _Filter : lists.CStringList;
-      _Level : log.TDebugLevel;
 
-END CLoggerFilter;
+END CLogFilter;
 
-#restore
+// #restore
 
 (*===========================================================================*)
 
-END LoggerFilter.
+END LogFilter.

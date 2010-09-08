@@ -32,6 +32,14 @@
                             <File Id="DeviceIOSDAPBridge.DLL" Name="SDAPBrdg.dll" LongName="DeviceIOSDAPBridge.dll" Source="DeviceIOSDAPBridge.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             <ServiceControl Id="SVCControlBridgeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
+                        <Component Guid="9BE9E789-5378-4024-B999-DBB90914E1A0" Id="StiebelHPLib">
+                            <File Id="StiebelHP.DLL" Name="Stiebel.dll" LongName="StiebelHP.dll" Source="StiebelHP.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlStiebelHPLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="ADF1BFA0-01C2-4abb-9CEB-780A839B5214" Id="AirMotionLib">
+                            <File Id="AirMotion.DLL" Name="AirMot.dll" LongName="AirMotion.dll" Source="AirMotion.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlAirMotionLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
                         <Component Guid="E221959E-E8C4-412d-95A4-018C096D2A2F" Id="ToolSvcInst">
                             <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -94,6 +102,8 @@
             <ComponentRef Id="Program" />
             <ComponentRef Id="RuntimeLib" />
             <ComponentRef Id="BridgeLib" />
+            <ComponentRef Id="StiebelHPLib" />
+            <ComponentRef Id="AirMotionLib" />
             <ComponentRef Id="Licence" />
             <ComponentRef Id="ToolSvcInst" />
             <ComponentRef Id="Documentation" />

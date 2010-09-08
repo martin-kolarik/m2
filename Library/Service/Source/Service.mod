@@ -73,21 +73,21 @@ CLASS IMPLEMENTATION AService;
 
 (*---------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE LogEvent( ErrorCode : CARDINAL; CONST ErrorText : ARRAY OF WCHAR ); // ErrorCode -1 means SUCCESS but with dlcError verbosity
+  LOCAL PROCEDURE LogEvent( ErrorCode : CARDINAL; CONST ErrorText : ARRAY OF WCHAR ); // ErrorCode -1 means SUCCESS but with lcError verbosity
   VAR
-    DebugLevel : Log.TDebugLevel;
+    DebugLevel : Log.TLevel;
     LocalErrorText : ARRAY [0..255] OF WCHAR;
   BEGIN
     IF ErrorCode = winerror.ERROR_SUCCESS THEN
-      DebugLevel := Log.dlcInfo;
+      DebugLevel := Log.lcInfo;
     ELSE
-      DebugLevel := Log.dlcError;
+      DebugLevel := Log.lcError;
     END;
     IF ( ErrorCode = 0 ) OR ( ErrorCode = -1 ) THEN
-      Log.logger()^.LogS( DebugLevel, L"SVC", ErrorText );
+      Log.logger()^.LogS( DebugLevel, 0, L"SVC", ErrorText );
     ELSE
       Strings.FromErrorW( ErrorCode, OUT LocalErrorText );
-      Log.logger()^.LogSSS( DebugLevel, L"SVC", ErrorText, L": ", LocalErrorText );
+      Log.logger()^.LogSSS( DebugLevel, 0, L"SVC", ErrorText, L": ", LocalErrorText );
     END;
   END LogEvent;
 

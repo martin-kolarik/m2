@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CTextWriter;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE WriteExc( CONST e : Exceptions.CException; LineEnd : BOOLEAN );
+	PUBLIC PROCEDURE WriteExc( CONST e : Exceptions.Exception; LineEnd : BOOLEAN );
 	VAR
 		S : StringsO.CString;
 		t : ARRAY [0..1023] OF WCHAR;

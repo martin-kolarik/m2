@@ -15,13 +15,13 @@
                     else
                     {
                         // avoid sending of empty string
+                        value = "" + value; 
                         if( "" == value )
                         {
                             return null;
                         }
 
-                        // replace decimal comma with decimal dot
-                        value = "" + value; 
+                        // replace decimal comma with decimal dot 
                         var commaRE = /,/;
                         return value.replace( commaRE, ".");
                     }

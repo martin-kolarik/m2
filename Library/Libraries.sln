@@ -53,6 +53,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SerialWin32", "SerialWin32\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CCSuppFunc", "..\API\CCSuppFunc\CCSuppFunc.vcxproj", "{70BDC764-6FA8-4CA8-B728-C0C999747851}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LogConfig", "LogConfig\LogConfig.vcproj", "{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -323,6 +329,16 @@ Global
 		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|Win32.ActiveCfg = Release|Win32
 		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|Win32.Build.0 = Release|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Win32.Build.0 = Debug|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Any CPU.ActiveCfg = Release|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Win32.ActiveCfg = Release|Win32
+		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

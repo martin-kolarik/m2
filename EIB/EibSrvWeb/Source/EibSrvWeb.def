@@ -104,6 +104,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _EIB : srvcore.TPEIBServer;
       _MVC : mvc.TPMVC;
       _Port : CARDINAL;
+      _SessionValidity : CARDINAL; // in seconds, 30 minutes by default
       _Running : BOOLEAN;
       _Controller : mvc.TPController;
       _DeviceCount : CARDINAL;

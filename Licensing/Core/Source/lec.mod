@@ -5,7 +5,7 @@ FROM Debug IMPORT
 
 #if DEBUG #then
 FROM log IMPORT
-   CLogger, dldDebug;
+   CLogger, ldDebug;
 #endif
    
 IMPORT
@@ -225,14 +225,14 @@ CLASS IMPLEMENTATION CResult;
       NEW( product );
 
       #if DEBUG #then
-         Log.Level := dldDebug;
+         Log.Level := ldDebug;
       #endif
 
       IF pitem^.HasChilds THEN
 
          #if DEBUG #then      
             pitem^.ProductId.ToOA( OUT logs );
-            Log.LogSS( dldDebug, L"LEC", L"Product with licences: ", logs );
+            Log.LogSS( ldDebug, 0, L"LEC", L"Product with licences: ", logs );
          #endif
 
          now.SetNowUTC();
@@ -243,7 +243,7 @@ CLASS IMPLEMENTATION CResult;
 
          #if DEBUG #then      
             pitem^.ProductId.ToOA( OUT logs );
-            Log.LogSS( dldDebug, L"LEC", L"Product W/O licence: ", logs );
+            Log.LogSS( ldDebug, 0, L"LEC", L"Product W/O licence: ", logs );
          #endif
 
          info := siDemo;
@@ -273,7 +273,7 @@ CLASS IMPLEMENTATION CResult;
          
          #if DEBUG #then      
             litem^.Serial.ToOA( OUT logs );
-            Log.LogSS( dldDebug, L"LEC", L"  Licence, computing best hit: ", logs );
+            Log.LogSS( ldDebug, 0, L"LEC", L"  Licence, computing best hit: ", logs );
          #endif
 
          localActivated := FALSE;
@@ -289,7 +289,7 @@ CLASS IMPLEMENTATION CResult;
 
                #if DEBUG #then      
                   aitem^.ExpiresString.ToOA( OUT logs );
-                  Log.LogSS( dldDebug, L"LEC", L"  Activation, computing best hit, expires: ", logs );
+                  Log.LogSS( ldDebug, 0, L"LEC", L"  Activation, computing best hit, expires: ", logs );
                #endif
 
                IF aitem^.ValidFor( now ) THEN
@@ -300,13 +300,13 @@ CLASS IMPLEMENTATION CResult;
                      expires := ComputeExpiration( bhBestCase, expires, dt.JulianDate );
 
                      #if DEBUG #then      
-                        Log.LogS( dldDebug, L"LEC", L"    valid limitedly" );
+                        Log.LogS( ldDebug, 0, L"LEC", L"    valid limitedly" );
                      #endif
                   ELSE
                      expires := expNever;
 
                      #if DEBUG #then      
-                        Log.LogS( dldDebug, L"LEC", L"    valid forever" );
+                        Log.LogS( ldDebug, 0, L"LEC", L"    valid forever" );
                      #endif
                   END;
                   
@@ -319,7 +319,7 @@ CLASS IMPLEMENTATION CResult;
 
                   #if DEBUG #then      
                      JDCToDate( expires, OUT logs );
-                     Log.LogSS( dldDebug, L"LEC", L"    not valid, trial, expires: ", logs );
+                     Log.LogSS( ldDebug, 0, L"LEC", L"    not valid, trial, expires: ", logs );
                   #endif
                ELSE
                   info := ComputeInfo( bhBestCase, info, siNotActivated );
@@ -328,20 +328,20 @@ CLASS IMPLEMENTATION CResult;
 
                   #if DEBUG #then      
                      JDCToDate( expires, OUT logs );
-                     Log.LogSS( dldDebug, L"LEC", L"    not valid, not trial, expires: ", logs );
+                     Log.LogSS( ldDebug, 0, L"LEC", L"    not valid, not trial, expires: ", logs );
                   #endif
                END;
 
                #if DEBUG #then      
                   CASE info OF
                   | siUnknown :
-                     Log.LogS( dldDebug, L"LEC", L"  Partial activation result: unknown" );
+                     Log.LogS( ldDebug, 0, L"LEC", L"  Partial activation result: unknown" );
                   | siDemo :
-                     Log.LogS( dldDebug, L"LEC", L"  Partial activation result: demo" );
+                     Log.LogS( ldDebug, 0, L"LEC", L"  Partial activation result: demo" );
                   | siNotActivated :
-                     Log.LogS( dldDebug, L"LEC", L"  Partial activation result: not activated" );
+                     Log.LogS( ldDebug, 0, L"LEC", L"  Partial activation result: not activated" );
                   | siActivated :
-                     Log.LogS( dldDebug, L"LEC", L"  Partial activation result: activated" );
+                     Log.LogS( ldDebug, 0, L"LEC", L"  Partial activation result: activated" );
                   END; // CASE
                #endif
 
@@ -354,7 +354,7 @@ CLASS IMPLEMENTATION CResult;
 
             #if DEBUG #then      
                JDCToDate( expires, OUT logs );
-               Log.LogSS( dldDebug, L"LEC", L"    not activated, trial, expires: ", logs );
+               Log.LogSS( ldDebug, 0, L"LEC", L"    not activated, trial, expires: ", logs );
             #endif
 
          ELSE
@@ -364,7 +364,7 @@ CLASS IMPLEMENTATION CResult;
 
             #if DEBUG #then      
                JDCToDate( expires, OUT logs );
-               Log.LogSS( dldDebug, L"LEC", L"    not activated, expires: ", logs );
+               Log.LogSS( ldDebug, 0, L"LEC", L"    not activated, expires: ", logs );
             #endif
 
          END;
@@ -386,13 +386,13 @@ CLASS IMPLEMENTATION CResult;
          #if DEBUG #then      
             CASE info OF
             | siUnknown :
-               Log.LogS( dldDebug, L"LEC", L"  Partial licence result: unknown" );
+               Log.LogS( ldDebug, 0, L"LEC", L"  Partial licence result: unknown" );
             | siDemo :
-               Log.LogS( dldDebug, L"LEC", L"  Partial licence result: demo" );
+               Log.LogS( ldDebug, 0, L"LEC", L"  Partial licence result: demo" );
             | siNotActivated :
-               Log.LogS( dldDebug, L"LEC", L"  Partial licence result: not activated" );
+               Log.LogS( ldDebug, 0, L"LEC", L"  Partial licence result: not activated" );
             | siActivated :
-               Log.LogS( dldDebug, L"LEC", L"  Partial licence result: activated" );
+               Log.LogS( ldDebug, 0, L"LEC", L"  Partial licence result: activated" );
             END; // CASE
          #endif
 
@@ -409,20 +409,20 @@ CLASS IMPLEMENTATION CResult;
 
       #if DEBUG #then
          IF Behaviour = bhBestCase THEN
-            Log.LogS( dldDebug, L"LEC", L"Computing best hit" );
+            Log.LogS( ldDebug, 0, L"LEC", L"Computing best hit" );
          ELSE
-            Log.LogS( dldDebug, L"LEC", L"Computing worst hit" );
+            Log.LogS( ldDebug, 0, L"LEC", L"Computing worst hit" );
          END;
          JDCToDate( _Expires, OUT logs );
          CASE info OF
          | siUnknown :
-            Log.LogSS( dldDebug, L"LEC", L"Result: unknown, expires: ", logs );
+            Log.LogSS( ldDebug, 0, L"LEC", L"Result: unknown, expires: ", logs );
          | siDemo :
-            Log.LogSS( dldDebug, L"LEC", L"Result: demo, expires: ", logs );
+            Log.LogSS( ldDebug, 0, L"LEC", L"Result: demo, expires: ", logs );
          | siNotActivated :
-            Log.LogSS( dldDebug, L"LEC", L"Result: not activated, expires: ", logs );
+            Log.LogSS( ldDebug, 0, L"LEC", L"Result: not activated, expires: ", logs );
          | siActivated :
-            Log.LogS( dldDebug, L"LEC", L"Result: activated" );
+            Log.LogS( ldDebug, 0, L"LEC", L"Result: activated" );
          END; // CASE
       #endif
 
@@ -640,7 +640,7 @@ BEGIN
 
    #if DEBUG #then
       IF data.Count = 0 THEN      
-         Log.LogSSSS( dldDebug, L"LEC", L"No products found in: ", Path1, Path2, ProductId );
+         Log.LogSSSS( ldDebug, 0, L"LEC", L"No products found in: ", Path1, Path2, ProductId );
       END;
    #endif
 

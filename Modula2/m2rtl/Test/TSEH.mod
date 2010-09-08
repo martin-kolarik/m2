@@ -44,9 +44,9 @@ CLASS IMPLEMENTATION CTest;
       TRY
          a^ := 0;
          Result := FALSE;
-         Host^.Log^.LogS( log.dlcError, L"", "Not thrown" );
+         Host^.Log^.LogS( log.lcError, 0, L"", "Not thrown" );
       EXCEPT TRISTATE( 1 ) DO
-         Host^.Log^.LogS( log.dlcInfo, L"", "OK, thrown" );
+         Host^.Log^.LogS( log.lcInfo, 0, L"", "OK, thrown" );
       END;
 
       Host^.StopPhase();
@@ -56,9 +56,9 @@ CLASS IMPLEMENTATION CTest;
       TRY
          i := i / 0;
          Result := FALSE;
-         Host^.Log^.LogS( log.dlcError, L"", "Not thrown" );
+         Host^.Log^.LogS( log.lcError, 0, L"", "Not thrown" );
       EXCEPT TRISTATE( 1 ) DO
-         Host^.Log^.LogS( log.dlcInfo, L"", "OK, thrown" );
+         Host^.Log^.LogS( log.lcInfo, 0, L"", "OK, thrown" );
       END;
 
       Host^.StopPhase();

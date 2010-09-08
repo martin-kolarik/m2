@@ -38,7 +38,9 @@ TYPE
 CONST
     LOG_PREFIX = L"KnxSrv";
 
-    cfSmartServerUsers = L"SmartServer\WebUsers.cfg";
+    cfSmartServerUsersFolder = L"SmartServer";
+    cfSmartServerUsersFile = L"WebUsers.cfg";
+
     snRoles = L"roles";
        knNamed = L"named";
        knKeyed = L"keyed";
@@ -446,7 +448,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Result : Sync.TAsyncResult;
    BEGIN
       IF index >= _DeviceCount THEN
-         Log.logger()^.LogS( Log.dlcWarning, LOG_PREFIX, L"OperateDevice index out of range." );
+         Log.logger()^.LogS( Log.lcWarning, 0, LOG_PREFIX, L"OperateDevice index out of range." );
       ELSIF StartNotStop THEN
          Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdDeviceStart ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
          ASSERTLOG( Result <> Sync.arTimeout );
@@ -461,7 +463,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROCEDURE DeviceRunning( index : CARDINAL ) : BOOLEAN;
    BEGIN
       IF index >= _DeviceCount THEN
-         Log.logger()^.LogS( Log.dlcWarning, LOG_PREFIX, L"DeviceRunning index out of range." );
+         Log.logger()^.LogS( Log.lcWarning, 0, LOG_PREFIX, L"DeviceRunning index out of range." );
          RETURN FALSE;
       ELSE
          RETURN _Devices^[index]^.Running;
@@ -596,9 +598,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    VAR
       authinfo : StringsO.CString;
       hash, password : sha256.CDigest;
-      hashOA : sha256.TDigest;
       itemRole, role : TRole := roleGuest;
-      localUsers : lists.CStringStringList;
       s : StringsO.CString;
    BEGIN
       IF Password.Empty THEN
@@ -888,14 +888,16 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          knDeny = L"deny";
       knWebRoot = L"web_root";
       knMessageFile = L"message_file";
+      knSessionValidity = L"session_validity";
    VAR
       authinfo : StringsO.CString;
       es : PTR;
       line : CARDINAL;
       ok : BOOLEAN := TRUE;
       Path : ARRAY [0..260] OF WCHAR;
-      sOA : ARRAY [0..63] OF WCHAR;
+      rule : StringsO.CString;
       s : StringsO.CString;
+      sessionValidity : CARDINAL;
    BEGIN
       Stop();
 
@@ -923,14 +925,17 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          IF cfg.GetKeyStr( knMessageFile, OUT line, OUT _MessageFile ) THEN
             _MessageFile.ReplaceOA( L"%exedir%", Path );
          END;
+         IF cfg.GetKeyInt( knSessionValidity, OUT line, OUT sessionValidity ) THEN
+            _SessionValidity := sessionValidity;
+         END;
       END;
       IF _RootDir.Empty THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"Web root is not defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"Web root is not defined, web interface will not start." );
       END;
       IF _MessageFile.Empty THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"Message source for web is not defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"Message source for web is not defined, web interface will not start." );
       END;
       
       // add system roles      
@@ -940,11 +945,10 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       // load users from system configuration
       IF NOT cfg.SetSection( snUsers ) THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"No users defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"No users defined, web interface will not start." );
       ELSE
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT authinfo ) DO // sOA = name, authinfo = role, hash
-            s.FromOA( sOA );
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT s, OUT authinfo ) DO // sOA = name, authinfo = role, hash
             _Users.Remove( s );
             _Users.Add( s, authinfo );
             _SysUsers.Add( s, 0 );
@@ -953,14 +957,14 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       
       IF cfg.SetSection( snAccessList ) THEN
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT s ) DO
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT rule, OUT s ) DO
             s.Trim();
-            IF EQUALS( sOA, knAllow ) THEN
+            IF rule.EqualsOA( knAllow ) THEN
                _AccessList.AddRuleS( accesslist.actAllow, s );
-            ELSIF EQUALS( sOA, knDeny ) THEN
+            ELSIF rule.EqualsOA( knDeny ) THEN
                _AccessList.AddRuleS( accesslist.actDeny, s );
             ELSE
-               ConfigLogger^.LogFilePos( Log.dlcError, LOG_PREFIX, L"Only 'allow' and 'deny' rules are allowed, the rule will be ignored.", L"(web config file)", line, 0 );
+               ConfigLogger^.LogFilePos( Log.lcError, 0, LOG_PREFIX, L"Only 'allow' and 'deny' rules are allowed, the rule will be ignored.", L"(web config file)", line, 0 );
             END; 
          END; // WHILE
       END;
@@ -995,6 +999,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       ASSERT( _MVC = NIL );
       _MVC := mvc.mvc( OA( _Context.Length-1, _Context.Data ));
+      _MVC^.SessionValidity := _SessionValidity;
       _MVC^.MessageSourcePath := _MessageFile;
       _MVC^.Logger := _HttpLogger;
       _MVC^.AccessList := ADR( _AccessList );
@@ -1044,7 +1049,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       cfg : INIfile.CINIFile;
       es : PTR;
       i : CARDINAL;
-      key : ARRAY [0..63] OF WCHAR;
+      key : StringsO.CString;
       line : CARDINAL;
       role : StringsO.CString;
       user : StringsO.CString;
@@ -1053,7 +1058,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT usersFileOA ) THEN
          RETURN FALSE;
       END;
-      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFolder );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFile );
       IF NOT cfg.LoadPath( usersFileOA ) THEN 
          RETURN FALSE;
       END;
@@ -1063,10 +1069,10 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          WHILE cfg.EnumerateKeys( REF es, OUT line, OUT key, OUT role ) DO
             IF role.EqualsOA( ROLE_SYS_ADMIN ) OR role.EqualsOA( ROLE_SYS_USER ) THEN // cannot override system roles
                CONTINUE;
-            ELSIF EQUALS( key, knNamed ) THEN
+            ELSIF key.EqualsOA( knNamed ) THEN
                _Roles.Remove( role );
                _Roles.Add( role, PTR( roleUserNamed ));
-            ELSIF EQUALS( key, knKeyed ) THEN
+            ELSIF key.EqualsOA( knKeyed ) THEN
                _Roles.Remove( role );
                _Roles.Add( role, PTR( roleUserKeyed ));
             ELSE
@@ -1077,7 +1083,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       
       IF cfg.SetSection( snUsers ) THEN
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT key, OUT authinfo ) DO
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT user, OUT authinfo ) DO
             // detect and filter out missing roles
             authinfo.Trim();
             i := authinfo.IndexOfOA( L",", 0 );
@@ -1090,7 +1096,6 @@ CLASS IMPLEMENTATION CEibSrvWeb;
                CONTINUE;
             END;
 
-            user.FromOA( key );
             _Users.Remove( user );
             _Users.Add( user, authinfo );
          END; // WHILE roles
@@ -1110,11 +1115,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          ASSERTLOG( FALSE, L"Unable to get web users file folder" );
          RETURN;
       END;
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFolder );
       IF NOT FIO.CreateDirectoryW( usersFileOA ) THEN
          ASSERTLOG( FALSE, L"Unable to store to web users file" );
          RETURN; // store nothing
       END;
-      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFile );
       cfg.LoadPath( usersFileOA ); // load the file
 
       cfg.CreateSection( snRoles, FALSE );
@@ -1239,6 +1245,7 @@ BEGIN
    _DeviceNames := NIL;
    _Devices := NIL;
    _Port := 8080;
+   _SessionValidity := 30 * 60; // 30 minutes
    _Running := FALSE;
    _Controller := NIL;
    _StartedTime := 0;

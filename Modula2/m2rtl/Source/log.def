@@ -15,137 +15,115 @@ IMPORT
 #save, option( dll_export => on )
 
 TYPE
-   TRStatusItem = (
-      rsDebugFile,
-      rsDebugKernel,
-      rsTimeStamps,
-      rsLocalTime,
-      rsLevelInfo,
-      rsNameInfo,
-      rsInject
+   TOutputItem = (
+      outFile, // uses no CFileOutput
+      outKernel // uses CKernelOutput
    );
-   TRStatus = SET OF TRStatusItem;
-
-   TDebugMethod = (
-      dmNone,
-      dmFile,
-      dmKernel
-   );
+   TOutput = SET OF TOutputItem;
    
-   TPALogger = POINTER TO ALogger;
-   TPLogger = POINTER TO CRedirectableLogger;
+   TPLevelAndBitsFilter = POINTER TO CLevelAndBitsFilter;
+   TPBaseAppender = POINTER TO CBaseAppender;
+   TPBaseLogger = POINTER TO CBaseLogger;
    TPBufferedLogger = POINTER TO CBufferedLogger;
    
 CONST
-   TPIFilter   ::= iLog.TPFilter;
-   TPILogger   ::= iLog.TPLogger;
+   TPAppender ::= TPBaseAppender;
+   TPLogger ::= TPBaseLogger;
+   
+CONST
+   outsNone    = TOutput{};
+   outsFile    = TOutput{outFile};
+   outsKernel  = TOutput{outKernel};
 
-   TDebugLevel ::= iLog.TDebugLevel;   
+   TPIFilter   ::= iLog.TPIFilter;
+   TPILogger   ::= iLog.TPILogger;
+   TPIOutput   ::= iLog.TPIOutput;
+   TPIAppender ::= iLog.TPIAppender;
 
-   dlcSysError ::= iLog.dlcSysError; // critical severity, Fatal
-   dlcError    ::= iLog.dlcError; // Error
-   dlcWarning  ::= iLog.dlcWarning; // Warning
-   dlcInfo     ::= iLog.dlcInfo; // very low severity, Info
+   TLevel      ::= iLog.TLevel;   
 
-   dldError    ::= iLog.dldError; // brief, debug Xtra problem
-   dldMessage  ::= iLog.dldMessage; // debug Message
-   dldTrace    ::= iLog.dldTrace; // debug Trace
-   dldDebug    ::= iLog.dldDebug; // exhaustive, Debug
+   lcSysError  ::= iLog.lcSysError; // critical severity, Fatal
+   lcError     ::= iLog.lcError; // Error
+   lcWarning   ::= iLog.lcWarning; // Warning
+   lcInfo      ::= iLog.lcInfo; // very low severity, Info
+
+   ldError     ::= iLog.ldError; // brief, debug Xtra problem
+   ldMessage   ::= iLog.ldMessage; // debug Message
+   ldTrace     ::= iLog.ldTrace; // debug Trace
+   ldDebug     ::= iLog.ldDebug; // exhaustive, Debug
 
 (*---------------------------------------------------------------------------*)
 
-// global system LOG
+// global system instances
 PROCEDURE logger() : TPBufferedLogger;
 
 (*---------------------------------------------------------------------------*)
 
-ABSTRACT CLASS ALogger IMPLEMENTS iLog.ILogger;
+CLASS CLevelAndBitsFilter IMPLEMENTS iLog.IFilter;
 
    // IFilter
-   PUBLIC VIRTUAL PROPERTY
-      Level : TDebugLevel; // what (and less) will be present in log
+   PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE Filtered( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
+   // SELF
+   PUBLIC PROPERTY
+      Level : TLevel;
+      AllowedFilterDataBits : PTR; // default is all bits set
+      
+   PRIVATE VAR
+      _Level : TLevel;
+      _AllowedFilterDataBits : PTR;
 
-   // ILogger
-   PUBLIC VIRTUAL PROCEDURE LogS( Level : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE LogSS( Level : TDebugLevel; CONST Prefix, S1, S2 : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE LogSSC( Level : TDebugLevel; CONST Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSC( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSCC( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSH( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; P : PTR );
-   PUBLIC VIRTUAL PROCEDURE LogSCP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
-   PUBLIC VIRTUAL PROCEDURE LogSHP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
-   PUBLIC VIRTUAL PROCEDURE LogSB( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSCB( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSSS( Level : TDebugLevel; CONST Prefix, S1, S2, S3 : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE LogSSSS( Level : TDebugLevel; CONST Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
-  
-   PUBLIC VIRTUAL PROCEDURE LogSE( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSR( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
-   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
-   PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+END CLevelAndBitsFilter;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS AFormatter IMPLEMENTS iLog.IOutput;
+
+   // IOutput
+   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
    
-   INTERNAL VIRTUAL PROCEDURE Log( Level : TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR ); // Log does not filter!
-
    // SELF
-   PUBLIC PROPERTY
-      Method : TDebugMethod;
-      Filter : TPIFilter;
-      TimeStamps : BOOLEAN; // prints timestamps, default TRUE
-      Levels : BOOLEAN; // prints debug level of message, default TRUE
-      Names : BOOLEAN; // prints names/prefixes of message, default TRUE
-      LocalTime : BOOLEAN; // uses local time instead of UTC
+   INTERNAL ABSTRACT PROCEDURE Output( CONST Message : ARRAY OF WCHAR );  // to rewrite
 
-   PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VAR
+      TimeStamps : BOOLEAN := TRUE; // prints timestamps
+      Levels : BOOLEAN := TRUE; // prints debug level of message
+      Names : BOOLEAN := TRUE; // prints names/prefixes of message
+      LocalTime : BOOLEAN := FALSE; // uses local time instead of UTC
 
-   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN; // gets config from registry
-   PUBLIC PROCEDURE SetUpByLogger( CONST Logger : ALogger ) : BOOLEAN; // gets config from another existing logger
+END AFormatter;
 
-   // for internal rewritting
-   INTERNAL VIRTUAL PROCEDURE EmitLog( REF OutputString : ARRAY OF WCHAR );
-   // for user rewritting
-   INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
+(*---------------------------------------------------------------------------*)
 
-   // privates
+CLASS CKernelOutput( AFormatter );
+
+   // AFormatter
+   INTERNAL VIRTUAL PROCEDURE Output( CONST Message : ARRAY OF WCHAR );
+
+END CKernelOutput;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CFileOutput( AFormatter );
+
+   // AFormatter
+   INTERNAL VIRTUAL PROCEDURE Output( CONST Message : ARRAY OF WCHAR );
+   
+   // self
+   PUBLIC PROCEDURE SetFile( CONST File : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE GetFile( OUT File : ARRAY OF WCHAR ) : BOOLEAN;
+
    PRIVATE VAR
-      RStatus    : TRStatus;
-      Name       : ARRAY [0..63] OF WCHAR;
-      LogFilter  : TPIFilter;
-      DebugLevel : TDebugLevel;
-      DebugFile  : ARRAY [0..260] OF WCHAR;
-      DebugLock  : Sync.LOCK;
-  
-   PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
+      _FileNameLength : CARDINAL;
+      _FileName : PWCHAR; // to handle long paths in the future
+      _Lock : Sync.LOCK;
+
    PRIVATE PROCEDURE TrySetFileToDefault();
-END ALogger;
 
-(*===========================================================================*)
+END CFileOutput;
 
-CLASS CRedirectableLogger( ALogger );
-
-   // ALogger
-   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR );
-
-   // SELF
-   PUBLIC PROPERTY
-      RedirectTo : TPALogger; // all output will be passed to another log respecting its level settins -- level is driven by destination logger, mutually exclusive with InjectTo
-      InjectTo : TPALogger;  // all output will be passed to another log NOT respecting its level settings -- level is driven by source logger, mutually exclusive with RedirectTo
-
-   // privates
-   PRIVATE VAR
-      _Injecting : BOOLEAN := FALSE;
-      _PassTo : TPALogger := NIL;
-END CRedirectableLogger;
-
-CONST
-   CLogger ::= CRedirectableLogger;
-
-(*===========================================================================*)
+(*---------------------------------------------------------------------------*)
 
 TYPE
    TBufferMode = (
@@ -155,18 +133,129 @@ TYPE
    
    TPBuffer = POINTER TO CBuffer;
 
-(*---------------------------------------------------------------------------*)
+CLASS CBufferOutput( AFormatter );
 
-CLASS CBufferedLogger( CRedirectableLogger );
-  
-   // ALogger
-   INTERNAL VIRTUAL PROCEDURE EmitLog( REF OutputString : ARRAY OF WCHAR );
+   // AFormatter
+   INTERNAL VIRTUAL PROCEDURE Output( CONST Message : ARRAY OF WCHAR );
+   
+   // SELF
+   PUBLIC PROPERTY
+      Size : CARDINAL; // default 256
+      Mode : TBufferMode;
+   PUBLIC READONLY PROPERTY
+      Count : CARDINAL;
+
+   PUBLIC PROCEDURE GetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
+   PUBLIC PROCEDURE Clear();
+
+   PRIVATE VAR
+      _Buffer : TPBuffer;
+      _Mode : TBufferMode := bmStoreLast;
+
+END CBufferOutput;
+
+(*===========================================================================*)
+
+TYPE
+   TPOutputs = POINTER TO CSimplePtrArray;
+
+CLASS CGenericAppender IMPLEMENTS iLog.IAppender;
+
+   // IAppender -- method should check filter thoroughly
+   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
+
+   PUBLIC VIRTUAL PROCEDURE SetName( CONST Name : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE GetName( OUT Name : ARRAY OF WCHAR );
+
+   PUBLIC VIRTUAL PROCEDURE AddOutput( CONST Output : TPIOutput );
+   PUBLIC VIRTUAL PROCEDURE RemoveOutput( CONST Output : TPIOutput );
 
    // SELF
-   PUBLIC PROCEDURE SetUpByLogger( CONST Logger : CBufferedLogger ) : BOOLEAN; // gets config from another existing logger
-
    PUBLIC PROPERTY
-      Buffered : BOOLEAN;
+      Filter : TPIFilter; // returns _Filter as is
+
+   PRIVATE VAR
+      _Outputs : TPOutputs;
+      _Filter : TPIFilter;
+   INTERNAL READONLY PROPERTY
+      Empty : BOOLEAN;
+   LOCAL VAR
+      _Name : ARRAY [0..63] OF WCHAR;
+      _Registered : BOOLEAN;
+  
+END CGenericAppender;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CBaseAppender( CGenericAppender );
+
+   // SELF
+   PUBLIC PROPERTY
+      Output : TOutput; // switches output to single output (leaves only single appender)
+      Level : TLevel;
+      AllowedFilterDataBits : PTR;
+      Filter : TPIFilter; // to override default inherited filter,  returns _Filter only if it is set, internal filter used in the opposite case is never returned
+      TimeStamps : BOOLEAN; // prints timestamps, default TRUE --> AFormatter
+      Levels : BOOLEAN; // prints debug level of message, default TRUE --> AFormatter
+      Names : BOOLEAN; // prints names/prefixes of message, default TRUE --> AFormatter
+      LocalTime : BOOLEAN; // uses local time instead of UTC --> AFormatter
+
+   PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
+
+   // privates
+   PRIVATE VAR
+      _Output : TOutput; // default is no output
+      _LevelFilter : CLevelAndBitsFilter;
+      _KernelOutput : CKernelOutput;
+      _FileOutput : CFileOutput;
+  
+END CBaseAppender;
+
+CONST
+   CAppender ::= CBaseAppender;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CBaseLogger( CBaseAppender ) IMPLEMENTS iLog.ILogger;
+
+   // ILogger
+   PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN; // not neccessarily uses some filter, but it is more helpful
+
+   // methods should check filter level (only roughly)
+   PUBLIC VIRTUAL PROCEDURE LogS( Level : TLevel; FilterData : PTR; CONST Prefix, S : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSS( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSSC( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSC( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSCC( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSH( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSCP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSHP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSB( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSCB( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSSS( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSSSS( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+  
+   PUBLIC VIRTUAL PROCEDURE LogSE( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSR( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
+   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.Exception );
+   PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+
+   // SELF   
+   PRIVATE INLINE PROCEDURE Filtered( Level : TLevel; FilterData : PTR ) : BOOLEAN;
+
+END CBaseLogger;
+
+CONST
+   CLogger ::= CBaseLogger;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CBufferedLogger( CBaseLogger );
+  
+   // SELF
+   PUBLIC PROPERTY
       BufferSize : CARDINAL; // default 256
       BufferMode : TBufferMode;
    PUBLIC READONLY PROPERTY
@@ -175,13 +264,66 @@ CLASS CBufferedLogger( CRedirectableLogger );
    // buffer read
    PUBLIC PROCEDURE BufferGetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
    PUBLIC PROCEDURE BufferClear();
-
+   
    // privates
    PRIVATE VAR
-      _Buffer : TPBuffer;
-      _BufferMode : TBufferMode := bmStoreLast;
+      _BufferOutput : CBufferOutput;
+
 END CBufferedLogger;
 
 (*===========================================================================*)
+
+PROCEDURE ConfigureByRegistry( REF appender : iLog.IAppender; CONST SectionName : ARRAY OF WCHAR ) : BOOLEAN; // DOES NOT copy any output, does not load filter, returns if the section was found
+PROCEDURE ConfigureByAppender( REF appender : iLog.IAppender; CONST sourceAppender : iLog.IAppender ); // DOES NOT copy any output, does not load filter
+  // both functions configure all types of appenders/loggers
+
+(*===========================================================================*)
+// registry of appenders stores a group of appenders, which can be looked up by their names
+// global map stores ab initio system logger named "default"
+
+PROCEDURE RegisterAppender( CONST Appender : iLog.IAppender );
+PROCEDURE ForgetAppender( CONST Appender : iLog.IAppender );
+PROCEDURE GetAppender( CONST Name : ARRAY OF WCHAR; OUT Appender : iLog.TPIAppender ) : BOOLEAN;
+
+(*===========================================================================*)
+
+// dll_export flag
+#restore
+
+TYPE
+   TConfigKeyword = (
+      cksLog,
+      ckkJoin,
+      ckkOutput,
+      ckkTarget,
+         ckvFile,
+         ckvKernel,
+      ckkFile,
+      ckkFilter,
+         ckvDeny,
+         ckvAllow,
+      ckkLevel,
+         ckvFatal,
+         ckvError,
+         ckvWarning,
+         ckvInfo,
+         ckvDebugFailure,
+         ckvDebugMessage,
+         ckvDebugTrace,
+         ckvDebugAll,
+      ckkCached,
+      ckkAllowedFilterBits,
+      ckkTimeStamps,
+      ckkLevels,
+      ckkNames,
+      ckkLocalTime,
+         ckvTrue,
+         ckvFalse
+   );
+
+// for configuration purposes, not exported out of DLL
+PROCEDURE GetKeyword( keyword : TConfigKeyword ) : PWCHAR; // zero terminated
+
+(*---------------------------------------------------------------------------*)
 
 END log.

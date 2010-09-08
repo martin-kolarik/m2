@@ -11,7 +11,7 @@ FROM Strings IMPORT
   CapitalizeW;  
   
 FROM log IMPORT
-  dldTrace, dldDebug;
+  ldTrace, ldDebug;
 
 IMPORT
    cllv,
@@ -241,7 +241,7 @@ CLASS IMPLEMENTATION CDriver;
   
       PROCEDURE Error( ErrorCode, ErrorLine : CARDINAL );
       BEGIN
-         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.lcError, 0, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
       END Error;
 
   //----------
@@ -387,20 +387,20 @@ CLASS IMPLEMENTATION CDriver;
 
          IF si.EqualsOA( L'count' ) THEN
             c := Events.Count;
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Count ", c );
 
             OutValue.Integer := c; 
             RETURN;
       
          ELSIF si.EqualsOA( L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
-               Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"Event.Get clear buffer" );
                Events.Dispose();
 
                GOTO Success;
 
             ELSIF Events.Peek( OUT Event ) THEN
-               Logger.LogSC( dldDebug, logPrefix, L"Event.Peek ", CARDINAL( Event^.Event ));
+               Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Peek ", CARDINAL( Event^.Event ));
 
                CASE Event^.Event OF
                //-----
@@ -458,7 +458,7 @@ CLASS IMPLEMENTATION CDriver;
                RETURN;
 
             ELSE
-               Logger.LogS( dldDebug, logPrefix, L"Event.Emptied" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"Event.Emptied" );
             END; // IF Events.Dequeue
 
             GOTO Success;
@@ -531,7 +531,7 @@ CLASS IMPLEMENTATION CDriver;
          
          ELSIF si.EqualsOA( L'available' ) THEN
             c := RBuffer.Length;
-            Logger.LogSC( dldDebug, logPrefix, L"Client.Available ", c );
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Client.Available ", c );
 
             OutValue.Integer := c; 
             RETURN;
@@ -906,10 +906,10 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       Events.Enqueue( Event );
       IF Events.Produce^.State THEN
-         Logger.LogSC( dldDebug, logPrefix, L"Event.Queued, fire dcfException ", CARDINAL( Event^.Event ));
+         Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Queued, fire dcfException ", CARDINAL( Event^.Event ));
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
       ELSE
-         Logger.LogSC( dldDebug, logPrefix, L"Event.Queued, NOT FIRED dcfException ", CARDINAL( Event^.Event ));
+         Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Queued, NOT FIRED dcfException ", CARDINAL( Event^.Event ));
       END;
    END AddEvent;
 
@@ -919,7 +919,7 @@ CLASS IMPLEMENTATION CDriver;
    VAR
       Event : POINTER TO TEventData;
    BEGIN
-      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evConnect ", CARDINAL( Error ));
+      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evConnect ", CARDINAL( Error ));
 
       NEW( Event );
       Event^.Event := evConnect;
@@ -937,7 +937,7 @@ CLASS IMPLEMENTATION CDriver;
    VAR
       Event : POINTER TO TEventData;
    BEGIN
-      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDisconnect", CARDINAL( Error ));
+      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDisconnect", CARDINAL( Error ));
 
       NEW( Event );
       Event^.Event := evDisconnect;
@@ -957,7 +957,7 @@ CLASS IMPLEMENTATION CDriver;
       RBufferLock.Lock();
 
       IF RBuffer.Length + Length > RBuffer.Size THEN
-         Logger.LogSC( dldDebug, logPrefix, L"Event.Add evRxError", CARDINAL( erRxBufferFull ));
+         Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evRxError", CARDINAL( erRxBufferFull ));
 
          NEW( Event );
          Event^.Event := evRxError;
@@ -969,7 +969,7 @@ CLASS IMPLEMENTATION CDriver;
 
       RBufferLock.Unlock();
 
-      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived bytes ", Length );
+      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDataReceived bytes ", Length );
 
       NEW( Event );
       Event^.Event := evDataReceived;
@@ -986,7 +986,7 @@ CLASS IMPLEMENTATION CDriver;
       Event : POINTER TO TEventData;
    BEGIN
       IF Direction = IOO.dirWrite THEN
-         Logger.LogS( dldDebug, logPrefix, L"Event.Add evTxError OK -- tx allowed" );
+         Logger.LogS( ldDebug, 0, logPrefix, L"Event.Add evTxError OK -- tx allowed" );
 
          NEW( Event );
          Event^.Event := evTxError;

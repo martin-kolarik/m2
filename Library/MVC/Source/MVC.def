@@ -58,6 +58,7 @@ INTERFACE IHttpRequest;
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
+      FunctionCalled : BOOLEAN;
       
    PROCEDURE TestConditions( CONST ResourceLastModified : datetime.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
 END IHttpRequest;
@@ -81,8 +82,19 @@ END IHttpResponse;
 
 (*--------------------------------------------------------------------------------*)
 
+TYPE
+   TCallResult = (
+      crSuccess,
+      crUnknownFunction,
+      crMissingParameter,
+      crCallFailed
+   );
+   
+CONST
+   crsCalled = TCallResult{crSuccess, crCallFailed};
+
 INTERFACE IFunctionHandler;
-   PROCEDURE Call( CONST Request : IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
+   PROCEDURE Call( CONST Request : IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : TCallResult;
 END IFunctionHandler;
 
 (*--------------------------------------------------------------------------------*)
@@ -111,12 +123,9 @@ INTERFACE IContainer;
    PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
    
-   PROCEDURE ResetFunctionCallsMemo();
-   PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
-   
    // view side
-   PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names, PFunctionCalled can be NIL
+   PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names, PFunctionCalled can be NIL
    PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data, including message texts. MessageSource can be NIL.
    
    // There can be more active mappings, each identified by ControllerURI.
@@ -157,7 +166,10 @@ END IView;
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IController;
-   PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : IHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE InitializeModelContainer( REF Container : IContainer ); // called when container is created, usually with new session
+   PROCEDURE CleanupModelContainer( REF Container : IContainer ); // called when container is deleted, usually when session expires
+
+   PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : IHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
 END IController;
 
 (*--------------------------------------------------------------------------------*)
@@ -171,6 +183,7 @@ INTERFACE IMVC;
    PROCEDURE ForgetFallbackController();
    
    PROPERTY
+      SessionValidity : CARDINAL; // seconds
       MessageSourcePath : StringsO.CString;
       Logger : Log.TPILogger;
       AccessList : accesslist.TPAccessList;

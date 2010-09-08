@@ -688,11 +688,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseRoot( parseMode : TParseMode; xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
    VAR
       appendCharset : BOOLEAN := FALSE;
+      content : HttpTools.TContent;
       encoding : StringsO.CString;
       haveContentType : BOOLEAN := FALSE;
       haveDeclaration : BOOLEAN := FALSE;
       haveXHTML : BOOLEAN := FALSE;
       haveNS : BOOLEAN := FALSE;
+      rfc1766 : StringsO.CString;
       rootName : StringsO.CString;
       xmle : xmlreader.TXMLError;
       value : StringsO.CString;
@@ -764,6 +766,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                         Writer.XMLDeclaration := xhtmlSupported;
                      ELSIF value.EqualsOA( L"none" ) THEN // when explicitely stated, that XML decl shoud not be emitted, do not emit it
                         Writer.XMLDeclaration := FALSE;
+                        Writer.Fragment := TRUE; // allow writing text without enclosing root tag (but it is still possible)
                      ELSE // in other cases, assume default XML output
                         Writer.XMLDeclaration := xhtmlSupported;
                      END;
@@ -774,15 +777,26 @@ CLASS IMPLEMENTATION CPageTemplateView;
                         RETURN FALSE;
                      END;
                      haveContentType := TRUE;
-                     haveXHTML := value.ContainsOA( HttpTools.CONTENT_TYPE_XHTML );
+
+                     IF HttpTools.DecodeContent( value, OUT content, OUT rfc1766 ) THEN
+                        haveXHTML := content = HttpTools.contentTextXHTML;
+                     ELSE
+                        haveXHTML := FALSE;
+                        content := HttpTools.contentUnknown;
+                     END;
                      IF NOT haveXHTML THEN // use mime type as is, no logic can be applied; handle encoding
                         contentTypeRequest := value;
-                        IF value.ContainsOA( HttpTools.CONTENT_TYPE_TEXT ) OR value.ContainsOA( HttpTools.CONTENT_TYPE_HTML ) OR value.ContainsOA( HttpTools.CONTENT_TYPE_CSS ) THEN
-                           IF NOT contentTypeRequest.ContainsOA( HttpTools.CHARSET_PREFIX ) THEN // supply content type with source encoding
-                              appendCharset := TRUE;
-                           END;
+                        IF content IN HttpTools.ENCODING_SENSITIVE_CONTENT THEN
+                           appendCharset := rfc1766.Empty; // supply content type with source encoding, only if it is not known
                         END;
-                        // do not affect XMLDeclaration, author may set it upon his needs
+                        IF content = HttpTools.contentUnknown THEN // content was not successfully decoded
+                           // do not affect XMLDeclaration, author may set it upon his needs
+                        ELSIF content IN HttpTools.TAGGED_CONTENT THEN
+                           // do not affect XMLDeclaration, author may set it upon his needs
+                        ELSE
+                           Writer.XMLDeclaration := FALSE; // formats without tagged content cannot emit XMLDeclaration
+                           Writer.Fragment := TRUE;
+                        END;
                      ELSIF xhtmlSupported THEN // ok, use XHTML, it will be OK in client; do not handle encoding, client takes XML declaration including encoding
                         contentTypeRequest := value; // XHTML
                         Writer.XMLDeclaration := TRUE; // XHTML mime type requires valid XML
@@ -1362,11 +1376,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( idx, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, index, value );
+            Request^.ModelContainer^.SetModelValue( Request^, index, value, NIL );
          END;
          IF NOT order.Empty THEN
             value.FromCARD32( item, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, order, value );
+            Request^.ModelContainer^.SetModelValue( Request^, order, value, NIL );
          END;
 
          nl.Reset(); // prepare parsing
@@ -1516,21 +1530,21 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          
          IF NOT item.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, item, current^ );
+            Request^.ModelContainer^.SetModelValue( Request^, item, current^, NIL );
          END;
          IF NOT data.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, data, currentData^ );
+            Request^.ModelContainer^.SetModelValue( Request^, data, currentData^, NIL );
          END;
          IF NOT odd.Empty THEN
             SetModelBoolean( odd, loopItem AND 1 = 1 );
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( loopItem-1, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, index, value );
+            Request^.ModelContainer^.SetModelValue( Request^, index, value, NIL );
          END;
          IF NOT order.Empty THEN
             value.FromCARD32( loopItem, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, order, value );
+            Request^.ModelContainer^.SetModelValue( Request^, order, value, NIL );
          END;
 
          nl.Reset(); // prepare parsing
@@ -1627,7 +1641,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteElementStartOA( L"", L"input" );
 
       Writer.WriteAttributeStringOA( L"", L"type", OAsz( ptype ));
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value, NIL ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
          IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
             Writer.WriteAttributeStringOA( L"", L"value", L"true" );
@@ -1637,7 +1651,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          ELSE            
             Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
          END;
-      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value, NIL ) THEN // model = item
          WriteFormNameAttribute( model );
          IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
             Writer.WriteAttributeStringOA( L"", L"value", L"true" );
@@ -1715,9 +1729,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Writer.WriteElementStartOA( L"", L"option" );
 
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value, NIL ) THEN // model = form.item
          Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
-      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value, NIL ) THEN // model = item
          Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
@@ -2049,7 +2063,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       ELSIF Value.EqualsOA( L"true" ) OR Value.EqualsOA( L"1" ) THEN
          RETURN TRUE;
-      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Value, OUT modelValue ) THEN
+      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Value, OUT modelValue, NIL ) THEN
          RETURN TRUE; // value not found, string is not empty
       ELSIF modelValue.EqualsOA( L"false" ) OR modelValue.EqualsOA( L"0" ) OR modelValue.Empty THEN
          RETURN FALSE;

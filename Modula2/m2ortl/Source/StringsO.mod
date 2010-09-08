@@ -15,21 +15,30 @@ IMPORT
 
 CLASS IMPLEMENTATION CStringException;
 
-(*--------------------------------------------------------------------------------*)
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT S : ARRAY OF WCHAR );
+   BEGIN
+      CASE Kind OF
+      | sexcNotNumber :
+         S := "(NotNumber)";
+      | sexcOutputBufferTooSmall :
+         S := "(OutputBufferTooSmall)";
+      | sexcCipherOutOfBase :
+         S := "(CipherOutOfBase)";
+      | sexcNumberTooLong :
+         S := "(NumberTooLong)";
+      | sexcNumberTooBig :
+         S := "(NumberTooBig)";
+      ELSE
+         SUPER.FormatCode( OUT S );
+      END;
+   END FormatCode;
 
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TStringException ) : CStringException;
    BEGIN
       SELF.Kind := Kind;
-      SUPER.Init( NestedException, Originator, Text );
+      SUPER.Init( 0, NestedException, Originator, Text );
       RETURN SELF;
    END Init;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      ASSIGN( S, EMITW( %class ));
-   END Name;
-
-(*--------------------------------------------------------------------------------*)
 
 BEGIN
    Kind := sexcUnknown;

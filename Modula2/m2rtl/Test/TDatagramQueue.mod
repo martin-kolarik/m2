@@ -244,7 +244,7 @@ CLASS IMPLEMENTATION CTest;
          C32 := C32 AND 0FFFFFFH;
          IF C32 <> Last[Index]+1 THEN
             Strings.FromCARD32W( C32, 10, OUT sC32 ); Strings.FromCARD32W( Last[Index], 10, OUT sP32 );
-            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sC32, L"/", sP32 );
+            Host^.Log^.LogSSSS( log.lcError, 0, L"", L"Failed on numbers: ", sC32, L"/", sP32 );
             Exit := 1;
             EXIT;
          END;

@@ -35,10 +35,12 @@ CLASS CXMLWriter;
 		_State : TXMLWriterState;
 		_Stack : stacks.CStringStack;
 		_XMLDeclaration : BOOLEAN := TRUE;
+		_Fragment : BOOLEAN := FALSE;
 	PUBLIC PROPERTY
 		// Encoding : CARDINAL;
 		Stream : IOO.TPStream;
 		XMLDeclaration : BOOLEAN; // write XML declaration?
+		Fragment : BOOLEAN; // if set, then start without declaration and element is possible, changing property after start has no sense
 
 	PUBLIC PROCEDURE WriteElementString( CONST NSPrefix, Element : ARRAY OF WCHAR; CONST String : StringsO.CString );
 	PUBLIC PROCEDURE WriteElementStringOA( CONST NSPrefix, Element, String : ARRAY OF WCHAR );
@@ -55,8 +57,8 @@ CLASS CXMLWriter;
 	
 	PUBLIC PROCEDURE Close( Persist : BOOLEAN );
 	
-	PRIVATE PROCEDURE Write( REF String : StringsO.CString; Escape : BOOLEAN );
-	PRIVATE INLINE PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR; Escape : BOOLEAN );
+	PRIVATE PROCEDURE Write( CONST String : StringsO.CString );
+	PRIVATE INLINE PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR );
 	PRIVATE INLINE PROCEDURE WriteOAA( CONST String : ARRAY OF CHAR ); // string must be escaped
 	PRIVATE PROCEDURE WriteIndent();
 	PRIVATE INLINE PROCEDURE WriteEOL();

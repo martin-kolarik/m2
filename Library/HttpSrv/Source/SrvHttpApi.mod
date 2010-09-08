@@ -7,7 +7,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE;
 
 FROM Log IMPORT
-   logger, dlcError, dlcWarning, dlcInfo;
+   logger, lcError, lcWarning, lcInfo;
    
 IMPORT
    httpapi,
@@ -988,7 +988,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       Stream : TPHttpApiStream;
    BEGIN
       IF _HttpQueue = NIL THEN
-         logger()^.LogS( dlcError, L"HTTP", L"Unable to receive HTTP request" );
+         logger()^.LogS( lcError, 0, L"HTTP", L"Unable to receive HTTP request" );
          ASSERTLOG( FALSE );
          RETURN Sync.arCannotStart;
       END;
@@ -1010,7 +1010,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
          | winerror.ERROR_IO_PENDING :
             RETURN Sync.arPending;
          ELSE
-            logger()^.LogSC( dlcError, L"HTTP", L"Unable to receive HTTP request", Error );
+            logger()^.LogSC( lcError, 0, L"HTTP", L"Unable to receive HTTP request", Error );
             RETURN Sync.arCannotStart;
          END;
       END; // LOOP
@@ -1028,13 +1028,13 @@ CLASS IMPLEMENTATION CHttpApiSrv;
 
       Error := httpapi.HttpInitialize( httpAPIVersion, httpapi.HTTP_INITIALIZE_SERVER, NIL );
       IF Error <> 0 THEN
-         logger()^.LogSC( dlcError, L"HTTP", L"Unable to initialize HTTP server", Error );
+         logger()^.LogSC( lcError, 0, L"HTTP", L"Unable to initialize HTTP server", Error );
          RETURN;
       END;
       
       Error := httpapi.HttpCreateHttpHandle( OUT _HttpQueue, 0 );
       IF Error <> 0 THEN
-         logger()^.LogSC( dlcError, L"HTTP", L"Unable to create HTTP request queue: ", Error );
+         logger()^.LogSC( lcError, 0, L"HTTP", L"Unable to create HTTP request queue: ", Error );
          RETURN;
       END;
    END CHttpApiSrv;

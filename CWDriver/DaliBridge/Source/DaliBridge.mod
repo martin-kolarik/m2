@@ -4,7 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM log IMPORT
-   dldError, dldMessage, dldTrace, dldDebug;
+   ldError, ldMessage, ldTrace, ldDebug;
   
 FROM Exceptions IMPORT
    TestIfCatched, RetrieveException, CModula2Exception;
@@ -125,14 +125,14 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          RETURN Sync.arAlreadyPending;
       END;
 
-      Logger^.LogSC( Log.dldTrace, logNetPrefix, L"Listening on port: ", ListenPort );
+      Logger^.LogSC( Log.ldTrace, 0, logNetPrefix, L"Listening on port: ", ListenPort );
 
       IA.Port := ListenPort;
       Result := netsrv.StartListen( netsocket.stDatagram, IA, NIL, ADR( SELF ), 0, ADR( Socket ));
       IF Result = 0 THEN
          RETURN Sync.arCompleted;
       ELSE
-         Logger^.LogSE( Log.dldError, logNetPrefix, L"Unable StartListen: ", Result );
+         Logger^.LogSE( Log.ldError, 0, logNetPrefix, L"Unable StartListen: ", Result );
          RETURN Sync.arCannotStart;
       END;
    END Run;
@@ -224,11 +224,11 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
       ServerSocket^.ReceiveOA( OUT packet, OUT l ); // receive, possibly not whole datagram
       IF l < 1 THEN // filter damaged data
-         Logger^.LogSC( dldMessage, logNetPrefix, L"Corrupted data received, length: ", l );
+         Logger^.LogSC( ldMessage, 0, logNetPrefix, L"Corrupted data received, length: ", l );
          EventSink^.OnDaliData( Sync.arAborted, FALSE, OA( -1, NIL ));
 
       ELSIF EventSink = NIL THEN // and filter data for nobody
-         Logger^.LogS( dldMessage, logNetPrefix, L"Data received, but nobody listens" );
+         Logger^.LogS( ldMessage, 0, logNetPrefix, L"Data received, but nobody listens" );
          RETURN;
       END;
 
@@ -255,38 +255,38 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
          CASE gdeResponse OF
          | gderReset : // OK, switch on
-            Logger^.LogS( dldDebug, logNetPrefix, L"res: Reset OK" );
+            Logger^.LogS( ldDebug, 0, logNetPrefix, L"res: Reset OK" );
          | gderStatus : // OK, status
-            Logger^.LogS( dldTrace, logNetPrefix, L"res: Reset/Status response" );
+            Logger^.LogS( ldTrace, 0, logNetPrefix, L"res: Reset/Status response" );
          | gderRead : // OK, response to 8
-            Logger^.LogSB( dldDebug, logNetPrefix, L"res: Expected device response received: ", Buffer.Data, l );
+            Logger^.LogSB( ldDebug, 0, logNetPrefix, L"res: Expected device response received: ", Buffer.Data, l );
             processResult := Sync.arCompleted;
             WaitResponse := FALSE;
          | gderFrameError : // 008H frame link error
-            Logger^.LogS( dldTrace, logNetPrefix, L"res: Frame link error when waiting device response" );
+            Logger^.LogS( ldTrace, 0, logNetPrefix, L"res: Frame link error when waiting device response" );
             processResult := Sync.arAlreadyPending;
             WaitResponse := FALSE;
          | gderReadFailure : // 008H timeout
-            Logger^.LogS( dldDebug, logNetPrefix, L"res: Expected device response not received" );
+            Logger^.LogS( ldDebug, 0, logNetPrefix, L"res: Expected device response not received" );
             processResult := Sync.arPartCompleted;
             WaitResponse := FALSE;
          | gderACK : // ACK
             IF WaitResponse OR WaitReset THEN
-               Logger^.LogS( dldDebug, logNetPrefix, L"res: ACK, but continue waiting for device response" );
+               Logger^.LogS( ldDebug, 0, logNetPrefix, L"res: ACK, but continue waiting for device response" );
                leaveTimeout := TRUE;
             ELSE
-               Logger^.LogS( dldDebug, logNetPrefix, L"res: ACK" );
+               Logger^.LogS( ldDebug, 0, logNetPrefix, L"res: ACK" );
                processResult := Sync.arCompleted;
             END;
          | gderNAK : // NAK
-            Logger^.LogS( dldTrace, logNetPrefix, L"res: NAK" );
+            Logger^.LogS( ldTrace, 0, logNetPrefix, L"res: NAK" );
             processResult := Sync.arAlreadyPending; // repeat command
          | gderEvent : // OK, event data
-            Logger^.LogSB( dldDebug, logNetPrefix, L"EVT: Event data: ", Buffer.Data, l );
+            Logger^.LogSB( ldDebug, 0, logNetPrefix, L"EVT: Event data: ", Buffer.Data, l );
             eventFlag := TRUE;
             processResult := Sync.arCompleted;
          ELSE
-            Logger^.LogSB( dldMessage, logNetPrefix, L"res: Strange device response: ", Buffer.Data, l );
+            Logger^.LogSB( ldMessage, 0, logNetPrefix, L"res: Strange device response: ", Buffer.Data, l );
             processResult := Sync.arAlreadyPending; // repeat command
          END;
 
@@ -843,7 +843,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             CurrentSelected := Data << 16;
             State := dapScanOneM;
          ELSE
-            Logger^.LogSC( dldDebug, logProgramPrefix, L"Scan address (h) failed for: ", CurrentShortAddress );
+            Logger^.LogSC( ldDebug, 0, logProgramPrefix, L"Scan address (h) failed for: ", CurrentShortAddress );
             CurrentSelected := -1;
             State := dapScannedOne;
          END;
@@ -853,7 +853,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             CurrentSelected := CurrentSelected OR ( Data << 8 );
             State := dapScanOneL;
          ELSE
-            Logger^.LogSC( dldDebug, logProgramPrefix, L"Scan address (m) failed for: ", CurrentShortAddress );
+            Logger^.LogSC( ldDebug, 0, logProgramPrefix, L"Scan address (m) failed for: ", CurrentShortAddress );
             CurrentSelected := -1;
             State := dapScannedOne;
          END;
@@ -862,7 +862,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
          IF Positive THEN
             CurrentSelected := CurrentSelected OR Data;
          ELSE
-            Logger^.LogSC( dldDebug, logProgramPrefix, L"Scan address (h) failed for: ", CurrentShortAddress );
+            Logger^.LogSC( ldDebug, 0, logProgramPrefix, L"Scan address (h) failed for: ", CurrentShortAddress );
             CurrentSelected := -1;
          END;
          State := dapScannedOne;
@@ -906,7 +906,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
          // check response
          da.TransportAddress := CARD8( Data );
          IF NOT Positive OR ( CurrentShortAddress <> da.Address ) THEN
-            Logger^.LogSC( dldMessage, logProgramPrefix, L"Check/get address failed for: ", CurrentShortAddress );
+            Logger^.LogSC( ldMessage, 0, logProgramPrefix, L"Check/get address failed for: ", CurrentShortAddress );
             IF AddressMode = amReaddress THEN
                // fall down and try to readdress next one
             ELSE
@@ -916,7 +916,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 
          // variant for cmdCheckAddress
          // IF NOT Positive THEN
-         //    Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", CurrentShortAddress );
+         //    Logger^.LogSC( ldMessage, 0, logProgramPrefix, L"Check address failed for: ", CurrentShortAddress );
          //    RETURN;
          // END;
          
@@ -1202,7 +1202,7 @@ CLASS IMPLEMENTATION CDaliDevice;
    PUBLIC PROCEDURE Command( Linie : TDaliLinie; CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR; CONST userId : ARRAY OF WCHAR ) : Sync.TAsyncResult;
    BEGIN
       IF ProgrammingInProgress THEN
-         Logger.LogSC( dldMessage, logDevPrefix, L"Unable to send command in programming mode: ", CARDINAL( _Command ));
+         Logger.LogSC( ldMessage, 0, logDevPrefix, L"Unable to send command in programming mode: ", CARDINAL( _Command ));
          RETURN Sync.arCannotStart;
       ELSE
          ASSERTLOG( _Command <> cmdGetGroupsL );
@@ -1363,7 +1363,7 @@ CLASS IMPLEMENTATION CDaliDevice;
    BEGIN
       CASE Message.Message OF
       | msgqueue.MSG_PROCESS_QUEUE :
-         Logger.LogS( dldDebug, logDevPrefix, L"CTR: Communicate after SWITCH" );
+         Logger.LogS( ldDebug, 0, logDevPrefix, L"CTR: Communicate after SWITCH" );
          Communicate();
       | MSG_START_PROGRAMMING :
          ProgrammingStep( TDaliLinie( LOPTRLONGWORD( Message.Parameter )));
@@ -1380,7 +1380,7 @@ CLASS IMPLEMENTATION CDaliDevice;
    VAR
       Request : TPDaliRequest;
    BEGIN
-      Logger.LogS( dldDebug, logDevPrefix, L"CTR: Communicate after DELAY/RESET" );
+      Logger.LogS( ldDebug, 0, logDevPrefix, L"CTR: Communicate after DELAY/RESET" );
       IF AfterReset THEN // dequeue reset request
          Queue.Dequeue( OUT Request );
          DISPOSE( Request );
@@ -1393,7 +1393,7 @@ CLASS IMPLEMENTATION CDaliDevice;
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnDaliTimeout();
    BEGIN
-      Logger.LogS( dldTrace, logDevPrefix, L"CTR: Receive response TIMEOUT" );
+      Logger.LogS( ldTrace, 0, logDevPrefix, L"CTR: Receive response TIMEOUT" );
       OnDaliData( Sync.arTimeout, FALSE, OA( -1, NIL ));
    END OnDaliTimeout;
 
@@ -1457,10 +1457,10 @@ CLASS IMPLEMENTATION CDaliDevice;
                SendFileItem( Request^.Linie );
             
             ELSIF Programming[Request^.Linie] THEN
-               LogRequest( dldDebug, L"FIN: ", Request, Result, FALSE, TRUE, FALSE );
+               LogRequest( ldDebug, 0, L"FIN: ", Request, Result, FALSE, TRUE, FALSE );
 
                IF Result NOT IN Sync.arsCompletions THEN // arTimeout, etc.
-                  Logger.LogSC( dldMessage, logProgramPrefix, L"Programming stopped, result: ", CARDINAL( Result ));
+                  Logger.LogSC( ldMessage, 0, logProgramPrefix, L"Programming stopped, result: ", CARDINAL( Result ));
 
                   Programming[Request^.Linie] := FALSE; // kill
                   IF EventSink <> NIL THEN
@@ -1482,8 +1482,7 @@ CLASS IMPLEMENTATION CDaliDevice;
                END;
 
             ELSIF EventSink <> NIL THEN
-               LogRequest( dldDebug, L"FIN: ", Request, Result, TRUE, TRUE, FALSE );
-               Response32 := CARD32( Response );
+               LogRequest( ldDebug, 0, L"FIN: ", Request, Result, TRUE, TRUE, FALSE );
 
                IF Request^.ClientId = _PollClientId THEN // response to polling
                   address := Request^.Address.Address;
@@ -1535,7 +1534,7 @@ CLASS IMPLEMENTATION CDaliDevice;
          Communicate();
       
       ELSE
-         Logger.LogS( dldMessage, logDevPrefix, L"CTR: Data received when nothing is expected" );
+         Logger.LogS( ldMessage, 0, logDevPrefix, L"CTR: Data received when nothing is expected" );
       END; // IF something in the Queue
    END OnDaliData;
 
@@ -1553,7 +1552,7 @@ CLASS IMPLEMENTATION CDaliDevice;
       address.Type := DaliBridge.adrSingle;
       address.Address := PollActive;
 
-      Logger.LogSC( dldTrace, logDevPrefix, L"Poll status request for: ", PollActive );
+      Logger.LogSC( ldTrace, 0, logDevPrefix, L"Poll status request for: ", PollActive );
 
       FOR linie := l1 TO l4 DO // 4 DO
          IF NOT Polled[linie] OR PendingArray[linie][PollActive] THEN
@@ -1589,7 +1588,7 @@ CLASS IMPLEMENTATION CDaliDevice;
          Request^.UserId.FromOA( userId );
       END;
 
-      LogRequest( dldDebug, L"REQ: ", Request, Sync.arCompleted, daliAddress <> NIL, FALSE, TRUE );
+      LogRequest( ldDebug, 0, L"REQ: ", Request, Sync.arCompleted, daliAddress <> NIL, FALSE, TRUE );
 
       Queue.Enqueue( Request );
       
@@ -1621,32 +1620,32 @@ CLASS IMPLEMENTATION CDaliDevice;
          DaliData[1] := 0;
          Reset := TRUE;
 
-         LogRequest( dldDebug, L"SNDr: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
+         LogRequest( ldDebug, 0, L"SNDr: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
 
       ELSIF Request^.Command = cmdFileItem THEN
          Long := PBYTE( Request^.LongData )^ = 2;
          DaliData[0] := PBYTE( Request^.LongData )@[1]^;
          DaliData[1] := PBYTE( Request^.LongData )@[2]^;
 
-         LogRequest( dldDebug, L"SNDf: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
+         LogRequest( ldDebug, 0, L"SNDf: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
 
       ELSIF Request^.Command IN specialCommands THEN
          DaliData[0] := BYTE( Request^.Command );
          DaliData[1] := Request^.Data;
 
-         LogRequest( dldDebug, L"SNDs: ", Request, Sync.arCompleted, FALSE, FALSE, TRUE );
+         LogRequest( ldDebug, 0, L"SNDs: ", Request, Sync.arCompleted, FALSE, FALSE, TRUE );
 
       ELSIF Request^.Command = cmdDirect THEN
          DaliData[0] := Request^.Address.TransportAddress AND NOT 01H;
          DaliData[1] := MIN2( 0FEH, Request^.Data );
 
-         LogRequest( dldDebug, L"SNDd: ", Request, Sync.arCompleted, TRUE, FALSE, TRUE );
+         LogRequest( ldDebug, 0, L"SNDd: ", Request, Sync.arCompleted, TRUE, FALSE, TRUE );
 
       ELSE
          DaliData[0] := Request^.Address.TransportAddress OR 01H;
          DaliData[1] := BYTE( Request^.Command );
 
-         LogRequest( dldDebug, L"SNDn: ", Request, Sync.arCompleted, TRUE, FALSE, FALSE );
+         LogRequest( ldDebug, 0, L"SNDn: ", Request, Sync.arCompleted, TRUE, FALSE, FALSE );
       END;
       
       Result := Communicator^.SendDaliData( Request^.Linie, DaliData, Reset, NOT Reset AND ( Request^.Command IN respondedCommands ), NOT Reset AND ( Request^.Command IN repeatedCommands ), Long );
@@ -1737,10 +1736,10 @@ CLASS IMPLEMENTATION CDaliDevice;
                LastProgrammedAddress[Linie] := Address;
                EXIT;
             | getFALSE :
-               Logger.LogS( dldMessage, logProgramPrefix, L"Programming stopped, no next device found" );
+               Logger.LogS( ldMessage, 0, logProgramPrefix, L"Programming stopped, no next device found" );
                Programmer[Linie].HandleResponse( FALSE, 0 );
             | getFOUND :
-               Logger.LogSC( dldTrace, logProgramPrefix, L"Found device: ", Address.C24 );
+               Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Found device: ", Address.C24 );
                Programmer[Linie].HandleResponse( TRUE, Address.C24 );
             END;
             
@@ -1752,10 +1751,10 @@ CLASS IMPLEMENTATION CDaliDevice;
             EXIT;
 
          | dapScanOneH :
-            Logger.LogSC( dldTrace, logProgramPrefix, L"Scan address: ", Programmer[Linie].CurrentShortAddress );
+            Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Scan address: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, ADR( DA ), cmdReadLongH, 0, NIL, EXPECTED_RESPONSE, L'' );
+            FeedCommand( Linie, ADR( DA ), cmdReadLongH, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapScanOneM :
@@ -1771,16 +1770,16 @@ CLASS IMPLEMENTATION CDaliDevice;
             EXIT;
          
          | dapScan2GetShort :
-            Logger.LogSC( dldTrace, logProgramPrefix, L"Read address: ", Programmer[Linie].CurrentLongAddress.C24 );
-            FeedCommand( Linie, NIL, cmdGetAddress, 0, NIL, EXPECTED_RESPONSE, L'' );
+            Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Read address: ", Programmer[Linie].CurrentLongAddress.C24 );
+            FeedCommand( Linie, NIL, cmdGetAddress, 0, NIL, EXPECTED_RESPONSE );
             
          | dapScannedOne,
            dapScanned2One :
             IF Programmer[Linie].CurrentLongAddress.C24 = -1 THEN
-               Logger.LogSC( dldTrace, logProgramPrefix, L"Device not found: ", Programmer[Linie].CurrentShortAddress );
+               Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Device not found: ", Programmer[Linie].CurrentShortAddress );
             ELSE
-               Logger.LogSC( dldTrace, logProgramPrefix, L"Device found: ", Programmer[Linie].CurrentShortAddress );
-               Logger.LogSC( dldTrace, logProgramPrefix, L"  with long: ", Programmer[Linie].CurrentLongAddress.C24 );
+               Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Device found: ", Programmer[Linie].CurrentShortAddress );
+               Logger.LogSC( ldTrace, 0, logProgramPrefix, L"  with long: ", Programmer[Linie].CurrentLongAddress.C24 );
 
                DA.Type := DaliBridge.adrSingle;
                DA.Address := Programmer[Linie].CurrentShortAddress;
@@ -1792,11 +1791,11 @@ CLASS IMPLEMENTATION CDaliDevice;
             Logger.LogSC( dldTrace, logProgramPrefix, L"Programm address: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, NIL, cmdSetAddress, DA.TransportAddress OR 01H, NIL, EXPECTED_RESPONSE, L'' );
+            FeedCommand( Linie, NIL, cmdSetAddress, DA.TransportAddress OR 01H, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapCheckOne :
-            Logger.LogSC( dldTrace, logProgramPrefix, L"Check address: ", Programmer[Linie].CurrentShortAddress );
+            Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Check address: ", Programmer[Linie].CurrentShortAddress );
 
             // variant for cmdCheckAddress
             // DA.Type := DaliBridge.adrSingle;
@@ -1808,10 +1807,10 @@ CLASS IMPLEMENTATION CDaliDevice;
             EXIT;
 
          | dapShowOne :
-            Logger.LogSC( dldTrace, logProgramPrefix, L"Address checked: ", Programmer[Linie].CurrentShortAddress );
+            Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Address checked: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, ADR( DA ), cmdMax, 0, NIL, EXPECTED_RESPONSE, L'' );
+            FeedCommand( Linie, ADR( DA ), cmdMax, 0, NIL, EXPECTED_RESPONSE );
             EventSink^.OnDeviceFound( Name, Linie, DA, Programmer[Linie].CurrentLongAddress.C24 );
             EXIT;
 

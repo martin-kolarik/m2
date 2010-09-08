@@ -6,7 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 FROM log IMPORT
-   dldTrace, dldDebug;
+   ldTrace, ldDebug;
   
 FROM Exceptions IMPORT
    TestIfCatched, RetrieveException;
@@ -90,27 +90,27 @@ CLASS IMPLEMENTATION CDriver;
       TRY
          fs.FromPath( OA( ParFilePath.Length-1, ParFilePath.Data ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
          RETURN FALSE;
       END; // try
       tr.Stream := ADR( fs );
       b := TS.Load( tr );
       fs.Close( FALSE );
       IF NOT b THEN
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
          RETURN FALSE;
       END;
 
       Logger.SetUpByRegistry( LIBRARY );
       CASE INIFile.ConfigureLog( TS, L"", REF Logger, OUT line ) OF
       | INIFile.clrUnknownTarget :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
          RETURN FALSE;
       | INIFile.clrUnknownLevel :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
          RETURN FALSE;
       | INIFile.clrTargetFileMissingFile :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;
 
@@ -207,7 +207,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       INCL( RStatus, schiRunning );
       
-      Logger.LogS( log.dldError, logPrefix, L"RUN" );
+      Logger.LogS( log.ldError, 0, logPrefix, L"RUN" );
 
       Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( EMITW( %dll ), OUT s );
@@ -225,7 +225,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       EXCL( RStatus, schiRunning );
 
-      Logger.LogS( log.dldError, logPrefix, L"STOP" );
+      Logger.LogS( log.ldError, 0, logPrefix, L"STOP" );
 
       Dali.Stop();
    END DriverStop;
@@ -543,12 +543,12 @@ CLASS IMPLEMENTATION CDriver;
             Lock.Unlock();
             OutValue.Integer := c;
 
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Count ", c );
             
          ELSIF EQUALS( S2, L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
-               Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
-               Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"Event.Get clear buffer" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"RS- rsEventPending" );
 
                Lock.Lock();
                Queue.Dispose();
@@ -563,7 +563,7 @@ CLASS IMPLEMENTATION CDriver;
                haveEvent := TRUE;
             ELSE
                haveEvent := FALSE;
-               Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"RS- rsEventPending" );
 
                EXCL( RStatus, schiEventsPending );
             END;
@@ -579,54 +579,40 @@ CLASS IMPLEMENTATION CDriver;
 
                CASE ExceptionType OF
                | eitEvent :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"event" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"event" );
                | eitRead :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"read" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"read" );
                | eitPollStatus :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"poll status" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"poll status" );
                | eitWrite :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"write" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"write" );
                | eitParam :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"param" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"param" );
                | eitReset :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"reset" );
                | eitProgram :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"program" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"program" );
                | eitAddressFound :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"address found" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"address found" );
                | eitResetInterface :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset interface" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"reset interface" );
                END; // CASE ExceptionType
 
-               sceneNumber := -1;
                CASE ExceptionType OF
                | eitEvent, eitRead, eitPollStatus :
-                  CASE CARDINAL( ExceptionItem^.Command ) OF
-                  | CARDINAL( DaliBridge.cmdStatus ):
+                  CASE ExceptionItem^.Command OF
+                  | DaliBridge.cmdStatus :
                      CS.FromOA( L"status " );  
-                  | CARDINAL( DaliBridge.cmdWorking ):
+                  | DaliBridge.cmdWorking :
                      CS.FromOA( L"present " );
-                  | CARDINAL( DaliBridge.cmdDeviceType ):
+                  | DaliBridge.cmdDeviceType :
                      CS.FromOA( L"type " );
-                  | CARDINAL( DaliBridge.cmdVersion ):
+                  | DaliBridge.cmdVersion :
                      CS.FromOA( L"version " );
-                  | CARDINAL( DaliBridge.cmdCurrentLevel ):
+                  | DaliBridge.cmdCurrentLevel :
                      CS.FromOA( L"level " );
-                  | CARDINAL( DaliBridge.cmdEvent ):
+                  | DaliBridge.cmdEvent :
                      CS.FromOA( L"value " );
-                  | CARDINAL( DaliBridge.cmdCurrentMin ):
-                     CS.FromOA( L'minimum' );
-                  | CARDINAL( DaliBridge.cmdCurrentMax ):
-                     CS.FromOA( L'maximum' );
-                  | CARDINAL( DaliBridge.cmdCurrentPowerOn ):
-                     CS.FromOA( L'power_on_level' );
-                  | CARDINAL( DaliBridge.cmdCurrentFail ):
-                     CS.FromOA( L'failure_level' );
-                  | CARDINAL( DaliBridge.cmdCurrentFadeTimeRate ):
-                     CS.FromOA( L'fade' );
-                  | CARDINAL( DaliBridge.cmdSceneGet1 )..CARDINAL( DaliBridge.cmdSceneGet16 ):
-                     CS.FromOA( L'scene_level' );
-                     sceneNumber := CARDINAL( ExceptionItem^.Command ) - CARDINAL( DaliBridge.cmdSceneGet1 ) + 1;
                   ELSE
                      CS.FromOA( L"value " );
                   END;
@@ -1317,7 +1303,7 @@ CLASS IMPLEMENTATION CDriver;
       Queue.Enqueue( exceptionItem, ClientId );
 
       IF schiEventsPending NOT IN RStatus THEN
-         Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
+         Logger.LogS( ldDebug, 0, logPrefix, L"RS+ rsEventPending" );
 
          INCL( RStatus, schiEventsPending );
       END;

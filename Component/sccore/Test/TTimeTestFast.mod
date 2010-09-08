@@ -85,28 +85,28 @@ CLASS IMPLEMENTATION CTimeTestFast;
          measureDelay := 200;
       END;
 
-      Host^.Log^.LogSC( log.dlcInfo, L"", L'Measure period: ', measureDelay );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", L'Measure period: ', measureDelay );
       IF windows.QueryPerformanceFrequency( freq ) = windows.True THEN
-         Host^.Log^.LogSC( log.dlcInfo, L"", L'Performance counter frequency: ', CARDINAL( freq ));
+         Host^.Log^.LogSC( log.lcInfo, 0, L"", L'Performance counter frequency: ', CARDINAL( freq ));
       ELSE
-         Host^.Log^.LogS( log.dlcInfo, L"", L'Performance counter frequency: <counter undefined>' );
+         Host^.Log^.LogS( log.lcInfo, 0, L"", L'Performance counter frequency: <counter undefined>' );
       END;
 
       IF windows.GetSystemTimeAdjustment( ADR( nsAbout ), ADR( nsPeriod ), ADR( nsDisabled )) = windows.True THEN
-         Host^.Log^.LogS( log.dlcInfo, L"", L'TickAdjustment settings:' );
+         Host^.Log^.LogS( log.lcInfo, 0, L"", L'TickAdjustment settings:' );
 
          msPeriod := nsPeriod DIV 10000;
          Strings.FromLONGREALW( LONGREAL( nsPeriod ) * hns2ms, FALSE, OUT n );
-         Host^.Log^.LogSS( log.dlcInfo, L"", L'  clock-irq period: ', n );
+         Host^.Log^.LogSS( log.lcInfo, 0, L"", L'  clock-irq period: ', n );
 
          IF nsDisabled = windows.False THEN
             Strings.FromLONGREALW( LONGREAL( nsAbout ) * hns2ms, FALSE, OUT n );
-            Host^.Log^.LogSS( log.dlcInfo, L"", L'  adjustment is: ', n );
+            Host^.Log^.LogSS( log.lcInfo, 0, L"", L'  adjustment is: ', n );
          ELSE
-            Host^.Log^.LogS( log.dlcInfo, L"", L'  adjustment is: <undefined>' );
+            Host^.Log^.LogS( log.lcInfo, 0, L"", L'  adjustment is: <undefined>' );
          END;
       ELSE
-         Host^.Log^.LogS( log.dlcInfo, L"", L'TickAdjustment settings: <unknown>' );
+         Host^.Log^.LogS( log.lcInfo, 0, L"", L'TickAdjustment settings: <unknown>' );
       END;
 
       LOOP
@@ -139,7 +139,7 @@ CLASS IMPLEMENTATION CTimeTestFast;
          Strings.AppendW( REF s, L' dQPCms: ' ); Strings.FromINT32W( INTEGER( LONGREAL( dPTime ) / LONGREAL( INT64( freq )) * 1000.0 ), 10, OUT n ); Strings.AppendW( REF s, n );
          Strings.AppendW( REF s, L' total (ms/day): ' ); Strings.FromINT32W( 1440 * sdiff DIV count, 10, OUT n ); Strings.AppendW( REF s, n );
          Strings.AppendW( REF s, L' dDTime: ' ); Strings.FromINT32W( INT32( dDTime ), 10, OUT n ); Strings.AppendW( REF s, n );
-         Host^.Log^.LogS( log.dlcInfo, L"", s );
+         Host^.Log^.LogS( log.lcInfo, 0, L"", s );
 
          INC( count )
       END; // LOOP

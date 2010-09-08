@@ -4,7 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM Log IMPORT
-   dlcError, dlcWarning, dlcInfo;
+   lcError, lcWarning, lcInfo;
    
 IMPORT
    cphcommon,
@@ -1076,7 +1076,7 @@ CLASS IMPLEMENTATION HttpWorker;
          logger := Log.logger();
       END;
       
-      IF NOT logger^.Filtered( dlcError, LOG_HTTP ) THEN
+      IF NOT logger^.FilteredFastCheck( lcError, 0 ) THEN
          _Stream^.RemoteAddress.ToOA( FALSE, OUT sOA );
          s.FromOA( sOA );
          s.AppendOA( L" - - [" );
@@ -1116,7 +1116,7 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( sOA );
          END; // IF chunked
 
-         logger^.LogS( dlcError, LOG_HTTP, OA( s.Length-1, s.Data ));
+         logger^.LogS( lcError, 0, LOG_HTTP, OA( s.Length-1, s.Data ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1175,8 +1175,6 @@ CLASS IMPLEMENTATION CSessionHolder;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetSession( pcookie : StringsO.TPString; CONST addr : inetaddr.INETADDR; CONST rootPath : StringsO.CString ) : TPSrvSession;
-   CONST
-      SESSION_VALIDITY = 30*60*1000; // milliseconds, 30 minutes
    VAR
       c : CARDINAL;
       cookie : StringsO.CString;
@@ -1202,7 +1200,7 @@ CLASS IMPLEMENTATION CSessionHolder;
          session^.New := FALSE;
          Expiration.Remove( session );
          IF session^.Valid THEN // move expiration to the future
-            Expiration.Add( shorttime, session, 0, SESSION_VALIDITY );
+            Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
             RETURN session;
          ELSE // kill the session
             Sessions.Remove( s );
@@ -1225,7 +1223,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       NEW( session );
       session^.Init( cookie, rootPath );
       Sessions.Add( cookie, session );
-      Expiration.Add( shorttime, session, 0, SESSION_VALIDITY );
+      Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
       
       RETURN session;      
    END GetSession;
@@ -1499,12 +1497,12 @@ CLASS IMPLEMENTATION ASrvCommon;
          END;
          IF NOT Reported THEN
             Reported := TRUE;
-            Log.logger()^.LogS( dlcInfo, LOG_HTTP, L"Pool has no space, wait for a while" );
+            Log.logger()^.LogS( lcInfo, 0, LOG_HTTP, L"Pool has no space, wait for a while" );
          END;
 
          Sync.Sleep( 100 );
          IF DateTime.UptimeMS() - Timeout > 0 THEN // time elapsed
-            Log.logger()^.LogS( dlcWarning, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
+            Log.logger()^.LogS( dlcWarning, 0, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
             EXIT;
          END;
       END;

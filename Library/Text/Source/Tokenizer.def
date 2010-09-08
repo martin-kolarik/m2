@@ -1,0 +1,321 @@
+DEFINITION MODULE Tokenizer;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   lists,
+   StringsO,
+   TextReader;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TToken = (
+      tokenUnknown,
+      tokenDelimiter,
+      tokenKeyword,
+      tokenString,
+      tokenNumber
+   );
+   
+   TDelimiter = (
+      delAccessor1, // ->
+      delAccessor2, // ^.
+      delAssignment, // :=
+      delAsterisk, // *
+      delAmpersand, // &
+      delAndAssignment, // &=
+      delApostrophe, // '
+      delAt, // @
+      delBackslash, // \
+      delBeginComment1, // /*
+      delBeginJavaDoc1, // /**
+      delBeginComment2, // (*
+      delBeginJavaDoc2, // (**
+      delBraceL, // {
+      delBraceR, // }
+      delBracketL, // [
+      delBracketR, // ]
+      delCircumflex,
+      delColon, // :
+      delComma, // ,
+      delDecrement, // --
+      delDivideAssignment, // /=
+      delDot, // .
+      delDollar, // $
+      delEndComment1, // */
+      delEndComment2, // *)
+      delEqual, // =
+      delExclamationMark, // !
+      delGreater, // >
+      delGreaterEqual, // >=
+      delIncrement, // ++
+      delInterval, // ..
+      delLess, // <
+      delLessEqual, // <=
+      delLineComment, // //
+      delLogicalAnd, // &&
+      delLogicalNotShortcutAnd, // &&&
+      delLogicalAndAssignment, // &&=
+      delLogicalOr, // ||
+      delLogicalNotShortcutOr, // |||
+      delLogicalOrAssignment, // ||=
+      delMinus, // -
+      delMinusAssignment, // -=
+      delMultiplyAssignment, // *=
+      delNotEqual1, // !=
+      delNotEqual2, // <>
+      delNumberSign, // #
+      delOr, // ||
+      delParenthesisL, // (
+      delParenthesisR, // )
+      delPercent, // %
+      delPipe, // |
+      delPlus, // +
+      delPlusAssignment, //+=
+      delPower, // **
+      delOrAssignment, // |=
+      delQuestionMark, // ?
+      delQuote, // "
+      delSemicolon, // ;
+      delSlash, // /
+      delTilde, // ~
+      delUnderscore, // _
+      delUnknown
+   );
+
+   TMultigram = (
+      mulNotEqual1, // !=
+      mulAndAssignment, // &=
+      mulLogicalAnd, // &&
+      mulLogicalAndAssignment, // &&=, requires mulLogicalAnd being present too
+      mulLogicalNotShortcutAnd, // &&&, requires mulLogicalAnd being present too
+      mulBeginComment2, // (*
+      mulBeginJavaDoc2, // (**, requires mulBeginComment2 being present too
+      mulPower, // **
+      mulMultiplyAssignment, // *=
+      mulEndComment1, // */
+      mulEndComment2, // *)
+      mulIncrement, // ++
+      mulPlusAssignment, // +=
+      mulDecrement, // --
+      mulMinusAssignment, // -=
+      mulAccessor1, // ->
+      mulInterval, // ..
+      mulLineComment, // //
+      mulDivideAssignment, // /=
+      mulBeginComment1, // /*
+      mulBeginJavaDoc1, // /**, requires mulBeginComment1 being present too
+      mulAssignment, // :=
+      mulLessEqual, // <=
+      mulNotEqual2, // <>
+      mulEqualEqual, // ==
+      mulGreaterEqual, // >=
+      mulAccessor2, // ^.
+      mulOrAssignment, // |=
+      mulLogicalOr, // ||
+      mulLogicalOrAssignment, // ||=, requires mulLogicalOr being present too
+      mulLogicalNotShortcutOr // |||, requires mulLogicalOr being present too
+   );
+   TMultigrams = SET OF TMultigram;
+   
+   TNumber = (
+      numDecimal, // = 10,
+      numFloat, // = 10,
+      numCHexadecimal, // = 16,
+      numCOctal, // = 8,
+      numMBinary, // = 2,
+      numMOctal, // = 8,
+      numMHexadecimal, // = 16,
+      numPlainHexadecimal // = 16
+   );
+   TNumbers = SET OF TNumber;
+   
+   TBases = ARRAY TNumber OF CARDINAL;
+   
+   TString = (
+      strApostrophe,
+      strGrave,
+      strQuote,
+      strCEscape,
+      strDoublingEscape
+   );
+   TStrings = SET OF TString;
+   
+(*---------------------------------------------------------------------------*)
+
+CONST
+   E_MULTIGRAMS = TMultigrams{}; // default
+
+   C_MULTIGRAMS = TMultigrams{
+      mulNotEqual1, // !=
+      mulAndAssignment, // &=
+      mulLogicalAnd, // &&
+      mulLogicalAndAssignment, // &&=
+      mulMultiplyAssignment, // *=
+      mulIncrement, // ++
+      mulPlusAssignment, // +=
+      mulDecrement, // --
+      mulMinusAssignment, // -=
+      mulAccessor1, // ->
+      mulLineComment, // //
+      mulDivideAssignment, // /=
+      mulLessEqual, // <=
+      mulEqualEqual, // ==
+      mulGreaterEqual, // >=
+      mulOrAssignment, // |=
+      mulLogicalOr, // ||
+      mulLogicalOrAssignment // ||=
+   };
+
+   M_MULTIGRAMS = TMultigrams{
+      mulInterval, // ..
+      mulLineComment, // //
+      mulAssignment, // :=
+      mulLessEqual, // <=
+      mulNotEqual2, // <>
+      mulGreaterEqual // >=
+   };
+   
+   BASES = TBases(
+      10, // numDecimal = 10,
+      10, // numFloat = 10,
+      16, // numCHexadecimal = 16,
+       8, // numCOctal = 8,
+       2, // numMBinary = 2,
+       8, // numMOctal = 8,
+      16, // numMHexadecimal = 16,
+      16  // numPlainHexadecimal = 16
+   );
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CToken;
+
+   PUBLIC READONLY PROPERTY
+      Type : TToken;
+      Delimiter : TDelimiter;
+      Keyword : StringsO.CString;
+      String : StringsO.CString;
+
+      Number : StringsO.CString;
+      Base : CARDINAL;
+      Integer : INT32;
+      Long : INT64;
+      Float : LONGREAL;
+      
+   PUBLIC PROCEDURE InitKeyword( CONST Keyword : StringsO.IString );
+   PUBLIC PROCEDURE InitDelimiter( Delimiter : TDelimiter );
+   PUBLIC PROCEDURE InitNumber( Number : TNumber; CONST String : StringsO.IString );
+   PUBLIC PROCEDURE InitString( CONST String : StringsO.IString );
+      
+   PRIVATE VAR
+      _Type : TToken;
+      _Delimiter : TDelimiter;
+      _Number : TNumber;
+      _Data : StringsO.CString;
+
+END CToken;
+   
+(*---------------------------------------------------------------------------*)
+
+INTERFACE ITokenizer;
+
+   READONLY PROPERTY
+      Current     : CToken;
+      TokenNumber : CARD64;
+      Position    : CARD64;
+      Line        : CARD64;
+      Column      : CARDINAL;
+      
+   PROCEDURE Reset(); // rewinds to start
+   PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   
+   PROCEDURE Mark() : PTR; // return mark handle of current position
+   PROCEDURE GotoMark( Handle : PTR );
+
+END ITokenizer;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CFeedException( Exceptions.CGenericException );
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT Code : ARRAY OF WCHAR );
+END CFeedException;
+
+PROCEDURE FeedException( Result : Sync.TAsyncResult ) : CFeedException;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPCharacters = POINTER TO SET OF WCHAR;
+   
+CLASS CTokenizer IMPLEMENTS ITokenizer;
+
+   // ITokenizer
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Current     : CToken;
+      TokenNumber : CARD64;
+      Position    : CARD64; // points to the start of current token
+      Line        : CARD64; // points to the start of current token
+      Column      : CARDINAL; // points to the start of current token
+      
+   PUBLIC VIRTUAL PROCEDURE Reset(); // rewinds to start
+   PUBLIC VIRTUAL PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   
+   PUBLIC VIRTUAL PROCEDURE Mark() : PTR; // return mark handle of current position
+   PUBLIC VIRTUAL PROCEDURE GotoMark( Handle : PTR );
+   
+   // SELF
+   PUBLIC PROPERTY
+      Reader : TextReader.TPTextReader;
+      RestrictKeywordsToASCII : BOOLEAN;
+      Numbers : TNumbers;
+      Strings : TStrings;
+      UnescapeStrings : BOOLEAN;
+      Delimiters : TPCharacters;
+      Multigrams : TMultigrams;
+      WhiteSpaces : TPCharacters;
+      
+   PRIVATE VAR
+      // settings
+      _Numbers : TNumbers := TNumbers{numDecimal, numFloat, numPlainHexadecimal};
+      _Strings : TStrings := TStrings{strApostrophe, strQuote, strDoublingEscape};
+      _RestrictKeywordsToASCII : BOOLEAN := TRUE;
+      _UnescapeStrings : BOOLEAN := TRUE;
+      _Delimiters : TPCharacters := NIL; // means default set -- all delimiters without "
+      _Multigrams : TMultigrams := E_MULTIGRAMS;
+      _WhiteSpaces : TPCharacters := NIL; // means default = CR, LF, SPACE, TAB
+      
+      // infos
+      _CurrentToken : CToken;
+      _TokenNumber : CARD64;
+      _Position : CARD64;
+      _Line : CARD64;
+      _Column : CARDINAL;
+      _Marks : lists.CBufferList;
+
+      // reading      
+      _Reader : TextReader.TPTextReader := NIL;
+      _StopTime : CARDINAL;
+      _Current : WCHAR;
+      _Next : WCHAR;
+      _Type : TToken;
+      _Data : StringsO.CString;
+      _Delimiter : TDelimiter;
+      _Number : TNumber;
+      _String : TString;
+      _CurrentLength : CARDINAL;
+      
+   PRIVATE PROCEDURE DoMoveNext() THROWS CFeedException;
+   PRIVATE PROCEDURE Feed() THROWS CFeedException;
+
+END CTokenizer;
+
+(*================================================================================*)
+
+#restore
+
+END Tokenizer.
