@@ -12,10 +12,10 @@ FROM Strings IMPORT
    LowerizeW;
 
 IMPORT
+   datetime,
    FIO,
    folders,
    Strings,
-   time,
    windows,
    winreg;
 
@@ -585,7 +585,7 @@ CLASS IMPLEMENTATION ALogger;
 
   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST _Name, Prefix, S : ARRAY OF WCHAR );
   VAR
-    dt : time.DateTime;
+    dt : datetime.DateTime;
     leading : BOOLEAN := FALSE;
     SW : TString;
   BEGIN

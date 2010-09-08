@@ -45,10 +45,10 @@ FROM eib_def IMPORT
   do8, do9, do10, do11, do12, do13, do14, do15, do16, do17, do18, do19, do20, do21;
 
 IMPORT
+   datetime,
    msghandler,
    Storage,
    Strings,
-   Time,
    windows;
 
 (*================================================================================*)
@@ -786,7 +786,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
   );
   BEGIN
      L_Data.ACKTimeouter.Start();
-     L_Data.LastSend := Time.UptimeMS();
+     L_Data.LastSend := datetime.UptimeMS();
   END Ph_Data_Sent;
 
 (*--------------------------------------------------------------------------------*)
@@ -799,7 +799,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     Addressed : BOOLEAN;
   BEGIN
     IF L_Parameters.LinkMode = lmBusMonitor THEN
-      L_Busmonitor_Ind( eib_status.essOK, Time.UptimeMS64(), PPacket );
+      L_Busmonitor_Ind( eib_status.essOK, datetime.UptimeMS64(), PPacket );
       RETURN;
     ELSIF IsSelfPacket( PPacket ) THEN
       L_Service_Information_Ind();
@@ -926,7 +926,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
         ELSIF L_Parameters.SendDelay = 0 THEN
           Send := TRUE;
         ELSE
-          delay := Time.UptimeMS() - L_Data.LastSend;
+          delay := datetime.UptimeMS() - L_Data.LastSend;
           IF L_Data.SendDelayer.Pending() THEN
             Send := FALSE;
             // do not send packet now as SendDelay is pending and send will continue after its elapsing
@@ -2462,7 +2462,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       ELSIF A_Data.Timeouter[ WhatIsPending ].Pending() THEN
         RETURN; // get out, a tidA_PendingDelay is pending, new send must not be initiated
       ELSE
-        delay := Time.UptimeMS() - A_Data.LastSend[ WhatIsPending ];
+        delay := datetime.UptimeMS() - A_Data.LastSend[ WhatIsPending ];
         IF delay < A_Parameters.PendingDelay[ WhatIsPending ] THEN // wait for send spare
           A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingDelay, delay );
           RETURN;

@@ -230,6 +230,7 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   ClientSocket := NIL;
    testimpl.tests()^.AddTest( L"Network::ConnectDisconnect", ADR( Test ));
 END CTest;
 

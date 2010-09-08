@@ -1,0 +1,169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{d483396c-86e2-4bd9-8dcb-b061c8c4d9cb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\datetime.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\datetimeWin32.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\debug.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\delegate.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Exceptions.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\FIO.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\folders.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\ilog.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\iobject.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\languages.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\log.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\lrconv.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Storage.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Strings.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\sync.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\syncqueue.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\datetime.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\datetimeWin32.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\debug.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\delegate.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Exceptions.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\FIO.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\folders.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\ilog.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\iobject.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\languages.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\log.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\lrconv.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Storage.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Strings.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\sync.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\syncqueue.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\lrconvround.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\lrconvspeed.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\Match.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\RingBuffer.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\RingBufferPeek.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\StringReplaceInsert.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\StringsProc.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TASSERT.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TDatagramQueue.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\timetest.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TIntegerQueue.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\ToLONGREAL.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\ToWStream.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TQuadwordQueue.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TRWLock.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TryThrowCatchSpeed.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TSEH.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TStringReplaceCharacters.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="m2rtl.proj" />
+  </ItemGroup>
+</Project>

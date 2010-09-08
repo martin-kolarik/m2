@@ -9,12 +9,12 @@ FROM Storage IMPORT
 IMPORT
    windows, // must be imported before dbghelp
    excpt,
+   datetime,
    dbghelp,
    FIO,
    Folders,
    Log,
-   Strings,
-   time;
+   Strings;
 
 //--------------------------------------------------------------------------------
 
@@ -147,7 +147,7 @@ BEGIN
    // prepare minidump path
    AssertionLog^.GetLogFile( OUT Path );
    FIO.SplitPathW( Path, OUT Head, OUT Tail );
-   time.NowUTC().ToStringOA( L"yyyyMMddTHHmmssfff'.mdmp'", TRUE, TRUE, OUT Tail );
+   datetime.NowUTC().ToStringOA( L"yyyyMMddTHHmmssfff'.mdmp'", TRUE, TRUE, OUT Tail );
    Strings.PrependW( REF Tail, prefix );
    FIO.MakePathW( Head, Tail, OUT Path );
    

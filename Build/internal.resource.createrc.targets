@@ -38,8 +38,7 @@
         </RCVarFileInfo>
 
         <RCFileContents>
-#include &quot;winnt.h&quot;
-#include &quot;winver.h&quot;
+#include &quot;winres.h&quot;
 #pragma code_page($(OriginalCodePageDec))
         
 VS_VERSION_INFO VERSIONINFO

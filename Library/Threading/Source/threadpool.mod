@@ -9,12 +9,12 @@ FROM Storage IMPORT
 IMPORT
   array,
   arrays,
+  datetime,
   lists,
   maps,
   msghandler,
   SCmsgqueuethread,
   thread,
-  time,
   TimeoutableTwoPtrMap,
   windows;
   
@@ -407,9 +407,9 @@ CLASS IMPLEMENTATION CPoolThread;
       
       LOOP
          CheckEmpty := FALSE;
-         Timeout := HTasks.GetTimeoutToFirstElapsed( time.UptimeMS());
+         Timeout := HTasks.GetTimeoutToFirstElapsed( datetime.UptimeMS());
          Status := windows.WaitForMultipleObjectsEx( WaitArray.Count, WaitArray.Data, windows.False, Timeout, windows.True );
-         CurrentTime := time.UptimeMS();
+         CurrentTime := datetime.UptimeMS();
          
          CASE Status OF
          //-----
@@ -434,7 +434,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
          //-----
          | windows.WAIT_TIMEOUT : // remove all timeouted tasks
-            CheckEmpty := HandleTimeouts( time.UptimeMS());
+            CheckEmpty := HandleTimeouts( datetime.UptimeMS());
 
          //-----
          ELSE
@@ -608,7 +608,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Completed( Sync.arAborted, Workers.CurrentData, NIL, TRUE, TRUE, OUT disposable );
       TPPoolWorker( Workers.Current )^.Release();
     END; // WHILE
-    WHILE HTasks.GetFirstElapsed( time.UptimeMS(), FALSE, OUT Key, OUT Task ) DO
+    WHILE HTasks.GetFirstElapsed( datetime.UptimeMS(), FALSE, OUT Key, OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
   END CPoolThread;

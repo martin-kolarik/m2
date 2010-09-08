@@ -6,6 +6,7 @@ FROM Exceptions IMPORT
    TestIfCatched, RetrieveException;
 
 IMPORT
+   datetime,
    FIO,
    FIOO,
    HttpCommon,
@@ -18,8 +19,7 @@ IMPORT
    netsocket,
    NodeList,
    Strings,
-   Sync,
-   time;
+   Sync;
    
 (*================================================================================*)
 
@@ -123,7 +123,7 @@ CLASS IMPLEMENTATION CFileView;
       filePath : StringsO.CString;
       fs : FIOO.CFileStream;
       l : CARDINAL;
-      lastModified : time.DateTime;
+      lastModified : datetime.DateTime;
       Result : Sync.TAsyncResult;
    BEGIN
       IF Resolver = NIL THEN
@@ -338,7 +338,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
    PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       Content : StringsO.CString;
-      now : time.DateTime;
+      now : datetime.DateTime;
    BEGIN
       now.SetNowUTC();
    
@@ -409,7 +409,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
-      now : time.DateTime;
+      now : datetime.DateTime;
       s : StringsO.CString;
    BEGIN
       now.SetNowUTC();
@@ -547,7 +547,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       acceptHeader : StringsO.CString;
       empty : StringsO.CString;
       mbs : IOO.CMemoryBufferStream;
-      now : time.DateTime;
+      now : datetime.DateTime;
       RequestedContent : StringsO.CString;
       xhtmlSupported : BOOLEAN := FALSE;
    BEGIN

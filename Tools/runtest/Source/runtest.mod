@@ -4,6 +4,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
 IMPORT
+   datetime,
    FIO,
    iobject,
    lists,
@@ -15,8 +16,7 @@ IMPORT
    test,
    thread,
    TextReader,
-   TextWriter,
-   time;
+   TextWriter;
    
 (*================================================================================*)
 
@@ -200,7 +200,7 @@ CLASS IMPLEMENTATION CHost;
       
       asyncResult := Thread.RunWithRunnable( ADR( SELF ));
       IF asyncResult = Sync.arCompleted THEN
-         Time := time.UptimeMS();
+         Time := datetime.UptimeMS();
 
          Thread.Stop( FALSE );
          asyncResult := Thread.WaitStop( SLOW_TIMEOUT );
@@ -208,11 +208,11 @@ CLASS IMPLEMENTATION CHost;
          IF asyncResult = Sync.arTimeout THEN
             // fall down, no need to evaluate timeout
          ELSIF _FastEvaluation THEN
-            IF time.UptimeMS() > Time + FAST_TIMEOUT THEN
+            IF datetime.UptimeMS() > Time + FAST_TIMEOUT THEN
                asyncResult := Sync.arTimeout;
             END;
          ELSE
-            IF time.UptimeMS() > Time + SLOW_TIMEOUT THEN
+            IF datetime.UptimeMS() > Time + SLOW_TIMEOUT THEN
                asyncResult := Sync.arTimeout;
             END;
          END;

@@ -10,13 +10,13 @@ FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
 
 IMPORT
+  datetime,
   FIO,
   FIOO,
   IOO,
   Languages,
   Strings,
-  StringsO,
-  time;
+  StringsO;
 
 IMPORT
   drv_str,
@@ -267,7 +267,7 @@ CLASS IMPLEMENTATION CDriver;
     Return;
   VAR
     c : CARDINAL;
-    dt : time.DateTime;
+    dt : datetime.DateTime;
     s : ARRAY [0..63] OF WCHAR;
     so : StringsO.CString;
     SW : ARRAY [0..1] OF StringsO.CString;

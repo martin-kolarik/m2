@@ -2,10 +2,10 @@ MODULE tkepler;
 
 IMPORT
 	astro,
+   datetime,
 	FIO,
 	math,
 	Strings,
-	time,
 	windows;
 	
 	TYPE

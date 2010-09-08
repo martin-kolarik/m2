@@ -6,11 +6,11 @@ FROM Storage IMPORT
 (*# call( o_a_copy => off ) *)
 
 IMPORT
+  datetime,
   list,
   lists,
   avltree,
-  stacks,
-  time;
+  stacks;
   
 IMPORT
   Strings,
@@ -1054,7 +1054,7 @@ TYPE
   );
 
 CLASS CModuleEnvironment;
-   Timestamp    : time.DateTime;
+   Timestamp    : datetime.DateTime;
    Library      : StringsO.CString;
    Prefix       : TModuleNamePrefix;
    ClassAM      : TAccessModifier;

@@ -6,8 +6,8 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
-   msghandler,
-   time;
+   datetime,
+   msghandler;
    
 (*===========================================================================*)
 
@@ -251,7 +251,7 @@ CLASS IMPLEMENTATION CSupport;
       Data : PTR;
       RepeatPTR : PTR;
    BEGIN
-      CurrentTime := time.UptimeMS();
+      CurrentTime := datetime.UptimeMS();
       IF Repeat THEN
          RepeatPTR := 1;
       ELSE

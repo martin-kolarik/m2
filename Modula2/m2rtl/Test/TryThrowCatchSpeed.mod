@@ -6,13 +6,13 @@ FROM Exceptions IMPORT
    Exception, StoreException, TestIfCatched, RetrieveException;
 
 IMPORT
+   datetime,
    Exceptions,
    log,
    Strings,
    Sync,
    test,
-   testimpl,
-   time;
+   testimpl;
   
 (*===========================================================================*)
 
@@ -102,7 +102,7 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       SELF.Host := Host;
    
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          TRY
             Try();
@@ -117,7 +117,7 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
 
       RETURN test.trSuccess;
@@ -130,7 +130,7 @@ CLASS IMPLEMENTATION CTest;
       VExc1 : Exc1;
       VExc2 : Exc2;
    BEGIN
-      IF time.UptimeMS() MOD 2 = 0 THEN
+      IF datetime.UptimeMS() MOD 2 = 0 THEN
          THROW VExc1;
       ELSE
          THROW VExc2;
