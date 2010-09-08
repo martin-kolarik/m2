@@ -4,7 +4,7 @@ FROM Exceptions IMPORT
    StoreException, TestIfCatched, RetrieveException;
 
 IMPORT
-   Time,
+   DateTime,
    Sync;
 
 (*================================================================================*)
@@ -298,7 +298,7 @@ CLASS IMPLEMENTATION CTokenizer;
 
    PUBLIC VIRTUAL PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
-      _StopTime := Time.UptimeMS() + TimeoutMS;
+      _StopTime := DateTime.UptimeMS() + TimeoutMS;
       TRY
          DoMoveNext();
          RETURN Sync.arCompleted;
@@ -817,7 +817,7 @@ CLASS IMPLEMENTATION CTokenizer;
       Result : Sync.TAsyncResult;
       timeout : INTEGER;
    BEGIN
-      timeout := INTEGER( _StopTime - Time.UptimeMS());
+      timeout := INTEGER( _StopTime - DateTime.UptimeMS());
       IF timeout <= 0 THEN
          THROW FeedException( Sync.arTimeout );
       END;
@@ -828,7 +828,7 @@ CLASS IMPLEMENTATION CTokenizer;
          IF Result NOT IN Sync.arsCompletions THEN
             THROW FeedException( Result );
          END;
-         timeout := INTEGER( _StopTime - Time.UptimeMS());
+         timeout := INTEGER( _StopTime - DateTime.UptimeMS());
          IF timeout <= 0 THEN
             THROW FeedException( Sync.arTimeout );
          END;

@@ -8,12 +8,7 @@
         <LIB>&quot;$(VCD)lib&quot; /nodefaultlib</LIB>
         <RC>&quot;$(VCD)rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
 
-        <!-- VS 2010 <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT> -->
-        <!-- VS 2005 -->
-        <MT Condition="$(UACElevation)=='on'">mt -manifest $(RootBuildDir)\UACrequireAdministrator.manifest -outputresource:$(OutputFile)</MT>
-        <MT Condition="$(UACElevation)!='on'">mt -manifest $(RootBuildDir)\UACasInvoker.manifest -outputresource:$(OutputFile)</MT>
-        <!-- -->
-        <!-- -->
+        <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
         <MTT>mt -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
 
         <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2>
@@ -47,7 +42,7 @@
         <CLCTRL Condition="$(CPPExceptions)!='on'">$(CLCTRL) /GR-</CLCTRL>
         <!-- CLCTRL>$(CLCTRL) /W4 /wd4018 /wd4100 /wd4102 /wd4127 /wd4146 /wd4245</CLCTRL -->
         <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
-        <LINKCTRL>/OPT:REF /MERGE:.rdata=.text /IGNORE:4049 /IGNORE:4199 /IGNORE:4210 /IGNORE:4217 delayimp.lib</LINKCTRL>
+        <LINKCTRL>/DYNAMICBASE /LARGEADDRESSAWARE /NXCOMPAT /OPT:REF /MERGE:.rdata=.text /IGNORE:4049 /IGNORE:4199 /IGNORE:4210 /IGNORE:4217 delayimp.lib</LINKCTRL>
         <LINKCTRL Condition="$(ResultSubsystem)=='Console'">$(LINKCTRL) /SUBSYSTEM:CONSOLE</LINKCTRL>
         <LINKCTRL Condition="$(ResultSubsystem)=='GUI'">$(LINKCTRL) /SUBSYSTEM:WINDOWS</LINKCTRL>
         <LINKCTRL Condition="$(CLib)=='Private'">$(LINKCTRL) /SAFESEH:NO</LINKCTRL>
@@ -55,14 +50,13 @@
 
     <!-- Manifests: CRT and UAC -->
     <PropertyGroup>
-        <LINKCTRL Condition="$(CLib)=='Dynamic'">$(LINKCTRL) /MANIFEST</LINKCTRL>
-        <LINKCTRL Condition="$(CLib)!='Dynamic'">$(LINKCTRL) /MANIFEST:NO</LINKCTRL>
-        <LINKCTRL Condition="$(Result)=='Program'">$(LINKCTRL) /MANIFESTUAC /MANIFESTUAC:uiAccess=false</LINKCTRL>
-        <LINKCTRL Condition="$(Result)!='Program'">$(LINKCTRL) /MANIFESTUAC:NO</LINKCTRL>
-        <LINKCTRL Condition="$(Result)=='Program' And $(UACElevation)=='on'">$(LINKCTRL) /MANIFESTUAC:level=requireAdministrator</LINKCTRL>
-        <LINKCTRL Condition="$(Result)=='Program' And $(UACElevation)!='on'">$(LINKCTRL) /MANIFESTUAC:level=asInvoker</LINKCTRL>
-        <MT Condition="$(CLib)!='Private' And $(Result)=='Program'">$(MT);#1</MT>
-        <MT Condition="$(CLib)!='Private' And $(Result)=='Dynamic'">$(MT);#2</MT>
+        <LINKCTRL Condition="$(CLib)=='Dynamic' Or  $(Result)=='Program'">$(LINKCTRL) /MANIFEST</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)!='Dynamic' And $(Result)!='Program'">$(LINKCTRL) /MANIFEST:NO</LINKCTRL>
+        <LINKCTRL Condition="$(Result)=='Program'">$(LINKCTRL) /MANIFESTUAC /MANIFESTUAC:uiAccess=\"false\"</LINKCTRL>
+        <LINKCTRL Condition="$(Result)=='Program' And $(UACElevation)=='on'">$(LINKCTRL) /MANIFESTUAC:level=\"requireAdministrator\"</LINKCTRL>
+        <LINKCTRL Condition="$(Result)=='Program' And $(UACElevation)!='on'">$(LINKCTRL) /MANIFESTUAC:level=\"asInvoker\"</LINKCTRL>
+        <MT Condition="$(Result)=='Program'">$(MT);#1</MT>
+        <MT Condition="$(CLib)=='Dynamic' And $(Result)=='Dynamic'">$(MT);#2</MT>
     </PropertyGroup>
 
     <!-- ConfigurationName -->

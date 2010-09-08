@@ -421,8 +421,6 @@ CLASS IMPLEMENTATION CController;
                View := mvc.redirectView( USER_LOGIN_PAGE );
             END;
 
-         ELSE // some call was performed, redirect to self
-            View := mvc.redirectView( OA( uri.Length-1, uri.Data ));
          END;
          RETURN TRUE;
    

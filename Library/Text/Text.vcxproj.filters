@@ -42,6 +42,12 @@
       <Filter>Test</Filter>
     </None>
     <None Include="Text.proj" />
+    <None Include="Source\Tokenizer.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Tokenizer.def">
+      <Filter>Header Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="~Build\INIFile.cpp">

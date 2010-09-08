@@ -100,7 +100,7 @@ CLASS IMPLEMENTATION AFormatter;
 
    PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       leading : BOOLEAN := FALSE;
       S : TString;
    BEGIN

@@ -85,7 +85,7 @@ CLASS IMPLEMENTATION CTest;
          S1.Dispose();
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -101,7 +101,7 @@ CLASS IMPLEMENTATION CTest;
          S1.Copy( S );         
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -117,7 +117,7 @@ CLASS IMPLEMENTATION CTest;
          S1.Assign( S );         
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -138,7 +138,7 @@ CLASS IMPLEMENTATION CTest;
          ASSIGN( NS2, NS1 );
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -155,7 +155,7 @@ CLASS IMPLEMENTATION CTest;
          S1.Dispose();
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -171,7 +171,7 @@ CLASS IMPLEMENTATION CTest;
          S1.Copy( S );         
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -187,7 +187,7 @@ CLASS IMPLEMENTATION CTest;
          S1.Assign( S );         
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );

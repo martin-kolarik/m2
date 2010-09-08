@@ -548,7 +548,7 @@ CLASS IMPLEMENTATION ASrvStream;
 
    PRIVATE PROCEDURE NormalizeHeaders();
    VAR
-      dt : DateTime.DateTime;
+      dt : datetime.DateTime;
       Content : StringsO.CString;
    BEGIN
       // Date
@@ -920,7 +920,7 @@ CLASS CSession IMPLEMENTS HttpSrv.ISession;
    PRIVATE VAR
       _Valid : BOOLEAN := TRUE;
       _RootPath : StringsO.CString;
-      _Created : DateTime.TJD;
+      _Created : datetime.TJD;
       _New : BOOLEAN := TRUE;
       _SID : StringsO.CString;
       _Data : syncmaps.CStringSyncMap;
@@ -1021,7 +1021,7 @@ CLASS IMPLEMENTATION CSession;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _Created := DateTime.GetCurrentJD();
+   _Created := datetime.GetCurrentJD();
 END CSession;
 
 (*================================================================================*)
@@ -1052,7 +1052,7 @@ CLASS IMPLEMENTATION HttpWorker;
       HTTP_COMMON_LOG_TIME_FORMAT = L"dd/MMM/yyyy:HH:mm:ss +0000";
    VAR
       Connection : CHttpConnection;
-      dt : DateTime.DateTime;
+      dt : datetime.DateTime;
       logger : Log.TPILogger := NIL;
       s : StringsO.CString;
       sOA : ARRAY [0..255] OF WCHAR;
@@ -1186,10 +1186,10 @@ CLASS IMPLEMENTATION CSessionHolder;
       session : TPSrvSession;
       sessionid : sha256.TDigest;
       shorttime : CARDINAL;
-      time : DateTime.TTime64;
+      time : datetime.TTime64;
    BEGIN
       // sweepout old sessions
-      shorttime := DateTime.UptimeMS();
+      shorttime := datetime.UptimeMS();
       WHILE Expiration.GetFirstElapsed( shorttime, TRUE, OUT session, OUT ptr ) DO
          Sessions.Remove( session^.SID );
          OnSessionExpired( session );
@@ -1210,7 +1210,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       END;
 
       // cookie not set or cookie not found, create new empty session
-      time := DateTime.time();
+      time := datetime.time();
       digest.DigestOA( digest.sha256, time, OUT iv );
       digest.DigestOA( digest.sha256, OA( 31, addr.Data ), OUT data );
       rijndael.Encrypt( rijndael.cphmBlockEncrypt, rijndael.rkl256, Seed, iv, data, OUT sessionid, OUT c );
@@ -1448,7 +1448,7 @@ CLASS IMPLEMENTATION ASrvCommon;
       Reported : BOOLEAN := FALSE;
       Result : Sync.TAsyncResult;
       Session : TPSrvSession;
-      Timeout : CARDINAL := DateTime.UptimeMS() + netsocket.FORSAFETY;
+      Timeout : CARDINAL := datetime.UptimeMS() + netsocket.FORSAFETY;
       uri : StringsO.CString;
       Verb : HttpCommon.TVerb;
       WantsSession : BOOLEAN := FALSE;
@@ -1501,7 +1501,7 @@ CLASS IMPLEMENTATION ASrvCommon;
          END;
 
          Sync.Sleep( 100 );
-         IF DateTime.UptimeMS() - Timeout > 0 THEN // time elapsed
+         IF datetime.UptimeMS() - Timeout > 0 THEN // time elapsed
             Log.logger()^.LogS( lcWarning, 0, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
             EXIT;
          END;
@@ -1536,9 +1536,9 @@ CLASS IMPLEMENTATION ASrvCommon;
    BEGIN
       _RootPath.FromOA( L"/" );
       
-      _Seed := DateTime.time();
+      _Seed := datetime.time();
       Sync.Sleep( 17 );
-      _Seed := _Seed * ( MAX( INT64 ) - DateTime.time() );
+      _Seed := _Seed * ( MAX( INT64 ) - datetime.time() );
       
       _Pool.MinThreads := 2;
       _Pool.MaxThreads := 32;

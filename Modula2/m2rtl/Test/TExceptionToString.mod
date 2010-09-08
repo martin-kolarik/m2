@@ -6,13 +6,13 @@ FROM Exceptions IMPORT
    Exception, StoreException, TestIfCatched, RetrieveException;
 
 IMPORT
+   datetime,
    Exceptions,
    log,
    Strings,
    Sync,
    test,
-   testimpl,
-   time;
+   testimpl;
   
 (*===========================================================================*)
 

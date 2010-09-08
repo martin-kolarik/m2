@@ -900,20 +900,20 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ValidFor( CONST datetime : datetime.DateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE ValidFor( CONST dt : datetime.DateTime ) : BOOLEAN;
    BEGIN
       IF _Starts.Year = 0 THEN
          IF _Expires.Year = 0 THEN
             RETURN TRUE;
          END;
          // only expires
-         RETURN _Expires >= datetime;
+         RETURN _Expires >= dt;
       ELSIF _Expires.Year = 0 THEN
          // only starts
-         RETURN _Starts <= datetime;
+         RETURN _Starts <= dt;
       ELSE
          // starts and expires
-         RETURN ( _Starts <= datetime ) AND ( _Expires >= datetime );
+         RETURN ( _Starts <= dt ) AND ( _Expires >= dt );
       END;
    END ValidFor;
 
