@@ -478,7 +478,7 @@ CLASS IMPLEMENTATION CIO;
       END;
       
       // DBG
-		log.logger()^.LogSCB( Log.dldTrace, L'', L'rx ', SIZE( PPacket^ ), PPacket, SIZE( PPacket^ ));
+		log.logger()^.LogSCB( Log.ldTrace, L'', L'rx ', SIZE( PPacket^ ), PPacket, SIZE( PPacket^ ));
       
       IF Result = Sync.arCompleted THEN
          _DataInfo^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, ADR( V )));

@@ -680,13 +680,13 @@ BEGIN
 
       IF ini.GetKeyStr( knLevel, OUT errorLine, OUT cs ) THEN
          IF cs.EqualsOA( kvDebugFailure ) OR cs.EqualsOA( kvFatal ) THEN
-            filter.Level := Log.dldError;
+            filter.Level := Log.ldError;
          ELSIF cs.EqualsOA( kvDebugMessage ) OR cs.EqualsOA( kvError ) THEN
-            filter.Level := Log.dldMessage;
+            filter.Level := Log.ldMessage;
          ELSIF cs.EqualsOA( kvDebugTrace ) OR cs.EqualsOA( kvWarning ) THEN
-            filter.Level := Log.dldTrace;
+            filter.Level := Log.ldTrace;
          ELSIF cs.EqualsOA( kvDebugAll ) OR cs.EqualsOA( kvInfo ) THEN
-            filter.Level := Log.dldDebug;
+            filter.Level := Log.ldDebug;
          ELSE
             RETURN clfrUnknownLevel;
          END;

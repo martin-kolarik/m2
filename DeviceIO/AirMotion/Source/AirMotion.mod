@@ -999,7 +999,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       _PoolDelegate.TimeoutSink := ADR( SELF );
 
-      Logger.LogS( log.dldMessage, 0, L"AirMotion", L"Started" );
+      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Started" );
       RETURN Connection.OpenS( _HostAddress, TRUE, 500 );
    END Start;
 
@@ -1013,7 +1013,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       StopTimeout( REF _RxTimeoutHandle );
 
       Connection.Close();
-      Logger.LogS( log.dldMessage, 0, L"AirMotion", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Stopped" );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -1346,7 +1346,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          RETURN FALSE;
       ELSIF NOT Data.Empty THEN
          RxBuffer.Append( Data );
-         Logger.LogSCB( log.dldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+         Logger.LogSCB( log.ldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
       END;
 
       IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN

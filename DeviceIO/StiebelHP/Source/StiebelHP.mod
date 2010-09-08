@@ -463,7 +463,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
    	_PoolDelegate.TimeoutSink := ADR( SELF );
 
-      Logger.LogS( log.dldMessage, 0, L"StiebelHP", L"Started" );
+      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Started" );
       RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
    END Start;
 
@@ -477,7 +477,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       StopTimeout( REF _RxTimeoutHandle );
 
       Connection.Close();
-      Logger.LogS( log.dldMessage, 0, L"StiebelHP", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Stopped" );
    END Stop;
 
 (*---------------------------------------------------------------------------*)

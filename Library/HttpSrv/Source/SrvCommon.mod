@@ -1502,7 +1502,7 @@ CLASS IMPLEMENTATION ASrvCommon;
 
          Sync.Sleep( 100 );
          IF DateTime.UptimeMS() - Timeout > 0 THEN // time elapsed
-            Log.logger()^.LogS( dlcWarning, 0, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
+            Log.logger()^.LogS( lcWarning, 0, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
             EXIT;
          END;
       END;

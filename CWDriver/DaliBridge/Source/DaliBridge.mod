@@ -1788,7 +1788,7 @@ CLASS IMPLEMENTATION CDaliDevice;
             Programmer[Linie].HandleResponse( TRUE, 0 ); // move to next state
             
          | dapProgramOne :
-            Logger.LogSC( dldTrace, logProgramPrefix, L"Programm address: ", Programmer[Linie].CurrentShortAddress );
+            Logger.LogSC( ldTrace, logProgramPrefix, L"Programm address: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
             FeedCommand( Linie, NIL, cmdSetAddress, DA.TransportAddress OR 01H, NIL, EXPECTED_RESPONSE );

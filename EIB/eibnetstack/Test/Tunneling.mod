@@ -71,7 +71,7 @@ END Test;
 PROCEDURE wmain();
 #restore
 BEGIN
-   Log.LOG.DebugLevel := Log.dldDebug;
+   Log.LOG.DebugLevel := Log.ldDebug;
 
 	netinit.Startup();
 	Test();
