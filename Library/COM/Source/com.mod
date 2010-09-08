@@ -1,6 +1,9 @@
 IMPLEMENTATION MODULE com;
 (*# option( pack => 8 ) *)
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
@@ -68,10 +71,11 @@ CLASS IMPLEMENTATION CIUnknown;
   BEGIN
     #if ADDREF_RELEASE_DEBUG #then
       DbgOutREL( ADR( SELF ));
-      IF ReferenceCount = 0 THEN
-        ADDRESS( 0 )^ := 0;
-      END;
     #endif
+      IF ReferenceCount = 0 THEN
+         ASSERTLOG( FALSE, L"ReferenceCount = 0, already released" );
+         RETURN 0;
+      END;
     DEC( ReferenceCount );
     IF ReferenceCount > 0 THEN
       RETURN windows.ULONG( ReferenceCount );

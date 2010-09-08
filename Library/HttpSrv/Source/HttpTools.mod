@@ -138,6 +138,10 @@ BEGIN
       s.FromOA( CONTENT_TYPE_XML );
    | contentTextCSS :
       s.FromOA( CONTENT_TYPE_CSS );
+   | contentTextCSV :
+      s.FromOA( CONTENT_TYPE_CSV );
+   | contentApplicationJS :
+      s.FromOA( CONTENT_TYPE_JS );
    ELSE
       appendCharset := FALSE;
       highF := FileName.Length-1;
@@ -217,6 +221,102 @@ BEGIN
    s2.FromOA( RFC1766Code );
    RETURN FormatContent( Content, s1, s2, Fallback, OUT ContentHeader );
 END FormatContentOA;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE DecodeContent( CONST ContentString : StringsO.IString; OUT Content : TContent; OUT RFC1766Code : StringsO.IString ) : BOOLEAN;
+VAR
+   equal : CARDINAL;
+   index : CARDINAL;
+   newindex : CARDINAL;
+   parameter : StringsO.CString;
+   parameters : StringsO.CString;
+   s : StringsO.CString;
+BEGIN
+   index := ContentString.IndexOfOA( L";", 0 );
+   IF index = -1 THEN
+      s.Assign( ContentString );
+      // parameters left empty
+   ELSE
+      ContentString.Substring( 0, index-1, OUT s );
+      ContentString.Substring( index+1, -1, OUT parameters );
+   END;
+
+   s.Trim();
+   s.Lowerize();
+   IF s.EqualsOA( CONTENT_TYPE_TEXT ) THEN
+      Content := contentTextPlain;
+   ELSIF s.EqualsOA( CONTENT_TYPE_HTML ) THEN
+      Content := contentTextHTML;
+   ELSIF s.EqualsOA( CONTENT_TYPE_XHTML ) THEN
+      Content := contentTextXHTML;
+   ELSIF s.EqualsOA( CONTENT_TYPE_XML ) THEN
+      Content := contentTextXML;
+   ELSIF s.EqualsOA( CONTENT_TYPE_CSS ) THEN
+      Content := contentTextCSS;
+   ELSIF s.EqualsOA( CONTENT_TYPE_CSV ) THEN
+      Content := contentTextCSV;
+   ELSIF s.EqualsOA( CONTENT_TYPE_JS ) THEN
+      Content := contentApplicationJS;
+   ELSIF s.EqualsOA( CONTENT_TYPE_BINARY ) THEN
+      Content := contentApplicationBinary;
+   ELSE
+      RETURN FALSE;
+   END;
+   
+   RFC1766Code.Clear();
+   parameters.Trim();
+   IF parameters.Empty THEN
+      RETURN TRUE;
+   END;
+   parameters.Lowerize();
+
+   index := 0;
+   WHILE index <> -1 DO
+      newindex := parameters.IndexOfOA( L";", index );
+      IF newindex = -1 THEN
+         parameter := parameters;
+      ELSE
+         parameters.Substring( index, newindex-index-1, OUT parameter );
+      END;
+      index := newindex;
+
+      parameter.Trim();      
+      IF parameter.Empty THEN
+         CONTINUE;
+      END;
+      equal := parameter.IndexOfOA( L"=", 0 );
+      IF equal = -1 THEN
+         CONTINUE;
+      END;
+      parameter.Substring( 0, equal-1, OUT s );
+      s.Trim();
+      IF NOT s.EqualsOA( CHARSET_PREFIX ) THEN
+         CONTINUE;
+      END;
+
+      parameter.Substring( equal+1, -1, OUT RFC1766Code );
+      RFC1766Code.Trim();
+
+      EXIT;
+   END; // WHILE
+
+   RETURN TRUE;
+END DecodeContent;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE DecodeContentOA( CONST ContentString : ARRAY OF WCHAR; OUT Content : TContent; OUT RFC1766Code : ARRAY OF WCHAR ) : BOOLEAN;
+VAR
+   s1, s2 : StringsO.CString;
+BEGIN
+   s1.FromOA( ContentString );
+   IF DecodeContent( s1, OUT Content, OUT s2 ) THEN
+      s2.ToOA( OUT RFC1766Code );
+      RETURN TRUE;
+   END;
+   RETURN FALSE;
+END DecodeContentOA;
 
 (*---------------------------------------------------------------------------*)
 

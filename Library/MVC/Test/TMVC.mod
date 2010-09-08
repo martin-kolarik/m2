@@ -34,7 +34,10 @@ END CTest;
 (*---------------------------------------------------------------------------*)
 
 CLASS CController IMPLEMENTS MVC.IController;
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : MVC.IHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : MVC.IContainer );
+   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : MVC.IContainer );
+
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : MVC.IHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
 END CController;
 
 (*---------------------------------------------------------------------------*)
@@ -140,7 +143,19 @@ CLASS IMPLEMENTATION CController;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : MVC.IHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : MVC.IContainer );
+   BEGIN
+   END InitializeModelContainer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : MVC.IContainer );
+   BEGIN
+   END CleanupModelContainer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : MVC.IHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       l : lists.TPStringStringList;

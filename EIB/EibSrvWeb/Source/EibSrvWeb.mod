@@ -38,7 +38,9 @@ TYPE
 CONST
     LOG_PREFIX = L"KnxSrv";
 
-    cfSmartServerUsers = L"SmartServer\WebUsers.cfg";
+    cfSmartServerUsersFolder = L"SmartServer";
+    cfSmartServerUsersFile = L"WebUsers.cfg";
+
     snRoles = L"roles";
        knNamed = L"named";
        knKeyed = L"keyed";
@@ -886,14 +888,16 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          knDeny = L"deny";
       knWebRoot = L"web_root";
       knMessageFile = L"message_file";
+      knSessionValidity = L"session_validity";
    VAR
       authinfo : StringsO.CString;
       es : PTR;
       line : CARDINAL;
       ok : BOOLEAN := TRUE;
       Path : ARRAY [0..260] OF WCHAR;
-      s : StringsO.CString;
       rule : StringsO.CString;
+      s : StringsO.CString;
+      sessionValidity : CARDINAL;
    BEGIN
       Stop();
 
@@ -920,6 +924,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          END;
          IF cfg.GetKeyStr( knMessageFile, OUT line, OUT _MessageFile ) THEN
             _MessageFile.ReplaceOA( L"%exedir%", Path );
+         END;
+         IF cfg.GetKeyInt( knSessionValidity, OUT line, OUT sessionValidity ) THEN
+            _SessionValidity := sessionValidity;
          END;
       END;
       IF _RootDir.Empty THEN
@@ -992,6 +999,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       ASSERT( _MVC = NIL );
       _MVC := mvc.mvc( OA( _Context.Length-1, _Context.Data ));
+      _MVC^.SessionValidity := _SessionValidity;
       _MVC^.MessageSourcePath := _MessageFile;
       _MVC^.Logger := _HttpLogger;
       _MVC^.AccessList := ADR( _AccessList );
@@ -1050,7 +1058,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT usersFileOA ) THEN
          RETURN FALSE;
       END;
-      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFolder );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFile );
       IF NOT cfg.LoadPath( usersFileOA ) THEN 
          RETURN FALSE;
       END;
@@ -1106,11 +1115,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          ASSERTLOG( FALSE, L"Unable to get web users file folder" );
          RETURN;
       END;
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFolder );
       IF NOT FIO.CreateDirectoryW( usersFileOA ) THEN
          ASSERTLOG( FALSE, L"Unable to store to web users file" );
          RETURN; // store nothing
       END;
-      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFile );
       cfg.LoadPath( usersFileOA ); // load the file
 
       cfg.CreateSection( snRoles, FALSE );
@@ -1235,6 +1245,7 @@ BEGIN
    _DeviceNames := NIL;
    _Devices := NIL;
    _Port := 8080;
+   _SessionValidity := 30 * 60; // 30 minutes
    _Running := FALSE;
    _Controller := NIL;
    _StartedTime := 0;

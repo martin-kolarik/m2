@@ -1175,8 +1175,6 @@ CLASS IMPLEMENTATION CSessionHolder;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetSession( pcookie : StringsO.TPString; CONST addr : inetaddr.INETADDR; CONST rootPath : StringsO.CString ) : TPSrvSession;
-   CONST
-      SESSION_VALIDITY = 30*60*1000; // milliseconds, 30 minutes
    VAR
       c : CARDINAL;
       cookie : StringsO.CString;
@@ -1202,7 +1200,7 @@ CLASS IMPLEMENTATION CSessionHolder;
          session^.New := FALSE;
          Expiration.Remove( session );
          IF session^.Valid THEN // move expiration to the future
-            Expiration.Add( shorttime, session, 0, SESSION_VALIDITY );
+            Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
             RETURN session;
          ELSE // kill the session
             Sessions.Remove( s );
@@ -1225,7 +1223,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       NEW( session );
       session^.Init( cookie, rootPath );
       Sessions.Add( cookie, session );
-      Expiration.Add( shorttime, session, 0, SESSION_VALIDITY );
+      Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
       
       RETURN session;      
    END GetSession;

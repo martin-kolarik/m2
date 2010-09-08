@@ -34,6 +34,7 @@ END CTest;
 CLASS CProcessor IMPLEMENTS httpsrv.IHttpProcessor;
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestLogger : log.TPILogger;
+      SessionValidityMS : CARDINAL; // Sync.FOREVER is also valid
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
@@ -137,6 +138,13 @@ CLASS IMPLEMENTATION CProcessor;
    BEGIN
       RETURN log.logger();
    END RequestLogger;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY SessionValidityMS GET : CARDINAL; // Sync.FOREVER is also valid
+   BEGIN
+      RETURN 30 * 60 * 1000;
+   END SessionValidityMS;
 
 (*---------------------------------------------------------------------------*)
 
