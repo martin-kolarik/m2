@@ -47,10 +47,11 @@ END CNS;
 (*---------------------------------------------------------------------------*)
 
 INTERFACE IAutomatonRequest;
+   PROCEDURE Ack();
    PROCEDURE UpdateDeviceBuffer();
    PROCEDURE AskData();
    PROCEDURE ProcessData( Packet : ADDRESS );
-   PROCEDURE SendData( Packet : ADDRESS; Length : CARDINAL );
+   PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
    PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
 END IAutomatonRequest;
 
@@ -66,6 +67,7 @@ TYPE
 
 CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
    PRIVATE VAR
+      _Lock : Sync.LOCK;
       _State : TAutomatonState;
       _Driven : POINTER TO IAutomatonRequest;
       _PeriodHandle : threadpool.TPoolHandle;
@@ -92,13 +94,11 @@ CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
    PUBLIC PROCEDURE EventACK();
    PUBLIC PROCEDURE EventNAK();
    PUBLIC PROCEDURE EventSTX( Packet : ADDRESS );
-   PUBLIC PROCEDURE EventNUL();
+   PUBLIC PROCEDURE EventNoData();
    PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE EventWriteError();
    PUBLIC PROCEDURE EventTimeout();
    
    PRIVATE PROPERTY State : TAutomatonState;
-   PRIVATE PROCEDURE SendData();
 END CDeviceAutomaton;
 
 (*---------------------------------------------------------------------------*)
@@ -135,13 +135,15 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // IAutomatonRequest
+   PUBLIC VIRTUAL PROCEDURE Ack();
    PUBLIC VIRTUAL PROCEDURE UpdateDeviceBuffer();
    PUBLIC VIRTUAL PROCEDURE AskData();
    PUBLIC VIRTUAL PROCEDURE ProcessData( Packet : ADDRESS );
-   PUBLIC VIRTUAL PROCEDURE SendData( Packet : ADDRESS; Length : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
    PUBLIC VIRTUAL PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
 
    // from CSerial
+   INTERNAL VIRTUAL PROCEDURE DetectDataStart( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexOfFrame, FirstIndexOfData : CARDINAL ) : BOOLEAN;
 	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
 	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
 	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );

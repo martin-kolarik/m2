@@ -233,14 +233,14 @@ VAR
    BridgeSvc : CBridgeSvc;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain( argc : CARDINAL; argp, envp : ADDRESS ) : CARDINAL;
+PROCEDURE Main( argc : CARDINAL; argp : ADDRESS ) : CARDINAL;
 #restore
 VAR
    PService : Service.TPService := ADR( BridgeSvc );
 BEGIN
    Service.Run( OA( 0, ADR( PService )), FALSE, 0 );
    RETURN 0;
-END wmain;
+END Main;
 
 (*================================================================================*)
 

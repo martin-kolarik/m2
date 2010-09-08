@@ -189,7 +189,7 @@ CLASS IMPLEMENTATION CNS;
 		I := TPNSI( CreateNewItem( L"Output T",                      ns.ntValue, iovalue.vtFloat,   0301D6H )); D^.AddChild( I ); I^.Multiplier := 10;
 
 		I := TPNSI( CreateNewItem( L"Water T",                       ns.ntValue, iovalue.vtFloat,   03000EH )); D^.AddChild( I ); I^.Multiplier := 10;
-		I := TPNSI( CreateNewItem( L"Water T setpoint",              ns.ntValue, iovalue.vtFloat,   030003H )); D^.AddChild( I ); I^.Multiplier := 10;
+		I := TPNSI( CreateNewItem( L"Water T setpoint",              ns.ntValue, iovalue.vtFloat,   030013H )); D^.AddChild( I ); I^.Multiplier := 10;
 
 		I := TPNSI( CreateNewItem( L"Pump 1 Service Hours",          ns.ntValue, iovalue.vtInteger, 0301C4H )); D^.AddChild( I );
 		I := TPNSI( CreateNewItem( L"Pump 2 Service Hours",          ns.ntValue, iovalue.vtInteger, 0301C5H )); D^.AddChild( I );
@@ -461,7 +461,9 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Started" );
+   	_PoolDelegate.TimeoutSink := ADR( SELF );
+
+      Logger.LogS( log.dldMessage, 0, L"StiebelHP", L"Started" );
       RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
    END Start;
 
@@ -469,8 +471,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
+   	_PoolDelegate.TimeoutSink := NIL;
+
+      StopTimeout( REF _TxTimeoutHandle );
+      StopTimeout( REF _RxTimeoutHandle );
+
       Connection.Close();
-      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Stopped" );
+      Logger.LogS( log.dldMessage, 0, L"StiebelHP", L"Stopped" );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -544,6 +551,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		   StopTimeout( REF _RxTimeoutHandle );
 			PIO^.OnRx( Result, NIL );
 		ELSIF PLONGWORD( Data.Data )^ = 055555555H THEN
+   		StopTimeout( REF _RxTimeoutHandle ); // no need to wait for Rx timeout, when data was written
 			PIO^.OnTxCON( Sync.arCompleted );
 		ELSE
 		   StopTimeout( REF _RxTimeoutHandle );
@@ -725,8 +733,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
    BEGIN
-      // wait for some dump, then fix the bug and leave only the ASSERT on the place
-      // ASSERTLOG( Handle = NIL );
       IF Handle <> NIL THEN
          StopTimeout( REF Handle );
          ASSERTLOG( FALSE );
@@ -752,7 +758,6 @@ BEGIN
 	PIO := NIL;
 	_RxTimeoutHandle := 0;
 	_TxTimeoutHandle := 0;
-	_PoolDelegate.TimeoutSink := ADR( SELF );
 END CDeviceCommunicator;
 
 (*===========================================================================*)

@@ -106,6 +106,10 @@ CLASS IMPLEMENTATION ABridge;
             // get values from device and send them to SDAP
             _Data.Reset();
             WHILE _Data.MoveNext() DO
+               IF Helper.WaitForStopRequest( 0 ) = Sync.arCompleted THEN // stop loop prematurely, someone wants to stop the thread
+                  EXIT;
+               END;
+
                item := _Data.Current;
                IF item^.Direction <> IOO.dirRead THEN
                   CONTINUE;
@@ -160,7 +164,9 @@ CLASS IMPLEMENTATION ABridge;
                   EXIT;
                END;
                
-               IF _Result.Counted OR _Result.Expired THEN
+               IF Helper.WaitForStopRequest( 0 ) = Sync.arCompleted THEN // stop loop prematurely, someone wants to stop the thread
+                  CONTINUE; // continue with queue flushing, do not leave memory to leak
+               ELSIF _Result.Counted OR _Result.Expired THEN
                   CONTINUE;
                END;
 
