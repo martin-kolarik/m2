@@ -3,10 +3,6 @@ IMPLEMENTATION MODULE rawconnection;
 FROM Debug IMPORT
    Assertion, LogAssertionW;
 
-IMPORT
-   msgqueuethread,
-   threadcall;
-
 (*================================================================================*)
 
 TYPE
@@ -15,7 +11,7 @@ TYPE
 CLASS CConnectionNotifier( netsocket.ASocketNotifier ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    LOCAL VAR
       Connection : POINTER TO IPConnection := NIL;
-      CallbackMode : IOO.TCallbackMode := IOO.cbmPooled; // not default
+      Dispatcher : threadcall.TPIThreadProcedureCallDispatcher := NIL;
       Notifier : netsocket.TPSocketNotifier := NIL;
 
    PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Error : CARDINAL; Source : ADDRESS; SourceSpecificCode : LONGWORD );
@@ -72,14 +68,14 @@ CLASS IMPLEMENTATION CConnectionNotifier;
       ELSIF Notifier = NIL THEN
          // do nothing
 
-      ELSIF CallbackMode = IOO.cbmPooled THEN
+      ELSIF Dispatcher = NIL THEN
          Notifier^.OnError( Direction, Error, NIL, SourceSpecificCode );
 
       ELSE
          P.Direction := Direction;
          P.Error := Error;
          P.SourceSpecificCode := SourceSpecificCode;
-         IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnError, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF Dispatcher^.DispatchCall( ADR( SELF ), opOnError, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
             ASSERTLOG( FALSE );
          END;
 
@@ -97,11 +93,11 @@ CLASS IMPLEMENTATION CConnectionNotifier;
       ELSIF Notifier = NIL THEN
          // do nothing
 
-      ELSIF CallbackMode = IOO.cbmPooled THEN
+      ELSIF Dispatcher = NIL THEN
          Notifier^.OnFlowPossible( Direction, NIL );
 
       ELSE
-         IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnFlowPossible, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF Dispatcher^.DispatchCall( ADR( SELF ), opOnFlowPossible, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
             ASSERTLOG( FALSE );
          END;
 
@@ -119,11 +115,11 @@ CLASS IMPLEMENTATION CConnectionNotifier;
       ELSIF Notifier = NIL THEN
          // do nothing
 
-      ELSIF CallbackMode = IOO.cbmPooled THEN
+      ELSIF Dispatcher = NIL THEN
          Notifier^.OnReadable( Length, NIL );
 
       ELSE
-         IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnReadable, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF Dispatcher^.DispatchCall( ADR( SELF ), opOnReadable, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
             ASSERTLOG( FALSE );
          END;
 
@@ -141,11 +137,11 @@ CLASS IMPLEMENTATION CConnectionNotifier;
       ELSIF Notifier = NIL THEN
          // do nothing
 
-      ELSIF CallbackMode = IOO.cbmPooled THEN
+      ELSIF Dispatcher = NIL THEN
          Notifier^.OnWritten( Length, NIL );
 
       ELSE
-         IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnWritten, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF Dispatcher^.DispatchCall( ADR( SELF ), opOnWritten, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
             ASSERTLOG( FALSE );
          END;
 
@@ -179,11 +175,11 @@ CLASS IMPLEMENTATION CConnectionNotifier;
       IF Notifier = NIL THEN
          // do nothing
 
-      ELSIF CallbackMode = IOO.cbmPooled THEN
+      ELSIF Dispatcher = NIL THEN
          Notifier^.OnConnect( Result, NIL, TRUE );
 
       ELSE
-         IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnConnect, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF Dispatcher^.DispatchCall( ADR( SELF ), opOnConnect, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
             ASSERTLOG( FALSE );
          END;
 
@@ -200,13 +196,13 @@ CLASS IMPLEMENTATION CConnectionNotifier;
       IF Notifier = NIL THEN
          // do nothing
 
-      ELSIF CallbackMode = IOO.cbmPooled THEN
+      ELSIF Dispatcher = NIL THEN
          Notifier^.OnDisconnect( Result, NIL, Local );
 
       ELSE
          P.Result := Result;
          P.Local := Local;
-         IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnDisconnect, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF Dispatcher^.DispatchCall( ADR( SELF ), opOnDisconnect, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
             ASSERTLOG( FALSE );
          END;
 
@@ -250,35 +246,28 @@ END CConnectionNotifier;
 (*================================================================================*)
 
 CLASS IMPLEMENTATION IPConnection;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY CallbackMode GET : IOO.TCallbackMode;
-   BEGIN
-      RETURN _Notifier^.CallbackMode;
-   END CallbackMode;
+BEGIN
+   NEW( _Notifier );
+   _Notifier^.Connection := ADR( SELF );
    
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY CallbackMode SET( Value : IOO.TCallbackMode );
-   BEGIN
-      _Notifier^.CallbackMode := Value;
-   END CallbackMode;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Notifier GET : netsocket.TPSocketNotifier;
-   BEGIN
-      RETURN _Notifier^.Notifier;
-   END Notifier;
+   _Socket := NIL;
    
-(*--------------------------------------------------------------------------------*)
+   _BStream.Stream := ADR( _NStream );
+   _BStream.Notifier := _Notifier;
 
-   PUBLIC VIRTUAL PROPERTY Notifier SET( Value: netsocket.TPSocketNotifier );
-   BEGIN
-      _Notifier^.Notifier := Value;
-   END Notifier;
+FINALLY
+   _BStream.Close( FALSE );
+   _BStream.Stream := NIL;
+   // _NStream is closed inside _BStream
    
+   _Notifier^.Release();
+   _Notifier := NIL;
+END IPConnection;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION ClientIPConnection;
+
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Connected GET : BOOLEAN;
@@ -309,17 +298,13 @@ CLASS IMPLEMENTATION IPConnection;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY BufferedStream GET : IOO.TPBufferedStream;
+   PUBLIC VIRTUAL PROCEDURE Close();
    BEGIN
-      RETURN ADR( _BStream );
-   END BufferedStream;
-   
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-   BEGIN
-      RETURN Open( OA( Host.Length-1, Host.Data ), WaitForResult, TimeoutMS );
-   END OpenS;
+      IF _Socket^.Connected THEN
+         _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      END;
+      _BStream.Close( TRUE );
+   END Close;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -343,37 +328,53 @@ CLASS IMPLEMENTATION IPConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Close();
+   PUBLIC VIRTUAL PROPERTY Dispatcher GET : threadcall.TPIThreadProcedureCallDispatcher;
    BEGIN
-      IF _Socket^.Connected THEN
-         _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
-      END;
-      _BStream.Close( TRUE );
-   END Close;
+      RETURN _Notifier^.Dispatcher;
+   END Dispatcher;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Dispatcher SET( Value : threadcall.TPIThreadProcedureCallDispatcher );
+   BEGIN
+      _Notifier^.Dispatcher := Value;
+   END Dispatcher;
 
 (*--------------------------------------------------------------------------------*)
 
-BEGIN
-   NEW( _Notifier );
-   _Notifier^.Connection := ADR( SELF );
+   PUBLIC VIRTUAL PROPERTY Notifier GET : netsocket.TPSocketNotifier;
+   BEGIN
+      RETURN _Notifier^.Notifier;
+   END Notifier;
    
-   _Socket := NIL;
-   
-   _BStream.Stream := ADR( _NStream );
-   _BStream.Notifier := _Notifier;
+(*--------------------------------------------------------------------------------*)
 
-FINALLY
-   _BStream.Close( FALSE );
-   _BStream.Stream := NIL;
-   // _NStream is closed inside _BStream
+   PUBLIC VIRTUAL PROPERTY Notifier SET( Value: netsocket.TPSocketNotifier );
+   BEGIN
+      _Notifier^.Notifier := Value;
+   END Notifier;
    
-   _Notifier^.Release();
-   _Notifier := NIL;
-END IPConnection;
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY BufferedStream GET : IOO.TPBufferedStream;
+   BEGIN
+      RETURN ADR( _BStream );
+   END BufferedStream;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN Open( OA( Host.Length-1, Host.Data ), WaitForResult, TimeoutMS );
+   END OpenS;
+
+(*--------------------------------------------------------------------------------*)
+
+END ClientIPConnection;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION TCPConnection;
+CLASS IMPLEMENTATION ClientTCPConnection;
 BEGIN
    NEW( _Socket );
    _Socket^.Type := netsocket.stStream;
@@ -387,11 +388,11 @@ FINALLY
       _Socket^.Release();
       _Socket := NIL;
    END;
-END TCPConnection;
+END ClientTCPConnection;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION UDPConnection;
+CLASS IMPLEMENTATION ClientUDPConnection;
 BEGIN
    NEW( _Socket );
    _Socket^.Type := netsocket.stDatagram;
@@ -405,7 +406,118 @@ FINALLY
       _Socket^.Release();
       _Socket := NIL;
    END;
-END UDPConnection;
+END ClientUDPConnection;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION ServerTCPConnection;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Connected GET : BOOLEAN;
+   BEGIN
+      RETURN _Socket^.Connected;
+   END Connected;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY LocalAddress GET : inetaddr.INETADDR;
+   BEGIN
+      RETURN _Socket^.LocalAddress;
+   END LocalAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY RemoteAddress GET : inetaddr.INETADDR;
+   BEGIN
+      RETURN _Socket^.RemoteAddress;
+   END RemoteAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Stream GET : IOO.TPStream;
+   BEGIN
+      RETURN ADR( _BStream );
+   END Stream;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Close();
+   BEGIN
+      IF _Socket^.Connected THEN
+         _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      END;
+      _BStream.Close( TRUE );
+   END Close;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Dispatcher GET : threadcall.TPIThreadProcedureCallDispatcher;
+   BEGIN
+      RETURN _Notifier^.Dispatcher;
+   END Dispatcher;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Dispatcher SET( Value : threadcall.TPIThreadProcedureCallDispatcher );
+   BEGIN
+      _Notifier^.Dispatcher := Value;
+   END Dispatcher;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Notifier GET : netsocket.TPSocketNotifier;
+   BEGIN
+      RETURN _Notifier^.Notifier;
+   END Notifier;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Notifier SET( Value: netsocket.TPSocketNotifier );
+   BEGIN
+      _Notifier^.Notifier := Value;
+   END Notifier;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY BufferedStream GET : IOO.TPBufferedStream;
+   BEGIN
+      RETURN ADR( _BStream );
+   END BufferedStream;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Accept( CONST ListenSocket : netsocket.TPSSocket; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult; // WaitForResult, TimeoutMS not implemented yet
+   VAR
+      Error : CARDINAL := 0;
+      Result : Sync.TAsyncResult;
+   BEGIN
+      Result := _Socket^.Accept( ListenSocket, OUT Error );
+      IF Result NOT IN Sync.arsCompletions THEN
+         RETURN Result; // failure
+      ELSIF Error <> 0 THEN
+         RETURN Sync.arCannotStart; // strange
+      ELSE
+         RETURN Result; // success
+      END;
+   END Accept;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   NEW( _Socket );
+   _Socket^.Type := netsocket.stStream;
+
+   _Socket^.Notifier := _Notifier;
+   _NStream.FromSocket( _Socket, FALSE, IOO.accReadWrite );
+FINALLY
+   IF _Socket <> NIL THEN
+      _Socket^.Notifier := NIL;
+      _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      _Socket^.Release();
+      _Socket := NIL;
+   END;
+END ServerTCPConnection;
 
 (*================================================================================*)
 
