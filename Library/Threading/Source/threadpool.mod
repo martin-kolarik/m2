@@ -148,6 +148,11 @@ TYPE
   TPPoolThread = POINTER TO CPoolThread;
 
 CLASS CPoolThread( SCmsgqueuethread.SCMessageQueueThread );
+
+   // IThread
+   PUBLIC VIRTUAL READONLY PROPERTY
+      InfoType : thread.TInfoType;
+
   PRIVATE VAR
     Pool : TPThreadPool;
     HTasks : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMapSimplified; // CTask.Handle/PTask
@@ -171,7 +176,7 @@ CLASS CPoolThread( SCmsgqueuethread.SCMessageQueueThread );
   FINALLY CPoolThread();
   
   LOCAL PROCEDURE Init( Pool : TPThreadPool );
-  INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+  INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 
   PRIVATE PROCEDURE AddTask( CurrentTime : CARDINAL; Task : TPTask );
   PRIVATE PROCEDURE RemoveTask( Result : Sync.TAsyncResult; Task : TPTask );
@@ -226,6 +231,13 @@ CLASS IMPLEMENTATION CPoolThread;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC VIRTUAL READONLY PROPERTY InfoType GET : thread.TInfoType;
+   BEGIN
+      RETURN thread.infoTypePool;
+   END InfoType;
+
+//--------------------------------------------------------------------------------
+
   LOCAL PROCEDURE Init( Pool : TPThreadPool );
   BEGIN
     SELF.Pool := Pool;
@@ -254,7 +266,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 
       //-----
       
@@ -400,7 +412,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Worker : TPPoolWorker;
       WorkerTask : TPTask;
    BEGIN
-      OnStart();
+      OnStart( Restarted );
    
       WaitArray.Add( _HExit.RawHandle );
       WaitArray.Add( Queue.Consume^.RawHandle );

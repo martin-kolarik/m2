@@ -1,0 +1,26 @@
+DEFINITION MODULE Tls;
+// Modula2 ThreadLocalStorage
+
+#save, option( dll_export => on )
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPIThreadLocalStorage = POINTER TO IThreadLocalStorage;
+
+INTERFACE IThreadLocalStorage;
+
+   PROPERTY Value : PTR; // if Value is not present for the thread, NIL is returned
+
+END IThreadLocalStorage;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE Create( OUT Tls : TPIThreadLocalStorage ) : BOOLEAN;
+PROCEDURE Dispose( REF Tls : TPIThreadLocalStorage );
+
+(*--------------------------------------------------------------------------------*)
+
+#restore
+
+END Tls.

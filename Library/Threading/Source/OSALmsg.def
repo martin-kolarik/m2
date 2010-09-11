@@ -85,7 +85,7 @@ INTERFACE IMessageQueueThread( IMessageTarget );
    PUBLIC PROCEDURE TimerRunning( CONST Target : IMessageTarget; TimerId : PTR ) : BOOLEAN;
 
    // more thread's
-   INTERNAL PROCEDURE OnStart();
+   INTERNAL PROCEDURE OnStart( Restarted : BOOLEAN );
    INTERNAL PROCEDURE OnExit();
 
    // helper

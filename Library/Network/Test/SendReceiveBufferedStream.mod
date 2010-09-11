@@ -65,7 +65,7 @@ END CWriter;
 CLASS CReaderThread( thread.Thread );
    PUBLIC VAR
       Test : TPTest;
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 END CReaderThread;   
 
 (*---------------------------------------------------------------------------*)
@@ -165,7 +165,7 @@ CLASS IMPLEMENTATION CReaderThread;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       c : CARDINAL;
       r : sync.TAsyncResult;

@@ -24,7 +24,9 @@ CLASS SCMessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThr
       Queue : msgqueue.CMessageQueue;
 
    // IThread/IRunnable
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      InfoType : thread.TInfoType;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    
    // IThreadProcedureCallDispatcher
    PUBLIC FINAL PROCEDURE DispatchCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
@@ -42,7 +44,7 @@ CLASS SCMessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThr
    PUBLIC VIRTUAL PROCEDURE StopTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR );
    PUBLIC VIRTUAL PROCEDURE TimerRunning( CONST Target : msghandler.IMessageTarget; TimerId : PTR ) : BOOLEAN;
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    INTERNAL VIRTUAL PROCEDURE OnExit();
    INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Handler : msghandler.TPIMessageTarget ) : BOOLEAN;
 

@@ -254,7 +254,7 @@ BEGIN
    _FileName := NIL;
    _FileNameLength := 0;
 FINALLY
-   DEALLOCATE( OUT _FileName );   
+   DEALLOCATE( REF _FileName );   
 END CFileOutput;
 
 (*===========================================================================*)
@@ -452,7 +452,7 @@ CLASS IMPLEMENTATION CSimplePtrArray;
    BEGIN
       _Count := 0;
       _Size := 0;
-      DEALLOCATE( OUT _Appenders );
+      DEALLOCATE( REF _Appenders );
    END Clear;
 
 (*---------------------------------------------------------------------------*)

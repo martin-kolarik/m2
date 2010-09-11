@@ -4,14 +4,92 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
-  windows,
-  Sync;
-
-CONST
-  STACK_SIZE = 81920;
+   Debug,
+   excpt,
+   lists,
+   Sync,
+   Tls,
+   windows;
 
 TYPE
-  TPWin32Thread = POINTER TO Win32Thread;
+   TPWin32Thread = POINTER TO Win32Thread;
+
+(*================================================================================*)
+
+CLASS CThreadManager;
+
+   PRIVATE VAR
+      ThreadLocalStorage : Tls.TPIThreadLocalStorage;
+      Lock : Sync.RWLOCK;
+      Threads : lists.CPtrList;
+   
+   LOCAL PROCEDURE Register( Thread : TPWin32Thread ); // called in the context of Thread
+   LOCAL PROCEDURE Forget( Thread : TPWin32Thread ); // called in the context of Thread
+
+   LOCAL PROCEDURE CurrentThread() : TPWin32Thread;
+
+END CThreadManager;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CThreadManager;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Register( Thread : TPWin32Thread ); // called in the context of Thread
+   VAR
+      Result : Sync.TAsyncResult;
+   BEGIN
+      ThreadLocalStorage^.Value := Thread;
+
+      Result := Lock.LockWrite( Sync.FORSAFETY );
+      IF Result = Sync.arTimeout THEN
+         ASSERTLOG( FALSE, L"Unable to obtain ThreadManager lock" );
+      ELSE
+         Threads.Append( Thread, 0 );
+      END;
+      Lock.UnlockWrite();
+   END Register;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Forget( Thread : TPWin32Thread ); // called in the context of Thread
+   VAR
+      Result : Sync.TAsyncResult;
+   BEGIN
+      Result := Lock.LockWrite( Sync.FORSAFETY );
+      IF Result = Sync.arTimeout THEN
+         ASSERTLOG( FALSE, L"Unable to obtain ThreadManager lock" );
+      ELSE
+         Threads.Remove( Thread );
+      END;
+      Lock.UnlockWrite();
+
+      // leave the value set
+      // ThreadLocalStorage^.Value := NIL;
+   END Forget;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE CurrentThread() : TPWin32Thread;
+   BEGIN
+      RETURN ThreadLocalStorage^.Value;
+   END CurrentThread;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   Tls.Create( OUT ThreadLocalStorage );
+FINALLY
+   Tls.Dispose( REF ThreadLocalStorage );
+END CThreadManager;
+
+(*--------------------------------------------------------------------------------*)
+
+VAR
+   ThreadManager : CThreadManager;
+
+(*================================================================================*)
 
 #save, call( convention => stdcall )
 PROCEDURE Win32_thread( Thread : TPWin32Thread ) : windows.DWORD;
@@ -19,6 +97,16 @@ BEGIN
   RETURN Thread^.Exec();
 END Win32_thread;
 #restore
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ThreadCrashHandler( exceptionPointers : windows.PEXCEPTION_POINTERS ) : TRISTATE;
+BEGIN
+   Debug.Dump( L"", exceptionPointers );
+   RETURN excpt.EXCEPTION_EXECUTE_HANDLER;
+END ThreadCrashHandler;
+
+(*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION Win32Thread;
 
@@ -31,6 +119,21 @@ CLASS IMPLEMENTATION Win32Thread;
   BEGIN
     RETURN _Thread = windows.GetCurrentThreadId();
   END Win32Thread.SelfContext;
+
+  PUBLIC VIRTUAL PROPERTY Win32Thread.InfoType GET : OSALthread.TInfoType;
+  BEGIN
+      RETURN OSALthread.infoTypeGeneric;
+  END Win32Thread.InfoType;
+
+  PUBLIC VIRTUAL PROPERTY Win32Thread.CrashHandler GET : OSALthread.TPCrashHandler;
+  BEGIN
+      RETURN _CrashHandler;
+  END Win32Thread.CrashHandler;
+
+  PUBLIC VIRTUAL PROPERTY Win32Thread.CrashHandler SET( Value : OSALthread.TPCrashHandler );
+  BEGIN
+      _CrashHandler := Value;
+  END Win32Thread.CrashHandler;
 
   PUBLIC PROPERTY Win32Thread.WithMessages GET : BOOLEAN;
   BEGIN
@@ -62,7 +165,7 @@ CLASS IMPLEMENTATION Win32Thread;
 
       _RunLock.Reset();
       _HExit.Reset();
-      _HThread := windows.CreateThread( NIL, STACK_SIZE, windows.PTHREAD_START_ROUTINE( Win32_thread ), ADR( SELF ), 0, ADR( _Thread ));
+      _HThread := windows.CreateThread( NIL, 0, windows.PTHREAD_START_ROUTINE( Win32_thread ), ADR( SELF ), 0, ADR( _Thread ));
       IF WaitRun THEN
          Result := _RunLock.Wait( Sync.FORSAFETY );
       ELSE
@@ -123,7 +226,7 @@ CLASS IMPLEMENTATION Win32Thread;
       RETURN Start( TRUE );
    END RunWithRunnable;
    
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
    BEGIN
       RETURN 0;
    END OnRun;
@@ -237,18 +340,41 @@ CLASS IMPLEMENTATION Win32Thread;
 
    LOCAL PROCEDURE Exec() : CARDINAL;
    VAR
-     msg : windows.MSG;
+      msg : windows.MSG;
+      restarted : BOOLEAN := FALSE;
+      result : CARDINAL;
    BEGIN
-     IF _WMsg = -1 THEN
-        windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_NOREMOVE );
-        _WMsg := 1;
-     END;
-     _RunLock.Signal();
-     IF _Runnable = NIL THEN
-       RETURN OnRun( SELF );
-     ELSE
-       RETURN _Runnable^.OnRun( SELF );
-     END;
+      ThreadManager.Register( ADR( SELF ));
+
+      IF _WMsg = -1 THEN
+         windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_NOREMOVE );
+         _WMsg := 1;
+      END;
+      _RunLock.Signal();
+
+      LOOP
+         TRY
+            IF _Runnable = NIL THEN
+               result := OnRun( restarted, SELF );
+            ELSE
+               result := _Runnable^.OnRun( restarted, SELF );
+            END;
+            EXIT;
+         EXCEPT ThreadCrashHandler( excpt.GetExceptionInformation()) DO
+            IF CrashHandler = NIL THEN
+               result := -101;
+               EXIT;
+            ELSIF CrashHandler^.OnCrash( ADR( SELF )) = OSALthread.recoveryTypeStop THEN
+               result := -102;
+               EXIT;
+            ELSE
+               restarted := TRUE;
+            END;
+         END;
+      END; // LOOP over run
+
+      ThreadManager.Forget( ADR( SELF ));
+      RETURN result;
    END Exec;
 
    VIRTUAL FINALLY Win32Thread();
@@ -263,6 +389,16 @@ BEGIN
    _HExit.Init( Sync.stEvent, L"", FALSE );
    _WMsg := 0;
    _Runnable := NIL;
+   _CrashHandler := NIL;
 END Win32Thread;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE Current() : TPWin32Thread;
+BEGIN
+   RETURN ThreadManager.CurrentThread();
+END Current;
+
+(*--------------------------------------------------------------------------------*)
 
 END Win32thread.

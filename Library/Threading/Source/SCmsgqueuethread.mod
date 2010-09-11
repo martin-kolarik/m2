@@ -20,7 +20,14 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   PUBLIC VIRTUAL READONLY PROPERTY InfoType GET : thread.TInfoType;
+   BEGIN
+      RETURN thread.infoTypeMessage;
+   END InfoType;
+
+(*---------------------------------------------------------------------------*)
+  
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       CurrentTime : CARDINAL;
       Msg : SCmsg.SCMessage;
@@ -29,7 +36,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
       Timeout : CARDINAL;
       Timer : PTR;
    BEGIN
-      OnStart();
+      OnStart( Restarted );
 
       LOOP
          Timeout := Support^.GetTimeoutToFirstElapsed( datetime.UptimeMS());
@@ -167,7 +174,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    BEGIN
    END OnStart;
 

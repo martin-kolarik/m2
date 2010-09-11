@@ -20,14 +20,22 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   PUBLIC VIRTUAL READONLY PROPERTY InfoType GET : thread.TInfoType;
+   BEGIN
+      RETURN thread.infoTypeMessage;
+   END InfoType;
+
+(*---------------------------------------------------------------------------*)
+  
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       msg : windows.MSG;
       Msg : Win32msg.Win32Message;
       Return : CARDINAL := -1;
       Target : OSALmsg.TPMessageTarget;
    BEGIN
-      OnStart();
+      OnStart( Restarted );
+
       LOOP
          CASE WaitForStopRequest( Sync.FOREVER ) OF
          //-----
@@ -151,7 +159,7 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    BEGIN
    END OnStart;
 

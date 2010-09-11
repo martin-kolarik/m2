@@ -100,7 +100,7 @@ CLASS IMPLEMENTATION CIUnknown;
 
   PUBLIC OPERATOR DISPOSE( a : ADDRESS );
   BEGIN
-    DEALLOCATE( OUT a );
+    DEALLOCATE( REF a );
   END DISPOSE;
 
 //---------------------------------------------------------------------------

@@ -135,7 +135,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
                Request^.PNotifier^.OnAddressFound( Request^.RequestId, 0, OA( count-1, Addresses ));
                
-               DEALLOCATE( OUT Addresses );
+               DEALLOCATE( REF Addresses );
             END;
 
          ELSIF Request^ IS CAddressToNameRequest THEN

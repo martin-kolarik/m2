@@ -104,7 +104,7 @@ CLASS IMPLEMENTATION CMalloc;
 
    PUBLIC VIRTUAL PROCEDURE Free( pv : windows.PVOID );
    BEGIN
-      DEALLOCATE( OUT pv );
+      DEALLOCATE( REF pv );
    END Free;
 
 (*---------------------------------------------------------------------------*)
