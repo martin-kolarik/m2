@@ -170,6 +170,9 @@ BEGIN
       ELSIF f.EndsWithOA( L"css" ) THEN
          appendCharset := TRUE;
          s.FromOA( CONTENT_TYPE_CSS );
+      ELSIF f.EndsWithOA( L"js" ) THEN
+         appendCharset := TRUE;
+         s.FromOA( CONTENT_TYPE_JS );
 
       ELSIF f.EndsWithOA( L"png" ) THEN
          s.FromOA( L"image/png" );
