@@ -2136,12 +2136,12 @@ END rawTextView;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR ) : TPView;
+PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR; overrideLanguage : BOOLEAN; overriddenLanguage : Languages.TLanguage ) : TPView;
 VAR
    view : View.TPPageTemplateView;
 BEGIN
    NEW( view );
-   view^.Init( resolver, viewName );
+   view^.Init( resolver, viewName, overrideLanguage, overriddenLanguage );
    RETURN view;
 END pageTemplateView;
 

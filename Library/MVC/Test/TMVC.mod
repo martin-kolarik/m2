@@ -213,7 +213,7 @@ CLASS IMPLEMENTATION CController;
          s.FromOA( L"MAPD" ); m^.AddOA( L"block", s );
          s.FromOA( L"MAPE" ); m^.AddOA( L"mlock", s );
 
-         View := MVC.pageTemplateView( NIL, L"d:\work\smartcontrol\code\library\httpsrv\~Debug\page.pt" );
+         View := MVC.pageTemplateView( NIL, L"d:\work\smartcontrol\code\library\httpsrv\~Debug\page.pt", FALSE, 0 );
       END;
       RETURN TRUE;
    END ProcessRequest;

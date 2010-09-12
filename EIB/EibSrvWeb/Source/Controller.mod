@@ -34,6 +34,8 @@ CONST
    MESSAGE = L"message";
    LOGIN_REDIRECTED = L"redirected";
    USER_LOGIN_SOURCE_PAGE = L"sourcePage";
+   LANGUAGE = L"language";
+   INVALID_LANGUAGE = -1;
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -339,8 +341,11 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
    VAR
+      empty : StringsO.CString;
       version : StringsO.CString;
    BEGIN
+      Container.AddStringOA( LANGUAGE, empty );
+
       Container.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
@@ -381,6 +386,15 @@ CLASS IMPLEMENTATION CController;
          role := EibSrvWeb.roleGuest;
       END;
       
+      IF Request.ModelContainer^.GetStringOA( LANGUAGE, OUT s ) AND NOT s.Empty THEN // override language
+         SetOverriddenLanguage( Request, s );
+         s.Clear();
+         Request.ModelContainer^.AddStringOA( LANGUAGE, s ); // set empty, reset the value
+
+         View := mvc.redirectView( OA( uri.Length-1, uri.rawData )); // language switch cannot carry other parameters
+         RETURN TRUE;
+      END;
+      
       IF Fallback THEN
          uri := Request.ControllerURI;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
@@ -390,7 +404,7 @@ CLASS IMPLEMENTATION CController;
             View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
          
          ELSE // no call during the request
-            View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
+            View := GetPageTemplateView( Request, OA( uri.Length-1, uri.rawData ));
 
             // handle authentication
             IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
@@ -561,7 +575,7 @@ CLASS IMPLEMENTATION CController;
          END;
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
-         View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
+         View := GetPageTemplateView( Request, LOGIN_VIEW );
 
       // post, try to login
       ELSIF NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
@@ -575,7 +589,7 @@ CLASS IMPLEMENTATION CController;
          sp.Clear();
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
-         View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
+         View := GetPageTemplateView( Request, LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to status page
          sp.Clear();
@@ -706,7 +720,7 @@ CLASS IMPLEMENTATION CController;
       
       Request.ModelContainer^.AddStringOA( STATUS_PROJECT, _Web^.Project^ );
  
-      View := mvc.pageTemplateView( ADR( SELF ), STATUS_VIEW );
+      View := GetPageTemplateView( Request, STATUS_VIEW );
       RETURN TRUE;
    END ProcessStatus;
    
@@ -798,7 +812,7 @@ CLASS IMPLEMENTATION CController;
       END;
       Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_LOG, cs );
             
-      View := mvc.pageTemplateView( ADR( SELF ), CONTROL_VIEW );
+      View := GetPageTemplateView( Request, CONTROL_VIEW );
       RETURN TRUE;
    END ProcessControl;
    
@@ -843,7 +857,7 @@ CLASS IMPLEMENTATION CController;
          END;
 
          Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
-         View := mvc.pageTemplateView( ADR( SELF ), DATA_LOG_VIEW );
+         View := GetPageTemplateView( Request, DATA_LOG_VIEW );
       END;
 
       cs.FromOA( L"-1" );
@@ -878,7 +892,7 @@ CLASS IMPLEMENTATION CController;
          View := mvc.rawTextView( OA( logS.Length-1, logS.rawData ), L"systemlog", empty, TRUE );
       ELSE
          Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
-         View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
+         View := GetPageTemplateView( Request, SYSTEM_LOG_VIEW );
       END;
 
       cs.FromOA( L"-1" );
@@ -943,7 +957,7 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddStringOA( IO_WRITE_VALUE, wvalue );
       Request.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, wfailed );
 
-      View := mvc.pageTemplateView( ADR( SELF ), IO_VIEW );
+      View := GetPageTemplateView( Request, IO_VIEW );
       RETURN TRUE;
    END ProcessIO;
 
@@ -991,7 +1005,7 @@ CLASS IMPLEMENTATION CController;
          END;
       END; // FOR
    
-      View := mvc.pageTemplateView( ADR( SELF ), USERS_VIEW );
+      View := GetPageTemplateView( Request, USERS_VIEW );
       RETURN TRUE;
    END ProcessUsers;
 
@@ -1090,7 +1104,7 @@ CLASS IMPLEMENTATION CController;
       // Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = EibSrvWeb.roleUserKeyed );
       Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, ( role <> EibSrvWeb.roleSystemUser ) AND ( role <> EibSrvWeb.roleSystemAdministrator ));
 
-      View := mvc.pageTemplateView( ADR( SELF ), ROLE_EDIT_VIEW );
+      View := GetPageTemplateView( Request, ROLE_EDIT_VIEW );
       RETURN TRUE;
    END ProcessRoleEdit;
 
@@ -1204,7 +1218,7 @@ CLASS IMPLEMENTATION CController;
          INC( i );
       END; // WHILE
    
-      View := mvc.pageTemplateView( ADR( SELF ), USER_EDIT_VIEW );
+      View := GetPageTemplateView( Request, USER_EDIT_VIEW );
       RETURN TRUE;
    END ProcessUserEdit;
 
@@ -1224,7 +1238,7 @@ CLASS IMPLEMENTATION CController;
          END;
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
-         View := mvc.pageTemplateView( ADR( SELF ), USER_LOGIN_VIEW );
+         View := GetPageTemplateView( Request, USER_LOGIN_VIEW );
 
       // post, try to login
       ELSIF // checked before ProcessUserLogin is called, but there "src" must be get:
@@ -1240,7 +1254,7 @@ CLASS IMPLEMENTATION CController;
          sp.Clear();
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
-         View := mvc.pageTemplateView( ADR( SELF ), USER_LOGIN_VIEW );
+         View := GetPageTemplateView( Request, USER_LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to source page
          Request.ModelContainer^.RemoveOA( USER_LOGIN_SOURCE_PAGE );
@@ -1284,6 +1298,41 @@ CLASS IMPLEMENTATION CController;
 
       Request.ModelContainer^.RemoveOA( ROLE_NAME );
    END InvalidateUser;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE SetOverriddenLanguage( CONST Request : mvc.IHttpRequest; CONST Language : StringsO.IString );
+   VAR
+      _Language : Languages.TLanguage;
+   BEGIN
+      IF Language.Empty THEN
+         RETURN; // do nothing
+      ELSIF Language.EqualsOA( L"client" ) THEN
+         _Language := INVALID_LANGUAGE;
+      ELSIF NOT HttpTools.DecodeLanguage( Language, OUT _Language ) THEN
+         _Language := INVALID_LANGUAGE;
+      END;
+      Request.Session^.Remove( LANGUAGE );
+      Request.Session^.Add( LANGUAGE, _Language );
+   END SetOverriddenLanguage;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE GetPageTemplateView( CONST Request : mvc.IHttpRequest; CONST ViewName : ARRAY OF WCHAR ) : mvc.TPView;
+   VAR
+      _Language : Languages.TLanguage;
+      View : mvc.TPView;
+   BEGIN
+      IF NOT Request.Session^.Get( LANGUAGE, OUT _Language ) THEN
+         _Language := INVALID_LANGUAGE;
+      END;
+      IF _Language = INVALID_LANGUAGE THEN
+         View := mvc.pageTemplateView( ADR( SELF ), ViewName, FALSE, 0 );
+      ELSE
+         View := mvc.pageTemplateView( ADR( SELF ), ViewName, TRUE, _Language );
+      END;
+      RETURN View;
+   END GetPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 

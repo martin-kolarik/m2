@@ -69,6 +69,8 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
 
    PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
    PRIVATE PROCEDURE InvalidateUser( CONST Request : mvc.IHttpRequest );
+   PRIVATE PROCEDURE SetOverriddenLanguage( CONST Request : mvc.IHttpRequest; CONST Language : StringsO.IString );
+   PRIVATE PROCEDURE GetPageTemplateView( CONST Request : mvc.IHttpRequest; CONST ViewName : ARRAY OF WCHAR ) : mvc.TPView;
 
 END CController;
 

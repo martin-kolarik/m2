@@ -183,7 +183,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
-   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR; overrideLanguage : BOOLEAN; overriddenLanguage : Languages.TLanguage );
    
    PRIVATE VAR
       Request : MVC.TPHttpRequest;
@@ -192,6 +192,9 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
       Resolver : FSO.TPFilePathResolver;
       ViewName : StringsO.CString;
       LoadState : TLoadState;
+      OverrideLanguage : BOOLEAN;
+      OverriddenLanguage : Languages.TLanguage;
+      Language : Languages.TLanguage;
 
       ParseMode : TParseMode;
       Prefix : StringsO.CString;

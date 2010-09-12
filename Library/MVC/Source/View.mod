@@ -555,6 +555,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Response.AllowCaching := FALSE;
       Response.LastModified := now;
+      
+      IF OverrideLanguage THEN
+         Language := OverriddenLanguage;
+      ELSE
+         Language := Request.Language;
+      END;
 
       // determine, if client supports XHTML by browser information
       IF Request.RequestHeaders^.Get( HttpCommon.Accept, OUT acceptHeader ) THEN
@@ -677,10 +683,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR; overrideLanguage : BOOLEAN; overriddenLanguage : Languages.TLanguage );
    BEGIN
       SELF.Resolver := Resolver;
       SELF.ViewName.FromOA( ViewName );
+      SELF.OverrideLanguage := overrideLanguage;
+      SELF.OverriddenLanguage := overriddenLanguage;
    END Init;
    
 (*--------------------------------------------------------------------------------*)
@@ -1750,7 +1758,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
    BEGIN
       // TODO: react to error
-      Request^.ModelContainer^.Format( Request^, FALSE, Text, Request^.MessageSource, Request^.Language, OUT Parsed );
+      Request^.ModelContainer^.Format( Request^, FALSE, Text, Request^.MessageSource, Language, OUT Parsed );
    END ParseText;
 
 (*--------------------------------------------------------------------------------*)
@@ -2160,6 +2168,9 @@ BEGIN
    Request := NIL;
    Resolver := NIL;
    LoadState := lsNotLoaded;
+   OverrideLanguage := FALSE;
+   OverriddenLanguage := Languages.GetDefaultLanguage( Languages.dlUser );
+   Language := OverriddenLanguage;
    CurrentViewNameIndex := 1;
    Where := TWhere{};
    AuthTokens := NIL;
@@ -2236,7 +2247,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
       Path.PrependOA( PREFIX );
       Path.AppendOA( SUFFIX );
       
-      PageTemplateView^.Init( Resolver, OA( Path.Length-1, Path.rawData ));
+      PageTemplateView^.Init( Resolver, OA( Path.Length-1, Path.rawData ), FALSE, 0 );
       SELF.StatusCode := StatusCode;
    END Init;
    
