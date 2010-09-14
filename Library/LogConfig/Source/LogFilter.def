@@ -1,0 +1,40 @@
+DEFINITION MODULE LogFilter;
+
+(*===========================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   iLog,
+   lists,
+   log,
+   StringsO;
+
+(*===========================================================================*)
+
+// #save, option( dll_export => on ), the class is local
+
+TYPE
+   TPLogFilter = POINTER TO CLogFilter;
+
+CLASS CLogFilter( log.CLevelAndBitsFilter );
+
+   // IFilter
+   PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : iLog.TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
+
+   // SELF   
+   PUBLIC PROCEDURE Reset();
+   PUBLIC PROCEDURE AddRule( Allow, Deny : BOOLEAN; CONST Pattern : StringsO.IString ); // if allow/deny conflicts, deny wins
+   
+   // privates
+   PRIVATE VAR
+      _Filter : lists.CStringList;
+
+END CLogFilter;
+
+// #restore
+
+(*===========================================================================*)
+
+END LogFilter.

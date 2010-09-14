@@ -13,7 +13,7 @@ TYPE
   TPParamStringArray = POINTER TO TParamStringArray;
 
 # save, call( convention => cdecl )
-PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
+PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 # restore
 LABEL
    Error;
@@ -134,7 +134,7 @@ Error:
    eo^.WriteOA( '    -s  stops service', TRUE );
 
    RETURN Result;
-END wmain;
+END Main;
   
 END svcinst.
 

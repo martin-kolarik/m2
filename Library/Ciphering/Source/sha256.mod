@@ -137,7 +137,7 @@ CLASS IMPLEMENTATION CSHA256;
 	
 (*--------------------------------------------------------------------------------*)
 
-	PRIVATE INLINE PROCEDURE sha256_process( CONST data : TBuffer );
+	PRIVATE PROCEDURE sha256_process( CONST data : TBuffer );
 
 	(*----------*)
 

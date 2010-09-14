@@ -4,13 +4,13 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   datetime,
    log,
    Strings,
    Sync,
    SyncQueue,
    test,
    testimpl,
-   time,
    windows;
   
 (*===========================================================================*)
@@ -148,7 +148,7 @@ CLASS IMPLEMENTATION CTest;
          windows.CloseHandle( Threads[i] );
          INC( Total, CARD64( Counts[i] ));
       END;
-      Host^.Log^.LogSC( log.dlcError, L"", L"  readers in avg got: ", CARD32( Total DIV CARD64( ReaderCount )) );
+      Host^.Log^.LogSC( log.lcError, 0, L"", L"  readers in avg got: ", CARD32( Total DIV CARD64( ReaderCount )) );
       Success := TRUE;
 
       Host^.StopPhase();
@@ -172,7 +172,7 @@ CLASS IMPLEMENTATION CTest;
       LOOP
          RWLock.LockWrite( Sync.FOREVER );
 
-         Shared[0] := time.UptimeMS() MOD 1000;
+         Shared[0] := datetime.UptimeMS() MOD 1000;
          FOR i := 1 TO HIGH( Shared ) DO
             IF i MOD 2 = 0 THEN
                Sync.Sleep( 0 );
@@ -206,8 +206,8 @@ CLASS IMPLEMENTATION CTest;
             FOR i := 1 TO HIGH( Shared ) DO
                INC( value );
                IF value <> Shared[i] THEN // error
-                  Host^.Log^.LogSC( log.dlcError, L"", L"Expected value: ", value );
-                  Host^.Log^.LogSC( log.dlcError, L"", L"   found value: ", Shared[i] );
+                  Host^.Log^.LogSC( log.lcError, 0, L"", L"Expected value: ", value );
+                  Host^.Log^.LogSC( log.lcError, 0, L"", L"   found value: ", Shared[i] );
                END;
             END;
          
@@ -230,6 +230,7 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       ReaderCount := 0;
       Threads[0] := NIL;
+      Counts[0] := 0;
    
       FOR i := 0 TO HIGH( Shared ) DO
          Shared[i] := i;

@@ -9,7 +9,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
 IMPORT
-  time;
+   datetime;
 
 (*================================================================================*)
 
@@ -600,7 +600,7 @@ BEGIN
       RETURN AssignDrvValueCStringW( REF CWValue, CWValueUFlag, TrimFlag, IOValue.String );
 
    | iovalue.vtDate :
-      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, time.ToSJD( IOValue.Date ));
+      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, datetime.ToSJD( IOValue.Date ));
 
    ELSE
       RETURN AssignDrvValueStringW( REF CWValue, CWValueUFlag, TrimFlag, L"" );

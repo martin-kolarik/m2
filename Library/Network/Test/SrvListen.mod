@@ -27,7 +27,7 @@ TYPE
 
 CLASS CListener( netsrv.AListener );
    PUBLIC VAR
-      Test : TPTest;
+      Test : TPTest := NIL;
    LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
 END CListener;
 
@@ -37,7 +37,7 @@ CLASS CTest IMPLEMENTS test.ITest;
    PUBLIC VAR
       Host : test.TPHost := NIL;
       Listener : CListener;
-      Count : CARDINAL;
+      Count : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
@@ -56,6 +56,7 @@ CLASS IMPLEMENTATION CListener;
 
 (*---------------------------------------------------------------------------*)
 
+BEGIN
 END CListener;
 
 (*===========================================================================*)

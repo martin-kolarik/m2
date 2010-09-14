@@ -5,6 +5,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CWDriver", "..\..\Library\C
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
+	ProjectSection(ProjectDependencies) = postProject
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C} = {6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}
+		{57418949-0922-46EC-824B-ED7B59897F4C} = {57418949-0922-46EC-824B-ED7B59897F4C}
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580} = {A60809F1-641F-4ED7-9128-C41E7A6A9580}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "COM", "..\..\Library\COM\COM.vcproj", "{4AA17290-B6DF-460D-B801-F406EC9FD40D}"
 	ProjectSection(WebsiteProperties) = preProject
@@ -35,11 +40,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Network", "..\..\Library\Ne
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
+	ProjectSection(ProjectDependencies) = postProject
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762} = {97C30A53-92E2-4179-B0A0-A740E2FDD762}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Threading", "..\..\Library\Threading\Threading.vcproj", "{97C30A53-92E2-4179-B0A0-A740E2FDD762}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+	ProjectSection(ProjectDependencies) = postProject
+		{EE84C683-65A3-4321-BBA5-7392D3357B32} = {EE84C683-65A3-4321-BBA5-7392D3357B32}
+		{8995D229-D00F-4F29-B235-14249D391D21} = {8995D229-D00F-4F29-B235-14249D391D21}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2ortl", "..\..\Modula2\m2ortl\m2ortl.vcproj", "{332A033A-AF35-4573-83CB-A19E643D5845}"
@@ -47,11 +59,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2ortl", "..\..\Modula2\m2o
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
+	ProjectSection(ProjectDependencies) = postProject
+		{8995D229-D00F-4F29-B235-14249D391D21} = {8995D229-D00F-4F29-B235-14249D391D21}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Text", "..\..\Library\Text\Text.vcproj", "{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+	ProjectSection(ProjectDependencies) = postProject
+		{332A033A-AF35-4573-83CB-A19E643D5845} = {332A033A-AF35-4573-83CB-A19E643D5845}
+		{8995D229-D00F-4F29-B235-14249D391D21} = {8995D229-D00F-4F29-B235-14249D391D21}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"

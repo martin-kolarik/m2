@@ -80,11 +80,11 @@ CLASS IMPLEMENTATION CTest;
       
       IF dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT Addresses, OUT Filled ) THEN
          IF Filled = 0 THEN
-            Host^.Log^.LogS( log.dlcInfo, L"", L"no local addresses" );
+            Host^.Log^.LogS( log.lcInfo, 0, L"", L"no local addresses" );
          ELSE
             FOR i := 0 TO Filled-1 DO
                Addresses[i].ToOA( FALSE, OUT String );
-               Host^.Log^.LogS( log.dlcInfo, L"", String );
+               Host^.Log^.LogS( log.lcInfo, 0, L"", String );
             END; // FOR
          END;
       END;
@@ -95,11 +95,11 @@ CLASS IMPLEMENTATION CTest;
       
       IF dns.GetLocalIPs( FALSE, TRUE, TRUE, OUT Addresses, OUT Filled ) THEN
          IF Filled = 0 THEN
-            Host^.Log^.LogS( log.dlcInfo, L"", L"no local addresses" );
+            Host^.Log^.LogS( log.lcInfo, 0, L"", L"no local addresses" );
          ELSE
             FOR i := 0 TO Filled-1 DO
                Addresses[i].ToOA( FALSE, OUT String );
-               Host^.Log^.LogS( log.dlcInfo, L"", String );
+               Host^.Log^.LogS( log.lcInfo, 0, L"", String );
             END; // FOR
          END;
       END;
@@ -141,7 +141,7 @@ CLASS IMPLEMENTATION CTest;
                Strings.AppendW( REF String, L"-" );
             END;
          END;
-         Host^.Log^.LogS( log.dlcInfo, L"", String );
+         Host^.Log^.LogS( log.lcInfo, 0, L"", String );
          
          IF Enum^.State = netsrv.stUp THEN
             String := L"  UP";
@@ -157,7 +157,7 @@ CLASS IMPLEMENTATION CTest;
          | netsrv.medVLAN : Strings.AppendW( REF String, L", VLAN" );
          | netsrv.medOther : Strings.AppendW( REF String, L", unspecified" );
          END; // CASE
-         Host^.Log^.LogS( log.dlcInfo, L"", String );
+         Host^.Log^.LogS( log.lcInfo, 0, L"", String );
          
          index := 0;
          WHILE Enum^.InetAddress( index, OUT ia, OUT preferred, OUT scope, OUT assignment ) DO
@@ -183,7 +183,7 @@ CLASS IMPLEMENTATION CTest;
             END;
 
             Strings.PrependW( REF String, L"    " );
-            Host^.Log^.LogS( log.dlcInfo, L"", String );
+            Host^.Log^.LogS( log.lcInfo, 0, L"", String );
 
             INC( index );
          END; // WHILE

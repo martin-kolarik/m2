@@ -2,6 +2,19 @@
 <resources>
     <strings version="1.0">
 
+        <string name="error.401.title">
+            <item lang="en-US">Access denied</item>
+            <item lang="cs-CZ">Přístup zamítnut</item>
+        </string>
+        <string name="error.401.text">
+            <item lang="en-US">Access to page was refused. Logged user has insufficient rights to open the page. Try to log in with another username.</item>
+            <item lang="cs-CZ">Přístup ke stránce byl odmítnut. Přihlášený uživatel nemá dostatečná práva k jejímu zobrazení. Zkuste se přihlásit pod jiným uživatelským jménem.</item>
+        </string>
+        <string name="error.401.newLogin">
+            <item lang="en-US">Logout and login as another user.</item>
+            <item lang="cs-CZ">Odhlásit se a přihlásit se jako jiný uživatel.</item>
+        </string>
+
         <string name="index.text">
             <item lang="en-US">NeNo EIB/KNX SmartServer Web Access, welcome!</item>
             <item lang="cs-CZ">NeNo EIB/KNX SmartServer Web server, vítejte!</item>
@@ -67,6 +80,10 @@
         <string name="login.badCredentials">
             <item lang="en-US">Invalid login, the username and/or password is incorrect.</item>
             <item lang="cs-CZ">Neplatné přihlášení, jméno a/nebo heslo není správné.</item>
+        </string>
+        <string name="login.invalidLoginOrSessionExpired">
+            <item lang="en-US">New login required, session expired.</item>
+            <item lang="cs-CZ">Je nutné nové přihlášení, sezení vypršelo.</item>
         </string>
 
         <string name="status.server">
@@ -222,6 +239,31 @@
             <item lang="cs-CZ">Zápis se nezdařil.</item>
         </string>
         
+        <string name="userLogin.text">
+            <item lang="en-US">Restricted user page login</item>
+            <item lang="cs-CZ">Přihlášení k chráněné uživatelské stránce</item>
+        </string>
+        <string name="userLogin.username">
+            <item lang="en-US">Name</item>
+            <item lang="cs-CZ">Jméno</item>
+        </string>
+        <string name="userLogin.password">
+            <item lang="en-US">Password</item>
+            <item lang="cs-CZ">Heslo</item>
+        </string>
+        <string name="userLogin.submit">
+            <item lang="en-US">Login</item>
+            <item lang="cs-CZ">Přihlásit</item>
+        </string>
+        <string name="userLogin.badCredentials">
+            <item lang="en-US">Invalid login, the username and/or password is incorrect for the page.</item>
+            <item lang="cs-CZ">Neplatné přihlášení, jméno a/nebo heslo není pro danou stránku správné.</item>
+        </string>
+        <string name="userLogin.invalidLoginOrSessionExpired">
+            <item lang="en-US">Invalid login, either user login page is requested without restricted page being accessed or session expired.</item>
+            <item lang="cs-CZ">Neplatné přihlášení, buď byla stránka s přihlášením otevřena bez přístupu na chráněnou stránku nebo sezení vypršelo.</item>
+        </string>
+
         <string name="users.roles">
             <item lang="en-US">Roles</item>
             <item lang="cs-CZ">Role</item>
@@ -231,16 +273,16 @@
             <item lang="cs-CZ">Uživatelé</item>
         </string>
         <string name="users.badUsersEditData">
-            <item lang="en-US">Unable to edit user, editation data is invalid.</item>
+            <item lang="en-US">Unable to edit user, edited data is invalid.</item>
             <item lang="cs-CZ">Nelze upravit uživatele, editační data jsou neplatná.</item>
         </string>
         <string name="users.backToUsers">
-            <item lang="en-US">Go to back to users list.</item>
-            <item lang="cs-CZ">Přejít zpět do seznamu uživatelů.</item>
+            <item lang="en-US">Go back to users list</item>
+            <item lang="cs-CZ">Přejít zpět do seznamu uživatelů</item>
         </string>
         
         <string name="userEdit.title">
-            <item lang="en-US">User editation</item>
+            <item lang="en-US">User editing</item>
             <item lang="cs-CZ">Editace uživatele</item>
         </string>
         <string name="userEdit.name">
@@ -283,9 +325,17 @@
             <item lang="en-US">User save failed.</item>
             <item lang="cs-CZ">Uložení uživatele selhalo.</item>
         </string>
+        <string name="userEdit.deleteFailed">
+            <item lang="en-US">User is predefined, neither it can be deleted nor its name can be changed.</item>
+            <item lang="cs-CZ">Uživatel je zabudovaný, nelze jej smazat ani mu nelze změnit jméno.</item>
+        </string>
+        <string name="userEdit.nameCollides">
+            <item lang="en-US">User name cannot be used, because another user with the new name already exists (or the user is predefined).</item>
+            <item lang="cs-CZ">Jméno uživatele nelze použít, protože jiný uživatel se stejným jménem již existuje (nebo se jedná o zabudovaného uživatele).</item>
+        </string>
 
         <string name="roleEdit.title">
-            <item lang="en-US">Role editation</item>
+            <item lang="en-US">Role editing</item>
             <item lang="cs-CZ">Editace role</item>
         </string>
         <string name="roleEdit.name">
@@ -309,8 +359,12 @@
             <item lang="cs-CZ">Uložení role selhalo.</item>
         </string>
         <string name="roleEdit.deleteFailed">
-            <item lang="en-US">Role cannot be deleted, either role is used or some error occured.</item>
-            <item lang="cs-CZ">Roli nelze smazat, role je buď použita, nebo došlo k chybě.</item>
+            <item lang="en-US">Role cannot be deleted, either the role is used or it is predefined and cannot be deleted.</item>
+            <item lang="cs-CZ">Roli nelze smazat, role je buď použita, nebo je zabudovaná a nesmí být smazána.</item>
+        </string>
+        <string name="roleEdit.nameCollides">
+            <item lang="en-US">Role name cannot be used, because another role with the new name already exists.</item>
+            <item lang="cs-CZ">Jméno role nelze použít, protože jiná role se stejným jménem již existuje.</item>
         </string>
         
     </strings>

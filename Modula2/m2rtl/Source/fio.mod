@@ -107,6 +107,9 @@ END ExistsDirectoryW;
 
 (*================================================================================*)
 
+CONST
+   LONG_PATH_PREFIX = L"\\?\";
+
 PROCEDURE FullPathToVolumeAndPathW( CONST FullPath : ARRAY OF WCHAR; OUT Volume, Path : ARRAY OF WCHAR );
 VAR
   i : CARDINAL;
@@ -232,6 +235,11 @@ BEGIN
       ExpandedPath[0] := 0W;
    END;
 END ExpandPathW;
+
+PROCEDURE GetLongPathW( CONST Path : ARRAY OF WCHAR; OUT LongPath : ARRAY OF WCHAR ); // formats path to override 260 characters limit
+BEGIN
+   Strings.ConcatW( OUT LongPath, LONG_PATH_PREFIX, Path );
+END GetLongPathW;
 
 PROCEDURE IOresult(): CARDINAL;
 BEGIN
@@ -444,7 +452,7 @@ BEGIN
   RETURN windows.SetFilePointer( F, 0, NIL, windows.FILE_CURRENT ) = windows.GetFileSize( F, NIL );
 END EndOfFile;
 
-PROCEDURE GetFileTime( F : File ): time.DateTime;
+PROCEDURE GetFileTime( F : File ): datetime.DateTime;
 VAR
    ct, at, wt : windows.FILETIME;
 BEGIN
@@ -452,7 +460,7 @@ BEGIN
    RETURN FileTimeToDateTime( CARD64( wt ));
 END GetFileTime;
 
-PROCEDURE SetFileTime( F : File; Time : time.DateTime );
+PROCEDURE SetFileTime( F : File; Time : datetime.DateTime );
 VAR
    ct : windows.FILETIME;
    ft : CARD64;
@@ -462,17 +470,17 @@ BEGIN
    windows.SetFileTime( F, ADR( ct ), ADR( ct ), ADR( ct ));
 END SetFileTime;
 
-PROCEDURE FileTimeToDateTime( FileTime : CARD64 ) : time.DateTime;
+PROCEDURE FileTimeToDateTime( FileTime : CARD64 ) : datetime.DateTime;
 VAR
-   dt : time.DateTime;
+   dt : datetime.DateTime;
 BEGIN
-   dt.JulianDate := time.TJD( FileTime DIV 1000 ) + time.JD( 1601, 1, 1, 0 );  // 1000 converts 100 ns to 100 us
+   dt.JulianDate := datetime.TJD( FileTime DIV 1000 ) + datetime.JD( 1601, 1, 1, 0 );  // 1000 converts 100 ns to 100 us
    RETURN dt;
 END FileTimeToDateTime;
 
-PROCEDURE DateTimeToFileTime( DateTime : time.DateTime ) : CARD64;
+PROCEDURE DateTimeToFileTime( DateTime : datetime.DateTime ) : CARD64;
 BEGIN
-   RETURN 1000 * CARD64( DateTime.JulianDate - time.JD( 1601, 1, 1, 0 )); // 1000 converts 100 us to 100 ns
+   RETURN 1000 * CARD64( DateTime.JulianDate - datetime.JD( 1601, 1, 1, 0 )); // 1000 converts 100 us to 100 ns
 END DateTimeToFileTime;
 
 PROCEDURE WrBin( F : File; Buf : ARRAY OF BYTE; Count : CARDINAL ) : CARDINAL;

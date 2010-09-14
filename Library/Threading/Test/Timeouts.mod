@@ -61,7 +61,7 @@ CLASS IMPLEMENTATION CDelegate;
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
       IF CheckThread AND NOT msgqueuethread.global()^.SelfContext THEN
-         Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
+         Test^.Host^.Log^.LogS( log.lcError, 0, L"", L"Completion in unexpected thread" );   
       END;
       sync.IInc( REF Test^.Counts[ CARDINAL( LOPTRLONGWORD( UserId )) ] );
    END OnTimeout;
@@ -139,7 +139,7 @@ CLASS IMPLEMENTATION CTest;
          FOR i := 1 TO Limit-2 DO
             Counts[Limit-i-1] := 0;
             IF NOT Pool^.WaitTimeout( ADR( Delegate ), Limit-i-1, (Limit-i-1) * Period, FALSE, FALSE, OUT PH[i] ) THEN
-               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
+               Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to run worker of index: ", i );
             END;
          END; // FOR
 
@@ -154,9 +154,9 @@ CLASS IMPLEMENTATION CTest;
       FOR i := 1 TO Limit-2 DO
          IF Counts[i] <> Limit DIV i THEN
             Failure := TRUE;
-            Host^.Log^.LogSC( log.dlcError, L"", L"Failure with index: ", i );
-            Host^.Log^.LogSC( log.dlcError, L"", L"  expected: ", Limit DIV i );
-            Host^.Log^.LogSC( log.dlcError, L"", L"  found: ", Counts[i] );
+            Host^.Log^.LogSC( log.lcError, 0, L"", L"Failure with index: ", i );
+            Host^.Log^.LogSC( log.lcError, 0, L"", L"  expected: ", Limit DIV i );
+            Host^.Log^.LogSC( log.lcError, 0, L"", L"  found: ", Counts[i] );
          END;
       END;
 
@@ -203,9 +203,9 @@ CLASS IMPLEMENTATION CTest;
       FOR i := 1 TO Limit-2 DO
          IF Counts[i] <> Limit DIV i + 1 THEN // +1 is for Abort
             Failure := TRUE;
-            Host^.Log^.LogSC( log.dlcError, L"", L"Failure with index: ", i );
-            Host^.Log^.LogSC( log.dlcError, L"", L"  expected: ", Limit DIV i + 1 );
-            Host^.Log^.LogSC( log.dlcError, L"", L"  found: ", Counts[i] );
+            Host^.Log^.LogSC( log.lcError, 0, L"", L"Failure with index: ", i );
+            Host^.Log^.LogSC( log.lcError, 0, L"", L"  expected: ", Limit DIV i + 1 );
+            Host^.Log^.LogSC( log.lcError, 0, L"", L"  found: ", Counts[i] );
          END;
       END;
 

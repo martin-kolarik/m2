@@ -18,6 +18,7 @@ FROM Storage IMPORT
 
 IMPORT
    cllv,
+   datetime,
    diface,
    drv_def,
    eib_def,
@@ -37,8 +38,7 @@ IMPORT
    Sync,
    TextReader,
    Texts,
-   threadcall,
-   Time;
+   threadcall;
 
 //================================================================================
 
@@ -265,7 +265,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       b : BOOLEAN;
    BEGIN
       IF NOT LoadConfiguration( ParFilePath, OUT ErrorMessage, OUT ErrorLine ) THEN
-         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OA( ErrorMessage.Length-1, ErrorMessage.Data ), ErrorLine, 0 );
+         Logger.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OA( ErrorMessage.Length-1, ErrorMessage.Data ), ErrorLine, 0 );
          RETURN FALSE;
       END;
    
@@ -287,13 +287,13 @@ CLASS IMPLEMENTATION CEIBDriver;
 
       CASE INIFile.ConfigureLog( TS, L"", REF log.logger()^, OUT ErrorLine ) OF
       | INIFile.clrUnknownTarget :
-         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._UnknownDebugMode ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._UnknownDebugMode ] ), ErrorLine, 0 );
          RETURN FALSE;
       | INIFile.clrUnknownLevel :
-         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._UnknownDebugLevel ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._UnknownDebugLevel ] ), ErrorLine, 0 );
          RETURN FALSE;
       | INIFile.clrTargetFileMissingFile :
-         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._FileDebugMissingFile ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._FileDebugMissingFile ] ), ErrorLine, 0 );
          RETURN FALSE;
       END;
 
@@ -503,7 +503,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       ELSIF PObject^.Reading THEN
          // pass down
       ELSIF eib_def.aofForceRead IN PObject^.GetFlags() THEN
-         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( Time.UptimeMS())) < 0 ) THEN
+         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( datetime.UptimeMS())) < 0 ) THEN
             // still cannot read, pass away
             RETURN;
          END;

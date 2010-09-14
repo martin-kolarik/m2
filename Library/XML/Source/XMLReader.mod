@@ -104,7 +104,7 @@ CLASS IMPLEMENTATION CMalloc;
 
    PUBLIC VIRTUAL PROCEDURE Free( pv : windows.PVOID );
    BEGIN
-      DEALLOCATE( OUT pv );
+      DEALLOCATE( REF pv );
    END Free;
 
 (*---------------------------------------------------------------------------*)
@@ -443,6 +443,8 @@ CLASS IMPLEMENTATION CXMLReader;
 	   IF _IStream = NIL THEN
 	      NEW( stream );
          _IStream := stream;
+      ELSE
+         stream := TPStream( _IStream );
 	   END;
 	   stream^.Stream := _Stream;
 

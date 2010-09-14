@@ -78,6 +78,7 @@ FROM Debug IMPORT
    Assertion;
 
 IMPORT
+   DateTime,
    FIO,
    FIOO,
    IOO,
@@ -85,8 +86,7 @@ IMPORT
    Storage,
    Strings,
    StringsO,
-   Sync,
-   Time;
+   Sync;
 
 IMPORT
    INIFile,
@@ -138,8 +138,10 @@ CONST // object type names
    
 CONST
    itemSystemSuspend = 1;
-   itemConnected = 2;
+   itemSystemSerialNumber = 2;
+   itemConnected = 3;
    nameSystemSuspend = L".System.Licensing.Suspend";
+   nameSystemSerialNumber = L"System.Licensing.SerialNumber";
    nameConnected = L"Control.Connected";
    suspendKey = L"suspend";
    suspendValue = L"true";
@@ -158,7 +160,7 @@ TYPE
 CLASS CBehaviour( list.CListElem );
    Class : eib_def.TPriority;
    Flags : eib_def.TA_ObjectFlags;
-   Name  : ARRAY [0..63] OF WCHAR;
+   Name  : StringsO.CString;
 END CBehaviour;
 
 //-----
@@ -232,7 +234,6 @@ CLASS IMPLEMENTATION CBehaviour;
 BEGIN
    Flags := eib_def.TA_ObjectFlags{};
    Class := eib_def.priorityNormal;
-   Name[0] := 0W;
 END CBehaviour;
 
 //================================================================================
@@ -537,11 +538,11 @@ CLASS IMPLEMENTATION CEIBServer;
 	      RETURN Sync.arCannotStart;
 	   END;
 	   IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
-	      Log^.LogSS( log.dldMessage, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
+	      Log^.LogSS( log.ldMessage, 0, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
 	      RETURN Sync.arCompleted;
 	   ELSE
-         Log^.LogFilePos( log.dlcError, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.Data ), OA( message.Length-1, message.Data ), line, 0 );
-	      Log^.LogSS( log.dlcInfo, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
+         Log^.LogFilePos( log.lcError, 0, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.Data ), OA( message.Length-1, message.Data ), line, 0 );
+	      Log^.LogSS( log.lcInfo, 0, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
 	      RETURN Sync.arCannotStart;
 	   END;
 	END Configure;
@@ -580,6 +581,9 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSIF Name.EqualsOA( nameConnected ) THEN
          Hash := itemConnected;
          RETURN TRUE;
+      ELSIF Name.EqualsOA( nameSystemSerialNumber ) THEN
+         Hash := itemSystemSerialNumber;
+         RETURN TRUE;
       END;
       address.SetGroupAddress3( OA( Name.Length-1, Name.Data ));
       IF NOT GetObject( address, OUT PObject ) THEN
@@ -603,6 +607,9 @@ CLASS IMPLEMENTATION CEIBServer;
          RETURN FALSE;
       ELSIF Hash = itemConnected THEN
          Name.FromOA( nameConnected );
+         RETURN TRUE;
+      ELSIF Hash = itemSystemSerialNumber THEN
+         Name.FromOA( nameSystemSerialNumber );
          RETURN TRUE;
       END;
       address := TPObject( Hash )^.SendAddress;
@@ -740,7 +747,9 @@ CLASS IMPLEMENTATION CEIBServer;
       EV : eib_def.CValue;
       changed : BOOLEAN;
       key, value : StringsO.CString;
+      licences : lists.CStringList;
       PObject : TPObject;
+      ptrType : PTR;
       s : FIO.PathStrW;
    BEGIN
       // system suspend must be processed before expiration check
@@ -761,6 +770,14 @@ CLASS IMPLEMENTATION CEIBServer;
                Result.QuerySuspension();
             END;
          END;
+         RETURN Sync.arCompleted;
+
+      ELSIF Item = itemSystemSerialNumber THEN
+         Result.GetLicences( OUT licences );
+         IF NOT licences.GetFirst( OUT value, OUT ptrType ) THEN
+            value.Clear();
+         END;
+         Value.String := value;
          RETURN Sync.arCompleted;
       END;
       
@@ -793,7 +810,7 @@ CLASS IMPLEMENTATION CEIBServer;
             ( objtLogOnChange IN PObject^.ObjectType ) AND changed THEN // always allow log failures
             description := Originator^.Description;
             PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
-            _DataLogger^.LogSSS( log.dldMessage, L"srv", "SET RQ", address, OA( description.Length-1, description.Data ));
+            _DataLogger^.LogSSS( log.ldMessage, 0, L"srv", "SET RQ", address, OA( description.Length-1, description.Data ));
          END;         
       
          IF changed THEN
@@ -926,10 +943,10 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE AppendErrorId( REF ErrorMessage : StringsO.CString; ErrorId : ARRAY OF WCHAR );
+      PROCEDURE AppendErrorId( REF ErrorMessage : StringsO.CString; CONST ErrorId : StringsO.IString );
       BEGIN
          ErrorMessage.AppendOA( L" (" );
-         ErrorMessage.AppendOA( ErrorId );
+         ErrorMessage.Append( ErrorId );
          ErrorMessage.AppendOA( L")" );
       END AppendErrorId;
 
@@ -969,12 +986,12 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToEIT( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; VAR EIT : eib_def.TEIBType ) : BOOLEAN;
+      PROCEDURE StringToEIT( REF ErrorMessage : StringsO.CString; CONST String : StringsO.IString; VAR EIT : eib_def.TEIBType ) : BOOLEAN;
       BEGIN
          IF String[0] = WCHAR( 0 ) THEN
             ErrorMessage.FromOA( OAsz( R[ Texts._MissingType ] ));
             RETURN FALSE;
-         ELSIF eib_def.StringToType( String, EIT ) THEN
+         ELSIF eib_def.StringToType( OA( String.Length-1, String.Data ), EIT ) THEN
             RETURN TRUE;
          ELSE
             ErrorMessage.FromOA( OAsz( R[ Texts._UnknownType ] ));
@@ -985,14 +1002,14 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
+      PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; CONST String : StringsO.CString; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
       LABEL
          NextItem, NextItemAfterComment;
       VAR
          i : CARDINAL;
          l : CARDINAL;
          LAddress : eib_def.TAddress;
-         p : ARRAY [0..255] OF WCHAR;
+         p : StringsO.CString;
          PObject : TPObject;
          ReadAddressFound : BOOLEAN;
          FirstAddress : BOOLEAN;
@@ -1002,48 +1019,48 @@ CLASS IMPLEMENTATION CEIBServer;
          FirstAddress := TRUE;
          i := StartFromItem;
          LOOP
-            Strings.ItemSW( String, Strings.WCHARS{L','}, 0, i, TRUE, OUT p );
+            String.ItemS( StringsO.WCHARS{L','}, 0, i, TRUE, OUT p );
             IF i = StartFromItem THEN
-               IF p[0] = 0W THEN
+               IF p.Empty THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._MissingAddress ] ));
                   RETURN FALSE;
                ELSE // OK, add object
                   PObject := AddObject( Priority, BFlags, EIT, ObjectType );
                END;
-            ELSIF p[0] = 0W THEN
+            ELSIF p.Empty THEN
                EXIT;
             END;
-            Strings.TrimW( REF p );
+            p.Trim();
 
             IF ( p[0] = L"'" ) OR ( p[0] = L'"' ) THEN // comment
-               Strings.RemoveW( REF p, 0, 1 );
-               l := LENGTH( p );
+               p.Remove( 0, 1 );
+               l := p.Length;
                IF l > 1 THEN
                   IF ( p[l-1] = L"'" ) OR ( p[l-1] = L'"' ) THEN
-                     p[l-1] := 0W;
+                     p.Length := l-1;
                   END;
-                  PObject^.Comment.FromOA( p );
+                  PObject^.Comment := p;
                END;
                GOTO NextItemAfterComment;
             ELSIF p[0] = L'[' THEN // name
-               Strings.RemoveW( REF p, 0, 1 );
-               l := LENGTH( p );
+               p.Remove( 0, 1 );
+               l := p.Length;
                IF l > 1 THEN
                   IF p[l-1] = L']' THEN
-                     p[l-1] := 0W;
+                     p.Length := l-1;
                   END;
-                  PObject^.Name.FromOA( p );
+                  PObject^.Name := p;
                END;
                GOTO NextItemAfterComment;
             END;
 
             IF NOT ReadAddressFound AND (( p[0] = L'r' ) OR ( p[0] = L'R' )) THEN
-               Strings.RemoveW( REF p, 0, 1 );
+               p.Remove( 0, 1 );
                b := TRUE;
             ELSE
                b := FALSE;
             END;
-            IF NOT LAddress.SetGroupAddress3( p ) THEN
+            IF NOT LAddress.SetGroupAddress3( OA( p.Length-1, p.Data )) THEN
                ErrorMessage.FromOA( OAsz( R[ Texts._BadGroupAddress ] ));
                AppendErrorId( REF ErrorMessage, p );
                RETURN FALSE;
@@ -1064,34 +1081,28 @@ CLASS IMPLEMENTATION CEIBServer;
          NextItemAfterComment:
             INC( i );
          END; // LOOP
-         RETURN TRUE;
       END StringToSingleObject;
 
    //----------
 
-      PROCEDURE StringToMultipleObjects( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
+      PROCEDURE StringToMultipleObjects( REF ErrorMessage : StringsO.CString; CONST String : StringsO.IString; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
       LABEL
          NextItem;
       VAR
          c : CARDINAL;
-         Comment : ARRAY [0..511] OF WCHAR;
+         Comment : StringsO.CString;
          f, l : CARDINAL;
          i, j : CARDINAL;
          LAddress : eib_def.TAddress;
-         Name : ARRAY [0..63] OF WCHAR;
-         NameNumber : ARRAY [0..63] OF WCHAR;
-         Number : ARRAY [0..31] OF WCHAR;
-         p0 : ARRAY [0..255] OF WCHAR; 
-         p1, p2 : ARRAY [0..31] OF WCHAR;
+         Name, Number : StringsO.CString;
+         p0 : StringsO.CString; 
+         p1, p2 : StringsO.CString;
          PObject : TPObject;
       BEGIN
-         Comment[0] := 0W;
-         Name[0] := 0W;
-         
          i := StartFromItem;
          LOOP
-            Strings.ItemSW( String, Strings.WCHARS{L','}, 0, i, TRUE, OUT p0 );
-            IF p0[0] = 0W THEN
+            String.ItemS( StringsO.WCHARS{L','}, 0, i, TRUE, OUT p0 );
+            IF p0.Empty THEN
                IF i = StartFromItem THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._MissingAddress ] ));
                   RETURN FALSE;
@@ -1099,33 +1110,33 @@ CLASS IMPLEMENTATION CEIBServer;
                   EXIT;
                END;
             END;
-            Strings.TrimW( REF p0 );
+            p0.Trim();
             
             IF ( p0[0] = L"'" ) OR ( p0[0] = L'"' ) THEN // comment
-               Strings.RemoveW( REF p0, 0, 1 );
-               l := LENGTH( p0 );
+               p0.Remove( 0, 1 );
+               l := p0.Length;
                IF l > 1 THEN
                   IF ( p0[l-1] = L"'" ) OR ( p0[l-1] = L'"' ) THEN
-                     p0[l-1] := 0W;
+                     p0.Length := l-1;
                   END;
-                  ASSIGN( Comment, p0 );
+                  Comment := p0;
                END;
                GOTO NextItem;
             ELSIF p0[0] = L'[' THEN // name
-               Strings.RemoveW( REF p0, 0, 1 );
-               l := LENGTH( p0 );
+               p0.Remove( 0, 1 );
+               l := p0.Length;
                IF l > 1 THEN
                   IF p0[l-1] = L']' THEN
-                     p0[l-1] := 0W;
+                     p0.Length := l-1;
                   END;
-                  ASSIGN( Name, p0 );
+                  Name := p0;
                END;
                GOTO NextItem;
             END;
 
-            c := Strings.IndexOfW( p0, L'..', 0 );
+            c := p0.IndexOfOA( L'..', 0 );
             IF c = MAX( CARDINAL ) THEN
-               IF NOT LAddress.SetGroupAddress3( p0 ) THEN
+               IF NOT LAddress.SetGroupAddress3( OA( p0.Length-1, p0.Data )) THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadGroupAddress ] ));
                   AppendErrorId( REF ErrorMessage, p0 );
                   RETURN FALSE;
@@ -1133,16 +1144,16 @@ CLASS IMPLEMENTATION CEIBServer;
                f := CARDINAL( LAddress.GetGroupAddress1());
                l := f;
             ELSE
-               Strings.SubstringW( p0, c + 2, MAX( CARDINAL ), OUT p2 );
-               ASSIGN( p1, p0 );
-               p1[c] := 0W;
-               IF NOT LAddress.SetGroupAddress3( p1 ) THEN
+               p0.Substring( c + 2, MAX( CARDINAL ), OUT p2 );
+               p1 := p0;
+               p1.Length := c;
+               IF NOT LAddress.SetGroupAddress3( OA( p1.Length-1, p1.Data )) THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadGroupAddress ] ));
                   AppendErrorId( REF ErrorMessage, p1 );
                   RETURN FALSE;
                END;
                f := CARDINAL( LAddress.GetGroupAddress1());
-               IF NOT LAddress.SetGroupAddress3( p2 ) THEN
+               IF NOT LAddress.SetGroupAddress3( OA( p2.Length-1, p2.Data )) THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadGroupAddress ] ));
                   AppendErrorId( REF ErrorMessage, p2 );
                   RETURN FALSE;
@@ -1159,15 +1170,17 @@ CLASS IMPLEMENTATION CEIBServer;
             FOR c := f TO l DO
                PObject := AddObject( Priority, BFlags, EIT, ObjectType );
                LAddress.SetGroupAddress1( c );
-               IF Name[0] <> 0W THEN
-                  Strings.FromCARD32W( j, 10, OUT Number );
-                  Strings.PadLeftW( REF Number, 4, L'0' );
-                  Strings.ConcatW( OUT NameNumber, Name, Number );
-                  PObject^.Name.FromOA( NameNumber );
+               IF NOT Name.Empty THEN
+                  Number.FromCARD32( j, 10 );
+                  Number.Size := 16;
+                  Number.Length := 4;
+                  Strings.PadLeftW( REF OA( Number.Size-1, PWCHAR( Number.Data )), 4, L'0' );
+                  PObject^.Name := Name;
+                  PObject^.Name.Append( Number );
                   INC( j );
                END;
-               IF Comment[0] <> 0W THEN
-                  PObject^.Comment.FromOA( Comment );
+               IF NOT Comment.Empty THEN
+                  PObject^.Comment := Comment;
                END;
 
                IF AddGroup( LAddress ) THEN
@@ -1220,7 +1233,7 @@ CLASS IMPLEMENTATION CEIBServer;
             fs.FromPath( Path, FIOO.imOpenRead );
          CATCH e : IOO.CIOException DO
             ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenESF ] ));
-            AppendErrorId( REF ErrorMessage, OA( ESFPath.Length-1, ESFPath.Data ));
+            AppendErrorId( REF ErrorMessage, ESFPath );
             RETURN FALSE;
          END; // try
          tr.Stream := ADR( fs );
@@ -1387,9 +1400,9 @@ CLASS IMPLEMENTATION CEIBServer;
       ErrorMessageOA : ARRAY [0..255] OF WCHAR;
       ES : PTR;
       i : CARDINAL;
-      Name : ARRAY [0..63] OF WCHAR;
+      Name : StringsO.CString;
       objectType : TObjectType;
-      p : ARRAY [0..255] OF WCHAR;
+      p : StringsO.CString;
       PBehaviour : TPBehaviour;
       Priority : eib_def.TPriority;
       s : ARRAY [0..4095] OF WCHAR;
@@ -1421,7 +1434,7 @@ CLASS IMPLEMENTATION CEIBServer;
       fs.Close( FALSE );
       IF NOT b THEN
          ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenPar ] ));
-         AppendErrorId( REF ErrorMessage, OA( ConfigurationFile.Length-1, ConfigurationFile.Data ));
+         AppendErrorId( REF ErrorMessage, ConfigurationFile );
          GOTO Fail;
       END;
 
@@ -1502,10 +1515,9 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
          END;
          IF TS.GetKeyStr( knAddress, OUT ErrorLine, OUT so ) THEN
-            so.ToOA( OUT s );
-            IF NOT Address.SetPhysicalAddress3( s ) THEN
+            IF NOT Address.SetPhysicalAddress3( OA( so.Length-1, so.Data )) THEN
                ErrorMessage.AppendOA( OAsz( R[ Texts._BadPhysicalAddress ] ));
-               AppendErrorId( REF ErrorMessage, s );
+               AppendErrorId( REF ErrorMessage, so );
                GOTO Fail;
             END;
          END;
@@ -1592,43 +1604,43 @@ CLASS IMPLEMENTATION CEIBServer;
 
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
-            IF NOT EQUALS( p, knBehaviour ) THEN
+            IF NOT p.EqualsOA( knBehaviour ) THEN
                CONTINUE;
             END;
 
             Priority := eib_def.priorityNormal;
-            so.ItemSOA( StringsO.WCHARS{L' ', L','}, 0, 0, TRUE, OUT p );
-            IF p[0] = 0W THEN
+            so.ItemS( StringsO.WCHARS{L' ', L','}, 0, 0, TRUE, OUT p );
+            IF p.Empty THEN
                ErrorMessage.AppendOA( OAsz( R[ Texts._MissingBehaviourName ] ));
                GOTO Fail;
             ELSE
                BFlags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated};
-               ASSIGN( Name, p );
+               Name := p;
             END;
 
             i := 1;
             LOOP
-               so.ItemSOA( StringsO.WCHARS{L' ', L','}, 0, i, TRUE, OUT p );
-               IF p[0] = 0W THEN
+               so.ItemS( StringsO.WCHARS{L' ', L','}, 0, i, TRUE, OUT p );
+               IF p.Empty THEN
                   EXIT;
                END;
-               IF EQUALS( p, kvReadable ) THEN
+               IF p.EqualsOA( kvReadable ) THEN
                   INCL( BFlags, eib_def.aofReadable );
-               ELSIF EQUALS( p, kvWritable ) THEN
+               ELSIF p.EqualsOA( kvWritable ) THEN
                   INCL( BFlags, eib_def.aofWritable );
-               ELSIF EQUALS( p, kvTransmit ) THEN
+               ELSIF p.EqualsOA( kvTransmit ) THEN
                   INCL( BFlags, eib_def.aofTransmit );
-               ELSIF EQUALS( p, kvUpdate ) THEN
+               ELSIF p.EqualsOA( kvUpdate ) THEN
                   INCL( BFlags, eib_def.aofUpdate );
-               ELSIF EQUALS( p, kvForceRead ) THEN
+               ELSIF p.EqualsOA( kvForceRead ) THEN
                   INCL( BFlags, eib_def.aofForceRead );
-               ELSIF EQUALS( p, kvCallback ) THEN
+               ELSIF p.EqualsOA( kvCallback ) THEN
                   INCL( BFlags, eib_def.aofAdvise );
-               ELSIF EQUALS( p, kvInitRead ) THEN
+               ELSIF p.EqualsOA( kvInitRead ) THEN
                   INCL( BFlags, eib_def.aofInitRead );
-               ELSIF EQUALS( p, kvPHigh ) THEN
+               ELSIF p.EqualsOA( kvPHigh ) THEN
                   Priority := eib_def.priorityHigh;
-               ELSIF EQUALS( p, kvPAlarm ) THEN
+               ELSIF p.EqualsOA( kvPAlarm ) THEN
                   Priority := eib_def.priorityAlarm;
                ELSE
                   ErrorMessage.AppendOA( OAsz( R[ Texts._BadBehaviourItemName ] ));
@@ -1639,7 +1651,7 @@ CLASS IMPLEMENTATION CEIBServer;
             END; // LOOP
 
             NEW( PBehaviour );
-            ASSIGN( PBehaviour^.Name, Name );
+            PBehaviour^.Name := Name;
             PBehaviour^.Class := Priority;
             PBehaviour^.Flags := BFlags;
             Behaviours.Append( PBehaviour );
@@ -1655,21 +1667,21 @@ CLASS IMPLEMENTATION CEIBServer;
 
             i := 0;
             LOOP
-               so.ItemSOA( StringsO.WCHARS{L' ', L','}, 0, i, TRUE, OUT p );
-               IF p[0] = 0W THEN
+               so.ItemS( StringsO.WCHARS{L' ', L','}, 0, i, TRUE, OUT p );
+               IF p.Empty THEN
                   EXIT;
                END;
-               IF EQUALS( p, kvLogNoChange ) THEN
+               IF p.EqualsOA( kvLogNoChange ) THEN
                   INCL( objectType, objtLogNoChange );
-               ELSIF EQUALS( p, kvLogOnChange ) THEN
+               ELSIF p.EqualsOA( kvLogOnChange ) THEN
                   INCL( objectType, objtLogOnChange );
-               ELSIF EQUALS( p, kvMultipleAddresses ) THEN
+               ELSIF p.EqualsOA( kvMultipleAddresses ) THEN
                   INCL( objectType, objtMultipleAddresses );
-               ELSIF EQUALS( p, kvESFStrict ) THEN
+               ELSIF p.EqualsOA( kvESFStrict ) THEN
                   INCL( objectType, objtESFStrict );
-               ELSIF EQUALS( p, kvESFIgnore ) THEN
+               ELSIF p.EqualsOA( kvESFIgnore ) THEN
                   INCL( objectType, objtESFIgnore );
-               ELSIF EQUALS( p, kvESFAdapt ) THEN
+               ELSIF p.EqualsOA( kvESFAdapt ) THEN
                   INCL( objectType, objtESFAdapt );
                ELSE
                   ErrorMessage.AppendOA( OAsz( R[ Texts._BadObjectTypeItemName ] ));
@@ -1679,7 +1691,7 @@ CLASS IMPLEMENTATION CEIBServer;
                INC( i );
             END; // LOOP
 
-            ObjectTypes.AddOA( p, PTR( objectType ));
+            ObjectTypes.Add( p, PTR( objectType ));
          END; // WHILE
       END; // IF snObjectTypes
 
@@ -1696,13 +1708,13 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
             
             IF TObjectType{objtESFStrict, objtESFAdapt, objtESFIgnore} * objectType <> TObjectType{} THEN // esf file
-               IF NOT ReadESF( REF ErrorMessage, p, so, objectType ) THEN
+               IF NOT ReadESF( REF ErrorMessage, OA( p.Length-1, p.Data ), so, objectType ) THEN
                   GOTO Fail;
                END;
             
             ELSE // other object types
-               so.ItemSOA( StringsO.WCHARS{L' ', L','}, 0, 0, TRUE, OUT p );
-               IF p[0] = 0W THEN
+               so.ItemS( StringsO.WCHARS{L' ', L','}, 0, 0, TRUE, OUT p );
+               IF p.Empty THEN
                   ErrorMessage.AppendOA( OAsz( R[ Texts._MissingBehaviourName ] ));
                   GOTO Fail;
                ELSIF NOT FindBehaviour( p, Priority, BFlags ) THEN
@@ -1712,18 +1724,17 @@ CLASS IMPLEMENTATION CEIBServer;
                ELSIF eib_def.aofInitRead IN BFlags THEN
                   EXCL( RStatus, rsInitReadFinished );
                END;
-               so.ItemSOA( StringsO.WCHARS{L' ', L','}, 0, 1, TRUE, OUT p );
+               so.ItemS( StringsO.WCHARS{L' ', L','}, 0, 1, TRUE, OUT p );
                IF NOT StringToEIT( REF ErrorMessage, p, EIT ) THEN
                   GOTO Fail;
                END;
 
-               so.ToOA( OUT s );
                IF objtMultipleAddresses IN objectType  THEN
-                  IF NOT StringToSingleObject( REF ErrorMessage, s, 2, Priority, BFlags, EIT, objectType ) THEN
+                  IF NOT StringToSingleObject( REF ErrorMessage, so, 2, Priority, BFlags, EIT, objectType ) THEN
                      GOTO Fail;
                   END;
                ELSE
-                  IF NOT StringToMultipleObjects( REF ErrorMessage, s, 2, Priority, BFlags, EIT, objectType ) THEN
+                  IF NOT StringToMultipleObjects( REF ErrorMessage, so, 2, Priority, BFlags, EIT, objectType ) THEN
                      GOTO Fail;
                   END;
                END;
@@ -1736,17 +1747,17 @@ CLASS IMPLEMENTATION CEIBServer;
       IF TS.SetSection( snBlocks ) THEN
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
-            IF EQUALS( p, knBlock ) THEN
+            IF p.EqualsOA( knBlock ) THEN
                Blocks.Enqueue( so, 0 );
             END;
          END;
       END; // IF snGroups
-      WHILE Blocks.DequeueOA( OUT p, OUT c ) DO
+      WHILE Blocks.Dequeue( OUT p, OUT c ) DO
 
-         IF NOT TS.SetSection( p ) THEN
+         IF NOT TS.SetSection( OA( p.Length-1, p.Data )) THEN
             ErrorMessage.AppendOA( OAsz( R[ Texts._RequestedBlockNotFound ] ));
             ErrorMessage.AppendOA( L' (' );
-            ErrorMessage.AppendOA( p );
+            ErrorMessage.Append( p );
             ErrorMessage.AppendOA( L')' );
             GOTO Fail;
          END;
@@ -1755,9 +1766,7 @@ CLASS IMPLEMENTATION CEIBServer;
             ErrorMessage.AppendOA( OAsz( R[ Texts._BlockWithoutType ] ));
             AppendErrorId( REF ErrorMessage, p );
             GOTO Fail;
-         END;
-         so.ToOA( OUT s );
-         IF NOT StringToEIT( REF ErrorMessage, s, EIT ) THEN
+         ELSIF NOT StringToEIT( REF ErrorMessage, so, EIT ) THEN
             GOTO Fail;
          END;
 
@@ -1766,10 +1775,9 @@ CLASS IMPLEMENTATION CEIBServer;
             AppendErrorId( REF ErrorMessage, p );
             GOTO Fail;
          END;
-         so.ToOA( OUT s );
-         IF NOT FindBehaviour( s, Priority, BFlags ) THEN
+         IF NOT FindBehaviour( so, Priority, BFlags ) THEN
             ErrorMessage.AppendOA( OAsz( R[ Texts._UnknownBehaviour ] ));
-            AppendErrorId( REF ErrorMessage, s );
+            AppendErrorId( REF ErrorMessage, so );
             GOTO Fail;
          ELSIF eib_def.aofInitRead IN BFlags THEN
             EXCL( RStatus, rsInitReadFinished );
@@ -1778,9 +1786,9 @@ CLASS IMPLEMENTATION CEIBServer;
          // objects
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
-            IF EQUALS( knType, p ) THEN
+            IF p.EqualsOA( knType ) THEN
                CONTINUE;
-            ELSIF EQUALS( knBehaviour, p ) THEN
+            ELSIF p.EqualsOA( knBehaviour ) THEN
                CONTINUE;
             ELSIF NOT FindObjectType( p, OUT objectType ) THEN
                ErrorMessage.AppendOA( OAsz( R[ Texts._UnknownObjectType ] ));
@@ -1788,13 +1796,12 @@ CLASS IMPLEMENTATION CEIBServer;
                GOTO Fail;
             END;
             
-            so.ToOA( OUT s );
             IF objtMultipleAddresses IN objectType  THEN
-               IF NOT StringToSingleObject( REF ErrorMessage, s, 0, Priority, BFlags, EIT, objectType ) THEN
+               IF NOT StringToSingleObject( REF ErrorMessage, so, 0, Priority, BFlags, EIT, objectType ) THEN
                   GOTO Fail;
                END;
             ELSE
-               IF NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, EIT, objectType ) THEN
+               IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, EIT, objectType ) THEN
                   GOTO Fail;
                END;
             END;
@@ -1847,7 +1854,7 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT PromiscuousMode THEN
             eib_stack.TPEIBStackApplicationLayer( EIB^.Layers[ eib_stack.eltApplication ] )^.Update_L_Layer();
          END;
-      END; // IF _CacheOnlyMode
+      END; // IF NOT _CacheOnlyMode
       
       ConfigurationPath.Assign( ConfigurationFile ); // store sucessfully read configuration
       RETURN TRUE;
@@ -1939,35 +1946,35 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PROCEDURE FindObjectType( ObjectTypeName : ARRAY OF WCHAR; OUT ObjectType : TObjectType ) : BOOLEAN;
+   PROCEDURE FindObjectType( CONST ObjectTypeName : StringsO.IString; OUT ObjectType : TObjectType ) : BOOLEAN;
    VAR
       ptr : PTR;
    BEGIN
-      IF ObjectTypes.GetOA( ObjectTypeName, OUT ptr ) THEN
+      IF ObjectTypes.Get( ObjectTypeName, OUT ptr ) THEN
          ObjectType := TObjectType( LOPTRLONGWORD( ptr ));
-      ELSIF EQUALS( ObjectTypeName, otnObject ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnObject ) THEN
          ObjectType := TObjectType{ objtMultipleAddresses};
-      ELSIF EQUALS( ObjectTypeName, otnObjects ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnObjects ) THEN
          ObjectType := TObjectType{};
-      ELSIF EQUALS( ObjectTypeName, otnLoggedObject ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnLoggedObject ) THEN
          ObjectType := TObjectType{ objtMultipleAddresses, objtLogNoChange};
-      ELSIF EQUALS( ObjectTypeName, otnLoggedObjects ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnLoggedObjects ) THEN
          ObjectType := TObjectType{ objtLogNoChange};
-      ELSIF EQUALS( ObjectTypeName, otnLoggedOnChangeObject ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnLoggedOnChangeObject ) THEN
          ObjectType := TObjectType{ objtMultipleAddresses, objtLogOnChange};
-      ELSIF EQUALS( ObjectTypeName, otnLoggedOnChangeObjects ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnLoggedOnChangeObjects ) THEN
          ObjectType := TObjectType{ objtLogOnChange};
-      ELSIF EQUALS( ObjectTypeName, otnESFStrict ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnESFStrict ) THEN
          ObjectType := TObjectType{ objtESFStrict};
-      ELSIF EQUALS( ObjectTypeName, otnLoggedESFStrict ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnLoggedESFStrict ) THEN
          ObjectType := TObjectType{ objtESFStrict, objtLogNoChange};
-      ELSIF EQUALS( ObjectTypeName, otnESFAdapt ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnESFAdapt ) THEN
          ObjectType := TObjectType{ objtESFAdapt};
-      ELSIF EQUALS( ObjectTypeName, otnLoggedESFAdapt ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnLoggedESFAdapt ) THEN
          ObjectType := TObjectType{ objtESFAdapt, objtLogNoChange};
-      ELSIF EQUALS( ObjectTypeName, otnESFIgnore ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnESFIgnore ) THEN
          ObjectType := TObjectType{ objtESFIgnore};
-      ELSIF EQUALS( ObjectTypeName, otnLoggedESFIgnore ) THEN
+      ELSIF ObjectTypeName.EqualsOA( otnLoggedESFIgnore ) THEN
          ObjectType := TObjectType{ objtESFIgnore, objtLogNoChange};
       ELSE
          RETURN FALSE;
@@ -1978,41 +1985,41 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PROCEDURE FindBehaviour( BehaviourName : ARRAY OF WCHAR; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
+   PROCEDURE FindBehaviour( CONST BehaviourName : StringsO.IString; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
    VAR
       PBehaviour : TPBehaviour;
       b : BOOLEAN;
    BEGIN
       b := Behaviours.GetFirst( OUT PBehaviour );
       WHILE b DO
-         IF EQUALS( BehaviourName, PBehaviour^.Name ) THEN
+         IF PBehaviour^.Name = BehaviourName THEN
             Priority := PBehaviour^.Class;
             Flags := PBehaviour^.Flags;
             RETURN TRUE;
          END;
          b := Behaviours.NextOf( PBehaviour, OUT PBehaviour );
       END;
-      IF EQUALS( BehaviourName, bnReader ) THEN
-         Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofForceRead};
-      ELSIF EQUALS( BehaviourName, bnTracker ) THEN
+      IF BehaviourName.EqualsOA( bnReader ) THEN
+         Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofInitRead, eib_def.aofForceRead};
+      ELSIF BehaviourName.EqualsOA( bnTracker ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofWritable};
-      ELSIF EQUALS( BehaviourName, bnTracker2 ) THEN
+      ELSIF BehaviourName.EqualsOA( bnTracker2 ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofInitRead};
-      ELSIF EQUALS( BehaviourName, bnTransmitter ) THEN
+      ELSIF BehaviourName.EqualsOA( bnTransmitter ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit};
-      ELSIF EQUALS( BehaviourName, bnTransmitterWithStatus ) THEN
+      ELSIF BehaviourName.EqualsOA( bnTransmitterWithStatus ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit, eib_def.aofUpdate, eib_def.aofWritable};
-      ELSIF EQUALS( BehaviourName, bnTransmitterWithStatus2 ) THEN
+      ELSIF BehaviourName.EqualsOA( bnTransmitterWithStatus2 ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit, eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofInitRead};
-      ELSIF EQUALS( BehaviourName, bnTransmitterWithStatusCallback ) THEN
+      ELSIF BehaviourName.EqualsOA( bnTransmitterWithStatusCallback ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit, eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofAdvise};
-      ELSIF EQUALS( BehaviourName, bnTransmitterWithStatusCallback2 ) THEN
+      ELSIF BehaviourName.EqualsOA( bnTransmitterWithStatusCallback2 ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit, eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofAdvise, eib_def.aofInitRead};
-      ELSIF EQUALS( BehaviourName, bnServer ) THEN
+      ELSIF BehaviourName.EqualsOA( bnServer ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofReadable};
-      ELSIF EQUALS( BehaviourName, bnConcentrator ) THEN
+      ELSIF BehaviourName.EqualsOA( bnConcentrator ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofReadable, eib_def.aofUpdate, eib_def.aofWritable};
-      ELSIF EQUALS( BehaviourName, bnSource ) THEN
+      ELSIF BehaviourName.EqualsOA( bnSource ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofReadable, eib_def.aofTransmit};
       ELSE
          RETURN FALSE;
@@ -2110,7 +2117,7 @@ CLASS IMPLEMENTATION CEIBServer;
             IF c = 0 THEN
                PObject^.RecoveryExpiration := 0;
             ELSE
-               PObject^.RecoveryExpiration := Time.UptimeMS() + c;
+               PObject^.RecoveryExpiration := DateTime.UptimeMS() + c;
                IF PObject^.RecoveryExpiration = 0 THEN
                   PObject^.RecoveryExpiration := 1;
                END;
@@ -2192,9 +2199,13 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
 
          IF Direction = IOO.dirRead THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "UPDATE", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
          ELSIF NOT EIB^.DeviceConnected() THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            IF _CacheOnlyMode THEN
+               _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET TO CACHE", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            ELSE
+               _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET FAILED", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            END;
          END;
                   
       END;
@@ -2285,9 +2296,9 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
 
          IF PObject^.WSStatus = eib_status.essOK THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET OK", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET OK", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
          ELSE
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET ERROR", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET ERROR", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
          END;
                   
       END;
@@ -2386,9 +2397,9 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags()) OR
                 RepeatFlag AND ( PObject^.InitReadState = eib_user.irsWillRepeat ) THEN
 
-            IF NOT Logger.Filtered( log.dldTrace, L"srv" ) THEN
+            IF NOT Logger.FilteredFastCheck( log.ldTrace, 0 ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Logger.LogSS( log.dldTrace, L"srv", "INIT: ", saddr );
+               Logger.LogSS( log.ldTrace, 0, L"srv", "INIT: ", saddr );
             END;
 
             INC( InitReadItems );
@@ -2420,9 +2431,9 @@ CLASS IMPLEMENTATION CEIBServer;
                CONTINUE;
             END;
 
-            IF NOT Logger.Filtered( log.dldTrace, L"srv" ) THEN
+            IF NOT Logger.FilteredFastCheck( log.ldTrace, 0 ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Logger.LogSS( log.dldTrace, L"srv", "READER: ", saddr );
+               Logger.LogSS( log.ldTrace, 0, L"srv", "READER: ", saddr );
             END;
 
             PObject^.GetValue( OUT EV, FALSE, TRUE );
@@ -2476,7 +2487,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
-      DT : Time.DateTime;
+      DT : DateTime.DateTime;
       fd : CARDINAL;
       H, M, S, WD : CARDINAL;
       i : INTEGER;
@@ -2508,11 +2519,11 @@ CLASS IMPLEMENTATION CEIBServer;
             so := Value.String;
             IF TimeFormat.Empty THEN
                IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), L"HH:mm:ss" ) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.Data ), L", format: HH:mm:ss", L"" );
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.Data ), L", format: HH:mm:ss", L"" );
                END;
             ELSE
                IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), OA( TimeFormat.Length-1, TimeFormat.Data )) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.Data ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.Data ));
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.Data ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.Data ));
                END;
             END;
             WD := 0;
@@ -2544,18 +2555,18 @@ CLASS IMPLEMENTATION CEIBServer;
             so := Value.String;
             IF DateFormat.Empty THEN
                IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), L"yyyy-MM-dd" ) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.Data ), L", format: yyyy-MM-dd", L"" );
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.Data ), L", format: yyyy-MM-dd", L"" );
                END;
             ELSE
                IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), OA( DateFormat.Length-1, DateFormat.Data )) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.Data ), L", format: ", OA( DateFormat.Length-1, DateFormat.Data ));
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.Data ), L", format: ", OA( DateFormat.Length-1, DateFormat.Data ));
                END;
             END;
             Y := DT.Year;
             MM := DT.Month;
             D := DT.Day;
          ELSE
-            Time.iJD( Value.Date, OUT Y, OUT MM, OUT D, OUT fd );
+            DateTime.iJD( Value.Date, OUT Y, OUT MM, OUT D, OUT fd );
          END;
          EV.SetDate( Y, MM, D );
 
@@ -2602,7 +2613,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
-      dt : Time.DateTime;
+      dt : DateTime.DateTime;
       s : ARRAY [0..255] OF WCHAR;
       Y, M, D, H, S : CARDINAL;
       b1 : BOOLEAN;
@@ -2664,7 +2675,7 @@ CLASS IMPLEMENTATION CEIBServer;
                Value.FromStringOA( L"", FALSE );
             END;
          ELSE
-            Value.Date := Time.JD( Y, M, D, 0 );
+            Value.Date := DateTime.JD( Y, M, D, 0 );
          END;
 
       | eib_def.eitValue, eib_def.eitValueRange :
@@ -2719,10 +2730,10 @@ BEGIN
    _AdviseListener := NIL;
    _DataLogger := NIL;
 
-   Logger.Level := Log.dldDebug;
-   Logger.SetUpByRegistry( LIBRARY );
-   Logger.SetLogName( L"KNX" );
-   Logger.RedirectTo := Log.logger();
+   Logger.Level := Log.ldDebug;
+   Logger.AddOutput( Log.logger());
+   Log.ConfigureByRegistry( REF Logger, LIBRARY );
+   Logger.SetName( L"KNX" );
    
    _ForceReadPeriod := 0;
    _ReadersCount := 0;

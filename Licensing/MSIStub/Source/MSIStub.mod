@@ -9,6 +9,7 @@ IMPORT
    windows,
    array,
    arrays,
+   datetime,
    Engine,
    IOO,
    Items,
@@ -17,7 +18,6 @@ IMPORT
    Number,
    Store,
    StringsO,
-   time,
    Uniquer,
    winerror;
 
@@ -151,7 +151,7 @@ BEGIN
                NEW( licenceItem );
                licenceItem^.ProductId := item^.ProductId;
                licenceItem^.Type := sn.Type;
-               time.GetCurrentUTCDateTime( licenceItem^.Created );
+               datetime.GetCurrentUTCDateTime( licenceItem^.Created );
                licenceItem^.Serial := properties[propPIDKey];
                licenceItem^.Owner := properties[propPIDOwner];
                licenceItem^.UId := uq.UId( licenceItem^.ProductId );

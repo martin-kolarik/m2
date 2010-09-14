@@ -48,8 +48,8 @@ END CheckPresence;
 PROCEDURE Create( CONST ServiceName, ServiceDisplayName, ServiceEXEPath, DependsOn, Description : ARRAY OF WCHAR; OUT Error : CARDINAL ) : BOOLEAN;
 LABEL
   Fail, IsRun;
-CONST
-  NETWORK_SERVICE = L"NT AUTHORITY\NetworkService";
+// CONST
+  // NETWORK_SERVICE = L"NT AUTHORITY\NetworkService";
 VAR
   HSCManager : winsvc.SC_HANDLE := NIL;
   HService : winsvc.SC_HANDLE := NIL;

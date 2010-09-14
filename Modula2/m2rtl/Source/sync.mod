@@ -7,7 +7,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, Zero;
   
 IMPORT
-   Time,
+   datetime,
    windows;
 
 (*================================================================================*)
@@ -70,7 +70,7 @@ BEGIN
       SpinCount := 0;
    END;
    IF ( Timeout <> 0 ) AND ( Timeout <> FOREVER ) THEN
-      StartTime := Time.UptimeMS();
+      StartTime := datetime.UptimeMS();
    END;
 
    LOOP
@@ -96,7 +96,7 @@ BEGIN
          CONTINUE;
       ELSIF Timeout = 0 THEN // only tick or spincount wait allowed
          RETURN arTimeout;
-      ELSIF INTEGER( Time.UptimeMS() - StartTime ) > INTEGER( Timeout ) THEN
+      ELSIF INTEGER( datetime.UptimeMS() - StartTime ) > INTEGER( Timeout ) THEN
          RETURN arTimeout;
       ELSE
          CONTINUE;
@@ -160,7 +160,7 @@ CLASS IMPLEMENTATION LOCK;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Lock();
+  PUBLIC VIRTUAL PROCEDURE Lock() : Sync.TAsyncResult;
   BEGIN
     IF Type = ltSpin THEN
       SpinLockAcquireOrRead( FALSE, REF Data, Spin, FOREVER );
@@ -169,11 +169,12 @@ CLASS IMPLEMENTATION LOCK;
     ELSIF Type = ltMutex THEN
       windows.WaitForSingleObject( Data, windows.INFINITE );
     END;
+    RETURN Sync.arCompleted;
   END Lock;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
       IF Type = ltSpin THEN
          RETURN SpinLockAcquireOrRead( FALSE, REF Data, Spin, Timeout );
@@ -185,7 +186,7 @@ CLASS IMPLEMENTATION LOCK;
             ELSE
                RETURN arTimeout;
             END;
-         ELSIF Timeout = FOREVER THEN
+         ELSIF ( Timeout = FOREVER ) OR ( Timeout = FORSAFETY ) THEN
             windows.EnterCriticalSection( windows.PCRITICAL_SECTION( Data ));
             RETURN arCompleted;
          ELSE
@@ -210,7 +211,7 @@ CLASS IMPLEMENTATION LOCK;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Unlock();
+  PUBLIC VIRTUAL PROCEDURE Unlock();
   BEGIN
     IF Type = ltSpin THEN
       SpinLockLeave( REF Data );
@@ -539,10 +540,31 @@ CLASS IMPLEMENTATION RWLOCK;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
+   BEGIN
+      RETURN LockWrite( FORSAFETY );
+   END Lock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   BEGIN
+      RETURN LockWrite( Timeout );
+   END LockTimeout;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Unlock();
+   BEGIN
+      UnlockWrite();
+   END Unlock;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
    BEGIN
       ASSERT( Type <> ltILock );
-      Lock.Init( ltSpin, Name, FALSE );
+      _Lock.Init( ltSpin, Name, FALSE );
       IF Type = ltSpin THEN
          WriteSignal.Init( stSpinAutoreset, L"", FALSE );
          ReadSignal.Init( stSpin, L"", FALSE );
@@ -556,15 +578,15 @@ CLASS IMPLEMENTATION RWLOCK;
 
    PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
-      Lock.Lock();
+      _Lock.Lock();
       LOOP
          IF Owners = 0 THEN // Good case, there is no contention, we are basically done 
             Owners := -1; // Indicate we have a writer
-            Lock.Unlock();
+            _Lock.Unlock();
             RETURN arCompleted;
 
          ELSIF WaitOnSignal( REF WriteSignal, REF WriteWaiters, Timeout ) = Sync.arTimeout THEN
-            Lock.Unlock();
+            _Lock.Unlock();
             RETURN arTimeout;
 
          END;
@@ -575,7 +597,7 @@ CLASS IMPLEMENTATION RWLOCK;
 
    PUBLIC PROCEDURE UnlockWrite();
    BEGIN
-      Lock.Lock();
+      _Lock.Lock();
       ASSERTLOG( Owners = -1 ); // We must have signalized writer presence.
       Owners := 0;
       // stay inside lock
@@ -586,15 +608,15 @@ CLASS IMPLEMENTATION RWLOCK;
 
    PUBLIC PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
-      Lock.Lock();
+      _Lock.Lock();
       LOOP
          IF ( Owners >= 0 ) AND ( WriteWaiters = 0 ) THEN // We can enter a read lock if there are only read-locks have been given out and a writer is not trying to get in.  
             INC( Owners );
-            Lock.Unlock();
+            _Lock.Unlock();
             RETURN arCompleted;
 
          ELSIF WaitOnSignal( REF ReadSignal, REF ReadWaiters, Timeout ) = Sync.arTimeout THEN
-            Lock.Unlock();
+            _Lock.Unlock();
             RETURN arTimeout;
 
          END;
@@ -605,7 +627,7 @@ CLASS IMPLEMENTATION RWLOCK;
 
    PUBLIC PROCEDURE UnlockRead();
    BEGIN
-      Lock.Lock();
+      _Lock.Lock();
       ASSERTLOG( Owners > 0 );
       DEC( Owners );
       // stay inside lock
@@ -621,14 +643,14 @@ CLASS IMPLEMENTATION RWLOCK;
       // we must be inside lock here
       INC( Waiters );
       Signal.Reset();
-      Lock.Unlock();
+      _Lock.Unlock();
       
       Result := Signal.Wait( Timeout );
       
-      Lock.Lock();
+      _Lock.Lock();
       DEC( Waiters );
       IF Result <> Sync.arCompleted THEN // unlock, caller will/must abort operation
-         Lock.Unlock();
+         _Lock.Unlock();
       END;
       RETURN Result;
    END WaitOnSignal;
@@ -638,13 +660,13 @@ CLASS IMPLEMENTATION RWLOCK;
    PRIVATE PROCEDURE UnlockAndWakeUpAppropriateWaiters();
    BEGIN
       IF ( Owners = 0 ) AND ( WriteWaiters > 0 ) THEN
-         Lock.Unlock(); // Unlock before signaling to improve efficiency (wakee will need the lock)
+         _Lock.Unlock(); // Unlock before signaling to improve efficiency (wakee will need the lock)
          WriteSignal.Signal(); // Release one writer, as WriteSignal is autoreset
       ELSIF ( Owners >= 0 ) AND ( ReadWaiters > 0 ) THEN
-         Lock.Unlock(); // Exit before signaling to improve efficiency (wakee will need the lock)
+         _Lock.Unlock(); // Exit before signaling to improve efficiency (wakee will need the lock)
          ReadSignal.Signal(); // Release all readers, as ReadSignal is set/reset
       ELSE // do not signal anything
-         Lock.Unlock();
+         _Lock.Unlock();
       END;
    END UnlockAndWakeUpAppropriateWaiters;
 
@@ -655,6 +677,108 @@ BEGIN
    ReadWaiters := 0;
    Owners := 0;
 END RWLOCK;
+
+(*================================================================================*)
+// continuation of locking
+// automatic lock
+
+CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and Attach, unlocks it inside FINALLY
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
+   BEGIN
+      IF _OwnedLock = NIL THEN
+         ASSERTLOG( FALSE );
+         RETURN arCannotStart;
+      ELSE
+         RETURN _OwnedLock^.Lock();
+      END;
+   END Lock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   BEGIN
+      IF _OwnedLock = NIL THEN
+         ASSERTLOG( FALSE );
+         RETURN arCannotStart;
+      ELSE
+         RETURN _OwnedLock^.LockTimeout( Timeout );
+      END;
+   END LockTimeout;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Unlock();
+   BEGIN
+      IF _OwnedLock = NIL THEN
+         ASSERTLOG( FALSE );
+         RETURN;
+      ELSE
+         _OwnedLock^.Unlock();
+      END;
+   END Unlock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Timeout GET : CARDINAL;
+   BEGIN
+      RETURN _Timeout;
+   END Timeout;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Timeout SET( Value : CARDINAL );
+   BEGIN
+      _Timeout := Value;
+   END Timeout;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC FINALLY AutoLock();
+   BEGIN
+      IF _OwnedLock <> NIL THEN
+         Unlock();
+         Detach();
+      END;
+   END AutoLock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Take( REF LockToOwn : ILock ) : TAsyncResult;
+   BEGIN
+      IF _OwnedLock <> NIL THEN
+         Unlock();
+      END;
+      Attach( REF LockToOwn );
+      RETURN LockTimeout( _Timeout );
+   END Take;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Attach( REF LockToOwn : ILock );
+   BEGIN
+      Detach();
+      _OwnedLock := ADR( LockToOwn );
+   END Attach;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Detach() : PILock;
+   VAR
+      lock : PILock := _OwnedLock;
+   BEGIN
+      _OwnedLock := NIL;
+      RETURN lock;
+   END Detach;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+  _OwnedLock := NIL;
+  _Timeout := FORSAFETY;
+END AutoLock;
 
 (*================================================================================*)
 
@@ -817,6 +941,27 @@ CLASS IMPLEMENTATION SIGNAL;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
+   BEGIN
+      RETURN Wait( FORSAFETY );
+   END Lock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   BEGIN
+      RETURN Wait( Timeout );
+   END LockTimeout;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Unlock();
+   BEGIN
+      Signal();
+   END Unlock;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY State GET : BOOLEAN;
    BEGIN
       IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
@@ -862,7 +1007,7 @@ CLASS IMPLEMENTATION SIGNAL;
    BEGIN
      Dispose();
      SELF.Type := Type;
-     Lock.Init( ltSpin, L"", FALSE );
+     _Lock.Init( ltSpin, L"", FALSE );
      IF Type = stEvent THEN
        Data := RawCreateSignal( InitiallySignaled, Name );
      ELSIF Type = stEventAutoreset THEN
@@ -893,10 +1038,10 @@ CLASS IMPLEMENTATION SIGNAL;
       IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
          RETURN IExchgPtr( REF Data, SPIN_SET ) = SPIN_NOTSET;
       ELSE
-         Lock.Lock();
+         _Lock.Lock();
          b := RawState( Data );
          RawSignal( Data );
-         Lock.Unlock();
+         _Lock.Unlock();
          RETURN NOT b;
       END;
    END Signal;
@@ -910,9 +1055,9 @@ CLASS IMPLEMENTATION SIGNAL;
          Sleep( 0 );
          IExchgPtr( REF Data, SPIN_NOTSET );
       ELSE
-         // Lock.Lock(); -- for atomic os SignalAndReset there is no need to lock
+         // _Lock.Lock(); -- for atomic os SignalAndReset there is no need to lock
          RawSignalAndReset( Data );
-         // Lock.Unlock();
+         // _Lock.Unlock();
       END;
    END SignalAndReset;
 
@@ -925,10 +1070,10 @@ CLASS IMPLEMENTATION SIGNAL;
       IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
          RETURN IExchgPtr( REF Data, SPIN_NOTSET ) = SPIN_SET;
       ELSE
-         Lock.Lock();
+         _Lock.Lock();
          b := RawState( Data );
          RawReset( Data );
-         Lock.Unlock();
+         _Lock.Unlock();
          RETURN b;
       END;
    END Reset;

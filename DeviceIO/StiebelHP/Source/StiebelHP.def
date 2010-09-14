@@ -5,6 +5,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   datetime,
    device,
    helper,
    INIFile,
@@ -19,8 +20,7 @@ IMPORT
    StorageO,
    StringsO,
    Sync,
-   threadpool,
-   time;
+   threadpool;
    
 (*===========================================================================*)
 
@@ -109,7 +109,7 @@ CLASS CIO( io.AItemizedIO );
       _Pending : IOO.TDirection;
       _Item : TPNSI;
       _Callback : io.TPDataInfo;
-      _LastError : time.DateTime;
+      _LastError : datetime.DateTime;
       _ErrorOccurred : TPNSI;
 
    PUBLIC PROCEDURE Dispose();

@@ -49,7 +49,7 @@ PROCEDURE ResultToName( Result : TAsyncResult; OUT Name : ARRAY OF WCHAR ) : BOO
 (*================================================================================*)
 
 CONST
-   FOREVER   = 0FFFFFFFFH;
+   FOREVER   = CARDINAL( 0FFFFFFFFH );
    FORSAFETY = 12321;
 
 PROCEDURE Sleep( Time : CARDINAL );
@@ -59,13 +59,25 @@ PROCEDURE SpinLockAcquire( REF Data : PTR; SpinCount : CARDINAL; Timeout : CARDI
 PROCEDURE SpinLockLeave( REF Data : PTR );
 
 (*================================================================================*)
+// generic interfaces
 
+TYPE
+   PILock = POINTER TO ILock;
+
+INTERFACE ILock;
+   PROCEDURE Lock() : TAsyncResult;
+   PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult;
+   PROCEDURE Unlock();
+END ILock;
+
+(*================================================================================*)
 // locking
+
 TYPE
    TLockType = ( ltILock, ltSpin, ltCS, ltMutex ); // interlocked (effectively for Get/Incl only), nonreentrant (default), reentrant, interprocess
    PLOCK = POINTER TO LOCK;
 
-CLASS LOCK;
+CLASS LOCK IMPLEMENTS ILock;
    PRIVATE VAR
       Type : TLockType := ltSpin;
       Spin : CARDINAL;
@@ -73,10 +85,12 @@ CLASS LOCK;
    PUBLIC READONLY PROPERTY
       RawHandle : WAITABLE;
 
+   // ILock
+   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   PUBLIC VIRTUAL PROCEDURE Unlock();
+
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR; InitiallyLocked : BOOLEAN );
-   PUBLIC PROCEDURE Lock();
-   PUBLIC PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
-   PUBLIC PROCEDURE Unlock();
 
    // primitive operations done in LOCKed context  
    PUBLIC PROCEDURE Get( REF Operand : LONGWORD ) : CARDINAL; // current value
@@ -130,17 +144,23 @@ TYPE
    TSignalType = ( stSpin, stSpinAutoreset, stEvent, stEventAutoreset, stForeign ); // Autoreset types resets signal after successful wait
    PSIGNAL = POINTER TO SIGNAL;
 
-CLASS SIGNAL;
+CLASS SIGNAL IMPLEMENTS ILock;
    PRIVATE VAR
       Type : TSignalType := stSpin;
       Spin : CARDINAL;
       Data : PTR; // initially reset
-      Lock : LOCK;
+      _Lock : LOCK;
    PUBLIC PROPERTY
       State : BOOLEAN;
    PUBLIC READONLY PROPERTY
       RawHandle : WAITABLE;
 
+   // ILock
+   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   PUBLIC VIRTUAL PROCEDURE Unlock();
+
+   // own
    PUBLIC PROCEDURE Init( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
    PUBLIC PROCEDURE InitForeign( EventHandle : WAITABLE; InitiallySignalled : BOOLEAN ); // EventHandle will not be closed
 
@@ -173,14 +193,19 @@ PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
 TYPE
    PRWLOCK = POINTER TO RWLOCK;
 
-CLASS RWLOCK; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
+CLASS RWLOCK IMPLEMENTS ILock; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
    PRIVATE VAR
-      Lock : LOCK;
+      _Lock : LOCK;
       Owners : INTEGER;
       WriteSignal : SIGNAL;
       WriteWaiters : CARDINAL;
       ReadSignal : SIGNAL;
       ReadWaiters : CARDINAL;
+
+   // ILock, locks for writing
+   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   PUBLIC VIRTUAL PROCEDURE Unlock();
 
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR ); // if lock time is expected to be short, use ltSpin, otherwise consider using of ltCS/ltMutex (they are the same for RWLock)
    
@@ -193,6 +218,32 @@ CLASS RWLOCK; // single writer, multiple readers, fast; inspired from: http://bl
    PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
    PRIVATE PROCEDURE UnlockAndWakeUpAppropriateWaiters();
 END RWLOCK;
+
+(*================================================================================*)
+// continuation of locking
+// automatic lock
+
+CLASS AutoLock IMPLEMENTS ILock; // gets outer ILock, locks it inside ASSIGN and Attach, unlocks it inside FINALLY
+
+   // ILock, locks for writing
+   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   PUBLIC VIRTUAL PROCEDURE Unlock();
+
+   // own   
+   PRIVATE VAR
+      _OwnedLock : PILock;
+      _Timeout : CARDINAL;
+   PUBLIC PROPERTY
+      Timeout : CARDINAL;
+
+   PUBLIC FINALLY AutoLock();
+
+   PUBLIC PROCEDURE Take( REF LockToOwn : ILock ) : Sync.TAsyncResult; // locks, uses timeout
+   PUBLIC PROCEDURE Attach( REF LockToOwn : ILock ); // does not lock
+   PUBLIC PROCEDURE Detach() : PILock; // does not unlock
+
+END AutoLock;
 
 (*================================================================================*)
 // queuing

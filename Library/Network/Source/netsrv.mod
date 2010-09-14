@@ -16,6 +16,7 @@ IMPORT
   iphlpapi,
   iptypes,
   lists,
+  log,
   msghandler,
   msgqueue,
   netpool,
@@ -25,6 +26,9 @@ IMPORT
   threadpool,
   winerror,
   WS2TcpIp;
+
+CONST
+   logPrefix = L"netsrv";
 
 (*================================================================================*)
 
@@ -66,7 +70,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
       family : CARDINAL;
       flags : CARDINAL;
    BEGIN
-      DEALLOCATE( OUT Buffer );
+      DEALLOCATE( REF Buffer );
       Reset();
 
       IF IPV4 AND IPV6 THEN
@@ -90,7 +94,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
       
       ALLOCATE( OUT Buffer, bufferSize );
       IF iphlpapi.GetAdaptersAddresses( family, flags, NIL, Buffer, ADR( bufferSize )) <> winerror.ERROR_SUCCESS THEN
-         DEALLOCATE( OUT Buffer );
+         DEALLOCATE( REF Buffer );
       END;
 
       RETURN ADR( SELF );
@@ -116,7 +120,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
          Current := Current^.Next;
       END;
       IF Current = NIL THEN
-         DEALLOCATE( OUT Buffer );
+         DEALLOCATE( REF Buffer );
          RETURN FALSE;
       ELSE
          INC( _Index );
@@ -265,7 +269,7 @@ BEGIN
    Buffer := NIL;
    Current := NIL;
 FINALLY   
-   DEALLOCATE( OUT Buffer );
+   DEALLOCATE( REF Buffer );
 END CInterfaceEnumerator;
 
 (*================================================================================*)
@@ -467,7 +471,9 @@ CLASS IMPLEMENTATION CIPServer;
         ELSIF Sockets.Get( Message.Socket, OUT Creator ) THEN
           Creator^.OnListen( Message.Socket );
         ELSE
-          Message.Socket^.Flush();
+          // flush should not be called here as the socket has already been deallocated
+          // Message.Socket^.Flush();
+          log.logger()^.LogSP( log.ldMessage, 0, logPrefix, L"Socket not found for cmAccept", Message.Socket );
         END;
       //-----
       | cmDataArrived :
@@ -476,7 +482,9 @@ CLASS IMPLEMENTATION CIPServer;
         ELSIF Sockets.Get( Message.Socket, OUT Creator ) THEN
           Creator^.OnDatagramReceived( Message.Socket );
         ELSE
-          Message.Socket^.Flush();
+          // flush should not be called here as the socket has already been deallocated
+          // Message.Socket^.Flush();
+          log.logger()^.LogSP( log.ldMessage, 0, logPrefix, L"Socket not found for cmDataArrived", Message.Socket );
         END;
       END; // CASE
     END; // WHILE

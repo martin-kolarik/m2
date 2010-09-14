@@ -16,7 +16,7 @@ CONST
    defaultFalse = L"false";
    defaultTransportTrue = L"T";
    defaultTransportFalse = L"F";
-   defaultDate = time.TJD( 2118134448000000 ); // 1.1.2000
+   defaultDate = datetime.TJD( 2118134448000000 ); // 1.1.2000
    defaultDateTimeFormat = L"dd.MM.yyyy HH.mm.ss.fff";
 
 (*================================================================================*)
@@ -104,7 +104,7 @@ CLASS IMPLEMENTATION Value;
    PUBLIC PROPERTY Boolean GET : BOOLEAN;
    VAR
       PS : StringsO.TPString;
-      today, tomorrow : time.TJD;
+      today, tomorrow : datetime.TJD;
    BEGIN
       IF vfUndefined IN _Flags THEN
          RETURN FALSE;
@@ -135,8 +135,8 @@ CLASS IMPLEMENTATION Value;
          RETURN PS^.EqualsOA( L"TRUE" ) OR PS^.EqualsOA( defaultTrue ) OR PS^.EqualsOA( L"T" ) OR PS^.EqualsOA( L"1" );
 
       | vtDate :
-         today := time.TrimFD( time.GetCurrentJD());
-         tomorrow := today + time.DaysToJDC( 1 );
+         today := datetime.TrimFD( datetime.GetCurrentJD());
+         tomorrow := today + datetime.DaysToJDC( 1 );
          RETURN ( _Storage.Date >= today ) AND ( _Storage.Date < tomorrow );
 
       ELSE
@@ -150,7 +150,7 @@ CLASS IMPLEMENTATION Value;
    PUBLIC PROPERTY Tristate GET : TRISTATE;
    VAR
       PS : StringsO.TPString;
-      today, tomorrow : time.TJD;
+      today, tomorrow : datetime.TJD;
    BEGIN
       IF vfUndefined IN _Flags THEN
          RETURN -1;
@@ -209,8 +209,8 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtDate :
-         today := time.TrimFD( time.GetCurrentJD());
-         tomorrow := today + time.DaysToJDC( 1 );
+         today := datetime.TrimFD( datetime.GetCurrentJD());
+         tomorrow := today + datetime.DaysToJDC( 1 );
          IF ( _Storage.Date >= today ) AND ( _Storage.Date < tomorrow ) THEN
             RETURN 1;
          ELSE
@@ -281,7 +281,7 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtDate :
-         RETURN time.fd( _Storage.Date ) DIV CARDINAL( time.unitsInMillisecond );
+         RETURN datetime.fd( _Storage.Date ) DIV CARDINAL( datetime.unitsInMillisecond );
 
       ELSE
          ASSERT( FALSE );
@@ -381,7 +381,7 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtDate :
-         RETURN time.ToSJD( _Storage.Date );
+         RETURN datetime.ToSJD( _Storage.Date );
 
       ELSE
          ASSERT( FALSE );
@@ -393,7 +393,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY String GET : StringsO.CString;
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       s : ARRAY [0..63] OF WCHAR;
       S : StringsO.CString;
    BEGIN
@@ -443,10 +443,10 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Date GET : time.TJD;
+   PUBLIC PROPERTY Date GET : datetime.TJD;
    VAR
-      dt : time.DateTime;
-      t : time.TJD := time.GetCurrentJD();
+      dt : datetime.DateTime;
+      t : datetime.TJD := datetime.GetCurrentJD();
    BEGIN
       IF vfUndefined IN _Flags THEN
          RETURN defaultDate;
@@ -475,14 +475,14 @@ CLASS IMPLEMENTATION Value;
          IF _Storage.Integer < 0 THEN
             RETURN defaultDate;
          ELSE
-            RETURN time.TrimFD( t ) + time.TJD( _Storage.Integer * INTEGER( time.unitsInMillisecond ));
+            RETURN datetime.TrimFD( t ) + datetime.TJD( _Storage.Integer * INTEGER( datetime.unitsInMillisecond ));
          END;
 
       | vtLong :
          RETURN _Storage.Long;
 
       | vtFloat :
-         RETURN time.FromSJD( _Storage.Float );
+         RETURN datetime.FromSJD( _Storage.Float );
 
       | vtString :
          IF dt.FromStringOA( OA( _Storage.String^.Length-1, _Storage.String^.Data ), defaultDateTimeFormat ) THEN
@@ -636,7 +636,7 @@ CLASS IMPLEMENTATION Value;
          _Storage.String^.FromINT32( value, 10 );
 
       | vtDate :
-         _Storage.Date := time.TrimFD( time.GetCurrentJD() ) + time.TJD( value ) * time.unitsInMillisecond;
+         _Storage.Date := datetime.TrimFD( datetime.GetCurrentJD() ) + datetime.TJD( value ) * datetime.unitsInMillisecond;
 
       ELSE
          ASSERT( FALSE );
@@ -750,7 +750,7 @@ CLASS IMPLEMENTATION Value;
          _Storage.String^.FromLONGREAL( value, FALSE );
 
       | vtDate :
-         _Storage.Date := time.FromSJD( value );
+         _Storage.Date := datetime.FromSJD( value );
 
       ELSE
          ASSERT( FALSE );
@@ -761,7 +761,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY String SET( CONST value : StringsO.CString );
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       IF _Type = vtUnknown THEN
          Type := vtString; // using property allocates string
@@ -816,10 +816,10 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Date SET( value : time.TJD );
+   PUBLIC PROPERTY Date SET( value : datetime.TJD );
    VAR
-      today, tomorrow : time.TJD;
-      dt : time.DateTime;
+      today, tomorrow : datetime.TJD;
+      dt : datetime.DateTime;
       s : ARRAY [0..63] OF WCHAR;
    BEGIN
       IF _Type = vtUnknown THEN
@@ -832,23 +832,23 @@ CLASS IMPLEMENTATION Value;
          ASSERT( FALSE );
 
       | vtBoolean :
-         today := time.TrimFD( time.GetCurrentJD());
-         tomorrow := today + time.DaysToJDC( 1 );
+         today := datetime.TrimFD( datetime.GetCurrentJD());
+         tomorrow := today + datetime.DaysToJDC( 1 );
          _Storage.Boolean := ( value >= today ) AND ( value < tomorrow );
 
       | vtTristate :
-         today := time.TrimFD( time.GetCurrentJD());
-         tomorrow := today + time.DaysToJDC( 1 );
+         today := datetime.TrimFD( datetime.GetCurrentJD());
+         tomorrow := today + datetime.DaysToJDC( 1 );
          _Storage.Boolean := ( value >= today ) AND ( value < tomorrow );
 
       | vtInteger :
-         _Storage.Integer := time.fd( value ) DIV CARDINAL( time.unitsInMillisecond );
+         _Storage.Integer := datetime.fd( value ) DIV CARDINAL( datetime.unitsInMillisecond );
 
       | vtLong :
          _Storage.Long := value;
 
       | vtFloat :
-         _Storage.Float := time.ToSJD( value );
+         _Storage.Float := datetime.ToSJD( value );
 
       | vtString :
          dt.SetNowUTC();
@@ -1080,7 +1080,7 @@ CLASS IMPLEMENTATION Value;
          LValue.Undefined := TRUE;
       ELSIF _Type = vtDate THEN
          LValue.Type := vtLong;
-         LValue.Long := ( Date - Source.Date ) DIV time.unitsInMillisecond;
+         LValue.Long := ( Date - Source.Date ) DIV datetime.unitsInMillisecond;
       ELSE
          CASE _Type OF
          | vtBoolean :

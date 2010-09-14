@@ -4,6 +4,7 @@ DEFINITION MODULE MVC;
 
 IMPORT
    accesslist,
+   datetime,
    FSO,
    IOO,
    inetaddr,
@@ -12,8 +13,7 @@ IMPORT
    Languages,
    Log,
    maps,
-   StringsO,
-   time;
+   StringsO;
 
 //================================================================================
 
@@ -58,8 +58,9 @@ INTERFACE IHttpRequest;
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
+      FunctionCalled : BOOLEAN;
       
-   PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   PROCEDURE TestConditions( CONST ResourceLastModified : datetime.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
 END IHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -72,7 +73,7 @@ INTERFACE IHttpResponse;
       Chunked : BOOLEAN; // default FALSE
       OverrideStatusResponse : BOOLEAN; // default FALSE
       AllowCaching : BOOLEAN; // default TRUE
-      LastModified : time.DateTime; // default none
+      LastModified : datetime.DateTime; // default none
    READONLY PROPERTY
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
@@ -81,8 +82,19 @@ END IHttpResponse;
 
 (*--------------------------------------------------------------------------------*)
 
+TYPE
+   TCallResult = (
+      crSuccess,
+      crUnknownFunction,
+      crMissingParameter,
+      crCallFailed
+   );
+   
+CONST
+   crsCalled = TCallResult{crSuccess, crCallFailed};
+
 INTERFACE IFunctionHandler;
-   PROCEDURE Call( CONST Request : IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
+   PROCEDURE Call( CONST Request : IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : TCallResult;
 END IFunctionHandler;
 
 (*--------------------------------------------------------------------------------*)
@@ -111,12 +123,9 @@ INTERFACE IContainer;
    PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
    
-   PROCEDURE ResetFunctionCallsMemo();
-   PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
-   
    // view side
-   PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names, PFunctionCalled can be NIL
+   PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names, PFunctionCalled can be NIL
    PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data, including message texts. MessageSource can be NIL.
    
    // There can be more active mappings, each identified by ControllerURI.
@@ -138,18 +147,29 @@ TYPE
 // IView.Format*Stream implementor SHALL set ContentType and ContentLength/Chunked for its content. Higer level has not sufficient information to do it.
 // IView.Format*Buffer implementor SHALL set ContentType for its content. Higer level has not sufficient information to do it. ContentLength/Chunk is set by MVC.
 INTERFACE IView;
+
+   // formatting
    READONLY PROPERTY
       OutputType : TViewOutputType;
    PROCEDURE FormatToBuffer( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    PROCEDURE FormatToInputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PROCEDURE FormatToOutputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   
+   // authentication
+   PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+
+   // cleanup, releasing
    PROCEDURE Release();
+
 END IView;
 
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IController;
-   PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : IHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE InitializeModelContainer( REF Container : IContainer ); // called when container is created, usually with new session
+   PROCEDURE CleanupModelContainer( REF Container : IContainer ); // called when container is deleted, usually when session expires
+
+   PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : IHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
 END IController;
 
 (*--------------------------------------------------------------------------------*)
@@ -163,6 +183,7 @@ INTERFACE IMVC;
    PROCEDURE ForgetFallbackController();
    
    PROPERTY
+      SessionValidity : CARDINAL; // seconds
       MessageSourcePath : StringsO.CString;
       Logger : Log.TPILogger;
       AccessList : accesslist.TPAccessList;
@@ -176,7 +197,8 @@ PROCEDURE Cleanup();
 
 //================================================================================
 
-PROCEDURE httpStatusCodeView( StatusCode : HttpCommon.THttpResponse ) : TPView;
+PROCEDURE httpStatusCodeSystemView( StatusCode : HttpCommon.THttpResponse ) : TPView;
+PROCEDURE httpStatusCodeCustomView( CONST resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse ) : TPView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
 PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; resolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; dispositionFlag : BOOLEAN; CONST mimeResolver : TPMIMEResolver; mimeResolverContext : PTR ) : TPView;
 PROCEDURE absoluteRedirectView( CONST FullURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST ContextRelativeURI : ARRAY OF WCHAR ) : TPView;

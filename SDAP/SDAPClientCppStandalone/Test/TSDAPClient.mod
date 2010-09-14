@@ -98,14 +98,14 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE OnConnect( Error : CARDINAL );
    BEGIN
-      Host^.Log^.LogSC( log.dldMessage, L"", L"Connect: ", Error );
+      Host^.Log^.LogSC( log.ldMessage, 0, L"", L"Connect: ", Error );
    END OnConnect;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OnClose( Error : CARDINAL );
    BEGIN
-      Host^.Log^.LogSC( log.dldMessage, L"", L"Close: ", Error );
+      Host^.Log^.LogSC( log.ldMessage, 0, L"", L"Close: ", Error );
    END OnClose;
 
 (*---------------------------------------------------------------------------*)
@@ -113,7 +113,7 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR );
    BEGIN
       Sync.IInc( REF ReceiveCount );
-      Host^.Log^.LogSSSS( log.dldMessage, L"", Data, L" ", Value, L" " );
+      Host^.Log^.LogSSSS( log.ldMessage, 0, L"", Data, L" ", Value, L" " );
    END OnReceive;
 
 (*---------------------------------------------------------------------------*)

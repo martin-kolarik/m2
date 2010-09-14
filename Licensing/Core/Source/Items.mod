@@ -93,14 +93,14 @@ CLASS IMPLEMENTATION CItem;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Created GET : time.DateTime;
+   PUBLIC PROPERTY Created GET : datetime.DateTime;
    BEGIN
       RETURN _Created;
    END Created;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Created SET( CONST Value : time.DateTime );
+   PUBLIC PROPERTY Created SET( CONST Value : datetime.DateTime );
    BEGIN
       State := TItemState{isDirty};
       _Created := Value;
@@ -806,14 +806,14 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Starts GET : time.DateTime;
+   PUBLIC PROPERTY Starts GET : datetime.DateTime;
    BEGIN
       RETURN _Starts;
    END Starts;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Starts SET( CONST Value : time.DateTime );
+   PUBLIC PROPERTY Starts SET( CONST Value : datetime.DateTime );
    BEGIN
       State := TItemState{isDirty};
       _Starts := Value;
@@ -847,14 +847,14 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Expires GET : time.DateTime;
+   PUBLIC PROPERTY Expires GET : datetime.DateTime;
    BEGIN
       RETURN _Expires;
    END Expires;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Expires SET( CONST Value : time.DateTime );
+   PUBLIC PROPERTY Expires SET( CONST Value : datetime.DateTime );
    BEGIN
       State := TItemState{isDirty};
       _Expires := Value;
@@ -900,20 +900,20 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ValidFor( CONST datetime : time.DateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE ValidFor( CONST dt : datetime.DateTime ) : BOOLEAN;
    BEGIN
       IF _Starts.Year = 0 THEN
          IF _Expires.Year = 0 THEN
             RETURN TRUE;
          END;
          // only expires
-         RETURN _Expires >= datetime;
+         RETURN _Expires >= dt;
       ELSIF _Expires.Year = 0 THEN
          // only starts
-         RETURN _Starts <= datetime;
+         RETURN _Starts <= dt;
       ELSE
          // starts and expires
-         RETURN ( _Starts <= datetime ) AND ( _Expires >= datetime );
+         RETURN ( _Starts <= dt ) AND ( _Expires >= dt );
       END;
    END ValidFor;
 

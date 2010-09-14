@@ -6,7 +6,8 @@ FROM Storage IMPORT
 
 IMPORT
   Exceptions,
-  Languages;
+  Languages,
+  Sync;
 
 #save, option( dll_export => on )
 
@@ -20,13 +21,12 @@ TYPE
     sexcNumberTooBig
   );
 
-FINAL CLASS CStringException( Exceptions.CException );
+FINAL CLASS CStringException( Exceptions.CGenericException );
    PUBLIC READONLY VAR
       Kind : TStringException;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT Code : ARRAY OF WCHAR );
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TStringException ) : CStringException;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
 END CStringException;
 
 PROCEDURE StringException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TStringException ) : CStringException;
@@ -74,16 +74,20 @@ INTERFACE IString;
   PROCEDURE ReplaceOA( CONST Old, New : ARRAY OF WCHAR );
   PROCEDURE Trim();
 
-  PROCEDURE IndexOf( CONST S : IString; FromIndex : CARDINAL ) : CARDINAL;
-  PROCEDURE IndexOfOA( CONST S : ARRAY OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
-  PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
-  PROCEDURE LastIndexOfOA( CONST S : ARRAY OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
-  PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
-  PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
-  PROCEDURE StartsWith( CONST S : IString ) : BOOLEAN;
-  PROCEDURE StartsWithOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
-  PROCEDURE EndsWith( CONST S : IString ) : BOOLEAN;
-  PROCEDURE EndsWithOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE IndexOf( CONST S : IString; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE IndexOfOA( CONST S : ARRAY OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE IndexOfAny( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE IndexOfAnyS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE LastIndexOfOA( CONST S : ARRAY OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE LastIndexOfAny( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE LastIndexOfAnyS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE StartsWith( CONST S : IString ) : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE StartsWithOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE EndsWith( CONST S : IString ) : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE EndsWithOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
   PROCEDURE Match( CONST Pattern : IString; CaseSensitive : BOOLEAN ) : BOOLEAN;
   PROCEDURE MatchOA( CONST Pattern : ARRAY OF WCHAR; CaseSensitive : BOOLEAN ) : BOOLEAN;
 
@@ -123,7 +127,7 @@ END IString;
 
 // class for storing variable length strings, mostly for single operation
 CLASS CString IMPLEMENTS IString;
-  INTERNAL VAR
+  PRIVATE VAR
     _Size, _Len : CARDINAL;
     _Storage : PCARD32;
     _Data : PWCHAR;
@@ -178,8 +182,12 @@ CLASS CString IMPLEMENTS IString;
 
   PUBLIC VIRTUAL PROCEDURE IndexOf( CONST S : IString; FromIndex : CARDINAL ) : CARDINAL; // TODO: rewrite to use Strings
   PUBLIC VIRTUAL PROCEDURE IndexOfOA( CONST S : ARRAY OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE IndexOfAny( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE IndexOfAnyS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL ) : CARDINAL;
   PUBLIC VIRTUAL PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
   PUBLIC VIRTUAL PROCEDURE LastIndexOfOA( CONST S : ARRAY OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE LastIndexOfAny( CONST Delimiters : SET OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE LastIndexOfAnyS( CONST Delimiters : SET OF WCHARS; IndexFromRight : CARDINAL ) : CARDINAL;
   PUBLIC VIRTUAL PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE StartsWith( CONST S : IString ) : BOOLEAN;

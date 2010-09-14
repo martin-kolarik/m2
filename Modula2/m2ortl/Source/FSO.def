@@ -4,9 +4,9 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   datetime,
    IOO,
    StringsO,
-   time,
    windows;
 
 #save, option( dll_export => on )
@@ -60,8 +60,8 @@ CLASS CDirectoryInfo; // 0W or '*' are equivalent in Pattern
       Path           : StringsO.CString;
       Attributes     : TFileAttributes;
       Size           : CARD64;
-      CreationTime   : time.DateTime;
-      LastAccessTime : time.DateTime;
+      CreationTime   : datetime.DateTime;
+      LastAccessTime : datetime.DateTime;
    
    PRIVATE PROCEDURE CheckMatch( Feed : BOOLEAN ) : BOOLEAN;
 END CDirectoryInfo;

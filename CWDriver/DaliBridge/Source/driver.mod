@@ -6,7 +6,10 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 FROM log IMPORT
-  dldTrace, dldDebug;
+   ldTrace, ldDebug;
+  
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
    cllv,
@@ -45,7 +48,8 @@ CLASS ExceptionItem;
       Linie : DaliBridge.TDaliLinie := DaliBridge.l1;
       Address : DaliBridge.DaliAddress;
       LongAddress : CARDINAL := 0;
-      Value : CARD8 := 0;
+      Value : CARD32 := 0;
+      UserId : StringsO.CString;
 END ExceptionItem;
 
 //--------------------------------------------------------------------------------
@@ -86,27 +90,27 @@ CLASS IMPLEMENTATION CDriver;
       TRY
          fs.FromPath( OA( ParFilePath.Length-1, ParFilePath.Data ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
          RETURN FALSE;
       END; // try
       tr.Stream := ADR( fs );
       b := TS.Load( tr );
       fs.Close( FALSE );
       IF NOT b THEN
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
          RETURN FALSE;
       END;
 
       Logger.SetUpByRegistry( LIBRARY );
       CASE INIFile.ConfigureLog( TS, L"", REF Logger, OUT line ) OF
       | INIFile.clrUnknownTarget :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
          RETURN FALSE;
       | INIFile.clrUnknownLevel :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
          RETURN FALSE;
       | INIFile.clrTargetFileMissingFile :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
+         Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;
 
@@ -203,7 +207,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       INCL( RStatus, schiRunning );
       
-      Logger.LogS( log.dldError, logPrefix, L"RUN" );
+      Logger.LogS( log.ldError, 0, logPrefix, L"RUN" );
 
       Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( EMITW( %dll ), OUT s );
@@ -221,7 +225,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       EXCL( RStatus, schiRunning );
 
-      Logger.LogS( log.dldError, logPrefix, L"STOP" );
+      Logger.LogS( log.ldError, 0, logPrefix, L"STOP" );
 
       Dali.Stop();
    END DriverStop;
@@ -374,6 +378,7 @@ CLASS IMPLEMENTATION CDriver;
       Linie : DaliBridge.TDaliLinie;
       N : ARRAY [0..15] OF WCHAR;
       S1, S2, S3, S4 : ARRAY [0..63] OF WCHAR;
+      sceneNumber : CARDINAL;
       tr : TextReader.CTextReader;
       
       //-----
@@ -467,7 +472,7 @@ CLASS IMPLEMENTATION CDriver;
 
       //-----
 
-      PROCEDURE Send( type : TExceptionItemType; DaliDevice : PTR; Linie : DaliBridge.TDaliLinie; CONST address : DaliBridge.DaliAddress; command : DaliBridge.TDaliCommand; value : CARDINAL ) : BOOLEAN;
+      PROCEDURE Send( type : TExceptionItemType; DaliDevice : PTR; Linie : DaliBridge.TDaliLinie; CONST address : DaliBridge.DaliAddress; command : DaliBridge.TDaliCommand; value : CARDINAL; CONST userId : ARRAY OF WCHAR ) : BOOLEAN;
       VAR
          AsyncResult : Sync.TAsyncResult;
       BEGIN
@@ -479,7 +484,7 @@ CLASS IMPLEMENTATION CDriver;
             RETURN FALSE;
          END;
 
-         AsyncResult := Dali.Command( DaliDevice, Linie, address, command, CARD8( value ), PTR( type ));
+         AsyncResult := Dali.Command( DaliDevice, Linie, address, command, CARD8( value ), PTR( type ), userId );
          IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
             RETURN TRUE; // OK
          ELSE
@@ -510,10 +515,10 @@ CLASS IMPLEMENTATION CDriver;
             CS.FromOA( L'error: light level too big' );
             RETURN FALSE;
          ELSE
-            IF NOT Send( eitParam, DaliDevice, Linie, address, DaliBridge.cmdLoadDTR, c ) THEN
+            IF NOT Send( eitParam, DaliDevice, Linie, address, DaliBridge.cmdLoadDTR, c, L'' ) THEN
                RETURN FALSE;
             END;
-            IF NOT Send( eitParam, DaliDevice, Linie, address, command, 0 ) THEN
+            IF NOT Send( eitParam, DaliDevice, Linie, address, command, 0, L'' ) THEN
                RETURN FALSE;
             END;
             i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
@@ -538,12 +543,12 @@ CLASS IMPLEMENTATION CDriver;
             Lock.Unlock();
             OutValue.Integer := c;
 
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Count ", c );
             
          ELSIF EQUALS( S2, L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
-               Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
-               Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"Event.Get clear buffer" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"RS- rsEventPending" );
 
                Lock.Lock();
                Queue.Dispose();
@@ -558,7 +563,7 @@ CLASS IMPLEMENTATION CDriver;
                haveEvent := TRUE;
             ELSE
                haveEvent := FALSE;
-               Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"RS- rsEventPending" );
 
                EXCL( RStatus, schiEventsPending );
             END;
@@ -574,23 +579,23 @@ CLASS IMPLEMENTATION CDriver;
 
                CASE ExceptionType OF
                | eitEvent :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"event" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"event" );
                | eitRead :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"read" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"read" );
                | eitPollStatus :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"poll status" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"poll status" );
                | eitWrite :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"write" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"write" );
                | eitParam :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"param" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"param" );
                | eitReset :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"reset" );
                | eitProgram :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"program" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"program" );
                | eitAddressFound :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"address found" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"address found" );
                | eitResetInterface :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset interface" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"reset interface" );
                END; // CASE ExceptionType
 
                CASE ExceptionType OF
@@ -643,12 +648,23 @@ CLASS IMPLEMENTATION CDriver;
                      ELSE
                         Strings.FromCARD32W( CARD32( ExceptionItem^.Value ), 10, OUT N );
                         CS.AppendOA( N );
+                        
+                        IF sceneNumber <> -1 THEN
+                           CS.AppendOA( L" " );
+                           Strings.FromCARD32W( sceneNumber, 10, OUT N );
+                           CS.AppendOA( N );
+                        END;
                      END;
 
                   ELSIF ExceptionItem^.Result = Sync.arTimeout THEN
                      CS.AppendOA( L"timeout" );
                   ELSE
                      CS.AppendOA( L"error" );
+                  END;
+                  
+                  IF ( ExceptionType = eitRead ) AND NOT ExceptionItem^.UserId.Empty THEN
+                     CS.AppendOA( L" " );
+                     CS.Append( ExceptionItem^.UserId );
                   END;
                   
                | eitWrite :
@@ -660,6 +676,11 @@ CLASS IMPLEMENTATION CDriver;
                      CS.AppendOA( L"error" );
                   END;
 
+                  IF NOT ExceptionItem^.UserId.Empty THEN
+                     CS.AppendOA( L" " );
+                     CS.Append( ExceptionItem^.UserId );
+                  END;
+                  
                | eitParam :
                   CS.FromOA( "param " );
                   CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
@@ -759,12 +780,24 @@ CLASS IMPLEMENTATION CDriver;
             command := DaliBridge.cmdVersion;
          ELSIF EQUALS( S3, L'level' ) THEN
             command := DaliBridge.cmdCurrentLevel;
+         ELSIF EQUALS( S3, L'minimum' ) THEN
+            command := DaliBridge.cmdCurrentMin;
+         ELSIF EQUALS( S3, L'maximum' ) THEN
+            command := DaliBridge.cmdCurrentMax;
+         ELSIF EQUALS( S3, L'power_on_level' ) THEN
+            command := DaliBridge.cmdCurrentPowerOn;
+         ELSIF EQUALS( S3, L'failure_level' ) THEN
+            command := DaliBridge.cmdCurrentFail;
+         ELSIF EQUALS( S3, L'fade' ) THEN
+            command := DaliBridge.cmdCurrentFadeTimeRate;
+         ELSIF EQUALS( S3, L'groups' ) THEN
+            command := DaliBridge.cmdGetGroupsH; // it must be started with H
          ELSE
             CS.FromOA( L'error: bad get command parameter' );
             GOTO Error;
          END;
 
-         IF NOT Send( eitRead, daliDevice, Linie, address, command, 0 ) THEN
+         IF NOT Send( eitRead, daliDevice, Linie, address, command, 0, S4 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -812,7 +845,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
          END;
       
-         IF NOT Send( eitWrite, daliDevice, Linie, address, command, Level ) THEN
+         IF NOT Send( eitWrite, daliDevice, Linie, address, command, Level, S4 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -829,7 +862,7 @@ CLASS IMPLEMENTATION CDriver;
          IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFail, FALSE, REF S4 ) THEN
             GOTO Error;
          END;
-         // dangerous, i must be not changed from las ItemSOA
+         // dangerous, i must be not changed from last ItemSOA
          i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S4 ); Strings.TrimW( REF S4 );
          IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToMin, FALSE, REF S4 ) THEN
             GOTO Error;
@@ -859,7 +892,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdGroupAdd1 + c ), 0 ) THEN
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdGroupAdd1 + c ), 0, L'' ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -875,7 +908,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdGroupRemove1 + c ), 0 ) THEN
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdGroupRemove1 + c ), 0, L'' ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -891,7 +924,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdScene1 + c ), 0 ) THEN
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdScene1 + c ), 0, L'' ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -913,10 +946,10 @@ CLASS IMPLEMENTATION CDriver;
             Level := 254;
          END;
 
-         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.cmdLoadDTR, Level ) THEN
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.cmdLoadDTR, Level, L'' ) THEN
             GOTO Error;
          END;
-         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneFromDTR1 + c ), 0 ) THEN
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneFromDTR1 + c ), 0, L'' ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -932,7 +965,23 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneRemove1 + c ), 0 ) THEN
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneRemove1 + c ), 0, L'' ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'get_scene_level' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 15 ) THEN
+            CS.FromOA( L'error: bad scene number: ' );
+            CS.AppendOA( S3 );
+            GOTO Error;
+         END;
+
+         IF NOT Send( eitRead, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneGet1 + c ), 0, S4 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -942,7 +991,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdReset, 0 ) THEN
+         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdReset, 0, L'' ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -977,10 +1026,10 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdLoadDTR, 0FFH ) THEN
+         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdLoadDTR, 0FFH, L'' ) THEN
             GOTO Error;
          END;
-         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdDTRToAddress, 0 ) THEN
+         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdDTRToAddress, 0, L'' ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -1099,7 +1148,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF NOT Send( eitResetInterface, daliDevice, Linie, address, DaliBridge.cmdInterfaceReset, 0H ) THEN
+         IF NOT Send( eitResetInterface, daliDevice, Linie, address, DaliBridge.cmdInterfaceReset, 0H, L'' ) THEN
             GOTO Error;
          END;
          
@@ -1217,7 +1266,7 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress;  Command : DaliBridge.TDaliCommand; Data : CARD8; ClientId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress; Command : DaliBridge.TDaliCommand; Data : CARD32; ClientId : PTR; CONST UserId : StringsO.TPString );
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
@@ -1239,6 +1288,9 @@ CLASS IMPLEMENTATION CDriver;
       exceptionItem^.Linie := Linie;
       exceptionItem^.Address := daliAddress;
       exceptionItem^.Value := Data;
+      IF ( UserId <> NIL ) AND NOT UserId^.Empty THEN
+         exceptionItem^.UserId.Assign( UserId^ );
+      END;
 
       EnqueueEvent( exceptionItem, ClientId );      
    END OnCompletion;
@@ -1251,7 +1303,7 @@ CLASS IMPLEMENTATION CDriver;
       Queue.Enqueue( exceptionItem, ClientId );
 
       IF schiEventsPending NOT IN RStatus THEN
-         Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
+         Logger.LogS( ldDebug, 0, logPrefix, L"RS+ rsEventPending" );
 
          INCL( RStatus, schiEventsPending );
       END;

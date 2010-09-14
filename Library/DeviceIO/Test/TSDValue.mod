@@ -1,9 +1,9 @@
 MODULE TSDValue;
 
 IMPORT
+   datetime,
    iovalue,
-   StringsO,
-   time;
+   StringsO;
    
    PROCEDURE TryAll( REF v : iovalue.Value );
    VAR
@@ -17,7 +17,7 @@ IMPORT
 	   v.Long := -257;
 	   v.Float := 14.0;
 	   v.String := S;
-	   v.Date := time.GetCurrentJD();
+	   v.Date := datetime.GetCurrentJD();
    END TryAll;
 
 	#save, call( convention => cdecl )

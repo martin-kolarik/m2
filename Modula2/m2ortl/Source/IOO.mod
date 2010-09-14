@@ -7,23 +7,31 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move;
   
 IMPORT
-   Storage;
+   Storage,
+   Strings;
   
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CIOException;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT Code : ARRAY OF WCHAR );
+   VAR
+      N : ARRAY [0..15] OF WCHAR;
+   BEGIN
+      Strings.FromCARD32W( ErrorCode, 10, OUT N );
+      Strings.PrependW( REF N, L"(" );
+      Strings.AppendW( REF N, L", " );
+      Strings.FromErrorW( ErrorCode, OUT Code );
+      Strings.PrependW( REF Code, N );
+      Strings.AppendW( REF Code, L")" );
+   END FormatCode;
+
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; ErrorCode : CARDINAL ) : CIOException;
    BEGIN
       SELF.ErrorCode := ErrorCode;
-      SUPER.Init( NestedException, Originator, Text );
+      SUPER.Init( 0, NestedException, Originator, Text );
       RETURN SELF;
    END Init;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      ASSIGN( S, EMITW( %class ));
-   END Name;
 
 BEGIN
 END CIOException;
@@ -1504,7 +1512,7 @@ CLASS IMPLEMENTATION CMemoryStream;
       ELSIF Position > INT64( _Length ) THEN
         _Offset := _Length;
       ELSE
-        _Offset := PTR( Position );
+        _Offset := 0 + Position;
       END;
     | soCurrent :
       IF Position > 0 THEN
@@ -1526,7 +1534,8 @@ CLASS IMPLEMENTATION CMemoryStream;
       ELSIF Position > INT64( _Length ) THEN
         _Offset := 0;
       ELSE
-        _Offset := _Length - PTR( Position );
+        // _Offset := _Length - PTR( Position );
+        _Offset := DEC( _Length, Position );
       END;
     END; // CASE
   END Seek;

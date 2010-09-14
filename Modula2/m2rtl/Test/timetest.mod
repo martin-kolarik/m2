@@ -1,10 +1,10 @@
 MODULE timetest;
 
 IMPORT
+   datetime,
    testimpl,
    windows,
-   Strings,
-   time;
+   Strings;
 
 (*===========================================================================*)
 // LR VARIANT
@@ -117,9 +117,9 @@ BEGIN
    RETURN JD( 2007, 10, i MOD 2, 0.3 );
 END OJD;
 
-PROCEDURE NJD( i : CARDINAL ) : time.TJD;
+PROCEDURE NJD( i : CARDINAL ) : datetime.TJD;
 BEGIN
-   RETURN time.JD( 2007, 10, i MOD 2, 3*8640000 );
+   RETURN datetime.JD( 2007, 10, i MOD 2, 3*8640000 );
 END NJD;
 
 (*===========================================================================*)
@@ -130,7 +130,7 @@ END NJD;
    CONST
       crlf = 13W + 10W;
    VAR
-      jd : time.TJD;
+      jd : datetime.TJD;
       fd : CARDINAL;
       r : LONGREAL;
       y, M, d : INTEGER;
@@ -138,23 +138,23 @@ END NJD;
 
       diff : LONGREAL;
       S : ARRAY [0..255] OF WCHAR;
-      t : time.TTime64;
+      t : datetime.TTime64;
       i : CARDINAL;
    BEGIN
-      jd := time.GetCurrentJD();
-      time.JDCToDays( jd );
+      jd := datetime.GetCurrentJD();
+      datetime.JDCToDays( jd );
       
-      time.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
-      time.fd2HMS( fd, OUT h, OUT m, OUT s, OUT ms );
+      datetime.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
+      datetime.fd2HMS( fd, OUT h, OUT m, OUT s, OUT ms );
       
       // conversion to
-      t := time.time();
+      t := datetime.time();
       FOR i := 0 TO 99999999 DO
          r := OJD( i );
       END;
-      diff := time.difftime( time.time(), t );
+      diff := datetime.difftime( datetime.time(), t );
       IF r = 0.0 THEN
-         t := time.time();
+         t := datetime.time();
       END;
 
       Strings.FromLONGREALW( diff, FALSE, OUT S );
@@ -162,13 +162,13 @@ END NJD;
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
-      t := time.time();
+      t := datetime.time();
       FOR i := 0 TO 99999999 DO
          jd := NJD( i );
       END;
-      diff := time.difftime( time.time(), t );
+      diff := datetime.difftime( datetime.time(), t );
       IF jd = 0 THEN
-         t := time.time();
+         t := datetime.time();
       END;
 
       Strings.FromLONGREALW( diff, FALSE, OUT S );
@@ -178,24 +178,24 @@ END NJD;
 
       // conversion from
       r := JD( 2007, 10, 1, 0.3 );
-      jd := time.JD( 2007, 10, 1, 3*86400000 );
+      jd := datetime.JD( 2007, 10, 1, 3*86400000 );
 
-      t := time.time();
+      t := datetime.time();
       FOR i := 0 TO 99999999 DO
          iJD( r, OUT y, OUT M, OUT d, OUT diff );
       END;
-      diff := time.difftime( time.time(), t );
+      diff := datetime.difftime( datetime.time(), t );
 
       Strings.FromLONGREALW( diff, FALSE, OUT S );
       windows.OutputDebugStringW( L"  OS ijd: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
-      t := time.time();
+      t := datetime.time();
       FOR i := 0 TO 99999999 DO
-         time.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
+         datetime.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
       END;
-      diff := time.difftime( time.time(), t );
+      diff := datetime.difftime( datetime.time(), t );
 
       Strings.FromLONGREALW( diff, FALSE, OUT S );
       windows.OutputDebugStringW( L"time ijd: " );

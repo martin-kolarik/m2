@@ -6,11 +6,36 @@
             <title>07 dimming.pt.xml</title>
             <script type="text/javascript">
 
-                function setValue( address, value )
+                function correctNumber( isString, value )
+                {
+                    if( isString )
+                    {
+                        return value;
+                    }
+                    else
+                    {
+                        // avoid sending of empty string
+                        value = "" + value; 
+                        if( "" == value )
+                        {
+                            return null;
+                        }
+
+                        // replace decimal comma with decimal dot 
+                        var commaRE = /,/;
+                        return value.replace( commaRE, ".");
+                    }
+                }
+
+                function setValue( isString, address, value )
                 {
                     try
                     {
-                        location.replace( location.pathname + "?set(" + address + "," + value + ")" );
+                        value = correctNumber( isString, value ); // null is returned if correction fails
+                        if( value != null )
+                        {
+                            location.replace( location.pathname + "?set(" + address + "," + value + ")" );
+                        }
                     }
                     catch(error)
                     {
@@ -23,8 +48,8 @@
         <body>
             <h1>Dim value by buttons example</h1>
             <p>
-                <input type="button" value="Increase" onclick="setValue( '3/2/21', 10 )"/>
-                <input type="button" value="Decrease" onclick="setValue( '3/2/21', -10 )"/>
+                <input type="button" value="Increase" onclick="setValue( false, '3/2/21', 10 )"/>
+                <input type="button" value="Decrease" onclick="setValue( false, '3/2/21', -10 )"/>
             </p>
         </body>
     </html>

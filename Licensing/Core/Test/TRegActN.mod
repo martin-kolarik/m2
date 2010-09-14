@@ -1,11 +1,11 @@
 MODULE TRegActN;
 
 IMPORT
+  datetime,
   FIO,
   Number,
   Strings,
   StringsO,
-  time,
   Uniquer,
   windows;
   
@@ -15,7 +15,7 @@ PROCEDURE wmain7() : INTEGER;
 CONST
    cpid = L"SmartControl.Test";
 VAR
-   dt : time.DateTime;
+   dt : datetime.DateTime;
 	f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
 	l : CARDINAL;
 	RN : Number.CRegistration;

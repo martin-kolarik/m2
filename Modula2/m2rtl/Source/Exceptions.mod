@@ -2,11 +2,12 @@ IMPLEMENTATION MODULE Exceptions;
 // Modula2 Exceptions handling module
 
 IMPORT
+   Languages,
    Rtti,
    Storage,
    Strings,
    Sync,
-   windows;
+   Tls;
 
 //--------------------------------------------------------------------------------
 
@@ -14,20 +15,21 @@ TYPE
    TPException = POINTER TO Exception;
 
 CLASS IMPLEMENTATION Exception;
-BEGIN
-END Exception;
 
-//--------------------------------------------------------------------------------
-
-CLASS IMPLEMENTATION CException;
-
-   PUBLIC PROCEDURE Init( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CException;
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT S : ARRAY OF WCHAR );
+   VAR
+      N : ARRAY [0..7] OF WCHAR;
    BEGIN
-      SELF.NestedException := NestedException;
-      ASSIGN( SELF.Text, Text );
-      ASSIGN( SELF.Originator, Originator );
-      RETURN SELF;
-   END Init;
+      S := L"(code ";
+      Strings.FromCARD32W( CARDINAL( Code ), 10, OUT N );
+      Strings.AppendW( REF S, N );
+      Strings.AppendW( REF S, L")" );
+   END FormatCode;
+
+   PUBLIC VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+   BEGIN
+      Strings.ToW( OAsz( Rtti.TPRTTI( RTTI( SELF ))^.Name ), Languages.cp_ACP, OUT S );
+   END Name;
 
    PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
    VAR
@@ -37,54 +39,86 @@ CLASS IMPLEMENTATION CException;
          S := L"";
       ELSE
          NestedException^.ToString( OUT S );
-         Strings.AppendW( REF S, L" in " );
-      END;
-      IF Originator[0] <> 0W THEN
-         Strings.AppendW( REF S, L"[" );
-         Strings.AppendW( REF S, Originator );
-         Strings.AppendW( REF S, L"] " );
+         Strings.AppendW( REF S, L" [in] " );
       END;
       Name( OUT N ); Strings.AppendW( REF S, N );
-      IF Text[0] <> 0W THEN
-         Strings.AppendW( REF S, L": " );
-         Strings.AppendW( REF S, Text );
-      END;
+      FormatCode( OUT N ); Strings.AppendW( REF S, N );
    END ToString;
 
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+BEGIN
+END Exception;
+
+//--------------------------------------------------------------------------------
+
+CLASS IMPLEMENTATION CGenericException;
+
+   PUBLIC PROCEDURE Init( Code : CARDINAL; NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CGenericException;
    BEGIN
-      ASSIGN( S, EMITW( %class ));
-   END Name;
+      SELF.Code := Code;
+      SELF.NestedException := NestedException;
+      ASSIGN( SELF.Text, Text );
+      ASSIGN( SELF.Originator, Originator );
+      RETURN SELF;
+   END Init;
+
+   PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
+   BEGIN
+      SUPER.ToString( OUT S );
+      IF Originator[0] <> 0W THEN
+         Strings.AppendW( REF S, L" of " );
+         Strings.AppendW( REF S, Originator );
+      END;
+      IF Text[0] <> 0W THEN
+         Strings.AppendW( REF S, L' ("' );
+         Strings.AppendW( REF S, Text );
+         Strings.AppendW( REF S, L'")' );
+      END;
+   END ToString;
 
 BEGIN
    Text := L"";
    Originator := L"";
-END CException;
+END CGenericException;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE GenericException( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CException;
+PROCEDURE GenericException( Code : CARDINAL; NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CGenericException;
 VAR
-	CE : CException;
+	CE : CGenericException;
 BEGIN
-	RETURN CE.Init( NestedException, Originator, Text );
+	RETURN CE.Init( Code, NestedException, Originator, Text );
 END GenericException;
 
 //--------------------------------------------------------------------------------
 
 CLASS IMPLEMENTATION CModula2Exception;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT S : ARRAY OF WCHAR );
+   BEGIN
+      CASE Kind OF
+      | mexOutOfArrayIndex :
+         S := "(OutOfArrayIndex)";
+      | mexProcedureNotImplemented :
+         S := "(ProcedureNotImplemented)";
+      | mexMethodNotImplemented :
+         S := "(MethodNotImplemented)";
+      | mexNotSupported :
+         S := "(NotSupported)";
+      | mexInvalidParameter :
+         S := "(InvalidParameter)";
+      | mexInvalidObjectState :
+         S := "(InvalidObjectState)";
+      ELSE
+         SUPER.FormatCode( OUT S );
+      END;
+   END FormatCode;
+
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TModula2Exception ) : CModula2Exception;
    BEGIN
       SELF.Kind := Kind;
-      SUPER.Init( NestedException, Originator, Text );
+      SUPER.Init( 0, NestedException, Originator, Text );
       RETURN SELF;
    END Init;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      ASSIGN( S, EMITW( %class ));
-   END Name;
 
 BEGIN
    Kind := mexNotSupported;
@@ -114,10 +148,8 @@ TYPE
 
 CLASS CExceptionHandler;
    PRIVATE VAR
-      Lock : Sync.LOCK;
-      TlsAllocated : BOOLEAN;
-      TlsIndex : CARDINAL;
       Heap : PTR;
+      ThreadLocalStorage : Tls.TPIThreadLocalStorage;
       
    LOCAL PROCEDURE StoreException( Source : POINTER TO Exception );
    LOCAL PROCEDURE IsCatchedBy( catchRtti : ADDRESS ) : BOOLEAN;
@@ -140,14 +172,7 @@ CLASS IMPLEMENTATION CExceptionHandler;
       END;
       rtti := RTTI( Source^ );
    
-      Lock.Lock();
-      IF NOT TlsAllocated THEN
-         TlsAllocated := TRUE;
-         TlsIndex := windows.TlsAlloc();
-      END;
-      Lock.Unlock();
-      
-      ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
+      ExceptionInfo := ThreadLocalStorage^.Value;
       IF ExceptionInfo = NIL THEN // this is a documented inital value too
 
          IF NOT Storage.HeapAllocate( Heap, OUT ExceptionInfo, SIZE( TExceptionInfo )) THEN
@@ -157,7 +182,7 @@ CLASS IMPLEMENTATION CExceptionHandler;
          ExceptionInfo^.storageLength := 0;
          ExceptionInfo^.storage := NIL;
 
-         windows.TlsSetValue( TlsIndex, ExceptionInfo );
+         ThreadLocalStorage^.Value := ExceptionInfo;
       END;
 
       ExceptionInfo^.rtti := rtti;
@@ -178,10 +203,7 @@ CLASS IMPLEMENTATION CExceptionHandler;
    VAR
       ExceptionInfo : TPExceptionInfo;
    BEGIN
-      IF NOT TlsAllocated THEN
-         RETURN FALSE;
-      END;
-      ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
+      ExceptionInfo := ThreadLocalStorage^.Value;
       IF ( ExceptionInfo = NIL ) OR ( ExceptionInfo^.rtti = NIL ) THEN
          RETURN FALSE;
       ELSIF TPException( ExceptionInfo^.storage )^ IS LOOSE RTTI catchRtti THEN
@@ -197,25 +219,22 @@ CLASS IMPLEMENTATION CExceptionHandler;
    VAR
       ExceptionInfo : TPExceptionInfo;
    BEGIN
-      IF NOT TlsAllocated THEN
+      ExceptionInfo := ThreadLocalStorage^.Value;
+      IF ExceptionInfo = NIL THEN
          RETURN NIL;
+      ELSE
+         RETURN TPException( ExceptionInfo^.storage );
       END;
-      ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
-      RETURN TPException( ExceptionInfo^.storage );
    END RetrieveException;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   TlsAllocated := FALSE;
-   TlsIndex := 0;
+   Tls.Create( OUT ThreadLocalStorage );
    Storage.CreateHeap( OUT Heap );
 FINALLY
-   IF TlsAllocated THEN
-      windows.TlsFree( TlsIndex );
-      TlsAllocated := FALSE;
-   END;
-   Storage.DisposeHeap( OUT Heap );
+   Storage.DisposeHeap( REF Heap );
+   Tls.Dispose( REF ThreadLocalStorage );
 END CExceptionHandler;
 
 (*--------------------------------------------------------------------------------*)

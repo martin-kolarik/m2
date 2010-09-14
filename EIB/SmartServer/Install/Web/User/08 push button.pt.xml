@@ -6,10 +6,37 @@
             <title>08 push button.pt.xml</title>
             <script type="text/javascript">
 
-                function setValue( address, value )
+                function correctNumber( isString, value )
+                {
+                    if( isString )
+                    {
+                        return value;
+                    }
+                    else
+                    {
+                        // avoid sending of empty string
+                        value = "" + value; 
+                        if( "" == value )
+                        {
+                            return null;
+                        }
+
+                        // replace decimal comma with decimal dot 
+                        var commaRE = /,/;
+                        return value.replace( commaRE, ".");
+                    }
+                }
+
+                function setValue( isString, address, value )
                 {
                     try
                     {
+                        value = correctNumber( isString, value ); // null is returned if correction fails
+                        if( value == null )
+                        {
+                            return;
+                        }
+                    
                         var xmlhttp;
                         if (window.XMLHttpRequest)
                         {
@@ -35,7 +62,7 @@
         <body>
             <h1>Dim value by buttons example</h1>
             <p>
-                <input type="button" value="Increase on press" onmousedown="setValue( '3/2/21', 50 )" onmouseup="setValue( '3/2/21', -50 )"/>
+                <input type="button" value="Increase on press" onmousedown="setValue( false, '3/2/21', 25 )" onmouseup="setValue( false, '3/2/21', -25 )"/>
             </p>
         </body>
     </html>

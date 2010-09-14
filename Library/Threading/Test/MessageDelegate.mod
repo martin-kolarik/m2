@@ -61,7 +61,7 @@ CLASS IMPLEMENTATION CDelegate;
    LOCAL VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
    BEGIN
       IF CheckThread AND NOT msgqueuethread.global()^.SelfContext THEN
-         Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
+         Test^.Host^.Log^.LogS( log.lcError, 0, L"", L"Completion in unexpected thread" );   
       END;
       sync.IInc( REF Test^.Count );
    END OnMessage;
@@ -144,7 +144,7 @@ CLASS IMPLEMENTATION CTest;
          // initiate
          FOR i := 0 TO lcount-1 DO
             IF NOT Pool^.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, OUT MH[i], OUT MSGS[i], OUT PH[i] ) THEN
-               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
+               Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
          END; // FOR
@@ -181,7 +181,7 @@ CLASS IMPLEMENTATION CTest;
          // initiate
          FOR i := 0 TO lcount-1 DO
             IF NOT Pool^.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, OUT MH[i], OUT MSGS[i], OUT PH[i] ) THEN
-               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
+               Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
          END; // FOR

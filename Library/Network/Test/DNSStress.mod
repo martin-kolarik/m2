@@ -63,19 +63,19 @@ CLASS IMPLEMENTATION CDNS;
       s : ARRAY [0..255] OF WCHAR := L"";
       request : ARRAY [0..15] OF WCHAR;
    BEGIN
-      Strings.FromCARD32W( CARDINAL( RequestId ), 10, OUT request );
+      Strings.FromCARD64W( CARD64( RequestId ), 10, OUT request );
       Strings.AppendW( REF request, L": " );
       IF Result = 0 THEN
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
-         Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"Success: ", request );   
+         Test^.Host^.Log^.LogSS( log.lcInfo, 0, L"", L"Success: ", request );   
          FOR i := 0 TO HIGH( Address ) DO
             Address[i].ToOA( TRUE, OUT s );
-            Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"  found: ", s );   
+            Test^.Host^.Log^.LogSS( log.lcInfo, 0, L"", L"  found: ", s );   
          END;
       ELSE
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 0;
          Strings.FromErrorW( Result, OUT s );
-         Test^.Host^.Log^.LogSSS( log.dlcError, L"", L"Failure: ", request, s );   
+         Test^.Host^.Log^.LogSSS( log.lcError, 0, L"", L"Failure: ", request, s );   
       END;
   END OnAddressFound;
   
@@ -86,16 +86,16 @@ CLASS IMPLEMENTATION CDNS;
       s : ARRAY [0..255] OF WCHAR;
       request : ARRAY [0..15] OF WCHAR;
    BEGIN
-      Strings.FromCARD32W( CARDINAL( RequestId ), 10, OUT request );
+      Strings.FromCARD64W( CARD64( RequestId ), 10, OUT request );
       Strings.AppendW( REF request, L": " );
       IF Result = 0 THEN
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
          Name.ToOA( OUT s );
-         Test^.Host^.Log^.LogSSS( log.dlcInfo, L"", L"Success: ", request, s );   
+         Test^.Host^.Log^.LogSSS( log.lcInfo, 0, L"", L"Success: ", request, s );   
       ELSE
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 0;
          Strings.FromErrorW( Result, OUT s );
-         Test^.Host^.Log^.LogSSS( log.dlcError, L"", L"Failure: ", request, s );   
+         Test^.Host^.Log^.LogSSS( log.lcError, 0, L"", L"Failure: ", request, s );   
       END;
    END OnNameFound;
 
@@ -122,7 +122,7 @@ CLASS IMPLEMENTATION CTest;
       av4 : CARDINAL;
       Completed : BOOLEAN;
       h : PTR;
-      i, j : CARDINAL;
+      i : CARDINAL;
       Failure1, Failure2 : BOOLEAN;
    BEGIN
       SELF.Host := Host;
@@ -217,6 +217,7 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   Results[0] := 0;
    testimpl.tests()^.AddTest( L"Network::DNS", ADR( Test ));
 END CTest;
 

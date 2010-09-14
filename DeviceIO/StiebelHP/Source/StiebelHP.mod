@@ -6,6 +6,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
+   datetime,
 	FIO,
 	iobject,
 	IOO,
@@ -13,8 +14,7 @@ IMPORT
 	StorageO,
 	StringsO,
 	Sync,
-	Texts,
-	time;
+	Texts;
 
 (*================================================================================*)
 
@@ -189,7 +189,7 @@ CLASS IMPLEMENTATION CNS;
 		I := TPNSI( CreateNewItem( L"Output T",                      ns.ntValue, iovalue.vtFloat,   0301D6H )); D^.AddChild( I ); I^.Multiplier := 10;
 
 		I := TPNSI( CreateNewItem( L"Water T",                       ns.ntValue, iovalue.vtFloat,   03000EH )); D^.AddChild( I ); I^.Multiplier := 10;
-		I := TPNSI( CreateNewItem( L"Water T setpoint",              ns.ntValue, iovalue.vtFloat,   030003H )); D^.AddChild( I ); I^.Multiplier := 10;
+		I := TPNSI( CreateNewItem( L"Water T setpoint",              ns.ntValue, iovalue.vtFloat,   030013H )); D^.AddChild( I ); I^.Multiplier := 10;
 
 		I := TPNSI( CreateNewItem( L"Pump 1 Service Hours",          ns.ntValue, iovalue.vtInteger, 0301C4H )); D^.AddChild( I );
 		I := TPNSI( CreateNewItem( L"Pump 2 Service Hours",          ns.ntValue, iovalue.vtInteger, 0301C5H )); D^.AddChild( I );
@@ -461,7 +461,9 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      Logger.LogS( log.dldMessage, L"StiebelHP", L"Started" );
+   	_PoolDelegate.TimeoutSink := ADR( SELF );
+
+      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Started" );
       RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
    END Start;
 
@@ -469,8 +471,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
+   	_PoolDelegate.TimeoutSink := NIL;
+
+      StopTimeout( REF _TxTimeoutHandle );
+      StopTimeout( REF _RxTimeoutHandle );
+
       Connection.Close();
-      Logger.LogS( log.dldMessage, L"StiebelHP", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Stopped" );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -480,10 +487,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       EmptyData : StorageO.CMemoryBuffer;
    BEGIN
       IF PoolHandle = _TxTimeoutHandle THEN
-	      Logger.LogS( log.dldTrace, L"", L"Tx timeout" );
+	      Logger.LogS( log.ldTrace, 0, L"", L"Tx timeout" );
          OnTx( Sync.arTimeout );
       ELSIF PoolHandle = _RxTimeoutHandle THEN
-	      Logger.LogS( log.dldTrace, L"", L"Rx timeout" );
+	      Logger.LogS( log.ldTrace, 0, L"", L"Rx timeout" );
          OnRx( Sync.arTimeout, EmptyData );
       END;
    END OnTimeout;
@@ -544,6 +551,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		   StopTimeout( REF _RxTimeoutHandle );
 			PIO^.OnRx( Result, NIL );
 		ELSIF PLONGWORD( Data.Data )^ = 055555555H THEN
+   		StopTimeout( REF _RxTimeoutHandle ); // no need to wait for Rx timeout, when data was written
 			PIO^.OnTxCON( Sync.arCompleted );
 		ELSE
 		   StopTimeout( REF _RxTimeoutHandle );
@@ -596,7 +604,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	      IF addonText <> NIL THEN
 	         msg.Append( addonText^ );
 	      END;
-	      Log^.LogFilePos( log.dlcError, L"StiebelHP", L"", OA( msg.Length-1, msg.Data ), line, 0 );
+	      Log^.LogFilePos( log.lcError, 0, L"StiebelHP", L"", OA( msg.Length-1, msg.Data ), line, 0 );
 	   END LogError;
 
 	   (*----------*)
@@ -635,7 +643,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	   TxBuffer : StorageO.CMemoryBuffer;
 	BEGIN
 	   IF NOT Connection.Connected THEN
-	      Logger.LogS( log.dldTrace, L"", L"Disconnected, trying to reconnect" );
+	      Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
          Connection.OpenS( _DeviceAddress, TRUE, 500 );
 	   END;
 	
@@ -654,7 +662,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		   StartTimeout( _RxTimeout, REF _RxTimeoutHandle );
 		END;
 
-		Logger.LogSCB( log.dldDebug, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
+		Logger.LogSCB( log.ldDebug, 0, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
 		Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
 		IF Result = Sync.arTimeout THEN
 		   ASSERTLOG( FALSE );
@@ -681,13 +689,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		ChkSumOK : BOOLEAN := TRUE;
 	BEGIN
 		IF Result <> Sync.arCompleted THEN
-			Logger.LogSC( log.dldError, L'', L'rx error: ', CARDINAL( Result ));
+			Logger.LogSC( log.ldError, 0, L'', L'rx error: ', CARDINAL( Result ));
 			OnRx( Result, LRxBuffer );
 			RxBuffer.Clear();
 			RETURN FALSE;
 		ELSIF NOT Data.Empty THEN
 			RxBuffer.Append( Data );
-			Logger.LogSCB( log.dldDebug, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+			Logger.LogSCB( log.ldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
 		END;
 
       (* // TODO
@@ -725,8 +733,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
    BEGIN
-      // wait for some dump, then fix the bug and leave only the ASSERT on the place
-      // ASSERTLOG( Handle = NIL );
       IF Handle <> NIL THEN
          StopTimeout( REF Handle );
          ASSERTLOG( FALSE );
@@ -752,7 +758,6 @@ BEGIN
 	PIO := NIL;
 	_RxTimeoutHandle := 0;
 	_TxTimeoutHandle := 0;
-	_PoolDelegate.TimeoutSink := ADR( SELF );
 END CDeviceCommunicator;
 
 (*===========================================================================*)
@@ -965,7 +970,7 @@ CLASS IMPLEMENTATION CIO;
    VAR
       b : BOOLEAN;
       delegate : io.CCompletionDataInfo;
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       item : TErrorItem;
       itemFor : INTEGER;
       Result : Sync.TAsyncResult := Sync.arCompleted;
@@ -1004,12 +1009,12 @@ CLASS IMPLEMENTATION CIO;
          IF TimeFormat.Empty THEN // use default format
             b := dt.ToStringOA( L"HH:mm:ss", FALSE, TRUE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format: HH:mm:ss" );
+               DeviceCommunicator.Logger.LogS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format: HH:mm:ss" );
             END;
          ELSE
             b := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogSS( log.dldTrace, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.rawData ));
             END;
          END;
          dt.Day := Item^.Peer^.Items[eiDay]^.Value.Integer;
@@ -1022,12 +1027,12 @@ CLASS IMPLEMENTATION CIO;
          IF DateFormat.Empty THEN
             b := dt.ToStringOA( L"yyyy-MM-dd", TRUE, FALSE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format: yyyy-MM-dd" );
+               DeviceCommunicator.Logger.LogS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format: yyyy-MM-dd" );
             END;
          ELSE
             b := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogSS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.rawData ));
             END;
          END;
          dt.Minute := Item^.Peer^.Items[eiMinute]^.Value.Integer;

@@ -52,7 +52,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       ServerListener : CServerListener;
       ClientListener : CClientListener;
-      ClientConnection : rawconnection.TPTCPConnection := NIL;
+      ClientConnection : rawconnection.TPClientTCPConnection := NIL;
       ClientCount : CARDINAL := 0;
       ServerCount : CARDINAL := 0;
       Limit : INTEGER := 0;
@@ -179,7 +179,7 @@ CLASS IMPLEMENTATION CTest;
             lastCount := sync.IGet( REF ClientCount );
             IF ClientConnection^.Open( L'iris:4444', FALSE, sync.FORSAFETY ) = sync.arCannotStart THEN
                // this is returned if connection cannot start connecting due to pending disconnect
-               Host^.Log^.LogS( log.dlcError, L"", L"Unexpected connection Open result" );   
+               Host^.Log^.LogS( log.lcError, 0, L"", L"Unexpected connection Open result" );   
                DEC( lastCount ); // force repeat Open
             END;
          END;

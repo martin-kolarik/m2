@@ -65,7 +65,7 @@ END CWriter;
 CLASS CReaderThread( thread.Thread );
    PUBLIC VAR
       Test : TPTest;
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 END CReaderThread;   
 
 (*---------------------------------------------------------------------------*)
@@ -125,7 +125,7 @@ CLASS IMPLEMENTATION CReader;
     // _Ptr := 0; // reset reading
 
     IF DetectPrevious AND ( PINTEGER( _Data )^ <> PrevCount+1 ) THEN
-       Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Failed: ", PCARDINAL( _Data )^ );
+       Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Failed: ", PCARDINAL( _Data )^ );
     END;
     INC( PrevCount );
     
@@ -165,7 +165,7 @@ CLASS IMPLEMENTATION CReaderThread;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       c : CARDINAL;
       r : sync.TAsyncResult;
@@ -174,8 +174,8 @@ CLASS IMPLEMENTATION CReaderThread;
          Test^.Reader.Init( ADR( c ), SIZE( c ), FALSE );
          r := Test^.ReadStream.Read( ADR( Test^.Reader ), windows.INFINITE, TRUE );
          IF r <> sync.arCompleted THEN
-            Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Read failure: ", Test^.Reader.PrevCount );
-            Test^.Host^.Log^.LogSC( log.dlcError, L"", L"      result: ", CARDINAL( r ));
+            Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Read failure: ", Test^.Reader.PrevCount );
+            Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"      result: ", CARDINAL( r ));
          END;
          IF Test^.Limit = Test^.Reader.PrevCount + 1 THEN
             EXIT;
@@ -232,7 +232,7 @@ CLASS IMPLEMENTATION CTest;
             IF WriteStream.Write( ADR( Writer ), windows.INFINITE, TRUE ) = sync.arCompleted THEN
                INC( Count );
             ELSE
-               Host^.Log^.LogSC( log.dlcError, L"", L"Write failure: ", Count );
+               Host^.Log^.LogSC( log.lcError, 0, L"", L"Write failure: ", Count );
             END;
 
             IF Count = Limit THEN

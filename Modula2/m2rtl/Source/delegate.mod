@@ -12,19 +12,13 @@ IMPORT
 //--------------------------------------------------------------------------------
 
 CLASS IMPLEMENTATION CDelegateException;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      ASSIGN( S, EMITW( %class ));
-   END Name;
-
 END CDelegateException;
 
 PROCEDURE DelegateException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CDelegateException;
 VAR
 	DE : CDelegateException;
 BEGIN
-	DE.Init( NestedException, Originator, Text );
+	DE.Init( 0, NestedException, Originator, Text );
 	RETURN DE;
 END DelegateException;
 
@@ -80,7 +74,7 @@ CLASS IMPLEMENTATION ADelegate;
 
   PRIVATE OPERATOR DISPOSE( a : ADDRESS );
   BEGIN
-    DEALLOCATE( OUT a );
+    DEALLOCATE( REF a );
   END DISPOSE;
   
 BEGIN

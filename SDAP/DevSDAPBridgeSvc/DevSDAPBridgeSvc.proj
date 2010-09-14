@@ -29,10 +29,10 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\SDAP\DeviceIOSDAPBridge"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\SDAP\DeviceIOSDAPBridge;$(RootPath)\DeviceIO\AirMotion;$(RootPath)\DeviceIO\StiebelHP"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Tools\svcinst;Component\sccore;SDAP\DeviceIOSDAPBridge"/>
+        <Components Include="Tools\svcinst;Component\sccore;DeviceIO\StiebelHP;DeviceIO\AirMotion;SDAP\DeviceIOSDAPBridge"/>
         <Program Include="BridgeSvc"/>
     </ItemGroup>
 

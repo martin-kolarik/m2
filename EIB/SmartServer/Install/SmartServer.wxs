@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xsi:schemaLocation="http://schemas.microsoft.com/wix/2003/01/wi wix.xsd" xmlns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xse="http://schemas.microsoft.com/wix/2005/XmlSchemaExtension" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
     <Product Codepage="$(var.CodePage)" Language="$(var.Language)" Manufacturer="$(var.Manufacturer)" Name="$(var.ProductDescription)" Version="$(var.ProductVersion)" Id="$(var.ProductGUID)" UpgradeCode="$(var.UpgradeGUID)">
-        <Package Compressed="yes" Id="????????-????-????-????-????????????" Languages="$(var.Language)" SummaryCodepage="$(var.CodePage)" />
+        <Package InstallerVersion="200" Compressed="yes" Id="????????-????-????-????-????????????" Languages="$(var.Language)" SummaryCodepage="$(var.CodePage)" />
         <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1" />
         <Directory Id="TARGETDIR" Name="SourceDir">
             <?if $(var.CLib)=Shared ?>
@@ -35,6 +35,7 @@
                                 <ServiceDependency Id="Tcpip" />
                             </ServiceInstall>
                             <ServiceControl Id="SVCControlProgram" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                            <RemoveFolder Id="INSTALLDIRRemove" On="uninstall"/>
                         </Component>
                         <Component Guid="1FAB7C94-0544-4b30-80D9-2C824C43E4AD" Id="RuntimeLib">
                             <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
@@ -71,25 +72,55 @@
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" KeyPath="yes" />
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
+                        <Directory Id="RCWare" Name="RCWare">
+                            <Component Id="RCWareDLL1" Guid="36FD59CA-EAB9-457d-B031-57A1B469D5F5">
+                                <File Id="RCWareDLL1.dll" Name="RCWare1.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll"
+                                      Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            </Component>
+                            <Component Id="RCWareDLL2" Guid="428BF0C8-B96D-4894-A359-44297DF02B65">
+                                <File Id="RCWareDLL2.dll" Name="RCWare2.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll"
+                                      Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            </Component>
+                        </Directory>
                         <?if $(var.LanguageName)=en ?>
-                        <Component Id="Documentation" Guid="89A02EDA-2261-4c9b-8087-06AA1B5FC0A7">
-                            <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="SmartServer documentation" />
-                            </File>
-                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
-                        </Component>
+                            <Component Id="Documentation" Guid="D172AB6D-5999-4677-B590-8C5EB991973B">
+                                <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="Documentation" Advertise="yes" Icon="PDF.exe" />
+                                </File>
+                                <RemoveFolder Id="DocumentationFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="Changelog" Guid="1E7D7631-7496-4a06-8BF3-673DED82E3AD">
+                                <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="ChangeLogOpenShortcut" Directory="SmartServerDir" Name="Changes" LongName="Change log" Advertise="yes" Icon="TXT.exe" />
+                                </File>
+                                <RemoveFolder Id="ChangelogFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="DefaultConfiguration" Guid="A845DA49-44F1-40f9-BFAA-3110DC6FB7FF">
+                                <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuCFG" Directory="SmartServerDir" Name="CFG" LongName="Configuration" Advertise="yes" Icon="CFG.exe" />
+                                </File>
+                            </Component>
                         <?endif ?>
                         <?if $(var.LanguageName)=cs ?>
-                        <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
-                            <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manuál" LongName="Dokumentace SmartServer" />
-                            </File>
-                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
-                        </Component>
+                            <Component Id="Documentation" Guid="8FA98162-E511-435b-B80D-68149C625478">
+                                <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manuál" LongName="Dokumentace" Advertise="yes" Icon="PDF.exe" />
+                                </File>
+                                <RemoveFolder Id="DocumentationFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="Changelog" Guid="A72537D2-8BA9-4096-8BDC-0F25521F2049">
+                                <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="ChangeLogOpenShortcut" Directory="SmartServerDir" Name="Změny" LongName="Seznam změn" Advertise="yes" Icon="TXT.exe" />
+                                </File>
+                                <RemoveFolder Id="ChangelogFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="DefaultConfiguration" Guid="E3110039-B225-43ed-B91F-1C45A68D8B52">
+                                <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuCFG" Directory="SmartServerDir" Name="CFG" LongName="Konfigurace" Advertise="no" Icon="CFG.exe"
+                                              WorkingDirectory="INSTALLDIR" Target="[SystemFolder]notepad.exe" Arguments="[!default.cfg]" />
+                                </File>
+                            </Component>
                         <?endif ?>
-                        <Component Id="DefaultConfiguration" Guid="E3110039-B225-43ed-B91F-1C45A68D8B52">
-                            <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
-                        </Component>
                         <Directory Id="WEB" Name="Web">
                             <Component Id="Web" Guid="7A88F76D-6C57-4047-95F6-79E8CB4730E4">
                                 <File Id="NeNo.css" LongName="NeNo.css" Name="NENO.CSS" Source="Web\NeNo.css" DiskId="1" />
@@ -106,6 +137,15 @@
                                 <File Id="Transparent.png" LongName="Transparent.png" Name="TRANSPA.PNG" Source="Web\Transparent.png" DiskId="1" />
                                 <File Id="TransparentBig.png" LongName="TransparentBig.png" Name="TRANSPB.PNG" Source="Web\TransparentBig.png" DiskId="1" />
                                 <File Id="index.pt.xml" LongName="index.pt.xml" Name="INDEX.XML" Source="Web\index.pt.xml" DiskId="1" />
+                                <File Id="Edit24.png" Name="Edit24.png" Source="Web\Edit24.png" DiskId="1" />
+                                <File Id="Trash24.png" Name="Trash24.png" Source="Web\Trash24.png" DiskId="1" />
+                                <File Id="Add24.png" Name="Add24.png" Source="Web\Add24.png" DiskId="1" />
+                                <File Id="users.pt.xml" LongName="users.pt.xml" Name="USERS.XML" Source="Web\users.pt.xml" DiskId="1" />
+                                <File Id="userEdit.pt.xml" LongName="userEdit.pt.xml" Name="USEREDIT.XML" Source="Web\userEdit.pt.xml" DiskId="1" />
+                                <File Id="roleEdit.pt.xml" LongName="roleEdit.pt.xml" Name="ROLEEDIT.XML" Source="Web\roleEdit.pt.xml" DiskId="1" />
+                                <File Id="userLogin.pt.xml" LongName="userLogin.pt.xml" Name="USERLOG.XML" Source="Web\userLogin.pt.xml" DiskId="1" />
+                                <File Id="userLoginCanvas.jpg" LongName="userLoginCanvas.jpg" Name="UCANVAS.JPG" Source="Web\userLoginCanvas.jpg" DiskId="1" />
+                                <File Id="error.401.pt.xml" LongName="error.401.pt.xml" Name="err401.XML" Source="Web\error.401.pt.xml" DiskId="1" />
                             </Component>
                             <Directory Id="UserWeb" Name="User">
                                 <Component Id="UserWeb" Guid="FDF719DB-B1DA-4401-BE5F-1FA854E7DB2D">
@@ -122,6 +162,9 @@
                                     <File Id="_08_push_button.pt.xml" LongName="08 push button.pt.xml" Name="08PUSHB.XML" Source="Web\User\08 push button.pt.xml" DiskId="1" />
                                     <File Id="_09_table.pt.xml" LongName="09 table.pt.xml" Name="09TABLE.XML" Source="Web\User\09 table.pt.xml" DiskId="1" />
                                     <File Id="_10_relations.pt.xml" LongName="10 relations.pt.xml" Name="10RELAT.XML" Source="Web\User\10 relations.pt.xml" DiskId="1" />
+                                    <File Id="_11_intervals.pt.xml" LongName="11 intervals.pt.xml" Name="11INTER.XML" Source="Web\User\11 intervals.pt.xml" DiskId="1" />
+                                    <File Id="_singlerole.pt.xml" LongName="singlerole.pt.xml" Name="ONEROLE.XML" Source="Web\User\singlerole.pt.xml" DiskId="1" />
+                                    <File Id="_multipleroles.pt.xml" LongName="multipleroles.pt.xml" Name="MUTLROLE.XML" Source="Web\User\multipleroles.pt.xml" DiskId="1" />
                                 </Component>
                             </Directory>
                         </Directory>
@@ -165,6 +208,79 @@
                                     <File Id="Template_TSU9600_v2.xcf" LongName="Template_TSU9600_v2.xcf" Name="TEMP6V2.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v2.xcf" DiskId="1" />
                                 </Component>
                             </Directory>
+                            <Directory Id="Wix" Name="Wix">
+                                <Component Id="ExamplesWix" Guid="7196E9D5-DA50-4d9c-8500-94A6286210BD">
+                                    <File Id="wixDefault.cfg" Name="default.cfg" Source="Examples\Wix\default.cfg" DiskId="1" />
+                                    <File Id="getwixLogical.xml" Name="getwlog.xml" LongName="getwixLogical.pt.xml" Source="Examples\Wix\getwixLogical.pt.xml" DiskId="1" />
+                                    <File Id="getwixNumber.xml" Name="getwnum.xml" LongName="getwixNumber.pt.xml" Source="Examples\Wix\getwixNumber.pt.xml" DiskId="1" />
+                                    <File Id="wx.core.cfg.xml" Name="wix.cfg" LongName="wx.core.cfg.xml" Source="Examples\Wix\wx.core.cfg.xml" DiskId="1" />
+                                </Component>
+                            </Directory>
+                            <Directory Id="RCWareRoot" Name="RCWare">
+                                <Directory Id="RCWareAirConditioning" Name="AirCond" LongName="AirConditioning">
+                                    <Component Id="RCWE01" Guid="DB79D9E1-4536-45c1-B3B9-FBF8C5295D6D">
+                                        <File Id="RCWE0101" Name="File0101" LongName="Doudová.splcsln" Source="Examples\RCWare\AirConditioning\Doudová.splcsln" DiskId="1" />
+                                    </Component>
+                                    <Directory Id="RCWareAirConditioningVZT" Name="VZT">
+                                        <Component Id="RCWE02" Guid="D5B20714-37CF-472a-A4E9-FF0FF2593185">
+                                            <File Id="RCWE0201" Name="File0201" LongName="VZT.fupla" Source="Examples\RCWare\AirConditioning\VZT\VZT.fupla" DiskId="1" />
+                                            <File Id="RCWE0202" Name="File0202" LongName="VZT.hwvisual" Source="Examples\RCWare\AirConditioning\VZT\VZT.hwvisual" DiskId="1" />
+                                            <File Id="RCWE0203" Name="File0203" LongName="VZT.opcdef" Source="Examples\RCWare\AirConditioning\VZT\VZT.opcdef" DiskId="1" />
+                                            <File Id="RCWE0204" Name="File0204" LongName="VZT.splcproj" Source="Examples\RCWare\AirConditioning\VZT\VZT.splcproj" DiskId="1" />
+                                        </Component>
+                                        <Directory Id="RCWareAirConditioningVZTFUPLA" Name="FUPLA">
+                                            <Component Id="RCWE03" Guid="3C22D0B3-8B2A-4026-BE17-169228293767">
+                                                <File Id="RCWE0301" Name="File0301" LongName="schema0[f443654a-2afd-4b4f-9721-73cf7ec47a96].schema"
+                                                      Source="Examples\RCWare\AirConditioning\VZT\FUPLA\schema0[f443654a-2afd-4b4f-9721-73cf7ec47a96].schema" DiskId="1" />
+                                            </Component>
+                                        </Directory>
+                                    </Directory>
+                                </Directory>
+                                <Directory Id="RCWareModbusWago" Name="Wago" LongName="ModbusWago">
+                                    <Component Id="RCWE04" Guid="E06D31D2-DD8E-43bb-A5A2-E508D6B16897">
+                                        <File Id="RCWE0401" Name="File0401" LongName="default.cfg" Source="Examples\RCWare\ModbusWago\default.cfg" DiskId="1" />
+                                        <File Id="RCWE0402" Name="File0402" LongName="MODBUS WAGO popis adres.txt"
+                                              Source="Examples\RCWare\ModbusWago\MODBUS WAGO popis adres.txt" DiskId="1" />
+                                    </Component>
+                                    <Directory Id="RCWareModbusWagoRC" Name="Modbus" LongName="test_modbus">
+                                        <Component Id="RCWE05" Guid="7DACCBCA-094D-411c-A9A2-678FA689735C">
+                                            <File Id="RCWE0501" Name="File0501" LongName="test_SmartServer.pro" Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer.pro" DiskId="1" />
+                                            <File Id="RCWE0502" Name="File0502" LongName="test_SmartServer.SDB" Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer.SDB" DiskId="1" />
+                                            <File Id="RCWE0503" Name="File0503" LongName="test_SmartServer.SYM" Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer.SYM" DiskId="1" />
+                                            <File Id="RCWE0504" Name="File0504" LongName="test_SmartServer00002ed3r.ci"
+                                                  Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer00002ed3r.ci" DiskId="1" />
+                                            <File Id="RCWE0405" Name="File0405" LongName="test_SmartServer00002ed3r.ri"
+                                                  Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer00002ed3r.ri" DiskId="1" />
+                                        </Component>
+                                    </Directory>
+                                    <Directory Id="RCWareModbusWagoSmartServer" Name="SmartSrv" LongName="test_SmartServer">
+                                        <Component Id="RCWE06" Guid="F56C218F-7516-4b6d-A5BC-C92CA934BA0F">
+                                            <File Id="RCWE0601" Name="File0601" LongName="test_SmartServer.splcsln"
+                                                  Source="Examples\RCWare\ModbusWago\test_SmartServer\test_SmartServer.splcsln" DiskId="1" />
+                                        </Component>
+                                        <Directory Id="RCWareModbusWagoSmartServerNewProject" Name="NewProj" LongName="NewProject">
+                                            <Component Id="RCWE07" Guid="C4EC0735-A037-4a74-A1B1-EED00CBA5E18">
+                                                <File Id="RCWE0701" Name="File0701" LongName="NewProject.fupla" Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\NewProject.fupla" DiskId="1" />
+                                                <File Id="RCWE0702" Name="File0702" LongName="NewProject.hwvisual" Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\NewProject.hwvisual" DiskId="1" />
+                                                <File Id="RCWE0703" Name="File0703" LongName="NewProject.opcdef" Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\NewProject.opcdef" DiskId="1" />
+                                                <File Id="RCWE0704" Name="File0704" LongName="NewProject.splcproj" Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\NewProject.splcproj" DiskId="1" />
+                                            </Component>
+                                            <Directory Id="RCWareModbusWagoSmartServerNewProjectFUPLA" Name="FUPLA">
+                                                <Component Id="RCWE08" Guid="784B6336-806F-4abb-B1D5-9B04AC8C11E8">
+                                                    <File Id="RCWE0801" Name="File0801" LongName="schema0[cc93a5bd-46e0-4f95-9901-b2baeae321d5].schema"
+                                                          Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\FUPLA\schema0[cc93a5bd-46e0-4f95-9901-b2baeae321d5].schema" DiskId="1" />
+                                                </Component>
+                                            </Directory>
+                                        </Directory>
+                                    </Directory>
+                                </Directory>
+                            </Directory>
+                            <Directory Id="iWebKit" Name="iWebKit">
+                                <Component Id="ExamplesiWebKit" Guid="EAC4A79A-24A5-493d-B148-219081E4BD0E">
+                                    <File Id="iWebKit.zip" Name="iWebKit.cfg" LongName="iWebKit5.04.zip" Source="Examples\iWebKit\iWebKit5.04.zip" DiskId="1" />
+                                    <File Id="iPhone.zip" Name="iphone.zip" Source="Examples\iWebKit\iphone.zip" DiskId="1" />
+                                </Component>
+                            </Directory>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>
                         <Component Guid="B77FFC41-B032-47C6-841B-12239073885D" Id="LeakDetector">
@@ -192,10 +308,10 @@
                     </Directory>
                 </Directory>
             </Directory>
-        </Directory>
-        <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
-            <Directory Id="ProgramMenuDir" Name='NeNo' LongName="NeNo">
-                <Directory Id="SmartServerDir" Name='SmartSrv' LongName="KNX SmartServer" />
+            <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
+                <Directory Id="ProgramMenuDir" Name="NeNo">
+                    <Directory Id="SmartServerDir" Name='SmartSrv' LongName="KNX SmartServer" />
+                </Directory>
             </Directory>
         </Directory>
         <?if $(var.CLib)=Private ?>
@@ -221,14 +337,27 @@
             <ComponentRef Id="ToolCheckCfg" />
             <ComponentRef Id="ToolDiscover" />
             <ComponentRef Id="Documentation" />
+            <ComponentRef Id="Changelog" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="ETSPR3" />
+            <ComponentRef Id="RCWareDLL1" />
+            <ComponentRef Id="RCWareDLL2" />
             <ComponentRef Id="Web" />
             <ComponentRef Id="UserWeb" />
             <ComponentRef Id="UserWebExamples" />
             <ComponentRef Id="Examples" />
             <ComponentRef Id="ExamplesFlash" />
             <ComponentRef Id="ExamplesPronto" />
+            <ComponentRef Id="ExamplesWix" />
+            <ComponentRef Id="ExamplesiWebKit" />
+            <ComponentRef Id="RCWE01" />
+            <ComponentRef Id="RCWE02" />
+            <ComponentRef Id="RCWE03" />
+            <ComponentRef Id="RCWE04" />
+            <ComponentRef Id="RCWE05" />
+            <ComponentRef Id="RCWE06" />
+            <ComponentRef Id="RCWE07" />
+            <ComponentRef Id="RCWE08" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
             <?endif ?>
@@ -249,6 +378,9 @@
         <UIRef Id="WixUI_Licence" />
         <UI />
         <Icon Id="AddRemoveIcon" SourceFile="SmartServer.ico" />
+        <Icon Id="TXT.exe" SourceFile="TXT.ico" />
+        <Icon Id="PDF.exe" SourceFile="PDF.ico" />
+        <Icon Id="CFG.exe" SourceFile="CFG.ico" />
         <?include $(var.BuildRoot)\Manufacturer.wxs ?>
         <?include $(var.BuildRoot)\Upgrade.wxs ?>
     </Product>

@@ -5,9 +5,9 @@ FROM Storage IMPORT
 
 IMPORT
    Delegate,
+   datetime,
    lists,
-   sync,
-   time;
+   sync;
 
 (*================================================================================*)
 
@@ -48,14 +48,14 @@ CLASS CProduct;
       _Name : StringsO.CString;
       _Licences : lists.CStringList; // Data contains TLicenceType
       _StateInfo : TStateInfo;
-      _Expires : time.TJD;
+      _Expires : datetime.TJD;
       _Info : lists.CStringStringList;
 
    PUBLIC READONLY PROPERTY
       Name : StringsO.CString;
       Id : StringsO.CString;
       StateInfo : TStateInfo;
-      Expires : time.DateTime;
+      Expires : datetime.DateTime;
       Expired : BOOLEAN;
       Info : lists.TPStringStringList;
       Licences : lists.TPStringList;
@@ -63,7 +63,7 @@ CLASS CProduct;
    VIRTUAL PROCEDURE Dispose();
    
    // private
-   LOCAL PROCEDURE Construct( CONST Id, Name : StringsO.IString; stateInfo : TStateInfo; expires : time.TJD );
+   LOCAL PROCEDURE Construct( CONST Id, Name : StringsO.IString; stateInfo : TStateInfo; expires : datetime.TJD );
 END CProduct;
 
 (*--------------------------------------------------------------------------------*)
@@ -72,8 +72,8 @@ CLASS CResult( Delegate.ADelegate );
    PRIVATE VAR
       _Lock : sync.LOCK;
       _Info : TStateInfo;
-      _Expires : time.TJD;
-      _Start : time.TJD;
+      _Expires : datetime.TJD;
+      _Start : datetime.TJD;
       _Counter : CARDINAL := 0;
       _Products : lists.CPtrList;
 
@@ -87,7 +87,7 @@ CLASS CResult( Delegate.ADelegate );
    // summarized data
    PUBLIC READONLY PROPERTY
       StateInfo : TStateInfo;
-      Expires : time.DateTime;
+      Expires : datetime.DateTime;
       Expired : BOOLEAN;
       NextCheck : CARDINAL;
       Counted : BOOLEAN;

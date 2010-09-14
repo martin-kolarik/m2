@@ -1,6 +1,9 @@
 IMPLEMENTATION MODULE com;
 (*# option( pack => 8 ) *)
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
@@ -68,10 +71,11 @@ CLASS IMPLEMENTATION CIUnknown;
   BEGIN
     #if ADDREF_RELEASE_DEBUG #then
       DbgOutREL( ADR( SELF ));
-      IF ReferenceCount = 0 THEN
-        ADDRESS( 0 )^ := 0;
-      END;
     #endif
+      IF ReferenceCount = 0 THEN
+         ASSERTLOG( FALSE, L"ReferenceCount = 0, already released" );
+         RETURN 0;
+      END;
     DEC( ReferenceCount );
     IF ReferenceCount > 0 THEN
       RETURN windows.ULONG( ReferenceCount );
@@ -96,7 +100,7 @@ CLASS IMPLEMENTATION CIUnknown;
 
   PUBLIC OPERATOR DISPOSE( a : ADDRESS );
   BEGIN
-    DEALLOCATE( OUT a );
+    DEALLOCATE( REF a );
   END DISPOSE;
 
 //---------------------------------------------------------------------------
@@ -456,7 +460,7 @@ VAR
    PBSTR : wtypes.BSTR;
    s : ARRAY [0..127] OF WCHAR;
 BEGIN
-   Strings.FromCARD32W( CARDINAL( POwner ), 16, OUT s );
+   Strings.FromCARD64W( CARD64( POwner ), 16, OUT s );
    Strings.PrependW( REF s, L'ref: ' );
    Strings.PrependW( REF s, String );
    Strings.AppendW( REF s, L' req: ' );
@@ -488,7 +492,7 @@ BEGIN
       objbase.CoTaskMemFree( PBSTR );
    END;
 
-   Log.logger()^.LogS( Log.dldDebug, L"COM", s );
+   Log.logger()^.LogS( Log.ldDebug, 0, L"COM", s );
 END DbgOutIID;
 
 (*---------------------------------------------------------------------------*)
@@ -498,7 +502,7 @@ VAR
    n : ARRAY [0..31] OF WCHAR;
    s : ARRAY [0..127] OF WCHAR;
 BEGIN
-   Strings.FromCARD32W( CARDINAL( PInterface ), 16, OUT s );
+   Strings.FromCARD64W( CARD64( PInterface ), 16, OUT s );
    Strings.PrependW( REF s, Text );
    Strings.FromCARD32W( From, 10, OUT n );
    Strings.AppendW( REF s, L', ' );
@@ -507,7 +511,7 @@ BEGIN
    Strings.FromCARD32W( CARDINAL( INTEGER( From ) + Amount ), 10, OUT n );
    Strings.AppendW( REF s, n );
 
-   Log.logger()^.LogS( Log.dldDebug, L"COM", s );
+   Log.logger()^.LogS( Log.ldDebug, 0, L"COM", s );
 END DbgOutRefCount;
 
 (*---------------------------------------------------------------------------*)

@@ -149,7 +149,7 @@ CLASS IMPLEMENTATION CTest;
          QQ.Dequeue( OUT I64, TRUE, Sync.FOREVER );
          IF I64 <> P64+1 THEN
             Strings.FromINT64W( I64, 10, OUT sI64 ); Strings.FromINT64W( P64, 10, OUT sP64 );
-            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sI64, L"/", sP64 );
+            Host^.Log^.LogSSSS( log.lcError, 0, L"", L"Failed on numbers: ", sI64, L"/", sP64 );
             Exit := 1;
             EXIT;
          END;

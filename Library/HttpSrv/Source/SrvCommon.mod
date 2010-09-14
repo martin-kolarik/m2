@@ -4,10 +4,11 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM Log IMPORT
-   dlcError, dlcWarning, dlcInfo;
+   lcError, lcWarning, lcInfo;
    
 IMPORT
    cphcommon,
+   datetime,
    digest,
    httpapi,
    HttpConnection,
@@ -21,7 +22,6 @@ IMPORT
    StorageO,
    Strings,
    syncmaps,
-   Time,
    threadpool,
    windows,
    winerror,
@@ -502,9 +502,9 @@ CLASS IMPLEMENTATION ASrvStream;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LastModified GET : time.DateTime;
+   PUBLIC PROPERTY LastModified GET : datetime.DateTime;
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       s : StringsO.CString;
    BEGIN
       IF NOT ResponseHeaders^.Get( HttpCommon.LastModified, OUT s ) THEN
@@ -517,18 +517,18 @@ CLASS IMPLEMENTATION ASrvStream;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LastModified SET( CONST Value : time.DateTime );
+   PUBLIC PROPERTY LastModified SET( CONST Value : datetime.DateTime );
    BEGIN
       ResponseHeaders^.Add( HttpCommon.LastModified, httptools.FormatDate( Value ));
    END LastModified;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   PUBLIC PROCEDURE TestConditions( CONST ResourceLastModified : datetime.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       IfModifiedSince : StringsO.CString;
-      ldt : time.DateTime;
+      ldt : datetime.DateTime;
    BEGIN
       IF RequestHeaders^.Get( HttpCommon.IfModifiedSince, OUT IfModifiedSince ) AND httptools.DecodeDate( IfModifiedSince, OUT dt ) THEN
          ldt := ResourceLastModified;
@@ -548,7 +548,7 @@ CLASS IMPLEMENTATION ASrvStream;
 
    PRIVATE PROCEDURE NormalizeHeaders();
    VAR
-      dt : Time.DateTime;
+      dt : datetime.DateTime;
       Content : StringsO.CString;
    BEGIN
       // Date
@@ -660,8 +660,17 @@ CLASS IMPLEMENTATION ASrvStream;
                   Writer.WriteStringOA( L". Please, click the link to move to correct page." );
                Writer.WriteElementEnd();
 
-            ELSE // not redirect
-               Writer.WriteElementStringOA( L"", L"h1", L"Unable to handle HTTP request." );
+            | HttpCommon.httpres_401 :
+               Writer.WriteElementStringOA( L"", L"h1", L"Unauthorized access" );
+               Writer.WriteElementStartOA( L"", L"p" );
+                  Writer.WriteStringOA( L"The server responded with HTTP status code " );
+                  Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
+                  Writer.WriteStringOA( n );
+                  Writer.WriteStringOA( L". Please, log in to server and repeat the request." );
+               Writer.WriteElementEnd();
+
+            ELSE
+               Writer.WriteElementStringOA( L"", L"h1", L"Unable to handle HTTP request" );
                Writer.WriteElementStartOA( L"", L"p" );
                   Writer.WriteStringOA( L"The server responded with HTTP status code " );
                   Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
@@ -712,7 +721,7 @@ CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
       Chunked : BOOLEAN;
       ResponseLength : CARD64;
       AllowCaching : BOOLEAN;
-      LastModified : time.DateTime;
+      LastModified : datetime.DateTime;
 
    PRIVATE VAR
       _Stream : TPSrvStream;
@@ -867,14 +876,14 @@ CLASS IMPLEMENTATION CHttpConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY LastModified GET : time.DateTime;
+   PUBLIC VIRTUAL PROPERTY LastModified GET : datetime.DateTime;
    BEGIN
       RETURN _Stream^.LastModified;
    END LastModified;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY LastModified SET( CONST Value : time.DateTime );
+   PUBLIC VIRTUAL PROPERTY LastModified SET( CONST Value : datetime.DateTime );
    BEGIN
       _Stream^.LastModified := Value;
    END LastModified;
@@ -911,7 +920,7 @@ CLASS CSession IMPLEMENTS HttpSrv.ISession;
    PRIVATE VAR
       _Valid : BOOLEAN := TRUE;
       _RootPath : StringsO.CString;
-      _Created : Time.TJD;
+      _Created : datetime.TJD;
       _New : BOOLEAN := TRUE;
       _SID : StringsO.CString;
       _Data : syncmaps.CStringSyncMap;
@@ -1012,7 +1021,7 @@ CLASS IMPLEMENTATION CSession;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _Created := Time.GetCurrentJD();
+   _Created := datetime.GetCurrentJD();
 END CSession;
 
 (*================================================================================*)
@@ -1043,7 +1052,7 @@ CLASS IMPLEMENTATION HttpWorker;
       HTTP_COMMON_LOG_TIME_FORMAT = L"dd/MMM/yyyy:HH:mm:ss +0000";
    VAR
       Connection : CHttpConnection;
-      dt : Time.DateTime;
+      dt : datetime.DateTime;
       logger : Log.TPILogger := NIL;
       s : StringsO.CString;
       sOA : ARRAY [0..255] OF WCHAR;
@@ -1067,7 +1076,7 @@ CLASS IMPLEMENTATION HttpWorker;
          logger := Log.logger();
       END;
       
-      IF NOT logger^.Filtered( dlcError, LOG_HTTP ) THEN
+      IF NOT logger^.FilteredFastCheck( lcError, 0 ) THEN
          _Stream^.RemoteAddress.ToOA( FALSE, OUT sOA );
          s.FromOA( sOA );
          s.AppendOA( L" - - [" );
@@ -1107,7 +1116,7 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( sOA );
          END; // IF chunked
 
-         logger^.LogS( dlcError, LOG_HTTP, OA( s.Length-1, s.Data ));
+         logger^.LogS( lcError, 0, LOG_HTTP, OA( s.Length-1, s.Data ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1166,8 +1175,6 @@ CLASS IMPLEMENTATION CSessionHolder;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetSession( pcookie : StringsO.TPString; CONST addr : inetaddr.INETADDR; CONST rootPath : StringsO.CString ) : TPSrvSession;
-   CONST
-      SESSION_VALIDITY = 30*60*1000; // milliseconds, 30 minutes
    VAR
       c : CARDINAL;
       cookie : StringsO.CString;
@@ -1179,10 +1186,10 @@ CLASS IMPLEMENTATION CSessionHolder;
       session : TPSrvSession;
       sessionid : sha256.TDigest;
       shorttime : CARDINAL;
-      time : Time.TTime64;
+      time : datetime.TTime64;
    BEGIN
       // sweepout old sessions
-      shorttime := Time.UptimeMS();
+      shorttime := datetime.UptimeMS();
       WHILE Expiration.GetFirstElapsed( shorttime, TRUE, OUT session, OUT ptr ) DO
          Sessions.Remove( session^.SID );
          OnSessionExpired( session );
@@ -1193,7 +1200,7 @@ CLASS IMPLEMENTATION CSessionHolder;
          session^.New := FALSE;
          Expiration.Remove( session );
          IF session^.Valid THEN // move expiration to the future
-            Expiration.Add( shorttime, session, 0, SESSION_VALIDITY );
+            Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
             RETURN session;
          ELSE // kill the session
             Sessions.Remove( s );
@@ -1203,7 +1210,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       END;
 
       // cookie not set or cookie not found, create new empty session
-      time := Time.time();
+      time := datetime.time();
       digest.DigestOA( digest.sha256, time, OUT iv );
       digest.DigestOA( digest.sha256, OA( 31, addr.Data ), OUT data );
       rijndael.Encrypt( rijndael.cphmBlockEncrypt, rijndael.rkl256, Seed, iv, data, OUT sessionid, OUT c );
@@ -1216,7 +1223,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       NEW( session );
       session^.Init( cookie, rootPath );
       Sessions.Add( cookie, session );
-      Expiration.Add( shorttime, session, 0, SESSION_VALIDITY );
+      Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
       
       RETURN session;      
    END GetSession;
@@ -1441,7 +1448,7 @@ CLASS IMPLEMENTATION ASrvCommon;
       Reported : BOOLEAN := FALSE;
       Result : Sync.TAsyncResult;
       Session : TPSrvSession;
-      Timeout : CARDINAL := Time.UptimeMS() + netsocket.FORSAFETY;
+      Timeout : CARDINAL := datetime.UptimeMS() + netsocket.FORSAFETY;
       uri : StringsO.CString;
       Verb : HttpCommon.TVerb;
       WantsSession : BOOLEAN := FALSE;
@@ -1490,12 +1497,12 @@ CLASS IMPLEMENTATION ASrvCommon;
          END;
          IF NOT Reported THEN
             Reported := TRUE;
-            Log.logger()^.LogS( dlcInfo, LOG_HTTP, L"Pool has no space, wait for a while" );
+            Log.logger()^.LogS( lcInfo, 0, LOG_HTTP, L"Pool has no space, wait for a while" );
          END;
 
          Sync.Sleep( 100 );
-         IF Time.UptimeMS() - Timeout > 0 THEN // time elapsed
-            Log.logger()^.LogS( dlcWarning, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
+         IF datetime.UptimeMS() - Timeout > 0 THEN // time elapsed
+            Log.logger()^.LogS( lcWarning, 0, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
             EXIT;
          END;
       END;
@@ -1529,9 +1536,9 @@ CLASS IMPLEMENTATION ASrvCommon;
    BEGIN
       _RootPath.FromOA( L"/" );
       
-      _Seed := Time.time();
+      _Seed := datetime.time();
       Sync.Sleep( 17 );
-      _Seed := _Seed * ( MAX( INT64 ) - Time.time() );
+      _Seed := _Seed * ( MAX( INT64 ) - datetime.time() );
       
       _Pool.MinThreads := 2;
       _Pool.MaxThreads := 32;

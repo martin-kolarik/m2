@@ -9,6 +9,7 @@ IMPORT
   Storage,
   Strings,
   Sync,
+  Tls,
   windows;
 
 //================================================================================
@@ -66,7 +67,7 @@ CLASS CLeakDetector;
   Lock : Sync.LOCK;
   Allocations : avltree.CAVLTree;
   Filters : avltree.CAVLTree;
-  LHeap : windows.HANDLE;
+  LHeap : PTR;
   Log : log.CLogger;
   
   LOCAL PROCEDURE SwitchOn();
@@ -96,7 +97,7 @@ TYPE
 
 VAR
   LD : CLeakDetector;
-  tlsTrack : CARDINAL;
+  ThreadLocalStorage : Tls.TPIThreadLocalStorage := NIL;
 
 //--------------------------------------------------------------------------------
 
@@ -230,7 +231,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       RETURN;
     END;
 
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     IF Track = NIL THEN
       RETURN;
     END;
@@ -263,11 +264,11 @@ CLASS IMPLEMENTATION CLeakDetector;
       RETURN;
     END;
 
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     IF Track = NIL THEN
       RETURN;
     ELSIF Track^.Index = -1 THEN
-      Log.LogS( log.dlcInfo, L"", L"Allocation without mark" );
+      Log.LogS( log.lcInfo, 0, L"", L"Allocation without mark" );
       RETURN;
     END;
 
@@ -276,7 +277,7 @@ CLASS IMPLEMENTATION CLeakDetector;
     IF Filters.Empty OR Filters.Search( ADR( LF ), OUT F ) THEN
       LAL.Block := A;
       IF Allocations.Search( ADR( LAL ), OUT AL ) THEN
-        Log.LogSP( log.dlcWarning, L"", L"Duplicite allocation:", A );
+        Log.LogSP( log.lcWarning, 0, L"", L"Duplicite allocation:", A );
       ELSE
         NEW( AL );
         AL^.Track := Track^.Data;
@@ -302,11 +303,11 @@ CLASS IMPLEMENTATION CLeakDetector;
       RETURN;
     END;
 
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     IF Track = NIL THEN
       RETURN;
     ELSIF Track^.Index = -1 THEN
-      Log.LogS( log.dlcInfo, L"", L"Deallocation without mark" );
+      Log.LogS( log.lcInfo, 0, L"", L"Deallocation without mark" );
       RETURN;
     END;
 
@@ -317,7 +318,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       IF Allocations.Remove( ADR( LAL ), OUT AL ) THEN
         DISPOSE( AL );
       ELSE
-        Log.LogSP( log.dlcWarning, L"", L"Deallocation of unallocated memory:", A );
+        Log.LogSP( log.lcWarning, 0, L"", L"Deallocation of unallocated memory:", A );
       END;
     END;
     Lock.Unlock();
@@ -337,11 +338,11 @@ CLASS IMPLEMENTATION CLeakDetector;
       RETURN;
     END;
 
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     IF Track = NIL THEN
       RETURN;
     ELSIF Track^.Index = -1 THEN
-      Log.LogS( log.dlcInfo, L"", L"Reallocation without mark" );
+      Log.LogS( log.lcInfo, 0, L"", L"Reallocation without mark" );
       RETURN;
     END;
 
@@ -355,12 +356,12 @@ CLASS IMPLEMENTATION CLeakDetector;
       ELSIF Allocations.Remove( ADR( LAL ), OUT AL ) THEN
         DISPOSE( AL );
       ELSE
-        Log.LogSP( log.dlcWarning, L"", L"Re/deallocation of unallocated memory:", O );
+        Log.LogSP( log.lcWarning, 0, L"", L"Re/deallocation of unallocated memory:", O );
       END;
       // allocate
       LAL.Block := N;
       IF Allocations.Search( ADR( LAL ), OUT AL ) THEN
-        Log.LogSP( log.dlcWarning, L"", L"Duplicite re/allocation", N );
+        Log.LogSP( log.lcWarning, 0, L"", L"Duplicite re/allocation", N );
       ELSE
         NEW( AL );
         AL^.Track := Track^.Data;
@@ -375,15 +376,21 @@ CLASS IMPLEMENTATION CLeakDetector;
 //--------------------------------------------------------------------------------
   
   LOCAL PROCEDURE iAllocate( size : CARDINAL ) : ADDRESS;
+  VAR
+    a : ADDRESS;
   BEGIN
-    RETURN windows.HeapAlloc( LHeap, 0, size );
+    IF Storage.HeapAllocate( LHeap, OUT a, size ) THEN
+      RETURN a;
+    ELSE
+      RETURN NIL;
+    END;
   END iAllocate;
 
 //--------------------------------------------------------------------------------
   
   LOCAL PROCEDURE iDeallocate( a : ADDRESS );
   BEGIN
-    windows.HeapFree( LHeap, 0, a );
+    Storage.HeapDeallocate( LHeap, REF a );
   END iDeallocate;
   
 //--------------------------------------------------------------------------------
@@ -397,7 +404,7 @@ CLASS IMPLEMENTATION CLeakDetector;
     b : BOOLEAN;
   BEGIN
     IF Running THEN
-      Log.LogS( log.dlcWarning, L"", L"Start dumping of memory leaks" );
+      Log.LogS( log.lcWarning, 0, L"", L"Start dumping of memory leaks" );
     END;
 
     b := Allocations.GetFirst( OUT AL );
@@ -418,31 +425,31 @@ CLASS IMPLEMENTATION CLeakDetector;
         INC( i );
       END; // WHILE
       Strings.FromCARD64W( CARD64( AL^.Block ), 16, OUT N );
-      Log.LogSSSS( log.dlcWarning, L"", L"Leak of size", S, "at", N );
+      Log.LogSSSS( log.lcWarning, 0, L"", L"Leak of size", S, "at", N );
       
       b := Allocations.NextOf( AL, OUT AL );
     END; // WHILE
 
     IF Running THEN
-      Log.LogS( log.dlcWarning, L"", L"Stop dumping of memory leaks" );
+      Log.LogS( log.lcWarning, 0, L"", L"Stop dumping of memory leaks" );
     END;
 
     SwitchOff();
     Allocations.FINALLY(); // OK
     Filters.FINALLY(); // OK
 
-    windows.HeapDestroy( LHeap );
+    Storage.DisposeHeap( REF LHeap );
   END CLeakDetector;
 
 //--------------------------------------------------------------------------------
   
 BEGIN
   Running := TRUE;
-  LHeap := windows.HeapCreate( 0, 0, 0 );
+  Storage.CreateHeap( OUT LHeap );
   Lock.Init( Sync.ltSpin, L"", FALSE );
   Log.SetLogName( "LD" );
-  Log.Method := log.dmKernel;
-  Log.Level := log.dlcWarning;
+  Log.Output := log.outsKernel;
+  Log.Level := log.lcWarning;
 END CLeakDetector;
 
 //================================================================================
@@ -523,26 +530,26 @@ VAR
 BEGIN
   CASE Reason OF
   | windows.DLL_PROCESS_ATTACH :
-    tlsTrack := windows.TlsAlloc();
+    Tls.Create( OUT ThreadLocalStorage );
 
     Track := LD.iAllocate( SIZE( TTrack ));
-    windows.TlsSetValue( tlsTrack, Track );
     Track^ := emptyTrack;
+    ThreadLocalStorage^.Value := Track;
 
-  | windows.DLL_PROCESS_DETACH :
-    Track := windows.TlsGetValue( tlsTrack );
-    LD.iDeallocate( Track );
-
-    windows.TlsFree( tlsTrack );
-  
   | windows.DLL_THREAD_ATTACH :
     Track := LD.iAllocate( SIZE( TTrack ));
-    windows.TlsSetValue( tlsTrack, Track );
     Track^ := emptyTrack;
+    ThreadLocalStorage^.Value := Track;
   
   | windows.DLL_THREAD_DETACH :
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     LD.iDeallocate( Track );
+
+  | windows.DLL_PROCESS_DETACH :
+    Track := ThreadLocalStorage^.Value;
+    LD.iDeallocate( Track );
+
+    Tls.Dispose( REF ThreadLocalStorage );
   END; // CASE
 
   RETURN TRUE;

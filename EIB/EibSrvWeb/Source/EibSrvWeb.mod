@@ -38,7 +38,9 @@ TYPE
 CONST
     LOG_PREFIX = L"KnxSrv";
 
-    cfSmartServerUsers = L"SmartServer\WebUsers.cfg";
+    cfSmartServerUsersFolder = L"SmartServer";
+    cfSmartServerUsersFile = L"WebUsers.cfg";
+
     snRoles = L"roles";
        knNamed = L"named";
        knKeyed = L"keyed";
@@ -61,7 +63,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       _Connected := TRUE;
-      _ConnectedTime := time.GetCurrentJD();
+      _ConnectedTime := datetime.GetCurrentJD();
       
       _Lock.UnlockWrite();
    END OnConnect;
@@ -76,7 +78,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       _Connected := FALSE;
-      _DisconnectedTime := time.GetCurrentJD();
+      _DisconnectedTime := datetime.GetCurrentJD();
       
       _Lock.UnlockWrite();
    END OnDisconnect;
@@ -97,7 +99,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       dt.SetNowUTC();
       AdjustHours( dt, REF _WrittenByHour, REF _WrittenByHourModified );
@@ -109,7 +111,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       dt.SetNowUTC();
       AdjustHours( dt, REF _GotByHour, REF _GotByHourModified );
@@ -217,7 +219,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY StartedTime GET : time.TJD;
+   PUBLIC PROPERTY StartedTime GET : datetime.TJD;
    BEGIN
       // no need to lock, value written once
       RETURN _StartedTime;
@@ -225,9 +227,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ConnectedTime  GET : time.TJD;
+   PUBLIC PROPERTY ConnectedTime  GET : datetime.TJD;
    VAR
-      connectedTime : time.TJD;
+      connectedTime : datetime.TJD;
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -241,9 +243,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DisconnectedTime  GET : time.TJD;
+   PUBLIC PROPERTY DisconnectedTime  GET : datetime.TJD;
    VAR
-      connectedTime : time.TJD;
+      connectedTime : datetime.TJD;
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -257,9 +259,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LicenceExpires GET : time.DateTime;
+   PUBLIC PROPERTY LicenceExpires GET : datetime.DateTime;
    VAR
-      startTime : time.DateTime;
+      startTime : datetime.DateTime;
    BEGIN
       // no need to sync
       IF _EIB^.PResult^.Suspended THEN
@@ -314,7 +316,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY WrittenByHour GET : CARDINAL;
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       dt.SetNowUTC();
       AdjustHours( dt, REF _WrittenByHour, REF _WrittenByHourModified );
@@ -327,7 +329,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROPERTY WrittenByDay GET : CARDINAL;
    VAR
       byDay : CARDINAL := 0;
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       i : CARDINAL;
    BEGIN
       dt.SetNowUTC();
@@ -343,7 +345,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY ReadByHour GET : CARDINAL;
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       dt.SetNowUTC();
       AdjustHours( dt, REF _GotByHour, REF _GotByHourModified );
@@ -356,7 +358,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROPERTY ReadByDay GET : CARDINAL;
    VAR
       byDay : CARDINAL := 0;
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       i : CARDINAL;
    BEGIN
       dt.SetNowUTC();
@@ -446,7 +448,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Result : Sync.TAsyncResult;
    BEGIN
       IF index >= _DeviceCount THEN
-         Log.logger()^.LogS( Log.dlcWarning, LOG_PREFIX, L"OperateDevice index out of range." );
+         Log.logger()^.LogS( Log.lcWarning, 0, LOG_PREFIX, L"OperateDevice index out of range." );
       ELSIF StartNotStop THEN
          Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdDeviceStart ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
          ASSERTLOG( Result <> Sync.arTimeout );
@@ -461,7 +463,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROCEDURE DeviceRunning( index : CARDINAL ) : BOOLEAN;
    BEGIN
       IF index >= _DeviceCount THEN
-         Log.logger()^.LogS( Log.dlcWarning, LOG_PREFIX, L"DeviceRunning index out of range." );
+         Log.logger()^.LogS( Log.lcWarning, 0, LOG_PREFIX, L"DeviceRunning index out of range." );
          RETURN FALSE;
       ELSE
          RETURN _Devices^[index]^.Running;
@@ -491,7 +493,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Originator.SetDescription( d );
 
       // no need to sync, IOh is be thread safe
-      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
+      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) IN Sync.arsCompletions;
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
@@ -535,7 +537,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       CASE io.Type OF
       | iovalue.vtBoolean,
         iovalue.vtTristate :
-         value.FromINT32( io.Integer, 10 );
+         value.FromINT32( 10 * io.Integer, 10 );
       | iovalue.vtInteger :
          value.FromINT32( 10 * io.Integer, 10 );
       | iovalue.vtLong :
@@ -596,12 +598,10 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    VAR
       authinfo : StringsO.CString;
       hash, password : sha256.CDigest;
-      hashOA : sha256.TDigest;
       itemRole, role : TRole := roleGuest;
-      localUsers : lists.CStringStringList;
       s : StringsO.CString;
    BEGIN
-      IF Name.Empty OR Password.Empty THEN
+      IF Password.Empty THEN
          RETURN roleGuest;
       ELSIF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -702,6 +702,19 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE CheckRenameRoleConflict( CONST currentName, roleName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
+   BEGIN
+      IF currentName.Equals( roleName ) THEN // no conflict on rename will appear
+         RETURN FALSE; 
+      ELSIF _Roles.Contains( roleName ) THEN // role would be renamed to a name, which would collide with another existing one
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CheckRenameRoleConflict;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
    VAR
       i : CARDINAL;
@@ -710,27 +723,33 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
          RETURN FALSE;
-      ELSIF NOT currentName.Empty AND NOT _Roles.Contains( currentName ) THEN
+      ELSIF NOT currentName.Empty AND NOT _Roles.Contains( currentName ) THEN // unable to edit role, which does not exist
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      ELSIF NOT currentName.Equals( roleName ) AND _Roles.Contains( roleName ) THEN // unable to rename role to an existing name
          _Lock.UnlockWrite();
          RETURN FALSE;
       END;
 
-      // replace roles in users      
-      _Users.Reset();
-      WHILE _Users.MoveNext() DO
-         i := _Users.CurrentData^.IndexOfOA( L",", 0 );
-         IF i = -1 THEN
-            CONTINUE;
-         END;
-         _Users.CurrentData^.Substring( 0, i, OUT userRole );
-         IF userRole.Equals( currentName ) THEN
-            _Users.CurrentData^.Remove( 0, i );
-            _Users.CurrentData^.Prepend( roleName );
-         END;
-      END; // WHILE
+      // replace roles in users, if the role is not new
+      IF NOT currentName.Empty THEN
+         _Users.Reset();
+         WHILE _Users.MoveNext() DO
+            i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+            IF i = -1 THEN
+               CONTINUE;
+            END;
+            _Users.CurrentData^.Substring( 0, i, OUT userRole );
+            IF userRole.Equals( currentName ) THEN
+               _Users.CurrentData^.Remove( 0, i );
+               _Users.CurrentData^.Prepend( roleName );
+            END;
+         END; // WHILE
+      END;
 
       _Roles.Remove( currentName );
       _Roles.Add( roleName, PTR( role ));
+
       PersistUsers();
       
       _Lock.UnlockWrite();
@@ -762,11 +781,25 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          END;
       END; // WHILE
 
+      _Roles.Remove( roleName );
       PersistUsers();
 
       _Lock.UnlockWrite();
       RETURN TRUE;
    END DeleteRole;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CheckRenameUserConflict( CONST currentName, userName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
+   BEGIN
+      IF currentName.Equals( userName ) THEN // no conflict on rename will appear
+         RETURN FALSE;
+      ELSIF _SysUsers.Contains( currentName ) OR _Users.Contains( userName ) THEN // user would be renamed to a name, which would collide with another existing one
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CheckRenameUserConflict;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -782,7 +815,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
          RETURN FALSE;
-      ELSIF NOT currentName.Empty AND NOT _Users.Contains( currentName ) OR NOT _Roles.Get( roleName, OUT rolePtr ) THEN
+      ELSIF NOT currentName.Empty AND NOT _Users.Contains( currentName ) OR NOT _Roles.Get( roleName, OUT rolePtr ) THEN // unable to edit user, which does not exist, or role of which does not exist
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      ELSIF currentName.Equals( userName ) THEN
+         // OK, only a property, not name is to be changed
+      ELSIF _SysUsers.Contains( currentName ) OR _Users.Contains( userName ) THEN // unable to rename user to an existing name or to rename system user
          _Lock.UnlockWrite();
          RETURN FALSE;
       END;
@@ -792,9 +830,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       CASE role OF
       | roleSystemAdministrator :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"web_root", OUT hash );
-      | roleSystemUser :
+      | roleSystemUser, roleUserNamed :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"message_file", OUT hash );
-      | roleUserNamed, roleUserKeyed :
+      | roleUserKeyed :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"project", OUT hash );
       ELSE
          _Lock.UnlockWrite();
@@ -819,17 +857,22 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString );
+   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString ) : BOOLEAN;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
-         RETURN;
+         RETURN FALSE;
+      ELSIF _SysUsers.Contains( userName ) THEN // system user cannot be deleted
+         _Lock.UnlockWrite();
+         RETURN FALSE;
       END;
 
       _Users.Remove( userName );
       PersistUsers();
 
       _Lock.UnlockWrite();
+      
+      RETURN TRUE;
    END DeleteUser;
 
 (*--------------------------------------------------------------------------------*)
@@ -845,14 +888,16 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          knDeny = L"deny";
       knWebRoot = L"web_root";
       knMessageFile = L"message_file";
+      knSessionValidity = L"session_validity";
    VAR
       authinfo : StringsO.CString;
       es : PTR;
       line : CARDINAL;
       ok : BOOLEAN := TRUE;
       Path : ARRAY [0..260] OF WCHAR;
-      sOA : ARRAY [0..63] OF WCHAR;
+      rule : StringsO.CString;
       s : StringsO.CString;
+      sessionValidity : CARDINAL;
    BEGIN
       Stop();
 
@@ -880,14 +925,17 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          IF cfg.GetKeyStr( knMessageFile, OUT line, OUT _MessageFile ) THEN
             _MessageFile.ReplaceOA( L"%exedir%", Path );
          END;
+         IF cfg.GetKeyInt( knSessionValidity, OUT line, OUT sessionValidity ) THEN
+            _SessionValidity := sessionValidity;
+         END;
       END;
       IF _RootDir.Empty THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"Web root is not defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"Web root is not defined, web interface will not start." );
       END;
       IF _MessageFile.Empty THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"Message source for web is not defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"Message source for web is not defined, web interface will not start." );
       END;
       
       // add system roles      
@@ -897,26 +945,26 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       // load users from system configuration
       IF NOT cfg.SetSection( snUsers ) THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"No users defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"No users defined, web interface will not start." );
       ELSE
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT authinfo ) DO // sOA = name, authinfo = role, hash
-            s.FromOA( sOA );
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT s, OUT authinfo ) DO // sOA = name, authinfo = role, hash
             _Users.Remove( s );
             _Users.Add( s, authinfo );
+            _SysUsers.Add( s, 0 );
          END; // WHILE
       END;
       
       IF cfg.SetSection( snAccessList ) THEN
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT s ) DO
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT rule, OUT s ) DO
             s.Trim();
-            IF EQUALS( sOA, knAllow ) THEN
+            IF rule.EqualsOA( knAllow ) THEN
                _AccessList.AddRuleS( accesslist.actAllow, s );
-            ELSIF EQUALS( sOA, knDeny ) THEN
+            ELSIF rule.EqualsOA( knDeny ) THEN
                _AccessList.AddRuleS( accesslist.actDeny, s );
             ELSE
-               ConfigLogger^.LogFilePos( Log.dlcError, LOG_PREFIX, L"Only 'allow' and 'deny' rules are allowed, the rule will be ignored.", L"(web config file)", line, 0 );
+               ConfigLogger^.LogFilePos( Log.lcError, 0, LOG_PREFIX, L"Only 'allow' and 'deny' rules are allowed, the rule will be ignored.", L"(web config file)", line, 0 );
             END; 
          END; // WHILE
       END;
@@ -951,6 +999,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       ASSERT( _MVC = NIL );
       _MVC := mvc.mvc( OA( _Context.Length-1, _Context.Data ));
+      _MVC^.SessionValidity := _SessionValidity;
       _MVC^.MessageSourcePath := _MessageFile;
       _MVC^.Logger := _HttpLogger;
       _MVC^.AccessList := ADR( _AccessList );
@@ -962,7 +1011,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          _GotByHourModified[i] := 0;
          _GotByHour[i] := 0;
       END; // FOR
-      _StartedTime := time.GetCurrentJD();      
+      _StartedTime := datetime.GetCurrentJD();      
 
       // hook EIB
       _EIB^.EventSink := ADR( SELF );
@@ -976,6 +1025,10 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          RETURN;
       END;
       _Running := FALSE;
+      
+      _Roles.Dispose();
+      _Users.Dispose();
+      _SysUsers.Dispose();
       
       // unhook EIB
       _EIB^.EventSink := NIL;
@@ -996,7 +1049,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       cfg : INIfile.CINIFile;
       es : PTR;
       i : CARDINAL;
-      key : ARRAY [0..63] OF WCHAR;
+      key : StringsO.CString;
       line : CARDINAL;
       role : StringsO.CString;
       user : StringsO.CString;
@@ -1005,7 +1058,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT usersFileOA ) THEN
          RETURN FALSE;
       END;
-      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFolder );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFile );
       IF NOT cfg.LoadPath( usersFileOA ) THEN 
          RETURN FALSE;
       END;
@@ -1015,10 +1069,10 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          WHILE cfg.EnumerateKeys( REF es, OUT line, OUT key, OUT role ) DO
             IF role.EqualsOA( ROLE_SYS_ADMIN ) OR role.EqualsOA( ROLE_SYS_USER ) THEN // cannot override system roles
                CONTINUE;
-            ELSIF EQUALS( key, knNamed ) THEN
+            ELSIF key.EqualsOA( knNamed ) THEN
                _Roles.Remove( role );
                _Roles.Add( role, PTR( roleUserNamed ));
-            ELSIF EQUALS( key, knKeyed ) THEN
+            ELSIF key.EqualsOA( knKeyed ) THEN
                _Roles.Remove( role );
                _Roles.Add( role, PTR( roleUserKeyed ));
             ELSE
@@ -1029,7 +1083,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       
       IF cfg.SetSection( snUsers ) THEN
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT key, OUT authinfo ) DO
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT user, OUT authinfo ) DO
             // detect and filter out missing roles
             authinfo.Trim();
             i := authinfo.IndexOfOA( L",", 0 );
@@ -1042,7 +1096,6 @@ CLASS IMPLEMENTATION CEibSrvWeb;
                CONTINUE;
             END;
 
-            user.FromOA( key );
             _Users.Remove( user );
             _Users.Add( user, authinfo );
          END; // WHILE roles
@@ -1062,11 +1115,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          ASSERTLOG( FALSE, L"Unable to get web users file folder" );
          RETURN;
       END;
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFolder );
       IF NOT FIO.CreateDirectoryW( usersFileOA ) THEN
          ASSERTLOG( FALSE, L"Unable to store to web users file" );
          RETURN; // store nothing
       END;
-      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFile );
       cfg.LoadPath( usersFileOA ); // load the file
 
       cfg.CreateSection( snRoles, FALSE );
@@ -1079,9 +1133,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
               roleSystemUser :
                CONTINUE; // roles are not written
             | roleUserKeyed :
-               cfg.SetKeyStr( knKeyed, _Roles.Current^, FALSE );
+               cfg.SetKeyStr( knKeyed, _Roles.Current^, TRUE );
             ELSE
-               cfg.SetKeyStr( knNamed, _Roles.Current^, FALSE );
+               cfg.SetKeyStr( knNamed, _Roles.Current^, TRUE );
             END;
          END;
       END;
@@ -1136,6 +1190,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_EDIT_PAGE );
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_EDIT_PAGE );
       
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_LOGIN_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_LOGIN_PAGE );
+      
       _MVC^.RegisterFallbackController( _Controller );
    END AddControllers;
 
@@ -1156,12 +1213,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE AdjustHours( CONST dt : time.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF time.TJD );
+   PRIVATE PROCEDURE AdjustHours( CONST dt : datetime.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF datetime.TJD );
    CONST
-      TWENTY_THREE_HOURS = time.unitsInDay DIV 24 * 23 - 1;
+      TWENTY_THREE_HOURS = datetime.unitsInDay DIV 24 * 23 - 1;
    VAR
       i : CARDINAL;
-      jd : time.TJD := dt.JulianDate;
+      jd : datetime.TJD := dt.JulianDate;
       locked : BOOLEAN := FALSE;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
@@ -1188,6 +1245,7 @@ BEGIN
    _DeviceNames := NIL;
    _Devices := NIL;
    _Port := 8080;
+   _SessionValidity := 30 * 60; // 30 minutes
    _Running := FALSE;
    _Controller := NIL;
    _StartedTime := 0;

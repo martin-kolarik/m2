@@ -6,7 +6,7 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle>UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Dynamic</CLib>
+        <CLib>Private</CLib>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 

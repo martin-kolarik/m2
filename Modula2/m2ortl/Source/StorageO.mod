@@ -664,17 +664,32 @@ END CMemorySlot256;
 
 CLASS IMPLEMENTATION CAllocatorException;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT S : ARRAY OF WCHAR );
+   BEGIN
+      CASE Kind OF
+      | aexNotEnoughMemory :
+         S := "(NotEnoughMemory)";
+      | aexLimitExceeded :
+         S := "(LimitExceeded)";
+      | aexUnknownAddress :
+         S := "(UnknownAddress)";
+      | aexUnableToReallocate :
+         S := "(UnableToReallocate)";
+      | aexAllocateLengthTooBig :
+         S := "(AllocateLengthTooBig)";
+      | aexUnitTooBig :
+         S := "(UnitTooBig)";
+      ELSE
+         SUPER.FormatCode( OUT S );
+      END;
+   END FormatCode;
+
 	PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TAllocatorException ) : CAllocatorException;
 	BEGIN
 	   SELF.Kind := Kind;
-	   SUPER.Init( NestedException, Originator, Text );
+	   SUPER.Init( 0, NestedException, Originator, Text );
 		RETURN SELF;
 	END Init;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      ASSIGN( S, EMITW( %class ));
-   END Name;
 
 BEGIN
    Kind := aexNotEnoughMemory;

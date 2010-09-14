@@ -8,8 +8,11 @@ IMPLEMENTATION MODULE avltree;
 //
 (*===========================================================================*)
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 FROM Storage IMPORT
-  REALLOCATE, DEALLOCATE, Fill;
+   REALLOCATE, DEALLOCATE, Fill;
 
 (*===========================================================================*)
 
@@ -180,7 +183,7 @@ CLASS IMPLEMENTATION CAVLTree;
           END;
 
         ELSE // it is impossible to insert element with existing key
-          ADDRESS( 0 )^ := 0;
+          ASSERTLOG( FALSE, L"Existing key inserted" );
         END;
       END; // WITH
     END iInsert;
