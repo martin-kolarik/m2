@@ -95,8 +95,6 @@
     <None Include="Source\Strings.def" />
     <None Include="Source\sync.def" />
     <None Include="Source\syncqueue.def" />
-    <None Include="Source\tls.def" />
-    <None Include="Source\tls.mod" />
     <None Include="Test\lrconvround.mod" />
     <None Include="Test\lrconvspeed.mod" />
     <None Include="Test\Match.mod" />
@@ -109,6 +107,7 @@
     <None Include="Test\TExceptionToString.mod" />
     <None Include="Test\timetest.mod" />
     <None Include="Test\TIntegerQueue.mod" />
+    <None Include="Test\TLogger.mod" />
     <None Include="Test\ToLONGREAL.mod" />
     <None Include="Test\ToWStream.mod" />
     <None Include="Test\TQuadwordQueue.mod" />
@@ -117,7 +116,6 @@
     <None Include="Test\TSEH.mod" />
     <None Include="Test\TStringReplaceCharacters.mod" />
     <None Include="m2rtl.proj" />
-    <None Include="Test\TTls.mod" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
