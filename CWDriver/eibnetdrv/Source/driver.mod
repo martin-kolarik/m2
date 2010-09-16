@@ -466,7 +466,6 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC VIRTUAL PROCEDURE DriverRun();
    BEGIN
-      ASSERTLOG( FALSE );
       msgqueuethread.global()^.DispatchCall( ADR( SELF ), OP_RUN, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END DriverRun;
 
