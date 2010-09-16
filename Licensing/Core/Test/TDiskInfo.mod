@@ -52,9 +52,9 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Check drives" );
       
       FOR i := 0 TO 25 DO
-	      IF DiskInfo.LoadDiskInfo( i, OUT DI ) THEN
-	         Host^.Log^.LogS( log.lcError, 0, L"", OA( DI.Model.Length-1, DI.Model.Data ));
-	      END;
+         IF DiskInfo.LoadDiskInfo( i, OUT DI ) THEN
+            Host^.Log^.LogS( log.lcError, 0, L"", OA( DI.Model.Length-1, DI.Model.Data ));
+         END;
       END;
       
       Host^.StopPhaseWithResult( test.trSuccess );
@@ -62,7 +62,7 @@ CLASS IMPLEMENTATION CTest;
       #if #contains( LicenceMachineId, L"M" ) #then
       Host^.StartPhase( L"MAC Source" );
 
-      // uid := MACSource.UId;      
+      uid := MACSource.UId;      
       
       Host^.StopPhaseWithResult( test.trSuccess );
       #endif
