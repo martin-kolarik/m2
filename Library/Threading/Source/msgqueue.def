@@ -76,7 +76,7 @@ CLASS CPtrQueue;
 END CPtrQueue;
 
 (*===============================================================================*)
-// CPtrQueue wrapped to CMessageQueue semantics, interface is closer to CDatagramQueue
+// CBufferQueue wrapped to CMessageQueue semantics, interface is closer to CDatagramQueue
 // TODO -- waiting/syncing as in CDatagramQueue interface
 
 TYPE

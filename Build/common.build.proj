@@ -15,7 +15,7 @@
         <OutputDirName Condition="$(ConfigurationName)=='Release'">~Release</OutputDirName>
         <OutputDirName Condition="$(ConfigurationName)!='Release'">~Debug</OutputDirName>
         <!-- IntermediateDirName>%40$(OutputDirName)</IntermediateDirName -->
-        <IntermediateDirName>~Build</IntermediateDirName>
+        <IntermediateDirName>~$(ConfigurationName)Build</IntermediateDirName>
         <HeaderDirName>$(IntermediateDirName)</HeaderDirName>
 
         <OutputDir>$(OutputDirName)</OutputDir>

@@ -171,5 +171,11 @@
       <Filter>Test</Filter>
     </None>
     <None Include="m2rtl.proj" />
+    <None Include="Source\tls.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\tls.mod">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
