@@ -447,7 +447,7 @@ BEGIN
   Running := TRUE;
   Storage.CreateHeap( OUT LHeap );
   Lock.Init( Sync.ltSpin, L"", FALSE );
-  Log.SetLogName( "LD" );
+  Log.SetName( "LD" );
   Log.Output := log.outsKernel;
   Log.Level := log.lcWarning;
 END CLeakDetector;

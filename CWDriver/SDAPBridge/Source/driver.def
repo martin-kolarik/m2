@@ -49,6 +49,7 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver, SDAPBridge.ISDAPEventSink;
       cllvData                : ADDRESS;
       cllvLength              : CARDINAL;
       Queue                   : lists.CPtrList; // accessed from SDAP/CW threads
+      LogAppenders            : lists.CPtrList;
       
    // ICWDriver
    PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );

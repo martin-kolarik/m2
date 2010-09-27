@@ -20,6 +20,7 @@ IMPORT
    IOO,
    lists,
    Log,
+   LogConfig,
    netpool,
    Resources,
    Strings,
@@ -109,14 +110,14 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
       log.ConfigureByRegistry( REF Logger, LIBRARY );
-      CASE INIFile.ConfigureLog( TS, L"", REF Logger, OUT line ) OF
-      | INIFile.clrUnknownTarget :
+      CASE LogConfig.ConfigureLog( TS, L"", REF Logger, REF LogAppenders, OUT line ) OF
+      | LogConfig.clrUnknownTarget :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
          RETURN FALSE;
-      | INIFile.clrUnknownLevel :
+      | LogConfig.clrUnknownLevel :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
          RETURN FALSE;
-      | INIFile.clrTargetFileMissingFile :
+      | LogConfig.clrTargetFileMissingFile :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;
@@ -275,6 +276,7 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       DriverStop();
       DisposeQueue();
+      LogConfig.DisposeAppenderList( REF LogAppenders );
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -556,8 +558,8 @@ CLASS IMPLEMENTATION CDriver;
       Logger.LogSSSS( ldDebug, 0, logPrefix, L"'advise' event,", OA( Address.Length-1, Address.Data ), OA( Value.Length-1, Value.Data ), L"" );
 
       NEW( exceptionItem );
-      exceptionItem^.Address.Assign( Address );
-      exceptionItem^.Value.Assign( Value );
+      exceptionItem^.Address.Copy( Address );
+      exceptionItem^.Value.Copy( Value );
       EnqueueEvent( exceptionItem, PTR( eitAdvise ));
    END OnData;
 

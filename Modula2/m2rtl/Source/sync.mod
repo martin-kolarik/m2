@@ -61,6 +61,13 @@ END Sleep;
 
 (*--------------------------------------------------------------------------------*)
 
+PROCEDURE NumberOfProcessors() : CARDINAL;
+BEGIN
+  RETURN NumOfProcessors;
+END NumberOfProcessors;
+
+(*--------------------------------------------------------------------------------*)
+
 PROCEDURE SpinLockAcquireOrRead( ReadOnly : BOOLEAN; REF Data : PTR; SpinCount : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
 VAR
    StartTime : CARDINAL;
