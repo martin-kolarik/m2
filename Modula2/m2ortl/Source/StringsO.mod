@@ -6,6 +6,8 @@ FROM Storage IMPORT
    REALLOCATE, DEALLOCATE;
 FROM Strings IMPORT
    CapitalizeW, LowerizeW;
+FROM Debug IMPORT
+   Assertion;
 
 IMPORT
    lrconv,
@@ -84,6 +86,9 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROPERTY Size SET( Value : CARDINAL );
    BEGIN
+      IF _Len > Value THEN
+         _Len := Value;
+      END;
       ReallocateAndFork( Value, _Len );
    END Size;
 
@@ -110,33 +115,42 @@ CLASS IMPLEMENTATION CString;
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE CString.ReallocateAndFork( Characters : CARDINAL; CopyLength : CARDINAL );
+   CONST
+      REFCOUNTER_SIZE = SIZE( _Storage^ );
+      REFCOUNTER_CHAR_SIZE = REFCOUNTER_SIZE DIV SIZE( WCHAR );
    VAR
-      _SourceData : ADDRESS := _Data;
+      _ForkedStorage : ADDRESS;
    BEGIN
+      ASSERT( Characters >= CopyLength );
+
       IF _Storage = NIL THEN // empty, simply reallocate memory
-         // fall down
-      ELSIF Sync.IDec( REF _Storage^ ) = 0 THEN // RefCounter is one (= me), simply reallocate memory
-         _Storage^ := 1; // RefCounter must be restored, it is not assigned if Characters = 0
-         CopyLength := 0; // no copy is required, when no fork is done
-      ELSE // RefCounter decremented, force allocate self as new
+         _ForkedStorage := NIL;
+      ELSIF Sync.IGet( REF _Storage^ ) = 1 THEN // RefCounter is one (= me), simply reallocate memory. There IDec is not called to allow persist source copied string without deallocation. IDec is called later.
+         _ForkedStorage := NIL;
+      ELSE // RefCounter will be decremented, force allocate self as new
+         _ForkedStorage := _Storage;
          _Storage := NIL; // fork, force new allocation
          _Size := 0; // set correct size here, if Characters = 0 procedure finishes
       END;
-      IF Characters = 0 THEN // no memory will be allocated
-         RETURN;
+
+      IF Characters > 0 THEN // only if requested size is not zero allocate something
+         INC( Characters, 1 + REFCOUNTER_CHAR_SIZE ); // reserve space for 0W (zero termination) and RefCounter
+         IF Characters > _Size THEN
+            _Size := ( Characters + 10H ) AND 0FFFFFFF0H; // a roundup to 16 characters
+            REALLOCATE( REF _Storage, _Size<<1 );
+            _Data := PWCHAR( _Storage@[ REFCOUNTER_SIZE ] );
+            _Storage^ := 1; // initialize RefCount -- done on new own memory, no need to lock (all Fork calls must be done either on local (fork) string or synchronized (source) string
+
+            // do a copy of current string (forked string is identical, do not copy if no fork is done)
+            IF ( _ForkedStorage <> NIL ) AND ( CopyLength > 0 ) THEN
+               Strings.MoveW( _ForkedStorage@[ REFCOUNTER_SIZE ], _Data, CopyLength );
+            END;
+         END;
       END;
 
-      INC( Characters, 1 + SIZE( _Storage^ ) DIV SIZE( WCHAR )); // reserve space for 0W (zero termination) and RefCounter
-      IF Characters > _Size THEN
-         _Size := ( Characters + 10H ) AND 0FFFFFFF0H; // a roundup to 16 characters
-         REALLOCATE( REF _Storage, _Size<<1 );
-         _Data := PWCHAR( _Storage@[SIZE( _Storage^ )] );
-         _Storage^ := 1; // initialize RefCount -- done on new own memory, no need to lock (all Fork calls must be done either on local (fork) string or synchronized (source) string
-
-         // do a copy of current string (forked string is identical, do not copy if no fork is done)
-         IF CopyLength > 0 THEN
-            Strings.MoveW( _SourceData, _Data, CopyLength );
-         END;
+      // solve delayed IDec
+      IF _ForkedStorage <> NIL THEN
+         Sync.IDec( REF _ForkedStorage^ );
       END;
    END CString.ReallocateAndFork;
 
@@ -286,10 +300,10 @@ CLASS IMPLEMENTATION CString;
    
 (*--------------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE CString.Compare( CONST S : IString ) : TRISTATE;
-	BEGIN
-	   RETURN Strings.CompareW( OA( _Len-1, _Data ), OA( S.Length-1, S.Data ));
-	END CString.Compare;
+   PUBLIC VIRTUAL PROCEDURE CString.Compare( CONST S : IString ) : TRISTATE;
+   BEGIN
+      RETURN Strings.CompareW( OA( _Len-1, _Data ), OA( S.Length-1, S.Data ));
+   END CString.Compare;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -301,13 +315,18 @@ CLASS IMPLEMENTATION CString;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE CString.Assign( CONST S : IString );
+   TYPE
+      TPCString = POINTER TO CString;
+   VAR
+      ps : TPCString;
    BEGIN
-      IF NOT( S IS CString ) THEN // I cannot assume anything about S, use generic method
+      IF S IS CString THEN
+         ps := TPCString( ADR( S ));
+      ELSE // I cannot assume anything about S, use generic method
          Copy( S );
          RETURN;
       END;
 
-      _Len := S.Length;
       IF _Storage = NIL THEN // I am empty
          // fall down
       ELSIF Sync.IDec( REF _Storage^ ) = 0 THEN // if RefCounter was one (= me), dispose
@@ -316,13 +335,14 @@ CLASS IMPLEMENTATION CString;
          _Storage := NIL;
       END;
 
+      _Len := ps^._Len;
       IF _Len = 0 THEN
          _Data := NIL;
          _Size := 0;
       ELSE
-         _Data := PWCHAR( S.Data );
-         _Storage := PCARD32( DEC( _Data, SIZE( _Storage^ )));
-         _Size := S.Size;
+         _Data := ps^._Data;
+         _Storage := ps^._Storage;
+         _Size := ps^._Size;
          Sync.IInc( REF _Storage^ );
       END;
    END CString.Assign;
@@ -603,7 +623,7 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
-	   RETURN Strings.IndexOfMW( _Len, _Data, LENGTH( S ), ADR( S ), 0 ) <> -1;
+      RETURN Strings.IndexOfMW( _Len, _Data, LENGTH( S ), ADR( S ), 0 ) <> -1;
    END ContainsOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -711,41 +731,43 @@ CLASS IMPLEMENTATION CString;
 
 (*--------------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE CString.Item( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL;
-	VAR
-		i, l : CARDINAL;
-	BEGIN
-	   S.Size := _Len; // preallocate space
-	   i := Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.Data )), ADR( l ));
-	   S.Length := l; // adjust real size
-	   RETURN i;
-	END CString.Item;
+   PUBLIC VIRTUAL PROCEDURE CString.Item( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL;
+   VAR
+      i, l : CARDINAL;
+   BEGIN
+      S.Length := 0; // avoid copying of S's data during fork in Size
+      S.Size := _Len; // preallocate space
+      i := Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.Data )), ADR( l ));
+      S.Length := l; // adjust real size
+      RETURN i;
+   END CString.Item;
 
 (*--------------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE CString.ItemS( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL;
-	VAR
-		i, l : CARDINAL;
-	BEGIN
-	   S.Size := _Len; // preallocate space
-	   i := Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.Data )), ADR( l ));
-	   S.Length := l; // adjust real size
-	   RETURN i;
-	END CString.ItemS;
+   PUBLIC VIRTUAL PROCEDURE CString.ItemS( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL;
+   VAR
+      i, l : CARDINAL;
+   BEGIN
+      S.Length := 0; // avoid copying of S's data during fork in Size
+      S.Size := _Len; // preallocate space
+      i := Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.Data )), ADR( l ));
+      S.Length := l; // adjust real size
+      RETURN i;
+   END CString.ItemS;
 
 (*--------------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE CString.ItemOA( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL;
-	BEGIN
-	   RETURN Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT S, NIL );
-	END CString.ItemOA;
+   PUBLIC VIRTUAL PROCEDURE CString.ItemOA( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL;
+   BEGIN
+      RETURN Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT S, NIL );
+   END CString.ItemOA;
 
 (*--------------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE CString.ItemSOA( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL;
-	BEGIN
-	   RETURN Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT S, NIL );
-	END CString.ItemSOA;
+   PUBLIC VIRTUAL PROCEDURE CString.ItemSOA( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL;
+   BEGIN
+      RETURN Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT S, NIL );
+   END CString.ItemSOA;
 
 (*--------------------------------------------------------------------------------*)
 
