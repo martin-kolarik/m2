@@ -467,7 +467,9 @@ CLASS IMPLEMENTATION CDriver;
                   CS.Append( exceptionItem^.Value );
                END; // CASE ExceptionType
 
-               DISPOSE( exceptionItem );
+               IF exceptionItem <> NIL THEN
+                  DISPOSE( exceptionItem );
+               END;
                GOTO Return;
                
             END;
@@ -558,8 +560,8 @@ CLASS IMPLEMENTATION CDriver;
       Logger.LogSSSS( ldDebug, 0, logPrefix, L"'advise' event,", OA( Address.Length-1, Address.Data ), OA( Value.Length-1, Value.Data ), L"" );
 
       NEW( exceptionItem );
-      exceptionItem^.Address.Copy( Address );
-      exceptionItem^.Value.Copy( Value );
+      exceptionItem^.Address.Assign( Address );
+      exceptionItem^.Value.Assign( Value );
       EnqueueEvent( exceptionItem, PTR( eitAdvise ));
    END OnData;
 
