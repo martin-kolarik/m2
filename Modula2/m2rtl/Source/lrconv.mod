@@ -228,9 +228,12 @@ BEGIN
 
    // prepare rounding
    IF INTEGER( ValidCiphers ) > 0 THEN // valid number count is crucial
+      ValidCiphers := MIN2( 15, ValidCiphers ); // no more ciphers are valid
       RoundPos := MIN2( ValidCiphers, HIGH( B ));
    ELSIF INTEGER( FractionPlaces ) > -1 THEN
       RoundPos := MIN2( Exp10 + INTEGER( FractionPlaces ), HIGH( B ));
+   ELSE // both ValidCiphers and FractionPlaces = -1, round to maximal valid ciphers
+      RoundPos := MIN2( 15, HIGH( B ));
    END;
 
    // do rounding
@@ -275,7 +278,7 @@ BEGIN
    // apply valid ciphers and zeros after them and/or zeros after decimal point
    IF ValidCiphers = -1 THEN
       IF FractionPlaces = -1 THEN
-         ValidCiphers := 16; // 15 valid digits + 0.6 not fully valid digit + binary 1 on the mantissa start = approx. 16 (15.95)
+         ValidCiphers := 15; // 15 valid digits + 0.6 not fully valid digit + binary 1 on the mantissa start = approx. 16 (15.95)
       ELSE
          ValidCiphers := RoundPos; // Exp10 + FractionPlaces
       END;
@@ -374,94 +377,94 @@ BEGIN
    END;
    i := 0;
    IF String[i] = L'+' THEN
-	   INC( i );
+      INC( i );
    ELSIF String[i] = '-' THEN
-	   sign := TRUE;
-	   INC( i );
+      sign := TRUE;
+      INC( i );
    END;
    IF NOT INSIDE( i, String ) THEN
-	   RETURN FALSE;
+      RETURN FALSE;
    END;
 
    // get whole part
    LOOP
-	   IF NOT INSIDE( i, String ) THEN
-		   IF sign THEN
-			   V := -R;
-		   ELSE
-			   V := R;
-		   END;
-		   RETURN TRUE;
-	   END;
-	   ch := String[i];
-	   IF ( ch = L'.' ) OR ( ch = L',' ) THEN
-		   INC( i );
-		   EXIT;
-	   ELSIF ( ch > L'9' ) OR ( ch < L'0' ) THEN
-		   RETURN FALSE;
-	   END;
-	   R := 10.0 * R + LONGREAL( ORD( ch ) - ORD( '0' ));
-	   INC( i );
+      IF NOT INSIDE( i, String ) THEN
+         IF sign THEN
+            V := -R;
+         ELSE
+            V := R;
+         END;
+         RETURN TRUE;
+      END;
+      ch := String[i];
+      IF ( ch = L'.' ) OR ( ch = L',' ) THEN
+         INC( i );
+         EXIT;
+      ELSIF ( ch > L'9' ) OR ( ch < L'0' ) THEN
+         RETURN FALSE;
+      END;
+      R := 10.0 * R + LONGREAL( ORD( ch ) - ORD( '0' ));
+      INC( i );
    END; // LOOP
 
    // get fraction part
    f := 0.1;
    LOOP
-	   IF NOT INSIDE( i, String ) THEN
-		   V := R + F;
-		   IF sign THEN
-			   V := -V;
-		   END;
-		   RETURN TRUE;
-	   END;
-	   ch := String[i];
-	   IF ch = L'E' THEN
-		   R := R + F;
-		   IF sign THEN
-			   R := -R;
-		   END;
-		   INC( i );
-		   EXIT;
-	   ELSIF ( ch > L'9' ) OR ( ch < L'0' ) THEN
-		   RETURN FALSE;
-	   END;
-	   F := F + f * LONGREAL( ORD( ch ) - ORD( '0' ));
-	   f := f * 0.1;
-	   INC( i );
+      IF NOT INSIDE( i, String ) THEN
+         V := R + F;
+         IF sign THEN
+            V := -V;
+         END;
+         RETURN TRUE;
+      END;
+      ch := String[i];
+      IF ch = L'E' THEN
+         R := R + F;
+         IF sign THEN
+            R := -R;
+         END;
+         INC( i );
+         EXIT;
+      ELSIF ( ch > L'9' ) OR ( ch < L'0' ) THEN
+         RETURN FALSE;
+      END;
+      F := F + f * LONGREAL( ORD( ch ) - ORD( '0' ));
+      f := f * 0.1;
+      INC( i );
    END; // LOOP
 
    // get exponent part
    sign := FALSE;
    ch := String[i];
    IF ch = L'+' THEN
-	   INC( i );
+      INC( i );
    ELSIF ch = L'-' THEN
-	   sign := TRUE;
-	   INC( i );
+      sign := TRUE;
+      INC( i );
    END;
    LOOP
-	   IF NOT INSIDE( i, String ) THEN
-		   EXIT;
-	   END;
-	   ch := String[i];
-	   IF ( ch > L'9' ) OR ( ch < L'0' ) THEN
-		   RETURN FALSE;
-	   END;
-	   E := 10 * E + INTEGER( ORD( ch ) - ORD( '0' ));
-	   INC( i );
+      IF NOT INSIDE( i, String ) THEN
+         EXIT;
+      END;
+      ch := String[i];
+      IF ( ch > L'9' ) OR ( ch < L'0' ) THEN
+         RETURN FALSE;
+      END;
+      E := 10 * E + INTEGER( ORD( ch ) - ORD( '0' ));
+      INC( i );
    END; // LOOP
 
    // apply exponent
    IF sign THEN
-	   WHILE E > 0 DO
-		   R := R * 0.1;
-		   DEC( E );
-	   END; 
+      WHILE E > 0 DO
+         R := R * 0.1;
+         DEC( E );
+      END; 
    ELSE
-	   WHILE E > 0 DO
-		   R := R * 10.0;
-		   DEC( E );
-	   END; // WHILE
+      WHILE E > 0 DO
+         R := R * 10.0;
+         DEC( E );
+      END; // WHILE
    END;
 
    // result

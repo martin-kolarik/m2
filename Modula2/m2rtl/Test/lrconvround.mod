@@ -1,26 +1,43 @@
 MODULE lrconvround;
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
-   datetime,
+   log,
    lrconv,
    Strings,
-   windows;
-   
-   PROCEDURE Out( s : ARRAY OF WCHAR );
-   CONST
-      CRLF = 13W + 10W;
-   BEGIN
-      windows.OutputDebugString( ADR( s ));
-      windows.OutputDebugString( ADR( CRLF ));
-   END Out;
+   test,
+   testimpl;
   
-   #save, call( convention => cdecl )
-   PROCEDURE wmain() : INTEGER;
-   #restore
+(*===========================================================================*)
+
+CLASS CTest IMPLEMENTS test.ITest;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+END CTest;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPTest = POINTER TO CTest;
+VAR
+   Test : CTest;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CTest;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    TYPE
-      TestA = ARRAY [0..41] OF LONGREAL;
+      TestA = ARRAY [0..42] OF LONGREAL;
    CONST
       testA = TestA(
+                  1372.0/5000.0,
                   123456.7788997788,
                   12.34,
                   999.999,
@@ -65,9 +82,17 @@ IMPORT
                   -0.0009998765432E-20
                );
    VAR
+      Failure : BOOLEAN := FALSE;
       i, j : CARDINAL;
       S : ARRAY [0..255] OF WCHAR;
+
+      PROCEDURE Out( s : ARRAY OF WCHAR );
+      BEGIN
+         Host^.Log^.LogS( log.lcError, 0, L"", s );
+      END Out;
+
    BEGIN
+      Host^.StartPhase( L"LONGREAL rounding" );
 
       FOR i := 0 TO HIGH( testA ) DO
          Out( L"==========" );
@@ -84,7 +109,21 @@ IMPORT
          END;
       END;
 
-      RETURN 0;
-   END wmain;
+      Host^.StopPhase();
+
+      IF Failure THEN
+         RETURN test.trFailure;
+      ELSE
+         RETURN test.trSuccess;
+      END;
+   END Run;
+   
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   testimpl.tests()^.AddTest( L"LONGREALRounding", ADR( Test ));
+END CTest;
+
+(*===========================================================================*)
 
 END lrconvround.
