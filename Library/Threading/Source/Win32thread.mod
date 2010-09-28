@@ -14,6 +14,9 @@ IMPORT
 TYPE
    TPWin32Thread = POINTER TO Win32Thread;
 
+CONST
+   STACK_RESERVATION_SIZE = 65536;
+
 (*================================================================================*)
 
 CLASS CThreadManager;
@@ -165,7 +168,7 @@ CLASS IMPLEMENTATION Win32Thread;
 
       _RunLock.Reset();
       _HExit.Reset();
-      _HThread := windows.CreateThread( NIL, 0, windows.PTHREAD_START_ROUTINE( Win32_thread ), ADR( SELF ), 0, ADR( _Thread ));
+      _HThread := windows.CreateThread( NIL, STACK_RESERVATION_SIZE, windows.PTHREAD_START_ROUTINE( Win32_thread ), ADR( SELF ), windows.STACK_SIZE_PARAM_IS_A_RESERVATION, ADR( _Thread ));
       IF WaitRun THEN
          Result := _RunLock.Wait( Sync.FORSAFETY );
       ELSE

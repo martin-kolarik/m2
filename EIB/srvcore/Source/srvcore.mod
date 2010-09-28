@@ -1028,7 +1028,7 @@ CLASS IMPLEMENTATION CEIBServer;
                   PObject := AddObject( Priority, BFlags, EIT, ObjectType );
                END;
             ELSIF p.Empty THEN
-               EXIT;
+               RETURN TRUE;
             END;
             p.Trim();
 
@@ -2723,6 +2723,21 @@ BEGIN
    Stack := stackUnknown;
    _CacheOnlyMode := FALSE;
 
+   DeviceId := MAX( CARDINAL );
+   PromiscuousMode := FALSE;
+   InputQueueLength := 256;
+   ACKTimeout := 500;
+   BUSYDelay := 200;
+   SendDelay := 0;
+   WriteDelay := 0;
+   IgnoreRepeated := TRUE;
+   InitReadRepeatDelay := 5000;
+   InitReadRepeatCount := 3;
+   InitReadRepeat := 0;
+   TimeAsString := FALSE;
+   DateAsString := FALSE;
+   Groups[0] := 0FFH; // satisfy initialization warning
+
    EIB := NIL;
    Sink.Server := ADR( SELF );
    EventSink := NIL;
@@ -2744,7 +2759,6 @@ BEGIN
    cllvdata := NIL;
    cllvlength := 0;
 
-   InitToDefault();
    InitReadItems := 0;
    oobData.ItemType := lists.blitSlot32;
    prData.ItemType := lists.blitSlot64;

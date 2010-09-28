@@ -68,7 +68,7 @@ CLASS CSDAPClient IMPLEMENTS ISDAPClient;
    
    // self
    PRIVATE VAR
-      _Connection : rawconnection.TCPConnection;
+      _Connection : rawconnection.ClientTCPConnection;
       _NetworkNotifier : CNotifier;
       _ClientNotifier : TPISDAPClientEvents;
       _Reader : TextReader.CTextReader;

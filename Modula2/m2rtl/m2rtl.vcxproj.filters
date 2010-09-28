@@ -10,7 +10,7 @@
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
     <Filter Include="Test">
-      <UniqueIdentifier>{d483396c-86e2-4bd9-8dcb-b061c8c4d9cb}</UniqueIdentifier>
+      <UniqueIdentifier>{b274f761-1659-4326-8691-0d1c569654cd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -137,10 +137,16 @@
     <None Include="Test\TDatagramQueue.mod">
       <Filter>Test</Filter>
     </None>
+    <None Include="Test\TExceptionToString.mod">
+      <Filter>Test</Filter>
+    </None>
     <None Include="Test\timetest.mod">
       <Filter>Test</Filter>
     </None>
     <None Include="Test\TIntegerQueue.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TLogger.mod">
       <Filter>Test</Filter>
     </None>
     <None Include="Test\ToLONGREAL.mod">
@@ -165,17 +171,11 @@
       <Filter>Test</Filter>
     </None>
     <None Include="m2rtl.proj" />
-    <None Include="Test\TExceptionToString.mod">
-      <Filter>Test</Filter>
-    </None>
     <None Include="Source\tls.def">
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\tls.mod">
       <Filter>Source Files</Filter>
-    </None>
-    <None Include="Test\TTls.mod">
-      <Filter>Test</Filter>
     </None>
   </ItemGroup>
 </Project>

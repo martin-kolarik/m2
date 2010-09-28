@@ -162,7 +162,7 @@ CLASS IMPLEMENTATION CKernelOutput;
       h : CARDINAL := MIN2( HIGH( Message ), HIGH( S ) - 2 ); // -2 reserves space for CR + LF
    BEGIN
       i := 0;
-      WHILE i <= h DO
+      WHILE ( i <= h ) AND ( Message[i] <> 0W ) DO
          S[i] := Message[i];
          INC( i );
       END; // WHILE
@@ -219,7 +219,7 @@ CLASS IMPLEMENTATION CFileOutput;
          RETURN;
       END;
       _FileNameLength := LENGTH( File ) + FIO.LongPathPrefixLength + 1;
-      REALLOCATE( REF _FileName, _FileNameLength ); // +1 for zero end
+      REALLOCATE( REF _FileName, _FileNameLength * SIZE( WCHAR )); // +1 for zero end
       FIO.GetLongPathW( File, OUT OA( _FileNameLength-1, _FileName ));
    END SetFile;
 
@@ -1330,7 +1330,7 @@ BEGIN
       END;
 
       IF NOT( _appender INHERITS CBaseAppender ) THEN
-         CONTINUE;
+         RETURN TRUE;
       END;
       appender := TPBaseAppender( ADR( _appender ));
 
@@ -1409,7 +1409,7 @@ BEGIN
       END;
 
       IF NOT( _appender INHERITS CBufferedLogger ) THEN
-         CONTINUE;
+         RETURN TRUE;
       END;
 
       DataSize := SIZE( Data );

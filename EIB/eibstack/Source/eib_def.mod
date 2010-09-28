@@ -233,7 +233,7 @@ CLASS IMPLEMENTATION CAddress;
   BEGIN
     Type := addressGroup2;
     Address.APILo := CARD8( SubGroup );
-    Address.APIHi := ( CARD8( MainGroup AND 01FH ) << 3 ) OR ( CARD8( SubGroup AND 0700H ) >> 8 );
+    Address.APIHi := ( CARD8( MainGroup AND 01FH ) << 3 ) OR ( CARD8(( SubGroup AND 0700H ) >> 8 ));
   END SetGroupAddress4;
 
 (*---------------------------------------------------------------------------*)
@@ -1211,7 +1211,6 @@ CLASS IMPLEMENTATION EMIPacket;
     Flags : TAccessFlagSet;
     i : CARDINAL;
     Index : CARDINAL;
-    LoRange, HiRange : LONGREAL;
     H, M, S, D, Y : CARDINAL;
     LR : LONGREAL;
     sa : ARRAY [0..3] OF CHAR;

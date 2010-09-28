@@ -35,7 +35,7 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build.$(Configuration)\</IntDir>
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
@@ -109,6 +109,7 @@
     <None Include="Test\TExceptionToString.mod" />
     <None Include="Test\timetest.mod" />
     <None Include="Test\TIntegerQueue.mod" />
+    <None Include="Test\TLogger.mod" />
     <None Include="Test\ToLONGREAL.mod" />
     <None Include="Test\ToWStream.mod" />
     <None Include="Test\TQuadwordQueue.mod" />
@@ -117,7 +118,6 @@
     <None Include="Test\TSEH.mod" />
     <None Include="Test\TStringReplaceCharacters.mod" />
     <None Include="m2rtl.proj" />
-    <None Include="Test\TTls.mod" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

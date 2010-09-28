@@ -1,0 +1,49 @@
+DEFINITION MODULE SMTPSender;
+
+IMPORT
+   MailMessage,
+   Sync,
+   threadcall;
+
+(*================================================================================*)
+
+TYPE
+   TPNotifier = POINTER TO INotifier;
+   TPSender = POINTER TO ISender;
+
+INTERFACE INotifier;
+
+   PROCEDURE OnCompletion( Result : Sync.TAsyncResult; SourceSpecificError : LONGWORD; CONST message : MailMessage.TPMessage );
+
+END INotifier;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE ISender;
+
+   // notification
+   PROPERTY
+      Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
+      Notifier : TPNotifier;
+
+   // send
+   PROCEDURE SendAsync( CONST message : MailMessage.TPMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
+
+   // configuration
+   PROPERTY
+      Server : inetaddr.INETADDR;
+      Mailer : StringsO.CString; // can be empty
+      Login : StringsO.CString; // can be empty 
+      Password : StringsO.CString; // can be empty
+      TimeToLive : CARDINAL; // seconds, the message will stay in the queue for the time; maximal time is year (3*10E7)
+      
+END ISender;
+
+(*================================================================================*)
+
+PROCEDURE New( OUT sender : TPSender; lightWeight : BOOLEAN ) : BOOLEAN; // for lightWeight, synchronous not threaded ISender is created, otherwise timeouting, queued and threaded ISender is used
+PROCEDURE Dispose( REF sender : TPSender;
+
+(*================================================================================*)
+
+END SMTPSender.

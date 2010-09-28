@@ -53,6 +53,7 @@ CONST
    FORSAFETY = 12321;
 
 PROCEDURE Sleep( Time : CARDINAL );
+PROCEDURE NumberOfProcessors() : CARDINAL;
 
 // use these preferably to have identical system-wide behavior
 PROCEDURE SpinLockAcquire( REF Data : PTR; SpinCount : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
