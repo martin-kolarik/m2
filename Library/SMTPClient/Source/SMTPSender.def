@@ -31,7 +31,7 @@ INTERFACE ISender;
 
    // configuration
    PROPERTY
-      Server : inetaddr.INETADDR;
+      Server : StringsO.CString; // host:port format
       Mailer : StringsO.CString; // can be empty
       Login : StringsO.CString; // can be empty 
       Password : StringsO.CString; // can be empty

@@ -8,19 +8,419 @@ IMPORT
 CLASS CWorker( threadpool.APoolWorker );
 
    // APoolWorker
-   LOCAL ABSTRACT PROCEDURE Run();
+   LOCAL VIRTUAL PROCEDURE Run();
 
    // SELF
    PUBLIC PROCEDURE Init( sender : TPSender; CONST message : MailMessage.TPMessage );
 
    PRIVATE VAR
-      _Sender : TPSender;
-      _Message : MailMessage.TPMessage;
+      _Sender : TPSender := NIL;
+      _Message : MailMessage.TPMessage := NIL;
       _Connection : rawconnection.ClientTCPConnection;
+      _Reader : TextReader.CTextReader;
+      _Writer : TextWriter.CTextWriter;
 
    PRIVATE PROCEDURE DoSend();
    PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SpecificCode : TSMTPResult );
+   PRIVATE PROCEDURE ReadServer( OUT SMTPResponse : TSMTPResponse; OUT Response : StringsO.IString ) : Sync.TAsyncResult;
+   INLINE PROCEDURE WriteServer( CONST Line : StringsO.IString ) : Sync.TAsyncResult;
 
+END CWorker;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CWorker;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE Run();
+   VAR
+      Result : Sync.TAsyncResult;
+      SpecificCode : TSMTPResult := smtpConnectFailed;
+   BEGIN
+      Result := _Connection.OpenS( _Sender^, TRUE, netsocket.FORSAFETY );
+
+      IF Result = Sync.arCompleted THEN
+         Result := DoSend( OUT SpecificCode );
+      END;
+
+      NotifyCompletion( Result, SpecificCode );
+   END Run;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( sender : TPSender; CONST message : MailMessage.TPMessage );
+   BEGIN
+      _Sender := sender;
+      _Message := message;
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE DoSend( OUT SpecificCode : TSmtpError ) : Sync.TAsyncResult;
+   VAR
+      recipients : MailMessage.TPPersons;
+      Result : Sync.TAsyncResult;
+      smtpres : TSmtpResponse;
+   BEGIN
+      //----------
+      SpecificCode := SmtpErrorServerNotReady;
+
+      Result := ReadServer( OUT smtpres );
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;
+      ELSIF smtpres <> smtpresult_220 THEN
+         RETURN Sync.arAborted;
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorEhlo;
+
+      s.FromOA( L"EHLO " );
+      s.Append( _Sender.LocalName );
+      Result := WriteServer( s );
+      IF Result = Sync.arCompleted THEN
+         Result := ReadServer( OUT smtpres );
+      END;
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;
+      ELSIF smtpres <> smtpresult_OK THEN
+         RETURN Sync.arAborted;
+      END;
+
+      //----------
+      IF NOT _Sender^.Login.Empty THEN
+
+         SpecificCode := SmtpErrorAuthenticationFailed;
+
+         s.FromOA( L"AUTH LOGIN" );
+         Result := WriteServer( s );
+         IF Result = Sync.arCompleted THEN
+            Result := ReadServer( OUT smtpres );
+         END;
+         IF Result <> Sync.arCompleted THEN
+            RETURN Result;
+         ELSIF smtpres <> smtpresult_334 THEN // TODO: check if "UserName" is requested
+            RETURN Sync.arAborted;
+         END;
+         // send login
+         Result := WriteServerBase64( _Sender^.Login );
+         IF Result = Sync.arCompleted THEN
+            Result := ReadServer( OUT smtpres );
+         END;
+         IF smtpres <> smtpresult_334 THEN // TODO: check if "Password" is requested
+            RETURN Sync.arAborted;
+         END;
+         // send password
+         Result := WriteServerBase64( _Sender^.Password );
+         IF Result = Sync.arCompleted THEN
+            Result := ReadServer( OUT smtpres );
+         END;
+         CASE smtpres OF
+         | smtpresult_235 : // OK, success
+         | smtpresult_535 : // not authorized
+            RETURN Sync.arFailed;
+         ELSE
+            RETURN Sync.arAborted;
+         END;
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorMailFrom;
+
+      // TODO, MailFrom nesmí být empty
+      s.FromOA( L"MAIL FROM: " );
+      s.Append( _Message^.Sender );
+      Result := WriteServer( s );
+      IF Result = Sync.arCompleted THEN
+         Result := ReadServer( OUT smtpres );
+      END;
+      CASE smtpres OF
+      | smtpresult_OK : // OK, success
+      | smtpresult_530 : // authentication required
+         SpecificCode := SmtpErrorAuthenticationRequired;
+         RETURN Sync.arFailed;
+      ELSE
+         RETURN Sync.arAborted;
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorRcptTo;
+
+      // TODO, at least one recipient must be known
+      Result := WriteRecipients( _Message^.Recipients );
+      IF Result = smtpres_OK THEN
+         Result := WriteRecipients( _Message^.CCs );
+      END;
+      IF Result = smtpres_OK THEN
+         Result := WriteRecipients( _Message^.BCCs );
+      END;
+      IF Result <> smtpres_OK THEN
+         RETURN Result;
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorData;
+
+      s.FromOA( L"DATA" );
+      Result := WriteServer( s );
+      IF Result = Sync.arCompleted THEN
+         Result := ReadServer( OUT smtpres );
+      END;
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;
+      ELSIF smtpres <> smtpresult_354 THEN
+         RETURN Sync.arAborted;
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorHeaders;
+
+      Result := WriteHeaders();
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;   
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorMessageBody;
+
+      Result := WriteStream( _Message^.Stream );
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;   
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorAttachments;
+
+      IF NOT _Message.Attachments.Empty THEN
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorMessageFinalization;
+
+      s.FromOA( 13W + 10W + L"." + 13W + 10W );
+      Result := WriteServer( s );
+      IF Result = Sync.arCompleted THEN
+         Result := ReadServer( OUT smtpres );
+      END;
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;
+      ELSIF smtpres <> smtpresult_OK THEN
+         RETURN Sync.arAborted;
+      END;
+
+      //----------
+      SpecificCode := SmtpErrorConnectionFinalization;
+
+      s.FromOA( L"QUIT" );
+      Result := WriteServer( s );
+      IF Result = Sync.arCompleted THEN
+         Result := ReadServer( OUT smtpres );
+      END;
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;
+      ELSIF smtpres <> smtpresult_OK THEN
+         RETURN Sync.arAborted;
+      END;
+
+   
+   // next goes attachments (if they are)
+   if((FileBuf = new char[55]) == NULL)
+      throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
+
+   if((FileName = new char[255]) == NULL)
+      throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
+
+   TotalSize = 0;
+   for(FileId=0;FileId<Attachments.size();FileId++)
+   {
+      strcpy(FileName,Attachments[FileId].c_str());
+
+      sprintf(SendBuf,"--%s\r\n",BOUNDARY_TEXT);
+      strcat(SendBuf,"Content-Type: application/x-msdownload; name=\"");
+      strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
+      strcat(SendBuf,"\"\r\n");
+      strcat(SendBuf,"Content-Transfer-Encoding: base64\r\n");
+      strcat(SendBuf,"Content-Disposition: attachment; filename=\"");
+      strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
+      strcat(SendBuf,"\"\r\n");
+      strcat(SendBuf,"\r\n");
+
+      SendData();
+
+      // opening the file:
+      hFile = fopen(FileName,"rb");
+      if(hFile == NULL)
+         throw ECSmtp(ECSmtp::FILE_NOT_EXIST);
+      
+      // checking file size:
+      FileSize = 0;
+      while(!feof(hFile))
+         FileSize += fread(FileBuf,sizeof(char),54,hFile);
+      TotalSize += FileSize;
+
+      // sending the file:
+      if(TotalSize/1024 > MSG_SIZE_IN_MB*1024)
+         throw ECSmtp(ECSmtp::MSG_TOO_BIG);
+      else
+      {
+         fseek (hFile,0,SEEK_SET);
+
+         MsgPart = 0;
+         for(i=0;i<FileSize/54+1;i++)
+         {
+            res = fread(FileBuf,sizeof(char),54,hFile);
+            MsgPart ? strcat(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str())
+                     : strcpy(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str());
+            strcat(SendBuf,"\r\n");
+            MsgPart += res + 2;
+            if(MsgPart >= BUFFER_SIZE/2)
+            { // sending part of the message
+               MsgPart = 0;
+               SendData(); // FileBuf, FileName, fclose(hFile);
+            }
+         }
+         if(MsgPart)
+         {
+            SendData(); // FileBuf, FileName, fclose(hFile);
+         }
+      }
+      fclose(hFile);
+   }
+   delete[] FileBuf;
+   delete[] FileName;
+   
+   // sending last message block (if there is one or more attachments)
+   if(Attachments.size())
+   {
+      sprintf(SendBuf,"\r\n--%s--\r\n",BOUNDARY_TEXT);
+      SendData();
+   }
+   
+      RETURN Sync.arCompleted;
+   END DoSend;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SpecificCode : TSMTPResult );
+   BEGIN
+      _Sender^.NotifyCompletion( _Message, Result, SpecificCode );
+   END NotifyCompletion;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ReadServer( OUT SMTPResponse : TSmtpResponse ) : Sync.TAsyncResult;
+   VAR
+      current : TSmtpResponse := smtpres_Unknown;
+      lastline : BOOLEAN := FALSE;
+      previous : TSmtpResponse := smtpres_Unknown;
+   BEGIN
+      REPEAT
+         Result := ReadServerLine( OUT current, OUT response, OUT lastline );
+         IF Result <> Sync.arCompleted THEN
+            RETURN Result;
+         ELSIF ( previous <> smtpres_Unknown ) AND ( current <> previous ) THEN // responses must be uniform for single command
+            RETURN Sync.arAborted; 
+         END;
+      UNTIL lastline;
+
+      SMTPResponse := current;
+      RETURN Sync.arCompleted;
+   END ReadServer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ReadServerLine( OUT SMTPResponse : TSmtpResponse; OUT Response : StringsO.IString; OUT LastLine : BOOLEAN ) : Sync.TAsyncResult;
+   VAR
+      Read : StringsO.CString;
+      Result : Sync.TAsyncResult;
+      StatusString : StringsO.CString;
+   BEGIN
+      Result := _Reader.ReadLine( OUT Read, netsocket.FORSAFETY, TRUE );
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;
+      ELSIF Read.Length < 3 THEN // malformed response, too short
+         RETURN Sync.arAborted;
+      END;
+
+      Read.Substring( OUT StatusString, 0, 3 );
+      IF NOT StatusString.ToCARD32( 10, OUT statusCode ) THEN // malformed response, not a number
+         RETURN Sync.arAborted;
+      END;
+
+      CASE statusCode OF
+      | 211: SMTPResponse := smtpres_211;
+      | 214: SMTPResponse := smtpres_214;
+      | 220: SMTPResponse := smtpres_220;
+      | 221: SMTPResponse := smtpres_221;
+      | 250: SMTPResponse := smtpres_250;
+      | 251: SMTPResponse := smtpres_251;
+      | 334: SMTPResponse := smtpres_334;
+      | 354: SMTPResponse := smtpres_354;
+      | 421: SMTPResponse := smtpres_421;
+      | 432: SMTPResponse := smtpres_432;
+      | 450: SMTPResponse := smtpres_450;
+      | 451: SMTPResponse := smtpres_451;
+      | 452: SMTPResponse := smtpres_452;
+      | 454: SMTPResponse := smtpres_454;
+      | 500: SMTPResponse := smtpres_500;
+      | 501: SMTPResponse := smtpres_501;
+      | 502: SMTPResponse := smtpres_502;
+      | 503: SMTPResponse := smtpres_503;
+      | 504: SMTPResponse := smtpres_504;
+      | 521: SMTPResponse := smtpres_521;
+      | 530: SMTPResponse := smtpres_530;
+      | 534: SMTPResponse := smtpres_534;
+      | 538: SMTPResponse := smtpres_538;
+      | 550: SMTPResponse := smtpres_550;
+      | 551: SMTPResponse := smtpres_551;
+      | 552: SMTPResponse := smtpres_552;
+      | 553: SMTPResponse := smtpres_553;
+      | 554: SMTPResponse := smtpres_554;
+      ELSE // unknown response code
+         RETURN Sync.arAborted;
+      END;
+
+      Response := Read;
+      LastLine := ( Read.Length = 3 ) OR ( Read[3] = L" " ); // Space is a separator determining last of response lines
+      RETURN Sync.arCompleted;
+   END ReadServer;
+
+(*--------------------------------------------------------------------------------*)
+
+   INLINE PRIVATE PROCEDURE WriteServer( CONST Line : StringsO.IString ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN _Writer.WriteTimeout( Line, TRUE, netsocket.FORSAFETY ); 
+   END WriteServer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PROCEDURE WriteRecipients( recipients : MailMessage.TPPersons ) : Sync.TAsyncResult; // TODO distinguish between complete send and send only some, grab failures to some list or so
+   VAR
+      Result : Sync.TAsyncResult;
+      s : StringsO.CString;
+   BEGIN
+      recipients^.Reset();
+      WHILE recipients^.MoveNext() DO
+         s.FromOA( "RCPT TO: " );
+         s.AppendOA( recipients^.Current.Address );
+         Result := WriteServer( s );
+         IF Result = Sync.arCompleted THEN
+            Result := ReadServer( OUT smtpres );
+         END;
+         IF Result <> Sync.arCompleted THEN
+            RETURN Result;
+         ELSIF smtpres <> smtpres_OK THEN
+            RETURN Sync.arAborted;
+         END;
+      END; // WHILE
+   END WriteRecipients;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _Reader.Stream := _Connection.Stream;
+   _Writer.Stream := _Connection.Stream;
 END CWorker;
 
 (*================================================================================*)
@@ -201,348 +601,6 @@ END SMTPSender.
 ////////////////////////////////////////////////////////////////////////////////
 void CSmtp::Send()
 {
-   unsigned int i,rcpt_count,res,FileId;
-   char *FileBuf = NULL, *FileName = NULL;
-   FILE* hFile = NULL;
-   unsigned long int FileSize,TotalSize,MsgPart;
-   bool bAccepted;
-
-   // ***** CONNECTING TO SMTP SERVER *****
-
-   // connecting to remote host:
-   if( (hSocket = ConnectRemoteServer(m_sSMTPSrvName.c_str(), m_iSMTPSrvPort)) == INVALID_SOCKET ) 
-      throw ECSmtp(ECSmtp::WSA_INVALID_SOCKET);
-
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 220:
-            bAccepted = true;
-            break;
-         default:
-            throw ECSmtp(ECSmtp::SERVER_NOT_READY);
-      }
-   }while(!bAccepted);
-
-   // EHLO <SP> <domain> <CRLF>
-   sprintf(SendBuf,"EHLO %s\r\n",GetLocalHostName()!=NULL ? m_sLocalHostName.c_str() : "domain");
-   SendData();
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 250:
-            bAccepted = true;
-            break;
-         default:
-            throw ECSmtp(ECSmtp::COMMAND_EHLO);
-      }
-   }while(!bAccepted);
-
-   // AUTH <SP> LOGIN <CRLF>
-   strcpy(SendBuf,"AUTH LOGIN\r\n");
-   SendData();
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 250:
-            break;
-         case 334:
-            bAccepted = true;
-            break;
-         default:
-            throw ECSmtp(ECSmtp::COMMAND_AUTH_LOGIN);
-      }
-   }while(!bAccepted);
-
-   // send login:
-   if(!m_sLogin.size())
-      throw ECSmtp(ECSmtp::UNDEF_LOGIN);
-   std::string encoded_login = base64_encode(reinterpret_cast<const unsigned char*>(m_sLogin.c_str()),m_sLogin.size());
-   sprintf(SendBuf,"%s\r\n",encoded_login.c_str());
-   SendData();
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 334:
-            bAccepted = true;
-            break;
-         default:
-            throw ECSmtp(ECSmtp::UNDEF_XYZ_RESPONSE);
-      }
-   }while(!bAccepted);
-   
-   // send password:
-   if(!m_sPassword.size())
-      throw ECSmtp(ECSmtp::UNDEF_PASSWORD);
-   std::string encoded_password = base64_encode(reinterpret_cast<const unsigned char*>(m_sPassword.c_str()),m_sPassword.size());
-   sprintf(SendBuf,"%s\r\n",encoded_password.c_str());
-   SendData();
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 235:
-            bAccepted = true;
-            break;
-         case 334:
-            break;
-         case 535:
-            throw ECSmtp(ECSmtp::BAD_LOGIN_PASS);
-         default:
-            throw ECSmtp(ECSmtp::UNDEF_XYZ_RESPONSE);
-      }
-   }while(!bAccepted);
-
-   // ***** SENDING E-MAIL *****
-   
-   // MAIL <SP> FROM:<reverse-path> <CRLF>
-   if(!m_sMailFrom.size())
-      throw ECSmtp(ECSmtp::UNDEF_MAIL_FROM);
-   sprintf(SendBuf,"MAIL FROM:<%s>\r\n",m_sMailFrom.c_str());
-   SendData();
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 250:
-            bAccepted = true;
-            break;
-         default:
-            throw ECSmtp(ECSmtp::COMMAND_MAIL_FROM);
-      }
-   }while(!bAccepted);
-
-   // RCPT <SP> TO:<forward-path> <CRLF>
-   if(!(rcpt_count = Recipients.size()))
-      throw ECSmtp(ECSmtp::UNDEF_RECIPIENTS);
-   for(i=0;i<Recipients.size();i++)
-   {
-      sprintf(SendBuf,"RCPT TO:<%s>\r\n",(Recipients.at(i).Mail).c_str());
-      SendData();
-      bAccepted = false;
-      do
-      {
-         ReceiveData();
-         switch(SmtpXYZdigits())
-         {
-            case 250:
-               bAccepted = true;
-               break;
-            default:
-               rcpt_count--;
-         }
-      }while(!bAccepted);
-   }
-   if(rcpt_count <= 0)
-      throw ECSmtp(ECSmtp::COMMAND_RCPT_TO);
-
-   for(i=0;i<CCRecipients.size();i++)
-   {
-      sprintf(SendBuf,"RCPT TO:<%s>\r\n",(CCRecipients.at(i).Mail).c_str());
-      SendData();
-      bAccepted = false;
-      do
-      {
-         ReceiveData();
-         switch(SmtpXYZdigits())
-         {
-            case 250:
-               bAccepted = true;
-               break;
-            default:
-               ; // not necessary to throw
-         }
-      }while(!bAccepted);
-   }
-
-   for(i=0;i<BCCRecipients.size();i++)
-   {
-      sprintf(SendBuf,"RCPT TO:<%s>\r\n",(BCCRecipients.at(i).Mail).c_str());
-      SendData();
-      bAccepted = false;
-      do
-      {
-         ReceiveData();
-         switch(SmtpXYZdigits())
-         {
-            case 250:
-               bAccepted = true;
-               break;
-            default:
-               ; // not necessary to throw
-         }
-      }while(!bAccepted);
-   }
-   
-   // DATA <CRLF>
-   strcpy(SendBuf,"DATA\r\n");
-   SendData();
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 354:
-            bAccepted = true;
-            break;
-         case 250:
-            break;
-         default:
-            throw ECSmtp(ECSmtp::COMMAND_DATA);
-      }
-   }while(!bAccepted);
-   
-   // send header(s)
-   FormatHeader(SendBuf);
-   SendData();
-
-   // send text message
-   if(GetMsgLines())
-   {
-      for(i=0;i<GetMsgLines();i++)
-      {
-         sprintf(SendBuf,"%s\r\n",GetMsgLineText(i));
-         SendData();
-      }
-   }
-   else
-   {
-      sprintf(SendBuf,"%s\r\n"," ");
-      SendData();
-   }
-
-   // next goes attachments (if they are)
-   if((FileBuf = new char[55]) == NULL)
-      throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
-
-   if((FileName = new char[255]) == NULL)
-      throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
-
-   TotalSize = 0;
-   for(FileId=0;FileId<Attachments.size();FileId++)
-   {
-      strcpy(FileName,Attachments[FileId].c_str());
-
-      sprintf(SendBuf,"--%s\r\n",BOUNDARY_TEXT);
-      strcat(SendBuf,"Content-Type: application/x-msdownload; name=\"");
-      strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
-      strcat(SendBuf,"\"\r\n");
-      strcat(SendBuf,"Content-Transfer-Encoding: base64\r\n");
-      strcat(SendBuf,"Content-Disposition: attachment; filename=\"");
-      strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
-      strcat(SendBuf,"\"\r\n");
-      strcat(SendBuf,"\r\n");
-
-      SendData();
-
-      // opening the file:
-      hFile = fopen(FileName,"rb");
-      if(hFile == NULL)
-         throw ECSmtp(ECSmtp::FILE_NOT_EXIST);
-      
-      // checking file size:
-      FileSize = 0;
-      while(!feof(hFile))
-         FileSize += fread(FileBuf,sizeof(char),54,hFile);
-      TotalSize += FileSize;
-
-      // sending the file:
-      if(TotalSize/1024 > MSG_SIZE_IN_MB*1024)
-         throw ECSmtp(ECSmtp::MSG_TOO_BIG);
-      else
-      {
-         fseek (hFile,0,SEEK_SET);
-
-         MsgPart = 0;
-         for(i=0;i<FileSize/54+1;i++)
-         {
-            res = fread(FileBuf,sizeof(char),54,hFile);
-            MsgPart ? strcat(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str())
-                     : strcpy(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str());
-            strcat(SendBuf,"\r\n");
-            MsgPart += res + 2;
-            if(MsgPart >= BUFFER_SIZE/2)
-            { // sending part of the message
-               MsgPart = 0;
-               SendData(); // FileBuf, FileName, fclose(hFile);
-            }
-         }
-         if(MsgPart)
-         {
-            SendData(); // FileBuf, FileName, fclose(hFile);
-         }
-      }
-      fclose(hFile);
-   }
-   delete[] FileBuf;
-   delete[] FileName;
-   
-   // sending last message block (if there is one or more attachments)
-   if(Attachments.size())
-   {
-      sprintf(SendBuf,"\r\n--%s--\r\n",BOUNDARY_TEXT);
-      SendData();
-   }
-   
-   // <CRLF> . <CRLF>
-   strcpy(SendBuf,"\r\n.\r\n");
-   SendData();
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 250:
-            bAccepted = true;
-            break;
-         default:
-            throw ECSmtp(ECSmtp::MSG_BODY_ERROR);
-      }
-   }while(!bAccepted);
-
-   // ***** CLOSING CONNECTION *****
-   
-   // QUIT <CRLF>
-   strcpy(SendBuf,"QUIT\r\n");
-   SendData();
-   bAccepted = false;
-   do
-   {
-      ReceiveData();
-      switch(SmtpXYZdigits())
-      {
-         case 221:
-            bAccepted = true;
-            break;
-         default:
-            throw ECSmtp(ECSmtp::COMMAND_QUIT);
-      }
-   }while(!bAccepted);
-
-#ifdef LINUX
-   close(hSocket);
-#else
-   closesocket(hSocket);
-#endif
-   hSocket = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -685,24 +743,6 @@ SOCKET CSmtp::ConnectRemoteServer(const char *szServer,const unsigned short nPor
    FD_CLR(hSocket,&fdexcept);
 
    return hSocket;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//        NAME: SmtpXYZdigits
-// DESCRIPTION: Converts three letters from RecvBuf to the number.
-//   ARGUMENTS: none
-// USES GLOBAL: RecvBuf
-// MODIFIES GL: none
-//     RETURNS: integer number
-//      AUTHOR: Jakub Piwowarczyk
-// AUTHOR/DATE: JP 2010-01-28
-////////////////////////////////////////////////////////////////////////////////
-int CSmtp::SmtpXYZdigits()
-{
-   assert(RecvBuf);
-   if(RecvBuf == NULL)
-      return 0;
-   return (RecvBuf[0]-'0')*100 + (RecvBuf[1]-'0')*10 + RecvBuf[2]-'0';
 }
 
 ////////////////////////////////////////////////////////////////////////////////
