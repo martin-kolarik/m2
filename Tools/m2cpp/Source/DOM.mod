@@ -226,9 +226,6 @@ CLASS IMPLEMENTATION CUnit;
       END;
       IF eoHaveReturnInCPPTry IN Options THEN
          G^.LineS( L'BOOLEAN _FinallyReturns = false; // TRY/FINALLY exit control' );
-         IF eoThrowing IN Options THEN
-            G^.LineS( L'BOOLEAN _FinallyThrows = false; // TRY/FINALLY exit control' );
-         END;
       END;
       IF NOT Childs.Empty THEN
         G^.EOL();
@@ -576,14 +573,12 @@ CLASS IMPLEMENTATION CUnit;
         G^.Enter();
         IF eoTryReturnsValue IN Options THEN
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyThrows) { return TRUE; } // RETURN from TRY/THROW' );
             G^.LineS( L'if (_FinallyReturns) { *RetVal = _ReturnResult; return FALSE; } // RETURN from TRY' );
           ELSE
             G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY' );
           END;
         ELSE
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyThrows) { return TRUE; } // RETURN from TRY/THROW' );
             G^.LineS( L'if (_FinallyReturns) return FALSE; // RETURN from TRY' );
           ELSE
             G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY' );
@@ -10727,7 +10722,6 @@ CLASS IMPLEMENTATION CSReturn;
         RETURN gumNoIndent;
       END;
     | ukThrowingInCPPTry :
-      G^.LineS( L"_FinallyThrows = true;" );
       G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
       RETURN gumSimple;
     END;

@@ -2865,7 +2865,7 @@ ntThrowStatement                                             (. E : DOM.TPExpres
                                                                 IF DOM.eoInsideCPPTry IN P^.Options THEN
                                                                    NEW( R );
                                                                    R^.UnitKind := DOM.ukThrowingInCPPTry;
-                                                                   R^.L := DOM.TPLabel( c^.TStack.PeekData());
+                                                                   R^.L := DOM.TPSTRY( c^.TStack.Peek())^.CatchLabel;
                                                                    c^.AddUnit( R );
                                                                    c^.EnterUnit( R );
                                                                 ELSE
