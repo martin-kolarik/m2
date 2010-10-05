@@ -1,4 +1,4 @@
-DEFINITION MODULE Message;
+DEFINITION MODULE MailMessage;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -56,7 +56,6 @@ END IPersons;
 INTERFACE IMailMessage;
 
    PROPERTY
-      Created : datetime.DateTime;
       Sender : Person;
       ReplyTo : Person; // until set, it shares the value with Sender
       Recipient : Person; // for fast access to single recipient
@@ -64,6 +63,7 @@ INTERFACE IMailMessage;
       Subject : StringsO.CString;
 
    READONLY PROPERTY
+      Created : datetime.DateTime;
       Recipients : TPPersons;
       CCs : TPPersons;
       BCCs : TPPersons;
@@ -74,8 +74,8 @@ END IMailMessage;
 
 (*================================================================================*)
 
-PROCEDURE New( OUT Message : TPMessage ) : BOOLEAN;
-PROCEDURE Dispose( REF Message : TPMessage );
+PROCEDURE New( OUT Message : TPMailMessage ) : BOOLEAN;
+PROCEDURE Dispose( REF Message : TPMailMessage );
 
 (*================================================================================*)
 

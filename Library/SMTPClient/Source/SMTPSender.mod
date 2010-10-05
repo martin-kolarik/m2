@@ -1,9 +1,160 @@
 IMPLEMENTATION MODULE SMTPSender;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
+FROM Exceptions IMPORT
+   StoreException, RetrieveException, TestIfCatched;
+
 IMPORT
+   dns,
+   Exceptions,
+   msgqueue,
+   netsocket,
+   rawconnection,
+   StringsO,
+   TextReader,
+   TextWriter,
    threadpool;
 
 (*================================================================================*)
+
+TYPE
+   TSmtpResponse = (
+      smtpres_Unknown = 0,
+
+      smtpres_211 = 211,
+      smtpres_214 = 214,
+      smtpres_220 = 220,
+      smtpres_221 = 221,
+      smtpres_235 = 235,
+      smtpres_250 = 250,
+         smtpres_OK = smtpres_250,
+      smtpres_251 = 251,
+      smtpres_334 = 334,
+      smtpres_354 = 354,
+      smtpres_421 = 421,
+      smtpres_432 = 432,
+      smtpres_450 = 450,
+      smtpres_451 = 451,
+      smtpres_452 = 452,
+      smtpres_454 = 454,
+      smtpres_500 = 500,
+         smtpres_Failure = smtpres_500,
+      smtpres_501 = 501,
+      smtpres_502 = 502,
+      smtpres_503 = 503,
+      smtpres_504 = 504,
+      smtpres_521 = 521,
+      smtpres_530 = 530,
+      smtpres_534 = 534,
+      smtpres_535 = 535,
+      smtpres_538 = 538,
+      smtpres_550 = 550,
+      smtpres_551 = 551,
+      smtpres_552 = 552,
+      smtpres_553 = 553,
+      smtpres_554 = 554
+   );
+
+   TSmtpError = (
+      ConnectFailed,
+      ServerNotReady,
+      EhloPhase,
+      AuthenticationFailed,
+      AuthenticationRequired,
+      MailFrom,
+      Headers,
+      MessageBody
+   );
+
+(*================================================================================*)
+
+CLASS CSmtpException( Exceptions.CGenericException );
+
+   PUBLIC READONLY PROPERTY
+      Result : Sync.TAsyncResult;
+
+END CSmtpException;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CSmtpException;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Result GET : Sync.TAsyncResult;
+   BEGIN
+      RETURN Sync.TAsyncResult( Code );
+   END Result;
+
+(*--------------------------------------------------------------------------------*)
+
+END CSmtpException;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SmtpException( Result : Sync.TAsyncResult ) : CSmtpException;
+VAR
+   exception : CSmtpException;
+BEGIN
+   exception.Init( CARDINAL( Result ), NIL, L"SmtpSender", L"" );
+   RETURN exception;
+END SmtpException;
+
+(*================================================================================*)
+
+TYPE
+   TPSenderImpl = POINTER TO CSender;
+
+CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
+
+   // APoolDelegate
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+
+   // ISender
+   PUBLIC VIRTUAL PROPERTY
+      Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
+      Notifier : TPNotifier;
+
+   PUBLIC VIRTUAL PROCEDURE SendAsync( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult; // returns failure only if Server is empty
+
+   PUBLIC VIRTUAL PROPERTY
+      Server : StringsO.CString;
+      Mailer : StringsO.CString;
+      Login : StringsO.CString; 
+      Password : StringsO.CString; 
+      TimeToLive : CARDINAL; // milliseconds, the message will stay in the queue for the time
+
+   // SELF
+   LOCAL READONLY PROPERTY
+      LocalName : StringsO.CString;
+
+   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpError : TSmtpError );
+   PRIVATE PROCEDURE Send();
+
+   PRIVATE VAR
+      _Server : StringsO.CString;
+      _Mailer : StringsO.CString;
+      _Login : StringsO.CString; 
+      _Password : StringsO.CString; 
+      _LocalName : StringsO.CString;
+      _QueueSignal : Sync.SIGNAL;
+      _Queue : msgqueue.CPtrQueue;
+      _PoolHandle : threadpool.TPoolHandle := NIL;
+      _Pending : CARDINAL := 0; // ILocked
+      _Pool : threadpool.CThreadPool;
+      _PendingSends : CARDINAL := 0;
+      _TimeToLive : CARDINAL := 2*86400; // two days
+      _Dispatcher : threadcall.TPIThreadProcedureCallDispatcher := NIL;
+      _Notifier : TPNotifier := NIL;
+
+END CSender;
+
+(*--------------------------------------------------------------------------------*)
 
 CLASS CWorker( threadpool.APoolWorker );
 
@@ -11,23 +162,27 @@ CLASS CWorker( threadpool.APoolWorker );
    LOCAL VIRTUAL PROCEDURE Run();
 
    // SELF
-   PUBLIC PROCEDURE Init( sender : TPSender; CONST message : MailMessage.TPMessage );
+   PUBLIC PROCEDURE Init( sender : TPSenderImpl; CONST message : MailMessage.TPMailMessage );
 
    PRIVATE VAR
-      _Sender : TPSender := NIL;
-      _Message : MailMessage.TPMessage := NIL;
+      _Sender : TPSenderImpl := NIL;
+      _Message : MailMessage.TPMailMessage := NIL;
       _Connection : rawconnection.ClientTCPConnection;
       _Reader : TextReader.CTextReader;
       _Writer : TextWriter.CTextWriter;
 
-   PRIVATE PROCEDURE DoSend();
-   PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SpecificCode : TSMTPResult );
-   PRIVATE PROCEDURE ReadServer( OUT SMTPResponse : TSMTPResponse; OUT Response : StringsO.IString ) : Sync.TAsyncResult;
-   INLINE PROCEDURE WriteServer( CONST Line : StringsO.IString ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE DoSend( OUT SmtpError : TSmtpError ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SmtpError : TSmtpError );
+
+   PRIVATE PROCEDURE ReadServer() : TSmtpResponse THROWS CSmtpException;
+   PRIVATE PROCEDURE ReadServerLine( OUT SMTPResponse : TSmtpResponse; OUT Response : StringsO.IString; OUT LastLine : BOOLEAN ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE WriteServer( CONST Line : StringsO.IString ) THROWS CSmtpException;
+   PRIVATE PROCEDURE WriteServerBase64( CONST Line : StringsO.IString ) THROWS CSmtpException;
+   PRIVATE PROCEDURE WriteRecipients( recipients : MailMessage.TPPersons ) THROWS CSmtpException; // TODO distinguish between complete send and send only some, grab failures to some list or so
 
 END CWorker;
 
-(*--------------------------------------------------------------------------------*)
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CWorker;
 
@@ -36,20 +191,20 @@ CLASS IMPLEMENTATION CWorker;
    LOCAL VIRTUAL PROCEDURE Run();
    VAR
       Result : Sync.TAsyncResult;
-      SpecificCode : TSMTPResult := smtpConnectFailed;
+      SmtpError : TSmtpError := ConnectFailed;
    BEGIN
-      Result := _Connection.OpenS( _Sender^, TRUE, netsocket.FORSAFETY );
+      Result := _Connection.OpenS( _Sender^.Server, TRUE, netsocket.FORSAFETY );
 
       IF Result = Sync.arCompleted THEN
-         Result := DoSend( OUT SpecificCode );
+         Result := DoSend( OUT SmtpError );
       END;
 
-      NotifyCompletion( Result, SpecificCode );
+      NotifyCompletion( Result, SmtpError );
    END Run;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( sender : TPSender; CONST message : MailMessage.TPMessage );
+   PUBLIC PROCEDURE Init( sender : TPSenderImpl; CONST message : MailMessage.TPMailMessage );
    BEGIN
       _Sender := sender;
       _Message := message;
@@ -57,283 +212,246 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoSend( OUT SpecificCode : TSmtpError ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE DoSend( OUT SmtpError : TSmtpError ) : Sync.TAsyncResult;
    VAR
       recipients : MailMessage.TPPersons;
       Result : Sync.TAsyncResult;
+      s : StringsO.CString;
       smtpres : TSmtpResponse;
    BEGIN
-      //----------
-      SpecificCode := SmtpErrorServerNotReady;
+      TRY
+         //----------
+         SmtpError := ServerNotReady;
 
-      Result := ReadServer( OUT smtpres );
-      IF Result <> Sync.arCompleted THEN
-         RETURN Result;
-      ELSIF smtpres <> smtpresult_220 THEN
-         RETURN Sync.arAborted;
-      END;
-
-      //----------
-      SpecificCode := SmtpErrorEhlo;
-
-      s.FromOA( L"EHLO " );
-      s.Append( _Sender.LocalName );
-      Result := WriteServer( s );
-      IF Result = Sync.arCompleted THEN
-         Result := ReadServer( OUT smtpres );
-      END;
-      IF Result <> Sync.arCompleted THEN
-         RETURN Result;
-      ELSIF smtpres <> smtpresult_OK THEN
-         RETURN Sync.arAborted;
-      END;
-
-      //----------
-      IF NOT _Sender^.Login.Empty THEN
-
-         SpecificCode := SmtpErrorAuthenticationFailed;
-
-         s.FromOA( L"AUTH LOGIN" );
-         Result := WriteServer( s );
-         IF Result = Sync.arCompleted THEN
-            Result := ReadServer( OUT smtpres );
+         IF ReadServer() <> smtpres_220 THEN
+            THROW SmtpException( Sync.arAborted );
          END;
-         IF Result <> Sync.arCompleted THEN
-            RETURN Result;
-         ELSIF smtpres <> smtpresult_334 THEN // TODO: check if "UserName" is requested
-            RETURN Sync.arAborted;
+
+         //----------
+         SmtpError := EhloPhase;
+
+         s.FromOA( L"EHLO " );
+         s.Append( _Sender^.LocalName );
+         WriteServer( s );
+         IF ReadServer() <> smtpres_OK THEN
+            THROW SmtpException( Sync.arAborted );
          END;
-         // send login
-         Result := WriteServerBase64( _Sender^.Login );
-         IF Result = Sync.arCompleted THEN
-            Result := ReadServer( OUT smtpres );
+
+         //----------
+         IF NOT _Sender^.Login.Empty THEN
+
+            SmtpError := AuthenticationFailed;
+
+            s.FromOA( L"AUTH LOGIN" );
+            WriteServer( s );
+            IF ReadServer() <> smtpres_334 THEN // TODO: check if "UserName" is requested
+               THROW SmtpException( Sync.arAborted );
+            END;
+            // send login
+            WriteServerBase64( _Sender^.Login );
+            IF ReadServer() <> smtpres_334 THEN // TODO: check if "Password" is requested
+               THROW SmtpException( Sync.arAborted );
+            END;
+            // send password
+            WriteServerBase64( _Sender^.Password );
+            smtpres := ReadServer();
+            CASE smtpres OF
+            | smtpres_235 : // OK, success
+            | smtpres_535 : // not authorized
+               THROW SmtpException( Sync.arFailed );
+            ELSE
+               THROW SmtpException( Sync.arAborted );
+            END;
          END;
-         IF smtpres <> smtpresult_334 THEN // TODO: check if "Password" is requested
-            RETURN Sync.arAborted;
-         END;
-         // send password
-         Result := WriteServerBase64( _Sender^.Password );
-         IF Result = Sync.arCompleted THEN
-            Result := ReadServer( OUT smtpres );
-         END;
+
+         //----------
+         SmtpError := MailFrom;
+
+         // TODO, MailFrom nesmí být empty
+         s.FromOA( L"MAIL FROM: " );
+         s.Append( _Message^.Sender.Address );
+         WriteServer( s );
+         smtpres := ReadServer();
          CASE smtpres OF
-         | smtpresult_235 : // OK, success
-         | smtpresult_535 : // not authorized
-            RETURN Sync.arFailed;
+         | smtpres_OK : // OK, success
+         | smtpres_530 : // authentication required
+            SmtpError := AuthenticationRequired;
+            THROW SmtpException( Sync.arFailed );
          ELSE
-            RETURN Sync.arAborted;
+            THROW SmtpException( Sync.arAborted );
          END;
-      END;
 
-      //----------
-      SpecificCode := SmtpErrorMailFrom;
+         //----------
+         SmtpError := SmtpErrorRcptTo;
 
-      // TODO, MailFrom nesmí být empty
-      s.FromOA( L"MAIL FROM: " );
-      s.Append( _Message^.Sender );
-      Result := WriteServer( s );
-      IF Result = Sync.arCompleted THEN
-         Result := ReadServer( OUT smtpres );
-      END;
-      CASE smtpres OF
-      | smtpresult_OK : // OK, success
-      | smtpresult_530 : // authentication required
-         SpecificCode := SmtpErrorAuthenticationRequired;
-         RETURN Sync.arFailed;
-      ELSE
-         RETURN Sync.arAborted;
-      END;
+         // TODO, at least one recipient must be known
+         WriteRecipients( _Message^.Recipients );
+         WriteRecipients( _Message^.CCs );
+         WriteRecipients( _Message^.BCCs );
 
-      //----------
-      SpecificCode := SmtpErrorRcptTo;
+         //----------
+         SmtpError := SmtpErrorData;
 
-      // TODO, at least one recipient must be known
-      Result := WriteRecipients( _Message^.Recipients );
-      IF Result = smtpres_OK THEN
-         Result := WriteRecipients( _Message^.CCs );
-      END;
-      IF Result = smtpres_OK THEN
-         Result := WriteRecipients( _Message^.BCCs );
-      END;
-      IF Result <> smtpres_OK THEN
-         RETURN Result;
-      END;
+         s.FromOA( L"DATA" );
+         WriteServer( s );
+         IF ReadServer() <> smtpresult_354 THEN
+            THROW SmtpException( Sync.arAborted );
+         END;
 
-      //----------
-      SpecificCode := SmtpErrorData;
+         //----------
+         SmtpError := SmtpErrorHeaders;
 
-      s.FromOA( L"DATA" );
-      Result := WriteServer( s );
-      IF Result = Sync.arCompleted THEN
-         Result := ReadServer( OUT smtpres );
-      END;
-      IF Result <> Sync.arCompleted THEN
-         RETURN Result;
-      ELSIF smtpres <> smtpresult_354 THEN
-         RETURN Sync.arAborted;
-      END;
+         WriteHeaders();
 
-      //----------
-      SpecificCode := SmtpErrorHeaders;
+         //----------
+         SmtpError := MessageBody;
 
-      Result := WriteHeaders();
-      IF Result <> Sync.arCompleted THEN
-         RETURN Result;   
-      END;
+         WriteStream( _Message^.Stream );
 
-      //----------
-      SpecificCode := SmtpErrorMessageBody;
+         //----------
+         SmtpError := SmtpErrorAttachments;
 
-      Result := WriteStream( _Message^.Stream );
-      IF Result <> Sync.arCompleted THEN
-         RETURN Result;   
-      END;
+         IF NOT _Message.Attachments.Empty THEN
+         END;
 
-      //----------
-      SpecificCode := SmtpErrorAttachments;
+         //----------
+         SmtpError := SmtpErrorMessageFinalization;
 
-      IF NOT _Message.Attachments.Empty THEN
-      END;
+         s.FromOA( 13W + 10W + L"." + 13W + 10W );
+         WriteServer( s );
+         IF ReadServer() <> smtpresult_OK THEN
+            THROW SmtpException( Sync.arAborted );
+         END;
 
-      //----------
-      SpecificCode := SmtpErrorMessageFinalization;
+         //----------
+         SmtpError := SmtpErrorConnectionFinalization;
 
-      s.FromOA( 13W + 10W + L"." + 13W + 10W );
-      Result := WriteServer( s );
-      IF Result = Sync.arCompleted THEN
-         Result := ReadServer( OUT smtpres );
-      END;
-      IF Result <> Sync.arCompleted THEN
-         RETURN Result;
-      ELSIF smtpres <> smtpresult_OK THEN
-         RETURN Sync.arAborted;
-      END;
+         s.FromOA( L"QUIT" );
+         Result := WriteServer( s );
+         IF ReadServer() <> smtpresult_OK THEN
+            THROW SmtpException( Sync.arAborted );
+         END;
 
-      //----------
-      SpecificCode := SmtpErrorConnectionFinalization;
+(*   
+      // next goes attachments (if they are)
+      if((FileBuf = new char[55]) == NULL)
+         throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
 
-      s.FromOA( L"QUIT" );
-      Result := WriteServer( s );
-      IF Result = Sync.arCompleted THEN
-         Result := ReadServer( OUT smtpres );
-      END;
-      IF Result <> Sync.arCompleted THEN
-         RETURN Result;
-      ELSIF smtpres <> smtpresult_OK THEN
-         RETURN Sync.arAborted;
-      END;
+      if((FileName = new char[255]) == NULL)
+         throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
 
-   
-   // next goes attachments (if they are)
-   if((FileBuf = new char[55]) == NULL)
-      throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
-
-   if((FileName = new char[255]) == NULL)
-      throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
-
-   TotalSize = 0;
-   for(FileId=0;FileId<Attachments.size();FileId++)
-   {
-      strcpy(FileName,Attachments[FileId].c_str());
-
-      sprintf(SendBuf,"--%s\r\n",BOUNDARY_TEXT);
-      strcat(SendBuf,"Content-Type: application/x-msdownload; name=\"");
-      strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
-      strcat(SendBuf,"\"\r\n");
-      strcat(SendBuf,"Content-Transfer-Encoding: base64\r\n");
-      strcat(SendBuf,"Content-Disposition: attachment; filename=\"");
-      strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
-      strcat(SendBuf,"\"\r\n");
-      strcat(SendBuf,"\r\n");
-
-      SendData();
-
-      // opening the file:
-      hFile = fopen(FileName,"rb");
-      if(hFile == NULL)
-         throw ECSmtp(ECSmtp::FILE_NOT_EXIST);
-      
-      // checking file size:
-      FileSize = 0;
-      while(!feof(hFile))
-         FileSize += fread(FileBuf,sizeof(char),54,hFile);
-      TotalSize += FileSize;
-
-      // sending the file:
-      if(TotalSize/1024 > MSG_SIZE_IN_MB*1024)
-         throw ECSmtp(ECSmtp::MSG_TOO_BIG);
-      else
+      TotalSize = 0;
+      for(FileId=0;FileId<Attachments.size();FileId++)
       {
-         fseek (hFile,0,SEEK_SET);
+         strcpy(FileName,Attachments[FileId].c_str());
 
-         MsgPart = 0;
-         for(i=0;i<FileSize/54+1;i++)
+         sprintf(SendBuf,"--%s\r\n",BOUNDARY_TEXT);
+         strcat(SendBuf,"Content-Type: application/x-msdownload; name=\"");
+         strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
+         strcat(SendBuf,"\"\r\n");
+         strcat(SendBuf,"Content-Transfer-Encoding: base64\r\n");
+         strcat(SendBuf,"Content-Disposition: attachment; filename=\"");
+         strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
+         strcat(SendBuf,"\"\r\n");
+         strcat(SendBuf,"\r\n");
+
+         SendData();
+
+         // opening the file:
+         hFile = fopen(FileName,"rb");
+         if(hFile == NULL)
+            throw ECSmtp(ECSmtp::FILE_NOT_EXIST);
+      
+         // checking file size:
+         FileSize = 0;
+         while(!feof(hFile))
+            FileSize += fread(FileBuf,sizeof(char),54,hFile);
+         TotalSize += FileSize;
+
+         // sending the file:
+         if(TotalSize/1024 > MSG_SIZE_IN_MB*1024)
+            throw ECSmtp(ECSmtp::MSG_TOO_BIG);
+         else
          {
-            res = fread(FileBuf,sizeof(char),54,hFile);
-            MsgPart ? strcat(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str())
-                     : strcpy(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str());
-            strcat(SendBuf,"\r\n");
-            MsgPart += res + 2;
-            if(MsgPart >= BUFFER_SIZE/2)
-            { // sending part of the message
-               MsgPart = 0;
+            fseek (hFile,0,SEEK_SET);
+
+            MsgPart = 0;
+            for(i=0;i<FileSize/54+1;i++)
+            {
+               res = fread(FileBuf,sizeof(char),54,hFile);
+               MsgPart ? strcat(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str())
+                        : strcpy(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str());
+               strcat(SendBuf,"\r\n");
+               MsgPart += res + 2;
+               if(MsgPart >= BUFFER_SIZE/2)
+               { // sending part of the message
+                  MsgPart = 0;
+                  SendData(); // FileBuf, FileName, fclose(hFile);
+               }
+            }
+            if(MsgPart)
+            {
                SendData(); // FileBuf, FileName, fclose(hFile);
             }
          }
-         if(MsgPart)
-         {
-            SendData(); // FileBuf, FileName, fclose(hFile);
-         }
+         fclose(hFile);
       }
-      fclose(hFile);
-   }
-   delete[] FileBuf;
-   delete[] FileName;
+      delete[] FileBuf;
+      delete[] FileName;
    
-   // sending last message block (if there is one or more attachments)
-   if(Attachments.size())
-   {
-      sprintf(SendBuf,"\r\n--%s--\r\n",BOUNDARY_TEXT);
-      SendData();
-   }
+      // sending last message block (if there is one or more attachments)
+      if(Attachments.size())
+      {
+         sprintf(SendBuf,"\r\n--%s--\r\n",BOUNDARY_TEXT);
+         SendData();
+      }
+*)
+
+      CATCH e : CSmtpException DO
+         RETURN e.Result;
+      END;
    
       RETURN Sync.arCompleted;
    END DoSend;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SpecificCode : TSMTPResult );
+   PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SmtpError : TSmtpError );
    BEGIN
-      _Sender^.NotifyCompletion( _Message, Result, SpecificCode );
+      // _Sender^.NotifyCompletion( _Message, Result, SmtpError );
    END NotifyCompletion;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ReadServer( OUT SMTPResponse : TSmtpResponse ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE ReadServer() : TSmtpResponse;
    VAR
       current : TSmtpResponse := smtpres_Unknown;
+      first : TSmtpResponse := smtpres_Unknown;
       lastline : BOOLEAN := FALSE;
-      previous : TSmtpResponse := smtpres_Unknown;
+      line : StringsO.CString;
+      Result : Sync.TAsyncResult;
    BEGIN
       REPEAT
-         Result := ReadServerLine( OUT current, OUT response, OUT lastline );
+         Result := ReadServerLine( OUT current, OUT line, OUT lastline );
          IF Result <> Sync.arCompleted THEN
-            RETURN Result;
-         ELSIF ( previous <> smtpres_Unknown ) AND ( current <> previous ) THEN // responses must be uniform for single command
-            RETURN Sync.arAborted; 
+            THROW SmtpException( Result );
+         ELSIF first = smtpres_Unknown THEN
+            first := current;
+         ELSIF current <> first THEN // responses must be uniform for single command
+            THROW SmtpException( Sync.arAborted );
          END;
       UNTIL lastline;
 
-      SMTPResponse := current;
-      RETURN Sync.arCompleted;
+      RETURN current;
    END ReadServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ReadServerLine( OUT SMTPResponse : TSmtpResponse; OUT Response : StringsO.IString; OUT LastLine : BOOLEAN ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE ReadServerLine( OUT SmtpResponse : TSmtpResponse; OUT Response : StringsO.IString; OUT LastLine : BOOLEAN ) : Sync.TAsyncResult;
    VAR
       Read : StringsO.CString;
       Result : Sync.TAsyncResult;
+      statusCode : CARDINAL;
       StatusString : StringsO.CString;
    BEGIN
       Result := _Reader.ReadLine( OUT Read, netsocket.FORSAFETY, TRUE );
@@ -343,77 +461,89 @@ CLASS IMPLEMENTATION CWorker;
          RETURN Sync.arAborted;
       END;
 
-      Read.Substring( OUT StatusString, 0, 3 );
+      Read.Substring( 0, 3, OUT StatusString );
       IF NOT StatusString.ToCARD32( 10, OUT statusCode ) THEN // malformed response, not a number
          RETURN Sync.arAborted;
       END;
 
       CASE statusCode OF
-      | 211: SMTPResponse := smtpres_211;
-      | 214: SMTPResponse := smtpres_214;
-      | 220: SMTPResponse := smtpres_220;
-      | 221: SMTPResponse := smtpres_221;
-      | 250: SMTPResponse := smtpres_250;
-      | 251: SMTPResponse := smtpres_251;
-      | 334: SMTPResponse := smtpres_334;
-      | 354: SMTPResponse := smtpres_354;
-      | 421: SMTPResponse := smtpres_421;
-      | 432: SMTPResponse := smtpres_432;
-      | 450: SMTPResponse := smtpres_450;
-      | 451: SMTPResponse := smtpres_451;
-      | 452: SMTPResponse := smtpres_452;
-      | 454: SMTPResponse := smtpres_454;
-      | 500: SMTPResponse := smtpres_500;
-      | 501: SMTPResponse := smtpres_501;
-      | 502: SMTPResponse := smtpres_502;
-      | 503: SMTPResponse := smtpres_503;
-      | 504: SMTPResponse := smtpres_504;
-      | 521: SMTPResponse := smtpres_521;
-      | 530: SMTPResponse := smtpres_530;
-      | 534: SMTPResponse := smtpres_534;
-      | 538: SMTPResponse := smtpres_538;
-      | 550: SMTPResponse := smtpres_550;
-      | 551: SMTPResponse := smtpres_551;
-      | 552: SMTPResponse := smtpres_552;
-      | 553: SMTPResponse := smtpres_553;
-      | 554: SMTPResponse := smtpres_554;
+      | 211: SmtpResponse := smtpres_211;
+      | 214: SmtpResponse := smtpres_214;
+      | 220: SmtpResponse := smtpres_220;
+      | 221: SmtpResponse := smtpres_221;
+      | 250: SmtpResponse := smtpres_250;
+      | 251: SmtpResponse := smtpres_251;
+      | 334: SmtpResponse := smtpres_334;
+      | 354: SmtpResponse := smtpres_354;
+      | 421: SmtpResponse := smtpres_421;
+      | 432: SmtpResponse := smtpres_432;
+      | 450: SmtpResponse := smtpres_450;
+      | 451: SmtpResponse := smtpres_451;
+      | 452: SmtpResponse := smtpres_452;
+      | 454: SmtpResponse := smtpres_454;
+      | 500: SmtpResponse := smtpres_500;
+      | 501: SmtpResponse := smtpres_501;
+      | 502: SmtpResponse := smtpres_502;
+      | 503: SmtpResponse := smtpres_503;
+      | 504: SmtpResponse := smtpres_504;
+      | 521: SmtpResponse := smtpres_521;
+      | 530: SmtpResponse := smtpres_530;
+      | 534: SmtpResponse := smtpres_534;
+      | 538: SmtpResponse := smtpres_538;
+      | 550: SmtpResponse := smtpres_550;
+      | 551: SmtpResponse := smtpres_551;
+      | 552: SmtpResponse := smtpres_552;
+      | 553: SmtpResponse := smtpres_553;
+      | 554: SmtpResponse := smtpres_554;
       ELSE // unknown response code
+         ASSERTLOG( FALSE, L"Unknown SMTP response code" );
          RETURN Sync.arAborted;
       END;
 
       Response := Read;
       LastLine := ( Read.Length = 3 ) OR ( Read[3] = L" " ); // Space is a separator determining last of response lines
       RETURN Sync.arCompleted;
-   END ReadServer;
+   END ReadServerLine;
 
 (*--------------------------------------------------------------------------------*)
 
-   INLINE PRIVATE PROCEDURE WriteServer( CONST Line : StringsO.IString ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE WriteServer( CONST Line : StringsO.IString );
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      RETURN _Writer.WriteTimeout( Line, TRUE, netsocket.FORSAFETY ); 
+      Result := _Writer.WriteTimeout( Line, TRUE, netsocket.FORSAFETY );
+      IF Result <> Sync.arCompleted THEN
+         THROW SmtpException( Result );
+      END;
    END WriteServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PROCEDURE WriteRecipients( recipients : MailMessage.TPPersons ) : Sync.TAsyncResult; // TODO distinguish between complete send and send only some, grab failures to some list or so
-   VAR
-      Result : Sync.TAsyncResult;
-      s : StringsO.CString;
+   PRIVATE PROCEDURE WriteServerBase64( CONST Line : StringsO.IString );
    BEGIN
-      recipients^.Reset();
-      WHILE recipients^.MoveNext() DO
-         s.FromOA( "RCPT TO: " );
-         s.AppendOA( recipients^.Current.Address );
-         Result := WriteServer( s );
-         IF Result = Sync.arCompleted THEN
-            Result := ReadServer( OUT smtpres );
-         END;
-         IF Result <> Sync.arCompleted THEN
-            RETURN Result;
-         ELSIF smtpres <> smtpres_OK THEN
-            RETURN Sync.arAborted;
-         END;
-      END; // WHILE
+   END WriteServerBase64;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE WriteRecipients( recipients : MailMessage.TPPersons ); // TODO distinguish between complete send and send only some, grab failures to some list or so
+   VAR
+      s : StringsO.CString;
+      smtpres : TSmtpResponse;
+   BEGIN
+      TRY
+         recipients^.Reset();
+         WHILE recipients^.MoveNext() DO
+            s.FromOA( "RCPT TO: " );
+            s.Append( recipients^.Current.Address );
+            WriteServer( s );
+            smtpres := ReadServer();
+            IF smtpres <> smtpres_OK THEN
+               THROW SmtpException( Sync.arAborted );
+            END;
+         END; // WHILE
+      CATCH e : CSmtpException DO
+         THROW e;
+      END;
    END WriteRecipients;
 
 (*--------------------------------------------------------------------------------*)
@@ -444,45 +574,9 @@ CONST
        60 * 1440 * 60 * 1000,
       120 * 1440 * 60 * 1000,
       240 * 1440 * 60 * 1000,
-      480 * 1440 * 60 * 1000
+      480 * 1440 * 60 * 1000,
+      960 * 1440 * 60 * 1000
    );
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
-
-   // APoolDelegate
-   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
-
-   // ISender
-   PUBLIC VIRTUAL PROPERTY
-      Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
-      Notifier : TPNotifier;
-
-   PUBLIC VIRTUAL PROCEDURE SendAsync( CONST message : MailMessage.TPMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult; // returns failure only if Server is empty
-
-   PUBLIC VIRTUAL PROPERTY
-      Server : inetaddr.INETADDR;
-      Mailer : StringsO.CString;
-      Login : StringsO.CString; 
-      Password : StringsO.CString; 
-      TimeToLive : CARDINAL; // milliseconds, the message will stay in the queue for the time
-
-   // SELF
-   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMessage; Result : Sync.TAsyncResult; SpecificCode : TSMTPResult );
-   PRIVATE PROCEDURE Send();
-
-   PRIVATE VAR
-      _QueueSignal : Sync.SIGNAL;
-      _PoolHandle : threadpool.TPoolHandle := NIL;
-      _Queue : msgqueue.CPtrQueue;
-      _Pool : threadpool.CThreadPool;
-      _PendingSends : CARDINAL := 0;
-      _TimeToLive : CARDINAL := 2*86400; // two days
-      _Dispatcher : threadcall.TPIThreadProcedureCallDispatcher := NIL;
-      _Notifier : TPNotifier := NIL;
-
-END CSender;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -493,9 +587,8 @@ CLASS IMPLEMENTATION CSender;
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
       ptr, stopptr : PTR;
-      message
    BEGIN
-      IF Sync.IGet( REF _Pending ) >= Sync.NumberOfProcessors() THEN
+      IF CARDINAL( Sync.IGet( REF _Pending )) >= Sync.NumberOfProcessors() THEN
          RETURN;
       ELSIF NOT _Queue.Peek( OUT ptr ) THEN
          RETURN;
@@ -539,30 +632,106 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
-   PROCEDURE SendAsync( CONST message : MailMessage.TPMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE SendAsync( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
    BEGIN
       IF _PoolHandle = NIL THEN
          RETURN Sync.arCannotStart;
       END;
       _Queue.Enqueue( message OR PTR( takeOwnership ));
+      RETURN Sync.arPending;
    END SendAsync;
 
 (*--------------------------------------------------------------------------------*)
 
-   PROPERTY
-      Server : inetaddr.INETADDR;
-      Mailer : StringsO.CString;
-      Login : StringsO.CString; 
-      Password : StringsO.CString; 
-      TimeToLive : CARDINAL; // milliseconds, the message will stay in the queue for the time
+   PUBLIC VIRTUAL PROPERTY Server GET : StringsO.CString;
+   BEGIN
+      RETURN _Server;
+   END Server;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMessage; Result : Sync.TAsyncResult; SpecificCode : TSMTPResult );
+   PUBLIC VIRTUAL PROPERTY Server SET( CONST Value : StringsO.CString );
+   BEGIN
+      _Server := Value;
+   END Server;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Mailer GET : StringsO.CString;
+   BEGIN
+      RETURN _Mailer;
+   END Mailer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Mailer SET( CONST Value : StringsO.CString );
+   BEGIN
+      _Mailer := Value;
+   END Mailer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Login GET : StringsO.CString; 
+   BEGIN
+      RETURN _Login;
+   END Login;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Login SET( CONST Value : StringsO.CString );
+   BEGIN
+      _Login := Value;
+   END Login;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Password GET : StringsO.CString; 
+   BEGIN
+      RETURN _Password;
+   END Password;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Password SET( CONST Value : StringsO.CString );
+   BEGIN
+      _Password := Value;
+   END Password;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY TimeToLive GET : CARDINAL;
+   BEGIN
+      RETURN _TimeToLive;
+   END TimeToLive;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY TimeToLive SET( Value : CARDINAL );
+   BEGIN
+      _TimeToLive := Value;
+   END TimeToLive;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY LocalName GET : StringsO.CString;
+   BEGIN
+      IF _LocalName.Empty AND NOT dns.GetLocalName( OUT _LocalName ) THEN
+         _LocalName.FromOA( L"scmailer" );
+      END;
+      RETURN _LocalName;
+   END LocalName;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpError : TSmtpError );
+   BEGIN
+   END NotifyCompletion;
 
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE Send();
+   BEGIN
+   END Send;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -573,19 +742,11 @@ BEGIN
    END;
 FINALLY
    IF _PoolHandle <> NIL THEN
-      threadpool.pool()^.AbortHandle( REF _PoolHandle );
+      threadpool.pool()^.Abort( REF _PoolHandle );
    END;
 END CSender;
 
-(*================================================================================*)
-
-PROCEDURE New( OUT sender : TPSender ) : BOOLEAN;
-PROCEDURE Dispose( REF sender : TPSender;
-
-(*================================================================================*)
-
-END SMTPSender.
-
+(*
 ////////////////////////////////////////////////////////////////////////////////
 //        NAME: Send
 // DESCRIPTION: Sending the mail. .
@@ -667,9 +828,9 @@ SOCKET CSmtp::ConnectRemoteServer(const char *szServer,const unsigned short nPor
 
    // start non-blocking mode for socket:
 #ifdef LINUX
-   if(ioctl(hSocket,FIONBIO, (unsigned long*)&ul) == SOCKET_ERROR)
+   if(ioctl(hSocket,FIONBIO, (unsigned long* )&ul) == SOCKET_ERROR)
 #else
-   if(ioctlsocket(hSocket,FIONBIO, (unsigned long*)&ul) == SOCKET_ERROR)
+   if(ioctlsocket(hSocket,FIONBIO, (unsigned long* )&ul) == SOCKET_ERROR)
 #endif
    {
 #ifdef LINUX
@@ -1148,3 +1309,21 @@ std::string ECSmtp::GetErrorText() const
    }
 }
 
+*)
+
+(*================================================================================*)
+
+PROCEDURE New( OUT sender : TPSender; lightWeight : BOOLEAN ) : BOOLEAN; // for lightWeight, synchronous not threaded ISender is created, otherwise timeouting, queued and threaded ISender is used
+BEGIN
+   RETURN FALSE;
+END New;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE Dispose( REF sender : TPSender );
+BEGIN
+END Dispose;
+
+(*================================================================================*)
+
+END SMTPSender.

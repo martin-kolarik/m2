@@ -1,5 +1,11 @@
 IMPLEMENTATION MODULE MailMessage;
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
+IMPORT
+   StorageO;
+
 (*================================================================================*)
 
 CLASS IMPLEMENTATION Person;
@@ -22,8 +28,8 @@ CLASS CPersons IMPLEMENTS IPersons;
 
    // IPersons
    PUBLIC VIRTUAL PROCEDURE Add( CONST New : Person );
-   PUBLIC VIRTUAL PROCEDURE AddS( CONST Name, Address : StringsO.CString );
-   PUBLIC VIRTUAL PROCEDURE Clear();
+   PUBLIC VIRTUAL PROCEDURE AddS( CONST Name, Address : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    PUBLIC VIRTUAL PROPERTY
       Current : Person;
@@ -68,8 +74,8 @@ CLASS IMPLEMENTATION CPersons;
       person : Person;
    BEGIN
       IF _Persons.Current <> NIL THEN
-         persons.Name.Assign( _Persons.Current^ );
-         persons.Address.Assign( _Persons.CurrentData^ );
+         person.Name.Assign( _Persons.Current^ );
+         person.Address.Assign( _Persons.CurrentData^ );
       END;
       RETURN person;
    END Current;
@@ -81,8 +87,8 @@ CLASS IMPLEMENTATION CPersons;
       IF _Persons.Current = NIL THEN
          ASSERTLOG( FALSE, L"Current value assigned when Current is not valid." );
       ELSE
-         _Persons.Current^.Assign( persons.Name );
-         _Persons.CurrentData^.Assign( persons.Address );
+         _Persons.Current^.Assign( Value.Name );
+         _Persons.CurrentData^.Assign( Value.Address );
       END;
    END Current;
 
@@ -116,6 +122,7 @@ CLASS CMailMessage IMPLEMENTS IMailMessage;
       Subject : StringsO.CString;
 
    PUBLIC VIRTUAL READONLY PROPERTY
+      Created : datetime.DateTime;
       Recipients : TPPersons;
       CCs : TPPersons;
       BCCs : TPPersons;
@@ -123,8 +130,9 @@ CLASS CMailMessage IMPLEMENTS IMailMessage;
       Attachments : lists.TPStringList; // list of paths
 
    PRIVATE VAR
+      _Created : datetime.DateTime;
       _Sender : Person;
-      _ReplyTo : StringsO.CString;
+      _ReplyTo : Person;
       _Subject : StringsO.CString;
       _Priority : TPriority := PriorityNormal;
       _Recipients : CPersons;
@@ -149,7 +157,7 @@ CLASS IMPLEMENTATION CMailMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Sender SET( Value : Person );
+   PUBLIC VIRTUAL PROPERTY Sender SET( CONST Value : Person );
    BEGIN
       _Sender := Value;
    END Sender;
@@ -167,10 +175,10 @@ CLASS IMPLEMENTATION CMailMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY _ReplyTo SET( Value : Person );
+   PUBLIC VIRTUAL PROPERTY ReplyTo SET( CONST Value : Person );
    BEGIN
       _ReplyTo := Value;
-   END _ReplyTo;
+   END ReplyTo;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -178,16 +186,20 @@ CLASS IMPLEMENTATION CMailMessage;
    VAR
       person : Person;
    BEGIN
-      _Recipients.GetFirst( OUT person.Name, OUT person.Address );
-      RETURN person;
+      _Recipients.Reset();
+      IF _Recipients.MoveNext() THEN
+         RETURN _Recipients.Current;
+      ELSE
+         RETURN person;
+      END;
    END Recipient;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Recipient SET( Value : Person ); // for fast access to single recipient
+   PUBLIC VIRTUAL PROPERTY Recipient SET( CONST Value : Person ); // for fast access to single recipient
    BEGIN
       _Recipients.Dispose();
-      _Recipients.Add( Value.Name, Value.Address );
+      _Recipients.Add( Value );
    END Recipient;
 
 (*--------------------------------------------------------------------------------*)
@@ -213,10 +225,17 @@ CLASS IMPLEMENTATION CMailMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Subject SET( Value : StringsO.CString );
+   PUBLIC VIRTUAL PROPERTY Subject SET( CONST Value : StringsO.CString );
    BEGIN
       _Subject := Value;
    END Subject;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Created GET : datetime.DateTime;
+   BEGIN
+      RETURN _Created;
+   END Created;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -256,10 +275,14 @@ CLASS IMPLEMENTATION CMailMessage;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _Stream.Init( REF _Buffer, IOO.accReadWrite );
+   _Created.SetNowUTC();
+   _Stream.Init( REF _Message, IOO.accReadWrite );
 END CMailMessage;
 
 (*================================================================================*)
+
+TYPE
+   TPMessage = POINTER TO CMailMessage;
 
 PROCEDURE New( OUT Message : TPMailMessage ) : BOOLEAN;
 VAR
@@ -277,13 +300,16 @@ END New;
 (*--------------------------------------------------------------------------------*)
 
 PROCEDURE Dispose( REF Message : TPMailMessage );
+VAR
+   message : TPMessage;
 BEGIN
    IF Message = NIL THEN
       // do nothing
-   ELSIF NOT( Message IS CMessage ) THEN
-      ASSERTLOG( FALSE, L"Bad deallocation" );
+   ELSIF Message^ IS CMailMessage THEN
+      message := TPMessage( Message );
+      DISPOSE( message );
    ELSE
-      DISPOSE( REF Message );
+      ASSERTLOG( FALSE, L"Bad deallocation" );
    END;
 END Dispose;
 

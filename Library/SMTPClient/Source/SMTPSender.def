@@ -13,7 +13,7 @@ TYPE
 
 INTERFACE INotifier;
 
-   PROCEDURE OnCompletion( Result : Sync.TAsyncResult; SourceSpecificError : LONGWORD; CONST message : MailMessage.TPMessage );
+   PROCEDURE OnCompletion( Result : Sync.TAsyncResult; SourceSpecificError : LONGWORD; CONST message : MailMessage.TPMailMessage );
 
 END INotifier;
 
@@ -27,7 +27,7 @@ INTERFACE ISender;
       Notifier : TPNotifier;
 
    // send
-   PROCEDURE SendAsync( CONST message : MailMessage.TPMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
+   PROCEDURE SendAsync( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
 
    // configuration
    PROPERTY
@@ -42,7 +42,7 @@ END ISender;
 (*================================================================================*)
 
 PROCEDURE New( OUT sender : TPSender; lightWeight : BOOLEAN ) : BOOLEAN; // for lightWeight, synchronous not threaded ISender is created, otherwise timeouting, queued and threaded ISender is used
-PROCEDURE Dispose( REF sender : TPSender;
+PROCEDURE Dispose( REF sender : TPSender );
 
 (*================================================================================*)
 
