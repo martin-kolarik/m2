@@ -352,15 +352,6 @@ CLASS IMPLEMENTATION CUnit;
       END;
       RETURN gumNoIndent;
 
-    | ukSThrow :
-      G^.Indent();
-      IF eoCPPExceptions IN Options THEN
-         G^.OutS( L'throw ' );
-      ELSE
-         Project.Current()^.OD^.MEnv.MIID[miidStoreException]^.Generate( G, gcsName ); G^.OutS( L'(&' );
-      END;
-      RETURN gumNoIndent;
-
     ELSE
 
        G^.Indent();
@@ -600,14 +591,6 @@ CLASS IMPLEMENTATION CUnit;
       ukFinallySEHBlock,
       ukCatchDoBlock :
       G^.LineRB();
-
-    | ukSThrow :
-      IF eoCPPExceptions IN Options THEN
-         G^.OutSC(); G^.EOL();
-      ELSE
-         G^.OutS( L");"); G^.EOL();
-         G^.LineS( L"return TRUE;" );
-      END;
 
     ELSE
 
@@ -10721,9 +10704,6 @@ CLASS IMPLEMENTATION CSReturn;
         G^.OutS( L'_ReturnResult = ' );
         RETURN gumNoIndent;
       END;
-    | ukThrowingInCPPTry :
-      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
-      RETURN gumSimple;
     END;
     RETURN gumEmpty;
   END GenHead;
@@ -10929,19 +10909,6 @@ END CSASM;
 
 //============================================================
 
-CLASS IMPLEMENTATION CCATCH;
-
-  VIRTUAL READONLY PROPERTY Symbols GET : TPSymbols;
-  BEGIN
-    RETURN ADR( S );
-  END Symbols;
-
-BEGIN
-   UnitKind := ukCatchBlock;
-END CCATCH;
-
-//============================================================
-
 CLASS IMPLEMENTATION CSTRY;
 
 	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
@@ -10958,6 +10925,52 @@ BEGIN
 	CatchLabel := NIL;
    LocalThrowEnabled := TRUE;
 END CSTRY;
+
+//============================================================
+
+CLASS IMPLEMENTATION CSTHROW;
+
+   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+   BEGIN
+      G^.Indent();
+      IF eoCPPExceptions IN Options THEN
+         G^.OutS( L'throw ' );
+      ELSE
+         Project.Current()^.OD^.MEnv.MIID[miidStoreException]^.Generate( G, gcsName ); G^.OutS( L'(&' );
+      END;
+      RETURN gumNoIndent;
+   END GenHead;
+
+   VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+   BEGIN
+      IF eoCPPExceptions IN Options THEN
+         G^.OutSC(); G^.EOL();
+      ELSIF UnitKind = ukSThrowInTry THEN
+         G^.OutS( L");"); G^.EOL();
+         G^.Indent(); G^.OutS( L"goto " ); CatchLabel^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      ELSE
+         G^.OutS( L");"); G^.EOL();
+         G^.LineS( L"return TRUE;" );
+      END;
+   END GenTail;
+
+BEGIN
+   UnitKind := ukSThrow;
+   CatchLabel := NIL;
+END CSTHROW;
+
+//============================================================
+
+CLASS IMPLEMENTATION CCATCH;
+
+  VIRTUAL READONLY PROPERTY Symbols GET : TPSymbols;
+  BEGIN
+    RETURN ADR( S );
+  END Symbols;
+
+BEGIN
+   UnitKind := ukCatchBlock;
+END CCATCH;
 
 //============================================================
 

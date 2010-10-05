@@ -2858,22 +2858,19 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
 ntThrowStatement                                             (. E : DOM.TPExpression;
                                                                 P : DOM.TPProcedureType := c^.CurrentP();
                                                                 R : DOM.TPSReturn;
-                                                                U : DOM.TPUnit; .)
+                                                                S : DOM.TPSTHROW := NEW( DOM.CSTHROW ); .)
   = "THROW"                                                  (. IF ( DOM.eoCPPExceptions NOT IN c^.Options ) AND ( c^.OD^.MEnv.MIID[DOM.miidStoreException] = NIL ) THEN
                                                                    SemErr( err._MissingStoreException );
                                                                 END;
                                                                 IF DOM.eoInsideCPPTry IN P^.Options THEN
-                                                                   NEW( R );
-                                                                   R^.UnitKind := DOM.ukThrowingInCPPTry;
-                                                                   R^.L := DOM.TPSTRY( c^.TStack.Peek())^.CatchLabel;
-                                                                   c^.AddUnit( R );
-                                                                   c^.EnterUnit( R );
-                                                                ELSE
-                                                                   U := c^.EnterNewUnit( DOM.ukSThrow );
-                                                                END; .)
-     ntExpression<E>                                         (. c^.AddUnit( E );
-                                                                c^.CheckTypeIsException( E^.T );
-                                                                c^.CheckIfThrowIsPossible( E^.T );
+                                                                   S^.UnitKind := DOM.ukSThrowInTry;
+                                                                   S^.CatchLabel := DOM.TPSTRY( c^.TStack.Peek())^.CatchLabel;
+                                                                END;
+                                                                c^.AddUnit( S );
+                                                                c^.EnterUnit( S ); .)
+     ntExpression<E>                                         (.    c^.AddUnit( E );
+                                                                   c^.CheckTypeIsException( E^.T );
+                                                                   c^.CheckIfThrowIsPossible( E^.T );
                                                                 c^.LeaveUnit(); .)
 .
 
