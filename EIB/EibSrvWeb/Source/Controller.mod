@@ -1291,12 +1291,15 @@ CLASS IMPLEMENTATION CController;
 
    PRIVATE PROCEDURE InvalidateUser( CONST Request : mvc.IHttpRequest );
    BEGIN
+      // cleanup session
       Request.Session^.Remove( SESSION_LOGGED ); // kill potentially logged user
 
       Request.Session^.Remove( SESSION_ROLE );
       Request.Session^.Add( SESSION_ROLE, PTR( EibSrvWeb.roleGuest ));
 
-      Request.ModelContainer^.RemoveOA( ROLE_NAME );
+      // cleanup and recreate container
+      Request.ModelContainer^.Dispose();
+      InitializeModelContainer( REF Request.ModelContainer );
    END InvalidateUser;
 
 (*--------------------------------------------------------------------------------*)
