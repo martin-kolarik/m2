@@ -15,8 +15,8 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Modula2\m2rtl;Library\ADT;Library\Threading;Library\Text;Library\Network"/>
-        <Modules Include="MailMessage;SMTPSender"/>
+        <Components Include="Component\sccore"/>
+        <Modules Include="SMTPTools;MailMessage;SMTPSender"/>
     </ItemGroup>
 
     <!-- 4 -->

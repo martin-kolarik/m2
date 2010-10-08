@@ -1,0 +1,97 @@
+DEFINITION MODULE SMTPTools;
+
+IMPORT
+   StringsO;
+
+(*================================================================================*)
+
+TYPE
+   TSmtpResponse = (
+      smtpres_Unknown = 0,
+
+      smtpres_211 = 211,
+      smtpres_214 = 214,
+      smtpres_220 = 220,
+      smtpres_221 = 221,
+      smtpres_235 = 235,
+      smtpres_250 = 250,
+         smtpres_OK = smtpres_250,
+      smtpres_251 = 251,
+      smtpres_334 = 334,
+      smtpres_354 = 354,
+      smtpres_421 = 421,
+      smtpres_432 = 432,
+      smtpres_450 = 450,
+      smtpres_451 = 451,
+      smtpres_452 = 452,
+      smtpres_454 = 454,
+      smtpres_500 = 500,
+         smtpres_Failure = smtpres_500,
+      smtpres_501 = 501,
+      smtpres_502 = 502,
+      smtpres_503 = 503,
+      smtpres_504 = 504,
+      smtpres_521 = 521,
+      smtpres_530 = 530,
+      smtpres_534 = 534,
+      smtpres_535 = 535,
+      smtpres_538 = 538,
+      smtpres_550 = 550,
+      smtpres_551 = 551,
+      smtpres_552 = 552,
+      smtpres_553 = 553,
+      smtpres_554 = 554
+   );
+
+PROCEDURE CodeToResponse( Code : CARDINAL ) : TSmtpResponse;
+PROCEDURE StringToResponse( CONST String : StringsO.IString ) : TSmtpResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TSmtpPhase = (
+      ClientConnect,
+      ServerConnect,
+      Ehlo,
+      AuthenticationFailed,
+      AuthenticationRequired,
+      MailFrom,
+      RcptTo,
+      StartData,
+      Headers,
+      MessageBody,
+      MessageAttachments,
+      MessageFinalization,
+      ConnectionFinalization
+   );
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   THeaderEncoding = (
+      HeaderEncodingPlain,
+      HeaderEncodingEscaped,
+      HeaderEncodingMimeWord
+   );
+
+PROCEDURE AnalyzeHeaderEncoding( CONST String : StringsO.IString; OUT NeededEncoding : THeaderEncoding; OUT ContainsSpaces : BOOLEAN ); // ContainsSpaces is always FALSE for HeaderEncodingMimeWord
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ToMimeWords( CONST String : StringsO.IString; FirstLineLengthHint, MaximalLineLengthHint : CARDINAL; OUT Mimewords : StringsO.IString ) : BOOLEAN; // Mimewords contains <CRLF> <SP> separated mimewords
+   // Lengths are Hint, because the function does not compute real UTF8 length. Thus, a particular mimeword will be the longer the number of multibyte UTF8 characters greater
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TStringTypeHint = (
+      StringTypeHintNone,
+      StringTypeHintQuoted, // encloses string to ""
+      StringTypeHintAddress // encloses string to <> or to <"">
+   );
+
+PROCEDURE AppendStringToHeader( REF Header : StringsO.IString; CONST String : StringsO.IString; StringTypeHint : TStringTypeHint );
+
+(*================================================================================*)
+
+END SMTPTools.

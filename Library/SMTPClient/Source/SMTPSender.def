@@ -27,7 +27,7 @@ INTERFACE ISender;
       Notifier : TPNotifier;
 
    // send
-   PROCEDURE SendAsync( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
+   PROCEDURE SendAsync( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult; // arCannotStart means message is incorrect
 
    // configuration
    PROPERTY

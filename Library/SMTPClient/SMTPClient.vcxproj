@@ -16,6 +16,9 @@
     <None Include="Source\MailMessage.mod" />
     <None Include="Source\SMTPSender.def" />
     <None Include="Source\SMTPSender.mod" />
+    <None Include="Source\SMTPTools.def" />
+    <None Include="Source\SMTPTools.mod" />
+    <None Include="Test\TSmtpTools.mod" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{23093D6B-BE78-4C54-B9F6-A9AAC79C284A}</ProjectGuid>
