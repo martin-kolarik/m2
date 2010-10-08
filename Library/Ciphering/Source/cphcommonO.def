@@ -1,0 +1,22 @@
+DEFINITION MODULE cphcommonO;
+
+IMPORT
+   StorageO,
+   StringsO;
+
+# save, option( dll_export => on ) *)
+
+(*================================================================================*)
+
+PROCEDURE FromBASE64( CONST String : StringsO.IString; BinAppendFlag : BOOLEAN; REF Bin : StorageO.AMemoryBuffer ) : BOOLEAN;
+PROCEDURE FromBASE64OA( CONST String : StringsO.IString; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+
+PROCEDURE ToBASE64( CONST Bin : StorageO.AMemoryBuffer; OUT String : StringsO.IString );
+PROCEDURE ToBASE64OA( CONST Bin : ARRAY OF BYTE; OUT String : StringsO.IString );
+
+(*================================================================================*)
+
+#restore
+
+END cphcommonO.
+

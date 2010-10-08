@@ -69,6 +69,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="Source\cphcommon.mod" />
+    <None Include="Source\cphcommonO.def" />
+    <None Include="Source\cphcommonO.mod" />
     <None Include="Source\cphfilter.mod" />
     <None Include="Source\crc.mod" />
     <None Include="Source\digest.mod" />
