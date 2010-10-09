@@ -293,7 +293,7 @@ CLASS IMPLEMENTATION ClientIPConnection;
 
    PUBLIC VIRTUAL PROPERTY Stream GET : IOO.TPStream;
    BEGIN
-      RETURN ADR( _BStream );
+      RETURN ADR( _NStream );
    END Stream;
    
 (*--------------------------------------------------------------------------------*)
@@ -437,7 +437,7 @@ CLASS IMPLEMENTATION ServerTCPConnection;
 
    PUBLIC VIRTUAL PROPERTY Stream GET : IOO.TPStream;
    BEGIN
-      RETURN ADR( _BStream );
+      RETURN ADR( _NStream );
    END Stream;
    
 (*--------------------------------------------------------------------------------*)
