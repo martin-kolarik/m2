@@ -308,8 +308,20 @@ CLASS IMPLEMENTATION CTextReader;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      RETURN _Stream^.Read( ADR( _SProxy ), TimeoutMS, WaitForResult );
+      IF WaitForResult THEN
+         _SProxy.Waitable := TRUE;
+      END;
+      Result := _Stream^.Read( ADR( _SProxy ), TimeoutMS, WaitForResult );
+      IF Result <> Sync.arAlreadyPending THEN // _SProxy is already known to the stream
+         RETURN Result;
+      ELSIF WaitForResult THEN
+         RETURN _SProxy.WaitCompletion( TimeoutMS );
+      ELSE
+         RETURN Sync.arPending;
+      END;
    END ReadFromStream;
 
 (*--------------------------------------------------------------------------------*)
