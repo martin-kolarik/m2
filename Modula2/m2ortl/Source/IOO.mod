@@ -86,7 +86,7 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC PROPERTY Waitable GET : BOOLEAN;
   BEGIN
-    RETURN _Signal.RawHandle = NIL;
+    RETURN _Signal.RawHandle <> NIL;
   END Waitable;
 
 (*--------------------------------------------------------------------------------*)
@@ -344,6 +344,8 @@ CLASS IMPLEMENTATION CRingBufferProxy;
     | dirWrite :
       RingBuffer^.CommitReading( Completed );
     END; // CASE
+
+    _Lock.Exchg( REF SELF.Result, Sync.arCompleted );
     _Signal.Signal();
   END CompleteData;
 
