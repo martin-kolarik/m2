@@ -688,13 +688,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseRoot( parseMode : TParseMode; xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
    VAR
       appendCharset : BOOLEAN := FALSE;
+      charset : StringsO.CString;
       content : HttpTools.TContent;
       encoding : StringsO.CString;
       haveContentType : BOOLEAN := FALSE;
       haveDeclaration : BOOLEAN := FALSE;
       haveXHTML : BOOLEAN := FALSE;
       haveNS : BOOLEAN := FALSE;
-      rfc1766 : StringsO.CString;
       rootName : StringsO.CString;
       xmle : xmlreader.TXMLError;
       value : StringsO.CString;
@@ -778,7 +778,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                      END;
                      haveContentType := TRUE;
 
-                     IF HttpTools.DecodeContent( value, OUT content, OUT rfc1766 ) THEN
+                     IF HttpTools.DecodeContent( value, OUT content, OUT charset ) THEN
                         haveXHTML := content = HttpTools.contentTextXHTML;
                      ELSE
                         haveXHTML := FALSE;
@@ -787,7 +787,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                      IF NOT haveXHTML THEN // use mime type as is, no logic can be applied; handle encoding
                         contentTypeRequest := value;
                         IF content IN HttpTools.ENCODING_SENSITIVE_CONTENT THEN
-                           appendCharset := rfc1766.Empty; // supply content type with source encoding, only if it is not known
+                           appendCharset := charset.Empty; // supply content type with source encoding, only if it is not known
                         END;
                         IF content = HttpTools.contentUnknown THEN // content was not successfully decoded
                            // do not affect XMLDeclaration, author may set it upon his needs
