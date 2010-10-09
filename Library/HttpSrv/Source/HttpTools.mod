@@ -117,7 +117,7 @@ END DecodeSIDCookie;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatContent( Content : TContent; CONST FileName, RFC1766Code : StringsO.IString; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
+PROCEDURE FormatContent( Content : TContent; CONST FileName, Charset : StringsO.IString; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 VAR
    appendCharset : BOOLEAN := TRUE;
    highF : INTEGER;
@@ -199,11 +199,11 @@ BEGIN
       
    END;
    IF appendCharset THEN
-      IF RFC1766Code.Empty THEN
+      IF Charset.Empty THEN
          s.AppendOA( L"; charset=utf-8" );
       ELSE
          s.AppendOA( L"; charset=" );
-         s.Append( RFC1766Code );
+         s.Append( Charset );
       END;
    END;
 
@@ -213,18 +213,18 @@ END FormatContent;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatContentOA( Content : TContent; CONST FileName, RFC1766Code : ARRAY OF WCHAR; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
+PROCEDURE FormatContentOA( Content : TContent; CONST FileName, Charset : ARRAY OF WCHAR; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 VAR
    s1, s2 : StringsO.CString;
 BEGIN
    s1.FromOA( FileName );
-   s2.FromOA( RFC1766Code );
+   s2.FromOA( Charset );
    RETURN FormatContent( Content, s1, s2, Fallback, OUT ContentHeader );
 END FormatContentOA;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE DecodeContent( CONST ContentString : StringsO.IString; OUT Content : TContent; OUT RFC1766Code : StringsO.IString ) : BOOLEAN;
+PROCEDURE DecodeContent( CONST ContentString : StringsO.IString; OUT Content : TContent; OUT Charset : StringsO.IString ) : BOOLEAN;
 VAR
    equal : CARDINAL;
    index : CARDINAL;
@@ -264,7 +264,7 @@ BEGIN
       RETURN FALSE;
    END;
    
-   RFC1766Code.Clear();
+   Charset.Clear();
    parameters.Trim();
    IF parameters.Empty THEN
       RETURN TRUE;
@@ -295,8 +295,8 @@ BEGIN
          CONTINUE;
       END;
 
-      parameter.Substring( equal+1, -1, OUT RFC1766Code );
-      RFC1766Code.Trim();
+      parameter.Substring( equal+1, -1, OUT Charset );
+      Charset.Trim();
 
       EXIT;
    END; // WHILE
@@ -306,13 +306,13 @@ END DecodeContent;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE DecodeContentOA( CONST ContentString : ARRAY OF WCHAR; OUT Content : TContent; OUT RFC1766Code : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE DecodeContentOA( CONST ContentString : ARRAY OF WCHAR; OUT Content : TContent; OUT Charset : ARRAY OF WCHAR ) : BOOLEAN;
 VAR
    s1, s2 : StringsO.CString;
 BEGIN
    s1.FromOA( ContentString );
    IF DecodeContent( s1, OUT Content, OUT s2 ) THEN
-      s2.ToOA( OUT RFC1766Code );
+      s2.ToOA( OUT Charset );
       RETURN TRUE;
    END;
    RETURN FALSE;
