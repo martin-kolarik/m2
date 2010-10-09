@@ -1087,6 +1087,16 @@ CLASS IMPLEMENTATION CString;
 
 END CString;
 
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromOA( String : ARRAY OF WCHAR ) : CString;
+VAR
+   string : CString;
+BEGIN
+   string.FromOA( String );
+   RETURN string;
+END FromOA;
+
 (*================================================================================*)
 
 END StringsO.
