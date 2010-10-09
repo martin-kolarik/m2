@@ -225,7 +225,8 @@ CLASS IMPLEMENTATION CUnit;
         G^.Indent(); TPSymbol( U )^.T^.Generate( G, gcsName ); G^.OutS( L' _ReturnResult; // deferred return result' ); G^.EOL();
       END;
       IF eoHaveReturnInCPPTry IN Options THEN
-         G^.LineS( L'BOOLEAN _FinallyReturns = false; // TRY/FINALLY exit control' );
+         G^.LineS( L'BOOLEAN _FinallyReturns = FALSE; // TRY/FINALLY exit control' );
+         G^.LineS( L'BOOLEAN _FinallyRethrow = FALSE; // by default, no exception is returned from finally' );
       END;
       IF NOT Childs.Empty THEN
         G^.EOL();
@@ -476,8 +477,9 @@ CLASS IMPLEMENTATION CUnit;
       END;
     | ukBlockBodyOfCOMProcedure :
       G^.LineS( L'return 0; // implicit return' );
-    | ukBlockBodyOfReturnInTryProc,
-      ukBlockBodyOfReturnInTryFunc :
+    | ukBlockBodyOfReturnInTryProc :
+      G^.LineS( L'return FALSE; // implicit exception return' );
+    | ukBlockBodyOfReturnInTryFunc :
 
     | ukClassInitStart :
 
@@ -564,15 +566,28 @@ CLASS IMPLEMENTATION CUnit;
         G^.Enter();
         IF eoTryReturnsValue IN Options THEN
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyReturns) { *RetVal = _ReturnResult; return FALSE; } // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) {' );
+            G^.Enter();
+              G^.LineS( L'if (_FinallyRethrow) {' );
+              G^.Enter();
+                G^.LineS( L'return TRUE; // THROW from CATCH' );
+              G^.Leave();
+              G^.LineS( L'} else {' );
+              G^.Enter();
+                G^.LineS( L'*RetVal = _ReturnResult; // RETURN from TRY/CATCH' );
+                G^.LineS( L'return FALSE; // RETURN from TRY/CATCH' );
+              G^.Leave();
+              G^.LineS( L'}' );
+            G^.Leave();
+            G^.LineS( L'}' );
           ELSE
-            G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY/CATCH' );
           END;
         ELSE
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyReturns) return FALSE; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return _FinallyRethrow; // RETURN/THROW from TRY/CATCH' );
           ELSE
-            G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY/CATCH' );
           END;
         END;
         G^.Leave();
@@ -10697,8 +10712,7 @@ CLASS IMPLEMENTATION CSReturn;
     | ukReturnInCPPTry :
       G^.Indent();
       IF Childs.Empty THEN
-        G^.OutS( L"_FinallyReturns = true;" ); G^.EOL();
-        G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
+        G^.Indent(); G^.OutS( L"_FinallyReturns = TRUE; goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
         RETURN gumSimple;
       ELSE
         G^.OutS( L'_ReturnResult = ' );
@@ -10729,8 +10743,7 @@ CLASS IMPLEMENTATION CSReturn;
     | ukReturnInThrowing :
       G^.LineS( L"return FALSE;" ); // exception
     | ukReturnInCPPTry :
-      G^.LineS( L"_FinallyReturns = true;" );
-      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      G^.Indent(); G^.OutS( L"_FinallyReturns = TRUE; goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
     END;
   END GenTail;
 
@@ -10946,17 +10959,17 @@ CLASS IMPLEMENTATION CSTHROW;
       IF eoCPPExceptions IN Options THEN
          G^.OutSC(); G^.EOL();
       ELSIF UnitKind = ukSThrowInTry THEN
-         G^.OutS( L");"); G^.EOL();
-         G^.Indent(); G^.OutS( L"goto " ); CatchLabel^.OutN( G, C ); G^.OutSC(); G^.EOL();
+         G^.OutS( L");"); G^.OutS( L" goto " ); Label^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      ELSIF UnitKind = ukSThrowInCatch THEN
+         G^.OutS( L"); _FinallyReturns = TRUE; _FinallyRethrow = TRUE; goto " ); Label^.OutN( G, C ); G^.OutSC(); G^.EOL();
       ELSE
-         G^.OutS( L");"); G^.EOL();
-         G^.LineS( L"return TRUE;" );
+         G^.OutS( L"); return TRUE;"); G^.EOL();
       END;
    END GenTail;
 
 BEGIN
    UnitKind := ukSThrow;
-   CatchLabel := NIL;
+   Label := NIL;
 END CSTHROW;
 
 //============================================================

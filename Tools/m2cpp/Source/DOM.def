@@ -265,7 +265,8 @@ TYPE
       ukCatchDoBlock,
 
     ukSThrow,
-    ukSThrowInTry
+    ukSThrowInTry,
+    ukSThrowInCatch
       
   );
   TUnitKindSet = SET OF TUnitKind;
@@ -429,6 +430,7 @@ TYPE
     eoAssignSelf,
     eoHaveReturnInCPPTry, // proecdure contains TRY in CPP style
       eoInsideCPPTry, // for proper RETURN/FINALLY handling, SEHTry this solves by itself
+      eoInsideCPPCatch, // for proper RETURN/FINALLY handling, SEHTry this solves by itself
       eoTryReturnsValue,
     eoReturnInRetval, // COM methods, throwing methods
       eoCOM,
@@ -1584,7 +1586,7 @@ END CSTRY;
 //------------------------------------------------------------
 
 CLASS CSTHROW( CStatement );
-   CatchLabel : TPLabel;
+   Label : TPLabel;
 	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
    VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
 END CSTHROW;

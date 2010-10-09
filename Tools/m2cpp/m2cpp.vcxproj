@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{723187AC-A4DB-4F4D-8944-DC11B914556E}</ProjectGuid>
+    <RootNamespace>m2cpp</RootNamespace>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~build\</IntDir>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
+    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)$(ProjectName).exe</NMakeOutput>
+    <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <NMakeIncludeSearchPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
+    <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
+    <NMakeAssemblySearchPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeAssemblySearchPath)</NMakeAssemblySearchPath>
+    <NMakeForcedUsingAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeForcedUsingAssemblies)</NMakeForcedUsingAssemblies>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\__$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\__interm\</IntDir>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild $(ProjectName).proj</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
+    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <NMakeIncludeSearchPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
+    <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
+    <NMakeAssemblySearchPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeAssemblySearchPath)</NMakeAssemblySearchPath>
+    <NMakeForcedUsingAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeForcedUsingAssemblies)</NMakeForcedUsingAssemblies>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <BuildLog>
+      <Path>$(OutDir)BuildLog.htm</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="Source\Console.mod" />
+    <None Include="Source\DOM.mod" />
+    <None Include="Source\Generator.mod" />
+    <None Include="Source\m2cpp.grammar" />
+    <None Include="Source\Parser.frame" />
+    <None Include="Source\Program.MOD" />
+    <None Include="Source\Project.mod" />
+    <None Include="Source\Scanner.frame" />
+    <None Include="Source\Types.mod" />
+    <None Include="Source\Console.def" />
+    <None Include="Source\DOM.def" />
+    <None Include="Source\Generator.def" />
+    <None Include="Source\Parser.def" />
+    <None Include="Source\Project.def" />
+    <None Include="Source\Scanner.def" />
+    <None Include="Source\Types.def" />
+    <None Include="Source\err.xrs" />
+    <None Include="Source\wrn.xrs" />
+    <None Include="Test\accessingstructuredconsts.mod" />
+    <None Include="Test\accessingstructuredconsts2.mod" />
+    <None Include="Test\asserts.mod" />
+    <None Include="Test\assignstructuredconst.mod" />
+    <None Include="Test\assigntooa.mod" />
+    <None Include="Test\classcomparemembers.mod" />
+    <None Include="Test\classinnerconstandtype.mod" />
+    <None Include="Test\conststringadd.mod" />
+    <None Include="Test\dllexport.mod" />
+    <None Include="Test\forwardtypes.def" />
+    <None Include="Test\gettingpropertyfromconstparameter.mod" />
+    <None Include="Test\implements.def" />
+    <None Include="Test\inheritancemodifiers.mod" />
+    <None Include="Test\inheritedinterfaces.mod" />
+    <None Include="Test\interfaceaccessing.mod" />
+    <None Include="Test\interfacecompatibility.mod" />
+    <None Include="Test\longsets.mod" />
+    <None Include="Test\nestedtypes.mod" />
+    <None Include="Test\opaqueindef.def" />
+    <None Include="Test\operatoris.mod" />
+    <None Include="Test\pragmaif.mod" />
+    <None Include="Test\propertiestry.mod" />
+    <None Include="Test\RangeTypes.mod" />
+    <None Include="Test\selfsuperetc.mod" />
+    <None Include="Test\SetOfTypes.mod" />
+    <None Include="Test\structuredvar.mod" />
+    <None Include="Test\tristate.mod" />
+    <None Include="Test\try.mod" />
+    <None Include="Test\withtorefclass.mod" />
+    <None Include="m2cpp.definition.proj" />
+    <None Include="m2cpp.proj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Modula2\modula2\Header\m2cpp.h" />
+    <ClInclude Include="..\..\Modula2\modula2\Header\m2intrinsic.h" />
+    <ClInclude Include="..\..\Modula2\modula2\Header\m2leak.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Modula2\modula2\Header\m2init.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

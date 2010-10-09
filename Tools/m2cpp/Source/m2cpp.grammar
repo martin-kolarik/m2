@@ -2840,10 +2840,10 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
                                                                   c^.AddUnit( V2 );
                                                                END;
                                                                IF P <> NIL THEN
-                                                                  INCL( P^.Options, DOM.eoInsideCPPTry );
+                                                                  INCL( P^.Options, DOM.eoInsideCPPCatch );
                                                                END; .)
     "DO" ntStatements<RequestedReturnType, R>               (. IF P <> NIL THEN
-                                                                  EXCL( P^.Options, DOM.eoInsideCPPTry );
+                                                                  EXCL( P^.Options, DOM.eoInsideCPPCatch );
                                                                   IF ( R > retUnknown ) AND ( R < retGOTO ) THEN
                                                                      INCL( P^.Options, DOM.eoHaveReturnInCPPTry );
                                                                   END;
@@ -2864,7 +2864,10 @@ ntThrowStatement                                             (. E : DOM.TPExpres
                                                                 END;
                                                                 IF DOM.eoInsideCPPTry IN P^.Options THEN
                                                                    S^.UnitKind := DOM.ukSThrowInTry;
-                                                                   S^.CatchLabel := DOM.TPSTRY( c^.TStack.Peek())^.CatchLabel;
+                                                                   S^.Label := DOM.TPSTRY( c^.TStack.Peek())^.CatchLabel;
+                                                                ELSIF DOM.eoInsideCPPCatch IN P^.Options THEN
+                                                                   S^.UnitKind := DOM.ukSThrowInCatch;
+                                                                   S^.Label := c^.TStack.PeekData();
                                                                 END;
                                                                 c^.AddUnit( S );
                                                                 c^.EnterUnit( S ); .)
