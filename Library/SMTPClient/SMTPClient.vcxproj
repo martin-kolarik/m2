@@ -18,6 +18,8 @@
     <None Include="Source\SMTPSender.mod" />
     <None Include="Source\SMTPTools.def" />
     <None Include="Source\SMTPTools.mod" />
+    <None Include="Test\TLightweightSender.mod" />
+    <None Include="Test\TMessage.mod" />
     <None Include="Test\TSmtpTools.mod" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

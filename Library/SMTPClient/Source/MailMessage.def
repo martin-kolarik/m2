@@ -44,6 +44,8 @@ INTERFACE IPersons;
    PROCEDURE Dispose();
 
    // enumeration
+   READONLY PROPERTY
+      Empty : BOOLEAN;
    PROPERTY
       Current : Person;
    PROCEDURE Reset();
@@ -61,13 +63,14 @@ INTERFACE IMailMessage;
       Recipient : Person; // for fast access to single recipient
       Priority : TPriority;
       Subject : StringsO.CString;
+      BodyMimeType : StringsO.CString; // any of the correct format, charset will be ignored/replaced if present; unspecified MimeType will default to "text/plain; format=flowed; delsp=yes"
 
    READONLY PROPERTY
       Created : datetime.DateTime;
       Recipients : TPPersons;
       CCs : TPPersons;
       BCCs : TPPersons;
-      Message : IOO.TPStream;
+      Body : IOO.TPStream;
       Attachments : lists.TPStringList; // list of paths
 
 END IMailMessage;

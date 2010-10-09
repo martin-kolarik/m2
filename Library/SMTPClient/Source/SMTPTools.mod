@@ -28,6 +28,7 @@ BEGIN
    | 214: RETURN smtpres_214;
    | 220: RETURN smtpres_220;
    | 221: RETURN smtpres_221;
+   | 235: RETURN smtpres_235;
    | 250: RETURN smtpres_250;
    | 251: RETURN smtpres_251;
    | 334: RETURN smtpres_334;

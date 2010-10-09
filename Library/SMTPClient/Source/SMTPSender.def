@@ -27,7 +27,7 @@ INTERFACE ISender;
       Notifier : TPNotifier;
 
    // send
-   PROCEDURE SendAsync( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult; // arCannotStart means message is incorrect
+   PROCEDURE Send( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult; // synchronous for lightWeight, asynchronous for not lightWeight, arCannotStart means message is incorrect
 
    // configuration
    PROPERTY
@@ -35,7 +35,8 @@ INTERFACE ISender;
       Mailer : StringsO.CString; // can be empty
       Login : StringsO.CString; // can be empty 
       Password : StringsO.CString; // can be empty
-      TimeToLive : CARDINAL; // seconds, the message will stay in the queue for the time; maximal time is year (3*10E7)
+      TimeToLive : CARDINAL; // seconds, the message will stay in the queue for the time; maximal time is year (3*10E7), default is 2 days
+      GenerateMessageId : BOOLEAN; // if set, each message will be given own message id; otherwise the header will not be generated
       
 END ISender;
 

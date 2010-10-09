@@ -31,6 +31,8 @@ CLASS CPersons IMPLEMENTS IPersons;
    PUBLIC VIRTUAL PROCEDURE AddS( CONST Name, Address : StringsO.IString );
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Empty : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Current : Person;
    PUBLIC VIRTUAL PROCEDURE Reset();
@@ -66,6 +68,13 @@ CLASS IMPLEMENTATION CPersons;
    BEGIN
       _Persons.Dispose();
    END Dispose;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Empty GET : BOOLEAN;
+   BEGIN
+      RETURN _Persons.Empty;
+   END Empty;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -120,13 +129,14 @@ CLASS CMailMessage IMPLEMENTS IMailMessage;
       Recipient : Person; // for fast access to single recipient
       Priority : TPriority;
       Subject : StringsO.CString;
+      BodyMimeType : StringsO.CString;
 
    PUBLIC VIRTUAL READONLY PROPERTY
       Created : datetime.DateTime;
       Recipients : TPPersons;
       CCs : TPPersons;
       BCCs : TPPersons;
-      Message : IOO.TPStream;
+      Body : IOO.TPStream;
       Attachments : lists.TPStringList; // list of paths
 
    PRIVATE VAR
@@ -138,8 +148,9 @@ CLASS CMailMessage IMPLEMENTS IMailMessage;
       _Recipients : CPersons;
       _CCs : CPersons;
       _BCCs : CPersons;
-      _Message : StorageO.CMemoryBuffer;
-      _Stream : IOO.CMemoryBufferStream;
+      _Body : StorageO.CMemoryBuffer;
+      _BodyMimeType : StringsO.CString;
+      _BodyStream : IOO.CMemoryBufferStream;
       _Attachments : lists.CStringList;
 
 END CMailMessage;
@@ -232,6 +243,20 @@ CLASS IMPLEMENTATION CMailMessage;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY BodyMimeType GET : StringsO.CString;
+   BEGIN
+      RETURN _BodyMimeType;
+   END BodyMimeType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY BodyMimeType SET( CONST Value : StringsO.CString );
+   BEGIN
+      _BodyMimeType := Value;
+   END BodyMimeType;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY Created GET : datetime.DateTime;
    BEGIN
       RETURN _Created;
@@ -260,10 +285,10 @@ CLASS IMPLEMENTATION CMailMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Message GET : IOO.TPStream;
+   PUBLIC VIRTUAL PROPERTY Body GET : IOO.TPStream;
    BEGIN
-      RETURN ADR( _Stream );
-   END Message;
+      RETURN ADR( _BodyStream );
+   END Body;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -276,7 +301,7 @@ CLASS IMPLEMENTATION CMailMessage;
 
 BEGIN
    _Created.SetNowUTC();
-   _Stream.Init( REF _Message, IOO.accReadWrite );
+   _BodyStream.Init( REF _Body, IOO.accReadWrite );
 END CMailMessage;
 
 (*================================================================================*)
