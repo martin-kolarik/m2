@@ -10,17 +10,23 @@ FROM Exceptions IMPORT
    StoreException, RetrieveException, TestIfCatched;
 
 IMPORT
+   cphcommon,
    cphcommonO,
+   datetime,
    dns,
    Exceptions,
+   FIO,
+   hash,
    IOO,
    languages,
    languagesO,
    msgqueue,
    netsocket,
+   PersonsImpl,
    rawconnection,
    SmtpTools,
    StorageO,
+   Strings,
    StringsO,
    TextReader,
    TextWriter,
@@ -83,6 +89,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
       Login : StringsO.CString; 
       Password : StringsO.CString; 
       TimeToLive : CARDINAL; // milliseconds, the message will stay in the queue for the time
+      GenerateMessageId : BOOLEAN;
 
    // SELF
    LOCAL READONLY PROPERTY
@@ -90,11 +97,12 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
    LOCAL PROPERTY
       LightWeight : BOOLEAN;
 
-   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase );
+   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase; CONST failedRecipients : MailPerson.IPersons );
    PRIVATE PROCEDURE DoSend( CONST message : MailMessage.TPMailMessage ) : Sync.TAsyncResult;
 
    PRIVATE VAR
       _LightWeight : BOOLEAN := TRUE;
+      _GenerateMessageId : BOOLEAN := TRUE;
       _Server : StringsO.CString;
       _Mailer : StringsO.CString;
       _Login : StringsO.CString; 
@@ -129,20 +137,25 @@ CLASS CWorker( threadpool.APoolWorker );
       _Connection : rawconnection.ClientTCPConnection;
       _Reader : TextReader.CTextReader;
       _Writer : TextWriter.CTextWriter;
+      _Boundary : StringsO.CString;
+      _FailedRecipients : PersonsImpl.CPersonsImpl;
 
    PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase );
 
-   PRIVATE PROCEDURE ReadServer() : SmtpTools.TSmtpResponse THROWS CSmtpException;
+   PRIVATE PROCEDURE ReadServer( lastResponseLine : StringsO.TPString ) : SmtpTools.TSmtpResponse THROWS CSmtpException; // lastResponseLine is optional
    PRIVATE PROCEDURE ReadServerLine( OUT SMTPResponse : SmtpTools.TSmtpResponse; OUT Response : StringsO.IString; OUT LastLine : BOOLEAN ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE WriteServer( CONST Line : StringsO.IString ) THROWS CSmtpException;
    PRIVATE PROCEDURE WriteServerBase64( CONST Line : StringsO.IString ) THROWS CSmtpException;
    PRIVATE PROCEDURE Authenticate() THROWS CSmtpException;
-   PRIVATE PROCEDURE WriteRecipients( recipients : MailMessage.TPPersons ) THROWS CSmtpException; // TODO distinguish between complete send and send only some, grab failures to some list or so
+   PRIVATE PROCEDURE WriteRecipients( recipients : MailPerson.TPPersons ) THROWS CSmtpException;
    PRIVATE PROCEDURE WriteHeaders() THROWS CSmtpException;
-   PRIVATE PROCEDURE FillHeaderRecipients( CONST header : ARRAY OF WCHAR; recipients : MailMessage.TPPersons; OUT output : StringsO.IString );
-   PRIVATE PROCEDURE AddPersonToHeader( REF header : StringsO.IString; CONST person : MailMessage.Person );
+   PRIVATE PROCEDURE FillHeaderRecipients( CONST header : ARRAY OF WCHAR; recipients : MailPerson.TPPersons; OUT output : StringsO.IString );
+   PRIVATE PROCEDURE AddPersonToHeader( REF header : StringsO.IString; CONST person : MailPerson.Person );
    PRIVATE PROCEDURE CorrectCharset( REF header : StringsO.IString ) : BOOLEAN;
-   PRIVATE PROCEDURE WriteStreamBase64( Stream : IOO.TPStream ) THROWS CSmtpException;
+   PRIVATE PROCEDURE WriteStreamBase64( Stream : IOO.TPStream; StreamIsText : BOOLEAN ) THROWS CSmtpException;
+   PRIVATE PROCEDURE CreateMessageId( OUT messageId : StringsO.IString );
+   PRIVATE PROCEDURE WriteMimeHeader( CONST givenHeader : StringsO.IString; CONST defaultHeader : ARRAY OF WCHAR; appendAlways : StringsO.TPString; correctCharset : BOOLEAN ) THROWS CSmtpException;
+   PRIVATE PROCEDURE WriteAttachments() THROWS CSmtpException;
 
 END CWorker;
 
@@ -154,10 +167,31 @@ CLASS IMPLEMENTATION CWorker;
 
    LOCAL VIRTUAL PROCEDURE Run();
    VAR
+      recipients : MailPerson.TPPersons;
       Result : Sync.TAsyncResult;
       SmtpPhase : SmtpTools.TSmtpPhase := SmtpTools.ClientConnect;
    BEGIN
       Result := DoSend( OUT SmtpPhase );
+
+      IF _Message^.GrabFailedRecipients AND ( Result <> Sync.arCompleted ) THEN // fill failed recipients with all known recipients
+         _FailedRecipients.Dispose();
+         recipients := _Message^.Recipients;
+         recipients^.Reset();
+         WHILE recipients^.MoveNext() DO
+            _FailedRecipients.Add( recipients^.Current );
+         END;
+         recipients := _Message^.CCs;
+         recipients^.Reset();
+         WHILE recipients^.MoveNext() DO
+            _FailedRecipients.Add( recipients^.Current );
+         END;
+         recipients := _Message^.BCCs;
+         recipients^.Reset();
+         WHILE recipients^.MoveNext() DO
+            _FailedRecipients.Add( recipients^.Current );
+         END;
+      END;
+
       NotifyCompletion( Result, SmtpPhase );
    END Run;
 
@@ -173,7 +207,7 @@ CLASS IMPLEMENTATION CWorker;
 
    PUBLIC PROCEDURE DoSend( OUT SmtpPhase : SmtpTools.TSmtpPhase ) : Sync.TAsyncResult;
    VAR
-      recipients : MailMessage.TPPersons;
+      recipients : MailPerson.TPPersons;
       Result : Sync.TAsyncResult;
       s : StringsO.CString;
       smtpres : SmtpTools.TSmtpResponse;
@@ -188,7 +222,7 @@ CLASS IMPLEMENTATION CWorker;
 
          //----------
          SmtpPhase := SmtpTools.ServerConnect;
-         IF ReadServer() <> SmtpTools.smtpres_220 THEN
+         IF ReadServer( NIL ) <> SmtpTools.smtpres_220 THEN
             RETURN Sync.arAborted;
          END;
 
@@ -197,7 +231,7 @@ CLASS IMPLEMENTATION CWorker;
          s.FromOA( L"EHLO " );
          s.Append( _Sender^.LocalName );
          WriteServer( s );
-         IF ReadServer() <> SmtpTools.smtpres_OK THEN
+         IF ReadServer( NIL ) <> SmtpTools.smtpres_OK THEN
             RETURN Sync.arAborted;
          END;
 
@@ -207,12 +241,10 @@ CLASS IMPLEMENTATION CWorker;
 
          //----------
          SmtpPhase := SmtpTools.MailFrom;
-
-         // TODO, MailFrom nesmí být empty
          s.FromOA( L"MAIL FROM: " );
          s.Append( _Message^.Sender.Address );
          WriteServer( s );
-         smtpres := ReadServer();
+         smtpres := ReadServer( NIL );
          CASE smtpres OF
          | SmtpTools.smtpres_OK : // OK, success
          | SmtpTools.smtpres_530 : // authentication required
@@ -224,7 +256,6 @@ CLASS IMPLEMENTATION CWorker;
 
          //----------
          SmtpPhase := SmtpTools.RcptTo;
-         // TODO, at least one recipient must be known
          WriteRecipients( _Message^.Recipients );
          WriteRecipients( _Message^.CCs );
          WriteRecipients( _Message^.BCCs );
@@ -233,36 +264,36 @@ CLASS IMPLEMENTATION CWorker;
          SmtpPhase := SmtpTools.StartData;
          s.FromOA( L"DATA" );
          WriteServer( s );
-         IF ReadServer() <> SmtpTools.smtpres_354 THEN
+         IF ReadServer( NIL ) <> SmtpTools.smtpres_354 THEN
             RETURN Sync.arAborted;
          END;
 
          //----------
+         // headers
          _Connection.BufferedStream^.WMode := IOO.bmCache; // construct the response inside memory, send by chunks
 
          SmtpPhase := SmtpTools.Headers;
          WriteHeaders();
-         // finish headers
-         s.Clear();
-         WriteServer( s );
+
+         // header of body, write it always, it emits CRLF after header too -- data can immediately follow
+         WriteMimeHeader( _Message^.BodyMimeType, L"text/plain; charset=utf-8; format=flowed; delsp=yes", NIL, TRUE );
 
          _Connection.BufferedStream^.WMode := IOO.bmChunked; // revert stream back
          _Connection.BufferedStream^.CommitWrite(); // and send all buffered now
 
          //----------
          SmtpPhase := SmtpTools.MessageBody;
-         WriteStreamBase64( _Message^.Body );
+         WriteStreamBase64( _Message^.Body, TRUE );
 
          //----------
          SmtpPhase := SmtpTools.MessageAttachments;
-         IF NOT _Message^.Attachments^.Empty THEN
-         END;
+         WriteAttachments();
 
          //----------
          SmtpPhase := SmtpTools.MessageFinalization;
          s.FromOA( 13W + 10W + L"." ); // the second CRLF appends WriteServer
          WriteServer( s );
-         IF ReadServer() <> SmtpTools.smtpres_OK THEN
+         IF ReadServer( NIL ) <> SmtpTools.smtpres_OK THEN
             RETURN Sync.arAborted;
          END;
 
@@ -270,84 +301,9 @@ CLASS IMPLEMENTATION CWorker;
          SmtpPhase := SmtpTools.ConnectionFinalization;
          s.FromOA( L"QUIT" );
          WriteServer( s );
-         IF ReadServer() <> SmtpTools.smtpres_221 THEN
+         IF ReadServer( NIL ) <> SmtpTools.smtpres_221 THEN
             RETURN Sync.arAborted;
          END;
-
-(*   
-      // next goes attachments (if they are)
-      if((FileBuf = new char[55]) == NULL)
-         throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
-
-      if((FileName = new char[255]) == NULL)
-         throw ECSmtp(ECSmtp::LACK_OF_MEMORY);
-
-      TotalSize = 0;
-      for(FileId=0;FileId<Attachments.size();FileId++)
-      {
-         strcpy(FileName,Attachments[FileId].c_str());
-
-         sprintf(SendBuf,"--%s\r\n",BOUNDARY_TEXT);
-         strcat(SendBuf,"Content-Type: application/x-msdownload; name=\"");
-         strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
-         strcat(SendBuf,"\"\r\n");
-         strcat(SendBuf,"Content-Transfer-Encoding: base64\r\n");
-         strcat(SendBuf,"Content-Disposition: attachment; filename=\"");
-         strcat(SendBuf,&FileName[Attachments[FileId].find_last_of("\\") + 1]);
-         strcat(SendBuf,"\"\r\n");
-         strcat(SendBuf,"\r\n");
-
-         SendData();
-
-         // opening the file:
-         hFile = fopen(FileName,"rb");
-         if(hFile == NULL)
-            throw ECSmtp(ECSmtp::FILE_NOT_EXIST);
-      
-         // checking file size:
-         FileSize = 0;
-         while(!feof(hFile))
-            FileSize += fread(FileBuf,sizeof(char),54,hFile);
-         TotalSize += FileSize;
-
-         // sending the file:
-         if(TotalSize/1024 > MSG_SIZE_IN_MB*1024)
-            throw ECSmtp(ECSmtp::MSG_TOO_BIG);
-         else
-         {
-            fseek (hFile,0,SEEK_SET);
-
-            MsgPart = 0;
-            for(i=0;i<FileSize/54+1;i++)
-            {
-               res = fread(FileBuf,sizeof(char),54,hFile);
-               MsgPart ? strcat(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str())
-                        : strcpy(SendBuf,base64_encode(reinterpret_cast<const unsigned char*>(FileBuf),res).c_str());
-               strcat(SendBuf,"\r\n");
-               MsgPart += res + 2;
-               if(MsgPart >= BUFFER_SIZE/2)
-               { // sending part of the message
-                  MsgPart = 0;
-                  SendData(); // FileBuf, FileName, fclose(hFile);
-               }
-            }
-            if(MsgPart)
-            {
-               SendData(); // FileBuf, FileName, fclose(hFile);
-            }
-         }
-         fclose(hFile);
-      }
-      delete[] FileBuf;
-      delete[] FileName;
-   
-      // sending last message block (if there is one or more attachments)
-      if(Attachments.size())
-      {
-         sprintf(SendBuf,"\r\n--%s--\r\n",BOUNDARY_TEXT);
-         SendData();
-      }
-*)
 
       CATCH e : CSmtpException DO
          RETURN e.Result;
@@ -368,7 +324,7 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ReadServer() : SmtpTools.TSmtpResponse;
+   PRIVATE PROCEDURE ReadServer( lastResponseLine : StringsO.TPString ) : SmtpTools.TSmtpResponse;
    VAR
       current : SmtpTools.TSmtpResponse := SmtpTools.smtpres_Unknown;
       first : SmtpTools.TSmtpResponse := SmtpTools.smtpres_Unknown;
@@ -387,6 +343,9 @@ CLASS IMPLEMENTATION CWorker;
          END;
       UNTIL lastline;
 
+      IF lastResponseLine <> NIL THEN
+         lastResponseLine^.Assign( line );
+      END;
       RETURN current;
    END ReadServer;
 
@@ -444,6 +403,8 @@ CLASS IMPLEMENTATION CWorker;
 
    PRIVATE PROCEDURE Authenticate();
    VAR
+      base64 : StringsO.CString;
+      buffer : StorageO.CMemoryBuffer;
       s : StringsO.CString;
       smtpres : SmtpTools.TSmtpResponse;
    BEGIN
@@ -454,19 +415,31 @@ CLASS IMPLEMENTATION CWorker;
       TRY
          s.FromOA( L"AUTH LOGIN" );
          WriteServer( s );
-         IF ReadServer() <> SmtpTools.smtpres_334 THEN // TODO: check if "UserName" is requested
+         IF ReadServer( ADR( s )) <> SmtpTools.smtpres_334 THEN
+            THROW SmtpException( Sync.arAborted );
+         END;
+         s.Substring( 4, -1, OUT base64 );
+         cphcommonO.FromBASE64( base64, FALSE, REF buffer );
+         languagesO.FromMB( buffer, languages.cp_UTF8, OUT s );
+         IF NOT s.EqualsOA( L"Username:" ) THEN
             THROW SmtpException( Sync.arAborted );
          END;
 
          // send login
          WriteServerBase64( _Sender^.Login );
-         IF ReadServer() <> SmtpTools.smtpres_334 THEN // TODO: check if "Password" is requested
+         IF ReadServer( ADR( s )) <> SmtpTools.smtpres_334 THEN
+            THROW SmtpException( Sync.arAborted );
+         END;
+         s.Substring( 4, -1, OUT base64 );
+         cphcommonO.FromBASE64( base64, FALSE, REF buffer );
+         languagesO.FromMB( buffer, languages.cp_UTF8, OUT s );
+         IF NOT s.EqualsOA( L"Password:" ) THEN
             THROW SmtpException( Sync.arAborted );
          END;
 
          // send password
          WriteServerBase64( _Sender^.Password );
-         smtpres := ReadServer();
+         smtpres := ReadServer( NIL );
          CASE smtpres OF
          | SmtpTools.smtpres_235 : // OK, success
          | SmtpTools.smtpres_535 : // not authorized
@@ -482,7 +455,7 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE WriteRecipients( recipients : MailMessage.TPPersons ); // TODO distinguish between complete send and send only some, grab failures to some list or so
+   PRIVATE PROCEDURE WriteRecipients( recipients : MailPerson.TPPersons );
    VAR
       s : StringsO.CString;
       smtpres : SmtpTools.TSmtpResponse;
@@ -493,9 +466,9 @@ CLASS IMPLEMENTATION CWorker;
             s.FromOA( "RCPT TO: " );
             s.Append( recipients^.Current.Address );
             WriteServer( s );
-            smtpres := ReadServer();
-            IF smtpres <> SmtpTools.smtpres_OK THEN
-               THROW SmtpException( Sync.arAborted );
+            smtpres := ReadServer( NIL );
+            IF _Message^.GrabFailedRecipients AND ( smtpres <> SmtpTools.smtpres_OK ) THEN
+               _FailedRecipients.Add( recipients^.Current );
             END;
          END; // WHILE
       CATCH e : CSmtpException DO
@@ -509,12 +482,19 @@ CLASS IMPLEMENTATION CWorker;
    VAR
       data : StringsO.CString;
       header : StringsO.CString;
-      person : MailMessage.Person;
-      recipients : MailMessage.TPPersons;
+      messageId : StringsO.CString;
+      person : MailPerson.Person;
+      recipients : MailPerson.TPPersons;
       sOA : ARRAY [0..31] OF WCHAR;
    BEGIN
       TRY
-         WriteServer( StringsO.FromOA( L"Message-Id: xxx@email.cz" ));
+         CreateMessageId( OUT messageId );
+
+         IF _Sender^.GenerateMessageId THEN
+            header.FromOA( L"Message-Id: " );
+            header.Append( messageId );
+            WriteServer( header );
+         END;
 
          // Date: <SP> <dd> <SP> <mon> <SP> <yy> <SP> <hh> ":" <mm> ":" <ss> <SP> <zone> <CRLF>
          IF NOT _Message^.Created.ToLanguageStringOA( languages.GetDefaultLanguage( languages.dlNeutral ), L"ddd, d MMM yyyy HH:mm:ss", TRUE, TRUE, OUT sOA ) THEN
@@ -547,14 +527,14 @@ CLASS IMPLEMENTATION CWorker;
          // X-Priority: <SP> <number> <CRLF>
          CASE _Message^.Priority OF
          | MailMessage.PriorityLow :
-            header.FromOA( L"X-Priority: 4 (Low)" );
+            header.FromOA( L"X-Priority: 4" );
          | MailMessage.PriorityNormal :
-            header.FromOA( L"X-Priority: 3 (Normal)" );
+            header.FromOA( L"X-Priority: 3" );
          | MailMessage.PriorityHigh :
-            header.FromOA( L"X-Priority: 2 (High)" );
+            header.FromOA( L"X-Priority: 2" );
          ELSE
             ASSERTLOG( FALSE, L"Unrecognized priority" );
-            header.FromOA( L"X-Priority: 3 (Normal)" );
+            header.FromOA( L"X-Priority: 3" );
          END;
          WriteServer( header );
 
@@ -593,45 +573,22 @@ CLASS IMPLEMENTATION CWorker;
          header.FromOA( L"MIME-Version: 1.0" );
          WriteServer( header );
 
-         // MIME headers
-         data := _Message^.BodyMimeType;
-         IF data.Empty THEN
-            header.FromOA( L"Content-Type: text/plain; charset=utf-8; format=flowed" );
-         ELSE
-            header.FromOA( L"Content-Type: " );
-            header.Append( data );
-            IF NOT CorrectCharset( REF header ) THEN
-               THROW SmtpException( Sync.arAborted );
-            END;
-         END;
-         WriteServer( header );
-         header.FromOA( L"Content-Transfer-Encoding: base64" );
-         WriteServer( header );
+         // MIME headers -- prepare self for multipart messages
+         _Boundary.FromOA( L"--_=_001.nxp_" );
+         _Boundary.Append( messageId );
+         _Boundary.AppendOA( L"_=_--" );
 
-         (*
-      // MIME-Version: <SP> 1.0 <CRLF>
-      strcat(header,"MIME-Version: 1.0\r\n");
-      if(!Attachments.size())
-      { // no attachments
-         strcat(header,"Content-type: text/plain; charset=US-ASCII\r\n");
-         strcat(header,"Content-Transfer-Encoding: 7bit\r\n");
-         strcat(SendBuf,"\r\n");
-      }
-      else
-      { // there is one or more attachments
-         strcat(header,"Content-Type: multipart/mixed; boundary=\"");
-         strcat(header,BOUNDARY_TEXT);
-         strcat(header,"\"\r\n");
-         strcat(header,"\r\n");
-         // first goes text message
-         strcat(SendBuf,"--");
-         strcat(SendBuf,BOUNDARY_TEXT);
-         strcat(SendBuf,"\r\n");
-         strcat(SendBuf,"Content-type: text/plain; charset=US-ASCII\r\n");
-         strcat(SendBuf,"Content-Transfer-Encoding: 7bit\r\n");
-         strcat(SendBuf,"\r\n");
-      }
-         *)
+         IF NOT _Message^.Attachments^.Empty THEN // create a multipart header followed by header of message body
+            header.FromOA( L"Content-Type: multipart/mixed;" + 13W + 10W + ' boundary="' );
+            header.Append( _Boundary );
+            header.AppendOA( L'"' );
+            WriteServer( header );
+
+            // write a boundary of message contents
+            header.FromOA( 13W + 10W + L"--" ); 
+            header.Append( _Boundary );
+            WriteServer( header );
+         END;
 
       CATCH e : CSmtpException DO
          THROW e;
@@ -640,7 +597,7 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE FillHeaderRecipients( CONST header : ARRAY OF WCHAR; recipients : MailMessage.TPPersons; OUT output : StringsO.IString );
+   PRIVATE PROCEDURE FillHeaderRecipients( CONST header : ARRAY OF WCHAR; recipients : MailPerson.TPPersons; OUT output : StringsO.IString );
    BEGIN
       output.Clear();
       recipients^.Reset();
@@ -656,7 +613,7 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE AddPersonToHeader( REF header : StringsO.IString; CONST person : MailMessage.Person );
+   PRIVATE PROCEDURE AddPersonToHeader( REF header : StringsO.IString; CONST person : MailPerson.Person );
    VAR
       s : StringsO.CString;
    BEGIN
@@ -696,10 +653,89 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE WriteStreamBase64( Stream : IOO.TPStream );
+   PRIVATE PROCEDURE WriteStreamBase64( Stream : IOO.TPStream; StreamIsText : BOOLEAN );
+   CONST
+      RFC822_LINE_LENGTH = 78;
+      RFC822_CHUNK = RFC822_LINE_LENGTH - 2; // 2 for CRLF
+   VAR
+      base64 : StringsO.CString;
+      dstString : StringsO.CString; // dstString acts as a buffer which evens input against output flushed by whole lines
+      dstStringSlice : StringsO.CString;
+      granularity : CARDINAL := cphcommon.BASE64InputGranularity();
+      index : CARDINAL;
+      inputBufferSize : CARDINAL;
+      length : CARDINAL;
+      srcString : StringsO.CString;
+      srcBuffer : StorageO.CMemoryBuffer; // srcBuffer buffers evens BINARY input against BASE64 output flushed by triples of bytes
+      utf8Buffer : StorageO.CMemoryBuffer; // utf8Buffer buffers evens TEXTUAL input against BASE64 output flushed by triples of bytes
+      pbuffer : StorageO.TPMemoryBuffer;
+      Result : Sync.TAsyncResult;
    BEGIN
+      inputBufferSize := MIN2( 2048, Stream^.Length32 );
+      IF StreamIsText THEN
+         srcString.Size := inputBufferSize DIV SIZE( WCHAR );
+         srcBuffer.FromOA( OA( inputBufferSize-1, srcString.Data ), FALSE );
+         pbuffer := ADR( utf8Buffer );
+      ELSE
+         srcBuffer.Size := inputBufferSize;
+         pbuffer := ADR( srcBuffer );
+      END;
+
+      srcBuffer.Length := 0;
+      Stream^.Seek( IOO.soBegin, 0 );
+
       TRY
-         // WriteServerBase64( StringsO.FromOA( L"Ahoj" ));
+         LOOP
+            // srcBuffer.Clear(); -- do not clear, buffer is appened to avoid stitches in BASE64 encoding
+            Result := Stream^.ReadBuffer( srcBuffer.Size - srcBuffer.Length, REF srcBuffer, Sync.FORSAFETY );
+            ASSERTLOG( Result <> Sync.arTimeout, L"Unable to read mail data source stream" );
+            IF Result = Sync.arNoData THEN
+               // fall down
+            ELSIF Result NOT IN Sync.arsCompletions THEN
+               THROW SmtpException( Sync.arAborted );
+            END;
+
+            // convert text data to UTF8
+            IF StreamIsText AND NOT srcBuffer.Empty THEN
+               srcString.Length := srcBuffer.Length DIV SIZE( WCHAR );
+               ASSERTLOG( srcBuffer.Data = srcString.Data, L"Unexpected reallocation" ); // reallocation could occur in ReadBuffer above
+               languagesO.ToMB( srcString, languages.cp_UTF8, TRUE, REF utf8Buffer );
+               srcBuffer.Clear(); // for text buffers srcBuffer does not play role in BASE64 stitching
+            END;
+
+            // convert bytes to BASE64, solve BASE64 3bytes chunks to not to produce stitches
+            length := pbuffer^.Length;
+            IF length > 0 THEN
+               IF ( Result = Sync.arNoData ) AND ( length < 3 ) THEN
+                  cphcommonO.ToBASE64( pbuffer^, OUT base64 ); // encode everything, we are on the end
+               ELSE
+                  index := ( length DIV granularity ) * granularity; // index to first incomplete triple
+                  pbuffer^.Length := index;
+                  cphcommonO.ToBASE64( pbuffer^, OUT base64 ); // encode each 3bytes from input, leave shorter chunks
+                  pbuffer^.Length := length; // return the length
+                  pbuffer^.Remove( 0, index ); // trim encoded bytes
+               END;
+               dstString.Append( base64 );
+            END;
+
+            // flush destination to lines of proper length
+            index := 0;
+            WHILE dstString.Length - index >= RFC822_CHUNK DO // 2 is for CRLF
+               dstStringSlice.FromOA( OA( RFC822_CHUNK-1, dstString.Data@[index * SIZE(WCHAR)] ));
+               WriteServer( dstStringSlice );
+               INC( index, RFC822_CHUNK );
+            END; // WHILE
+            dstString.Remove( 0, index );
+         
+            // if no next data is present, stop
+            IF Result = Sync.arNoData THEN
+               IF dstString.Length > 0 THEN // flush last chunk (last not fully filled line)
+                  WriteServer( dstString );
+               END;
+               EXIT;
+            END;
+         END; // LOOP
+
       CATCH e : CSmtpException DO
          THROW e;
       END;
@@ -707,8 +743,115 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE CreateMessageId( OUT messageId : StringsO.IString );
+   VAR
+      hashed : INT64;
+      unhashed : INT64;
+      sOA : ARRAY [0..31] OF WCHAR;
+   BEGIN
+      _Message^.Created.ToLanguageStringOA( languages.GetDefaultLanguage( languages.dlNeutral ), L"yyyyMMddHHmmss.fff", TRUE, TRUE, OUT sOA );
+      messageId.FromOA( sOA );
+
+      unhashed := INT64( _Message ) * datetime.UptimeMS64();
+      hash.hashb( unhashed, OUT hashed );
+      Strings.FromCARD64W( hashed, 16, OUT sOA );
+      messageId.AppendOA( sOA );
+      
+      messageId.AppendOA( L"@" );
+      messageId.Append( _Sender^.LocalName );
+   END CreateMessageId;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE WriteMimeHeader( CONST givenHeader : StringsO.IString; CONST defaultHeader : ARRAY OF WCHAR; appendAlways : StringsO.TPString; correctCharset : BOOLEAN );
+   VAR
+      header : StringsO.CString;
+   BEGIN
+      TRY
+         header.FromOA( L"Content-Type: " );
+         IF givenHeader.Empty THEN
+            header.AppendOA( defaultHeader );
+         ELSE
+            header.Append( givenHeader );
+            IF correctCharset AND NOT CorrectCharset( REF header ) THEN
+               THROW SmtpException( Sync.arAborted );
+            END;
+         END;
+         IF appendAlways <> NIL THEN
+            header.AppendOA( L";" + 13W + 10W );
+            header.Append( appendAlways^ );
+         END;
+         WriteServer( header );
+         header.FromOA( L"Content-Transfer-Encoding: base64" + 13W + 10W ); // mime header can be immediately followed by data
+         WriteServer( header );
+
+      CATCH e : CSmtpException DO
+         THROW e;
+      END;
+   END WriteMimeHeader;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE WriteAttachments();
+   VAR
+      fileNameOA : FIO.PathStrW;
+      fileName : StringsO.CString;
+      header : StringsO.CString;
+   BEGIN
+      IF _Message^.Attachments^.Empty THEN
+         RETURN;
+      END;
+
+      TRY
+         _Message^.Attachments^.Reset();
+         WHILE _Message^.Attachments^.MoveNext() DO
+
+            header.FromOA( 13W + 10W + L"--" );  // leading of next multipart part
+            header.Append( _Boundary );
+            WriteServer( header );
+
+            // get file name
+            header.Assign( _Message^.Attachments^.Current^ );
+            FIO.PathTailW( OA( header.Length-1, header.Data ), OUT fileNameOA );
+            IF fileNameOA[0] = 0W THEN
+               fileName := header;
+            ELSE
+               fileName.FromOA( fileNameOA );
+            END;
+
+            // header of the attachment, CRLF is included in WriteMimeHeader, directly continue with data
+            header.FromOA( L"Content-Description: " );
+            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.StringTypeHintNone );
+            WriteServer( header );
+
+            header.FromOA( L"Content-Disposition: attachment; filename=" );
+            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.StringTypeHintQuoted );
+            WriteServer( header );
+
+            header.FromOA( L"name=" );
+            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.StringTypeHintQuoted );
+            WriteMimeHeader( _Message^.Attachments^.CurrentData^, L"Content-Type: application/octet-stream", ADR( header ), FALSE );
+
+            // write the file
+            WriteServerBase64( StringsO.FromOA( L"Ahoj" ));
+
+         END; // WHILE over attachments
+
+         // terminate multipart message
+         header.FromOA( 13W + 10W + L"--" ); // stop marker, no next part follows
+         header.Append( _Boundary );
+         header.AppendOA( L"--" ); 
+         WriteServer( header );
+
+      CATCH e : CSmtpException DO
+         THROW e;
+      END;
+   END WriteAttachments;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
-   _Reader.Stream := _Connection.BufferedStream;
+   _Reader.Stream := _Connection.Stream;
    _Writer.Stream := _Connection.BufferedStream;
 END CWorker;
 
@@ -793,6 +936,12 @@ CLASS IMPLEMENTATION CSender;
 
    PUBLIC VIRTUAL PROCEDURE Send( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
    BEGIN
+      IF message^.Sender.Address.Empty THEN
+         RETURN Sync.arCannotStart;
+      ELSIF message^.Recipients^.Empty AND message^.CCs^.Empty AND message^.BCCs^.Empty THEN
+         RETURN Sync.arCannotStart;
+      END;
+
       IF _LightWeight THEN
          RETURN DoSend( message );
       ELSE
@@ -876,6 +1025,20 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY GenerateMessageId GET : BOOLEAN;
+   BEGIN
+      RETURN _GenerateMessageId;
+   END GenerateMessageId;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY GenerateMessageId SET( Value : BOOLEAN );
+   BEGIN
+      _GenerateMessageId := Value;
+   END GenerateMessageId;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL PROPERTY LocalName GET : StringsO.CString;
    BEGIN
       IF _LocalName.Empty AND NOT dns.GetLocalName( OUT _LocalName ) THEN
@@ -900,7 +1063,7 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase );
+   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase; CONST failedRecipients : MailPerson.IPersons );
    BEGIN
    END NotifyCompletion;
 

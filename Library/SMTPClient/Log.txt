@@ -1,5 +1,25 @@
--- IF na neprázdnost From
--- testy nahrazování charsetu
--- generování message-id
--- detekce autentizačních požadavků serveru (dekódování MIME64)
--- streams, attachments
+== SmtpClient
+
+++ IF na neprázdnost From
+++ testy nahrazování charsetu
+++ generování message-id
+++ detekce autentizačních požadavků serveru (dekódování MIME64)
+++ streams
+-- attachments
+-- zjistit, jak se chová reader, když mu řádek přijede postupně
+++ problém při ukončování spojení, MailFinalization končí ve výjimce
+   :: do TextReaderu přidáno přeskočení chyby arAborted po ReadFromStream s tím,
+      že v bufferu něco ještě může být. r1362
+++ při odesílání textového streamu se načítá do srcBufferu, který používá paměť
+   srcStringu. Nesmí proto dojít v srvBufferu k realokaci -- převod do UTF8 by pak
+   převáděl předešlý řetězec. Kontroluje se to ASSERTem.
+++ CMemoryBuffer Reallocate upravena podmínka -- netřeba realokovat paměť, pokud se
+   požaduje právě ještě Size. Neostrá podmínka realokovala buffer
+   použitý při odesílání textového streamu a nastával ASSERT. r1361
+-- mime word jméno souboru v attachmentu musí asi být jediné, nerozdělené (chybí kus jména
+   attachmentu)
+-- v hlavičce attachmentu ThunderBird ukazuje divné odřádkování
+
+== Common
+
+-- sjednotit REF Buffer všude, buď automaticky Appendovat, nebo přidat AppendFlag parametr

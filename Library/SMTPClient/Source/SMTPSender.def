@@ -2,6 +2,7 @@ DEFINITION MODULE SMTPSender;
 
 IMPORT
    MailMessage,
+   MailPerson,
    Sync,
    threadcall;
 
@@ -13,7 +14,7 @@ TYPE
 
 INTERFACE INotifier;
 
-   PROCEDURE OnCompletion( Result : Sync.TAsyncResult; SourceSpecificError : LONGWORD; CONST message : MailMessage.TPMailMessage );
+   PROCEDURE OnCompletion( Result : Sync.TAsyncResult; SourceSpecificError : LONGWORD; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
 
 END INotifier;
 
@@ -36,7 +37,7 @@ INTERFACE ISender;
       Login : StringsO.CString; // can be empty 
       Password : StringsO.CString; // can be empty
       TimeToLive : CARDINAL; // seconds, the message will stay in the queue for the time; maximal time is year (3*10E7), default is 2 days
-      GenerateMessageId : BOOLEAN; // if set, each message will be given own message id; otherwise the header will not be generated
+      GenerateMessageId : BOOLEAN; // if set, each message will be given own message id; otherwise the header will not be generated; default TRUE
       
 END ISender;
 
