@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
    datetime,
    MailMessage,
+   MailPerson,
    log,
    StringsO,
    test,
@@ -31,8 +32,8 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       message : MailMessage.TPMailMessage;
-      person : MailMessage.Person;
-      personAssigned : MailMessage.Person;
+      person : MailPerson.Person;
+      personAssigned : MailPerson.Person;
    BEGIN
       //-----
       Host^.StartPhase( L"Person filling" );
@@ -70,7 +71,8 @@ CLASS IMPLEMENTATION CTest;
          ( message^.CCs <> NIL ) AND
          ( message^.BCCs <> NIL ) AND
          ( message^.Body <> NIL ) AND
-         ( message^.Attachments <> NIL ) THEN
+         ( message^.Attachments <> NIL ) AND
+         ( message^.GrabFailedRecipients = FALSE ) THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );

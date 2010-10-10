@@ -1,0 +1,47 @@
+DEFINITION MODULE MailPerson;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   StringsO;
+
+(*================================================================================*)
+
+CLASS Person;
+
+   PUBLIC VAR
+      Address : StringsO.CString;
+      Name : StringsO.CString;
+
+   PUBLIC OPERATOR :=( CONST Source : Person );
+
+END Person;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPPersons = POINTER TO IPersons;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IPersons;
+
+   // additions
+   PROCEDURE Add( CONST New : Person );
+   PROCEDURE AddS( CONST Name, Address : StringsO.IString );
+   PROCEDURE Dispose();
+
+   // enumeration
+   READONLY PROPERTY
+      Empty : BOOLEAN;
+   PROPERTY
+      Current : Person;
+   PROCEDURE Reset();
+   PROCEDURE MoveNext() : BOOLEAN;
+
+END IPersons;
+
+(*================================================================================*)
+
+END MailPerson.
