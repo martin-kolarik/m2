@@ -141,6 +141,8 @@ CLASS IMPLEMENTATION CTextReader;
                cl := 0;
             ELSIF ( Result = Sync.arNoData ) AND NOT Line.Empty THEN // last line not ended with CR must be returned as valid, NoData must come hereafter
                RETURN Sync.arCompleted;
+            ELSIF Result = Sync.arAborted THEN // here something could still in the buffer, try it
+               cl := 0; // fall down and continue
             ELSE
                RETURN Result;
             END;
