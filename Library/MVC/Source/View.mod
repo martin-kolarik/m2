@@ -16,6 +16,7 @@ IMPORT
    LanguagesO,
    lists,
    maps,
+   MIME,
    netsocket,
    NodeList,
    Strings,
@@ -142,7 +143,7 @@ CLASS IMPLEMENTATION CFileView;
       END;
 
       IF ( MIMEResolver = NIL ) OR NOT MIMEResolver^.ResolveMIME( MIMEResolverContext, filePath, OUT Content ) THEN
-         HttpTools.FormatContent( HttpTools.contentUnknown, filePath, empty, TRUE, OUT Content );
+         MIME.FormatContent( MIME.contentUnknown, filePath, empty, TRUE, OUT Content );
       END;
       Response.ContentType := Content;
       Response.AllowCaching := TRUE;
@@ -342,7 +343,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
    BEGIN
       now.SetNowUTC();
    
-      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+      MIME.FormatContentOA( MIME.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
       Response.ContentType := Content;
       Response.AllowCaching := FALSE;
       Response.LastModified := now;
@@ -415,7 +416,7 @@ CLASS IMPLEMENTATION CRawTextView;
       now.SetNowUTC();
    
       IF ContentType.Empty THEN
-         HttpTools.FormatContentOA( HttpTools.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentType );
+         MIME.FormatContentOA( MIME.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentType );
       END;
       Response.ContentType := ContentType;
       Response.AllowCaching := FALSE;
@@ -559,7 +560,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       // determine, if client supports XHTML by browser information
       IF Request.RequestHeaders^.Get( HttpCommon.Accept, OUT acceptHeader ) THEN
          acceptHeader.Lowerize();
-         IF acceptHeader.ContainsOA( HttpTools.CONTENT_TYPE_XHTML ) THEN // browser explictely states that it supports XHTML, use it
+         IF acceptHeader.ContainsOA( MIME.CONTENT_TYPE_XHTML ) THEN // browser explictely states that it supports XHTML, use it
             xhtmlSupported := TRUE;
          END;
       END;
@@ -586,9 +587,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       // finalize content type
       IF RequestedContent.Empty THEN // view did not use content type from template file or it is impossible
          IF xhtmlSupported THEN
-            HttpTools.FormatContentOA( HttpTools.contentTextXHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+            MIME.FormatContentOA( MIME.contentTextXHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
          ELSE // otherwise use compatible content type
-            HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+            MIME.FormatContentOA( MIME.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
          END;
       // ELSE assume that view (this class) set XHTML/XMLdecl pair or HTML/XMLdecl pair correcly according to client abilities
       END;
@@ -597,7 +598,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       RETURN TRUE;
       
    Failure:
-      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+      MIME.FormatContentOA( MIME.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
       Response.ContentType := RequestedContent;
 
       Output.Clear();
@@ -689,7 +690,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       appendCharset : BOOLEAN := FALSE;
       charset : StringsO.CString;
-      content : HttpTools.TContent;
+      content : MIME.TContent;
       encoding : StringsO.CString;
       haveContentType : BOOLEAN := FALSE;
       haveDeclaration : BOOLEAN := FALSE;
@@ -778,20 +779,20 @@ CLASS IMPLEMENTATION CPageTemplateView;
                      END;
                      haveContentType := TRUE;
 
-                     IF HttpTools.DecodeContent( value, OUT content, OUT charset ) THEN
-                        haveXHTML := content = HttpTools.contentTextXHTML;
+                     IF MIME.DecodeContent( value, OUT content, OUT charset ) THEN
+                        haveXHTML := content = MIME.contentTextXHTML;
                      ELSE
                         haveXHTML := FALSE;
-                        content := HttpTools.contentUnknown;
+                        content := MIME.contentUnknown;
                      END;
                      IF NOT haveXHTML THEN // use mime type as is, no logic can be applied; handle encoding
                         contentTypeRequest := value;
-                        IF content IN HttpTools.ENCODING_SENSITIVE_CONTENT THEN
+                        IF content IN MIME.ENCODING_SENSITIVE_CONTENT THEN
                            appendCharset := charset.Empty; // supply content type with source encoding, only if it is not known
                         END;
-                        IF content = HttpTools.contentUnknown THEN // content was not successfully decoded
+                        IF content = MIME.contentUnknown THEN // content was not successfully decoded
                            // do not affect XMLDeclaration, author may set it upon his needs
-                        ELSIF content IN HttpTools.TAGGED_CONTENT THEN
+                        ELSIF content IN MIME.TAGGED_CONTENT THEN
                            // do not affect XMLDeclaration, author may set it upon his needs
                         ELSE
                            Writer.XMLDeclaration := FALSE; // formats without tagged content cannot emit XMLDeclaration
@@ -801,13 +802,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
                         contentTypeRequest := value; // XHTML
                         Writer.XMLDeclaration := TRUE; // XHTML mime type requires valid XML
                      ELSE
-                        contentTypeRequest.FromOA( HttpTools.CONTENT_TYPE_HTML ); // overwrite XHTML to HTML, client does not support it; handle encoding
+                        contentTypeRequest.FromOA( MIME.CONTENT_TYPE_HTML ); // overwrite XHTML to HTML, client does not support it; handle encoding
                         appendCharset := TRUE;
                         // do not affect XMLDeclaration, author may set it upon his needs
                      END;
                      IF appendCharset THEN
                         contentTypeRequest.AppendOA( L"; " );
-                        contentTypeRequest.AppendOA( HttpTools.CHARSET_PREFIX );
+                        contentTypeRequest.AppendOA( MIME.CHARSET_PREFIX );
                         contentTypeRequest.AppendOA( L"=" );
                         contentTypeRequest.Append( encoding ); // got from XML declaration
                      END;

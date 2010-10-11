@@ -47,6 +47,14 @@ PROCEDURE FormatContentOA( Content : TContent; CONST FileName, Charset : ARRAY O
 PROCEDURE DecodeContent( CONST ContentHeader : StringsO.IString; OUT Content : TContent; OUT Charset : StringsO.IString ) : BOOLEAN;
 PROCEDURE DecodeContentOA( CONST ContentHeader : ARRAY OF WCHAR; OUT Content : TContent; OUT Charset : ARRAY OF WCHAR ) : BOOLEAN;
 
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE MimimalMIMEWordLength() : CARDINAL;
+
+PROCEDURE ToMimeWord( CONST String : StringsO.IString; OUT Mimeword : StringsO.IString );
+PROCEDURE ToMimeWords( CONST String : StringsO.IString; FirstLineLengthHint, MaximalLineLengthHint : CARDINAL; OUT Mimewords : StringsO.IString ) : BOOLEAN; // Mimewords contains <CRLF> <SP> separated mimewords
+   // Lengths are Hint, because the function does not compute real UTF8 length. Thus, a particular mimeword will be the longer the number of multibyte UTF8 characters greater
+
 #restore
 
 (*===========================================================================*)

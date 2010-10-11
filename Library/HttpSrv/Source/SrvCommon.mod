@@ -16,6 +16,7 @@ IMPORT
    IOO,
    Languages,
    maps,
+   MIME,
    netsocket,
    rijndael,
    Storage,
@@ -574,7 +575,7 @@ CLASS IMPLEMENTATION ASrvStream;
 
       // Content
       IF NOT ResponseHeaders^.Contains( HttpCommon.ContentType ) THEN
-         httptools.FormatContentOA( httptools.contentDefault, L"", L"", TRUE, OUT Content );
+         MIME.FormatContentOA( MIME.contentDefault, L"", L"", TRUE, OUT Content );
          ResponseHeaders^.Add( HttpCommon.ContentType, Content );
       END;
       
@@ -613,7 +614,7 @@ CLASS IMPLEMENTATION ASrvStream;
          BStream.WMode := IOO.bmCommited;
          FormatErrorPage( ADR( BStream ));
          
-         httptools.FormatContentOA( httptools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+         MIME.FormatContentOA( MIME.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
          ResponseHeaders^.Add( HttpCommon.ContentType, Content );
          ResponseLength := CARD64( BStream.BufferSize - BStream.WriteSpace );
    
@@ -699,11 +700,14 @@ END ASrvStream;
 
 CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
 
-   // IServerConnection
+   // IConnection
    PUBLIC VIRTUAL READONLY PROPERTY
+      Connected : BOOLEAN;
       LocalAddress : inetaddr.INETADDR;
       RemoteAddress : inetaddr.INETADDR;
       Stream : IOO.TPStream;
+
+   PUBLIC VIRTUAL PROCEDURE Close();
 
    // IHttpSrvConnection
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -736,17 +740,31 @@ CLASS IMPLEMENTATION CHttpConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   VIRTUAL PROPERTY LocalAddress GET : inetaddr.INETADDR;
+   PUBLIC VIRTUAL PROPERTY Connected GET : BOOLEAN;
+   BEGIN
+      RETURN _Stream^.CanWrite;
+   END Connected;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY LocalAddress GET : inetaddr.INETADDR;
    BEGIN
       RETURN _Stream^.LocalAddress;
    END LocalAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-   VIRTUAL PROPERTY RemoteAddress GET : inetaddr.INETADDR;
+   PUBLIC VIRTUAL PROPERTY RemoteAddress GET : inetaddr.INETADDR;
    BEGIN
       RETURN _Stream^.RemoteAddress;
    END RemoteAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Close();
+   BEGIN
+      _Stream^.Close( FALSE );
+   END Close;
 
 (*--------------------------------------------------------------------------------*)
 

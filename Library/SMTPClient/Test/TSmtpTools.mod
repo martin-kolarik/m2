@@ -5,6 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
    log,
+   MIME,
    SmtpTools,
    StringsO,
    test,
@@ -105,7 +106,7 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StartPhase( L"ToMimeWords (first line bigger than maximal)" );
       s.FromOA( L"Žádné mezery leè háèkové a èárkové" );
-      IF SmtpTools.ToMimeWords( s, 10, 5, OUT output ) THEN
+      IF MIME.ToMimeWords( s, 10, 5, OUT output ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
          Host^.StopPhaseWithResult( test.trSuccess );
@@ -113,7 +114,7 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StartPhase( L"ToMimeWords (bad maximal line length is too small)" );
       s.FromOA( L"Žádné mezery leè háèkové a èárkové" );
-      IF SmtpTools.ToMimeWords( s, 0, 1, OUT output ) THEN
+      IF MIME.ToMimeWords( s, 0, 1, OUT output ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
          Host^.StopPhaseWithResult( test.trSuccess );
@@ -121,7 +122,7 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StartPhase( L"ToMimeWords (single mime word)" );
       s.FromOA( L"Žádné mezery leè háèkové a èárkové" );
-      IF NOT SmtpTools.ToMimeWords( s, -1, -1, OUT output ) THEN
+      IF NOT MIME.ToMimeWords( s, -1, -1, OUT output ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSIF NOT output.EqualsOA( L"=?utf-8?b?xb3DoWRuw6kgbWV6ZXJ5IGxlxI0gaMOhxI1rb3bDqSBhIMSNw6Fya292w6k=?=" ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -131,7 +132,7 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StartPhase( L"ToMimeWords (single mime word, first line folded)" );
       s.FromOA( L"Žádné mezery leè háèkové a èárkové" );
-      IF NOT SmtpTools.ToMimeWords( s, 1, -1, OUT output ) THEN
+      IF NOT MIME.ToMimeWords( s, 1, -1, OUT output ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSIF NOT output.EqualsOA( FOLD + L"=?utf-8?b?xb3DoWRuw6kgbWV6ZXJ5IGxlxI0gaMOhxI1rb3bDqSBhIMSNw6Fya292w6k=?=" ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -141,7 +142,7 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StartPhase( L"ToMimeWords (multiple mime words, first line halfened)" );
       s.FromOA( L"Žádné mezery leè háèkové a èárkové Žádné mezery leè háèkové a èárkové Žádné mezery leè háèkové a èárkové Žádné mezery leè háèkové a èárkové Žádné mezery leè háèkové a èárkové Žádné mezery leè háèkové a èárkové Žádné mezery leè háèkové a èárkové Žádné mezery leè háèkové a èárkové Žádné mezery leè háèkové a èárkové" );
-      IF NOT SmtpTools.ToMimeWords( s, 32, 64, OUT output ) THEN
+      IF NOT MIME.ToMimeWords( s, 32, 64, OUT output ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSIF NOT output.EqualsOA( L"=?utf-8?b?xb3DoWRuw6kgbWV6?=" + FOLD +
                                  L"=?utf-8?b?ZXJ5IGxlxI0gaMOhxI1rb3bDqSBhIMSNw6Fya292w6kgxb3DoWRuw6kgbQ==?=" + FOLD +
@@ -162,7 +163,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (plain, no hint)" );
       header.FromOA( L"To: " );
       s.FromOA( L"martin.kolarik@smartcontrol.cz" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintNone );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintNone );
       IF NOT header.EqualsOA( L"To: martin.kolarik@smartcontrol.cz" ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -172,7 +173,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (plain, hint quoted)" );
       header.FromOA( L"To: " );
       s.FromOA( L"martin.kolarik@smartcontrol.cz" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintQuoted );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonName );
       IF NOT header.EqualsOA( L'To: "martin.kolarik@smartcontrol.cz"' ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -182,7 +183,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (plain, hint address)" );
       header.FromOA( L"To: " );
       s.FromOA( L"martin.kolarik@smartcontrol.cz" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintAddress );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonAddress );
       IF NOT header.EqualsOA( L'To: <martin.kolarik@smartcontrol.cz>' ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -192,7 +193,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (escaped, no hint)" );
       header.FromOA( L"To: " );
       s.FromOA( L"martin\.kolarik@smartcontrol.cz" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintNone );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintNone );
       IF NOT header.EqualsOA( L'To: martin\\.kolarik@smartcontrol.cz' ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -202,7 +203,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (escaped, hint quoted)" );
       header.FromOA( L"To: " );
       s.FromOA( L"martin\.kolarik@smartcontrol.cz" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintQuoted );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonName );
       IF NOT header.EqualsOA( L'To: "martin\\.kolarik@smartcontrol.cz"' ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -212,7 +213,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (escaped, hint address)" );
       header.FromOA( L"To: " );
       s.FromOA( L"martin\.kolarik@smartcontrol.cz" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintAddress );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonAddress );
       IF NOT header.EqualsOA( L'To: <martin\\.kolarik@smartcontrol.cz>' ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -222,7 +223,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (escaped, spaces, hint address)" );
       header.FromOA( L"To: " );
       s.FromOA( L"martin\. kolarik@smartcontrol.cz" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintAddress );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonAddress );
       IF NOT header.EqualsOA( L'To: <"martin\\. kolarik"@smartcontrol.cz>' ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -232,7 +233,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (mimeword, no hint)" );
       header.FromOA( L"To: " );
       s.FromOA( L"Martin Kolaøík" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintNone );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintNone );
       IF NOT header.EqualsOA( L"To: =?utf-8?b?TWFydGluIEtvbGHFmcOtaw==?=" ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -242,7 +243,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"AppendStringToHeader (mimeword, hint quoted)" );
       header.FromOA( L"To: " );
       s.FromOA( L"Martin Kolaøík" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintQuoted );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonName );
       IF NOT header.EqualsOA( L"To: =?utf-8?b?TWFydGluIEtvbGHFmcOtaw==?=" ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -254,10 +255,10 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Construct full test header" );
       header.FromOA( L"To: " );
       s.FromOA( L"Martin Kolaøík" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintNone );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonName );
       header.AppendOA( L" " );
       s.FromOA( L"martin.kolarik@smartcontrol.cz" );
-      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintAddress );
+      SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonAddress );
       IF NOT header.EqualsOA( L"To: =?utf-8?b?TWFydGluIEtvbGHFmcOtaw==?= <martin.kolarik@smartcontrol.cz>" ) THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
