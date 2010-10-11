@@ -478,7 +478,9 @@ CLASS IMPLEMENTATION CUnit;
     | ukBlockBodyOfCOMProcedure :
       G^.LineS( L'return 0; // implicit return' );
     | ukBlockBodyOfReturnInTryProc :
-      G^.LineS( L'return FALSE; // implicit exception return' );
+      IF eoThrowing IN Options THEN
+         G^.LineS( L'return FALSE; // implicit exception return' );
+      END;
     | ukBlockBodyOfReturnInTryFunc :
 
     | ukClassInitStart :
