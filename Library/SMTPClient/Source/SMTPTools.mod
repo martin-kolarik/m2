@@ -8,15 +8,13 @@ IMPORT
    cphcommonO,
    languages,
    languagesO,
+   MIME,
    StorageO;
 
 (*--------------------------------------------------------------------------------*)
 
 CONST
    RFC822_LINE_LENGTH = 78;
-   PREFIX = L"=?utf-8?b?";
-   SUFFIX = L"?=";
-   MINIMAL_MIME_WORD_LENGTH = HIGH( PREFIX )+1 + HIGH( SUFFIX )+1 + 4 + 1; // 4 for single BASE64 chunk (0--3 bytes), 1 for folding <SP>
    FOLD = 13W + 10W + 32W; // <CRLF> <SP>
 
 (*================================================================================*)
@@ -106,84 +104,19 @@ END AnalyzeHeaderEncoding;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE ToMimeWords( CONST String : StringsO.IString; FirstLineLength, MaximalLineLength : CARDINAL; OUT Mimewords : StringsO.IString ) : BOOLEAN; // Mimewords contains <CRLF> <SP> separated mimewords
-VAR
-   base64 : StringsO.CString;
-   buffer : StorageO.CMemoryBuffer;
-   encodedLength : CARDINAL;
-   index : CARDINAL;
-   maximalInputCharacters : CARDINAL;
-   mimeWords : StringsO.CString;
-   slice : StringsO.CString;
-BEGIN
-   IF MaximalLineLength < FirstLineLength THEN
-      RETURN FALSE;
-   ELSIF MaximalLineLength < MINIMAL_MIME_WORD_LENGTH THEN
-      RETURN FALSE;
-   END;
-
-   // decrease allowed lengths by minimally occupied data and prepare first iteration
-   DEC( MaximalLineLength, MINIMAL_MIME_WORD_LENGTH );
-   IF FirstLineLength < MINIMAL_MIME_WORD_LENGTH THEN // fold line with insufficient length
-      mimeWords.FromOA( FOLD );
-      encodedLength := MaximalLineLength;
-   ELSE // adjust input to not to oversize allowed line length
-      DEC( FirstLineLength, MINIMAL_MIME_WORD_LENGTH );
-      encodedLength := FirstLineLength;
-   END;
-   maximalInputCharacters := cphcommon.BASE64ByteCount( encodedLength ); // convert allowed bytes size (encodedLength) to input characters count (maximalInputCharacters)
-   IF maximalInputCharacters > 0 THEN // if maximalInputCharacters is zero, then chunk is shorter than BASE64 minimal chunk and therefore whole number of characters (encodedLength) must be taken
-      encodedLength := maximalInputCharacters;
-   END;
-   IF encodedLength > String.Length THEN // only the String must be encoded, not more
-      encodedLength := String.Length;
-   END;
-
-   // now, precompute maximalInputCharacters for MaximalLineLength;
-   // for the FirstLineLength the encodedLength is already corrected
-   maximalInputCharacters := cphcommon.BASE64ByteCount( MaximalLineLength );
-
-   index := 0;
-   WHILE index < String.Length DO
-      // encode a part of string
-      String.Substring( index, encodedLength, OUT slice );
-      languagesO.ToMB( slice, languages.cp_UTF8, FALSE, REF buffer );
-      cphcommonO.ToBASE64( buffer, OUT base64 );
-
-      // combine it to whole mime word
-      mimeWords.AppendOA( PREFIX );
-      mimeWords.Append( base64 );
-      mimeWords.AppendOA( SUFFIX );
-         
-      // prepare, if needed, the next slice
-      INC( index, encodedLength );
-      encodedLength := String.Length - index;
-      IF encodedLength > 0 THEN
-         mimeWords.AppendOA( FOLD );
-      END;
-      IF encodedLength > maximalInputCharacters THEN
-         encodedLength := maximalInputCharacters;
-      END;
-   END; // WHILE
-
-   Mimewords.Assign( mimeWords );
-   RETURN TRUE;
-END ToMimeWords;
-
-(*--------------------------------------------------------------------------------*)
-
 PROCEDURE AppendStringToHeader( REF header : StringsO.IString; CONST string : StringsO.IString; StringTypeHint : TStringTypeHint );
 CONST
-   MIME_TOTAL_WORD_LENGTH = 75;
-   MIME_DATA_WORD_LENGTH = MIME_TOTAL_WORD_LENGTH - MINIMAL_MIME_WORD_LENGTH; // DATA_WORD is shorted by 3 bytes, than it could be, but it does not matter, because probably ToMimeWords exhausts the reserve
+   MIME_TOTAL_WORD_LENGTH = 75; // DATA_WORD is shorted by 3 bytes, than it could be, but it does not matter, because probably ToMimeWords exhausts the reserve
 VAR
    brackets : BOOLEAN;
    containsSpace : BOOLEAN;
    lineLength : CARDINAL;
+   MimeDataWordLength : CARDINAL;
    neededEncoding : THeaderEncoding;
    quotes : BOOLEAN;
    s : StringsO.CString;
 BEGIN
+   MimeDataWordLength := MIME_TOTAL_WORD_LENGTH - MIME.MimimalMIMEWordLength();
    AnalyzeHeaderEncoding( string, OUT neededEncoding, OUT containsSpace );
 
    CASE neededEncoding OF
@@ -195,11 +128,11 @@ BEGIN
          s.ReplaceOA( L'\', L'\\' );
          s.ReplaceOA( L'"', L'\"' );
       END;
-      brackets := StringTypeHint = StringTypeHintAddress;
+      brackets := HintAddress IN StringTypeHint;
       IF brackets THEN
          quotes := containsSpace;
       ELSE
-         quotes := StringTypeHint = StringTypeHintQuoted;
+         quotes := HintQuoted IN StringTypeHint;
       END;
       IF brackets AND quotes THEN // only a local part of address must be quoted
          header.AppendOA( L'<"' );
@@ -220,13 +153,17 @@ BEGIN
 
    //-----
    | HeaderEncodingMimeWord :
-      IF header.Length > MIME_DATA_WORD_LENGTH THEN // no space for prefix and suffix
-         header.AppendOA( FOLD );
-         lineLength := MIME_DATA_WORD_LENGTH;
-      ELSE 
-         lineLength := MIME_DATA_WORD_LENGTH - header.Length; // first line is shorter
+      IF HintSplitByRFC822Line IN StringTypeHint THEN
+         IF header.Length > MimeDataWordLength THEN // no space for prefix and suffix
+            header.AppendOA( FOLD );
+            lineLength := MimeDataWordLength;
+         ELSE 
+            lineLength := MimeDataWordLength - header.Length; // first line is shorter
+         END;
+         MIME.ToMimeWords( string, lineLength, MimeDataWordLength, OUT s );
+      ELSE
+         MIME.ToMimeWord( string, OUT s );
       END;
-      ToMimeWords( string, lineLength, MIME_DATA_WORD_LENGTH, OUT s );
       header.Append( s );
 
    //-----

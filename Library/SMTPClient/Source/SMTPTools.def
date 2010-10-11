@@ -78,17 +78,20 @@ PROCEDURE AnalyzeHeaderEncoding( CONST String : StringsO.IString; OUT NeededEnco
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE ToMimeWords( CONST String : StringsO.IString; FirstLineLengthHint, MaximalLineLengthHint : CARDINAL; OUT Mimewords : StringsO.IString ) : BOOLEAN; // Mimewords contains <CRLF> <SP> separated mimewords
-   // Lengths are Hint, because the function does not compute real UTF8 length. Thus, a particular mimeword will be the longer the number of multibyte UTF8 characters greater
-
-(*--------------------------------------------------------------------------------*)
-
 TYPE
-   TStringTypeHint = (
-      StringTypeHintNone,
-      StringTypeHintQuoted, // encloses string to ""
-      StringTypeHintAddress // encloses string to <> or to <"">
+   TStringTypeHintItem = (
+      HintSplitByRFC822Line,
+      HintQuoted, // encloses string to ""
+      HintAddress // encloses string to <> or to <"">
    );
+   TStringTypeHint = SET OF TStringTypeHintItem;
+
+CONST
+   HintNone = TStringTypeHint{};
+   HintSubject = TStringTypeHint{HintSplitByRFC822Line};
+   HintPersonAddress = TStringTypeHint{HintAddress, HintSplitByRFC822Line};
+   HintPersonName = TStringTypeHint{HintQuoted, HintSplitByRFC822Line};
+   HintMimeHeader = TStringTypeHint{HintQuoted};
 
 PROCEDURE AppendStringToHeader( REF Header : StringsO.IString; CONST String : StringsO.IString; StringTypeHint : TStringTypeHint );
 

@@ -16,6 +16,7 @@ IMPORT
    dns,
    Exceptions,
    FIO,
+   FIOO,
    hash,
    IOO,
    languages,
@@ -565,7 +566,7 @@ CLASS IMPLEMENTATION CWorker;
          IF data.Empty THEN
             header.AppendOA( L" " );
          ELSE
-            SmtpTools.AppendStringToHeader( REF header, data, SmtpTools.StringTypeHintNone );
+            SmtpTools.AppendStringToHeader( REF header, data, SmtpTools.HintSubject );
          END;
          WriteServer( header );
    
@@ -619,10 +620,10 @@ CLASS IMPLEMENTATION CWorker;
    BEGIN
       s := person.Name;
       IF NOT s.Empty THEN
-         SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.StringTypeHintQuoted );
+         SmtpTools.AppendStringToHeader( REF header, s, SmtpTools.HintPersonName );
          header.AppendOA( L" " );
       END;
-      SmtpTools.AppendStringToHeader( REF header, person.Address, SmtpTools.StringTypeHintAddress );
+      SmtpTools.AppendStringToHeader( REF header, person.Address, SmtpTools.HintPersonAddress );
    END AddPersonToHeader;
 
 (*--------------------------------------------------------------------------------*)
@@ -778,7 +779,7 @@ CLASS IMPLEMENTATION CWorker;
             END;
          END;
          IF appendAlways <> NIL THEN
-            header.AppendOA( L";" + 13W + 10W );
+            header.AppendOA( L"; " );
             header.Append( appendAlways^ );
          END;
          WriteServer( header );
@@ -796,6 +797,7 @@ CLASS IMPLEMENTATION CWorker;
    VAR
       fileNameOA : FIO.PathStrW;
       fileName : StringsO.CString;
+      fs : FIOO.CFileStream;
       header : StringsO.CString;
    BEGIN
       IF _Message^.Attachments^.Empty THEN
@@ -821,19 +823,26 @@ CLASS IMPLEMENTATION CWorker;
 
             // header of the attachment, CRLF is included in WriteMimeHeader, directly continue with data
             header.FromOA( L"Content-Description: " );
-            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.StringTypeHintNone );
+            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.HintNone );
             WriteServer( header );
 
             header.FromOA( L"Content-Disposition: attachment; filename=" );
-            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.StringTypeHintQuoted );
+            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.HintMimeHeader );
             WriteServer( header );
 
             header.FromOA( L"name=" );
-            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.StringTypeHintQuoted );
+            SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.HintMimeHeader );
             WriteMimeHeader( _Message^.Attachments^.CurrentData^, L"Content-Type: application/octet-stream", ADR( header ), FALSE );
 
             // write the file
-            WriteServerBase64( StringsO.FromOA( L"Ahoj" ));
+            TRY
+               fileName.Assign( _Message^.Attachments^.Current^ );
+               fs.FromPath( OA( fileName.Length-1, fileName.Data ), FIOO.imOpenRead );
+            CATCH e : IOO.CIOException DO
+               THROW SmtpException( Sync.arAborted );
+            END;
+            WriteStreamBase64( ADR( fs ), FALSE );
+            fs.Close( FALSE );
 
          END; // WHILE over attachments
 
@@ -1097,102 +1106,6 @@ FINALLY
       threadpool.pool()^.Abort( REF _PoolHandle );
    END;
 END CSender;
-
-(*
-////////////////////////////////////////////////////////////////////////////////
-//        NAME: GetErrorText (friend function)
-// DESCRIPTION: Returns the string for specified error code.
-//   ARGUMENTS: CSmtpPhase ErrorId - error code
-// USES GLOBAL: none
-// MODIFIES GL: none 
-//     RETURNS: error string
-//      AUTHOR: Jakub Piwowarczyk
-// AUTHOR/DATE: JP 2010-01-28
-////////////////////////////////////////////////////////////////////////////////
-std::string ECSmtp::GetErrorText() const
-{
-   switch(ErrorCode)
-   {
-      case ECSmtp::CSMTP_NO_ERROR:
-         return "";
-      case ECSmtp::WSA_STARTUP:
-         return "Unable to initialise winsock2";
-      case ECSmtp::WSA_VER:
-         return "Wrong version of the winsock2";
-      case ECSmtp::WSA_SEND:
-         return "Function send() failed";
-      case ECSmtp::WSA_RECV:
-         return "Function recv() failed";
-      case ECSmtp::WSA_CONNECT:
-         return "Function connect failed";
-      case ECSmtp::WSA_GETHOSTBY_NAME_ADDR:
-         return "Unable to determine remote server";
-      case ECSmtp::WSA_INVALID_SOCKET:
-         return "Invalid winsock2 socket";
-      case ECSmtp::WSA_HOSTNAME:
-         return "Function hostname() failed";
-      case ECSmtp::WSA_IOCTLSOCKET:
-         return "Function ioctlsocket() failed";
-      case ECSmtp::BAD_IPV4_ADDR:
-         return "Improper IPv4 address";
-      case ECSmtp::UNDEF_MSG_HEADER:
-         return "Undefined message header";
-      case ECSmtp::UNDEF_MAIL_FROM:
-         return "Undefined mail sender";
-      case ECSmtp::UNDEF_SUBJECT:
-         return "Undefined message subject";
-      case ECSmtp::UNDEF_RECIPIENTS:
-         return "Undefined at least one reciepent";
-      case ECSmtp::UNDEF_RECIPIENT_MAIL:
-         return "Undefined recipent mail";
-      case ECSmtp::UNDEF_LOGIN:
-         return "Undefined user login";
-      case ECSmtp::UNDEF_PASSWORD:
-         return "Undefined user password";
-      case ECSmtp::COMMAND_MAIL_FROM:
-         return "Server returned error after sending MAIL FROM";
-      case ECSmtp::COMMAND_EHLO:
-         return "Server returned error after sending EHLO";
-      case ECSmtp::COMMAND_AUTH_LOGIN:
-         return "Server returned error after sending AUTH LOGIN";
-      case ECSmtp::COMMAND_DATA:
-         return "Server returned error after sending DATA";
-      case ECSmtp::COMMAND_QUIT:
-         return "Server returned error after sending QUIT";
-      case ECSmtp::COMMAND_RCPT_TO:
-         return "Server returned error after sending RCPT TO";
-      case ECSmtp::MSG_BODY_ERROR:
-         return "Error in message body";
-      case ECSmtp::CONNECTION_CLOSED:
-         return "Server has closed the connection";
-      case ECSmtp::SERVER_NOT_READY:
-         return "Server is not ready";
-      case ECSmtp::SERVER_NOT_RESPONDING:
-         return "Server not responding";
-      case ECSmtp::FILE_NOT_EXIST:
-         return "File not exist";
-      case ECSmtp::MSG_TOO_BIG:
-         return "Message is too big";
-      case ECSmtp::BAD_LOGIN_PASS:
-         return "Bad login or password";
-      case ECSmtp::UNDEF_XYZ_RESPONSE:
-         return "Undefined xyz SMTP response";
-      case ECSmtp::LACK_OF_MEMORY:
-         return "Lack of memory";
-      case ECSmtp::TIME_ERROR:
-         return "time() error";
-      case ECSmtp::RECVBUF_IS_EMPTY:
-         return "RecvBuf is empty";
-      case ECSmtp::SENDBUF_IS_EMPTY:
-         return "SendBuf is empty";
-      case ECSmtp::OUT_OF_MSG_RANGE:
-         return "Specified line number is out of message size";
-      default:
-         return "Undefined error id";
-   }
-}
-
-*)
 
 (*================================================================================*)
 

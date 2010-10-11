@@ -5,7 +5,7 @@
 ++ generování message-id
 ++ detekce autentizačních požadavků serveru (dekódování MIME64)
 ++ streams
--- attachments
+++ attachments
 -- zjistit, jak se chová reader, když mu řádek přijede postupně
 ++ problém při ukončování spojení, MailFinalization končí ve výjimce
    :: do TextReaderu přidáno přeskočení chyby arAborted po ReadFromStream s tím,
@@ -16,9 +16,12 @@
 ++ CMemoryBuffer Reallocate upravena podmínka -- netřeba realokovat paměť, pokud se
    požaduje právě ještě Size. Neostrá podmínka realokovala buffer
    použitý při odesílání textového streamu a nastával ASSERT. r1361
--- mime word jméno souboru v attachmentu musí asi být jediné, nerozdělené (chybí kus jména
+++ mime word jméno souboru v attachmentu musí asi být jediné, nerozdělené (chybí kus jména
    attachmentu)
--- v hlavičce attachmentu ThunderBird ukazuje divné odřádkování
+   :: opraveno tak, že mimeword se nedělí na více slov a je to OK
+++ v hlavičce attachmentu ThunderBird ukazuje divné odřádkování
+   :: CRLF se před "name" hlavičkou nepřidává
+-- přístup na property _Senderu musí být zamykaný
 
 == Common
 

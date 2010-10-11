@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
    MailMessage,
    MailPerson,
+   MIME,
    log,
    scinit,
    SmtpSender,
@@ -34,6 +35,7 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       c : CARDINAL;
+      e, f : StringsO.CString;
       message : MailMessage.TPMailMessage;
       person1 : MailPerson.Person;
       person2 : MailPerson.Person;
@@ -225,10 +227,10 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[SINGLE] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.BodyMimeType := StringsO.FromOA( L"text/html" );
 
-      s.FromOA( L"application/pdf" );
-      message^.Attachments^.AddOA( L"test.pdf", s );
-      s.FromOA( L"application/pdf" );
-      message^.Attachments^.AddOA( L"Testíèek delšího jména souboru.pdf", s );
+      f.FromOA( L"d:\private\dokumenty\osud.pdf" );
+      MIME.FormatContent( MIME.contentUnknown, f, e, FALSE, OUT s );
+      message^.Attachments^.Add( f, s );
+      message^.Attachments^.Add( f, s );
 
       message^.Body^.WriteOA( L"<html><body><p>Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù.</p>", OUT c, 0 );
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù.</p>", OUT c, 0 );
