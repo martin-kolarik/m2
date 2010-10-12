@@ -833,7 +833,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock );
       IF State = tasIdle THEN
          State := tasWaitUpdate;
          _Driven^.UpdateDeviceBuffer();
@@ -846,7 +846,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock );
       State := tasIdle;
       _ItemToWrite := NIL;
    END EventAbort;
@@ -857,7 +857,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock );
       CASE State OF
       | tasWaitUpdate :
          State := tasWaitData;
@@ -876,7 +876,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock );
       IF State = tasWaitUpdate THEN
          IF _ItemToWrite = NIL THEN
             State := tasIdle;
@@ -893,7 +893,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock );
       IF State = tasWaitData THEN
          _Driven^.Ack();
          _Driven^.ProcessData( Packet );
@@ -912,7 +912,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock );
       IF State = tasWaitData THEN
          State := tasIdle;
       END;
@@ -924,7 +924,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock );
       IF _ItemToWrite <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
@@ -942,7 +942,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock );
       CASE State OF
       | tasWaitUpdate :
          State := tasIdle;

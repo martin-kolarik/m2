@@ -568,6 +568,36 @@ CLASS IMPLEMENTATION RWLOCK;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
+   BEGIN
+      _Lock.Lock();
+      LOOP
+         IF ( Owners >= 0 ) AND ( WriteWaiters = 0 ) THEN // We can enter a read lock if there are only read-locks have been given out and a writer is not trying to get in.  
+            INC( Owners );
+            _Lock.Unlock();
+            RETURN arCompleted;
+
+         ELSIF WaitOnSignal( REF ReadSignal, REF ReadWaiters, Timeout ) = Sync.arTimeout THEN
+            _Lock.Unlock();
+            RETURN arTimeout;
+
+         END;
+      END; // LOOP
+   END LockRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE UnlockRead();
+   BEGIN
+      _Lock.Lock();
+      ASSERTLOG( Owners > 0 );
+      DEC( Owners );
+      // stay inside lock
+      UnlockAndWakeUpAppropriateWaiters();
+   END UnlockRead;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
    BEGIN
       ASSERT( Type <> ltILock );
@@ -611,36 +641,6 @@ CLASS IMPLEMENTATION RWLOCK;
       UnlockAndWakeUpAppropriateWaiters();
    END UnlockWrite;
    
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
-   BEGIN
-      _Lock.Lock();
-      LOOP
-         IF ( Owners >= 0 ) AND ( WriteWaiters = 0 ) THEN // We can enter a read lock if there are only read-locks have been given out and a writer is not trying to get in.  
-            INC( Owners );
-            _Lock.Unlock();
-            RETURN arCompleted;
-
-         ELSIF WaitOnSignal( REF ReadSignal, REF ReadWaiters, Timeout ) = Sync.arTimeout THEN
-            _Lock.Unlock();
-            RETURN arTimeout;
-
-         END;
-      END; // LOOP
-   END LockRead;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE UnlockRead();
-   BEGIN
-      _Lock.Lock();
-      ASSERTLOG( Owners > 0 );
-      DEC( Owners );
-      // stay inside lock
-      UnlockAndWakeUpAppropriateWaiters();
-   END UnlockRead;
-
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
@@ -699,6 +699,7 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
          ASSERTLOG( FALSE );
          RETURN arCannotStart;
       ELSE
+         _Read := FALSE;
          RETURN _OwnedLock^.Lock();
       END;
    END Lock;
@@ -711,6 +712,7 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
          ASSERTLOG( FALSE );
          RETURN arCannotStart;
       ELSE
+         _Read := FALSE;
          RETURN _OwnedLock^.LockTimeout( Timeout );
       END;
    END LockTimeout;
@@ -721,7 +723,6 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
    BEGIN
       IF _OwnedLock = NIL THEN
          ASSERTLOG( FALSE );
-         RETURN;
       ELSE
          _OwnedLock^.Unlock();
       END;
@@ -729,38 +730,88 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Timeout GET : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    BEGIN
-      RETURN _Timeout;
-   END Timeout;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Timeout SET( Value : CARDINAL );
-   BEGIN
-      _Timeout := Value;
-   END Timeout;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC FINALLY AutoLock();
-   BEGIN
-      IF _OwnedLock <> NIL THEN
-         Unlock();
-         Detach();
+      IF _OwnedLock = NIL THEN
+         ASSERTLOG( FALSE );
+         RETURN arCannotStart;
+      ELSIF _OwnedLock^ INHERITS IRLock THEN
+         _Read := TRUE;
+         RETURN PRWLOCK( _OwnedLock )^.LockRead( Timeout );
+      ELSE
+         _Read := FALSE;
+         RETURN _OwnedLock^.LockTimeout( Timeout );
       END;
-   END AutoLock;
+   END LockRead;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Take( REF LockToOwn : ILock ) : TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE UnlockRead();
+   BEGIN
+      IF _OwnedLock = NIL THEN
+         ASSERTLOG( FALSE );
+      ELSIF _Read THEN
+         PRWLOCK( _OwnedLock )^.UnlockRead();
+      ELSE
+         _OwnedLock^.Unlock();
+      END;
+   END UnlockRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Take( REF LockToOwn : ILock; Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
       IF _OwnedLock <> NIL THEN
-         Unlock();
+         IF _Read THEN
+            UnlockRead();
+         ELSE
+            Unlock();
+         END;
       END;
       Attach( REF LockToOwn );
-      RETURN LockTimeout( _Timeout );
+      RETURN LockTimeout( Timeout );
    END Take;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TakeSafe( REF LockToOwn : ILock; CONST FailureDescription : ARRAY OF WCHAR ) : TAsyncResult;
+   VAR
+      Result : TAsyncResult;
+   BEGIN
+      Result := Take( REF LockToOwn, FORSAFETY );
+      IF Result = arTimeout THEN
+         ASSERTLOG( FALSE, FailureDescription );
+      END;
+      RETURN Result;
+   END TakeSafe;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TakeRead( REF LockToOwn : ILock; Timeout : CARDINAL ) : TAsyncResult;
+   BEGIN
+      IF _OwnedLock <> NIL THEN
+         IF _Read THEN
+            UnlockRead();
+         ELSE
+            Unlock();
+         END;
+      END;
+      Attach( REF LockToOwn );
+      RETURN LockRead( Timeout );
+   END TakeRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TakeReadSafe( REF LockToOwn : ILock; CONST FailureDescription : ARRAY OF WCHAR ) : TAsyncResult;
+   VAR
+      Result : TAsyncResult;
+   BEGIN
+      Result := TakeRead( REF LockToOwn, FORSAFETY );
+      IF Result = arTimeout THEN
+         ASSERTLOG( FALSE, FailureDescription );
+      END;
+      RETURN Result;
+   END TakeReadSafe;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -782,9 +833,31 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC FINALLY AutoLock();
+   BEGIN
+      IF _OwnedLock <> NIL THEN
+         IF _Read THEN
+            UnlockRead();
+         ELSE
+            Unlock();
+         END;
+         Detach();
+      END;
+   END AutoLock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE OPERATOR NEW( size : CARDINAL ) : ADDRESS; // the class cannot exist on the heap
+   BEGIN
+      ASSERTLOG( FALSE, L"AutoLock cannot exist on the heap" );
+      RETURN NIL;
+   END NEW;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
   _OwnedLock := NIL;
-  _Timeout := FORSAFETY;
+  _Read := FALSE;
 END AutoLock;
 
 (*================================================================================*)
