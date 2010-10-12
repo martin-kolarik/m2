@@ -21,8 +21,10 @@
    :: opraveno tak, že mimeword se nedělí na více slov a je to OK
 ++ v hlavičce attachmentu ThunderBird ukazuje divné odřádkování
    :: CRLF se před "name" hlavičkou nepřidává
--- přístup na property _Senderu musí být zamykaný
+++ přístup na property _Senderu musí být zamykaný
 
 == Common
 
 -- sjednotit REF Buffer všude, buď automaticky Appendovat, nebo přidat AppendFlag parametr
+
+-- odstranit Lock() bez timeoutu, je zbytečný

@@ -109,6 +109,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
       _Login : StringsO.CString; 
       _Password : StringsO.CString; 
       _LocalName : StringsO.CString;
+      _Lock : Sync.RWLOCK;
       _QueueSignal : Sync.SIGNAL;
       _Queue : msgqueue.CPtrQueue;
       _PoolHandle : threadpool.TPoolHandle := NIL;
@@ -916,28 +917,40 @@ CLASS IMPLEMENTATION CSender;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Dispatcher GET : threadcall.TPIThreadProcedureCallDispatcher;
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
       RETURN _Dispatcher;
    END Dispatcher;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Dispatcher SET( Value : threadcall.TPIThreadProcedureCallDispatcher );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
       _Dispatcher := Value;
    END Dispatcher;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Notifier GET : TPNotifier;
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
       RETURN _Notifier;
    END Notifier;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Notifier SET( Value : TPNotifier );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
       _Notifier := Value;
    END Notifier;
 
@@ -965,95 +978,146 @@ CLASS IMPLEMENTATION CSender;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Server GET : StringsO.CString;
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
       RETURN _Server;
    END Server;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Server SET( CONST Value : StringsO.CString );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
       _Server := Value;
    END Server;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Mailer GET : StringsO.CString;
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
       RETURN _Mailer;
    END Mailer;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Mailer SET( CONST Value : StringsO.CString );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
       _Mailer := Value;
    END Mailer;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Login GET : StringsO.CString; 
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
       RETURN _Login;
    END Login;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Login SET( CONST Value : StringsO.CString );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
       _Login := Value;
    END Login;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Password GET : StringsO.CString; 
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
       RETURN _Password;
    END Password;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Password SET( CONST Value : StringsO.CString );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
       _Password := Value;
    END Password;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY TimeToLive GET : CARDINAL;
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
       RETURN _TimeToLive;
    END TimeToLive;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY TimeToLive SET( Value : CARDINAL );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
       _TimeToLive := Value;
    END TimeToLive;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY GenerateMessageId GET : BOOLEAN;
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
       RETURN _GenerateMessageId;
    END GenerateMessageId;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY GenerateMessageId SET( Value : BOOLEAN );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
+      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
       _GenerateMessageId := Value;
    END GenerateMessageId;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROPERTY LocalName GET : StringsO.CString;
+   VAR
+      s : StringsO.CString;
    BEGIN
-      IF _LocalName.Empty AND NOT dns.GetLocalName( OUT _LocalName ) THEN
-         _LocalName.FromOA( L"scmailer" );
+      IF _LocalName.Empty THEN
+         IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+            ASSERTLOG( FALSE, L"Unable to lock Sender" );
+         END;
+         IF NOT dns.GetLocalName( OUT _LocalName ) THEN
+            _LocalName.FromOA( L"scmailer" );
+         END;
+         s := _LocalName;
+         _Lock.UnlockWrite();
+      ELSE
+         IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
+            ASSERTLOG( FALSE, L"Unable to lock Sender" );
+         END;
+         s := _LocalName;
+         _Lock.UnlockRead();
       END;
-      RETURN _LocalName;
+      RETURN s;
    END LocalName;
 
 (*--------------------------------------------------------------------------------*)
