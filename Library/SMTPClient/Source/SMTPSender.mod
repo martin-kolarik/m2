@@ -21,6 +21,7 @@ IMPORT
    IOO,
    languages,
    languagesO,
+   lists,
    msgqueue,
    netsocket,
    PersonsImpl,
@@ -31,6 +32,7 @@ IMPORT
    StringsO,
    TextReader,
    TextWriter,
+   thread,
    threadpool;
 
 (*================================================================================*)
@@ -70,6 +72,25 @@ END SmtpException;
 (*================================================================================*)
 
 TYPE
+   TPQueueItem = POINTER TO CQueueItem;
+
+CLASS CQueueItem;
+   LOCAL VAR
+      Message : MailMessage.TPMailMessage := NIL;
+      Ownership : BOOLEAN := FALSE;
+      Status : Sync.TAsyncResult := Sync.arInitial;
+      NextSendTime : datetime.DateTime;
+END CQueueItem;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CQueueItem;
+BEGIN
+END CQueueItem;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
    TPSenderImpl = POINTER TO CSender;
 
 CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
@@ -99,7 +120,9 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
       LightWeight : BOOLEAN;
 
    LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase; CONST failedRecipients : MailPerson.IPersons );
-   PRIVATE PROCEDURE DoSend( CONST message : MailMessage.TPMailMessage ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE DoSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE SendMessagesForFirst();
+   PRIVATE PROCEDURE ResendMessagesAndCleanupQueue();
 
    PRIVATE VAR
       _LightWeight : BOOLEAN := TRUE;
@@ -110,8 +133,9 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
       _Password : StringsO.CString; 
       _LocalName : StringsO.CString;
       _Lock : Sync.RWLOCK;
-      _QueueSignal : Sync.SIGNAL;
-      _Queue : msgqueue.CPtrQueue;
+      _IncomingQueueSignal : Sync.SIGNAL;
+      _IncomingQueue : msgqueue.CPtrQueue;
+      _Queue : lists.CPtrList;
       _PoolHandle : threadpool.TPoolHandle := NIL;
       _Pending : CARDINAL := 0; // ILocked
       _Pool : threadpool.CThreadPool;
@@ -130,11 +154,12 @@ CLASS CWorker( threadpool.APoolWorker );
    LOCAL VIRTUAL PROCEDURE Run();
 
    // SELF
-   PUBLIC PROCEDURE Init( sender : TPSenderImpl; CONST message : MailMessage.TPMailMessage );
+   PUBLIC PROCEDURE Init( sender : TPSenderImpl; CONST queueItem : TPQueueItem );
    PUBLIC PROCEDURE DoSend( OUT SmtpPhase : SmtpTools.TSmtpPhase ) : Sync.TAsyncResult;
 
    PRIVATE VAR
       _Sender : TPSenderImpl := NIL;
+      _QueueItem : TPQueueItem := NIL;
       _Message : MailMessage.TPMailMessage := NIL;
       _Connection : rawconnection.ClientTCPConnection;
       _Reader : TextReader.CTextReader;
@@ -199,10 +224,11 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( sender : TPSenderImpl; CONST message : MailMessage.TPMailMessage );
+   PUBLIC PROCEDURE Init( sender : TPSenderImpl; CONST queueItem : TPQueueItem );
    BEGIN
       _Sender := sender;
-      _Message := message;
+      _QueueItem := queueItem;
+      _Message := queueItem^.Message;
    END Init;
 
 (*--------------------------------------------------------------------------------*)
@@ -868,26 +894,18 @@ END CWorker;
 (*================================================================================*)
 
 TYPE
-   TRepeatSpan = ARRAY [0..15] OF CARDINAL;
+   TRepeatSpan = ARRAY [0..7] OF datetime.TJDC;
 
 CONST
    REPEAT_SPAN = TRepeatSpan(
-               5 * 60 * 1000,
-              30 * 60 * 1000,
-             150 * 60 * 1000,
-             270 * 60 * 1000,
-             990 * 60 * 1000,
-            2430 * 60 * 1000,
-            3870 * 60 * 1000,
-            5310 * 60 * 1000,
-        7 * 1440 * 60 * 1000,
-       13 * 1440 * 60 * 1000,
-       26 * 1440 * 60 * 1000,
-       60 * 1440 * 60 * 1000,
-      120 * 1440 * 60 * 1000,
-      240 * 1440 * 60 * 1000,
-      480 * 1440 * 60 * 1000,
-      960 * 1440 * 60 * 1000
+         5 * 60 * 60 * datetime.unitsInSecond,
+        30 * 60 * 60 * datetime.unitsInSecond,
+       150 * 60 * 60 * datetime.unitsInSecond,
+       270 * 60 * 60 * datetime.unitsInSecond,
+       990 * 60 * 60 * datetime.unitsInSecond,
+      2430 * 60 * 60 * datetime.unitsInSecond,
+      3870 * 60 * 60 * datetime.unitsInSecond,
+      5310 * 60 * 60 * datetime.unitsInSecond
    );
 
 (*--------------------------------------------------------------------------------*)
@@ -897,21 +915,12 @@ CLASS IMPLEMENTATION CSender;
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
-   VAR
-      ptr, stopptr : PTR;
    BEGIN
-      IF CARDINAL( Sync.IGet( REF _Pending )) >= Sync.NumberOfProcessors() THEN
-         RETURN;
-      ELSIF NOT _Queue.Peek( OUT ptr ) THEN
-         RETURN;
+      IF Result = Sync.arTimeout THEN
+         ResendMessagesAndCleanupQueue();
+      ELSIF Result = Sync.arCompleted THEN
+         SendMessagesForFirst();
       END;
-
-      stopptr := ptr;
-      REPEAT
-         _Queue.Dequeue( OUT ptr );  
-         
-         _Queue.Peek( OUT ptr );
-      UNTIL ptr = stopptr;
    END OnHandle;
 
 (*--------------------------------------------------------------------------------*)
@@ -957,6 +966,9 @@ CLASS IMPLEMENTATION CSender;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Send( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
+   VAR
+      queueItem : TPQueueItem;
+      Result : Sync.TAsyncResult;
    BEGIN
       IF message^.Sender.Address.Empty THEN
          RETURN Sync.arCannotStart;
@@ -964,15 +976,24 @@ CLASS IMPLEMENTATION CSender;
          RETURN Sync.arCannotStart;
       END;
 
+      NEW( queueItem );
+      queueItem^.Message := message;
+      queueItem^.Ownership := takeOwnership;
+
       IF _LightWeight THEN
-         RETURN DoSend( message );
-      ELSE
+         Result := DoSend( queueItem );
+         DISPOSE( queueItem );
+
+      ELSE // not lightweight, asynchronous
          IF _PoolHandle = NIL THEN
             RETURN Sync.arCannotStart;
          END;
-         _Queue.Enqueue( message OR PTR( takeOwnership ));
-         RETURN Sync.arPending;
+         _IncomingQueue.Enqueue( queueItem ); // enqueue and switch tasks
+         Result := Sync.arPending;
+
       END;
+
+      RETURN Result;
    END Send;
 
 (*--------------------------------------------------------------------------------*)
@@ -1142,27 +1163,101 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoSend( CONST message : MailMessage.TPMailMessage ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE DoSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
    VAR
+      ph : threadpool.TPoolHandle;
+      reported : BOOLEAN;
       result : Sync.TAsyncResult;
       smtpPhase : SmtpTools.TSmtpPhase;
       worker : POINTER TO CWorker;
    BEGIN
-      NEW( worker );
-      worker^.Init( ADR( SELF ), message );
-      IF _LightWeight THEN
+      IF _LightWeight THEN // run directly
+         NEW( worker );
+         worker^.Init( ADR( SELF ), queueItem );
          result := worker^.DoSend( OUT smtpPhase );
+
       ELSE // run it in the pool
-         // result := 
+         IF CARDINAL( Sync.IGet( REF _Pending )) >= Sync.NumberOfProcessors() THEN
+            RETURN Sync.arCannotStart;
+         END;
+         Sync.IInc( REF _Pending );
+         queueItem^.Status := Sync.arPending;
+
+         // run the worker in the pool
+         NEW( worker );
+         worker^.Init( ADR( SELF ), queueItem );
+         IF _Pool.RunWorker( ADR( SELF ), 0, FALSE, worker, FALSE, OUT ph ) THEN
+            result := Sync.arPending;
+         ELSE
+            queueItem^.Status := Sync.arInitial;
+            result := Sync.arCannotStart;
+         END;
+
       END;
+      // cleanup, for _LightWeight the worker is disposed, if the worker was pooled, pool holds own reference
+      worker^.Release();
+
       RETURN result;
    END DoSend;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE SendMessagesForFirst();
+   VAR
+      ptr : PTR;
+      queueItem : TPQueueItem;
+   BEGIN
+      WHILE _IncomingQueue.Dequeue( OUT ptr ) DO
+         queueItem := ptr;
+         // arInitial already set from ctor
+         _Queue.Add( queueItem, 0 );
+         
+         DoSend( queueItem );
+      END; // WHILE
+   END SendMessagesForFirst;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ResendMessagesAndCleanupQueue();
+   VAR
+      now : datetime.DateTime;
+      queueItem : TPQueueItem;
+   BEGIN
+      ASSERT( thread.Current()^.InfoType = thread.infoTypePool );
+      now := datetime.NowUTC();
+
+      _Queue.Reset();
+      WHILE _Queue.MoveNext() DO
+         queueItem := _Queue.Current;
+
+         CASE Sync.TAsyncResult( Sync.IExchg( REF PINTEGER( ADR( queueItem^.Status ))^, INTEGER( Sync.arPending ))) OF
+         | Sync.arPending :
+            CONTINUE;
+         | Sync.arCompleted : // sending has finished, remove the message from the queue
+            _Queue.Remove( queueItem );
+            _Queue.Reset(); // iterate again
+
+            IF queueItem^.Ownership THEN
+               MailMessage.Dispose( REF queueItem^.Message );
+            END;
+            DISPOSE( queueItem );
+
+            CONTINUE;
+         END;
+         IF queueItem^.NextSendTime <= now THEN // time expired, resend the message
+            CONTINUE;
+         END;
+
+         // resend the message
+         DoSend( queueItem );
+      END; // WHILE
+   END ResendMessagesAndCleanupQueue;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
-   _QueueSignal.Init( Sync.stEventAutoreset, L"", FALSE );
-   IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, 60000, FALSE, FALSE, _QueueSignal.RawHandle, OUT _PoolHandle ) THEN
+   _IncomingQueueSignal.Init( Sync.stEventAutoreset, L"", FALSE );
+   IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, 60000, FALSE, FALSE, _IncomingQueueSignal.RawHandle, OUT _PoolHandle ) THEN
       ASSERTLOG( FALSE, L"Unable to start SMTP sender waiting" );
    END;
 FINALLY

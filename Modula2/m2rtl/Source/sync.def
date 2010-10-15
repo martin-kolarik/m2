@@ -18,6 +18,7 @@ TYPE
    TAsyncResult = ( // Sync this with IDLs !!!
       // initial, undefined value
       arUnknown,
+         arInitial = arUnknown,
 
       // successes
       arCompleted, // whole sucessfull completion
