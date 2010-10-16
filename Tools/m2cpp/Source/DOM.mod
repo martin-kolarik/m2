@@ -3733,15 +3733,17 @@ CLASS IMPLEMENTATION CClass;
       G^.OutS( L' { public:' ); G^.EOL();
       
       // output of RTTI information
-      G^.Enter();
-         G^.LineS( L'static const RTTI rtti;' );
-         IF eoVMT IN Options THEN
-            G^.LineS( L'virtual const RTTI* rtti_get() const;' );
-         ELSE
-            G^.LineS( L'const RTTI* rtti_get() const;' );
-         END;
-      G^.Leave();
-      G^.EOL();
+      IF UnitKind <> ukNestedForwardedFrame THEN // frames are internal, they do not have RTTI
+         G^.Enter();
+            G^.LineS( L'static const RTTI rtti;' );
+            IF eoVMT IN Options THEN
+               G^.LineS( L'virtual const RTTI* rtti_get() const;' );
+            ELSE
+               G^.LineS( L'const RTTI* rtti_get() const;' );
+            END;
+         G^.Leave();
+         G^.EOL();
+      END;
 
     #if CPP_ACCESS_MODIFIERS #then
       IF UnitKind = ukNestedForwardedFrame THEN
