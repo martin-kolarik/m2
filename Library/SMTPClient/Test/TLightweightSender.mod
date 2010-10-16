@@ -47,7 +47,7 @@ CLASS IMPLEMENTATION CTest;
 
       //-----
       Host^.StartPhase( L"Create the sender" );
-      IF SmtpSender.New( OUT sender, TRUE ) THEN
+      IF SmtpSender.New( OUT sender, TRUE, FALSE ) THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );

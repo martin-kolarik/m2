@@ -22,8 +22,10 @@
 ++ v hlavičce attachmentu ThunderBird ukazuje divné odřádkování
    :: CRLF se před "name" hlavičkou nepřidává
 ++ přístup na property _Senderu musí být zamykaný
--- pustit worker v poolu
+++ pustit worker v poolu
 -- logging
+++ inicializovat pool
+-- testy pro pooling etc.
 
 == Common
 

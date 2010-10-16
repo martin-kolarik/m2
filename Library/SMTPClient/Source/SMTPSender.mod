@@ -78,7 +78,7 @@ CLASS CQueueItem;
    LOCAL VAR
       Message : MailMessage.TPMailMessage := NIL;
       Ownership : BOOLEAN := FALSE;
-      Status : Sync.TAsyncResult := Sync.arInitial;
+      ProcessingStatus : Sync.TAsyncResult := Sync.arInitial;
       NextSendTime : datetime.DateTime;
 END CQueueItem;
 
@@ -91,12 +91,26 @@ END CQueueItem;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
+   TOnCompletionParameters = RECORD
+      Message : MailMessage.TPMailMessage;
+      Result : Sync.TAsyncResult;
+      SmtpPhase : TSmtpPhase;
+      FailedRecipients : PersonsImpl.TPPersonsImpl;
+   END; // RECORD
+   TPOnCompletionParameters = POINTER TO CONST TOnCompletionParameters;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
    TPSenderImpl = POINTER TO CSender;
 
-CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
+CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedureCallTarget, ISender;
 
    // APoolDelegate
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+
+   // IThreadProcedureCallTarget
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
 
    // ISender
    PUBLIC VIRTUAL PROPERTY
@@ -118,14 +132,16 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
       LocalName : StringsO.CString;
    LOCAL PROPERTY
       LightWeight : BOOLEAN;
+      BypassSmtp : BOOLEAN;
 
-   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase; CONST failedRecipients : MailPerson.IPersons );
+   LOCAL PROCEDURE NotifyCompletion( queueItem : TPQueueItem; Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST failedRecipients : PersonsImpl.CPersonsImpl );
    PRIVATE PROCEDURE DoSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE SendMessagesForFirst();
    PRIVATE PROCEDURE ResendMessagesAndCleanupQueue();
 
    PRIVATE VAR
       _LightWeight : BOOLEAN := TRUE;
+      _BypassSmtp : BOOLEAN := FALSE;
       _GenerateMessageId : BOOLEAN := TRUE;
       _Server : StringsO.CString;
       _Mailer : StringsO.CString;
@@ -140,7 +156,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS ISender;
       _Pending : CARDINAL := 0; // ILocked
       _Pool : threadpool.CThreadPool;
       _PendingSends : CARDINAL := 0;
-      _TimeToLive : CARDINAL := 2*86400; // two days
+      _TimeToLive : datetime.TJDC := 2*86400*datetime.unitsInSecond; // two days
       _Dispatcher : threadcall.TPIThreadProcedureCallDispatcher := NIL;
       _Notifier : TPNotifier := NIL;
 
@@ -155,7 +171,7 @@ CLASS CWorker( threadpool.APoolWorker );
 
    // SELF
    PUBLIC PROCEDURE Init( sender : TPSenderImpl; CONST queueItem : TPQueueItem );
-   PUBLIC PROCEDURE DoSend( OUT SmtpPhase : SmtpTools.TSmtpPhase ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SmtpSend( OUT SmtpPhase : TSmtpPhase ) : Sync.TAsyncResult;
 
    PRIVATE VAR
       _Sender : TPSenderImpl := NIL;
@@ -166,8 +182,6 @@ CLASS CWorker( threadpool.APoolWorker );
       _Writer : TextWriter.CTextWriter;
       _Boundary : StringsO.CString;
       _FailedRecipients : PersonsImpl.CPersonsImpl;
-
-   PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase );
 
    PRIVATE PROCEDURE ReadServer( lastResponseLine : StringsO.TPString ) : SmtpTools.TSmtpResponse THROWS CSmtpException; // lastResponseLine is optional
    PRIVATE PROCEDURE ReadServerLine( OUT SMTPResponse : SmtpTools.TSmtpResponse; OUT Response : StringsO.IString; OUT LastLine : BOOLEAN ) : Sync.TAsyncResult;
@@ -196,9 +210,18 @@ CLASS IMPLEMENTATION CWorker;
    VAR
       recipients : MailPerson.TPPersons;
       Result : Sync.TAsyncResult;
-      SmtpPhase : SmtpTools.TSmtpPhase := SmtpTools.ClientConnect;
+      SmtpPhase : TSmtpPhase := ClientConnect;
    BEGIN
-      Result := DoSend( OUT SmtpPhase );
+      IF _Sender^.BypassSmtp THEN // for test purposes, no SMTP send is done
+         IF datetime.UptimeMS() MOD 2 = 0 THEN
+            Result := Sync.arCompleted;
+         ELSE
+            SmtpPhase := AuthenticationFailed;
+            Result := Sync.arAborted;
+         END;
+      ELSE // normal send
+         Result := SmtpSend( OUT SmtpPhase );
+      END;
 
       IF _Message^.GrabFailedRecipients AND ( Result <> Sync.arCompleted ) THEN // fill failed recipients with all known recipients
          _FailedRecipients.Dispose();
@@ -219,7 +242,7 @@ CLASS IMPLEMENTATION CWorker;
          END;
       END;
 
-      NotifyCompletion( Result, SmtpPhase );
+      _Sender^.NotifyCompletion( _QueueItem, Result, SmtpPhase, _FailedRecipients );
    END Run;
 
 (*--------------------------------------------------------------------------------*)
@@ -233,7 +256,7 @@ CLASS IMPLEMENTATION CWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DoSend( OUT SmtpPhase : SmtpTools.TSmtpPhase ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SmtpSend( OUT SmtpPhase : TSmtpPhase ) : Sync.TAsyncResult;
    VAR
       recipients : MailPerson.TPPersons;
       Result : Sync.TAsyncResult;
@@ -242,20 +265,20 @@ CLASS IMPLEMENTATION CWorker;
    BEGIN
       TRY
          //----------
-         SmtpPhase := SmtpTools.ClientConnect;
+         SmtpPhase := ClientConnect;
          Result := _Connection.OpenS( _Sender^.Server, TRUE, netsocket.FORSAFETY );
          IF Result <> Sync.arCompleted THEN
             RETURN Sync.arAborted;
          END;
 
          //----------
-         SmtpPhase := SmtpTools.ServerConnect;
+         SmtpPhase := ServerConnect;
          IF ReadServer( NIL ) <> SmtpTools.smtpres_220 THEN
             RETURN Sync.arAborted;
          END;
 
          //----------
-         SmtpPhase := SmtpTools.Ehlo;
+         SmtpPhase := Ehlo;
          s.FromOA( L"EHLO " );
          s.Append( _Sender^.LocalName );
          WriteServer( s );
@@ -264,11 +287,11 @@ CLASS IMPLEMENTATION CWorker;
          END;
 
          //----------
-         SmtpPhase := SmtpTools.AuthenticationFailed;
+         SmtpPhase := AuthenticationFailed;
          Authenticate(); // if authentication is not needed, the method does nothing
 
          //----------
-         SmtpPhase := SmtpTools.MailFrom;
+         SmtpPhase := MailFrom;
          s.FromOA( L"MAIL FROM: " );
          s.Append( _Message^.Sender.Address );
          WriteServer( s );
@@ -276,20 +299,20 @@ CLASS IMPLEMENTATION CWorker;
          CASE smtpres OF
          | SmtpTools.smtpres_OK : // OK, success
          | SmtpTools.smtpres_530 : // authentication required
-            SmtpPhase := SmtpTools.AuthenticationRequired;
+            SmtpPhase := AuthenticationRequired;
             RETURN Sync.arFailed;
          ELSE
             RETURN Sync.arAborted;
          END;
 
          //----------
-         SmtpPhase := SmtpTools.RcptTo;
+         SmtpPhase := RcptTo;
          WriteRecipients( _Message^.Recipients );
          WriteRecipients( _Message^.CCs );
          WriteRecipients( _Message^.BCCs );
 
          //----------
-         SmtpPhase := SmtpTools.StartData;
+         SmtpPhase := StartData;
          s.FromOA( L"DATA" );
          WriteServer( s );
          IF ReadServer( NIL ) <> SmtpTools.smtpres_354 THEN
@@ -300,7 +323,7 @@ CLASS IMPLEMENTATION CWorker;
          // headers
          _Connection.BufferedStream^.WMode := IOO.bmCache; // construct the response inside memory, send by chunks
 
-         SmtpPhase := SmtpTools.Headers;
+         SmtpPhase := Headers;
          WriteHeaders();
 
          // header of body, write it always, it emits CRLF after header too -- data can immediately follow
@@ -310,15 +333,15 @@ CLASS IMPLEMENTATION CWorker;
          _Connection.BufferedStream^.CommitWrite(); // and send all buffered now
 
          //----------
-         SmtpPhase := SmtpTools.MessageBody;
+         SmtpPhase := MessageBody;
          WriteStreamBase64( _Message^.Body, TRUE );
 
          //----------
-         SmtpPhase := SmtpTools.MessageAttachments;
+         SmtpPhase := MessageAttachments;
          WriteAttachments();
 
          //----------
-         SmtpPhase := SmtpTools.MessageFinalization;
+         SmtpPhase := MessageFinalization;
          s.FromOA( 13W + 10W + L"." ); // the second CRLF appends WriteServer
          WriteServer( s );
          IF ReadServer( NIL ) <> SmtpTools.smtpres_OK THEN
@@ -326,7 +349,7 @@ CLASS IMPLEMENTATION CWorker;
          END;
 
          //----------
-         SmtpPhase := SmtpTools.ConnectionFinalization;
+         SmtpPhase := ConnectionFinalization;
          s.FromOA( L"QUIT" );
          WriteServer( s );
          IF ReadServer( NIL ) <> SmtpTools.smtpres_221 THEN
@@ -341,14 +364,7 @@ CLASS IMPLEMENTATION CWorker;
       END;
    
       RETURN Sync.arCompleted;
-   END DoSend;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE NotifyCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase );
-   BEGIN
-      // _Sender^.NotifyCompletion( _Message, Result, SmtpPhase );
-   END NotifyCompletion;
+   END SmtpSend;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -925,6 +941,27 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+   VAR
+      onCompletionParameters : TPOnCompletionParameters;
+   BEGIN
+      // there is only one operation
+      IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
+         ASSERTLOG( FALSE, L"Unable to lock when notifying (dispatched)" );
+         RETURN -1;
+      END;
+
+      IF _Notifier <> NIL THEN
+         onCompletionParameters := Parameters[0];
+         _Notifier^.OnCompletion( onCompletionParameters^.Result, onCompletionParameters^.SmtpPhase, onCompletionParameters^.Message, onCompletionParameters^.FailedRecipients );
+      END;
+      
+      _Lock.UnlockRead();
+      RETURN 0;
+   END Invoke;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY Dispatcher GET : threadcall.TPIThreadProcedureCallDispatcher;
    VAR
       lock : Sync.AutoLock;
@@ -1083,7 +1120,7 @@ CLASS IMPLEMENTATION CSender;
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
-      RETURN _TimeToLive;
+      RETURN CARDINAL( _TimeToLive DIV datetime.unitsInSecond );
    END TimeToLive;
 
 (*--------------------------------------------------------------------------------*)
@@ -1093,7 +1130,7 @@ CLASS IMPLEMENTATION CSender;
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
-      _TimeToLive := Value;
+      _TimeToLive := datetime.TJDC( Value ) * datetime.unitsInSecond;
    END TimeToLive;
 
 (*--------------------------------------------------------------------------------*)
@@ -1152,13 +1189,104 @@ CLASS IMPLEMENTATION CSender;
 
    LOCAL PROPERTY LightWeight SET( Value : BOOLEAN );
    BEGIN
+      // does not need to be synchronized, it is set only when constructed
       _LightWeight := Value;
    END LightWeight;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE NotifyCompletion( CONST message : MailMessage.TPMailMessage; Result : Sync.TAsyncResult; SmtpPhase : SmtpTools.TSmtpPhase; CONST failedRecipients : MailPerson.IPersons );
+   LOCAL PROPERTY BypassSmtp GET : BOOLEAN;
    BEGIN
+      RETURN _BypassSmtp;
+   END BypassSmtp;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY BypassSmtp SET( Value : BOOLEAN );
+   BEGIN
+      // does not need to be synchronized, it is set only when constructed
+      _BypassSmtp := Value;
+   END BypassSmtp;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE NotifyCompletion( queueItem : TPQueueItem; Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST failedRecipients : PersonsImpl.CPersonsImpl );
+
+   (*------*)
+
+      PROCEDURE Notify();
+      VAR
+         P : TOnCompletionParameters;
+         p : PTR := ADR( P );
+         recipients : POINTER TO CONST PersonsImpl.CPersonsImpl;
+      BEGIN
+         IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
+            ASSERTLOG( FALSE, L"Unable to lock when notifying (not dispatched)" );
+            RETURN;
+         END;
+
+         IF queueItem^.Message^.GrabFailedRecipients THEN
+            recipients := ADR( failedRecipients );
+         ELSE
+            recipients := NIL;
+         END;
+         IF _Notifier <> NIL THEN
+            IF _Dispatcher = NIL THEN
+               _Notifier^.OnCompletion( Result, SmtpPhase, queueItem^.Message, recipients );
+            ELSE
+               P.Message := queueItem^.Message;
+               P.Result := Result;
+               P.SmtpPhase := SmtpPhase;
+               P.FailedRecipients := recipients;
+               IF _Dispatcher^.DispatchCall( ADR( SELF ), 0, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
+                  ASSERTLOG( FALSE, L"Unable to dispatch notification" );
+               END;
+            END;
+         END;
+
+         _Lock.UnlockRead();
+      END Notify;
+   
+   (*------*)
+
+   VAR
+      difference : datetime.TJDC;
+      i : CARDINAL;
+      newProcessingStatus : Sync.TAsyncResult;
+      now : datetime.DateTime;
+      waitSpan : CARDINAL;
+   BEGIN
+      // until queueItem is in pending state, no sync is required for its members
+      ASSERTLOG( queueItem^.ProcessingStatus = Sync.arPending );
+      now := datetime.NowUTC();
+
+      IF Result = Sync.arCompleted THEN // call callback
+         Notify();
+         newProcessingStatus := Sync.arCompleted;
+
+      ELSE
+         difference := now.Difference( queueItem^.Message^.Created );
+         IF difference > _TimeToLive THEN // if the item is expired, call callback and terminate it
+            Notify();
+            newProcessingStatus := Sync.arTimeout;
+
+         ELSE // leave the message in the queue, set its next sending time
+            waitSpan := HIGH( REPEAT_SPAN );
+            FOR i := 0 TO HIGH( REPEAT_SPAN ) DO
+               IF difference <= REPEAT_SPAN[i] THEN
+                  waitSpan := i;
+                  EXIT;
+               END;
+            END;
+            queueItem^.NextSendTime := now + REPEAT_SPAN[ waitSpan ];
+            newProcessingStatus := Sync.arInitial;
+
+         END;
+      END;
+
+      Sync.IDec( REF _Pending );
+      // allow queueItem manipulation in others threads
+      Sync.IExchg( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^, INTEGER( newProcessingStatus ));
    END NotifyCompletion;
 
 (*--------------------------------------------------------------------------------*)
@@ -1168,20 +1296,20 @@ CLASS IMPLEMENTATION CSender;
       ph : threadpool.TPoolHandle;
       reported : BOOLEAN;
       result : Sync.TAsyncResult;
-      smtpPhase : SmtpTools.TSmtpPhase;
+      smtpPhase : TSmtpPhase;
       worker : POINTER TO CWorker;
    BEGIN
       IF _LightWeight THEN // run directly
          NEW( worker );
          worker^.Init( ADR( SELF ), queueItem );
-         result := worker^.DoSend( OUT smtpPhase );
+         result := worker^.SmtpSend( OUT smtpPhase );
 
       ELSE // run it in the pool
          IF CARDINAL( Sync.IGet( REF _Pending )) >= Sync.NumberOfProcessors() THEN
             RETURN Sync.arCannotStart;
          END;
          Sync.IInc( REF _Pending );
-         queueItem^.Status := Sync.arPending;
+         queueItem^.ProcessingStatus := Sync.arPending;
 
          // run the worker in the pool
          NEW( worker );
@@ -1189,7 +1317,7 @@ CLASS IMPLEMENTATION CSender;
          IF _Pool.RunWorker( ADR( SELF ), 0, FALSE, worker, FALSE, OUT ph ) THEN
             result := Sync.arPending;
          ELSE
-            queueItem^.Status := Sync.arInitial;
+            queueItem^.ProcessingStatus := Sync.arInitial;
             result := Sync.arCannotStart;
          END;
 
@@ -1230,7 +1358,7 @@ CLASS IMPLEMENTATION CSender;
       WHILE _Queue.MoveNext() DO
          queueItem := _Queue.Current;
 
-         CASE Sync.TAsyncResult( Sync.IExchg( REF PINTEGER( ADR( queueItem^.Status ))^, INTEGER( Sync.arPending ))) OF
+         CASE Sync.TAsyncResult( Sync.IExchg( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^, INTEGER( Sync.arPending ))) OF
          | Sync.arPending :
             CONTINUE;
          | Sync.arCompleted : // sending has finished, remove the message from the queue
@@ -1260,7 +1388,13 @@ BEGIN
    IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, 60000, FALSE, FALSE, _IncomingQueueSignal.RawHandle, OUT _PoolHandle ) THEN
       ASSERTLOG( FALSE, L"Unable to start SMTP sender waiting" );
    END;
+
+   _Pool.MinThreads := 2;
+   _Pool.MaxThreads := 32;
+
 FINALLY
+   _Pool.FinishAndWait();
+
    IF _PoolHandle <> NIL THEN
       threadpool.pool()^.Abort( REF _PoolHandle );
    END;
@@ -1268,12 +1402,13 @@ END CSender;
 
 (*================================================================================*)
 
-PROCEDURE New( OUT sender : TPSender; lightWeight : BOOLEAN ) : BOOLEAN; // for lightWeight, synchronous not threaded ISender is created, otherwise timeouting, queued and threaded ISender is used
+PROCEDURE New( OUT sender : TPSender; lightWeight, testNotToUseSmtp : BOOLEAN ) : BOOLEAN; // for lightWeight, synchronous not threaded ISender is created, otherwise timeouting, queued and threaded ISender is used
 VAR
    senderImpl : TPSenderImpl;
 BEGIN
    NEW( senderImpl );
    senderImpl^.LightWeight := lightWeight;
+   senderImpl^.BypassSmtp := testNotToUseSmtp;
    sender := senderImpl;
    RETURN TRUE;
 END New;

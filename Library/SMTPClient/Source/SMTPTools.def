@@ -49,25 +49,6 @@ PROCEDURE StringToResponse( CONST String : StringsO.IString ) : TSmtpResponse;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
-   TSmtpPhase = (
-      ClientConnect,
-      ServerConnect,
-      Ehlo,
-      AuthenticationFailed,
-      AuthenticationRequired,
-      MailFrom,
-      RcptTo,
-      StartData,
-      Headers,
-      MessageBody,
-      MessageAttachments,
-      MessageFinalization,
-      ConnectionFinalization
-   );
-
-(*--------------------------------------------------------------------------------*)
-
-TYPE
    THeaderEncoding = (
       HeaderEncodingPlain,
       HeaderEncodingEscaped,

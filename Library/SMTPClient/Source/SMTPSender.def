@@ -9,12 +9,31 @@ IMPORT
 (*================================================================================*)
 
 TYPE
+   TSmtpPhase = ( // used to signalize where the failure has occured
+      ClientConnect,
+      ServerConnect,
+      Ehlo,
+      AuthenticationFailed,
+      AuthenticationRequired,
+      MailFrom,
+      RcptTo,
+      StartData,
+      Headers,
+      MessageBody,
+      MessageAttachments,
+      MessageFinalization,
+      ConnectionFinalization
+   );
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
    TPNotifier = POINTER TO INotifier;
    TPSender = POINTER TO ISender;
 
 INTERFACE INotifier;
 
-   PROCEDURE OnCompletion( Result : Sync.TAsyncResult; SourceSpecificError : LONGWORD; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
+   PROCEDURE OnCompletion( Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
 
 END INotifier;
 
@@ -38,12 +57,14 @@ INTERFACE ISender;
       Password : StringsO.CString; // can be empty
       TimeToLive : CARDINAL; // seconds, the message will stay in the queue for the time; maximal time is year (3*10E7), default is 2 days
       GenerateMessageId : BOOLEAN; // if set, each message will be given own message id; otherwise the header will not be generated; default TRUE
-      
+
 END ISender;
 
 (*================================================================================*)
 
-PROCEDURE New( OUT sender : TPSender; lightWeight : BOOLEAN ) : BOOLEAN; // for lightWeight, synchronous not threaded ISender is created, otherwise timeouting, queued and threaded ISender is used
+PROCEDURE New( OUT sender : TPSender; lightWeight, testNotToUseSmtp : BOOLEAN ) : BOOLEAN;
+   // for lightWeight, synchronous not threaded ISender is created, otherwise timeouting, queued and threaded ISender is used
+   // for NOT lightWeight AND testNotToSendMessages messages pass throught sender, but they are not sent using SMTP
 PROCEDURE Dispose( REF sender : TPSender );
 
 (*================================================================================*)
