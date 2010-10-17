@@ -24,6 +24,8 @@ CLASS CPtrSyncMap( maps.CPtrMap ); // for enumerating (GetFirst/Last/Next/Prev o
    PUBLIC READONLY PROPERTY
       Lock : Sync.PRWLOCK;
 
+   // TODO: Count, Empty
+
    PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
    PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
@@ -44,6 +46,8 @@ CLASS CStringSyncMap( maps.CStringMap ); // for enumerating (GetFirst/Last/Next/
       
    PUBLIC READONLY PROPERTY
       Lock : Sync.PRWLOCK;
+
+   // TODO: Count, Empty
 
    PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
