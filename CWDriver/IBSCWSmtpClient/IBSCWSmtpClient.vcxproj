@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{1E0EB821-155B-4B83-83F7-A0588ED642B1}</ProjectGuid>
-    <RootNamespace>Network</RootNamespace>
+    <ProjectGuid>{BB5A86DE-7A22-4314-AA65-46FA22F5020F}</ProjectGuid>
+    <RootNamespace>IBSCWSmtpClient</RootNamespace>
     <Keyword>MakeFileProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -35,11 +35,11 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build.$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build\</IntDir>
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
-    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Network.exe</NMakeOutput>
+    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <NMakeIncludeSearchPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
     <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
@@ -50,7 +50,7 @@
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
-    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Network.exe</NMakeOutput>
+    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">IBSCWSmtpClient.exe</NMakeOutput>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <NMakeIncludeSearchPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
     <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
@@ -63,45 +63,12 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="Source\accesslist.mod" />
-    <None Include="Source\dns.mod" />
-    <None Include="Source\inetaddr.mod" />
-    <None Include="Source\netconndispatch.mod" />
-    <None Include="Source\netinit.mod" />
-    <None Include="Source\netpool.mod" />
-    <None Include="Source\netsocket.mod" />
-    <None Include="Source\netsrv.mod" />
-    <None Include="Source\netstream.mod" />
-    <None Include="Source\rawconnection.mod" />
-    <None Include="Source\accesslist.def" />
-    <None Include="Source\connection.def" />
-    <None Include="Source\dns.def" />
-    <None Include="Source\inetaddr.def" />
-    <None Include="Source\netconndispatch.def" />
-    <None Include="Source\netinit.def" />
-    <None Include="Source\netpool.def" />
-    <None Include="Source\netsocket.def" />
-    <None Include="Source\netsrv.def" />
-    <None Include="Source\netstream.def" />
-    <None Include="Source\rawconnection.def" />
-    <None Include="Test\ConnectDisconnect.mod" />
-    <None Include="Test\DNSStress.mod" />
-    <None Include="Test\SendReceive.mod" />
-    <None Include="Test\SendReceiveBufferedStream.mod" />
-    <None Include="Test\SendReceiveStream.mod" />
-    <None Include="Test\SrvEnum.mod" />
-    <None Include="Test\SrvListen.mod" />
-    <None Include="Test\StartupCleanup.mod" />
-    <None Include="Test\TAccessList.mod" />
-    <None Include="Test\TINETADDR.mod" />
-    <None Include="Test\TRawConnection.mod" />
-    <None Include="network.proj" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Threading\Threading.vcxproj">
-      <Project>{97c30a53-92e2-4179-b0a0-a740e2fdd762}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+    <None Include="Source\driver.mod" />
+    <None Include="Source\export.def" />
+    <None Include="Source\Texts.xrs" />
+    <None Include="IBSCWSmtpClient.definition.proj" />
+    <None Include="IBSCWSmtpClient.proj" />
+    <None Include="Install\IBSCWSmtpClient.wxs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

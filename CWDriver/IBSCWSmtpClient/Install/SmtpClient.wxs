@@ -19,13 +19,13 @@
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="Inris" Name="Inris">
-                    <Directory Id="INSTALLDIR" Name="ReAscDrv" LongName="RemoteASCIIDrv">
+                    <Directory Id="INSTALLDIR" Name="IBSSmtp" LongName="IBSCWSmtpClient">
                         <Component Guid="8BE583C9-4D99-443c-9B44-7760B33D7479" Id="Program">
                             <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
                             </File>
                             <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
                             </File>
-                            <File DiskId="1" Id="RemoteASCIIDrv.DLL" Name="ReAscDrv.dll" LongName="RemoteASCIIDrv.dll" Source="RemoteASCIIDrv.dll" Vital="yes">
+                            <File DiskId="1" Id="IBSCWSmtpClient.DLL" Name="IBSSmtp.dll" LongName="IBSCWSmtpClient.dll" Source="IBSSmtp.dll" Vital="yes">
                             </File>
                             <File DiskId="1" Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" Vital="yes">
                             </File>
@@ -35,8 +35,8 @@
                         </Component>
                         <Directory Id="EXAMPLES" Name="Examples">
                             <Component Id="Examples" Guid="93229FA0-7EC6-4190-9345-AC1FA1E8B63C">
-                                <File Id="RemoteASCIIDrv.cw" Name="ReAscDrv.cw" LongName="RemoteASCIIDrv.cw" Source="Examples\RemoteASCIIDrv.cw" DiskId="1" />
-                                <File Id="RemoteASCIIDrv.par" Name="ReAscDrv.par" LongName="RemoteASCIIDrv.par" Source="Examples\RemoteASCIIDrv.par" DiskId="1" />
+                                <File Id="IBSSmtp.cw" Name="ReAscDrv.cw" LongName="IBSSmtp.cw" Source="Examples\IBSSmtp.cw" DiskId="1" />
+                                <File Id="IBSSmtp.par" Name="ReAscDrv.par" LongName="IBSSmtp.par" Source="Examples\IBSSmtp.par" DiskId="1" />
                             </Component>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>

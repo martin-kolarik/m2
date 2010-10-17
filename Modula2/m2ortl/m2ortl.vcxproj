@@ -82,6 +82,12 @@
     <None Include="Test\TDirInfo.mod" />
     <None Include="m2ortl.proj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\m2rtl\m2rtl.vcxproj">
+      <Project>{8995d229-d00f-4f29-b235-14249d391d21}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

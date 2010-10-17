@@ -80,6 +80,20 @@
     <None Include="CWDriver.proj" />
     <None Include="Source\export.def" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ActiveX\ActiveX.vcxproj">
+      <Project>{57418949-0922-46ec-824b-ed7b59897f4c}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\DeviceIO\DeviceIO.vcxproj">
+      <Project>{a60809f1-641f-4ed7-9128-c41e7a6a9580}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\Text\Text.vcxproj">
+      <Project>{6b0cfb37-444c-41f6-a62a-4eeeedb5968c}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

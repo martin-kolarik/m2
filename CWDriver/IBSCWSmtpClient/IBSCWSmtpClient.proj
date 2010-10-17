@@ -7,10 +7,10 @@
         <ComponentType>Product</ComponentType>
 
         <ProductUpgradeGUID>DF087C54-FB1E-429f-A485-7C7FAB551D35</ProductUpgradeGUID>
-        <ProductId>Inris.RemoteASCIIDrv.CWDriver</ProductId>
+        <ProductId>NeNo.IBSSmtpClient.CWDriver</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>1</ProductVersionMinor>
-        <FileDescription>Inris Remote ASCII Driver</FileDescription>
+        <FileDescription>NeNo IBS Smtp Mail Client</FileDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -20,8 +20,8 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;Library\CWDriver"/>
-        <Program Include="RemoteASCIIDrv"/>
+        <Components Include="Component\sccore;Library\CWDriver;Library\SmtpClient"/>
+        <Program Include="driver"/>
         <Messages Include="Texts"/>
     </ItemGroup>
 

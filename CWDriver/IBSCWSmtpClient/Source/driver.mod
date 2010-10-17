@@ -1,4 +1,4 @@
-MODULE RemoteASCIIDrv;
+MODULE driver;
 
 (*# call( o_a_copy => off ) *)
 
@@ -7,54 +7,43 @@ MODULE RemoteASCIIDrv;
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
   
-FROM Exceptions IMPORT
-   TestIfCatched;
-  
-FROM Strings IMPORT
-  CapitalizeW;  
-  
 FROM log IMPORT
   ldTrace, ldDebug, lcError;
 
 IMPORT
    cllv,
-   connection,
-   cphcommon,
    diface,
    drv_def,
-   Exceptions,
-   FIO,
-   FIOO,
-   inetaddr,
    INIFile,
-   IOO,
    iovalue,
-   Languages,
    lec,
    log,
-   msgqueue,
-   netsocket,
-   netsrv,
-   rawconnection,
+   MailMessage,
+   MailPerson,
    Resources,
-   Strings,
+   SmtpClient,
    StringsO,
-   StorageO,
    Sync,
    TextReader,
    Texts;
 
 (*================================================================================*)
 
-CONST // device specific error codes
-   ecRxTimeout = drv_def.ecCommunicationTimeout;
-   ecDeviceStopped = drv_def.ecUser + 1;
-
 CONST
-   logPrefix = L"RemoteASCIIDrv";
+   logPrefix = L"IBSCWSmtpClient";
 
-CONST // driver channels
-   chStatus = 1;
+TYPE
+   TChannel = (
+      chStatus    = 1,
+      chServer    = 100,
+      chLogin     = 101,
+      chPassword  = 102,
+      chSender    = 103,
+      chReplyTo   = 104,
+      chRecipient = 105,
+      chSubject   = 106,
+      chBody      = 107
+   );
 
 (*================================================================================*)
 
@@ -65,111 +54,42 @@ TYPE
       rsRunning,
       rsEventsPending,
       rsValid,
-      rsGlobalKey
+      rsMailPending
    );
    TRStatus = SET OF TRStatusItem;
 
 CONST
    rssUser = TRStatus{rsRunning, rsEventsPending, rsValid};
   
-(*--------------------------------------------------------------------------------*)
-
-CLASS CNotifier( netsocket.ASocketNotifier );
-   Driver : TPDriver;
-   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
-   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnHandle. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
-   PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection; Source : ADDRESS );
-   PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
-END CNotifier;
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS CListener( netsrv.AListener );
-   LOCAL VAR
-      Driver : TPDriver;
-   LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket ); // stStream
-END CListener;
-
 (*================================================================================*)
 
 TYPE
    TEvent = (
-      evNone = 0,
-      evRxError = 1,
-      evTxError = 2,
-      evDataReceived = 3,
-      evDriverError = 4,
-      
-      evConnect = 100,
-      evDisconnect = 101,
-      evAccept = 102
-   );
-   
-   TASCIIError = (
-      erOK = 0,
-      erTxBufferFull = 1018,
-      erRxBufferFull = 1019,
-      erBadQueryProcedureParameter = 1020,
-      erNoData = 1021,
-      erUnknownQueryProcedure = 1022,
-      erNotConnected = 1025,
-      erBadHexString = 1027
+      evUnknown,
+      evSendSucceeded,
+      evSendFailed
    );
 
    TEventData   = RECORD
+                     MailId : CARDINAL;
                      CASE Event : TEvent OF
-                     | evRxError, evTxError :
-                        ASCIIError : TASCIIError;
-                     | evDataReceived :
-                        Length : CARDINAL;
-                     | evConnect, evDisconnect, evAccept :
-                        NetError : CARDINAL;
-                        Local : BOOLEAN;
+                     | evSendSucceeded :
+                        // empty
+                     | evSendFailed :
+                        Result : Sync.TAsyncResult;
+                        Phase : SmtpClient.TSmtpPhase;
                      END; // CASE
                   END; // RECORD
    TPEventData  = POINTER TO TEventData;
 
 (*--------------------------------------------------------------------------------*)
 
-TYPE
-   TConnectionMode = (
-      cmUnknown,
-      cmClient,
-      cmServer
-   );
+CLASS CDriver IMPLEMENTS SmtpClient.INotifier, diface.ICWDriver;
 
-CLASS CDriver IMPLEMENTS diface.ICWDriver;
-   R                : Resources.CResources;
-   RStatus          : TRStatus;
-   Name             : StringsO.CString;
-   Logger           : log.CLogger;
+   // INotifier
+   PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpClient.TSmtpPhase; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
 
-   CallbackId       : ADDRESS;
-   CallbackProc     : drv_def.TDriverCallbackW;
-   RunMode          : CARDINAL;
-   Result           : lec.CResult;
-
-   // driver data
-   Mode             : TConnectionMode := cmUnknown;
-   Notifier         : CNotifier;
-   ClientConnection : rawconnection.ClientTCPConnection;
-   Listener         : CListener;
-   ListeningSocket  : netsocket.TPSSocket := NIL;
-   ServerConnection : rawconnection.ServerTCPConnection;
-   Events           : msgqueue.CPtrQueue;
-   LastError        : TASCIIError;
-   Delimiter        : WCHAR;
-
-   WBuffer          : StorageO.CMemoryBuffer;
-   WIndex           : CARDINAL;
-   RBufferLock      : Sync.LOCK;
-   RBuffer          : StorageO.CMemoryBuffer;
-   RIndex           : CARDINAL;
-   
-   PRIVATE READONLY PROPERTY Connection : connection.TPIConnection;
-   PRIVATE READONLY PROPERTY BufferedStream : IOO.TPBufferedStream;
-
-   // binding to procedural interface
+   // ICWDriver binding to procedural interface
    PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
    PUBLIC VIRTUAL PROCEDURE ReadParameters( CONST ParametersFilePath : StringsO.CString; CONST Logger : log.CLogger ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
@@ -195,74 +115,27 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
 
-   PRIVATE PROCEDURE DecodeASCIIString( REF String : StringsO.CString ) : BOOLEAN;
-   PRIVATE PROCEDURE EncodeASCIIString( REF String : StringsO.CString );
-   PRIVATE PROCEDURE ProcessASCIICommand( CONST Command : StringsO.CString; CONST InValue2 : iovalue.Value; OUT OutValue : iovalue.Value ) : BOOLEAN;
-   PRIVATE PROCEDURE AddEvent( Event : POINTER TO TEventData );
+   // SELF
+   PRIVATE VAR
+      R                : Resources.CResources;
+      RStatus          : TRStatus;
+      Name             : StringsO.CString;
+      Logger           : log.CLogger;
 
-   // callbacks
-   LOCAL PROCEDURE OnConnect( Local : BOOLEAN; Error : CARDINAL );
-   LOCAL PROCEDURE OnDisconnect( Local : BOOLEAN; Error : CARDINAL );
-   LOCAL PROCEDURE OnAccept( Error : CARDINAL );
-   LOCAL PROCEDURE OnDataReceived( Length : CARDINAL );
-   LOCAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection );
-   LOCAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
+      CallbackId       : ADDRESS;
+      CallbackProc     : drv_def.TDriverCallbackW;
+      RunMode          : CARDINAL;
+      Result           : lec.CResult;
+      Events           : msgqueue.CPtrQueue;
+
+      _Sender          : SmtpClient.TPSender;
+      _ReplyTo         : StringsO.CString;
+      _Sender          : StringsO.CString;
+      _Recipient       : StringsO.CString;
+      _Subject         : StringsO.CString;
+      _Body            : StringsO.CString;
+
 END CDriver;
-
-(*================================================================================*)
-
-CLASS IMPLEMENTATION CNotifier;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
-   BEGIN
-      Driver^.OnConnect( Local, Result );
-   END OnConnect;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnHandle. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
-   BEGIN
-      Driver^.OnDisconnect( Local, Result );
-   END OnDisconnect;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
-   BEGIN
-      Driver^.OnDataReceived( Length );
-   END OnReadable;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection; Source : ADDRESS );
-   BEGIN
-      Driver^.OnFlowPossible( Direction );
-   END OnFlowPossible;
-
-(*--------------------------------------------------------------------------------*)
-
-BEGIN
-   Driver := NIL;
-END CNotifier;
-
-(*================================================================================*)
-
-CLASS IMPLEMENTATION CListener;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
-   BEGIN
-      Driver^.OnListen( ServerSocket );
-   END OnListen;
-
-(*--------------------------------------------------------------------------------*)
-
-BEGIN
-   Driver := NIL;
-END CListener;
 
 (*================================================================================*)
 
@@ -270,25 +143,9 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROPERTY Connection GET : connection.TPIConnection;
+   PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpClient.TSmtpPhase; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
    BEGIN
-      IF Mode = cmClient THEN
-         RETURN ADR( ClientConnection );
-      ELSE
-         RETURN ADR( ServerConnection );
-      END;
-   END Connection;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROPERTY BufferedStream GET : IOO.TPBufferedStream;
-   BEGIN
-      IF Mode = cmClient THEN
-         RETURN ClientConnection.BufferedStream;
-      ELSE
-         RETURN ServerConnection.BufferedStream;
-      END;
-   END BufferedStream;
+   END OnMailMessageCompletion;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -306,7 +163,7 @@ CLASS IMPLEMENTATION CDriver;
    LABEL
       Fail;
    CONST
-      snDevice = L'RemoteASCIIDrv';
+      snDevice = L'IBSCWSmtpClient';
 
   //----------
   
@@ -826,276 +683,6 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DecodeASCIIString( REF String : StringsO.CString ) : BOOLEAN;
-   VAR
-      byte : BYTE;
-      c, i, l : INTEGER;
-   BEGIN
-      l := String.Length;
-      i := 0;
-      WHILE i <= l-3 DO // If escape character expects something more, it still cannot be read. Concurrently this allows safe accessing index i+1, i+2 of String in the while loop.
-         IF String[i] = L"~" THEN
-            IF String[i+1] = L"~" THEN // reduce ~ escape
-               String.Remove( i, 1 );
-            ELSE // reduce time value
-               String.Remove( i, 3 );
-            END;
-            l := String.Length;
-         ELSIF String[i] = L"#" THEN
-            IF String[i+1] = L"#" THEN // reduce # escapce
-               String.Remove( i, 1 );
-            ELSIF cphcommon.FromHex( OA( 1, String.Data@[2*(i+1)] ), OUT byte, OUT c ) THEN // reduce hexadecimal character
-               String.Remove( i, 2 );
-               String[i] := WCHAR( byte );
-            ELSE
-               RETURN FALSE;
-            END;
-            l := String.Length;
-         END;
-         INC( i );
-      END; // WHILE
-
-      RETURN TRUE;
-   END DecodeASCIIString;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE EncodeASCIIString( REF String : StringsO.CString );
-   VAR
-      code : ARRAY [0..1] OF WCHAR;
-      encoded : StringsO.CString;
-      ei, i : INTEGER;
-   BEGIN
-      encoded.Size := String.Length + 16;
-      ei := 0;
-      FOR i := 0 TO String.Length-1 DO
-         IF ( String[i] >= L" " ) AND ( String[i] <> L"#" ) AND ( String[i] <= 127W ) THEN
-            encoded[ei] := String[i];
-            INC( ei );
-         ELSE
-            cphcommon.ToHex( BYTE( String[i] ), OUT code ); CAP( code );
-            encoded[ei] := L"#";
-            encoded.Length := ei+1;
-            encoded.AppendOA( code );
-            ei := encoded.Length;
-         END;
-      END;
-      encoded.Length := ei;
-      String := encoded;
-   END EncodeASCIIString;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE ProcessASCIICommand( CONST Command : StringsO.CString; CONST InValue2 : iovalue.Value; OUT OutValue : iovalue.Value ) : BOOLEAN;
-   VAR
-      b : BOOLEAN;
-      c : CARDINAL;
-      empty, s : StringsO.CString;
-      Event : POINTER TO TEventData;
-   BEGIN
-      IF Command.EqualsOA( L"GetResult" ) THEN
-         OutValue.Integer := INTEGER( LastError );
-      
-      ELSIF Command.EqualsOA( L"GetExcStatus" ) THEN
-         IF Events.Peek( OUT Event ) THEN
-            OutValue.Integer := INTEGER( Event^.Event );
-         ELSE
-            OutValue.Integer := INTEGER( evNone );
-         END;
-
-         LastError := erOK;
-      
-      ELSIF Command.EqualsOA( L"GetErrorCode" ) THEN
-         IF Events.Peek( OUT Event ) THEN
-            CASE Event^.Event OF
-            | evRxError, evTxError, evDriverError :
-               OutValue.Integer := INTEGER( Event^.ASCIIError );
-            | evConnect, evDisconnect, evAccept :
-               OutValue.Integer := INTEGER( Event^.NetError );
-            ELSE
-               OutValue.Integer := 0;
-            END;
-         ELSE
-            OutValue.Integer := 0;
-         END;
-
-         LastError := erOK;
-      
-      ELSIF Command.EqualsOA( L"EnableException" ) THEN
-         c := Events.Count;
-         IF c > 0 THEN
-            Events.Dequeue( OUT Event );
-            IF Event^.Event = evDisconnect THEN /// duplicate to another event queue reading
-               Connection^.Close();
-               IF Mode = cmClient THEN
-                  Mode := cmUnknown;
-               END;
-            END;
-            DISPOSE( Event );
-
-            IF c > 1 THEN
-               CallbackProc( CallbackId, drv_def.dcfException, NIL );
-            END;
-         END;
-
-         LastError := erOK;
-      
-      ELSIF Command.EqualsOA( L"GetRxCount" ) THEN
-         RBufferLock.Lock();
-         OutValue.Integer := RBuffer.Length;
-         RBufferLock.Unlock();
-
-         LastError := erOK;
-      
-      ELSIF Command.EqualsOA( L"ClearRxQueue" ) THEN
-         RBufferLock.Lock();
-         RBuffer.Clear();
-         RBufferLock.Unlock();
-         RIndex := 0;         
-
-         LastError := erOK;
-
-      ELSIF Command.EqualsOA( L"PopRxQueue" ) THEN
-         c := InValue2.Integer;
-      
-         RBufferLock.Lock();
-         RBuffer.RemoveStart( c );
-         RBufferLock.Unlock();
-
-         IF RIndex > c THEN
-            DEC( RIndex, c );
-         ELSE
-            RIndex := 0;
-         END;
-         LastError := erOK;
-
-      ELSIF Command.EqualsOA( L"GetCharSeq" ) THEN
-         RBufferLock.Lock();
-         b := RIndex < RBuffer.Length;
-         IF b THEN
-            s.Size := 1;
-            s.Length := 1;
-            TRY
-               s[0] := WCHAR( RBuffer[RIndex] );
-            CATCH : Exceptions.CModula2Exception DO
-               s.Length := 0;
-            END;
-         END;
-         RBufferLock.Unlock();
-
-         IF b THEN
-            IF InValue2.Type = iovalue.vtString THEN // OutValue is paired with InValue2, so output should be string
-               EncodeASCIIString( REF s );
-               OutValue.String := s;
-            ELSE // OutValue is not string, assume it is number and assign ORD of found character
-               OutValue.Integer := ORD( s[0] );
-            END;
-            INC( RIndex );
-
-            LastError := erOK;
-         ELSE
-            // NEW( Event ); // error
-            // Event^.Event := evRxError;
-            // Event^.ASCIIError := erNoData;
-            // AddEvent( Event );
-
-            LastError := erNoData;
-         END;
-
-      ELSIF Command.EqualsOA( L"SetRxIndex" ) THEN
-         RIndex := InValue2.Integer;
-         LastError := erOK;
-      
-      ELSIF Command.EqualsOA( L"GetTxCount" ) THEN
-         OutValue.Integer := WBuffer.Length;
-         LastError := erOK;
-
-      ELSIF Command.EqualsOA( L"ClearTxQueue" ) THEN
-         WBuffer.Clear();
-         WIndex := 0;
-         LastError := erOK;
-      
-      ELSIF Command.EqualsOA( L"PutCharSeq" ) THEN
-         IF WIndex >= WBuffer.Size THEN
-            // NEW( Event ); // error
-            // Event^.Event := evTxError;
-            // Event^.ASCIIError := erTxBufferFull;
-            // AddEvent( Event );
-
-            LastError := erTxBufferFull;
-
-         ELSIF InValue2.Type = iovalue.vtString THEN
-            s := InValue2.String;
-            IF DecodeASCIIString( REF s ) THEN
-               LastError := erOK;
-            ELSE
-               // NEW( Event ); // error
-               // Event^.Event := evTxError;
-               // Event^.ASCIIError := erBadHexString;
-               // AddEvent( Event );
-
-               LastError := erBadHexString;
-            END;
-
-         ELSE // assume InValue2 is number = ordinal number of character
-            s.FromOA( WCHAR( InValue2.Integer ));
-
-            LastError := erOK;
-         END;
-             
-         IF LastError = erOK THEN
-            WBuffer.Length := MAX2( WBuffer.Length, WIndex+1 );
-            TRY
-               WBuffer[WIndex] := BYTE( s[0] );
-            CATCH : Exceptions.CModula2Exception DO
-               /// intentionaly do nothing
-            END;
-            INC( WIndex );
-         END;
-
-      ELSIF Command.EqualsOA( L"SetTxIndex" ) THEN
-         WIndex := InValue2.Integer;
-         LastError := erOK;
-      
-      ELSIF Command.EqualsOA( L"SendAsync" ) THEN
-         WBuffer.Length := InValue2.Integer;
-
-         IF NOT Connection^.Connected THEN
-            // NEW( Event ); // error
-            // Event^.Event := evTxError;
-            // Event^.ASCIIError := erNotConnected;
-            // AddEvent( Event );
-
-            LastError := erNotConnected;
-         ELSIF WBuffer.Length > BufferedStream^.WriteSpace THEN
-            // NEW( Event ); // error
-            // Event^.Event := evTxError;
-            // Event^.ASCIIError := erTxBufferFull;
-            // AddEvent( Event );
-
-            LastError := erTxBufferFull;
-         ELSE
-            Connection^.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
-            WBuffer.RemoveStart( c );
-
-            LastError := erOK;
-         END;
-      
-      ELSE
-         // NEW( Event ); // error
-         // Event^.Event := evDriverError;
-         // Event^.ASCIIError := erUnknownQueryProcedure;
-         // AddEvent( Event );
-
-         LastError := erUnknownQueryProcedure;
-
-         RETURN FALSE;
-      END;
-      RETURN TRUE;
-   END ProcessASCIICommand;
-
-(*--------------------------------------------------------------------------------*)
-
    PRIVATE PROCEDURE AddEvent( Event : POINTER TO TEventData );
    BEGIN
       Events.Enqueue( Event );
@@ -1109,128 +696,8 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE OnConnect( Local : BOOLEAN; Error : CARDINAL );
-   VAR
-      Event : POINTER TO TEventData;
-   BEGIN
-      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evConnect ", CARDINAL( Error ));
-
-      NEW( Event );
-      Event^.Event := evConnect;
-      Event^.NetError := Error;
-      Event^.Local := Local;
-
-      AddEvent( Event );
-
-      BufferedStream^.StartReading(); // start advise reading
-   END OnConnect;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE OnDisconnect( Local : BOOLEAN; Error : CARDINAL );
-   VAR
-      Event : POINTER TO TEventData;
-   BEGIN
-      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDisconnect", CARDINAL( Error ));
-
-      NEW( Event );
-      Event^.Event := evDisconnect;
-      Event^.NetError := Error;
-      Event^.Local := Local;
-
-      AddEvent( Event );
-   END OnDisconnect;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE OnAccept( Error : CARDINAL );
-   VAR
-      Event : POINTER TO TEventData;
-   BEGIN
-      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evAccept ", CARDINAL( Error ));
-
-      NEW( Event );
-      Event^.Event := evAccept;
-      Event^.NetError := Error;
-
-      AddEvent( Event );
-
-      BufferedStream^.StartReading(); // start advise reading
-   END OnAccept;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE OnDataReceived( Length : CARDINAL );
-   VAR
-      Event : POINTER TO TEventData;
-      l : CARDINAL;
-   BEGIN
-      RBufferLock.Lock();
-
-      IF RBuffer.Length + Length > RBuffer.Size THEN
-         Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evRxError", CARDINAL( erRxBufferFull ));
-
-         NEW( Event );
-         Event^.Event := evRxError;
-         Event^.ASCIIError := erRxBufferFull;
-         AddEvent( Event );
-      END;
-      Connection^.Stream^.ReadBuffer( RBuffer.Size - RBuffer.Length, REF RBuffer, 0 ); // read only what is immediatelly possible
-      l := RBuffer.Length;
-
-      RBufferLock.Unlock();
-
-      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDataReceived bytes ", Length );
-
-      NEW( Event );
-      Event^.Event := evDataReceived;
-      Event^.Length := l;
-      AddEvent( Event );
-
-      BufferedStream^.StartReading(); // continue with advised reading
-   END OnDataReceived;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection );
-   VAR
-      Event : POINTER TO TEventData;
-   BEGIN
-      IF Direction = IOO.dirWrite THEN
-         Logger.LogS( ldDebug, 0, logPrefix, L"Event.Add evTxError OK -- tx allowed" );
-
-         NEW( Event );
-         Event^.Event := evTxError;
-         Event^.ASCIIError := erOK;
-         AddEvent( Event );
-      END;
-   END OnFlowPossible;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
-   VAR
-      error : CARDINAL;
-      result : Sync.TAsyncResult;
-      socket : netsocket.TPDSocket;
-   BEGIN
-      IF ServerConnection.Connected THEN
-         Logger.LogS( dldDebug, logPrefix, L"OnListen when connected" );
-         NEW( socket );
-         socket^.Accept( ServerSocket, OUT error );
-         socket^.Disconnect( TRUE, netsocket.FORSAFETY );
-         socket^.Release();
-      ELSE
-         result := ServerConnection.Accept( ServerSocket, FALSE, 0 );
-         IF result <> Sync.arCompleted THEN // log error
-            Logger.LogSC( dlcError, logPrefix, L"OnListen failed:", CARDINAL( result ));
-         END;
-      END;
-   END OnListen;
-
-(*--------------------------------------------------------------------------------*)
-
 BEGIN
+   // TODO
    R.LoadRES2( EMITW( %dll ), L'RemoteASCIIDrv.Texts' );
    R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
    RStatus := TRStatus{rsValid};
@@ -1238,25 +705,8 @@ BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
    
-   ClientConnection.Dispatcher := NIL;
-   ClientConnection.Notifier := ADR( Notifier );
-   ClientConnection.BufferedStream^.BufferSize := 16384;
-
-   ServerConnection.Dispatcher := NIL;
-   ServerConnection.Notifier := ADR( Notifier );
-   ServerConnection.BufferedStream^.BufferSize := 16384;
-
-   Notifier.Driver := ADR( SELF );
-   Listener.Driver := ADR( SELF );
-
    Events.Produce := Sync.CreateSignal( Sync.stEventAutoreset, L"", TRUE );
    LastError := erOK;
-
-   Delimiter := L" ";
-   WBuffer.Size := 16384;
-   WIndex := 0;
-   RBuffer.Size := 16384;
-   RIndex := 0;
 FINALLY
    Sync.DeleteSignal( REF Events.Produce );
 END CDriver;
@@ -1309,7 +759,7 @@ CLASS IMPLEMENTATION CFactory;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   R.LoadRES2( EMITW( %dll ), L'RemoteASCIIDrv.Texts' );
+   R.LoadRES2( EMITW( %dll ), L'IBSCWSmtpClient.Texts' );
    R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
 END CFactory;
 
@@ -1322,4 +772,4 @@ VAR
 
 BEGIN
    diface.RegisterFactory( ADR( Factory ));
-END RemoteASCIIDrv.
+END driver.
