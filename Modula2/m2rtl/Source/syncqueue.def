@@ -60,7 +60,7 @@ TYPE
    TPQuadwordQueue = POINTER TO QuadwordQueue;
 
 CLASS QuadwordQueue( RingBuffer ); // Size must not be < 8, Consume and Produce event should not be set, they are handled internally
-   PUBLIC PROCEDURE Enqueue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // if Wait is FALSE, alwasy is possible to wait in caller code
+   PUBLIC PROCEDURE Enqueue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // if Wait is FALSE, always is possible to wait in caller code
    PUBLIC PROCEDURE Dequeue( OUT Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
 END QuadwordQueue;
 

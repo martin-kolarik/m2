@@ -316,42 +316,6 @@ CLASS OneToOneQueue;
 END OneToOneQueue;
 
 (*--------------------------------------------------------------------------------*)
-// WriteBuffer: multiple producers, multiple clients GetItem, indexes turn around Size --
-// a modification of Reader/Writer lock which erases old items on write and does not consume anything on read
-
-TYPE
-   TPWriteBuffer = POINTER TO WriteBuffer;
-   
-CLASS WriteBuffer; // in-process only
-  INTERNAL READONLY VAR
-    _Head : CARDINAL;
-    _Tail : CARDINAL;
-    _Lock : RWLOCK;
-  INTERNAL VAR
-    _Size : CARDINAL := 256;
-  PUBLIC READONLY PROPERTY
-    Count : CARDINAL;
-    Empty : BOOLEAN;
-    Full : BOOLEAN;
-  PUBLIC VIRTUAL PROPERTY
-    Size : CARDINAL;
-
-  // common
-  PUBLIC PROCEDURE Clear();
-
-  // writers
-  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN; // Overwrite in case of fill buffer rewrites first item, NOT Overwrite in that case returns FALSE
-  PUBLIC PROCEDURE CommitProducing();
-
-  // readers
-  PUBLIC PROCEDURE StartReading( Index : CARDINAL; OUT ReadFrom : CARDINAL ) : BOOLEAN;
-  PUBLIC PROCEDURE CommitReading();
-
-  // helper
-  INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
-END WriteBuffer;
-
-(*--------------------------------------------------------------------------------*)
 // NToOneQueue: multiple producers, single consumer, single length (1) blocks
 
 TYPE
@@ -390,6 +354,41 @@ ABSTRACT CLASS NToOneQueue;
   // helper
   INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
 END NToOneQueue;
+
+(*--------------------------------------------------------------------------------*)
+// WriteBuffer: multiple producers, indexes turn around Size, single length (1) blocks
+
+TYPE
+   TPWriteBuffer = POINTER TO WriteBuffer;
+   
+CLASS WriteBuffer; // in-process only
+  INTERNAL READONLY VAR
+    _Head : CARDINAL;
+    _Tail : CARDINAL;
+    _Lock : RWLOCK;
+  INTERNAL VAR
+    _Size : CARDINAL := 256;
+  PUBLIC READONLY PROPERTY
+    Count : CARDINAL;
+    Empty : BOOLEAN;
+    Full : BOOLEAN;
+  PUBLIC VIRTUAL PROPERTY
+    Size : CARDINAL;
+
+  // common
+  PUBLIC PROCEDURE Clear();
+
+  // writers
+  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN; // Overwrite in case of fill buffer rewrites first item, NOT Overwrite in that case returns FALSE
+  PUBLIC PROCEDURE CommitProducing();
+
+  // readers
+  PUBLIC PROCEDURE StartReading( Index : CARDINAL; OUT ReadFrom : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitReading();
+
+  // helper
+  INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
+END WriteBuffer;
 
 (*================================================================================*)
 

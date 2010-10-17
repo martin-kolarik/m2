@@ -30,6 +30,7 @@ IMPORT
    StorageO,
    Strings,
    StringsO,
+   synclists,
    TextReader,
    TextWriter,
    thread,
@@ -108,6 +109,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
 
    // APoolDelegate
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // IThreadProcedureCallTarget
    PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
@@ -127,6 +129,10 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
       TimeToLive : CARDINAL; // milliseconds, the message will stay in the queue for the time
       GenerateMessageId : BOOLEAN;
 
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Count : CARDINAL;
+      Empty : BOOLEAN;
+
    // SELF
    LOCAL READONLY PROPERTY
       LocalName : StringsO.CString;
@@ -135,11 +141,11 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
       BypassSmtp : BOOLEAN;
 
    LOCAL PROCEDURE NotifyCompletion( queueItem : TPQueueItem; Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST failedRecipients : PersonsImpl.CPersonsImpl );
-   PRIVATE PROCEDURE DoSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
-   PRIVATE PROCEDURE SendMessagesForFirst();
-   PRIVATE PROCEDURE ResendMessagesAndCleanupQueue();
+   PRIVATE PROCEDURE DispatchSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE ProcessQueue();
 
    PRIVATE VAR
+      _ApiLock : Sync.RWLOCK;
       _LightWeight : BOOLEAN := TRUE;
       _BypassSmtp : BOOLEAN := FALSE;
       _GenerateMessageId : BOOLEAN := TRUE;
@@ -148,17 +154,18 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
       _Login : StringsO.CString; 
       _Password : StringsO.CString; 
       _LocalName : StringsO.CString;
-      _Lock : Sync.RWLOCK;
-      _IncomingQueueSignal : Sync.SIGNAL;
-      _IncomingQueue : msgqueue.CPtrQueue;
-      _Queue : lists.CPtrList;
-      _PoolHandle : threadpool.TPoolHandle := NIL;
-      _Pending : CARDINAL := 0; // ILocked
-      _Pool : threadpool.CThreadPool;
-      _PendingSends : CARDINAL := 0;
       _TimeToLive : datetime.TJDC := 2*86400*datetime.unitsInSecond; // two days
       _Dispatcher : threadcall.TPIThreadProcedureCallDispatcher := NIL;
       _Notifier : TPNotifier := NIL;
+
+      _QueueLength : CARDINAL := 1000;
+      _QueueSignal : Sync.SIGNAL;
+      _Queue : synclists.CPtrSyncList;
+      _PoolQueueHandle : threadpool.TPoolHandle := NIL;
+      _PoolTimeoutHandle : threadpool.TPoolHandle := NIL;
+
+      _PendingInPool : CARDINAL := 0; // ILocked
+      _Pool : threadpool.CThreadPool;
 
 END CSender;
 
@@ -212,16 +219,7 @@ CLASS IMPLEMENTATION CWorker;
       Result : Sync.TAsyncResult;
       SmtpPhase : TSmtpPhase := ClientConnect;
    BEGIN
-      IF _Sender^.BypassSmtp THEN // for test purposes, no SMTP send is done
-         IF datetime.UptimeMS() MOD 2 = 0 THEN
-            Result := Sync.arCompleted;
-         ELSE
-            SmtpPhase := AuthenticationFailed;
-            Result := Sync.arAborted;
-         END;
-      ELSE // normal send
-         Result := SmtpSend( OUT SmtpPhase );
-      END;
+      Result := SmtpSend( OUT SmtpPhase );
 
       IF _Message^.GrabFailedRecipients AND ( Result <> Sync.arCompleted ) THEN // fill failed recipients with all known recipients
          _FailedRecipients.Dispose();
@@ -263,6 +261,17 @@ CLASS IMPLEMENTATION CWorker;
       s : StringsO.CString;
       smtpres : SmtpTools.TSmtpResponse;
    BEGIN
+
+      IF _Sender^.BypassSmtp THEN // for test purposes, no SMTP send is done
+         RETURN Sync.arCompleted;
+         IF datetime.UptimeMS() MOD 10 < 6 THEN // 60 % for the completion
+            RETURN Sync.arCompleted;
+         ELSE
+            SmtpPhase := AuthenticationFailed;
+            RETURN Sync.arAborted;
+         END;
+      END;
+
       TRY
          //----------
          SmtpPhase := ClientConnect;
@@ -932,31 +941,36 @@ CLASS IMPLEMENTATION CSender;
 
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
-      IF Result = Sync.arTimeout THEN
-         ResendMessagesAndCleanupQueue();
-      ELSIF Result = Sync.arCompleted THEN
-         SendMessagesForFirst();
+      IF Result = Sync.arCompleted THEN
+         ProcessQueue();
       END;
    END OnHandle;
 
 (*--------------------------------------------------------------------------------*)
 
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   BEGIN
+      IF Result = Sync.arCompleted THEN
+         _QueueSignal.Signal();
+      END;
+   END OnTimeout;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
    VAR
+      lock : Sync.AutoLock;
       onCompletionParameters : TPOnCompletionParameters;
    BEGIN
-      // there is only one operation
-      IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
-         ASSERTLOG( FALSE, L"Unable to lock when notifying (dispatched)" );
+      IF lock.TakeReadSafe( REF _ApiLock, L"Unable to lock when notifying (dispatched)" ) <> Sync.arCompleted THEN;
          RETURN -1;
       END;
 
       IF _Notifier <> NIL THEN
          onCompletionParameters := Parameters[0];
-         _Notifier^.OnCompletion( onCompletionParameters^.Result, onCompletionParameters^.SmtpPhase, onCompletionParameters^.Message, onCompletionParameters^.FailedRecipients );
+         _Notifier^.OnMailMessageCompletion( onCompletionParameters^.Result, onCompletionParameters^.SmtpPhase, onCompletionParameters^.Message, onCompletionParameters^.FailedRecipients );
       END;
       
-      _Lock.UnlockRead();
       RETURN 0;
    END Invoke;
 
@@ -966,7 +980,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
       RETURN _Dispatcher;
    END Dispatcher;
 
@@ -976,7 +990,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
       _Dispatcher := Value;
    END Dispatcher;
 
@@ -986,7 +1000,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
       RETURN _Notifier;
    END Notifier;
 
@@ -996,7 +1010,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
       _Notifier := Value;
    END Notifier;
 
@@ -1011,6 +1025,8 @@ CLASS IMPLEMENTATION CSender;
          RETURN Sync.arCannotStart;
       ELSIF message^.Recipients^.Empty AND message^.CCs^.Empty AND message^.BCCs^.Empty THEN
          RETURN Sync.arCannotStart;
+      ELSIF _Queue.Count > _QueueLength THEN
+         RETURN Sync.arBusy;
       END;
 
       NEW( queueItem );
@@ -1018,14 +1034,15 @@ CLASS IMPLEMENTATION CSender;
       queueItem^.Ownership := takeOwnership;
 
       IF _LightWeight THEN
-         Result := DoSend( queueItem );
+         Result := DispatchSend( queueItem );
          DISPOSE( queueItem );
 
       ELSE // not lightweight, asynchronous
-         IF _PoolHandle = NIL THEN
+         IF _PoolQueueHandle = NIL THEN
             RETURN Sync.arCannotStart;
          END;
-         _IncomingQueue.Enqueue( queueItem ); // enqueue and switch tasks
+         _Queue.Enqueue( queueItem, 0 ); // enqueue and switch tasks
+         _QueueSignal.Signal();
          Result := Sync.arPending;
 
       END;
@@ -1039,7 +1056,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
       RETURN _Server;
    END Server;
 
@@ -1049,7 +1066,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
       _Server := Value;
    END Server;
 
@@ -1059,7 +1076,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
       RETURN _Mailer;
    END Mailer;
 
@@ -1069,7 +1086,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
       _Mailer := Value;
    END Mailer;
 
@@ -1079,7 +1096,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
       RETURN _Login;
    END Login;
 
@@ -1089,7 +1106,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
       _Login := Value;
    END Login;
 
@@ -1099,7 +1116,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
       RETURN _Password;
    END Password;
 
@@ -1109,7 +1126,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
       _Password := Value;
    END Password;
 
@@ -1119,7 +1136,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
       RETURN CARDINAL( _TimeToLive DIV datetime.unitsInSecond );
    END TimeToLive;
 
@@ -1129,7 +1146,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
       _TimeToLive := datetime.TJDC( Value ) * datetime.unitsInSecond;
    END TimeToLive;
 
@@ -1139,7 +1156,7 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeReadSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
       RETURN _GenerateMessageId;
    END GenerateMessageId;
 
@@ -1149,9 +1166,23 @@ CLASS IMPLEMENTATION CSender;
    VAR
       lock : Sync.AutoLock;
    BEGIN
-      lock.TakeSafe( REF _Lock, L"Unable to lock Sender" );
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
       _GenerateMessageId := Value;
    END GenerateMessageId;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Count GET : CARDINAL;
+   BEGIN
+      RETURN _Queue.Count;
+   END Count;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Empty GET : BOOLEAN;
+   BEGIN
+      RETURN _Queue.Empty;
+   END Empty;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1160,20 +1191,20 @@ CLASS IMPLEMENTATION CSender;
       s : StringsO.CString;
    BEGIN
       IF _LocalName.Empty THEN
-         IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF _ApiLock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
             ASSERTLOG( FALSE, L"Unable to lock Sender" );
          END;
          IF NOT dns.GetLocalName( OUT _LocalName ) THEN
             _LocalName.FromOA( L"scmailer" );
          END;
          s := _LocalName;
-         _Lock.UnlockWrite();
+         _ApiLock.UnlockWrite();
       ELSE
-         IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF _ApiLock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
             ASSERTLOG( FALSE, L"Unable to lock Sender" );
          END;
          s := _LocalName;
-         _Lock.UnlockRead();
+         _ApiLock.UnlockRead();
       END;
       RETURN s;
    END LocalName;
@@ -1216,12 +1247,12 @@ CLASS IMPLEMENTATION CSender;
 
       PROCEDURE Notify();
       VAR
+         lock : Sync.AutoLock;
          P : TOnCompletionParameters;
          p : PTR := ADR( P );
          recipients : POINTER TO CONST PersonsImpl.CPersonsImpl;
       BEGIN
-         IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
-            ASSERTLOG( FALSE, L"Unable to lock when notifying (not dispatched)" );
+         IF lock.TakeReadSafe( REF _ApiLock, L"Unable to lock when notifying (not dispatched)" ) <> Sync.arCompleted THEN
             RETURN;
          END;
 
@@ -1232,7 +1263,7 @@ CLASS IMPLEMENTATION CSender;
          END;
          IF _Notifier <> NIL THEN
             IF _Dispatcher = NIL THEN
-               _Notifier^.OnCompletion( Result, SmtpPhase, queueItem^.Message, recipients );
+               _Notifier^.OnMailMessageCompletion( Result, SmtpPhase, queueItem^.Message, recipients );
             ELSE
                P.Message := queueItem^.Message;
                P.Result := Result;
@@ -1243,8 +1274,6 @@ CLASS IMPLEMENTATION CSender;
                END;
             END;
          END;
-
-         _Lock.UnlockRead();
       END Notify;
    
    (*------*)
@@ -1284,17 +1313,18 @@ CLASS IMPLEMENTATION CSender;
          END;
       END;
 
-      Sync.IDec( REF _Pending );
+      Sync.IDec( REF _PendingInPool );
       // allow queueItem manipulation in others threads
       Sync.IExchg( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^, INTEGER( newProcessingStatus ));
+
+      _QueueSignal.Signal(); // allow to send next not-sent-yet messages ASAP
    END NotifyCompletion;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE DispatchSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
    VAR
       ph : threadpool.TPoolHandle;
-      reported : BOOLEAN;
       result : Sync.TAsyncResult;
       smtpPhase : TSmtpPhase;
       worker : POINTER TO CWorker;
@@ -1305,10 +1335,10 @@ CLASS IMPLEMENTATION CSender;
          result := worker^.SmtpSend( OUT smtpPhase );
 
       ELSE // run it in the pool
-         IF CARDINAL( Sync.IGet( REF _Pending )) >= Sync.NumberOfProcessors() THEN
+         IF CARDINAL( Sync.IGet( REF _PendingInPool )) >= Sync.NumberOfProcessors() THEN
             RETURN Sync.arCannotStart;
          END;
-         Sync.IInc( REF _Pending );
+         Sync.IInc( REF _PendingInPool );
          queueItem^.ProcessingStatus := Sync.arPending;
 
          // run the worker in the pool
@@ -1326,30 +1356,17 @@ CLASS IMPLEMENTATION CSender;
       worker^.Release();
 
       RETURN result;
-   END DoSend;
+   END DispatchSend;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE SendMessagesForFirst();
-   VAR
-      ptr : PTR;
-      queueItem : TPQueueItem;
-   BEGIN
-      WHILE _IncomingQueue.Dequeue( OUT ptr ) DO
-         queueItem := ptr;
-         // arInitial already set from ctor
-         _Queue.Add( queueItem, 0 );
-         
-         DoSend( queueItem );
-      END; // WHILE
-   END SendMessagesForFirst;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE ResendMessagesAndCleanupQueue();
+   PRIVATE PROCEDURE ProcessQueue();
    VAR
       now : datetime.DateTime;
       queueItem : TPQueueItem;
+      oldestCreation : datetime.DateTime;
+      oldestItem : TPQueueItem;
+      overLimit : BOOLEAN;
    BEGIN
       ASSERT( thread.Current()^.InfoType = thread.infoTypePool );
       now := datetime.NowUTC();
@@ -1358,7 +1375,7 @@ CLASS IMPLEMENTATION CSender;
       WHILE _Queue.MoveNext() DO
          queueItem := _Queue.Current;
 
-         CASE Sync.TAsyncResult( Sync.IExchg( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^, INTEGER( Sync.arPending ))) OF
+         CASE Sync.TAsyncResult( Sync.IGet( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^ )) OF
          | Sync.arPending :
             CONTINUE;
          | Sync.arCompleted : // sending has finished, remove the message from the queue
@@ -1372,20 +1389,24 @@ CLASS IMPLEMENTATION CSender;
 
             CONTINUE;
          END;
-         IF queueItem^.NextSendTime <= now THEN // time expired, resend the message
+
+         IF queueItem^.NextSendTime > now THEN // time not expired, wait longer
             CONTINUE;
          END;
 
          // resend the message
-         DoSend( queueItem );
+         DispatchSend( queueItem );
       END; // WHILE
-   END ResendMessagesAndCleanupQueue;
+   END ProcessQueue;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _IncomingQueueSignal.Init( Sync.stEventAutoreset, L"", FALSE );
-   IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, 60000, FALSE, FALSE, _IncomingQueueSignal.RawHandle, OUT _PoolHandle ) THEN
+   _QueueSignal.Init( Sync.stEventAutoreset, L"", FALSE );
+   IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, _QueueSignal.RawHandle, OUT _PoolQueueHandle ) THEN
+      ASSERTLOG( FALSE, L"Unable to start SMTP sender waiting" );
+   END;
+   IF NOT threadpool.pool()^.WaitTimeout( ADR( SELF ), 0, 60000, FALSE, FALSE, OUT _PoolTimeoutHandle ) THEN
       ASSERTLOG( FALSE, L"Unable to start SMTP sender waiting" );
    END;
 
@@ -1395,8 +1416,11 @@ BEGIN
 FINALLY
    _Pool.FinishAndWait();
 
-   IF _PoolHandle <> NIL THEN
-      threadpool.pool()^.Abort( REF _PoolHandle );
+   IF _PoolQueueHandle <> NIL THEN
+      threadpool.pool()^.Abort( REF _PoolQueueHandle );
+   END;
+   IF _PoolTimeoutHandle <> NIL THEN
+      threadpool.pool()^.Abort( REF _PoolTimeoutHandle );
    END;
 END CSender;
 

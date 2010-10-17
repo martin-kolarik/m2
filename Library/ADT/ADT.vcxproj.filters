@@ -72,5 +72,11 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="ADT.proj" />
+    <None Include="Source\synclists.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\synclists.mod">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

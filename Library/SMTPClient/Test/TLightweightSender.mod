@@ -70,7 +70,6 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trFailure );
       END;
 
-(*
       //-----
       Host^.StartPhase( L"Try to send something" );
       MailMessage.New( OUT message );
@@ -214,7 +213,6 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       MailMessage.Dispose( REF message );
-*)
 
       //-----
       Host^.StartPhase( L"Try to send long HTML" );

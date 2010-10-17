@@ -33,7 +33,7 @@ TYPE
 
 INTERFACE INotifier;
 
-   PROCEDURE OnCompletion( Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
+   PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
 
 END INotifier;
 
@@ -57,6 +57,11 @@ INTERFACE ISender;
       Password : StringsO.CString; // can be empty
       TimeToLive : CARDINAL; // seconds, the message will stay in the queue for the time; maximal time is year (3*10E7), default is 2 days
       GenerateMessageId : BOOLEAN; // if set, each message will be given own message id; otherwise the header will not be generated; default TRUE
+
+   // query methods
+   READONLY PROPERTY
+      Count : CARDINAL;
+      Empty : BOOLEAN;
 
 END ISender;
 

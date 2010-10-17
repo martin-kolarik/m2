@@ -236,7 +236,7 @@ BEGIN
    cphcommonO.ToBASE64( buffer, OUT base64 );
 
    // combine it to whole mime word
-   Mimeword.AppendOA( PREFIX );
+   Mimeword.FromOA( PREFIX );
    Mimeword.Append( base64 );
    Mimeword.AppendOA( SUFFIX );
 END ToMimeWord;

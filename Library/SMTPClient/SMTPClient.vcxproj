@@ -24,6 +24,7 @@
     <None Include="Source\SMTPTools.mod" />
     <None Include="Test\TLightweightSender.mod" />
     <None Include="Test\TMessage.mod" />
+    <None Include="Test\TPoolSenderStability.mod" />
     <None Include="Test\TSmtpTools.mod" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -35,7 +36,7 @@
     <ConfigurationType>Makefile</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <OutDir>~$(Configuration)\</OutDir>
-    <IntDir>~$(Configuration)Build\</IntDir>
+    <IntDir>~Build.$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Makefile</ConfigurationType>

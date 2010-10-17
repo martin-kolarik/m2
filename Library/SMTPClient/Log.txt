@@ -25,10 +25,13 @@
 ++ pustit worker v poolu
 -- logging
 ++ inicializovat pool
--- testy pro pooling etc.
+++ testy pro pooling etc.
 
 == Common
 
 -- sjednotit REF Buffer všude, buď automaticky Appendovat, nebo přidat AppendFlag parametr
 
 -- odstranit Lock() bez timeoutu, je zbytečný
+
+-- prověřit, jak se používají MessageQueues a deriváty. Pokud je to 1:1,
+   je zbytečné používat N:1 třídy
