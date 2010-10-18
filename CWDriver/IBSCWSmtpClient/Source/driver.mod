@@ -10,18 +10,25 @@ FROM Storage IMPORT
 FROM log IMPORT
   ldTrace, ldDebug, lcError;
 
+FROM Exceptions IMPORT
+   TestIfCatched;
+
 IMPORT
    cllv,
    diface,
    drv_def,
+   FIO,
+   FIOO,
    INIFile,
+   IOO,
    iovalue,
+   Languages,
    lec,
    log,
    MailMessage,
    MailPerson,
    Resources,
-   SmtpClient,
+   SmtpSender,
    StringsO,
    Sync,
    TextReader,
@@ -34,15 +41,18 @@ CONST
 
 TYPE
    TChannel = (
-      chStatus    = 1,
-      chServer    = 100,
-      chLogin     = 101,
-      chPassword  = 102,
-      chSender    = 103,
-      chReplyTo   = 104,
-      chRecipient = 105,
-      chSubject   = 106,
-      chBody      = 107
+      chStatus        = 1,
+      chTrigger       = 2, // trigger
+      chMessageStatus = 3, // tristate
+      chErrorPhase    = 4,
+      chServer        = 100,
+      chLogin         = 101,
+      chPassword      = 102,
+      chFrom          = 103,
+      chReplyTo       = 104,
+      chRecipient     = 105,
+      chSubject       = 106,
+      chBody          = 107
    );
 
 (*================================================================================*)
@@ -63,31 +73,10 @@ CONST
   
 (*================================================================================*)
 
-TYPE
-   TEvent = (
-      evUnknown,
-      evSendSucceeded,
-      evSendFailed
-   );
-
-   TEventData   = RECORD
-                     MailId : CARDINAL;
-                     CASE Event : TEvent OF
-                     | evSendSucceeded :
-                        // empty
-                     | evSendFailed :
-                        Result : Sync.TAsyncResult;
-                        Phase : SmtpClient.TSmtpPhase;
-                     END; // CASE
-                  END; // RECORD
-   TPEventData  = POINTER TO TEventData;
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS CDriver IMPLEMENTS SmtpClient.INotifier, diface.ICWDriver;
+CLASS CDriver IMPLEMENTS SmtpSender.INotifier, diface.ICWDriver;
 
    // INotifier
-   PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpClient.TSmtpPhase; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
+   PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpSender.TSmtpPhase; CONST message : MailMessage.TPMailMessage; userId : PTR; CONST failedRecipientsList : MailPerson.TPPersons );
 
    // ICWDriver binding to procedural interface
    PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
@@ -118,22 +107,29 @@ CLASS CDriver IMPLEMENTS SmtpClient.INotifier, diface.ICWDriver;
    // SELF
    PRIVATE VAR
       R                : Resources.CResources;
-      RStatus          : TRStatus;
+      RStatus          : TRStatus := TRStatus{rsValid};
       Name             : StringsO.CString;
       Logger           : log.CLogger;
 
-      CallbackId       : ADDRESS;
-      CallbackProc     : drv_def.TDriverCallbackW;
-      RunMode          : CARDINAL;
+      CallbackId       : ADDRESS := NIL;
+      CallbackProc     : drv_def.TDriverCallbackW := NIL;
+      RunMode          : CARDINAL := drv_def.drmEdit;
       Result           : lec.CResult;
-      Events           : msgqueue.CPtrQueue;
 
-      _Sender          : SmtpClient.TPSender;
+      _Sender          : SmtpSender.TPSender := NIL;
+      _Server          : StringsO.CString;
+      _Login           : StringsO.CString;
+      _Password        : StringsO.CString;
       _ReplyTo         : StringsO.CString;
-      _Sender          : StringsO.CString;
+      _From            : StringsO.CString;
       _Recipient       : StringsO.CString;
       _Subject         : StringsO.CString;
       _Body            : StringsO.CString;
+
+      _Message         : MailMessage.TPMailMessage := NIL;
+      _Pending         : CARDINAL := 0;
+      _Result          : Sync.TAsyncResult := Sync.arUnknown;
+      _Phase           : SmtpSender.TSmtpPhase := SmtpSender.ClientConnect;
 
 END CDriver;
 
@@ -143,8 +139,14 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpClient.TSmtpPhase; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
+   PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpSender.TSmtpPhase; CONST message : MailMessage.TPMailMessage; userId : PTR; CONST failedRecipientsList : MailPerson.TPPersons );
    BEGIN
+      _Result := Result;
+      _Phase := SmtpPhase;
+      Sync.IExchg( REF _Pending, Sync.stNOTSET );
+
+      Logger.LogSR( ldDebug, 0, logPrefix, L"Mail completed, fire dcfException ", Result );
+      CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnMailMessageCompletion;
 
 (*--------------------------------------------------------------------------------*)
@@ -235,12 +237,55 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ): BOOLEAN;
    BEGIN
-      IF EnumerateState = 0 THEN
-         // status channel
+      CASE CARDINAL( EnumerateState ) OF
+      | 0 : // status channel
          Direction := drv_def.TDirection{drv_def.dirInput};
-         DriverIndex := chStatus;
+         DriverIndex := CARDINAL( chStatus );
          Type := drv_def.vtLongCard;
-
+      | 1 : // message trigger
+         Direction := drv_def.TDirection{drv_def.dirOutput};
+         DriverIndex := CARDINAL( chTrigger );
+         Type := drv_def.vtBoolean;
+      | 2 : // message status
+         Direction := drv_def.TDirection{drv_def.dirInput};
+         DriverIndex := CARDINAL( chMessageStatus );
+         Type := drv_def.vtLongInt;
+      | 3 : // error phase
+         Direction := drv_def.TDirection{drv_def.dirInput};
+         DriverIndex := CARDINAL( chErrorPhase );
+         Type := drv_def.vtDString;
+      | 4 : // server address
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
+         DriverIndex := CARDINAL( chServer );
+         Type := drv_def.vtDString;
+      | 5 : // server login
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
+         DriverIndex := CARDINAL( chLogin );
+         Type := drv_def.vtDString;
+      | 6 : // server password
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
+         DriverIndex := CARDINAL( chPassword );
+         Type := drv_def.vtDString;
+      | 7 : // from
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
+         DriverIndex := CARDINAL( chFrom );
+         Type := drv_def.vtDString;
+      | 8 : // reply-to
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
+         DriverIndex := CARDINAL( chReplyTo );
+         Type := drv_def.vtDString;
+      | 9 : // recipient
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
+         DriverIndex := CARDINAL( chRecipient );
+         Type := drv_def.vtDString;
+      | 10 : // subject
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
+         DriverIndex := CARDINAL( chSubject );
+         Type := drv_def.vtDString;
+      | 11 : // message body
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
+         DriverIndex := CARDINAL( chBody );
+         Type := drv_def.vtDString;
       ELSE
          RETURN FALSE;
       END;
@@ -256,7 +301,36 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description : StringsO.CString; OUT Id : StringsO.CString ) : BOOLEAN;
    BEGIN
-      RETURN FALSE;
+      CASE TChannel( DriverIndex ) OF
+      | chStatus :
+         Description.FromOA( OAsz( R[ Texts.ChannelStatusDescription ] ));
+      | chTrigger :
+         Description.FromOA( OAsz( R[ Texts.ChannelTriggerDescription ] ));
+      | chMessageStatus :
+         Description.FromOA( OAsz( R[ Texts.ChannelMessageStatusDescription ] ));
+      | chErrorPhase :
+         Description.FromOA( OAsz( R[ Texts.ChannelErrorPhaseDescription ] ));
+      | chServer :
+         Description.FromOA( OAsz( R[ Texts.ChannelServerDescription ] ));
+      | chLogin :
+         Description.FromOA( OAsz( R[ Texts.ChannelLoginDescription ] ));
+      | chPassword :
+         Description.FromOA( OAsz( R[ Texts.ChannelPasswordDescription ] ));
+      | chFrom :
+         Description.FromOA( OAsz( R[ Texts.ChannelFromDescription ] ));
+      | chReplyTo :
+         Description.FromOA( OAsz( R[ Texts.ChannelReplyToDescription ] ));
+      | chRecipient :
+         Description.FromOA( OAsz( R[ Texts.ChannelRecipientDescription ] ));
+      | chSubject :
+         Description.FromOA( OAsz( R[ Texts.ChannelSubjectDescription ] ));
+      | chBody :
+         Description.FromOA( OAsz( R[ Texts.ChannelBodyDescription ] ));
+      ELSE
+         RETURN FALSE;
+      END; // CASE
+      Id.Clear();
+      RETURN TRUE;
    END GetChannelDescription;
 
 (*--------------------------------------------------------------------------------*)
@@ -269,11 +343,12 @@ CLASS IMPLEMENTATION CDriver;
          RETURN;
       END;
       INCL( RStatus, rsRunning );
-      Mode := cmUnknown;
 
       Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( EMITW( %dll ), OUT s );
       lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF Result );
+
+      // TODO, start sender
    END DriverRun;
 
 (*--------------------------------------------------------------------------------*)
@@ -283,301 +358,22 @@ CLASS IMPLEMENTATION CDriver;
       IF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
          RETURN;
       END;
-      
-      Connection^.Close();
-      IF ListeningSocket <> NIL THEN
-         netsrv.StopListenSocket( REF ListeningSocket );
-      END;      
 
+      // TODO, kill the sender
+      
       EXCL( RStatus, rsRunning );
    END DriverStop;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
-   VAR
-      Event : POINTER TO TEventData;
    BEGIN
-      WHILE Events.Dequeue( OUT Event ) DO
-         DISPOSE( Event );
-      END; // WHILE
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
-   LABEL
-      DoSend, Error, Success, DispatchFromServer;
-   VAR
-      c, l : CARDINAL;
-      Event : POINTER TO TEventData;
-      listenAddress : inetaddr.INETADDR;
-      n : ARRAY [0..31] OF WCHAR;
-      si : StringsO.CString;
-      sw : StringsO.CString;
    BEGIN
-      sw := InValue1.String;
-      sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT si );
-      Result.Inc();
-
-      IF si.EqualsOA( L'event' ) THEN
-         sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
-
-         IF si.EqualsOA( L'count' ) THEN
-            c := Events.Count;
-            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Count ", c );
-
-            OutValue.Integer := c; 
-            RETURN;
-      
-         ELSIF si.EqualsOA( L'get' ) THEN
-            IF Result.Counted OR Result.Expired THEN
-               Logger.LogS( ldDebug, 0, logPrefix, L"Event.Get clear buffer" );
-               Events.Dispose();
-
-               GOTO Success;
-
-            ELSIF Events.Peek( OUT Event ) THEN
-               Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Peek ", CARDINAL( Event^.Event ));
-
-               CASE Event^.Event OF
-               //-----
-               | evRxError :
-                  sw.FromOA( L'rx_error' );
-                  sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( CARDINAL( Event^.ASCIIError ), 10, OUT n );
-                  sw.AppendOA( n );
-               //-----
-               | evTxError :
-                  sw.FromOA( L'tx_error' );
-                  sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( CARDINAL( Event^.ASCIIError ), 10, OUT n );
-                  sw.AppendOA( n );
-               //-----
-               | evDriverError :
-                  sw.FromOA( L'driver_error' );
-                  sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( CARDINAL( Event^.ASCIIError ), 10, OUT n );
-                  sw.AppendOA( n );
-               
-               //-----
-               | evConnect :
-                  sw.FromOA( L'client_connect' );
-                  sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( Event^.NetError, 10, OUT n );
-                  sw.AppendOA( n );
-               //-----
-               | evDisconnect :
-                  IF Event^.Local THEN
-                     sw.FromOA( L'client_disconnect' );
-                  ELSE
-                     sw.FromOA( L'server_disconnect' );
-                  END;
-                  sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( Event^.NetError, 10, OUT n );
-                  sw.AppendOA( n );
-                  
-                  Connection^.Close();
-                  IF Mode = cmClient THEN
-                     Mode := cmUnknown;
-                  END;
-               //-----
-               | evAccept :
-                  sw.FromOA( L'server_accept' );
-                  sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( Event^.NetError, 10, OUT n );
-                  sw.AppendOA( n );
-
-               //-----
-               | evDataReceived :
-                  sw.FromOA( L'server_data' );
-                  sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( Event^.Length, 10, OUT n );
-                  sw.AppendOA( n );
-               END;
-
-               OutValue.String := sw;
-               IF sw.Length < OutValueLimit THEN // OK
-                  Events.Dequeue( OUT Event );
-                  DISPOSE( Event );
-               // ELSE // wait for longer string, leave event in queue
-               END;
-               RETURN;
-
-            ELSE
-               Logger.LogS( ldDebug, 0, logPrefix, L"Event.Emptied" );
-            END; // IF Events.Dequeue
-
-            GOTO Success;
-        
-         ELSE
-            sw.FromOA( OAsz( R[ Texts._UnrecognizedEventCommand ] ));
-            GOTO Error;
-         END;
-
-      ELSIF si.EqualsOA( L'server' ) THEN
-         IF Mode = cmClient THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server -- running as client" );
-
-            sw.FromOA( OAsz( R[ Texts._StillRunningAsClient ] ));
-            GOTO Error;
-         END;
-      
-         sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
-
-         IF si.EqualsOA( L'listen' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.Listen" );
-
-            Mode := cmServer;
-            
-            IF ListeningSocket <> NIL THEN
-               sw.FromOA( OAsz( R[ Texts._AlreadyListening ] ));
-               GOTO Error;
-            END;
-         
-            sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si ); // port
-            IF NOT si.ToCARD32( 10, OUT c ) THEN
-               sw.FromOA( OAsz( R[ Texts._PortNotRecognized ] ));
-               GOTO Error;
-            END;
-
-            listenAddress.Port := c;
-            c := netsrv.StartListen( netsocket.stStream, listenAddress, NIL, ADR( Listener ), Sync.FOREVER, ADR( ListeningSocket ));
-            IF c <> 0 THEN // listening error
-               sw.FromOA( OAsz( R[ Texts._ListenError ] ));
-               Strings.FromCARD32W( c, 10, OUT n );
-               sw.AppendOA( L' ' );
-               sw.AppendOA( n );
-               GOTO Error;
-            END;
-
-         ELSIF si.EqualsOA( L'stop_listen' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.StopListen" );
-
-            netsrv.StopListenSocket( REF ListeningSocket );
-            ServerConnection.Close(); // to be sure
-            
-            Mode := cmUnknown;
-
-         ELSIF si.EqualsOA( L'disconnect' ) OR si.EqualsOA( L'send' ) OR si.EqualsOA( L'receive' ) OR si.EqualsOA( L'available' ) THEN
-            // re-dispatch to client
-            GOTO DispatchFromServer;
-
-         ELSE
-            sw.FromOA( OAsz( R[ Texts._UnrecognizedServerCommand ] ));
-            GOTO Error;
-         END;
-         GOTO Success;
-
-      ELSIF si.EqualsOA( L'client' ) THEN
-         IF Mode = cmServer THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server -- running as server" );
-
-            sw.FromOA( OAsz( R[ Texts._StillRunningAsServer ] ));
-            GOTO Error;
-         END;
-      
-         sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
-
-      DispatchFromServer:
-         IF si.EqualsOA( L'connect' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.Connect" );
-
-            Mode := cmClient;
-         
-            IF ClientConnection.Connected THEN
-               sw.FromOA( OAsz( R[ Texts._AlreadyConnected ] ));
-               GOTO Error;
-            END;
-         
-            sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si );
-            ClientConnection.OpenS( si, FALSE, netsocket.FORSAFETY );
-
-         ELSIF si.EqualsOA( L'disconnect' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Disconnect" );
-
-            Connection^.Close();
-            IF Mode = cmClient THEN
-               Mode := cmUnknown;
-            END;
-
-         ELSIF si.EqualsOA( L'send' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Send" );
-
-            IF NOT Connection^.Connected THEN
-               sw.FromOA( OAsz( R[ Texts._NotConnected ] ));
-               GOTO Error;
-            END;
-         
-            sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si );
-
-            l := WBuffer.Size - WBuffer.Length;
-            IF si.Length MOD 2 = 1 THEN
-               sw.FromOA( OAsz( R[ Texts._BadSendData ] ));
-               GOTO Error;
-            ELSIF si.Length DIV 2 > l THEN
-               sw.FromOA( OAsz( R[ Texts._NotEnoughWriteSpace ] ));
-               GOTO Error;
-            ELSIF WBuffer.Length + si.Length DIV 2 > BufferedStream^.WriteSpace THEN
-               sw.FromOA( OAsz( R[ Texts._NotEnoughWriteSpace ] ));
-               GOTO Error;
-            END;
-
-            IF NOT cphcommon.FromHex( OA( si.Length-1, si.Data ), OUT OA( l-1, ADDRESS( WBuffer.Data@[WBuffer.Length] )), OUT c ) THEN
-               sw.FromOA( OAsz( R[ Texts._BadCharacterInDataToSend ] ));
-               GOTO Error;
-            ELSE
-               INC( WBuffer.Length, c );
-               Connection^.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
-               WBuffer.RemoveStart( c );
-            END;
-
-         ELSIF si.EqualsOA( L'receive' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Receive" );
-
-            RBufferLock.Lock();
-            c := MIN2( OutValueLimit DIV 2, RBuffer.Length );
-            l := c << 1;
-            IF l > 0 THEN
-               sw.Size := l;
-               sw.Length := l;
-               cphcommon.ToHex( OA( c-1, ADDRESS( RBuffer.Data )), OUT OA( l-1, PWCHAR( sw.Data )));
-               RBuffer.RemoveStart( c );
-            ELSE
-               sw.Clear();
-            END;
-            RBufferLock.Unlock();
-            
-            OutValue.String := sw;
-            RETURN;
-         
-         ELSIF si.EqualsOA( L'available' ) THEN
-            c := RBuffer.Length;
-            Logger.LogSC( ldDebug, 0, logPrefix, L"Cmd.*.Available ", c );
-
-            OutValue.Integer := c; 
-            RETURN;
-
-         ELSE
-            sw.FromOA( OAsz( R[ Texts._UnrecognizedClientCommand ] ));
-            GOTO Error;
-         END;
-         GOTO Success;
-         
-      ELSIF ProcessASCIICommand( si, InValue2, OUT OutValue ) THEN
-         RETURN;
-
-      ELSE
-         sw.FromOA( OAsz( R[ Texts._UnrecognizedCommand ] ));
-      END;
-
-   Error:
-      OutValue.String := sw;
-      RETURN;
-
-   Success:
-      sw.Clear();
-      OutValue.String := sw;
    END QueryProc;
 
 (*--------------------------------------------------------------------------------*)
@@ -611,14 +407,12 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       ErrorCode := 0;
       IF DriverIndex = chStatus THEN
-         // return always OK
-      ELSIF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
-         ErrorCode := ecDeviceStopped;
+         IF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
+            ErrorCode := ecDeviceStopped;
+         END;
       ELSIF Result.Expired OR Result.Counted THEN // locked by self
          RETURN FALSE;
-      ELSE
-         ////
-      END;
+      END; // CASE
       RETURN TRUE;
    END InputFinalized;
 
@@ -636,7 +430,8 @@ CLASS IMPLEMENTATION CDriver;
       ErrorCode := drv_def.ecSuccess;
       QoS := drv_def.qosGood;
 
-      IF DriverIndex = chStatus THEN
+      CASE TChannel( DriverIndex ) OF
+      | chStatus :
          IF Result.Counted OR Result.Expired THEN // locked by self
             EXCL( RStatus, rsValid );
          ELSE
@@ -649,9 +444,45 @@ CLASS IMPLEMENTATION CDriver;
          END;
          InValue.Integer := CARDINAL( RStatus * rssUser );
 
+      | chMessageStatus :
+         IF Sync.IGet( REF _Pending ) = Sync.stSET THEN
+            InValue.Tristate := -1;
+         ELSIF _Result = Sync.arCompleted THEN
+            InValue.Tristate := 1;
+         ELSE
+            InValue.Tristate := 0;
+         END;
+
+      | chErrorPhase :
+         InValue.String := _Phase;
+
+      | chServer :
+         InValue.String := _Server;
+
+      | chLogin :
+         InValue.String := _Login;
+
+      | chPassword :
+         InValue.String := _Password;
+
+      | chFrom :
+         InValue.String := _From;
+
+      | chReplyTo :
+         InValue.String := _ReplyTo;
+
+      | chRecipient :
+         InValue.String := _Recipient;
+
+      | chSubject :
+         InValue.String := _Subject;
+
+      | chBody :
+         InValue.String := _Body;
+
       ELSE
          ErrorCode := drv_def.ecUnknownElement;
-      END;
+      END; // CASE
    END GetInput;
 
 (*--------------------------------------------------------------------------------*)
@@ -665,6 +496,35 @@ CLASS IMPLEMENTATION CDriver;
    PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
    BEGIN
       Result.Inc(); // locked by self
+
+      CASE TChannel( DriverIndex ) OF
+      | chTrigger :
+
+      | chServer :
+         _Server := OutValue.String;
+
+      | chLogin :
+         _Login := OutValue.String;
+
+      | chPassword :
+         _Password := OutValue.String;
+
+      | chFrom :
+         _From := OutValue.String;
+
+      | chReplyTo :
+         _ReplyTo := OutValue.String;
+
+      | chRecipient :
+         _Recipient := OutValue.String;
+
+      | chSubject :
+         _Subject := OutValue.String;
+
+      | chBody :
+         _Body := OutValue.String;
+
+      END; // CASE
    END OutputRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -683,32 +543,9 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE AddEvent( Event : POINTER TO TEventData );
-   BEGIN
-      Events.Enqueue( Event );
-      IF Events.Produce^.State THEN
-         Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Queued, fire dcfException ", CARDINAL( Event^.Event ));
-         CallbackProc( CallbackId, drv_def.dcfException, NIL );
-      ELSE
-         Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Queued, NOT FIRED dcfException ", CARDINAL( Event^.Event ));
-      END;
-   END AddEvent;
-
-(*--------------------------------------------------------------------------------*)
-
 BEGIN
-   // TODO
-   R.LoadRES2( EMITW( %dll ), L'RemoteASCIIDrv.Texts' );
+   R.LoadRES2( EMITW( %dll ), L'IBSCWSmtpClient.Texts' );
    R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
-   RStatus := TRStatus{rsValid};
-   RunMode := drv_def.drmEdit;
-   CallbackId := NIL;
-   CallbackProc := NIL;
-   
-   Events.Produce := Sync.CreateSignal( Sync.stEventAutoreset, L"", TRUE );
-   LastError := erOK;
-FINALLY
-   Sync.DeleteSignal( REF Events.Produce );
 END CDriver;
 
 (*================================================================================*)

@@ -95,10 +95,10 @@ VAR
 (*================================================================================*)
 
 #save, call( convention => stdcall )
-PROCEDURE Exec( Thread : TPWin32Thread ) : windows.DWORD;
+PROCEDURE Loop( Thread : TPWin32Thread ) : windows.DWORD;
 BEGIN
   RETURN Thread^.Exec();
-END Exec;
+END Loop;
 #restore
 
 (*--------------------------------------------------------------------------------*)
@@ -168,7 +168,7 @@ CLASS IMPLEMENTATION Win32Thread;
 
       _RunLock.Reset();
       _HExit.Reset();
-      _HThread := windows.CreateThread( NIL, STACK_RESERVATION_SIZE, windows.PTHREAD_START_ROUTINE( Exec ), ADR( SELF ), windows.STACK_SIZE_PARAM_IS_A_RESERVATION, ADR( _Thread ));
+      _HThread := windows.CreateThread( NIL, STACK_RESERVATION_SIZE, windows.PTHREAD_START_ROUTINE( Loop ), ADR( SELF ), windows.STACK_SIZE_PARAM_IS_A_RESERVATION, ADR( _Thread ));
       IF WaitRun THEN
          Result := _RunLock.Wait( Sync.FORSAFETY );
       ELSE

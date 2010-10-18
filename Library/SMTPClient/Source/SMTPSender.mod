@@ -1414,6 +1414,8 @@ BEGIN
    _Pool.MaxThreads := 32;
 
 FINALLY
+   // TODO: cleanup/dispose the queue when stopping
+
    _Pool.FinishAndWait();
 
    IF _PoolQueueHandle <> NIL THEN
