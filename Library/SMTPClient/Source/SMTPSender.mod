@@ -78,6 +78,7 @@ TYPE
 CLASS CQueueItem;
    LOCAL VAR
       Message : MailMessage.TPMailMessage := NIL;
+      UserId : PTR := 0;
       Ownership : BOOLEAN := FALSE;
       ProcessingStatus : Sync.TAsyncResult := Sync.arInitial;
       NextSendTime : datetime.DateTime;
@@ -94,6 +95,7 @@ END CQueueItem;
 TYPE
    TOnCompletionParameters = RECORD
       Message : MailMessage.TPMailMessage;
+      UserId : PTR;
       Result : Sync.TAsyncResult;
       SmtpPhase : TSmtpPhase;
       FailedRecipients : PersonsImpl.TPPersonsImpl;
@@ -119,7 +121,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
       Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
       Notifier : TPNotifier;
 
-   PUBLIC VIRTUAL PROCEDURE Send( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Send( CONST message : MailMessage.TPMailMessage; userId : PTR; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROPERTY
       Server : StringsO.CString;
@@ -968,7 +970,7 @@ CLASS IMPLEMENTATION CSender;
 
       IF _Notifier <> NIL THEN
          onCompletionParameters := Parameters[0];
-         _Notifier^.OnMailMessageCompletion( onCompletionParameters^.Result, onCompletionParameters^.SmtpPhase, onCompletionParameters^.Message, onCompletionParameters^.FailedRecipients );
+         _Notifier^.OnMailMessageCompletion( onCompletionParameters^.Result, onCompletionParameters^.SmtpPhase, onCompletionParameters^.Message, onCompletionParameters^.UserId, onCompletionParameters^.FailedRecipients );
       END;
       
       RETURN 0;
@@ -1016,7 +1018,7 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Send( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Send( CONST message : MailMessage.TPMailMessage; userId : PTR; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
    VAR
       queueItem : TPQueueItem;
       Result : Sync.TAsyncResult;
@@ -1031,6 +1033,7 @@ CLASS IMPLEMENTATION CSender;
 
       NEW( queueItem );
       queueItem^.Message := message;
+      queueItem^.UserId := userId;
       queueItem^.Ownership := takeOwnership;
 
       IF _LightWeight THEN
@@ -1263,9 +1266,10 @@ CLASS IMPLEMENTATION CSender;
          END;
          IF _Notifier <> NIL THEN
             IF _Dispatcher = NIL THEN
-               _Notifier^.OnMailMessageCompletion( Result, SmtpPhase, queueItem^.Message, recipients );
+               _Notifier^.OnMailMessageCompletion( Result, SmtpPhase, queueItem^.Message, queueItem^.UserId, recipients );
             ELSE
                P.Message := queueItem^.Message;
+               P.UserId := queueItem^.UserId;
                P.Result := Result;
                P.SmtpPhase := SmtpPhase;
                P.FailedRecipients := recipients;

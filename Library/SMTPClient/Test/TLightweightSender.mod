@@ -81,7 +81,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[SINGLE] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.Body^.WriteOA( L"Obsah testovacího emailu", OUT c, 0 );
 
-      IF sender^.Send( message, FALSE ) = Sync.arCompleted THEN
+      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );
@@ -108,7 +108,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[TO CC BCC] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.BodyMimeType := StringsO.FromOA( L"text/plain; charset = neco; format=flowed; delsp=yes" );
 
-      IF sender^.Send( message, FALSE ) = Sync.arCompleted THEN
+      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );
@@ -133,7 +133,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[BCC only] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.BodyMimeType := StringsO.FromOA( L"text/plain; charset = neco; format=flowed; delsp=yes" );
 
-      IF sender^.Send( message, FALSE ) = Sync.arCompleted THEN
+      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );
@@ -160,7 +160,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[TO 2xCC] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.BodyMimeType := StringsO.FromOA( L"text/plain; charset = neco; format=flowed; delsp=yes" );
 
-      IF sender^.Send( message, FALSE ) = Sync.arCompleted THEN
+      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );
@@ -206,7 +206,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù." + 13W + 10W + 13W + 10W, OUT c, 0 );
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù." + 13W + 10W + 13W + 10W, OUT c, 0 );
 
-      IF sender^.Send( message, FALSE ) = Sync.arCompleted THEN
+      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );
@@ -259,7 +259,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù.</p>", OUT c, 0 );
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù.</p></body></html>", OUT c, 0 );
 
-      IF sender^.Send( message, FALSE ) = Sync.arCompleted THEN
+      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );

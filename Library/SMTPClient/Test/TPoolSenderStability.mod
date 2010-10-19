@@ -43,7 +43,7 @@ TYPE
 CLASS CTest IMPLEMENTS test.ITest, SmtpSender.INotifier;
 
    // INotifier
-   PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpSender.TSmtpPhase; CONST message : MailMessage.TPMailMessage; CONST failedRecipientsList : MailPerson.TPPersons );
+   PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpSender.TSmtpPhase; CONST message : MailMessage.TPMailMessage; UserId : PTR; CONST failedRecipientsList : MailPerson.TPPersons );
 
    // SELF
    PRIVATE VAR
@@ -166,7 +166,7 @@ CLASS IMPLEMENTATION CTest;
             message^.Subject := StringsO.FromOA( L"Testovací majlíèek výkonového testíèku" );
             message^.Body^.WriteOA( L"Obsah testovacího emailu", OUT c, 0 );
             
-            result := sender^.Send( message, TRUE );
+            result := sender^.Send( message, 0, TRUE );
             IF result = Sync.arPending THEN
                INC( Current.Sent );
                INC( Overall.Sent );

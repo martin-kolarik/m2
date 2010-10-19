@@ -88,5 +88,58 @@
             <item lang="cs-CZ">Text zprávy</item>
         </string>
 
-    </strings>
+        <string name="SmtpPhaseClientConnect">
+            <item lang="en-US">Unable to connect the server</item>
+            <item lang="cs-CZ">Nelze se spojit se serverem</item>
+        </string>
+        <string name="SmtpPhaseServerConnect">
+            <item lang="en-US">Server not ready</item>
+            <item lang="cs-CZ">Server není připraven</item>
+        </string>
+        <string name="SmtpPhaseEhlo">
+            <item lang="en-US">Connection rejected</item>
+            <item lang="cs-CZ">Spojení odmítnuto</item>
+        </string>
+        <string name="SmtpPhaseAuthenticationFailed">
+            <item lang="en-US">Bad authentication data</item>
+            <item lang="cs-CZ">Chybná autentizace</item>
+        </string>
+        <string name="SmtpPhaseAuthenticationRequired">
+            <item lang="en-US">Authentication required</item>
+            <item lang="cs-CZ">Vyžadována autentizace</item>
+        </string>
+        <string name="SmtpPhaseMailFrom">
+            <item lang="en-US">Sender rejected</item>
+            <item lang="cs-CZ">Odesílatel odmítnut</item>
+        </string>
+        <string name="SmtpPhaseRcptTo">
+            <item lang="en-US">Recipient rejected</item>
+            <item lang="cs-CZ">Příjemce odmítnut</item>
+        </string>
+        <string name="SmtpPhaseStartData">
+            <item lang="en-US">Data start failed</item>
+            <item lang="cs-CZ">Chyba při startu data</item>
+        </string>
+        <string name="SmtpPhaseHeaders">
+            <item lang="en-US">Headers rejected</item>
+            <item lang="cs-CZ">Hlavičky odmítnuty</item>
+        </string>
+        <string name="SmtpPhaseMessageBody">
+            <item lang="en-US">Message body send failed</item>
+            <item lang="cs-CZ">Chyba v těle zprávy</item>
+        </string>
+        <string name="SmtpPhaseMessageAttachments">
+            <item lang="en-US">Attachment rejected or failed to send</item>
+            <item lang="cs-CZ">Příloha odmítnuta nebo chyba při jejím odesílání</item>
+        </string>
+        <string name="SmtpPhaseMessageFinalization">
+            <item lang="en-US">Message finalization</item>
+            <item lang="cs-CZ">Ukončování zprávy</item>
+        </string>
+        <string name="SmtpPhaseConnectionFinalization">
+            <item lang="en-US">Disconnect not graceful</item>
+            <item lang="cs-CZ">Rozpojení</item>
+        </string>
+
+</strings>
 </resources>

@@ -237,6 +237,7 @@ END CString;
 
 // static methods
 PROCEDURE FromOA( String : ARRAY OF WCHAR ) : CString;
+PROCEDURE Empty() : CString;
 
 #restore
 

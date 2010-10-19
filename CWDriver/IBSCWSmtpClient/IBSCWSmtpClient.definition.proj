@@ -11,7 +11,7 @@
         <CLib>Private</CLib>
         <Licensing>on</Licensing>
         <LicenceMachineId>M</LicenceMachineId>
-        <LeakChecking>off</LeakChecking>
+        <LeakChecking>on</LeakChecking>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='IBSCWSmtpClient'">

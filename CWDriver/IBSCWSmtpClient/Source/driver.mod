@@ -6,6 +6,9 @@ MODULE driver;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
+
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
   
 FROM log IMPORT
   ldTrace, ldDebug, lcError;
@@ -24,7 +27,9 @@ IMPORT
    iovalue,
    Languages,
    lec,
+   lists,
    log,
+   LogConfig,
    MailMessage,
    MailPerson,
    Resources,
@@ -105,11 +110,14 @@ CLASS CDriver IMPLEMENTS SmtpSender.INotifier, diface.ICWDriver;
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
 
    // SELF
+   PRIVATE PROCEDURE PhaseToString( Phase : SmtpSender.TSmtpPhase ) : StringsO.CString;
+
    PRIVATE VAR
       R                : Resources.CResources;
       RStatus          : TRStatus := TRStatus{rsValid};
       Name             : StringsO.CString;
       Logger           : log.CLogger;
+      AppenderList     : lists.CPtrList;
 
       CallbackId       : ADDRESS := NIL;
       CallbackProc     : drv_def.TDriverCallbackW := NIL;
@@ -127,7 +135,6 @@ CLASS CDriver IMPLEMENTS SmtpSender.INotifier, diface.ICWDriver;
       _Body            : StringsO.CString;
 
       _Message         : MailMessage.TPMailMessage := NIL;
-      _Pending         : CARDINAL := 0;
       _Result          : Sync.TAsyncResult := Sync.arUnknown;
       _Phase           : SmtpSender.TSmtpPhase := SmtpSender.ClientConnect;
 
@@ -143,7 +150,6 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       _Result := Result;
       _Phase := SmtpPhase;
-      Sync.IExchg( REF _Pending, Sync.stNOTSET );
 
       Logger.LogSR( ldDebug, 0, logPrefix, L"Mail completed, fire dcfException ", Result );
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
@@ -182,6 +188,8 @@ CLASS IMPLEMENTATION CDriver;
     TS : INIFile.CINIFile;
     tr : TextReader.CTextReader;
   BEGIN
+      LogConfig.DisposeAppenderList( REF AppenderList );
+
       TRY
          fs.FromPath( OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), FIOO.imOpenRead );
       CATCH : IOO.CIOException DO
@@ -204,12 +212,12 @@ CLASS IMPLEMENTATION CDriver;
          END;
       END;
 
-      CASE INIFile.ConfigureLog( TS, L"", REF SELF.Logger, OUT ErrorLine ) OF
-      | INIFile.clrUnknownTarget :
+      CASE LogConfig.ConfigureLog( TS, L"", REF SELF.Logger, REF AppenderList, OUT ErrorLine ) OF
+      | LogConfig.clrUnknownTarget :
          Error( Texts._UnknownDebugMode, ErrorLine );
-      | INIFile.clrUnknownLevel :
+      | LogConfig.clrUnknownLevel :
          Error( Texts._UnknownDebugLevel, ErrorLine );
-      | INIFile.clrTargetFileMissingFile :
+      | LogConfig.clrTargetFileMissingFile :
          Error( Texts._FileDebugMissingFile, ErrorLine );
       END; // CASE
     
@@ -224,13 +232,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
    BEGIN
-      CASE ErrorCode OF
-      | ecDeviceStopped :
-         ErrorText.FromOA( OAsz( R[ Texts._E_DeviceStopped ] ));
-      ELSE
-         RETURN FALSE;
-      END; // CASE
-      RETURN TRUE;
+      RETURN FALSE;
    END QueryErrorCode;
 
 (*--------------------------------------------------------------------------------*)
@@ -368,6 +370,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
+      LogConfig.DisposeAppenderList( REF AppenderList );
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -406,10 +409,8 @@ CLASS IMPLEMENTATION CDriver;
    PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    BEGIN
       ErrorCode := 0;
-      IF DriverIndex = chStatus THEN
-         IF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
-            ErrorCode := ecDeviceStopped;
-         END;
+      IF TChannel( DriverIndex ) = chStatus THEN
+         // status is always readable
       ELSIF Result.Expired OR Result.Counted THEN // locked by self
          RETURN FALSE;
       END; // CASE
@@ -437,15 +438,15 @@ CLASS IMPLEMENTATION CDriver;
          ELSE
             INCL( RStatus, rsValid );
          END;
-         IF Events.Empty THEN
-            EXCL( RStatus, rsEventsPending );
+         IF _Sender^.Empty THEN
+            EXCL( RStatus, rsMailPending );
          ELSE
-            INCL( RStatus, rsEventsPending );
+            INCL( RStatus, rsMailPending );
          END;
          InValue.Integer := CARDINAL( RStatus * rssUser );
 
       | chMessageStatus :
-         IF Sync.IGet( REF _Pending ) = Sync.stSET THEN
+         IF NOT _Sender^.Empty THEN
             InValue.Tristate := -1;
          ELSIF _Result = Sync.arCompleted THEN
             InValue.Tristate := 1;
@@ -454,7 +455,7 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
       | chErrorPhase :
-         InValue.String := _Phase;
+         InValue.String := PhaseToString( _Phase );
 
       | chServer :
          InValue.String := _Server;
@@ -540,6 +541,43 @@ CLASS IMPLEMENTATION CDriver;
     ErrorCode := 0;
     RETURN NOT Result.Expired AND NOT Result.Counted; // locked by self
   END OutputFinalized;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE PhaseToString( Phase : SmtpSender.TSmtpPhase ) : StringsO.CString;
+   BEGIN
+      CASE Phase OF
+      | SmtpSender.ClientConnect :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseClientConnect ] ));
+      | SmtpSender.ServerConnect :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseServerConnect ] ));
+      | SmtpSender.Ehlo :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseEhlo ] ));
+      | SmtpSender.AuthenticationFailed :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseAuthenticationFailed ] ));
+      | SmtpSender.AuthenticationRequired :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseAuthenticationRequired ] ));
+      | SmtpSender.MailFrom :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseMailFrom ] ));
+      | SmtpSender.RcptTo :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseRcptTo ] ));
+      | SmtpSender.StartData :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseStartData ] ));
+      | SmtpSender.Headers :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseHeaders ] ));
+      | SmtpSender.MessageBody :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseMessageBody ] ));
+      | SmtpSender.MessageAttachments :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseMessageAttachments ] ));
+      | SmtpSender.MessageFinalization :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseMessageFinalization ] ));
+      | SmtpSender.ConnectionFinalization :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseConnectionFinalization ] ));
+      ELSE
+         ASSERTLOG( FALSE, L"Unrecognized SMTP phase " );
+         RETURN StringsO.Empty();
+      END;
+   END PhaseToString;
 
 (*--------------------------------------------------------------------------------*)
 

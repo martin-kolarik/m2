@@ -47,7 +47,7 @@ INTERFACE ISender;
       Notifier : TPNotifier;
 
    // send
-   PROCEDURE Send( CONST message : MailMessage.TPMailMessage; takeOwnership : BOOLEAN; userId : PTR ) : Sync.TAsyncResult; // synchronous for lightWeight, asynchronous for not lightWeight, arCannotStart means message is incorrect
+   PROCEDURE Send( CONST message : MailMessage.TPMailMessage; userId : PTR; takeOwnership : BOOLEAN ) : Sync.TAsyncResult; // synchronous for lightWeight, asynchronous for not lightWeight, arCannotStart means message is incorrect
 
    // configuration
    PROPERTY

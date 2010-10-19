@@ -1097,6 +1097,16 @@ BEGIN
    RETURN string;
 END FromOA;
 
+(*--------------------------------------------------------------------------------*)
+
+VAR
+   _Empty : CString;
+
+PROCEDURE Empty() : CString;
+BEGIN
+   RETURN _Empty;
+END Empty;
+
 (*================================================================================*)
 
 END StringsO.

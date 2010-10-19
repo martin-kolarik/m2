@@ -65,7 +65,9 @@
   <ItemGroup>
     <None Include="Source\driver.mod" />
     <None Include="Source\export.def" />
-    <None Include="Source\Texts.xrs" />
+    <None Include="Source\Texts.xrs">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="IBSCWSmtpClient.definition.proj" />
     <None Include="IBSCWSmtpClient.proj" />
     <None Include="Install\IBSCWSmtpClient.wxs" />
