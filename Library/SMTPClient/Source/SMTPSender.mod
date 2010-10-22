@@ -72,6 +72,9 @@ END SmtpException;
 
 (*================================================================================*)
 
+CONST
+   SMTP_DEFAULT_PORT = 25;
+
 TYPE
    TPQueueItem = POINTER TO CQueueItem;
 
@@ -141,6 +144,8 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
    LOCAL PROPERTY
       LightWeight : BOOLEAN;
       BypassSmtp : BOOLEAN;
+
+   PUBLIC PROCEDURE Dispose();
 
    LOCAL PROCEDURE NotifyCompletion( queueItem : TPQueueItem; Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST failedRecipients : PersonsImpl.CPersonsImpl );
    PRIVATE PROCEDURE DispatchSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
@@ -277,7 +282,7 @@ CLASS IMPLEMENTATION CWorker;
       TRY
          //----------
          SmtpPhase := ClientConnect;
-         Result := _Connection.OpenS( _Sender^.Server, TRUE, netsocket.FORSAFETY );
+         Result := _Connection.OpenS( _Sender^.Server, SMTP_DEFAULT_PORT, TRUE, netsocket.FORSAFETY );
          IF Result <> Sync.arCompleted THEN
             RETURN Sync.arAborted;
          END;
@@ -326,7 +331,14 @@ CLASS IMPLEMENTATION CWorker;
          SmtpPhase := StartData;
          s.FromOA( L"DATA" );
          WriteServer( s );
-         IF ReadServer( NIL ) <> SmtpTools.smtpres_354 THEN
+         smtpres := ReadServer( NIL );
+         CASE smtpres OF
+         | SmtpTools.smtpres_354 : // OK, continue with data
+            // fall down
+         | SmtpTools.smtpres_554 : // typically, relaying denied (disallowed recipient)
+            SmtpPhase := RecipientsRejected;
+            RETURN Sync.arAborted;
+         ELSE // leave phase intact
             RETURN Sync.arAborted;
          END;
 
@@ -1244,6 +1256,32 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Dispose();
+   VAR
+      queueItem : TPQueueItem;
+   BEGIN
+      IF _PoolQueueHandle <> NIL THEN
+         threadpool.pool()^.Abort( REF _PoolQueueHandle );
+      END;
+      IF _PoolTimeoutHandle <> NIL THEN
+         threadpool.pool()^.Abort( REF _PoolTimeoutHandle );
+      END;
+
+      _Queue.Reset();
+      WHILE _Queue.MoveNext() DO
+         queueItem := _Queue.Current;
+         IF queueItem^.Ownership THEN
+            MailMessage.Dispose( REF queueItem^.Message );
+         END;
+      END; // DO
+      _Queue.Dispose();
+
+      _Pool.FinishAndWait();
+      _Pool.Dispose();
+   END Dispose;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE NotifyCompletion( queueItem : TPQueueItem; Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST failedRecipients : PersonsImpl.CPersonsImpl );
 
    (*------*)
@@ -1382,7 +1420,8 @@ CLASS IMPLEMENTATION CSender;
          CASE Sync.TAsyncResult( Sync.IGet( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^ )) OF
          | Sync.arPending :
             CONTINUE;
-         | Sync.arCompleted : // sending has finished, remove the message from the queue
+         | Sync.arCompleted,
+           Sync.arTimeout : // sending has finished, remove the message from the queue
             _Queue.Remove( queueItem );
             _Queue.Reset(); // iterate again
 
@@ -1418,16 +1457,8 @@ BEGIN
    _Pool.MaxThreads := 32;
 
 FINALLY
-   // TODO: cleanup/dispose the queue when stopping
+   Dispose();
 
-   _Pool.FinishAndWait();
-
-   IF _PoolQueueHandle <> NIL THEN
-      threadpool.pool()^.Abort( REF _PoolQueueHandle );
-   END;
-   IF _PoolTimeoutHandle <> NIL THEN
-      threadpool.pool()^.Abort( REF _PoolTimeoutHandle );
-   END;
 END CSender;
 
 (*================================================================================*)
@@ -1453,6 +1484,7 @@ BEGIN
       // do nothing
    ELSIF sender^ IS CSender THEN
       senderImpl := TPSenderImpl( sender );
+      senderImpl^.Dispose(); // TODO -- not a clean pattern, CSender registers self as threadpool delegate, which effectively denies calling Release without Dispose
       senderImpl^.Release();
       senderImpl := NIL;
    ELSE

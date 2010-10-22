@@ -125,16 +125,13 @@ CLASS CDriver IMPLEMENTS SmtpSender.INotifier, diface.ICWDriver;
       Result           : lec.CResult;
 
       _Sender          : SmtpSender.TPSender := NIL;
-      _Server          : StringsO.CString;
-      _Login           : StringsO.CString;
-      _Password        : StringsO.CString;
       _ReplyTo         : StringsO.CString;
       _From            : StringsO.CString;
       _Recipient       : StringsO.CString;
       _Subject         : StringsO.CString;
       _Body            : StringsO.CString;
 
-      _Message         : MailMessage.TPMailMessage := NIL;
+      _MessagePending  : INT32 := Sync.ivNOTSET;
       _Result          : Sync.TAsyncResult := Sync.arUnknown;
       _Phase           : SmtpSender.TSmtpPhase := SmtpSender.ClientConnect;
 
@@ -148,6 +145,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpSender.TSmtpPhase; CONST message : MailMessage.TPMailMessage; userId : PTR; CONST failedRecipientsList : MailPerson.TPPersons );
    BEGIN
+      Sync.IExchg( REF _MessagePending, Sync.ivNOTSET );
       _Result := Result;
       _Phase := SmtpPhase;
 
@@ -293,7 +291,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
       Count := 1;
-      HaveDescription := FALSE;
+      HaveDescription := TRUE;
       INC( EnumerateState );
 
       RETURN TRUE;
@@ -351,6 +349,14 @@ CLASS IMPLEMENTATION CDriver;
       lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF Result );
 
       // TODO, start sender
+      ASSERTLOG( _Sender = NIL, L"Sender already (unexpectedly) exists" );
+      IF SmtpSender.New( OUT _Sender, FALSE, FALSE ) THEN
+         _Sender^.Notifier := ADR( SELF );
+         // _Sender^.TimeToLive := 0; // immediately remove the message from the queue, if anything fails
+      ELSE
+         EXCL( RStatus, rsRunning );
+         ASSERTLOG( FALSE, L"Unable to create sender" );
+      END;
    END DriverRun;
 
 (*--------------------------------------------------------------------------------*)
@@ -360,10 +366,11 @@ CLASS IMPLEMENTATION CDriver;
       IF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
          RETURN;
       END;
-
-      // TODO, kill the sender
-      
       EXCL( RStatus, rsRunning );
+
+      IF _Sender <> NIL THEN
+         SmtpSender.Dispose( REF _Sender );
+      END;
    END DriverStop;
 
 (*--------------------------------------------------------------------------------*)
@@ -438,15 +445,15 @@ CLASS IMPLEMENTATION CDriver;
          ELSE
             INCL( RStatus, rsValid );
          END;
-         IF _Sender^.Empty THEN
-            EXCL( RStatus, rsMailPending );
-         ELSE
+         IF Sync.IGet( REF _MessagePending ) = Sync.ivSET THEN
             INCL( RStatus, rsMailPending );
+         ELSE
+            EXCL( RStatus, rsMailPending );
          END;
          InValue.Integer := CARDINAL( RStatus * rssUser );
 
       | chMessageStatus :
-         IF NOT _Sender^.Empty THEN
+         IF Sync.IGet( REF _MessagePending ) = Sync.ivSET THEN
             InValue.Tristate := -1;
          ELSIF _Result = Sync.arCompleted THEN
             InValue.Tristate := 1;
@@ -455,16 +462,22 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
       | chErrorPhase :
-         InValue.String := PhaseToString( _Phase );
+         IF Sync.IGet( REF _MessagePending ) = Sync.ivSET THEN
+            InValue.String := StringsO.Empty();
+         ELSIF _Result = Sync.arCompleted THEN // finished without an error
+            InValue.String := StringsO.Empty();
+         ELSE
+            InValue.String := PhaseToString( _Phase );
+         END;
 
       | chServer :
-         InValue.String := _Server;
+         InValue.String := _Sender^.Server;
 
       | chLogin :
-         InValue.String := _Login;
+         InValue.String := _Sender^.Login;
 
       | chPassword :
-         InValue.String := _Password;
+         InValue.String := _Sender^.Password;
 
       | chFrom :
          InValue.String := _From;
@@ -495,20 +508,58 @@ CLASS IMPLEMENTATION CDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
+   VAR
+      c : CARDINAL;
+      message : MailMessage.TPMailMessage;
+      person : MailPerson.Person;
+      result : Sync.TAsyncResult;
    BEGIN
       Result.Inc(); // locked by self
 
       CASE TChannel( DriverIndex ) OF
       | chTrigger :
+         IF Sync.IGet( REF _MessagePending ) = Sync.ivSET THEN // the message is still pending
+            RETURN;
+         ELSIF NOT MailMessage.New( OUT message ) THEN
+            _Result := Sync.arCannotStart;
+            _Phase := SmtpSender.MessageCreation;
+            CallbackProc( CallbackId, drv_def.dcfException, NIL ); // notify about the failure
+            RETURN;
+         END;
+
+         Sync.IExchg( REF _MessagePending, Sync.ivSET );
+
+         person.Address := _From; message^.Sender := person;
+         person.Address := _Recipient; message^.Recipient := person;
+         person.Address := _ReplyTo; message^.ReplyTo := person;
+         message^.Subject := _Subject;
+         result := message^.Body^.WriteOA( OA( SIZE( WCHAR ) * _Body.Length-1, _Body.Data ), OUT c, Sync.FORSAFETY );
+         IF result <> Sync.arCompleted THEN
+            Sync.IExchg( REF _MessagePending, Sync.ivNOTSET );
+            _Result := result;
+            _Phase := SmtpSender.MessageCreation;
+            MailMessage.Dispose( REF message );
+            CallbackProc( CallbackId, drv_def.dcfException, NIL ); // notify about the failure
+            RETURN;
+         END;
+            
+         result := _Sender^.Send( message, 0, TRUE );
+         IF result NOT IN Sync.arsStarts THEN
+            Sync.IExchg( REF _MessagePending, Sync.ivNOTSET );
+            _Result := result; // failed
+            _Phase := SmtpSender.MessageValidation;
+            MailMessage.Dispose( REF message );
+            CallbackProc( CallbackId, drv_def.dcfException, NIL ); // notify about the failure
+         END;
 
       | chServer :
-         _Server := OutValue.String;
+         _Sender^.Server := OutValue.String;
 
       | chLogin :
-         _Login := OutValue.String;
+         _Sender^.Login := OutValue.String;
 
       | chPassword :
-         _Password := OutValue.String;
+         _Sender^.Password := OutValue.String;
 
       | chFrom :
          _From := OutValue.String;
@@ -547,6 +598,10 @@ CLASS IMPLEMENTATION CDriver;
    PRIVATE PROCEDURE PhaseToString( Phase : SmtpSender.TSmtpPhase ) : StringsO.CString;
    BEGIN
       CASE Phase OF
+      | SmtpSender.MessageCreation :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseMessageCreation ] ));
+      | SmtpSender.MessageValidation :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseMessageValidation ] ));
       | SmtpSender.ClientConnect :
          RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseClientConnect ] ));
       | SmtpSender.ServerConnect :
@@ -561,6 +616,8 @@ CLASS IMPLEMENTATION CDriver;
          RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseMailFrom ] ));
       | SmtpSender.RcptTo :
          RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseRcptTo ] ));
+      | SmtpSender.RecipientsRejected :
+         RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseRecipientsRejected ] ));
       | SmtpSender.StartData :
          RETURN StringsO.FromOA( OAsz( R[ Texts.SmtpPhaseStartData ] ));
       | SmtpSender.Headers :

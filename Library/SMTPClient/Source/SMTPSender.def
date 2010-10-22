@@ -10,6 +10,8 @@ IMPORT
 
 TYPE
    TSmtpPhase = ( // used to signalize where the failure has occured
+      MessageCreation,
+      MessageValidation,
       ClientConnect,
       ServerConnect,
       Ehlo,
@@ -17,6 +19,7 @@ TYPE
       AuthenticationRequired,
       MailFrom,
       RcptTo,
+      RecipientsRejected,
       StartData,
       Headers,
       MessageBody,
@@ -51,7 +54,7 @@ INTERFACE ISender;
 
    // configuration
    PROPERTY
-      Server : StringsO.CString; // host:port format
+      Server : StringsO.CString; // host:port format, if port is missing 25 is used
       Mailer : StringsO.CString; // can be empty
       Login : StringsO.CString; // can be empty 
       Password : StringsO.CString; // can be empty

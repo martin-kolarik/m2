@@ -13,10 +13,23 @@ settings
 end_settings;
 
 driver
-  nm {driver = 'remoteasciidrv.dll'; parameter_file = 'RemoteASCIIDrv.par'};
+  smtp {driver = 'IBSCWSmtpClient.dll'; parameter_file = 'SmtpClient.par'};
 end_driver;
 
 data
+
+  channel
+    Server : string {driver = smtp; driver_index = 100; direction = bidirectional};
+    Sender : string {driver = smtp; driver_index = 103; direction = bidirectional};
+    ReplyTo : string {driver = smtp; driver_index = 104; direction = bidirectional};
+    Recipient : string {driver = smtp; driver_index = 105; direction = bidirectional};
+    Subject : string {driver = smtp; driver_index = 106; direction = bidirectional};
+    Body : string {driver = smtp; driver_index = 107; direction = bidirectional};
+    ErrorText : string {driver = smtp; driver_index = 4; direction = input};
+    SendTrigger : boolean {driver = smtp; driver_index = 2; direction = output};
+    MessageState : longint {driver = smtp; driver_index = 3; direction = input};
+  end_channel;
+
 end_data;
 
 instrument
@@ -24,369 +37,200 @@ instrument
   panel panel_2;
     gui
       owner = background;
-      position = 215, 115, 320, 355;
+      position = 215, 115, 415, 410;
       window
         type = normal;
+        title = 'Send mail';
+        disable = zoom, maximize;
       end_window;
     end_gui;
   end_panel;
 
-  switch switch_1;
+  label label_1;
     gui
       owner = panel_2;
-      position = 170, 95, 92, 30;
+      position = 24, 206;
       window
         disable = zoom, maximize;
       end_window;
     end_gui;
-    mode = text_button;
-    true_text = 'server disconnect';
-    false_text = 'server disconnect';
+    text_list
+      font = font_caption;
+      text = 'Result:';
+    end_text_list;
+  end_label;
 
-    procedure OnOutput( b : boolean );
-    begin
-      core.DriverQueryProc( 'nm', 'server disconnect', 0 );
-    end_procedure;
-
-  end_switch;
-
-  string_control string_control_1;
+  string_control TResult;
     gui
       owner = panel_2;
-      position = 15, 100, 135, 18;
+      position = 75, 201, 315, 25;
     end_gui;
-    init_value = '474554202F20485454502F312E300D0A0D0A';
+    font = font_caption;
 
-    procedure OnOutput( s : string );
-    var
-      error : string;
+    procedure OnStartup();
     begin
-      (*
-      core.DriverQueryProc( 'nm', 'client send ' + s, &error );
-      core.DebugOutput( 'Send error: ', error );
-      *)
-
-      core.DriverQueryProc( 'nm', 'ClearTxQueue', 0 );
-      core.DriverQueryProc( 'nm', 'SetTxIndex', 10 );
-      core.DriverQueryProc( 'nm', 'SetTxIndex', 0 );
-      core.DriverQueryProc( 'nm', 'SetRxIndex', 10 );
-      core.DriverQueryProc( 'nm', 'SetRxIndex', 0 );
-
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 71 );
-      (*
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'G' );
-      *)
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'E' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', ' ' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '/' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', ' ' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'H' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'P' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '/' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '1' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '.' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '0' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0D' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0A' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0D' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0A' );
-
-      core.DriverQueryProc( 'nm', 'SendAsync', 18 );
+      Disable();
     end_procedure;
 
   end_string_control;
 
-  switch switch_1;
+  label label_1;
     gui
       owner = panel_2;
-      position = 170, 50, 90, 30;
+      position = 30, 376;
       window
         disable = zoom, maximize;
       end_window;
     end_gui;
-    mode = text_button;
-    true_text = 'server stop_listen';
-    false_text = 'server stop_listen';
+    text_list
+      text = 'Server:';
+    end_text_list;
+  end_label;
 
-    procedure OnOutput( b : boolean );
-    begin
-      core.DriverQueryProc( 'nm', 'server stop_listen', 0 );
-    end_procedure;
-
-  end_switch;
-
-  switch switch_1;
+  string_control TServer;
     gui
       owner = panel_2;
-      position = 70, 50, 80, 31;
-      window
-        disable = zoom, maximize;
-      end_window;
+      position = 74, 370, 315, 25;
     end_gui;
-    mode = text_button;
-    true_text = 'server listen';
-    false_text = 'server listen';
-
-    procedure OnOutput( b : boolean );
-    var
-      s : string;
-    begin
-      core.DriverQueryProc( 'nm', 'server listen 3001', &s );
-      core.DebugOutput( 'listen:', s );
-    end_procedure;
-
-  end_switch;
-
-  string_control string_control_1;
-    gui
-      owner = panel_2;
-      position = 15, 210, 135, 18;
-    end_gui;
-    init_value = '474554202F20485454502F312E300D0A0D0A';
-
-    procedure OnOutput( s : string );
-    var
-      error : string;
-    begin
-      (*
-      core.DriverQueryProc( 'nm', 'client send ' + s, &error );
-      core.DebugOutput( 'Send error: ', error );
-      *)
-
-      core.DriverQueryProc( 'nm', 'ClearTxQueue', 0 );
-(*
-      core.DriverQueryProc( 'nm', 'SetTxIndex', 10 );
-*)
-      core.DriverQueryProc( 'nm', 'SetTxIndex', 0 );
-(*
-      core.DriverQueryProc( 'nm', 'SetRxIndex', 10 );
-*)
-      core.DriverQueryProc( 'nm', 'SetRxIndex', 0 );
-
-(*
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 71 );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'G' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'E' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', ' ' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '/' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', ' ' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'H' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', 'P' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '/' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '1' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '.' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '0' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0D' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0A' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0D' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0A' );
-
-      core.DriverQueryProc( 'nm', 'SendAsync', 18 );
-*)
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#1B' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#01' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#03' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#01' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#03' );
-      core.DriverQueryProc( 'nm', 'PutCharSeq', '#FC' );
-      core.DriverQueryProc( 'nm', 'SendAsync', 6 );
-    end_procedure;
-
+    output = Server;
+    init_value = 'smtp.provider.com';
   end_string_control;
 
-  switch switch_1;
+  switch switch_2;
     gui
       owner = panel_2;
-      position = 170, 160, 88, 30;
+      position = 280, 145, 110, 46;
       window
         disable = zoom, maximize;
       end_window;
     end_gui;
+    send_same_data = on;
     mode = text_button;
-    true_text = 'client disconnect';
-    false_text = 'client disconnect';
+    init_value = true;
+    font = font_caption;
+    true_text = 'Send';
+    logic = set_true;
 
-    procedure OnOutput( b : boolean );
+    procedure OnOutput( Output : boolean );
     begin
-      core.DriverQueryProc( 'nm', 'client disconnect', 0 );
+      TResult.SetValue( '...sending...' );
+      SendTrigger = true;
     end_procedure;
 
   end_switch;
 
-  switch switch_1;
+  label label_1;
     gui
       owner = panel_2;
-      position = 70, 160, 80, 31;
+      position = 31, 14;
       window
         disable = zoom, maximize;
       end_window;
     end_gui;
-    mode = text_button;
-    true_text = 'client connect';
-    false_text = 'client connect';
+    text_list
+      font = font_caption;
+      text = 'From:';
+    end_text_list;
+  end_label;
 
-    procedure OnOutput( b : boolean );
-    var
-      s : string;
-    begin
-    (*
-      core.DriverQueryProc( 'nm', 'client connect 10.78.0.8:6005', &s );
-     *)
-      core.DriverQueryProc( 'nm', 'client connect 192.168.84.54:3001', &s );
-      core.DebugOutput( 'connect: ', s );
-    end_procedure;
+  label label_1;
+    gui
+      owner = panel_2;
+      position = 47, 44;
+      window
+        disable = zoom, maximize;
+      end_window;
+    end_gui;
+    text_list
+      font = font_caption;
+      text = 'To:';
+    end_text_list;
+  end_label;
 
-  end_switch;
+  label label_1;
+    gui
+      owner = panel_2;
+      position = 18, 84;
+      window
+        disable = zoom, maximize;
+      end_window;
+    end_gui;
+    text_list
+      font = font_caption;
+      text = 'Subject:';
+    end_text_list;
+  end_label;
+
+  label label_1;
+    gui
+      owner = panel_2;
+      position = 10, 114;
+      window
+        disable = zoom, maximize;
+      end_window;
+    end_gui;
+    text_list
+      font = font_caption;
+      text = 'Message:';
+    end_text_list;
+  end_label;
+
+  string_control TSender;
+    gui
+      owner = panel_2;
+      position = 75, 10, 315, 25;
+    end_gui;
+    output = Sender;
+    init_value = 'my.email@address.com';
+    font = font_caption;
+  end_string_control;
+
+  string_control TRecipient;
+    gui
+      owner = panel_2;
+      position = 75, 40, 315, 25;
+    end_gui;
+    output = Recipient;
+    init_value = 'your.email@address.com';
+    font = font_caption;
+  end_string_control;
+
+  string_control TSubject;
+    gui
+      owner = panel_2;
+      position = 75, 80, 315, 25;
+    end_gui;
+    output = Subject;
+    init_value = 'A message subject';
+    font = font_caption;
+  end_string_control;
+
+  string_control TBody;
+    gui
+      owner = panel_2;
+      position = 75, 110, 315, 25;
+    end_gui;
+    output = Body;
+    init_value = '...anything going into the text';
+    font = font_caption;
+  end_string_control;
 
   program excpt;
-
-    procedure OnActivate();
-    const
-      delimiter = ' ';
-    var
-      c : cardinal;
-      s : string;
-      t : string;
-      T : string;
-    begin
-      loop
-        core.DriverQueryProc( 'nm', 'event get', &s );
-        core.DriverQueryProc( 'nm', 'event count', &c );
-        if s = '' then
-          exit;
-        end;
-
-        if s = 'client_connect' then
-           core.DebugOutput( 'connect: ', s );
-
-        elsif s = 'server_data' then
-          loop
-            core.DriverQueryProc( 'nm', 'client receive', &s );
-            if s = '' then
-              exit;
-            end;
-
-            core.DebugOutput( 'received: ', s );
-
-            T := '';
-            while s <> '' do
-              t := slice( s, 0, 2 );
-              if ( t = '0D' ) or ( t = '0A' ) then
-                T := T + 'CRLF';
-              else
-                T := T + char( val( t, 16 ));
-              end;
-              s := delete( s, 0, 2 );
-            end;
-
-            core.DebugOutput( 'converted: ', T );
-          end; (* loop *)
-
-        else
-          core.DebugOutput( 'exception: ', s );
-
-        end;
-      end;
-    end_procedure;
-
-  end_program;
-
-  program excpt2;
     activity
-      driver = nm;
+      driver = smtp;
     end_activity;
 
     procedure OnActivate();
-    const
-      delimiter = ' ';
-    var
-      c : cardinal;
-      ch : cardinal;
-      error : cardinal;
-      i : cardinal;
-      s : string;
-      t : string;
-      T : string;
     begin
-      core.DriverQueryProc( 'nm', 'GetExcStatus', &c );
-
-      switch c of
-      case 0; (* ok *)
-        core.DebugOutput( 'AS OK' );
-
-      case 1;
-        core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
-        core.DebugOutput( 'AS RX Error: ', c );
-
-      case 2;
-        core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
-        core.DebugOutput( 'AS TX Error: ', c );
-
-      case 3;
-        core.DebugOutput( 'AS Data Received' );
-
-        core.DriverQueryProc( 'nm', 'SetRxIndex', 0 );
-
-        core.DriverQueryProc( 'nm', 'GetRxCount', &c );
-        core.DebugOutput( '   Count: ', c );
-
-        if c > 0 then
-          s := '';
-          for i := 0 to c-1 do
-            if i % 2 = 1 then
-              core.DriverQueryProc( 'nm', 'GetCharSeq', &t );
-            else
-              core.DriverQueryProc( 'nm', 'GetCharSeq', &ch );
-              if ch = 10 then
-                t = '#0A';
-              elsif ch = 13 then
-                t = '#0D';
-              else
-                t = char( ch );
-              end;
-            end;
-            core.DriverQueryProc( 'nm', 'GetResult', &error );
-            if error <> 0 then
-              core.DebugOutput( 'GetCharSeq error: ', error );
-            end;
-
-            s := s + t;
-            if (i+1) % 100 = 0 then
-              core.DebugOutput( 'Data: ', s );
-              s := '';
-            end;
-          end; (* for *)
-          core.DebugOutput( 'Data: ', s );
-
-          core.DriverQueryProc( 'nm', 'ClearRxQueue', &c );
-        end;
-
-      case 4;
-        core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
-        core.DebugOutput( 'AS Driver Error:', c );
-
-      case 100; (* connect *)
-        core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
-        core.DebugOutput( 'AS Connect:', c );
-
-      case 101; (* disconnect *)
-        core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
-        core.DebugOutput( 'AS Disconnect:', c );
-
-      case 102; (* accept *)
-        core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
-        core.DebugOutput( 'AS Accept:', c );
-
-      end; (* case *)
-
-      core.DriverQueryProc( 'nm', 'EnableException', 0 );
-
+      if MessageState = -1 then
+        TResult.SetValue( '...sending...' );
+      elsif MessageState = 0 then
+        core.DebugOutput( 'Send failed: ', ErrorText );
+        TResult.SetValue( ErrorText );
+      else
+        core.DebugOutput( 'Send succeeded' );
+        TResult.SetValue( 'OK' );
+      end;
     end_procedure;
 
   end_program;

@@ -35,8 +35,8 @@
             <item lang="cs-CZ">Chyba při otevření souboru s parametry</item>
         </string>
         <string name="_MissingDeviceSection">
-            <item lang="en-US">Device definition section is missing ([IBSSmtpClient])</item>
-            <item lang="cs-CZ">Chybí definice sekce zařízení ([IBSSmtpClient])</item>
+            <item lang="en-US">Device definition section is missing ([IBSCWSmtpClient])</item>
+            <item lang="cs-CZ">Chybí definice sekce zařízení ([IBSCWSmtpClient])</item>
         </string>
 
         <string name="ChannelStatusDescription">
@@ -88,6 +88,14 @@
             <item lang="cs-CZ">Text zprávy</item>
         </string>
 
+        <string name="SmtpPhaseMessageCreation">
+            <item lang="en-US">Unable to create the message</item>
+            <item lang="cs-CZ">Nelze založit zprávu</item>
+        </string>
+        <string name="SmtpPhaseMessageValidation">
+            <item lang="en-US">The message is missing some mandatory parts</item>
+            <item lang="cs-CZ">Zprávě chybí některé povinné části</item>
+        </string>
         <string name="SmtpPhaseClientConnect">
             <item lang="en-US">Unable to connect the server</item>
             <item lang="cs-CZ">Nelze se spojit se serverem</item>
@@ -116,9 +124,13 @@
             <item lang="en-US">Recipient rejected</item>
             <item lang="cs-CZ">Příjemce odmítnut</item>
         </string>
+        <string name="SmtpPhaseRecipientsRejected">
+            <item lang="en-US">Recipient(s) rejected (denied relaying?)</item>
+            <item lang="cs-CZ">Příjemce(i) odmítnut (zákaz přeposílání?)</item>
+        </string>
         <string name="SmtpPhaseStartData">
             <item lang="en-US">Data start failed</item>
-            <item lang="cs-CZ">Chyba při startu data</item>
+            <item lang="cs-CZ">Chyba při startu dat</item>
         </string>
         <string name="SmtpPhaseHeaders">
             <item lang="en-US">Headers rejected</item>

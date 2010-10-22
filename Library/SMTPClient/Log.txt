@@ -35,3 +35,7 @@
 
 -- prověřit, jak se používají MessageQueues a deriváty. Pokud je to 1:1,
    je zbytečné používat N:1 třídy
+
+-- pattern, kdz objekt(delegate) registruje sám sebe do poolu je nevhodný, protože znemožnuje 
+   rušení objektu pomocí Release -- to se totiř neprovede, protože objekt drží reference sám
+   na sebe.
