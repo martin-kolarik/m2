@@ -308,14 +308,14 @@ CLASS IMPLEMENTATION ClientIPConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; DefaultPort : CARDINAL; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
       Close();
       
       _Socket^.Waitable := WaitForResult;
-      Result := _Socket^.Connect( Host, TimeoutMS );
+      Result := _Socket^.Connect( Host, DefaultPort, TimeoutMS );
       
       IF NOT WaitForResult THEN
          RETURN Result;
@@ -363,9 +363,9 @@ CLASS IMPLEMENTATION ClientIPConnection;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; DefaultPort : CARDINAL; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
-      RETURN Open( OA( Host.Length-1, Host.Data ), WaitForResult, TimeoutMS );
+      RETURN Open( OA( Host.Length-1, Host.Data ), DefaultPort, WaitForResult, TimeoutMS );
    END OpenS;
 
 (*--------------------------------------------------------------------------------*)

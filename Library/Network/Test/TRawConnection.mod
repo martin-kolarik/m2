@@ -168,7 +168,7 @@ CLASS IMPLEMENTATION CTest;
       ClientCount := 0;
       ServerCount := 0;
       lastCount := 0;
-      ClientConnection^.Open( L'iris:4444', FALSE, sync.FORSAFETY );
+      ClientConnection^.Open( L'iris:4444', 0, FALSE, sync.FORSAFETY );
       // wait
       LOOP
          IF lastCount >= Limit THEN
@@ -177,7 +177,7 @@ CLASS IMPLEMENTATION CTest;
          WaitForMessages( 10 );
          IF ( lastCount < sync.IGet( REF ClientCount )) AND ( lastCount < sync.IGet( REF ServerCount )) THEN // reconnect
             lastCount := sync.IGet( REF ClientCount );
-            IF ClientConnection^.Open( L'iris:4444', FALSE, sync.FORSAFETY ) = sync.arCannotStart THEN
+            IF ClientConnection^.Open( L'iris:4444', 0, FALSE, sync.FORSAFETY ) = sync.arCannotStart THEN
                // this is returned if connection cannot start connecting due to pending disconnect
                Host^.Log^.LogS( log.lcError, 0, L"", L"Unexpected connection Open result" );   
                DEC( lastCount ); // force repeat Open

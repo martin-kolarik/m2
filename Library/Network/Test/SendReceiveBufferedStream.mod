@@ -221,7 +221,7 @@ CLASS IMPLEMENTATION CTest;
          Writer.Summa := 0;
 
          // start
-         NetWriteStream.FromServer( L"127.0.0.1:4444" );
+         NetWriteStream.FromServer( L"127.0.0.1:4444", 0 );
          WaitForMessages( 50 );
          ReaderThread.Start( TRUE );
      
@@ -273,7 +273,7 @@ CLASS IMPLEMENTATION CTest;
          Writer.Summa := 0;
 
          // start
-         NetWriteStream.FromServer( L"127.0.0.1:4444" );
+         NetWriteStream.FromServer( L"127.0.0.1:4444", 0 );
          WaitForMessages( 50 );
          
          IF BigBlock THEN

@@ -45,7 +45,7 @@ LOCAL CLASS ClientIPConnection( IPConnection ) IMPLEMENTS connection.IClientConn
    PUBLIC VIRTUAL PROCEDURE Close();
 
    // IClientConnection
-   PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; DefaultPort : CARDINAL; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
 
    // IAsynchronousConnection   
    PUBLIC VIRTUAL PROPERTY
@@ -57,7 +57,7 @@ LOCAL CLASS ClientIPConnection( IPConnection ) IMPLEMENTS connection.IClientConn
       BufferedStream : IOO.TPBufferedStream;
 
    // own   
-   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; DefaultPort : CARDINAL; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
 
 END ClientIPConnection;
 

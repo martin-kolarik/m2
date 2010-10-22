@@ -164,7 +164,7 @@ CLASS IMPLEMENTATION CTest;
       ClientCount := 0;
       ServerCount := 0;
       lastCount := 0;
-      ClientSocket^.Connect( L'iris:4444', windows.INFINITE );
+      ClientSocket^.Connect( L'iris:4444', 0, windows.INFINITE );
       // ClientSocket^.Connect( L'localhost:4444', windows.INFINITE );
       // wait
       LOOP
@@ -174,7 +174,7 @@ CLASS IMPLEMENTATION CTest;
          WaitForMessages( 2 );
          IF ( lastCount < sync.IGet( REF ClientCount )) AND ( lastCount < sync.IGet( REF ServerCount )) THEN // reconnect
             lastCount := sync.IGet( REF ClientCount );
-            ClientSocket^.Connect( L'iris:4444', windows.INFINITE );
+            ClientSocket^.Connect( L'iris:4444', 0, windows.INFINITE );
             // ClientSocket^.Connect( L'localhost:4444', windows.INFINITE );
          END;
       END; // WHILE
