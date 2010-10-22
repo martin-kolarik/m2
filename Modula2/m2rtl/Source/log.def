@@ -26,10 +26,14 @@ TYPE
    TPBaseLogger = POINTER TO CBaseLogger;
    TPBufferedLogger = POINTER TO CBufferedLogger;
    
+(*---------------------------------------------------------------------------*)
+
 CONST
    TPAppender ::= TPBaseAppender;
    TPLogger ::= TPBaseLogger;
    
+(*---------------------------------------------------------------------------*)
+
 CONST
    outsNone    = TOutput{};
    outsFile    = TOutput{outFile};

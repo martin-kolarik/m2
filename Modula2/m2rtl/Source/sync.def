@@ -138,6 +138,10 @@ PROCEDURE RawWait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
 PROCEDURE RawState( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
 
 // primitive atomic operations
+CONST
+   ivSET = 1; // interlocked value
+   ivNOTSET = 0;
+
 // for synchronization issues preferably use SpinLock* procedures above to leave system-wide compatible behavior
 PROCEDURE ICmpExchg( REF Destination : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
 PROCEDURE ICmpExchgPtr( REF Destination : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
@@ -187,9 +191,9 @@ END SIGNAL;
 
 // "static" methods
 CONST
-   stSET = TRISTATE( 1 );
-   stNOTSET = TRISTATE( 0 );
-   stINVALID = TRISTATE( -1 );
+   sgSET = TRISTATE( 1 );
+   sgNOTSET = TRISTATE( 0 );
+   sgINVALID = TRISTATE( -1 );
 
 PROCEDURE CreateSignal( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitialState : BOOLEAN ) : PSIGNAL;
 PROCEDURE DeleteSignal( REF Signal : PSIGNAL );

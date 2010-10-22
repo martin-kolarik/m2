@@ -1229,11 +1229,11 @@ END DeleteSignal;
 PROCEDURE SafeSignal( Signal : PSIGNAL ) : TRISTATE;
 BEGIN
    IF Signal = NIL THEN
-      RETURN stINVALID;
+      RETURN sgINVALID;
    ELSIF Signal^.Signal() THEN
-      RETURN stSET;
+      RETURN sgSET;
    ELSE
-      RETURN stNOTSET;
+      RETURN sgNOTSET;
    END;
 END SafeSignal;
 
@@ -1242,11 +1242,11 @@ END SafeSignal;
 PROCEDURE SafeReset( Signal : PSIGNAL ) : TRISTATE;
 BEGIN
    IF Signal = NIL THEN
-      RETURN stINVALID;
+      RETURN sgINVALID;
    ELSIF Signal^.Reset() THEN
-      RETURN stSET;
+      RETURN sgSET;
    ELSE
-      RETURN stNOTSET;
+      RETURN sgNOTSET;
    END;
 END SafeReset;   
 
@@ -1266,11 +1266,11 @@ END SafeWait;
 PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
 BEGIN
    IF Signal = NIL THEN
-      RETURN stINVALID;
+      RETURN sgINVALID;
    ELSIF Signal^.State THEN
-      RETURN stSET;
+      RETURN sgSET;
    ELSE
-      RETURN stNOTSET;
+      RETURN sgNOTSET;
    END;
 END SafeState;
 
