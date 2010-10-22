@@ -7,7 +7,10 @@ FROM Debug IMPORT
 
 IMPORT
    datetime,
-   msghandler;
+   Log,
+   msghandler,
+   Rtti,
+   StringsO;
    
 (*===========================================================================*)
 
@@ -31,8 +34,21 @@ CLASS IMPLEMENTATION CSupport;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Dispose();
+   VAR
+      logger : Log.TPLogger;
+      name : StringsO.CString;
    BEGIN
-      ASSERTLOG( Joined.Empty );
+      // diagnostics report
+      IF NOT Joined.Empty THEN
+         logger := Log.logger();
+         Joined.Reset();
+         WHILE Joined.MoveNext() DO
+            name.FromOAA( 0, OAsz( Rtti.TPRTTI( RTTI( OSALmsg.TPMessageHandler( Joined.Current )^ ))^.Name ));
+            logger^.LogS( Log.ldDebug, 0, EMITW( %class ), OA( name.Length-1, name.Data ));
+         END; // WHILE
+         ASSERTLOG( FALSE, L"Unexpectedly not empty." );
+      END;
+
       Joined.Dispose();
       OfThread := NIL;
    END Dispose;
@@ -221,7 +237,10 @@ CLASS IMPLEMENTATION CSupport;
 
    PRIVATE PROCEDURE DoJoin( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERTLOG( NOT IsJoined( Handler ));
+      IF IsJoined( Handler ) THEN
+         ASSERTLOG( FALSE, L"Handler is already joined, cannot join" );
+         RETURN;
+      END;
 
       JoinedLock.Lock();
       Joined.Add( Handler, 0 );
@@ -234,7 +253,10 @@ CLASS IMPLEMENTATION CSupport;
 
    PRIVATE PROCEDURE DoLeave( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERTLOG( IsJoined( Handler ));
+      IF NOT IsJoined( Handler ) THEN
+         ASSERTLOG( FALSE, L"Handler is not joined, cannot leave" );
+         RETURN;
+      END;
 
       JoinedLock.Lock();
       Joined.Remove( Handler );
