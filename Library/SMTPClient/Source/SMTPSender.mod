@@ -22,6 +22,7 @@ IMPORT
    languages,
    languagesO,
    lists,
+   log,
    msgqueue,
    netsocket,
    PersonsImpl,
@@ -35,6 +36,14 @@ IMPORT
    TextWriter,
    thread,
    threadpool;
+
+(*================================================================================*)
+
+CONST
+   LOG_PREFIX    = L"SmtpSender";
+   CAT_QUEUE     = 01H;
+   CAT_LIFECYCLE = 02H;
+   CAT_SMTP      = 04H;
 
 (*================================================================================*)
 
@@ -123,6 +132,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
    PUBLIC VIRTUAL PROPERTY
       Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
       Notifier : TPNotifier;
+      Logger : log.TPILogger;
 
    PUBLIC VIRTUAL PROCEDURE Send( CONST message : MailMessage.TPMailMessage; userId : PTR; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
 
@@ -164,6 +174,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
       _TimeToLive : datetime.TJDC := 2*86400*datetime.unitsInSecond; // two days
       _Dispatcher : threadcall.TPIThreadProcedureCallDispatcher := NIL;
       _Notifier : TPNotifier := NIL;
+      _Logger : log.TPILogger;
 
       _QueueLength : CARDINAL := 1000;
       _QueueSignal : Sync.SIGNAL;
@@ -189,6 +200,7 @@ CLASS CWorker( threadpool.APoolWorker );
 
    PRIVATE VAR
       _Sender : TPSenderImpl := NIL;
+      _Logger : log.TPILogger := NIL;
       _QueueItem : TPQueueItem := NIL;
       _Message : MailMessage.TPMailMessage := NIL;
       _Connection : rawconnection.ClientTCPConnection;
@@ -245,6 +257,8 @@ CLASS IMPLEMENTATION CWorker;
          WHILE recipients^.MoveNext() DO
             _FailedRecipients.Add( recipients^.Current );
          END;
+
+         _Logger^.LogSP( log.ldDebug, CAT_LIFECYCLE, LOG_PREFIX, L"Failed recipients grabbed [userId]:", _QueueItem^.UserId );
       END;
 
       _Sender^.NotifyCompletion( _QueueItem, Result, SmtpPhase, _FailedRecipients );
@@ -257,6 +271,7 @@ CLASS IMPLEMENTATION CWorker;
       _Sender := sender;
       _QueueItem := queueItem;
       _Message := queueItem^.Message;
+      _Logger := _Sender^.Logger;
    END Init;
 
 (*--------------------------------------------------------------------------------*)
@@ -402,12 +417,16 @@ CLASS IMPLEMENTATION CWorker;
       REPEAT
          Result := ReadServerLine( OUT current, OUT line, OUT lastline );
          IF Result <> Sync.arCompleted THEN
+            _Logger^.LogSR( log.ldDebug, CAT_SMTP, LOG_PREFIX, L"r:", Result );
             THROW SmtpException( Result );
          ELSIF first = SmtpTools.smtpres_Unknown THEN
             first := current;
          ELSIF current <> first THEN // responses must be uniform for single command
+            _Logger^.LogSR( log.ldDebug, CAT_SMTP, LOG_PREFIX, L"c:", Result );
             THROW SmtpException( Sync.arAborted );
          END;
+
+         _Logger^.LogSSP( log.ldDebug, CAT_SMTP, LOG_PREFIX, L"S:", OA( line.Length-1, line.Data ), _QueueItem^.UserId );
       UNTIL lastline;
 
       IF lastResponseLine <> NIL THEN
@@ -444,8 +463,13 @@ CLASS IMPLEMENTATION CWorker;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
+      _Logger^.LogSSP( log.ldDebug, CAT_SMTP, LOG_PREFIX, L"C:", OA( Line.Length-1, Line.Data ), _QueueItem^.UserId );
+
       Result := _Writer.WriteTimeout( Line, TRUE, netsocket.FORSAFETY );
       IF Result <> Sync.arCompleted THEN
+
+         _Logger^.LogSR( log.ldDebug, CAT_SMTP, LOG_PREFIX, L"r:", Result );
+
          THROW SmtpException( Result );
       END;
    END WriteServer;
@@ -965,6 +989,7 @@ CLASS IMPLEMENTATION CSender;
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
       IF Result = Sync.arCompleted THEN
+         _Logger^.LogS( log.ldDebug, CAT_QUEUE, LOG_PREFIX, L"Signaling the timeout" );
          _QueueSignal.Signal();
       END;
    END OnTimeout;
@@ -982,6 +1007,10 @@ CLASS IMPLEMENTATION CSender;
 
       IF _Notifier <> NIL THEN
          onCompletionParameters := Parameters[0];
+
+         _Logger^.LogSP( log.ldMessage, CAT_LIFECYCLE, LOG_PREFIX, L"Mail completion notification (deferred) [userId]:", onCompletionParameters^.UserId );
+         _Logger^.LogSR( log.ldMessage, CAT_LIFECYCLE, LOG_PREFIX, L"  result:", onCompletionParameters^.Result );
+
          _Notifier^.OnMailMessageCompletion( onCompletionParameters^.Result, onCompletionParameters^.SmtpPhase, onCompletionParameters^.Message, onCompletionParameters^.UserId, onCompletionParameters^.FailedRecipients );
       END;
       
@@ -1030,16 +1059,45 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Logger GET : log.TPILogger;
+   VAR
+      lock : Sync.AutoLock;
+   BEGIN
+      lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
+      RETURN _Logger;
+   END Logger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Logger SET( Value : log.TPILogger );
+   VAR
+      lock : Sync.AutoLock;
+   BEGIN
+      lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
+      IF _Logger = Value THEN
+         RETURN;
+      ELSIF Value = NIL THEN
+         _Logger := log.logger();
+      ELSE
+         _Logger := Value;
+      END;
+   END Logger;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Send( CONST message : MailMessage.TPMailMessage; userId : PTR; takeOwnership : BOOLEAN ) : Sync.TAsyncResult;
    VAR
       queueItem : TPQueueItem;
       Result : Sync.TAsyncResult;
    BEGIN
       IF message^.Sender.Address.Empty THEN
+         _Logger^.LogSP( log.ldMessage, CAT_LIFECYCLE, LOG_PREFIX, L"Cannot send mail, the sender is empty [userId]:", userId );
          RETURN Sync.arCannotStart;
       ELSIF message^.Recipients^.Empty AND message^.CCs^.Empty AND message^.BCCs^.Empty THEN
+         _Logger^.LogSP( log.ldMessage, CAT_LIFECYCLE, LOG_PREFIX, L"Cannot send mail, no recipient is defined [userId]:", userId );
          RETURN Sync.arCannotStart;
       ELSIF _Queue.Count > _QueueLength THEN
+         _Logger^.LogSCC( log.ldMessage, CAT_QUEUE OR CAT_LIFECYCLE, LOG_PREFIX, L"Cannot send mail, queue oversizes allowed length [count, length]:", _Queue.Count, _QueueLength );
          RETURN Sync.arBusy;
       END;
 
@@ -1056,6 +1114,8 @@ CLASS IMPLEMENTATION CSender;
          IF _PoolQueueHandle = NIL THEN
             RETURN Sync.arCannotStart;
          END;
+         _Logger^.LogSP( log.ldTrace, CAT_QUEUE OR CAT_LIFECYCLE, LOG_PREFIX, L"Mail is to be queued [userId]:", userId );
+
          _Queue.Enqueue( queueItem, 0 ); // enqueue and switch tasks
          _QueueSignal.Signal();
          Result := Sync.arPending;
@@ -1272,7 +1332,9 @@ CLASS IMPLEMENTATION CSender;
          queueItem := _Queue.Current;
          IF queueItem^.Ownership THEN
             MailMessage.Dispose( REF queueItem^.Message );
+            _Logger^.LogSP( log.ldDebug, CAT_QUEUE OR CAT_LIFECYCLE, LOG_PREFIX, L"Mail disposed (having ownership) [userId]:", queueItem^.UserId );
          END;
+         _Logger^.LogSP( log.ldDebug, CAT_QUEUE OR CAT_LIFECYCLE, LOG_PREFIX, L"Mail in the queue when stopping [userId]:", queueItem^.UserId );
       END; // DO
       _Queue.Dispose();
 
@@ -1304,6 +1366,9 @@ CLASS IMPLEMENTATION CSender;
          END;
          IF _Notifier <> NIL THEN
             IF _Dispatcher = NIL THEN
+               _Logger^.LogSP( log.ldMessage, CAT_LIFECYCLE, LOG_PREFIX, L"Mail completion notification (direct) [userId]:", queueItem^.UserId );
+               _Logger^.LogSR( log.ldMessage, CAT_LIFECYCLE, LOG_PREFIX, L"  result:", Result );
+
                _Notifier^.OnMailMessageCompletion( Result, SmtpPhase, queueItem^.Message, queueItem^.UserId, recipients );
             ELSE
                P.Message := queueItem^.Message;
@@ -1327,6 +1392,11 @@ CLASS IMPLEMENTATION CSender;
       now : datetime.DateTime;
       waitSpan : CARDINAL;
    BEGIN
+      IF NOT _Logger^.FilteredFastCheck( log.ldDebug, CAT_LIFECYCLE ) THEN
+         _Logger^.LogSP( log.ldDebug, CAT_LIFECYCLE, LOG_PREFIX, L"Send completed [userId]:", queueItem^.UserId );
+         _Logger^.LogSR( log.ldDebug, CAT_LIFECYCLE, LOG_PREFIX, L"  result:", Result );
+      END;
+
       // until queueItem is in pending state, no sync is required for its members
       ASSERTLOG( queueItem^.ProcessingStatus = Sync.arPending );
       now := datetime.NowUTC();
@@ -1338,6 +1408,8 @@ CLASS IMPLEMENTATION CSender;
       ELSE
          difference := now.Difference( queueItem^.Message^.Created );
          IF difference > _TimeToLive THEN // if the item is expired, call callback and terminate it
+            _Logger^.LogSP( log.ldTrace, CAT_LIFECYCLE, LOG_PREFIX, L"Mail expired [userId]:", queueItem^.UserId );
+
             Notify();
             newProcessingStatus := Sync.arTimeout;
 
@@ -1349,6 +1421,8 @@ CLASS IMPLEMENTATION CSender;
                   EXIT;
                END;
             END;
+            _Logger^.LogSCP( log.ldTrace, CAT_LIFECYCLE, LOG_PREFIX, L"Mail rescheduled with span index [index, userId]:", waitSpan, queueItem^.UserId );
+
             queueItem^.NextSendTime := now + REPEAT_SPAN[ waitSpan ];
             newProcessingStatus := Sync.arInitial;
 
@@ -1359,6 +1433,7 @@ CLASS IMPLEMENTATION CSender;
       // allow queueItem manipulation in others threads
       Sync.IExchg( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^, INTEGER( newProcessingStatus ));
 
+      _Logger^.LogS( log.ldDebug, CAT_QUEUE, LOG_PREFIX, L"Signaling the completion (to flush the queue)" );
       _QueueSignal.Signal(); // allow to send next not-sent-yet messages ASAP
    END NotifyCompletion;
 
@@ -1372,16 +1447,21 @@ CLASS IMPLEMENTATION CSender;
       worker : POINTER TO CWorker;
    BEGIN
       IF _LightWeight THEN // run directly
+         _Logger^.LogSP( log.ldTrace, CAT_LIFECYCLE, LOG_PREFIX, L"Direct send [userId]:", queueItem^.UserId );
+
          NEW( worker );
          worker^.Init( ADR( SELF ), queueItem );
          result := worker^.SmtpSend( OUT smtpPhase );
 
       ELSE // run it in the pool
          IF CARDINAL( Sync.IGet( REF _PendingInPool )) >= Sync.NumberOfProcessors() THEN
+            _Logger^.LogSP( log.ldTrace, CAT_LIFECYCLE, LOG_PREFIX, L"Pool full, wait for emptying [userId]:", queueItem^.UserId );
             RETURN Sync.arCannotStart;
          END;
          Sync.IInc( REF _PendingInPool );
          queueItem^.ProcessingStatus := Sync.arPending;
+
+         _Logger^.LogSP( log.ldTrace, CAT_LIFECYCLE, LOG_PREFIX, L"Indirect send, switch to pool [userId]:", queueItem^.UserId );
 
          // run the worker in the pool
          NEW( worker );
@@ -1410,6 +1490,8 @@ CLASS IMPLEMENTATION CSender;
       oldestItem : TPQueueItem;
       overLimit : BOOLEAN;
    BEGIN
+      _Logger^.LogS( log.ldDebug, CAT_QUEUE, LOG_PREFIX, L"Processing the queue" );
+
       ASSERT( thread.Current()^.InfoType = thread.infoTypePool );
       now := datetime.NowUTC();
 
@@ -1424,9 +1506,11 @@ CLASS IMPLEMENTATION CSender;
            Sync.arTimeout : // sending has finished, remove the message from the queue
             _Queue.Remove( queueItem );
             _Queue.Reset(); // iterate again
+            _Logger^.LogSP( log.ldTrace, CAT_QUEUE, LOG_PREFIX, L"Mail dequeued [userId]:", queueItem^.UserId );
 
             IF queueItem^.Ownership THEN
                MailMessage.Dispose( REF queueItem^.Message );
+               _Logger^.LogSP( log.ldDebug, CAT_QUEUE OR CAT_LIFECYCLE, LOG_PREFIX, L"Mail disposed (having ownership) [userId]:", queueItem^.UserId );
             END;
             DISPOSE( queueItem );
 
@@ -1435,7 +1519,12 @@ CLASS IMPLEMENTATION CSender;
 
          IF queueItem^.NextSendTime > now THEN // time not expired, wait longer
             CONTINUE;
+         ELSIF queueItem^.NextSendTime.Empty THEN
+            _Logger^.LogSP( log.ldTrace, CAT_QUEUE, LOG_PREFIX, L"Mail first send [userId]:", queueItem^.UserId );
+         ELSE
+            _Logger^.LogSP( log.ldTrace, CAT_QUEUE, LOG_PREFIX, L"Mail resend [userId]:", queueItem^.UserId );
          END;
+
 
          // resend the message
          DispatchSend( queueItem );
@@ -1445,6 +1534,8 @@ CLASS IMPLEMENTATION CSender;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
+   _Logger := log.logger();
+
    _QueueSignal.Init( Sync.stEventAutoreset, L"", FALSE );
    IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, _QueueSignal.RawHandle, OUT _PoolQueueHandle ) THEN
       ASSERTLOG( FALSE, L"Unable to start SMTP sender waiting" );

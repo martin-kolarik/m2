@@ -115,7 +115,6 @@ CLASS CDriver IMPLEMENTS SmtpSender.INotifier, diface.ICWDriver;
    PRIVATE VAR
       R                : Resources.CResources;
       RStatus          : TRStatus := TRStatus{rsValid};
-      Name             : StringsO.CString;
       Logger           : log.CLogger;
       AppenderList     : lists.CPtrList;
 
@@ -124,6 +123,7 @@ CLASS CDriver IMPLEMENTS SmtpSender.INotifier, diface.ICWDriver;
       RunMode          : CARDINAL := drv_def.drmEdit;
       Result           : lec.CResult;
 
+      _Id              : CARDINAL := 0;
       _Sender          : SmtpSender.TPSender := NIL;
       _ReplyTo         : StringsO.CString;
       _From            : StringsO.CString;
@@ -149,7 +149,7 @@ CLASS IMPLEMENTATION CDriver;
       _Result := Result;
       _Phase := SmtpPhase;
 
-      Logger.LogSR( ldDebug, 0, logPrefix, L"Mail completed, fire dcfException ", Result );
+      Logger.LogSR( ldTrace, 0, logPrefix, L"Mail completed, fire dcfException ", Result );
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnMailMessageCompletion;
 
@@ -160,7 +160,7 @@ CLASS IMPLEMENTATION CDriver;
       SELF.CallbackId := CallbackId;
       SELF.CallbackProc := CallbackProc;
       RunMode := _RunMode;
-      Name := SymbolicName;
+      Logger.SetName( OA( SymbolicName.Length-1, SymbolicName.Data ));
    END Initialize;
 
 (*--------------------------------------------------------------------------------*)
@@ -217,9 +217,9 @@ CLASS IMPLEMENTATION CDriver;
          Error( Texts._UnknownDebugLevel, ErrorLine );
       | LogConfig.clrTargetFileMissingFile :
          Error( Texts._FileDebugMissingFile, ErrorLine );
+      ELSE // OK
+         RETURN TRUE;
       END; // CASE
-    
-      RETURN TRUE;
 
    Fail:
       // remove temporary structures
@@ -352,7 +352,8 @@ CLASS IMPLEMENTATION CDriver;
       ASSERTLOG( _Sender = NIL, L"Sender already (unexpectedly) exists" );
       IF SmtpSender.New( OUT _Sender, FALSE, FALSE ) THEN
          _Sender^.Notifier := ADR( SELF );
-         // _Sender^.TimeToLive := 0; // immediately remove the message from the queue, if anything fails
+         _Sender^.Logger := ADR( Logger );
+         _Sender^.TimeToLive := 0; // immediately remove the message from the queue, if anything fails
       ELSE
          EXCL( RStatus, rsRunning );
          ASSERTLOG( FALSE, L"Unable to create sender" );
@@ -519,10 +520,14 @@ CLASS IMPLEMENTATION CDriver;
       CASE TChannel( DriverIndex ) OF
       | chTrigger :
          IF Sync.IGet( REF _MessagePending ) = Sync.ivSET THEN // the message is still pending
+            Logger.LogS( ldTrace, 0, logPrefix, L"Mail cannot be send, another mail is still pending" );
             RETURN;
+
          ELSIF NOT MailMessage.New( OUT message ) THEN
             _Result := Sync.arCannotStart;
             _Phase := SmtpSender.MessageCreation;
+
+            Logger.LogS( ldTrace, 0, logPrefix, L"Mail send failed, unable to create message" );
             CallbackProc( CallbackId, drv_def.dcfException, NIL ); // notify about the failure
             RETURN;
          END;
@@ -539,16 +544,24 @@ CLASS IMPLEMENTATION CDriver;
             _Result := result;
             _Phase := SmtpSender.MessageCreation;
             MailMessage.Dispose( REF message );
+
+            Logger.LogSR( ldTrace, 0, logPrefix, L"Mail send failed, unable to write body of the mail", result );
             CallbackProc( CallbackId, drv_def.dcfException, NIL ); // notify about the failure
             RETURN;
          END;
             
-         result := _Sender^.Send( message, 0, TRUE );
-         IF result NOT IN Sync.arsStarts THEN
+         INC( _Id );
+         result := _Sender^.Send( message, _Id, TRUE );
+         IF result IN Sync.arsStarts THEN
+            Logger.LogS( ldDebug, 0, logPrefix, L"Mail queued" );
+
+         ELSE
             Sync.IExchg( REF _MessagePending, Sync.ivNOTSET );
             _Result := result; // failed
             _Phase := SmtpSender.MessageValidation;
             MailMessage.Dispose( REF message );
+
+            Logger.LogSR( ldTrace, 0, logPrefix, L"Mail send failed, Sender has rejected it", result );
             CallbackProc( CallbackId, drv_def.dcfException, NIL ); // notify about the failure
          END;
 

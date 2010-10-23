@@ -1,6 +1,7 @@
 DEFINITION MODULE SMTPSender;
 
 IMPORT
+   log,
    MailMessage,
    MailPerson,
    Sync,
@@ -48,6 +49,7 @@ INTERFACE ISender;
    PROPERTY
       Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
       Notifier : TPNotifier;
+      Logger : log.TPILogger;
 
    // send
    PROCEDURE Send( CONST message : MailMessage.TPMailMessage; userId : PTR; takeOwnership : BOOLEAN ) : Sync.TAsyncResult; // synchronous for lightWeight, asynchronous for not lightWeight, arCannotStart means message is incorrect
