@@ -138,7 +138,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN ElementAt( Index, OUT Value, OUT Data );
+      RETURN SUPER.ElementAt( Index, OUT Value, OUT Data );
    END ElementAt;
 
 (*---------------------------------------------------------------------------*)

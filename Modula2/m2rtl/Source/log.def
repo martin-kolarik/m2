@@ -234,6 +234,7 @@ CLASS CBaseLogger( CBaseAppender ) IMPLEMENTS iLog.ILogger;
    PUBLIC VIRTUAL PROCEDURE LogSCC( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE LogSH( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE LogSP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSSP( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR; P : PTR );
    PUBLIC VIRTUAL PROCEDURE LogSCP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
    PUBLIC VIRTUAL PROCEDURE LogSHP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
    PUBLIC VIRTUAL PROCEDURE LogSB( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
@@ -258,6 +259,13 @@ CONST
 
 CLASS CBufferedLogger( CBaseLogger );
   
+   // CBaseAppender
+   PUBLIC WRITEONLY PROPERTY
+      TimeStamps : BOOLEAN; // prints timestamps, default TRUE --> AFormatter
+      Levels : BOOLEAN; // prints debug level of message, default TRUE --> AFormatter
+      Names : BOOLEAN; // prints names/prefixes of message, default TRUE --> AFormatter
+      LocalTime : BOOLEAN; // uses local time instead of UTC --> AFormatter
+
    // SELF
    PUBLIC PROPERTY
       BufferSize : CARDINAL; // default 256

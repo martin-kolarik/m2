@@ -309,16 +309,16 @@ CLASS IMPLEMENTATION CTokenizer;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Mark() : PTR; // return mark handle of current position
+   PUBLIC VIRTUAL PROCEDURE MarkPosition() : PTR; // return mark handle of current position
    BEGIN
       RETURN 0;
-   END Mark;
+   END MarkPosition;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GotoMark( Handle : PTR );
+   PUBLIC VIRTUAL PROCEDURE GotoMarkedPosition( Handle : PTR );
    BEGIN
-   END GotoMark;
+   END GotoMarkedPosition;
    
 (*--------------------------------------------------------------------------------*)
 
