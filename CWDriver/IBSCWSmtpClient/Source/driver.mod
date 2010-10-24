@@ -26,7 +26,6 @@ IMPORT
    IOO,
    iovalue,
    Languages,
-   lec,
    lists,
    log,
    LogConfig,
@@ -121,7 +120,6 @@ CLASS CDriver IMPLEMENTS SmtpSender.INotifier, diface.ICWDriver;
       CallbackId       : ADDRESS := NIL;
       CallbackProc     : drv_def.TDriverCallbackW := NIL;
       RunMode          : CARDINAL := drv_def.drmEdit;
-      Result           : lec.CResult;
 
       _Id              : CARDINAL := 0;
       _Sender          : SmtpSender.TPSender := NIL;
@@ -336,19 +334,12 @@ CLASS IMPLEMENTATION CDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE DriverRun();
-   VAR
-      s : FIO.PathStrW;
    BEGIN
       IF TRStatus{rsRunning} * RStatus <> TRStatus{} THEN
          RETURN;
       END;
       INCL( RStatus, rsRunning );
 
-      Result.Reset( lec.bhBestCase );
-      FIO.GetModuleDirW( EMITW( %dll ), OUT s );
-      lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF Result );
-
-      // TODO, start sender
       ASSERTLOG( _Sender = NIL, L"Sender already (unexpectedly) exists" );
       IF SmtpSender.New( OUT _Sender, FALSE, FALSE ) THEN
          _Sender^.Notifier := ADR( SELF );
@@ -403,7 +394,6 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
    BEGIN
-      Result.Inc(); // locked by self
    END InputRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -417,11 +407,6 @@ CLASS IMPLEMENTATION CDriver;
    PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    BEGIN
       ErrorCode := 0;
-      IF TChannel( DriverIndex ) = chStatus THEN
-         // status is always readable
-      ELSIF Result.Expired OR Result.Counted THEN // locked by self
-         RETURN FALSE;
-      END; // CASE
       RETURN TRUE;
    END InputFinalized;
 
@@ -441,11 +426,7 @@ CLASS IMPLEMENTATION CDriver;
 
       CASE TChannel( DriverIndex ) OF
       | chStatus :
-         IF Result.Counted OR Result.Expired THEN // locked by self
-            EXCL( RStatus, rsValid );
-         ELSE
-            INCL( RStatus, rsValid );
-         END;
+         INCL( RStatus, rsValid );
          IF Sync.IGet( REF _MessagePending ) = Sync.ivSET THEN
             INCL( RStatus, rsMailPending );
          ELSE
@@ -515,8 +496,6 @@ CLASS IMPLEMENTATION CDriver;
       person : MailPerson.Person;
       result : Sync.TAsyncResult;
    BEGIN
-      Result.Inc(); // locked by self
-
       CASE TChannel( DriverIndex ) OF
       | chTrigger :
          IF Sync.IGet( REF _MessagePending ) = Sync.ivSET THEN // the message is still pending
@@ -603,7 +582,7 @@ CLASS IMPLEMENTATION CDriver;
   PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
   BEGIN
     ErrorCode := 0;
-    RETURN NOT Result.Expired AND NOT Result.Counted; // locked by self
+    RETURN TRUE;
   END OutputFinalized;
 
 (*--------------------------------------------------------------------------------*)

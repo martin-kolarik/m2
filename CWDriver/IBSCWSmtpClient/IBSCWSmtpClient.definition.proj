@@ -9,7 +9,7 @@
         <LanguageStyle>UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Private</CLib>
-        <Licensing>on</Licensing>
+        <Licensing>off</Licensing>
         <LicenceMachineId>M</LicenceMachineId>
         <LeakChecking>on</LeakChecking>
     </PropertyGroup>
