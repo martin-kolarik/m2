@@ -17,7 +17,6 @@ FROM Exceptions IMPORT
    TestIfCatched;
 
 IMPORT
-   cllv,
    diface,
    drv_def,
    FIO,

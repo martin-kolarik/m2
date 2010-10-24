@@ -11,11 +11,14 @@
         <CLib>Private</CLib>
         <Licensing>off</Licensing>
         <LicenceMachineId>M</LicenceMachineId>
-        <LeakChecking>on</LeakChecking>
+        <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='IBSCWSmtpClient'">
         <Result>Dynamic</Result>
+    </PropertyGroup>
+    <PropertyGroup Condition="$(MSBuildProjectName)=='SCCore'">
+        <ComponentType>Generic</ComponentType>
     </PropertyGroup>
 
     <PropertyGroup>
