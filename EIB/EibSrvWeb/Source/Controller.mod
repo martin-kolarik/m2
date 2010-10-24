@@ -382,7 +382,7 @@ CLASS IMPLEMENTATION CController;
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
       ELSE
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
          role := EibSrvWeb.roleGuest;
       END;
       
@@ -443,10 +443,10 @@ CLASS IMPLEMENTATION CController;
          RETURN TRUE;
       
       ELSIF Request.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
-         RETURN ProcessLogin( Request, OUT View );
+         RETURN ProcessLogin( REF Request, OUT View );
       
       ELSIF Request.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
          IF Request.ModelContainer^.GetStringOA( LOGOUT_NEXT_PAGE, OUT s ) THEN
             View := mvc.redirectView( OA( s.Length-1, s.rawData ));
             s.Clear();
@@ -464,7 +464,7 @@ CLASS IMPLEMENTATION CController;
       // user login must be processed before system login redirect         
       ELSIF Request.ControllerURI.EqualsOA( USER_LOGIN_PAGE ) THEN
          IF Request.ModelContainer^.GetStringOA( USER_LOGIN_SOURCE_PAGE, OUT s ) THEN // OK
-            RETURN ProcessUserLogin( Request, OUT View );
+            RETURN ProcessUserLogin( REF Request, OUT View );
          ELSE // nowhere to user-login, redirect to login
             Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
             Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.invalidLoginOrSessionExpired", OUT s );
@@ -475,7 +475,7 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF NOT Request.Session^.Get( SESSION_LOGGED, OUT data ) OR ( data <> PTR( ADR( SELF ))) THEN
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
 
          Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
          Request.MessageSource^.GetMessageOA( Request.Language, L"login.invalidLoginOrSessionExpired", OUT s );
@@ -561,7 +561,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessLogin( REF Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       redirected : BOOLEAN;
       su, sp : StringsO.CString;
@@ -581,7 +581,7 @@ CLASS IMPLEMENTATION CController;
       ELSIF NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
             NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
 
          Request.MessageSource^.GetMessageOA( Request.Language, L"login.badCredentials", OUT su );
          Request.ModelContainer^.AddStringOA( MESSAGE, su );
@@ -1224,7 +1224,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessUserLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserLogin( REF Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       redirected : BOOLEAN;
       src, su, sp : StringsO.CString;
@@ -1246,7 +1246,7 @@ CLASS IMPLEMENTATION CController;
             NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
             NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
 
          Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.badCredentials", OUT su );
          Request.ModelContainer^.AddStringOA( MESSAGE, su );
@@ -1289,7 +1289,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE InvalidateUser( CONST Request : mvc.IHttpRequest );
+   PRIVATE PROCEDURE InvalidateUser( REF Request : mvc.IHttpRequest );
    BEGIN
       // cleanup session
       Request.Session^.Remove( SESSION_LOGGED ); // kill potentially logged user
@@ -1299,7 +1299,7 @@ CLASS IMPLEMENTATION CController;
 
       // cleanup and recreate container
       Request.ModelContainer^.Dispose();
-      InitializeModelContainer( REF Request.ModelContainer );
+      InitializeModelContainer( REF Request.ModelContainer^ );
    END InvalidateUser;
 
 (*--------------------------------------------------------------------------------*)

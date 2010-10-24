@@ -288,8 +288,16 @@ CLASS IMPLEMENTATION CObject;
 //--------------------------------------------------------------------------------
 
    INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; CurrentState : eib_user.TObjectState );
+   VAR
+      EISString : eib_def.TEISStringW;
+      value : eib_def.TValue;
    BEGIN
       RSStatus := Status;
+      IF ( RSStatus = eib_status.essOK ) AND ( Type = eib_def.eitString ) THEN
+         GetValue( OUT value, TRUE, FALSE );
+         value.GetString( EISString );
+         StringValue.FromOA( EISString );
+      END;
       Server^.ValueUpdated( IOO.dirRead, ADR( SELF ), CurrentState );
    END ValueUpdated;
 
@@ -798,11 +806,11 @@ CLASS IMPLEMENTATION CEIBServer;
       PObject := TPObject( Item );
       IF Direction = IOO.dirRead THEN
          PObject^.GetValue( OUT EV, TRUE, FALSE );
-         EIBValue2IOValue( EV, OUT Value );
+         EIBValue2IOValue( EV, PObject^.StringValue, OUT Value );
 
       ELSE // dirWrite
       
-         IOValue2EIBValue( Value, PObject^.Type, OUT EV );
+         IOValue2EIBValue( Value, PObject^.Type, OUT EV, OUT PObject^.StringValue );
          PObject^.SetValue( EV, OUT changed );
 
          // log operation originator
@@ -2199,7 +2207,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
          valuesConverted := TRUE;
          PObject^.GetValue( OUT EValue, TRUE, FALSE );
-         EIBValue2IOValue( EValue, OUT io );
+         EIBValue2IOValue( EValue, PObject^.StringValue, OUT io );
          value := io.String;
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
 
@@ -2230,7 +2238,7 @@ CLASS IMPLEMENTATION CEIBServer;
          IF _AdviseListener <> NIL THEN
             IF NOT valuesConverted THEN
                PObject^.GetValue( OUT EValue, TRUE, FALSE );
-               EIBValue2IOValue( EValue, OUT io );
+               EIBValue2IOValue( EValue, PObject^.StringValue, OUT io );
             END;
             _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
          END;
@@ -2248,7 +2256,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
          IF NOT valuesConverted THEN
             PObject^.GetValue( OUT EValue, TRUE, FALSE );
-            EIBValue2IOValue( EValue, OUT io );
+            EIBValue2IOValue( EValue, PObject^.StringValue, OUT io );
          END;
 
          IF ( Direction = IOO.dirRead ) AND ( EventSink <> NIL ) THEN
@@ -2296,7 +2304,7 @@ CLASS IMPLEMENTATION CEIBServer;
             ( PObject^.WSStatus <> eib_status.essOK ) THEN // always allow log errors
 
          PObject^.GetValue( OUT EValue, TRUE, FALSE );
-         EIBValue2IOValue( EValue, OUT io );
+         EIBValue2IOValue( EValue, PObject^.StringValue, OUT io );
          value := io.String;
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
 
@@ -2494,7 +2502,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : iovalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
+   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : iovalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue; OUT SupportingStringData : StringsO.IString );
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
@@ -2502,7 +2510,7 @@ CLASS IMPLEMENTATION CEIBServer;
       fd : CARDINAL;
       H, M, S, WD : CARDINAL;
       i : INTEGER;
-      s : ARRAY [0..31] OF WCHAR;
+      s : eib_def.TEISStringW;
       so : StringsO.CString;
       Y, MM, D : INTEGER;
    BEGIN
@@ -2612,7 +2620,8 @@ CLASS IMPLEMENTATION CEIBServer;
          EV.Set8bit( Value.LimitedInteger( 8, FALSE, TRUE ));
 
       | eib_def.eitString :
-         Value.String.ToOA( OUT s );
+         SupportingStringData.Assign( Value.String );
+         SupportingStringData.ToOA( OUT s );
          EV.SetString( s );
       END; // CASE EV.Type
 
@@ -2620,7 +2629,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; OUT Value : iovalue.Value );
+   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; CONST SupportingStringData : StringsO.IString; OUT Value : iovalue.Value );
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
@@ -2721,8 +2730,8 @@ CLASS IMPLEMENTATION CEIBServer;
          Value.Integer := EV.Get8bit();
 
       | eib_def.eitString :
-         EV.GetString( s );
-         Value.FromStringOA( s, FALSE );
+         Value.FromString( SupportingStringData, FALSE );
+
       END; // CASE EV.Type
 
    END EIBValue2IOValue;
