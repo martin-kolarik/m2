@@ -28,6 +28,8 @@ IMPORT
 CONST
    SESSION_MVC = L"#mvc";
    VIEW_MAPPER = L"#viewmapper.";
+   MSG_FUNCTION_HANDLER = L"msg";
+   MSG_PREFIX = MSG_FUNCTION_HANDLER + L".";
    
 TYPE
    TModelType = (
@@ -61,8 +63,8 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
    // There can be more active mappings, each identified by ControllerURI.
@@ -327,7 +329,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
@@ -340,7 +342,8 @@ CLASS IMPLEMENTATION CContainer;
       map : maps.TPStringStringMap := NIL;
       modelType : TModelType := mtUnknown;
       parameter : StringsO.CString;
-      parameters : lists.CStringStringList;
+      parameters : StringsO.CString;
+      parameterList : lists.CStringStringList;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
@@ -370,7 +373,7 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         IF NOT GetModelValue( Request, sindex1, OUT sindex2, NIL ) THEN
+         IF NOT GetModelValue( Request, MessageSource, language, sindex1, OUT sindex2, NIL ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -395,7 +398,7 @@ CLASS IMPLEMENTATION CContainer;
          END;
 
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         IF NOT GetModelValue( Request, sindex1, OUT sindex2, NIL ) THEN
+         IF NOT GetModelValue( Request, MessageSource, language, sindex1, OUT sindex2, NIL ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -445,19 +448,21 @@ CLASS IMPLEMENTATION CContainer;
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
          IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
-            ii := i+1;
+            model.Substring( i+1, j-i-1, OUT parameters );
+            parameters.Trim();
+            ii := 0;
             LOOP
-               ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
-               IF NOT GetModelValue( Request, sindex2, OUT parameter, NIL ) THEN
+               ii := parameters.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
+               IF NOT GetModelValue( Request, MessageSource, language, sindex2, OUT parameter, NIL ) THEN
                   parameter := sindex2;
                END;
                parameter.Trim();
-               parameters.Add( empty, parameter );
+               parameterList.Add( empty, parameter );
                IF ii = -1 THEN
                   EXIT;
                END;
             END; // LOOP
-            boolean := functionHandler^.Call( Request, sindex1, REF parameters, NIL ) IN crsCalled;
+            boolean := functionHandler^.Call( Request, sindex1, REF parameterList, NIL ) IN crsCalled;
             IF PFunctionCalled <> NIL THEN
                PFunctionCalled^ := PFunctionCalled^ OR boolean;
             END;
@@ -492,7 +497,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
@@ -504,8 +509,10 @@ CLASS IMPLEMENTATION CContainer;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
       modelType : TModelType := mtUnknown;
+      msgFunctionShortcut : BOOLEAN;
       parameter : StringsO.CString;
-      parameters : lists.CStringStringList;
+      parameterList : lists.CStringStringList;
+      parameters : StringsO.CString;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
@@ -526,7 +533,16 @@ CLASS IMPLEMENTATION CContainer;
       CASE modelType OF
       //-----
       | mtQualification : // ok, find in map or list by key
-         IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+
+         // try message as a special sort of model
+         IF ( MessageSource <> NIL ) AND model.StartsWithOA( MSG_PREFIX ) THEN
+            model.Substring( i+1, -1, OUT sindex1 );
+            IF NOT MessageSource^.GetMessage( language, sindex1, OUT value ) THEN
+               value.FromOA( L'##unknown message: ' ); value.Append( model );
+            END;
+            RETURN TRUE; // cut the flow
+
+         ELSIF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
             // fall down
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
             // fall down
@@ -535,7 +551,7 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         IF NOT GetModelValue( Request, sindex1, OUT sindex2, NIL ) THEN
+         IF NOT GetModelValue( Request, MessageSource, language, sindex1, OUT sindex2, NIL ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -558,7 +574,7 @@ CLASS IMPLEMENTATION CContainer;
          END;
 
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         IF NOT GetModelValue( Request, sindex1, OUT sindex2, NIL ) THEN
+         IF NOT GetModelValue( Request, MessageSource, language, sindex1, OUT sindex2, NIL ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -599,23 +615,37 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
 
-         model.Remove( j, -1 );
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
-         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
-            ii := i+1;
+         msgFunctionShortcut := sindex1.EqualsOA( MSG_FUNCTION_HANDLER );
+         IF msgFunctionShortcut OR GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN // note, that embedded handler has the precedence, like in 'msg.id' form
+            model.Substring( i+1, j-i-1, OUT parameters );
+            parameters.Trim();
+            ii := 0;
             LOOP
-               ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
-               IF NOT GetModelValue( Request, sindex2, OUT parameter, NIL ) THEN
+               ii := parameters.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
+               IF NOT GetModelValue( Request, MessageSource, language, sindex2, OUT parameter, NIL ) THEN
                   parameter := sindex2;
                END;
                parameter.Trim();
-               parameters.Add( empty, parameter );
-               IF ii = model.Length THEN
+               parameterList.Add( empty, parameter );
+               IF ii = -1 THEN
                   EXIT;
                END;
             END; // LOOP
-            boolean := functionHandler^.Call( Request, sindex1, REF parameters, ADR( value )) IN crsCalled;
+            IF msgFunctionShortcut THEN
+               IF parameterList.Empty THEN
+                  value.FromOA( L'##unknown message: missing the id of the message' );
+               ELSE
+                  parameterList.Reset(); parameterList.MoveNext();
+                  IF NOT MessageSource^.GetMessage( language, parameterList.CurrentData^, OUT value ) THEN
+                     value.FromOA( L'##unknown message: msg.' ); value.Append( parameterList.CurrentData^ );
+                  END;
+               END;
+               boolean := TRUE; // mask error as it is already reported in the resulting text itself
+            ELSE
+               boolean := functionHandler^.Call( Request, sindex1, REF parameterList, ADR( value )) IN crsCalled;
+            END;
             IF PFunctionCalled <> NIL THEN
                PFunctionCalled^ := PFunctionCalled^ OR boolean;
             END;
@@ -678,22 +708,8 @@ CLASS IMPLEMENTATION CContainer;
 
          // resolve and replace model
          Formatted.Substring( mi, j-mi, OUT model );
-
-         // message model
-         IF ( MessageSource <> NIL ) AND model.StartsWithOA( L"msg." ) THEN
-            model.Remove( 0, 4 ); // delete "msg."
-            IF NOT MessageSource^.GetMessage( language, model, OUT value ) THEN
-               IF FailOnError THEN
-                  RETURN FALSE;
-               ELSE
-                  value.FromOA( L'##unknown message: ' ); value.Append( model );
-               END;
-            END;
-         // generic model
-         ELSE
-            IF NOT GetModelValue( Request, model, OUT value, NIL ) AND FailOnError THEN
-               RETURN FALSE;
-            END;
+         IF NOT GetModelValue( Request, MessageSource, language, model, OUT value, NIL ) AND FailOnError THEN
+            RETURN FALSE;
          END;
          Formatted.Remove( i, j-i+1 );
          Formatted.Insert( i, value );
@@ -758,7 +774,7 @@ CLASS IMPLEMENTATION CContainer;
       IF GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
          mapper^.Reset();
          WHILE mapper^.MoveNext() DO
-            SetModelValue( Request, mapper^.CurrentData^, empty, NIL ); // clear model value
+            SetModelValue( Request, NIL, 0, mapper^.CurrentData^, empty, NIL ); // clear model value
          END; // WHILE
       END;
    END ResetModelValues;
@@ -793,8 +809,8 @@ CLASS CSynchronizedContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
    // There can be more active mappings, each identified by ControllerURI.
@@ -960,12 +976,12 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    VAR
       b : BOOLEAN := FALSE;
    BEGIN
       IF LockRead() THEN
-         b := Container.SetModelValue( Request, model, value, PFunctionCalled  );
+         b := Container.SetModelValue( Request, MessageSource, language, model, value, PFunctionCalled  );
          UnlockRead();
       END;
       RETURN b;
@@ -973,12 +989,12 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    VAR
       b : BOOLEAN := FALSE;
    BEGIN
       IF LockRead() THEN
-         b := Container.GetModelValue( Request, model, OUT value, PFunctionCalled  );
+         b := Container.GetModelValue( Request, MessageSource, language, model, OUT value, PFunctionCalled  );
          UnlockRead();
       END;
       RETURN b;
@@ -1597,11 +1613,11 @@ CLASS IMPLEMENTATION CMVC;
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
-            container^.SetModelValue( request, mappedName, connectionData.CurrentData^, ADR( functionCalled ));
+            container^.SetModelValue( request, ADR( SELF ), request.Language, mappedName, connectionData.CurrentData^, ADR( functionCalled ));
          ELSIF ( Connection^.RequestVerb <> HttpCommon.verbPOST ) AND // for GET driving by URI parameter is allowed...
-               container^.GetModelValue( request, connectionData.Current^, OUT modelValue, ADR( functionCalled )) AND // ...only if the parameter is known
+               container^.GetModelValue( request, ADR( SELF ), request.Language, connectionData.Current^, OUT modelValue, ADR( functionCalled )) AND // ...only if the parameter is known
                NOT functionCalled THEN // ...and only if Get does not call -- then it cannot be set
-            container^.SetModelValue( request, connectionData.Current^, connectionData.CurrentData^, ADR( functionCalled ));
+            container^.SetModelValue( request, ADR( SELF ), request.Language, connectionData.Current^, connectionData.CurrentData^, ADR( functionCalled ));
          END;
       END; // WHILE
       connectionData.Dispose();
