@@ -80,6 +80,8 @@ TYPE
   LPCVOID  = ADDRESS;
   PPVOID  = POINTER TO ADDRESS;
 
+  PULARGE_INTEGER = POINTER TO ULARGE_INTEGER;
+
 // from BASETSD.H
 #if PlatformName #startswith L"WinCE" #then
   INT_PTR         = PTR;
@@ -5824,6 +5826,13 @@ PROCEDURE GetDiskFreeSpace(
     lpNumberOfFreeClusters : PDWORD;
     lpTotalNumberOfClusters : PDWORD
     ): BOOL;
+
+PROCEDURE GetDiskFreeSpaceExW(
+  lpDirectoryName : PCWSTR;
+  lpFreeBytesAvailable : PULARGE_INTEGER;
+  lpTotalNumberOfBytes : PULARGE_INTEGER;
+  lpTotalNumberOfFreeBytes : PULARGE_INTEGER
+) : BOOL;
 
 PROCEDURE CreateDirectory(
     lpPathName : PCTSTR;

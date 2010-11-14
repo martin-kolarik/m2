@@ -35,7 +35,8 @@ IMPORT
    StringsO,
    Sync,
    TextReader,
-   Texts;
+   Texts,
+   windows;
 
 (*================================================================================*)
 
@@ -374,7 +375,16 @@ CLASS IMPLEMENTATION CDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
+   VAR
+      free : windows.ULARGE_INTEGER;
    BEGIN
+      IF NOT InValue1.String.EqualsOA( L"GetDriveSpace" ) THEN
+         OutValue.String := StringsO.FromOA( L"error: unknown function" );
+      ELSIF windows.GetDiskFreeSpaceExW( InValue2.String.Data, ADR( free ), NIL, NIL ) = windows.True THEN
+         OutValue.Long := PCARD64( ADR( free ))^;
+      ELSE
+         OutValue.String := StringsO.FromOA( L"error: unable to obtain free space" );
+      END;
    END QueryProc;
 
 (*--------------------------------------------------------------------------------*)
