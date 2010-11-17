@@ -19,15 +19,13 @@
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="Inris" Name="Inris">
-                    <Directory Id="INSTALLDIR" Name="IBSSmtp" LongName="IBSCWSmtpClient">
+                    <Directory Id="INSTALLDIR" Name="IBSSupp" LongName="IBSSupport">
                         <Component Guid="8BE583C9-4D99-443c-9B44-7760B33D7479" Id="Program">
                             <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
                             </File>
                             <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
                             </File>
-                            <File DiskId="1" Id="IBSCWSmtpClient.DLL" Name="IBSSmtp.dll" LongName="IBSCWSmtpClient.dll" Source="IBSSmtp.dll" Vital="yes">
-                            </File>
-                            <File DiskId="1" Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" Vital="yes">
+                            <File DiskId="1" Id="IBSSupport.DLL" Name="IBSSupp.dll" LongName="IBSSupport.dll" Source="IBSSupport.dll" Vital="yes">
                             </File>
                         </Component>
                         <Component Id="Licence" Guid="E328ECA5-454E-409a-98A4-98510C323E9D">
@@ -35,8 +33,8 @@
                         </Component>
                         <Directory Id="EXAMPLES" Name="Examples">
                             <Component Id="Examples" Guid="93229FA0-7EC6-4190-9345-AC1FA1E8B63C">
-                                <File Id="IBSSmtp.cw" Name="ReAscDrv.cw" LongName="IBSSmtp.cw" Source="Examples\IBSSmtp.cw" DiskId="1" />
-                                <File Id="IBSSmtp.par" Name="ReAscDrv.par" LongName="IBSSmtp.par" Source="Examples\IBSSmtp.par" DiskId="1" />
+                                <File Id="IBSSupport.cw" Name="ReAscDrv.cw" LongName="IBSSupport.cw" Source="Examples\IBSSupport.cw" DiskId="1" />
+                                <File Id="IBSSupport.par" Name="ReAscDrv.par" LongName="IBSSupport.par" Source="Examples\IBSSupport.par" DiskId="1" />
                             </Component>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>

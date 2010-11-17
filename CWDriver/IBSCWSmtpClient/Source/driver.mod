@@ -30,6 +30,7 @@ IMPORT
    LogConfig,
    MailMessage,
    MailPerson,
+   rawconnection,
    Resources,
    SmtpSender,
    StringsO,
@@ -41,7 +42,7 @@ IMPORT
 (*================================================================================*)
 
 CONST
-   logPrefix = L"IBSCWSmtpClient";
+   logPrefix = L"IBSSupport";
 
 TYPE
    TChannel = (
@@ -133,6 +134,8 @@ CLASS CDriver IMPLEMENTS SmtpSender.INotifier, diface.ICWDriver;
       _Result          : Sync.TAsyncResult := Sync.arUnknown;
       _Phase           : SmtpSender.TSmtpPhase := SmtpSender.ClientConnect;
 
+      _Checker         : rawconnection.ClientTCPConnection;
+
 END CDriver;
 
 (*================================================================================*)
@@ -167,7 +170,7 @@ CLASS IMPLEMENTATION CDriver;
    LABEL
       Fail;
    CONST
-      snDevice = L'IBSCWSmtpClient';
+      snDevice = L'IBSSupport';
 
   //----------
   
@@ -376,14 +379,37 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
    VAR
+      capacity : windows.ULARGE_INTEGER;
       free : windows.ULARGE_INTEGER;
    BEGIN
-      IF NOT InValue1.String.EqualsOA( L"GetDriveSpace" ) THEN
-         OutValue.String := StringsO.FromOA( L"error: unknown function" );
-      ELSIF windows.GetDiskFreeSpaceExW( InValue2.String.Data, ADR( free ), NIL, NIL ) = windows.True THEN
-         OutValue.Long := PCARD64( ADR( free ))^;
+      //-----
+      IF InValue1.String.EqualsOA( L"GetDriveSpace" ) THEN
+         IF windows.GetDiskFreeSpaceExW( InValue2.String.Data, ADR( free ), NIL, NIL ) = windows.True THEN
+            OutValue.Long := PCARD64( ADR( free ))^;
+         ELSE
+            OutValue.String := StringsO.FromOA( L"error: unable to obtain free space" );
+         END;
+
+      //-----
+      ELSIF InValue1.String.EqualsOA( L"GetDriveTotal" ) THEN
+         IF windows.GetDiskFreeSpaceExW( InValue2.String.Data, NIL, ADR( capacity ), NIL ) = windows.True THEN
+            OutValue.Long := PCARD64( ADR( capacity ))^;
+         ELSE
+            OutValue.String := StringsO.FromOA( L"error: unable to obtain free space" );
+         END;
+
+      //-----
+      ELSIF InValue1.String.EqualsOA( L"CheckConnection" ) THEN
+         IF _Checker.OpenS( InValue2.String, 0, TRUE, 1000 ) IN Sync.arsCompletions THEN
+            _Checker.Close();
+            OutValue.String := StringsO.FromOA( L"" );
+         ELSE
+            OutValue.String := StringsO.FromOA( L"error: connection is not accessible" );
+         END;
+      
+      //-----
       ELSE
-         OutValue.String := StringsO.FromOA( L"error: unable to obtain free space" );
+         OutValue.String := StringsO.FromOA( L"error: unknown function" );
       END;
    END QueryProc;
 
@@ -640,7 +666,7 @@ CLASS IMPLEMENTATION CDriver;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   R.LoadRES2( EMITW( %dll ), L'IBSCWSmtpClient.Texts' );
+   R.LoadRES2( EMITW( %dll ), L'IBSSupport.Texts' );
    R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
 END CDriver;
 
@@ -692,7 +718,7 @@ CLASS IMPLEMENTATION CFactory;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   R.LoadRES2( EMITW( %dll ), L'IBSCWSmtpClient.Texts' );
+   R.LoadRES2( EMITW( %dll ), L'IBSSupport.Texts' );
    R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
 END CFactory;
 

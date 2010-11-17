@@ -14,7 +14,7 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='IBSCWSmtpClient'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='IBSSupport'">
         <Result>Dynamic</Result>
     </PropertyGroup>
     <PropertyGroup Condition="$(MSBuildProjectName)=='SCCore'">
