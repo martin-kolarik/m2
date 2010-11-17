@@ -1,3 +1,9 @@
+Version 1.2.1400/R 17.11.2010
+- CHG: #235, a new function ${msg(...)} was introduced to pt.xml processing. The function
+       allows dynamic creation of message identifiers. 
+- NEW: #236, strings stored for SDAP clients are not limited to KNX length (14 bytes)
+       anymore.
+
 Version 1.2.1312/R 3.9.2010
 - BUG: #227, model name of length 1 character was not recognized in pt.xml files
        properly, which could cause various problems with pt.xml rendering (infinite
