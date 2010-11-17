@@ -23,14 +23,9 @@
                         <Component Guid="57DF5758-9AF5-47ab-9241-248F1B1227EB" Id="Program">
                             <File DiskId="1" Id="SDAPBridge.dll" Name="SDAPBrg.dll" LongName="SDAPBridge.dll" Source="SDAPBridge.dll" Vital="yes" KeyPath="yes" />
                         </Component>
-                        <Component Guid="1DD4D466-7552-4d8d-A1EB-D27A39A1ABBC" Id="RuntimeLib">
-                            <File DiskId="1" Id="SCCore.dll" Name="SCCore.dll" Source="SCCore.dll" Vital="yes" KeyPath="yes" />
-                        </Component>
                         <Component Guid="E84AAF36-7698-429c-A985-70219D8C5E42" Id="DebugInfo">
                             <File Id="SDAPBridge.PDB" Name="SDAPBrdg.pdb" LongName="SDAPBridge.pdb" Source="SDAPBridge.pdb" DiskId="1" KeyPath="yes"/>
-                            <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
                             <File Id="SDAPBridge.MAP" Name="SDAPBrdg.map" LongName="SDAPBridge.map" Source="SDAPBridge.map" DiskId="1" />
-                            <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
                         </Component>
                         <Component Id="Licence" Guid="8E9CA158-2B17-479d-BBA6-37B42830B32C">
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
@@ -80,7 +75,6 @@
         <?endif ?>
         <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
             <ComponentRef Id="Program" />
-            <ComponentRef Id="RuntimeLib" />
             <ComponentRef Id="Licence" />
             <ComponentRef Id="Documentation" />
             <ComponentRef Id="Examples" />
