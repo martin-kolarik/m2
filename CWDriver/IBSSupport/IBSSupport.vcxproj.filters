@@ -24,8 +24,8 @@
     <None Include="Source\Texts.xrs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="IBSCWSmtpClient.definition.proj" />
-    <None Include="IBSCWSmtpClient.proj" />
-    <None Include="Install\IBSCWSmtpClient.wxs" />
+    <None Include="IBSSupport.definition.proj" />
+    <None Include="IBSSupport.proj" />
+    <None Include="Install\IBSSupport.wxs" />
   </ItemGroup>
 </Project>
