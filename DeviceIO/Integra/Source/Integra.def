@@ -10,6 +10,7 @@ IMPORT
 	io,
 	IOO,
 	iovalue,
+   lists,
 	log,
 	netsocket,
 	ns,
@@ -111,6 +112,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 		Automaton : POINTER TO CDeviceAutomaton;
 
    PRIVATE VAR
+      _AppenderList : lists.CPtrList;
 		_HostAddress : StringsO.CString;
 		_SDAPAddress : StringsO.CString;
 		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash

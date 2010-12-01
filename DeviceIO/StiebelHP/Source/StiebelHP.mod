@@ -9,6 +9,7 @@ IMPORT
 	FIO,
 	iobject,
 	IOO,
+	LogConfig,
 	resources,
 	StorageO,
 	StringsO,
@@ -463,7 +464,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
    	_PoolDelegate.TimeoutSink := ADR( SELF );
 
-      Logger.LogS( log.dldMessage, 0, L"StiebelHP", L"Started" );
+      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Started" );
       RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
    END Start;
 
@@ -477,7 +478,9 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       StopTimeout( REF _RxTimeoutHandle );
 
       Connection.Close();
-      Logger.LogS( log.dldMessage, 0, L"StiebelHP", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Stopped" );
+
+   	LogConfig.DisposeAppenderList( REF _AppenderList );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -613,7 +616,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       l : CARDINAL;
 	BEGIN
 	   IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.Data )) THEN
-         INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, OUT l );
+         LogConfig.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, REF _AppenderList, OUT l );
 
          // mandatory keys
          IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _DeviceAddress ) THEN
@@ -1012,9 +1015,9 @@ CLASS IMPLEMENTATION CIO;
                DeviceCommunicator.Logger.LogS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format: HH:mm:ss" );
             END;
          ELSE
-            b := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, OUT s );
+            b := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.Data ), FALSE, TRUE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.Data ));
             END;
          END;
          dt.Day := Item^.Peer^.Items[eiDay]^.Value.Integer;
@@ -1030,9 +1033,9 @@ CLASS IMPLEMENTATION CIO;
                DeviceCommunicator.Logger.LogS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format: yyyy-MM-dd" );
             END;
          ELSE
-            b := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, OUT s );
+            b := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.Data ), TRUE, FALSE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.Data ));
             END;
          END;
          dt.Minute := Item^.Peer^.Items[eiMinute]^.Value.Integer;

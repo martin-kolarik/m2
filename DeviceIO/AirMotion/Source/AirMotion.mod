@@ -12,6 +12,7 @@ IMPORT
    FIO,
    iobject,
    IOO,
+   LogConfig,
    resources,
    Storage,
    StorageO,
@@ -999,7 +1000,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       _PoolDelegate.TimeoutSink := ADR( SELF );
 
-      Logger.LogS( log.dldMessage, 0, L"AirMotion", L"Started" );
+      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Started" );
       RETURN Connection.OpenS( _HostAddress, TRUE, 500 );
    END Start;
 
@@ -1013,7 +1014,9 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       StopTimeout( REF _RxTimeoutHandle );
 
       Connection.Close();
-      Logger.LogS( log.dldMessage, 0, L"AirMotion", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Stopped" );
+      
+      LogConfig.DisposeAppenderList( REF _AppenderList );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -1258,7 +1261,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF addonText <> NIL THEN
             msg.Append( addonText^ );
          END;
-         Log^.LogFilePos( log.lcError, 0, L"AirMotion", L"", OA( msg.Length-1, msg.rawData ), line, 0 );
+         Log^.LogFilePos( log.lcError, 0, L"AirMotion", L"", OA( msg.Length-1, msg.Data ), line, 0 );
       END LogError;
 
       (*----------*)
@@ -1266,8 +1269,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       l : CARDINAL;
    BEGIN
-      IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.rawData )) THEN
-         INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.rawData ), REF Logger, OUT l );
+      IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.Data )) THEN
+         LogConfig.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, REF _AppenderList, OUT l );
          IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _HostAddress ) THEN
             LogError( l, Texts._HostKeyMissing, NIL );
          END;
@@ -1346,7 +1349,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          RETURN FALSE;
       ELSIF NOT Data.Empty THEN
          RxBuffer.Append( Data );
-         Logger.LogSCB( log.dldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+         Logger.LogSCB( log.ldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
       END;
 
       IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
