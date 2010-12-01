@@ -277,6 +277,7 @@
             <Output TaskParameter="Revision" ItemName="FileVersionBuilds"/>
             <Output TaskParameter="RevisionId" ItemName="FileRevisionIds"/>
         </HgVersion>
+        <Message Text="@(FileRevisionIds)" Importance="high"/>
         <Error Condition="@(FileRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
         <MinMax Input="@(FileVersionBuilds)">
             <Output TaskParameter="Maximum" PropertyName="FileVersionBuild"/>

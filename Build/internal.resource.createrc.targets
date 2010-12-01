@@ -27,7 +27,6 @@
     VALUE &quot;FileVersion&quot;, &quot;$(FileVersionMajor).$(FileVersionMinor).#(FileVersionBuild).$(FileVersionRevision) (#(FileRevisionId))\0&quot;
     VALUE &quot;InternalName&quot;, &quot;$(InternalName)\0&quot;
     VALUE &quot;OriginalFilename&quot;, &quot;$(OriginalFilename)\0&quot;
-    VALUE &quot;LanguageStyle&quot;, &quot;$(LanguageStyle)\0&quot;
         </RCStringFileInfo>
         <RCStepping Condition="$(ProductStepping)!=''">
     VALUE &quot;SpecialBuild&quot;, &quot;$(ProductStepping)\0&quot;
