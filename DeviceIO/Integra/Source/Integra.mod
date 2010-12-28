@@ -32,18 +32,9 @@ VAR
 (*================================================================================*)
 
 CONST
-   CH_NUL = 0C;
-   CH_STX = 2C;
-   CH_ETX = 3C;
-   CH_ENQ = 5C;
-   CH_ACK = 6C;
-   CH_BEL = 7C;
-   CH_F   = C'F';
-   
-   CH_DIGITAL     = C'D';
-   CH_INTEGER     = C'I';
-   CH_ANALOG      = C'A';
-   CH_FILL_BUFFER ::= CH_F;
+   B_SYNCHRONIZE  = 0FFH;
+   B_INTERLEAVE_1 = 0FFH;
+   B_INTERLEAVE_2 = 0FEH;
    
    POLL_PERIOD_DEFAULT = 30000;
 
@@ -51,81 +42,52 @@ CONST
 TYPE
    TPacketType = (
       ptUnknown,
-      ptDataRequest,
-      ptData,
-      ptFillBuffer,
-      ptNoData,
-      ptACK,
-      ptNAK
+      ptArm,
+      ptDisarm,
+      ptInfo
    );
    
-   TValueType = CARD8( // CARD8 due to presence in TNSPTR
-      vtAnalog,
-      vtInteger,
-      vtDigital
+   TInfoType : BYTE = (
+      itViolation1 = 0H,
+      itViolation2 = 1H,
+      itTamper1 = 2H,
+      itTamper2 = 3H,
+      itArm = 70H,
+      itDisarm = 71H
    );
-
+   
 TYPE
-   TPacket  = RECORD
+  TPacket  = RECORD
                  CASE : TPacketType OF
+                 //-----
                  | ptUnknown :
-                    FIRST       : CHAR;
-                 | ptDataRequest :
-                    ENQ         : CHAR;
-                    rAddress    : CHAR;
-                 | ptData :
-                    dSTX        : CHAR;
-                    dAddress    : CHAR;
-                    ValueType   : CHAR;
-                    ValueIndex  : CHAR;
-                    CASE : TValueType OF
-                    | vtAnalog,
-                      vtInteger :
-                       Number   : ARRAY [0..3] OF CHAR;
-                       nETX     : CHAR;
-                       nChkSum  : ARRAY [0..1] OF CHAR;
-                    | vtDigital :
-                       Digital  : CHAR;
-                       dETX     : CHAR;
-                       dChkSum  : ARRAY [0..1] OF CHAR;
-                    END; // CASE
-                 | ptFillBuffer :
-                    fSTX        : CHAR;
-                    fAddress    : CHAR;
-                    F           : CHAR;
-                    fETX        : CHAR;
-                    fChkSum     : ARRAY [0..1] OF CHAR;
-                 | ptNoData :
-                    NUL         : CHAR;
-                 | ptACK :
-                    ACK         : CHAR;
-                 | ptNAK :
-                    BEL         : CHAR;
+                 //-----
+                 | ptArm :
+                    ArmSync1 : BYTE;
+                    ArmSync2 : BYTE;
+                    ArmDataType : TDataType;
+                    ArmCode : ARRAY [0..7] OF BYTE;
+                    ArmZones : ARRAY [0..3] OF BYTE;
+                    ArmMode : BYTE;
+                    ArmCRC : BYTE;
+                 //-----
+                 | ptDisarm :
+                    DisarmSync1 : BYTE;
+                    DisarmSync2 : BYTE;
+                    DisarmDataType : TDataType;
+                    DisarmCode : ARRAY [0..7] OF BYTE;
+                    DisarmZones : ARRAY [0..3] OF BYTE;
+                    DisarmCRC : BYTE;
+                 //-----
+                 | ptInfo :
+                    Interleave : BYTE;
+                    InfoDataType : TDataType;
+                    Data : ARRAY [0..3] OF BYTE;
+                    Xor : BYTE;
+                    InfoCRC : BYTE;
                  END; // CASE
               END; // RECORD
    TPPacket = POINTER TO TPacket;
-   
-   TNSPTR  = RECORD
-                CASE : CARDINAL OF
-                | 0 :
-                  Type : TValueType;
-                  Address : CARD8;
-                  Value : INT16;
-                | 1 :
-                  Ptr : PTR;
-                END; // CASE
-             END; // RECORD
-   TPNSPTR = POINTER TO TNSPTR;
-   
-   PROCEDURE PTRCtor( Type : TValueType; Address : CARD8 ) : PTR;
-   VAR
-      Ptr : TNSPTR;
-   BEGIN
-      Ptr.Type := Type;
-      Ptr.Address := Address;
-      Ptr.Value := 0;
-      RETURN Ptr.Ptr;
-   END PTRCtor;
 #restore
 
 CLASS CPacket; // class is wrapping some foreign data area
@@ -135,13 +97,7 @@ CLASS CPacket; // class is wrapping some foreign data area
 
    PUBLIC PROPERTY
       PacketType : TPacketType;
-      DeviceAddress : CARDINAL;
 
-      ValueIndex : CARDINAL;
-      Analog : LONGREAL;
-      Integer : INTEGER;
-      Digital : BOOLEAN;
-      
    PUBLIC WRITEONLY PROPERTY
       EmptyPacket : TPPacket;
       FilledPacket : TPPacket;
@@ -155,7 +111,7 @@ CLASS CPacket; // class is wrapping some foreign data area
    PUBLIC PROCEDURE CheckSum() : BOOLEAN;
    PUBLIC PROCEDURE Complete( KnownLength : CARDINAL; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyChecksum : BOOLEAN ) : BOOLEAN;
 
-   PRIVATE PROCEDURE SetPacketCharacters(); // _Packet MUST not be NIL
+   PRIVATE PROCEDURE SetPacketBoundaries(); // _Packet MUST not be NIL
 END CPacket;
 
 (*===========================================================================*)
@@ -175,73 +131,9 @@ CLASS IMPLEMENTATION CPacket;
    BEGIN
       _PacketType := Value;
       IF _Packet <> NIL THEN
-         SetPacketCharacters();
+         SetPacketBoundaries();
       END;
    END PacketType;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY DeviceAddress GET : CARDINAL;
-   BEGIN
-      IF _Packet = NIL THEN
-         RETURN -1;
-      END;
-      CASE _PacketType OF
-      | ptDataRequest :
-         RETURN CARDINAL( _Packet^.rAddress ) - ORD( '0' );
-      | ptData :
-         RETURN CARDINAL( _Packet^.dAddress ) - ORD( '0' );
-      | ptFillBuffer :
-         RETURN CARDINAL( _Packet^.fAddress ) - ORD( '0' );
-      ELSE
-         RETURN -1;
-      END;
-   END DeviceAddress;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY DeviceAddress SET( Value : CARDINAL );
-   BEGIN
-      IF _Packet = NIL THEN
-         RETURN;
-      ELSIF ( Value < 1 ) OR ( Value > 200 ) THEN
-         RETURN;
-      END;
-      CASE _PacketType OF
-      | ptDataRequest :
-         _Packet^.rAddress := CHAR( Value + ORD( '0' ));
-      | ptData :
-         _Packet^.dAddress := CHAR( Value + ORD( '0' ));
-      | ptFillBuffer :
-         _Packet^.fAddress := CHAR( Value + ORD( '0' ));
-      END;
-   END DeviceAddress;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY ValueIndex GET : CARDINAL;
-   BEGIN
-      IF _Packet = NIL THEN
-         RETURN -1;
-      ELSIF _PacketType <> ptData THEN
-         RETURN -1;
-      END;
-      RETURN CARDINAL( _Packet^.ValueIndex ) - ORD( '0' );
-   END ValueIndex;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY ValueIndex SET( Value : CARDINAL );
-   BEGIN
-      IF _Packet = NIL THEN
-         RETURN;
-      ELSIF ( Value < 1 ) OR ( Value > 100 ) THEN
-         RETURN;
-      ELSIF _PacketType <> ptData THEN
-         RETURN;
-      END;
-      _Packet^.ValueIndex := CHAR( Value + ORD( '0' ));
-   END ValueIndex;
 
 (*---------------------------------------------------------------------------*)
 
@@ -249,7 +141,7 @@ CLASS IMPLEMENTATION CPacket;
    BEGIN
       _Packet := Value;
       IF _PacketType <> ptUnknown THEN
-         SetPacketCharacters();
+         SetPacketBoundaries();
       END;
    END EmptyPacket;
 
@@ -261,194 +153,19 @@ CLASS IMPLEMENTATION CPacket;
       IF _Packet = NIL THEN
          RETURN;
       END;
-      CASE _Packet^.FIRST OF
-      // | CH_ENX : // ptDataRequest cannot be received
-      | CH_STX :
-         IF _Packet^.ValueType = CH_FILL_BUFFER THEN
-            _PacketType := ptFillBuffer;
+      IF _Packet^.ArmSync2 = B_SYNCHRONIZE OF // differences in this byte are principal
+         IF _Packet^.ArmDataType = itArm THEN
+            _PacketType := ptArm;
+         ELSIF _Packet^.ArmDataType = itDisarm THEN
+            _PacketType := ptDisarm;
          ELSE
-            _PacketType := ptData;
+            ASSERT( FALSE );
+            _Packet := NIL;
          END;
-      | CH_NUL :
-         _PacketType := ptNoData;
-      | CH_ACK :
-         _PacketType := ptACK;
-      | CH_BEL :
-         _PacketType := ptNAK;
+      ELSE // assume info
+         _PacketType := ptInfo;
       END;
    END FilledPacket;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Analog GET : LONGREAL;
-   VAR
-      IValue : INTEGER;
-      WData : ARRAY [0..3] OF WCHAR;
-   BEGIN
-      IF _PacketType <> ptData THEN
-         RETURN 0.0;
-      ELSIF _Packet = NIL THEN
-         RETURN 0.0;
-      ELSIF _Packet^.ValueType <> CH_ANALOG THEN
-         RETURN 0.0;
-      END;
-
-      WData[0] := WCHAR( _Packet^.Number[0] );
-      WData[1] := WCHAR( _Packet^.Number[1] );
-      WData[2] := WCHAR( _Packet^.Number[2] );
-      WData[3] := WCHAR( _Packet^.Number[3] );
-      IF Strings.ToINT32W( WData, 16, OUT IValue ) THEN
-         RETURN LONGREAL( IValue ) / 10.0;
-      ELSE
-         RETURN 0.0;
-      END;
-   END Analog;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Analog SET( Value : LONGREAL );
-   VAR
-      b : BOOLEAN;
-      IValue : INTEGER := INTEGER( Value * 10.0 + 0.5 );
-      WData : ARRAY [0..3] OF WCHAR;
-   BEGIN
-      _PacketType := ptData;
-      IF _Packet = NIL THEN
-         RETURN;
-      END;
-      _Packet^.ValueType := CH_ANALOG;
-      _Packet^.nETX := CH_ETX;
-      WData := L"0000";
-
-      IF IValue < 16 THEN
-         b := Strings.FromINT32W( IValue, 16, OUT OA( 0, ADR( WData[3] )));
-      ELSIF IValue < 16*16 THEN
-         b := Strings.FromINT32W( IValue, 16, OUT OA( 1, ADR( WData[2] )));
-      ELSIF IValue < 16*16*16 THEN
-         b := Strings.FromINT32W( IValue, 16, OUT OA( 2, ADR( WData[1] )));
-      ELSE
-         b := Strings.FromINT32W( IValue, 16, OUT WData );
-      END;
-
-      IF b THEN
-         _Packet^.Number[0] := CHAR( WData[0] );
-         _Packet^.Number[1] := CHAR( WData[1] );
-         _Packet^.Number[2] := CHAR( WData[2] );
-         _Packet^.Number[3] := CHAR( WData[3] );
-      END;
-   END Analog;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Integer GET : INTEGER;
-   VAR
-      IValue : INTEGER;
-      WData : ARRAY [0..3] OF WCHAR;
-   BEGIN
-      IF _PacketType <> ptData THEN
-         RETURN 0;
-      ELSIF _Packet = NIL THEN
-         RETURN 0;
-      ELSIF _Packet^.ValueType <> CH_INTEGER THEN
-         RETURN 0;
-      END;
-
-      WData[0] := WCHAR( _Packet^.Number[0] );
-      WData[1] := WCHAR( _Packet^.Number[1] );
-      WData[2] := WCHAR( _Packet^.Number[2] );
-      WData[3] := WCHAR( _Packet^.Number[3] );
-      IF Strings.ToINT32W( WData, 16, OUT IValue ) THEN
-         RETURN IValue;
-      ELSE
-         RETURN 0;
-      END;
-   END Integer;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Integer SET( IValue : INTEGER );
-   VAR
-      b : BOOLEAN;
-      WData : ARRAY [0..3] OF WCHAR;
-   BEGIN
-      _PacketType := ptData;
-      IF _Packet = NIL THEN
-         RETURN;
-      END;
-      _Packet^.ValueType := CH_ANALOG;
-      _Packet^.nETX := CH_ETX;
-      WData := L"0000";
-
-      IF IValue < 16 THEN
-         b := Strings.FromINT32W( IValue, 16, OUT OA( 0, ADR( WData[3] )));
-      ELSIF IValue < 16*16 THEN
-         b := Strings.FromINT32W( IValue, 16, OUT OA( 1, ADR( WData[2] )));
-      ELSIF IValue < 16*16*16 THEN
-         b := Strings.FromINT32W( IValue, 16, OUT OA( 2, ADR( WData[1] )));
-      ELSE
-         b := Strings.FromINT32W( IValue, 16, OUT WData );
-      END;
-
-      IF b THEN
-         _Packet^.Number[0] := CHAR( WData[0] );
-         _Packet^.Number[1] := CHAR( WData[1] );
-         _Packet^.Number[2] := CHAR( WData[2] );
-         _Packet^.Number[3] := CHAR( WData[3] );
-      END;
-   END Integer;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Digital GET : BOOLEAN;
-   BEGIN
-      IF _PacketType <> ptData THEN
-         RETURN FALSE;
-      ELSIF _Packet = NIL THEN
-         RETURN FALSE;
-      ELSIF _Packet^.ValueType <> CH_DIGITAL THEN
-         RETURN FALSE;
-      ELSE
-         RETURN _Packet^.Digital = C'1';
-      END;
-   END Digital;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Digital SET( Value : BOOLEAN );
-   BEGIN
-      _PacketType := ptData;
-      IF _Packet = NIL THEN
-         RETURN;
-      END;
-      _Packet^.ValueType := CH_DIGITAL;
-      _Packet^.dETX := CH_ETX;
-      IF Value THEN
-         _Packet^.Digital := C'1';
-      ELSE
-         _Packet^.Digital := C'0';
-      END;
-   END Digital;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY ValueType GET : TValueType;
-   BEGIN
-      IF _PacketType <> ptData THEN
-         ASSERTLOG( FALSE );
-         RETURN vtDigital;
-      END;
-      CASE _Packet^.ValueType OF
-      | CH_DIGITAL :
-         RETURN vtDigital;
-      | CH_INTEGER :
-         RETURN vtInteger;
-      | CH_ANALOG :
-         RETURN vtAnalog;
-      ELSE
-         ASSERTLOG( FALSE );
-         RETURN vtDigital;
-      END;
-   END ValueType;
 
 (*---------------------------------------------------------------------------*)
 
@@ -465,22 +182,12 @@ CLASS IMPLEMENTATION CPacket;
          RETURN 0;
       END;
       CASE _PacketType OF
-      | ptDataRequest :
-         RETURN 2;
-      | ptData  :
-         IF _Packet^.ValueType = CH_DIGITAL THEN
-            RETURN 8;
-         ELSE
-            RETURN 11;
-         END;
-      | ptFillBuffer :
-         RETURN 6;
-      | ptNoData :
-         RETURN 1;
-      | ptACK :
-         RETURN 1;
-      | ptNAK :
-         RETURN 1;
+      | ptArm :
+         RETURN 17;
+      | ptDisarm :
+         RETURN 17;
+      | ptInfo :
+         RETURN 8;
       ELSE
          RETURN 0;
       END;
@@ -491,44 +198,27 @@ CLASS IMPLEMENTATION CPacket;
    PUBLIC PROCEDURE ComputeCheckSum();
    VAR
       chksum : CARD8;
+      chksumFrom : CARDINAL;
       chksumOffset : CARDINAL;
       i : CARDINAL;
-      WData : ARRAY [0..1] OF WCHAR;
    BEGIN
       CASE _PacketType OF
-      | ptData :
-         IF _Packet^.ValueType = CH_DIGITAL THEN
-            chksumOffset := FIELDOFS( TPacket.dChkSum );
-         ELSE
-            chksumOffset := FIELDOFS( TPacket.nChkSum );
-         END;
-      | ptFillBuffer :
-         chksumOffset := FIELDOFS( TPacket.fChkSum );
+      | ptArm, ptDisarm :
+         chksumFrom := 2;
+         chksumOffset := FIELDOFS( TPacket.ArmCRC );
+      | ptInfo :
+         chksumFrom := 0;
+         chksumOffset := FIELDOFS( TPacket.InfoCRC );
       ELSE
          RETURN;
       END;
       
       chksum := 0;
-      FOR i := 0 TO chksumOffset -1 DO
+      FOR i := chksumFrom TO chksumOffset - 1 DO
          INC( chksum, PCARD8( _Packet@[i] )^ );
-      END;
-      IF chksum < 10H THEN
-         WData[0] := L'0';
-      ELSE
-         WData[0] := WCHAR( ORD( L'0' ) + chksum DIV 10H );
-      END;
-      WData[1] := WCHAR( ORD( L'0' ) + chksum AND 0FH );
-      
-      IF _PacketType = ptFillBuffer THEN
-         _Packet^.fChkSum[0] := CHAR( WData[0] );
-         _Packet^.fChkSum[1] := CHAR( WData[1] );
-      ELSIF _Packet^.ValueType = CH_DIGITAL THEN
-         _Packet^.dChkSum[0] := CHAR( WData[0] );
-         _Packet^.dChkSum[1] := CHAR( WData[1] );
-      ELSE
-         _Packet^.nChkSum[0] := CHAR( WData[0] );
-         _Packet^.nChkSum[1] := CHAR( WData[1] );
-      END;
+      END; // FOR
+
+      PCARD8( _Packet@[chksumOffset] )^ := chksum;
    END ComputeCheckSum;
 
 (*---------------------------------------------------------------------------*)
@@ -536,38 +226,30 @@ CLASS IMPLEMENTATION CPacket;
    PUBLIC PROCEDURE CheckSum() : BOOLEAN;
    VAR
       chksum : CARD8;
-      chksumToCheck : CARDINAL;
+      chksumFrom : CARDINAL;
       chksumOffset : CARDINAL;
+      chksumToCheck : CARD8;
       i : CARDINAL;
-      WData : ARRAY [0..1] OF WCHAR;
    BEGIN
       CASE _PacketType OF
-      | ptData :
-         IF _Packet^.ValueType = CH_DIGITAL THEN
-            chksumOffset := FIELDOFS( TPacket.dChkSum );
-            WData[0] := WCHAR( _Packet^.dChkSum[0] );
-            WData[1] := WCHAR( _Packet^.dChkSum[1] );
-         ELSE
-            chksumOffset := FIELDOFS( TPacket.nChkSum );
-            WData[0] := WCHAR( _Packet^.nChkSum[0] );
-            WData[1] := WCHAR( _Packet^.nChkSum[1] );
-         END;
-      | ptFillBuffer :
-         chksumOffset := FIELDOFS( TPacket.fChkSum );
-         WData[0] := WCHAR( _Packet^.fChkSum[0] );
-         WData[1] := WCHAR( _Packet^.fChkSum[1] );
+      | ptArm, ptDisarm :
+         chksumFrom := 2;
+         chksumOffset := FIELDOFS( TPacket.ArmCRC );
+      | ptInfo :
+         chksumFrom := 0;
+         chksumOffset := FIELDOFS( TPacket.InfoCRC );
       ELSE
          RETURN TRUE;
       END;
 
-      chksumToCheck := 10H * ( ORD( WData[0] ) - ORD( L'0' )) + ( ORD( WData[1] ) - ORD( C'0' ));
+      chksumToCheck := CARD8( _Packet@[chksumOffset]^ );
       
       chksum := 0;
-      FOR i := 0 TO chksumOffset -1 DO
+      FOR i := chksumFrom TO chksumOffset - 1 DO
          INC( chksum, PCARD8( _Packet@[i] )^ );
       END;
 
-      RETURN CARD8( chksumToCheck ) = chksum;
+      RETURN chksumToCheck = chksum;
    END CheckSum;
 
 (*---------------------------------------------------------------------------*)
@@ -580,7 +262,7 @@ CLASS IMPLEMENTATION CPacket;
 
       CASE _PacketType OF
       //-----
-      | ptData :
+      | ptArm, ptDisarm :
          IF KnownLength < FIELDOFS( TPacket.ValueType ) + SIZE( TPacket.ValueType ) THEN
             RETURN FALSE;
          ELSIF _Packet^.ValueType = CH_DIGITAL THEN
@@ -592,10 +274,7 @@ CLASS IMPLEMENTATION CPacket;
          END;
          ApplyChecksum := TRUE;
       //-----
-      | ptNoData, ptACK, ptNAK :
-         FirstIndexAfterData := 1;
-         FirstIndexAfterFrame := 1;
-         ApplyChecksum := FALSE;
+      | ptInfo :
       //-----
       ELSE
          RETURN FALSE;
@@ -606,24 +285,17 @@ CLASS IMPLEMENTATION CPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE SetPacketCharacters(); // _Packet MUST not be NIL
+   PRIVATE PROCEDURE SetPacketBoundaries(); // _Packet MUST not be NIL
    BEGIN
       CASE _PacketType OF
-      | ptDataRequest :
-         _Packet^.ENQ := CH_ENQ;
-      | ptData  :
-         _Packet^.dSTX := CH_STX;
-         _Packet^.dETX := CH_ETX;
-      | ptFillBuffer :
-         _Packet^.fSTX := CH_STX;
-         _Packet^.F := CH_F;
-         _Packet^.fETX := CH_ETX;
-      | ptNoData :
-         _Packet^.NUL := CH_NUL;
-      | ptACK :
-         _Packet^.ACK := CH_ACK;
-      | ptNAK :
-         _Packet^.BEL := CH_BEL;
+      | ptArm :
+         _Packet^.ArmSync1 := B_SYNCHRONIZE;
+         _Packet^.ArmSync2 := B_SYNCHRONIZE;
+         _Packet^.ArmDataType := ptArm;
+      | ptDisarm :
+         _Packet^.DisarmSync1 := B_SYNCHRONIZE;
+         _Packet^.DisarmSync2 := B_SYNCHRONIZE;
+         _Packet^.DisarmDataType := ptDisarm;
       END;
    END SetPacketCharacters;
 
@@ -633,84 +305,6 @@ BEGIN
    _PacketType := ptUnknown;
    _Packet := NIL;
 END CPacket;
-
-(*===========================================================================*)
-
-PROCEDURE SetPtrValueDigital( REF Ptr : PTR; Digital : BOOLEAN );
-BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Digital );
-END SetPtrValueDigital;
-
-(*---------------------------------------------------------------------------*)
-
-PROCEDURE SetPtrValueInteger( REF Ptr : PTR; Integer : INTEGER );
-BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Integer );
-END SetPtrValueInteger;
-
-(*---------------------------------------------------------------------------*)
-
-PROCEDURE SetPtrValueAnalog( REF Ptr : PTR; Analog : LONGREAL );
-BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Analog * 10.0 );
-END SetPtrValueAnalog;
-
-(*---------------------------------------------------------------------------*)
-
-PROCEDURE GetValueIndexFromPtr( Ptr : PTR ) : CARDINAL;
-VAR
-   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
-BEGIN
-   RETURN CARDINAL( PPtr^.Address );
-END GetValueIndexFromPtr;
-
-(*---------------------------------------------------------------------------*)
-
-PROCEDURE GetTypeFromPtr( Ptr : PTR ) : TValueType;
-VAR
-   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
-BEGIN
-   RETURN TValueType( PPtr^.Type );
-END GetTypeFromPtr;
-
-(*---------------------------------------------------------------------------*)
-
-PROCEDURE GetValueFromPtr( Ptr : PTR; OUT Value : iovalue.Value );
-VAR
-   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
-BEGIN
-   CASE PPtr^.Type OF
-   | vtDigital :
-      Value.Type := iovalue.vtBoolean;
-      Value.Boolean := BOOLEAN( PPtr^.Value );
-   | vtInteger :
-      Value.Type := iovalue.vtInteger;
-      Value.Integer := INTEGER( PPtr^.Value );
-   | vtAnalog :
-      Value.Type := iovalue.vtFloat;
-      Value.Float := LONGREAL( PPtr^.Value ) / 10.0;
-   ELSE
-      ASSERTLOG( FALSE );
-   END;
-END GetValueFromPtr;
-
-(*---------------------------------------------------------------------------*)
-
-PROCEDURE SetValueToPtr( REF Ptr : PTR; CONST Value : iovalue.Value );
-VAR
-   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
-BEGIN
-   CASE PPtr^.Type OF
-   | vtDigital :
-      SetPtrValueDigital( REF Ptr, Value.Boolean );
-   | vtInteger :
-      SetPtrValueInteger( REF Ptr, Value.Integer );
-   | vtAnalog :
-      SetPtrValueAnalog( REF Ptr, Value.Float );
-   ELSE
-      ASSERTLOG( FALSE );
-   END;
-END SetValueToPtr;
 
 (*===========================================================================*)
 
@@ -1038,21 +632,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE UpdateDeviceBuffer();
-   VAR
-      Packet : TPacket;
-      Wrapper : CPacket;
-   BEGIN
-      Packet.FIRST := 0C;
-      Wrapper.EmptyPacket := ADR( Packet );
-      Wrapper.PacketType := ptFillBuffer;
-      Wrapper.DeviceAddress := _DeviceAddress;
-      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 150, 500 );
-   END UpdateDeviceBuffer;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Ack();
+   PUBLIC VIRTUAL PROCEDURE Arm();
    VAR
       Packet : TPacket;
       Wrapper : CPacket;
@@ -1065,7 +645,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AskData();
+   PUBLIC VIRTUAL PROCEDURE Disarm();
    VAR
       Packet : TPacket;
       Wrapper : CPacket;
@@ -1083,39 +663,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       PIO^.OnRx( Sync.arCompleted, TPPacket( Packet ));
    END ProcessData;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE SendData( _ItemToWrite : nsitem.TPnsItem );
-   VAR
-      io : iovalue.Value;
-      Packet : TPacket;
-      Wrapper : CPacket;
-   BEGIN
-      IF _ItemToWrite = NIL THEN
-         RETURN;
-      END;
-   
-      Packet.FIRST := 0C;
-      Wrapper.EmptyPacket := ADR( Packet );
-      Wrapper.PacketType := ptData;
-      Wrapper.DeviceAddress := _DeviceAddress;
-
-      Wrapper.ValueIndex := GetValueIndexFromPtr( _ItemToWrite^.Data );
-      GetValueFromPtr( _ItemToWrite^.Data, OUT io );
-      CASE GetTypeFromPtr( _ItemToWrite^.Data ) OF
-      | vtAnalog :
-         Wrapper.Analog := io.Float;
-      | vtInteger :
-         Wrapper.Integer := io.Integer;
-      | vtDigital :
-         Wrapper.Digital := io.Boolean;
-      ELSE
-         ASSERTLOG( FALSE );
-      END;
-      
-      Tx( OA( Wrapper.Length-1, PBYTE( Wrapper.Packet )), FALSE, 1, 150, 0 );
-   END SendData;
 
 (*---------------------------------------------------------------------------*)
 
