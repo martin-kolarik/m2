@@ -11,7 +11,6 @@ IMPORT
    FIOO,
    HttpCommon,
    HttpTools,
-   Languages,
    lec,
    lists,
    Log,
@@ -55,6 +54,10 @@ CONST
    LOGIN_USERNAME = L"username";
    LOGIN_PASSWORD = L"password";
    LOGOUT_NEXT_PAGE = L"nextpage";
+   ERROR_LOGIN_NOT_FOUND_OR_EXPIRED = L"login.invalidLoginOrSessionExpired";
+   ERROR_USER_LOGIN_NOT_FOUND_OR_EXPIRED = L"userLogin.invalidLoginOrSessionExpired";
+   ERROR_LOGIN_BAD_CREDENTIALS = L"login.badCredentials";
+   ERROR_USER_LOGIN_BAD_CREDENTIALS = L"userLogin.badCredentials";
    
    DATETIME_FORMAT_CS = L"d. MMMM H.mm:ss";
    DATETIME_FORMAT_EN = L"MMMM d, H:mm:ss";
@@ -73,7 +76,9 @@ CONST
    STATUS_CONNECT = L"connect";
    STATUS_DISCONNECT = L"disconnect";
    STATUS_PROJECT = L"project";
-   
+   STATUS_TEXT_VALID_UNTIL = L"status.licenceValidUntil";
+   STATUS_TEXT_PERMANENT = L"status.licencePermanent";   
+
    CONTROL_DEVICES_NAME = L"names";
    CONTROL_DEVICES_RUN = L"runStatus";
    CONTROL_DEVICES_IDX = L"indexes";
@@ -249,7 +254,7 @@ CLASS IMPLEMENTATION CController;
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 < real2;
             ELSE
-               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) = -1;
+               b := value1.CompareLanguage( Language( Request ), TRUE, value2 ) = -1;
             END;
             IF b THEN
                RetVal^.FromOA( TRUE_S );
@@ -268,7 +273,7 @@ CLASS IMPLEMENTATION CController;
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 <= real2;
             ELSE
-               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) <> 1;
+               b := value1.CompareLanguage( Language( Request ), TRUE, value2 ) <> 1;
             END;
             IF b THEN
                RetVal^.FromOA( TRUE_S );
@@ -287,7 +292,7 @@ CLASS IMPLEMENTATION CController;
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 > real2;
             ELSE
-               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) = 1;
+               b := value1.CompareLanguage( Language( Request ), TRUE, value2 ) = 1;
             END;
             IF b THEN
                RetVal^.FromOA( TRUE_S );
@@ -306,7 +311,7 @@ CLASS IMPLEMENTATION CController;
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 >= real2;
             ELSE
-               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) <> -1;
+               b := value1.CompareLanguage( Language( Request ), TRUE, value2 ) <> -1;
             END;
             IF b THEN
                RetVal^.FromOA( TRUE_S );
@@ -467,7 +472,7 @@ CLASS IMPLEMENTATION CController;
             RETURN ProcessUserLogin( REF Request, OUT View );
          ELSE // nowhere to user-login, redirect to login
             Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
-            Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.invalidLoginOrSessionExpired", OUT s );
+            Request.MessageSource^.GetMessageOA( Language( Request ), ERROR_USER_LOGIN_NOT_FOUND_OR_EXPIRED, OUT s );
             Request.ModelContainer^.AddStringOA( MESSAGE, s );
 
             View := mvc.redirectView( INDEX_VIEW );
@@ -478,7 +483,7 @@ CLASS IMPLEMENTATION CController;
          InvalidateUser( REF Request );
 
          Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
-         Request.MessageSource^.GetMessageOA( Request.Language, L"login.invalidLoginOrSessionExpired", OUT s );
+         Request.MessageSource^.GetMessageOA( Language( Request ), ERROR_LOGIN_NOT_FOUND_OR_EXPIRED, OUT s );
          Request.ModelContainer^.AddStringOA( MESSAGE, s );
 
          View := mvc.redirectView( LOGIN_PAGE );
@@ -583,7 +588,7 @@ CLASS IMPLEMENTATION CController;
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
          InvalidateUser( REF Request );
 
-         Request.MessageSource^.GetMessageOA( Request.Language, L"login.badCredentials", OUT su );
+         Request.MessageSource^.GetMessageOA( Language( Request ), ERROR_LOGIN_BAD_CREDENTIALS, OUT su );
          Request.ModelContainer^.AddStringOA( MESSAGE, su );
 
          sp.Clear();
@@ -614,6 +619,7 @@ CLASS IMPLEMENTATION CController;
       currentDT : time.DateTime;
       currentTime : time.TJD;
       dt : time.DateTime;
+      language : Languages.TLanguage;
       LangName : ARRAY[0..15] OF WCHAR;
       lt : lec.TLicenceType;
       s : ARRAY [0..63] OF WCHAR;
@@ -632,6 +638,8 @@ CLASS IMPLEMENTATION CController;
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
       END;
+
+      language := Language( Request );
    
       b := _Web^.Connected;
       Request.ModelContainer^.AddBooleanOA( STATUS_CONNECTED, b );
@@ -648,11 +656,11 @@ CLASS IMPLEMENTATION CController;
          dt.JulianDate := starttime;
       END;
       dt.SetZoneToLocal();
-      IF Languages.LanguageToRFC1766( Request.Language, OUT LangName ) AND Strings.StartsWithW( LangName, L"cs" ) THEN
-         b := dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
+      IF Languages.LanguageToRFC1766( language, OUT LangName ) AND Strings.StartsWithW( LangName, L"cs" ) THEN
+         b := dt.ToLanguageStringOA( language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
       ELSE
          LangName := L""; // it is used below too
-         b := dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
+         b := dt.ToLanguageStringOA( language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
       END;
       IF b THEN
          cs.FromOA( s );
@@ -683,15 +691,15 @@ CLASS IMPLEMENTATION CController;
 
       dt := _Web^.LicenceExpires;
       IF dt.Day = 0 THEN
-         Request.MessageSource^.GetMessageOA( Request.Language, L"status.licencePermanent", OUT cs );
+         Request.MessageSource^.GetMessageOA( Language( Request ), STATUS_TEXT_PERMANENT, OUT cs );
       ELSE
          dt.SetZoneToLocal();
          IF Strings.StartsWithW( LangName, L"cs" ) THEN
-            dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
+            dt.ToLanguageStringOA( language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
          ELSE
-            dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
+            dt.ToLanguageStringOA( language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
          END;
-         Request.MessageSource^.GetMessageOA( Request.Language, L"status.licenceValidUntil", OUT cs );
+         Request.MessageSource^.GetMessageOA( language, STATUS_TEXT_VALID_UNTIL, OUT cs );
          cs.AppendOA( s );
       END;
       Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR ( currentDT < dt ));
@@ -777,7 +785,7 @@ CLASS IMPLEMENTATION CController;
       count := _Web^.OperatedDeviceCount;
       IF count > 0 THEN
          FOR i := 0 TO count-1 DO
-            Request.MessageSource^.GetMessageOA( Request.Language, OAsz( _Web^.OperatedDeviceName( i )), OUT cs );
+            Request.MessageSource^.GetMessageOA( Language( Request ), OAsz( _Web^.OperatedDeviceName( i )), OUT cs );
             listDevices^.Add( cs, cs );
 
             IF _Web^.DeviceRunning( i ) THEN
@@ -1038,7 +1046,7 @@ CLASS IMPLEMENTATION CController;
             DEC( id );
             IF NOT _Web^.GetRole( id, OUT role, OUT currentName ) THEN
                Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
-               Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
+               Request.MessageSource^.GetMessageOA( Language( Request ), USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
                Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
             END;
          END;
@@ -1055,16 +1063,16 @@ CLASS IMPLEMENTATION CController;
          END;
          
          IF roleName.Empty THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), ROLE_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
          ELSIF _Web^.CheckRenameRoleConflict( currentName, roleName ) THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), ROLE_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
 
          ELSIF _Web^.UpdateRole( currentName, roleName, role ) THEN
             Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
             View := mvc.redirectView( USERS_PAGE );
             RETURN TRUE;
          ELSE // error during updating
-            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), ROLE_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
          END;
 
          // fill error message
@@ -1083,7 +1091,7 @@ CLASS IMPLEMENTATION CController;
                   View := mvc.redirectView( USERS_PAGE );
                   RETURN TRUE;
                ELSE // role cannot be deleted
-                  Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
+                  Request.MessageSource^.GetMessageOA( Language( Request ), ROLE_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
                   Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
                END;
 
@@ -1139,7 +1147,7 @@ CLASS IMPLEMENTATION CController;
             DEC( id );
             IF NOT _Web^.GetUser( id, OUT role, OUT currentName, OUT roleName ) THEN
                Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
-               Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
+               Request.MessageSource^.GetMessageOA( Language( Request ), USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
                Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
             END;
          END;
@@ -1152,22 +1160,22 @@ CLASS IMPLEMENTATION CController;
          Request.ModelContainer^.GetStringOA( USER_EDIT_PASSWORD2, OUT cs2 );
          Request.ModelContainer^.GetStringOA( USER_EDIT_ROLE, OUT roleName );
          IF userName.Empty THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
          ELSIF cs1.Empty THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDEMPTY, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_PASSWORDEMPTY, OUT cs1 );
          ELSIF cs1 <> cs2 THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH, OUT cs1 );
          ELSIF roleName.Empty THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYROLE, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_EMPTYROLE, OUT cs1 );
          ELSIF _Web^.CheckRenameUserConflict( currentName, userName ) THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
 
          ELSIF _Web^.UpdateUser( roleName, currentName, userName, cs2 ) THEN // either add new or update edited user
             Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
             View := mvc.redirectView( USERS_PAGE );
             RETURN TRUE;
          ELSE // error during updating
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
          END;
 
          // fill error message
@@ -1186,7 +1194,7 @@ CLASS IMPLEMENTATION CController;
                   View := mvc.redirectView( USERS_PAGE );
                   RETURN TRUE;
                ELSE // user cannot be deleted
-                  Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
+                  Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
                   Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
                END;
 
@@ -1248,7 +1256,7 @@ CLASS IMPLEMENTATION CController;
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
          InvalidateUser( REF Request );
 
-         Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.badCredentials", OUT su );
+         Request.MessageSource^.GetMessageOA( Language( Request ), ERROR_USER_LOGIN_BAD_CREDENTIALS, OUT su );
          Request.ModelContainer^.AddStringOA( MESSAGE, su );
 
          sp.Clear();
@@ -1318,6 +1326,19 @@ CLASS IMPLEMENTATION CController;
       Request.Session^.Remove( LANGUAGE );
       Request.Session^.Add( LANGUAGE, _Language );
    END SetOverriddenLanguage;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Language( CONST Request : mvc.IHttpRequest ) : Languages.TLanguage;
+   VAR
+      _Language : Languages.TLanguage;
+   BEGIN
+      IF Request.Session^.Get( LANGUAGE, OUT _Language ) THEN
+         RETURN _Language;
+      ELSE
+         RETURN Request.Language;
+      END;
+   END Language;
 
 (*--------------------------------------------------------------------------------*)
 
