@@ -204,7 +204,7 @@ END AssignDrvValueStringW;
 
 PROCEDURE AssignDrvValueCStringW( REF DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; CONST CS : StringsO.CString ): BOOLEAN;
 BEGIN
-   RETURN AssignDrvValueStringMW( DrvValue, DrvValueUFlag, TrimFlag, CS.Length, PWCHAR( CS.rawData ));
+   RETURN AssignDrvValueStringMW( DrvValue, DrvValueUFlag, TrimFlag, CS.Length, PWCHAR( CS.Data ));
 END AssignDrvValueCStringW;
 
 (*================================================================================*)

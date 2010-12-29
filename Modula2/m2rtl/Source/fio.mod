@@ -107,6 +107,9 @@ END ExistsDirectoryW;
 
 (*================================================================================*)
 
+CONST
+   LONG_PATH_PREFIX = L"\\?\";
+
 PROCEDURE FullPathToVolumeAndPathW( CONST FullPath : ARRAY OF WCHAR; OUT Volume, Path : ARRAY OF WCHAR );
 VAR
   i : CARDINAL;
@@ -232,6 +235,11 @@ BEGIN
       ExpandedPath[0] := 0W;
    END;
 END ExpandPathW;
+
+PROCEDURE GetLongPathW( CONST Path : ARRAY OF WCHAR; OUT LongPath : ARRAY OF WCHAR ); // formats path to override 260 characters limit
+BEGIN
+   Strings.ConcatW( OUT LongPath, LONG_PATH_PREFIX, Path );
+END GetLongPathW;
 
 PROCEDURE IOresult(): CARDINAL;
 BEGIN

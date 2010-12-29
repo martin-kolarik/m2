@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FUPLASchema GUID="cc93a5bd-46e0-4f95-9901-b2baeae321d5" version="1.1" IDEVersion="0.9.9.917" ProjectGUID="303e6c37-f345-4c04-a1fe-ce6837adefa8" EditedBy="Bláha" EditedTime="633985499023127147" xmlns="http://dev.rcware.net/xml/softplcide/fupla1.0">
+  <GadgetsStore>
+    <FakeVariableAccessors />
+  </GadgetsStore>
+  <VisualSchema>
+    <SchemaDims Width="1120" NumberOfVars="15" LeftVarWidth="100" RightVarWidth="100" />
+    <SchemaVariables>
+      <VarList Side="Left" NumberOfFields="15">
+        <Variable index="0" guid="206497ae-dfe5-4448-9886-1c0babc47923" />
+      </VarList>
+      <VarList Side="Right" NumberOfFields="15">
+        <Variable index="0" guid="5fdc5c95-1d80-491b-be6f-5898b3f547a4" />
+      </VarList>
+    </SchemaVariables>
+    <SchemaPorts />
+    <SchemaLinks>
+      <link f_b="206497ae-dfe5-4448-9886-1c0babc47923:LEFT" id_f="0" t_b="5fdc5c95-1d80-491b-be6f-5898b3f547a4:RIGTH" id_t="0" def="h 120 15 1000" />
+    </SchemaLinks>
+    <SchemaDecorations />
+  </VisualSchema>
+</FUPLASchema>

@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CTextWriter;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE WriteExc( CONST e : Exceptions.CException; LineEnd : BOOLEAN );
+	PUBLIC PROCEDURE WriteExc( CONST e : Exceptions.Exception; LineEnd : BOOLEAN );
 	VAR
 		S : StringsO.CString;
 		t : ARRAY [0..1023] OF WCHAR;
@@ -83,7 +83,7 @@ CLASS IMPLEMENTATION CTextWriter;
 
 	PUBLIC PROCEDURE Write( CONST String : StringsO.IString; LineEnd : BOOLEAN );
 	BEGIN
-      WriteTimeoutM( String.rawData, String.Length, LineEnd, Sync.FOREVER );
+      WriteTimeoutM( String.Data, String.Length, LineEnd, Sync.FOREVER );
 	END Write;
 	
 (*---------------------------------------------------------------------------*)
@@ -111,7 +111,7 @@ CLASS IMPLEMENTATION CTextWriter;
 
 	PUBLIC PROCEDURE WriteTimeout( CONST String : StringsO.IString; LineEnd : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
 	BEGIN
-      RETURN WriteTimeoutM( String.rawData, String.Length, LineEnd, TimeoutMS );
+      RETURN WriteTimeoutM( String.Data, String.Length, LineEnd, TimeoutMS );
    END WriteTimeout;
 
 (*---------------------------------------------------------------------------*)

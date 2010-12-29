@@ -82,7 +82,7 @@ CLASS IMPLEMENTATION CNumber;
 
 	PUBLIC PROCEDURE SetPId( CONST PId : StringsO.IString );
 	BEGIN
-		hash.hashs( OA( PId.Length-1, PId.rawData ), OUT _PId );
+		hash.hashs( OA( PId.Length-1, PId.Data ), OUT _PId );
    END SetPId;
 
 (*--------------------------------------------------------------------------------*)
@@ -91,7 +91,7 @@ CLASS IMPLEMENTATION CNumber;
 	VAR
 	   lhash : Defs.TPID;
 	BEGIN
-	   hash.hashs( OA( PId.Length-1, PId.rawData ), OUT lhash );
+	   hash.hashs( OA( PId.Length-1, PId.Data ), OUT lhash );
 		RETURN _PId = lhash;
 	END CheckPId;
 
@@ -236,7 +236,7 @@ CLASS IMPLEMENTATION CSerial;
 
 	PUBLIC PROCEDURE SetOwner( CONST Owner : StringsO.IString );
 	BEGIN
-		hash.hashs( OA( Owner.Length-1, Owner.rawData ), OUT _Owner );
+		hash.hashs( OA( Owner.Length-1, Owner.Data ), OUT _Owner );
 	END SetOwner;
 	
 (*--------------------------------------------------------------------------------*)
@@ -245,7 +245,7 @@ CLASS IMPLEMENTATION CSerial;
 	VAR
 	   lhash : Defs.TOwner;
 	BEGIN
-		hash.hashs( OA( Owner.Length-1, Owner.rawData ), OUT lhash );
+		hash.hashs( OA( Owner.Length-1, Owner.Data ), OUT lhash );
 		RETURN _Owner = lhash;
 	END CheckOwner;
 
@@ -686,7 +686,7 @@ VAR
 	p : ARRAY [0..31] OF WCHAR;
 	wb : ARRAY [0..255] OF BYTE;
 BEGIN
-	IF NOT Scrambler.Unscramble( OA( Text.Length-1, Text.rawData ), Number.Separator, OUT p, OUT wb, OUT l ) THEN
+	IF NOT Scrambler.Unscramble( OA( Text.Length-1, Text.Data ), Number.Separator, OUT p, OUT wb, OUT l ) THEN
 		RETURN FALSE;
 	ELSIF l = 0 THEN
 		RETURN FALSE;

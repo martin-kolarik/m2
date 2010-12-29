@@ -1,0 +1,13 @@
+MODBUS WAGO
+
+adresa
+
+MW0 adresa 3000H
+MW1        3001H
+MX0.0      
+MX0.1      3001H
+MX0.15     300FH
+MX2.1      3000H+ (2x16+1) pøevod H
+
+MW2        3002H REAL 2x16
+

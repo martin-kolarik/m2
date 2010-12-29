@@ -902,7 +902,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
 
     oleauto.VariantInit( ADR( Parameters[0] ));
     Parameters[0].vt := wtypes.VT_BSTR;
-    Parameters[0].bstrVal := oleauto.SysAllocString( Value.String.rawData );
+    Parameters[0].bstrVal := oleauto.SysAllocString( Value.String.Data );
 
     ax_automation.GetClientConstructor()^.QueryControlIIDs( IIDx, IIDx, IIDx, IID );
     DispatchEvent( IID, LONGWORD( eidRead ), Parameters );

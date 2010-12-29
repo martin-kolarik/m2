@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <comment>CFG errors</comment>
+        <string name="_ConfigurationSectionMissing">
+            <item xml:space="preserve" lang="en-US">Section to load configuration of Integra is missing: </item>
+            <item lang="cs-CZ">Sekce pro konfiguraci Integra chybí: </item>
+        </string>
+        <string name="_HostKeyMissing">
+            <item lang="en-US">&quot;host&quot; key (remote RS-485 server) is missing</item>
+            <item lang="cs-CZ">Chybí parameter &quot;host&quot; (vzdálený RS-485 server)</item>
+        </string>
+        <string name="_AddressKeyMissing">
+            <item lang="en-US">&quot;address&quot; key (device communication address) is missing</item>
+            <item lang="cs-CZ">Chybí parameter &quot;address&quot; (komunikační adresa zařízení)</item>
+        </string>
+
+    </strings>
+</resources>

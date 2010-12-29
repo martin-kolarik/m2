@@ -6,7 +6,8 @@ FROM Storage IMPORT
 
 IMPORT
   Exceptions,
-  Languages;
+  Languages,
+  Sync;
 
 #save, option( dll_export => on )
 
@@ -20,13 +21,12 @@ TYPE
     sexcNumberTooBig
   );
 
-FINAL CLASS CStringException( Exceptions.CException );
+FINAL CLASS CStringException( Exceptions.CGenericException );
    PUBLIC READONLY VAR
       Kind : TStringException;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT Code : ARRAY OF WCHAR );
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TStringException ) : CStringException;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
 END CStringException;
 
 PROCEDURE StringException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TStringException ) : CStringException;
@@ -39,45 +39,49 @@ TYPE
   TPString = POINTER TO IString;
 
 INTERFACE IString;
-  PUBLIC ABSTRACT PROPERTY
+  PROPERTY
     Length  : CARDINAL;
     Size    : CARDINAL;
-  PUBLIC ABSTRACT READONLY PROPERTY
+  READONLY PROPERTY
     Empty   : BOOLEAN;
-    rawData : PWCHAR; // can be direct or allocated, the behaviour defines the ancestor
-    szData  : PWCHAR; // can be direct or allocated, the behaviour defines the ancestor
+    Data    : PWCHAR; // It can be direct or allocated, the behaviour defines the ancestor. Size of the memory MUST always be >= Length+1 and the String[Length] MUST be 0W.
 
-  PUBLIC ABSTRACT INDEX( Index : CARDINAL ) : WCHAR;
-  // PUBLIC ABSTRACT OPERATOR :=( CONST S : IString ); impossible, CPP does not use virtual assign
-  PUBLIC ABSTRACT OPERATOR =( CONST S : IString ) : BOOLEAN;
-  PUBLIC ABSTRACT OPERATOR <>( CONST S : IString ) : BOOLEAN;
+  INDEX( Index : CARDINAL ) : WCHAR;
+  // PUBLIC OPERATOR :=( CONST S : IString ); impossible, CPP does not use virtual assign, must be implemented on ancestor
+  OPERATOR =( CONST S : IString ) : BOOLEAN;
+  OPERATOR <>( CONST S : IString ) : BOOLEAN;
 
-  PUBLIC ABSTRACT PROCEDURE Clear();
+  PROCEDURE Clear();
 
-  PUBLIC ABSTRACT PROCEDURE Equals( CONST S : IString ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE EqualsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE EqualsIgnoreCase( CONST S : IString ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE EqualsIgnoreCaseOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE Compare( CONST C : IString ) : TRISTATE;
-  PUBLIC ABSTRACT PROCEDURE CompareLanguage( Language : Languages.TLanguage; CaseSensitive : BOOLEAN; CONST S : IString ) : TRISTATE;
+  PROCEDURE Equals( CONST S : IString ) : BOOLEAN;
+  PROCEDURE EqualsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
+  PROCEDURE EqualsIgnoreCase( CONST S : IString ) : BOOLEAN;
+  PROCEDURE EqualsIgnoreCaseOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
+  PROCEDURE Compare( CONST C : IString ) : TRISTATE;
+  PROCEDURE CompareLanguage( Language : Languages.TLanguage; CaseSensitive : BOOLEAN; CONST S : IString ) : TRISTATE;
 
-  PUBLIC ABSTRACT PROCEDURE Assign( CONST S : IString );
+  PROCEDURE Assign( CONST S : IString ); // not necessarily allocates new memory
+  PROCEDURE Copy( CONST S : IString ); // must allocate new memory
 
-  PUBLIC ABSTRACT PROCEDURE Append( CONST S : IString );
-  PUBLIC ABSTRACT PROCEDURE AppendOA( CONST S : ARRAY OF WCHAR );
-  PUBLIC ABSTRACT PROCEDURE Prepend( CONST S : IString );
-  PUBLIC ABSTRACT PROCEDURE PrependOA( CONST S : ARRAY OF WCHAR );
-  PUBLIC ABSTRACT PROCEDURE Insert( To : CARDINAL; CONST S : IString );
-  PUBLIC ABSTRACT PROCEDURE InsertOA( To : CARDINAL; CONST S : ARRAY OF WCHAR );
-  PUBLIC ABSTRACT PROCEDURE Remove( From, Count : CARDINAL );
-  PUBLIC ABSTRACT PROCEDURE Replace( CONST Old, New : IString );
-  PUBLIC ABSTRACT PROCEDURE ReplaceOA( CONST Old, New : ARRAY OF WCHAR );
-  PUBLIC ABSTRACT PROCEDURE Trim();
+  PROCEDURE Append( CONST S : IString );
+  PROCEDURE AppendOA( CONST S : ARRAY OF WCHAR );
+  PROCEDURE Prepend( CONST S : IString );
+  PROCEDURE PrependOA( CONST S : ARRAY OF WCHAR );
+  PROCEDURE Insert( To : CARDINAL; CONST S : IString );
+  PROCEDURE InsertOA( To : CARDINAL; CONST S : ARRAY OF WCHAR );
+  PROCEDURE Remove( From, Count : CARDINAL );
+  PROCEDURE Replace( CONST Old, New : IString );
+  PROCEDURE ReplaceOA( CONST Old, New : ARRAY OF WCHAR );
+  PROCEDURE Trim();
 
   PUBLIC ABSTRACT PROCEDURE IndexOf( CONST S : IString; FromIndex : CARDINAL ) : CARDINAL;
   PUBLIC ABSTRACT PROCEDURE IndexOfOA( CONST S : ARRAY OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE IndexOfAny( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE IndexOfAnyS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL ) : CARDINAL;
   PUBLIC ABSTRACT PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
   PUBLIC ABSTRACT PROCEDURE LastIndexOfOA( CONST S : ARRAY OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE LastIndexOfAny( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC ABSTRACT PROCEDURE LastIndexOfAnyS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL ) : CARDINAL;
   PUBLIC ABSTRACT PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
   PUBLIC ABSTRACT PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC ABSTRACT PROCEDURE StartsWith( CONST S : IString ) : BOOLEAN;
@@ -87,56 +91,56 @@ INTERFACE IString;
   PROCEDURE Match( CONST Pattern : IString; CaseSensitive : BOOLEAN ) : BOOLEAN;
   PROCEDURE MatchOA( CONST Pattern : ARRAY OF WCHAR; CaseSensitive : BOOLEAN ) : BOOLEAN;
 
-  PUBLIC ABSTRACT PROCEDURE Substring( From, Count : CARDINAL; OUT S : IString );
-  PUBLIC ABSTRACT PROCEDURE SubstringOA( From, Count : CARDINAL; OUT S : ARRAY OF WCHAR );
-  PUBLIC ABSTRACT PROCEDURE Item( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL; // returns index where itemizing has stopped
-  PUBLIC ABSTRACT PROCEDURE ItemS( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL; // returns index where itemizing has stopped
-  PUBLIC ABSTRACT PROCEDURE ItemOA( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL; // returns index where itemizing has stopped
-  PUBLIC ABSTRACT PROCEDURE ItemSOA( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL; // returns index where itemizing has stopped
+  PROCEDURE Substring( From, Count : CARDINAL; OUT S : IString );
+  PROCEDURE SubstringOA( From, Count : CARDINAL; OUT S : ARRAY OF WCHAR );
+  PROCEDURE Item( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL; // returns index where itemizing has stopped
+  PROCEDURE ItemS( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL; // returns index where itemizing has stopped
+  PROCEDURE ItemOA( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL; // returns index where itemizing has stopped
+  PROCEDURE ItemSOA( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL; // returns index where itemizing has stopped
   // each ancestor must define self Split procedures due to ARRAY OF IString/ARRAY OF CString...
-  // PUBLIC PROCEDURE Split( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL; OUT Pieces : CARDINAL; OUT S : ARRAY OF IString ) : CARDINAL; // returns index where splitting has stopped, strings ARE NOT ALLOCATED
-  // PUBLIC PROCEDURE SplitS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL; OUT Pieces : CARDINAL; OUT S : ARRAY OF IString ) : CARDINAL; // returns index where splitting has stopped, strings ARE NOT ALLOCATED
+  // PROCEDURE Split( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL; OUT Pieces : CARDINAL; OUT S : ARRAY OF IString ) : CARDINAL; // returns index where splitting has stopped, strings ARE NOT ALLOCATED
+  // PROCEDURE SplitS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL; OUT Pieces : CARDINAL; OUT S : ARRAY OF IString ) : CARDINAL; // returns index where splitting has stopped, strings ARE NOT ALLOCATED
   
-  PUBLIC ABSTRACT PROCEDURE Lowerize();
-  PUBLIC ABSTRACT PROCEDURE Capitalize();
+  PROCEDURE Lowerize();
+  PROCEDURE Capitalize();
 
-  PUBLIC ABSTRACT PROCEDURE ToOA( OUT S : ARRAY OF WCHAR );
-  PUBLIC ABSTRACT PROCEDURE ToOAA( CodePage : CARDINAL; OUT S : ARRAY OF CHAR; OUT Filled : CARDINAL );
-  PUBLIC ABSTRACT PROCEDURE ToUTF8( OUT S : ARRAY OF CHAR; OUT Filled : CARDINAL );
-  PUBLIC ABSTRACT PROCEDURE FromOA( CONST S : ARRAY OF WCHAR );
-  PUBLIC ABSTRACT PROCEDURE FromOAA( CodePage : CARDINAL; CONST S : ARRAY OF CHAR );
-  PUBLIC ABSTRACT PROCEDURE FromUTF8( CONST S : ARRAY OF CHAR );
+  PROCEDURE ToOA( OUT S : ARRAY OF WCHAR );
+  PROCEDURE ToOAA( CodePage : CARDINAL; OUT S : ARRAY OF CHAR; OUT Filled : CARDINAL );
+  PROCEDURE ToUTF8( OUT S : ARRAY OF CHAR; OUT Filled : CARDINAL );
+  PROCEDURE FromOA( CONST S : ARRAY OF WCHAR );
+  PROCEDURE FromOAA( CodePage : CARDINAL; CONST S : ARRAY OF CHAR );
+  PROCEDURE FromUTF8( CONST S : ARRAY OF CHAR );
 
-  PUBLIC ABSTRACT PROCEDURE ToINT32( Base : CARDINAL; OUT I : INT32 ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE ToCARD32( Base : CARDINAL; OUT C : CARD32 ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE ToINT64( Base : CARDINAL; OUT I : INT64 ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE ToCARD64( Base : CARDINAL; OUT C : CARD64 ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE ToLONGREAL( OUT R : LONGREAL ) : BOOLEAN;
+  PROCEDURE ToINT32( Base : CARDINAL; OUT I : INT32 ) : BOOLEAN;
+  PROCEDURE ToCARD32( Base : CARDINAL; OUT C : CARD32 ) : BOOLEAN;
+  PROCEDURE ToINT64( Base : CARDINAL; OUT I : INT64 ) : BOOLEAN;
+  PROCEDURE ToCARD64( Base : CARDINAL; OUT C : CARD64 ) : BOOLEAN;
+  PROCEDURE ToLONGREAL( OUT R : LONGREAL ) : BOOLEAN;
 
-  PUBLIC ABSTRACT PROCEDURE FromINT32( I : INT32; Base : CARDINAL );
-  PUBLIC ABSTRACT PROCEDURE FromCARD32( C : CARD32; Base : CARDINAL );
-  PUBLIC ABSTRACT PROCEDURE FromINT64( I : INT64; Base : CARDINAL );
-  PUBLIC ABSTRACT PROCEDURE FromCARD64( C : CARD64; Base : CARDINAL );
-  PUBLIC ABSTRACT PROCEDURE FromLONGREAL( R : LONGREAL; ExpFlag : BOOLEAN );
-  PUBLIC ABSTRACT PROCEDURE FromLONGREALExt( R : LONGREAL; ValidCiphers, FractionPlaces : CARDINAL; ExpFlag : BOOLEAN; PointChar : WCHAR );
+  PROCEDURE FromINT32( I : INT32; Base : CARDINAL );
+  PROCEDURE FromCARD32( C : CARD32; Base : CARDINAL );
+  PROCEDURE FromINT64( I : INT64; Base : CARDINAL );
+  PROCEDURE FromCARD64( C : CARD64; Base : CARDINAL );
+  PROCEDURE FromLONGREAL( R : LONGREAL; ExpFlag : BOOLEAN );
+  PROCEDURE FromLONGREALExt( R : LONGREAL; ValidCiphers, FractionPlaces : CARDINAL; ExpFlag : BOOLEAN; PointChar : WCHAR );
 END IString;
 
 // class for storing variable length strings, mostly for single operation
 CLASS CString IMPLEMENTS IString;
-  INTERNAL VAR
+  PRIVATE VAR
     _Size, _Len : CARDINAL;
-    _Data : POINTER TO WCHAR;
+    _Storage : PCARD32;
+    _Data : PWCHAR;
 
   PUBLIC VIRTUAL PROPERTY
     Length  : CARDINAL;
     Size    : CARDINAL;
   PUBLIC VIRTUAL READONLY PROPERTY
     Empty   : BOOLEAN;
-    rawData : PWCHAR;
-    szData  : PWCHAR;
+    Data    : PWCHAR;
   
   #save, option( leak_info => on )
-  INTERNAL VIRTUAL PROCEDURE Reallocate( Characters : CARDINAL );
+  INTERNAL VIRTUAL PROCEDURE ReallocateAndFork( Characters : CARDINAL; CopyLength : CARDINAL );
   INTERNAL VIRTUAL PROCEDURE Deallocate();
   #restore
   
@@ -162,6 +166,7 @@ CLASS CString IMPLEMENTS IString;
 
   #save, option( leak_info => on )
   PUBLIC VIRTUAL PROCEDURE Assign( CONST S : IString );
+  PUBLIC VIRTUAL PROCEDURE Copy( CONST S : IString );
   
   PUBLIC VIRTUAL PROCEDURE Append( CONST S : IString );
   PUBLIC VIRTUAL PROCEDURE AppendOA( CONST S : ARRAY OF WCHAR );
@@ -177,8 +182,12 @@ CLASS CString IMPLEMENTS IString;
 
   PUBLIC VIRTUAL PROCEDURE IndexOf( CONST S : IString; FromIndex : CARDINAL ) : CARDINAL; // TODO: rewrite to use Strings
   PUBLIC VIRTUAL PROCEDURE IndexOfOA( CONST S : ARRAY OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE IndexOfAny( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE IndexOfAnyS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL ) : CARDINAL;
   PUBLIC VIRTUAL PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
   PUBLIC VIRTUAL PROCEDURE LastIndexOfOA( CONST S : ARRAY OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE LastIndexOfAny( CONST Delimiters : SET OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE LastIndexOfAnyS( CONST Delimiters : SET OF WCHARS; IndexFromRight : CARDINAL ) : CARDINAL;
   PUBLIC VIRTUAL PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE StartsWith( CONST S : IString ) : BOOLEAN;

@@ -63,36 +63,36 @@ CLASS IMPLEMENTATION CTest;
       xmle := reader.MoveNext();
       WHILE xmle = xmlreader.xmle_S_OK DO
          CASE reader.CurrentType OF
-         | xmlreader.xntUnknown : Host^.Log^.LogS( log.dlcInfo, L"", L"?? unknown node" );
+         | xmlreader.xntUnknown : Host^.Log^.LogS( log.lcInfo, 0, L"", L"?? unknown node" );
             Failure := TRUE;
             CONTINUE;
-         | xmlreader.xntXMLDeclaration : Host^.Log^.LogS( log.dlcInfo, L"", L"DECLARATION" );
-         | xmlreader.xntDocumentType : Host^.Log^.LogS( log.dlcInfo, L"", L"DOCTYPE" );
-         | xmlreader.xntCDATA : Host^.Log^.LogS( log.dlcInfo, L"", L"CDATA" );
-         | xmlreader.xntProcessingInstruction : Host^.Log^.LogS( log.dlcInfo, L"", L"PI" );
-         | xmlreader.xntText : Host^.Log^.LogS( log.dlcInfo, L"", L"#text" );
-         | xmlreader.xntComment : Host^.Log^.LogS( log.dlcInfo, L"", L"COMMENT" );
-         | xmlreader.xntElementBegin : Host^.Log^.LogS( log.dlcInfo, L"", L"+ELEMENT" );
-         | xmlreader.xntElementEnd : Host^.Log^.LogS( log.dlcInfo, L"", L"-ELEMENT" );
-         | xmlreader.xntAttribute : Host^.Log^.LogS( log.dlcInfo, L"", L"ATTRIBUTE" );
-         | xmlreader.xntWhitespace : Host^.Log^.LogS( log.dlcInfo, L"", L"WHITESPACE" );
+         | xmlreader.xntXMLDeclaration : Host^.Log^.LogS( log.lcInfo, 0, L"", L"DECLARATION" );
+         | xmlreader.xntDocumentType : Host^.Log^.LogS( log.lcInfo, 0, L"", L"DOCTYPE" );
+         | xmlreader.xntCDATA : Host^.Log^.LogS( log.lcInfo, 0, L"", L"CDATA" );
+         | xmlreader.xntProcessingInstruction : Host^.Log^.LogS( log.lcInfo, 0, L"", L"PI" );
+         | xmlreader.xntText : Host^.Log^.LogS( log.lcInfo, 0, L"", L"#text" );
+         | xmlreader.xntComment : Host^.Log^.LogS( log.lcInfo, 0, L"", L"COMMENT" );
+         | xmlreader.xntElementBegin : Host^.Log^.LogS( log.lcInfo, 0, L"", L"+ELEMENT" );
+         | xmlreader.xntElementEnd : Host^.Log^.LogS( log.lcInfo, 0, L"", L"-ELEMENT" );
+         | xmlreader.xntAttribute : Host^.Log^.LogS( log.lcInfo, 0, L"", L"ATTRIBUTE" );
+         | xmlreader.xntWhitespace : Host^.Log^.LogS( log.lcInfo, 0, L"", L"WHITESPACE" );
          END; // CASE
 
          s1 := reader.CurrentName;         
          s2 := reader.CurrentValue;
-         Host^.Log^.LogSSSS( log.dlcInfo, L"", L"  name: ", OA( s1.Length-1, s1.rawData ), L" = ", OA( s2.Length-1, s2.rawData ));
+         Host^.Log^.LogSSSS( log.lcInfo, 0, L"", L"  name: ", OA( s1.Length-1, s1.Data ), L" = ", OA( s2.Length-1, s2.Data ));
          
          IF ( reader.CurrentType = xmlreader.xntElementBegin ) AND ( reader.MoveToFirstAttribute() = xmlreader.xmle_S_OK ) THEN
             REPEAT
                IF reader.CurrentType = xmlreader.xntAttribute THEN
-                  Host^.Log^.LogS( log.dlcInfo, L"", L"  ATTRIBUTE" );
+                  Host^.Log^.LogS( log.lcInfo, 0, L"", L"  ATTRIBUTE" );
                ELSE
                   Failure := TRUE;
-                  Host^.Log^.LogS( log.dlcInfo, L"", L"?? expected attribute only" );
+                  Host^.Log^.LogS( log.lcInfo, 0, L"", L"?? expected attribute only" );
                END;
                s1 := reader.CurrentName;         
                s2 := reader.CurrentValue;
-               Host^.Log^.LogSSSS( log.dlcInfo, L"", L"    name: ", OA( s1.Length-1, s1.rawData ), L" = ", OA( s2.Length-1, s2.rawData ));
+               Host^.Log^.LogSSSS( log.lcInfo, 0, L"", L"    name: ", OA( s1.Length-1, s1.Data ), L" = ", OA( s2.Length-1, s2.Data ));
             UNTIL reader.MoveToNextAttribute() <> xmlreader.xmle_S_FALSE;
          END;
 

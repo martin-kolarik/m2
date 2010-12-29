@@ -173,7 +173,7 @@ CLASS IMPLEMENTATION CTest;
          Ring.ReadOA( OUT C64 ); // also waits for consume
          IF C64 <> P64+1 THEN
             Strings.FromCARD64W( C64, 10, OUT sC64 ); Strings.FromCARD64W( P64, 10, OUT sP64 );
-            Host^.Log^.LogSSS( log.dlcError, L"", L"Failed on numbers: ", sC64, sP64 );
+            Host^.Log^.LogSSS( log.lcError, 0, L"", L"Failed on numbers: ", sC64, sP64 );
             Exit := 1;
             EXIT;
          END;

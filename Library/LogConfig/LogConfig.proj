@@ -4,7 +4,7 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>Filtering of logging input</FileDescription>
+        <FileDescription>Configuration of loggers</FileDescription>
         <FileVersionMajor>1</FileVersionMajor>
         <FileVersionMinor>0</FileVersionMinor>
     </PropertyGroup>
@@ -16,8 +16,8 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT"/>
-        <Modules Include="LoggerFilter"/>
+        <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\Text"/>
+        <Modules Include="LogFilter;LogConfig"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

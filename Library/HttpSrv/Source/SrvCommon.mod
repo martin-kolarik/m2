@@ -4,7 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM Log IMPORT
-   dlcError, dlcWarning, dlcInfo;
+   lcError, lcWarning, lcInfo;
    
 IMPORT
    cphcommon,
@@ -654,14 +654,23 @@ CLASS IMPLEMENTATION ASrvStream;
                Writer.WriteElementStartOA( L"", L"p" );
                   Writer.WriteStringOA( L"The page should be redirected by client to " );
                   Writer.WriteElementStartOA( L"", L"a" );
-                     Writer.WriteAttributeStringOA( L"", L"href", OA( Location.Length-1, Location.rawData ));
+                     Writer.WriteAttributeStringOA( L"", L"href", OA( Location.Length-1, Location.Data ));
                      Writer.WriteString( Location );
                   Writer.WriteElementEnd();
                   Writer.WriteStringOA( L". Please, click the link to move to correct page." );
                Writer.WriteElementEnd();
 
-            ELSE // not redirect
-               Writer.WriteElementStringOA( L"", L"h1", L"Unable to handle HTTP request." );
+            | HttpCommon.httpres_401 :
+               Writer.WriteElementStringOA( L"", L"h1", L"Unauthorized access" );
+               Writer.WriteElementStartOA( L"", L"p" );
+                  Writer.WriteStringOA( L"The server responded with HTTP status code " );
+                  Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
+                  Writer.WriteStringOA( n );
+                  Writer.WriteStringOA( L". Please, log in to server and repeat the request." );
+               Writer.WriteElementEnd();
+
+            ELSE
+               Writer.WriteElementStringOA( L"", L"h1", L"Unable to handle HTTP request" );
                Writer.WriteElementStartOA( L"", L"p" );
                   Writer.WriteStringOA( L"The server responded with HTTP status code " );
                   Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
@@ -1067,7 +1076,7 @@ CLASS IMPLEMENTATION HttpWorker;
          logger := Log.logger();
       END;
       
-      IF NOT logger^.Filtered( dlcError, LOG_HTTP ) THEN
+      IF NOT logger^.FilteredFastCheck( lcError, 0 ) THEN
          _Stream^.RemoteAddress.ToOA( FALSE, OUT sOA );
          s.FromOA( sOA );
          s.AppendOA( L" - - [" );
@@ -1107,7 +1116,7 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( sOA );
          END; // IF chunked
 
-         logger^.LogS( dlcError, LOG_HTTP, OA( s.Length-1, s.rawData ));
+         logger^.LogS( lcError, 0, LOG_HTTP, OA( s.Length-1, s.Data ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1166,8 +1175,6 @@ CLASS IMPLEMENTATION CSessionHolder;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetSession( pcookie : StringsO.TPString; CONST addr : inetaddr.INETADDR; CONST rootPath : StringsO.CString ) : TPSrvSession;
-   CONST
-      SESSION_VALIDITY = 30*60*1000; // milliseconds, 30 minutes
    VAR
       c : CARDINAL;
       cookie : StringsO.CString;
@@ -1193,7 +1200,7 @@ CLASS IMPLEMENTATION CSessionHolder;
          session^.New := FALSE;
          Expiration.Remove( session );
          IF session^.Valid THEN // move expiration to the future
-            Expiration.Add( shorttime, session, 0, SESSION_VALIDITY );
+            Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
             RETURN session;
          ELSE // kill the session
             Sessions.Remove( s );
@@ -1211,12 +1218,12 @@ CLASS IMPLEMENTATION CSessionHolder;
       l := cphcommon.BASE64CharCount( SIZE( sessionid ));
       cookie.Size := l;
       cookie.Length := l;
-      cphcommon.ToBASE64( sessionid, OUT OA( l-1, PWCHAR( cookie.rawData )));
+      cphcommon.ToBASE64( sessionid, OUT OA( l-1, PWCHAR( cookie.Data )));
       
       NEW( session );
       session^.Init( cookie, rootPath );
       Sessions.Add( cookie, session );
-      Expiration.Add( shorttime, session, 0, SESSION_VALIDITY );
+      Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
       
       RETURN session;      
    END GetSession;
@@ -1466,7 +1473,7 @@ CLASS IMPLEMENTATION ASrvCommon;
             uri := _PreparedStream^.RequestURI;
             currentProcessor := _Processors.Current;
             currentHolder := _Processors.CurrentData;
-            IF currentProcessor^.AppliesFor( Verb, OA( uri.Length-1, uri.rawData ), OUT WantsSession ) THEN
+            IF currentProcessor^.AppliesFor( Verb, OA( uri.Length-1, uri.Data ), OUT WantsSession ) THEN
                foundProcessor := currentProcessor;
                EXIT;
             END;
@@ -1490,12 +1497,12 @@ CLASS IMPLEMENTATION ASrvCommon;
          END;
          IF NOT Reported THEN
             Reported := TRUE;
-            Log.logger()^.LogS( dlcInfo, LOG_HTTP, L"Pool has no space, wait for a while" );
+            Log.logger()^.LogS( lcInfo, 0, LOG_HTTP, L"Pool has no space, wait for a while" );
          END;
 
          Sync.Sleep( 100 );
          IF Time.UptimeMS() - Timeout > 0 THEN // time elapsed
-            Log.logger()^.LogS( dlcWarning, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
+            Log.logger()^.LogS( lcWarning, 0, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
             EXIT;
          END;
       END;

@@ -89,10 +89,12 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT userName, roleName : StringsO.IString ) : BOOLEAN;
    
+   PUBLIC PROCEDURE CheckRenameRoleConflict( CONST currentName, roleName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
    PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
    PUBLIC PROCEDURE DeleteRole( CONST roleName : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE CheckRenameUserConflict( CONST currentName, userName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
    PUBLIC PROCEDURE UpdateUser( CONST currentName, userName, roleName, password : StringsO.IString ) : BOOLEAN;
-   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString );
+   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString ) : BOOLEAN;
    
    // SELF
    PRIVATE VAR
@@ -102,6 +104,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _EIB : srvcore.TPEIBServer;
       _MVC : mvc.TPMVC;
       _Port : CARDINAL;
+      _SessionValidity : CARDINAL; // in seconds, 30 minutes by default
       _Running : BOOLEAN;
       _Controller : mvc.TPController;
       _DeviceCount : CARDINAL;
@@ -111,6 +114,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _DataLogger : Log.TPBufferedLogger;
       _HttpLogger : Log.TPILogger;
       _Roles : maps.CStringMap;
+      _SysUsers : lists.CStringList;
       _Users : maps.CStringStringMap;
       _Lock : Sync.RWLOCK;
       _AccessList : accesslist.CAccessList;

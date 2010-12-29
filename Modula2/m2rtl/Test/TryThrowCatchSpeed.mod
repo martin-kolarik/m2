@@ -17,59 +17,21 @@ IMPORT
 (*===========================================================================*)
 
 CLASS Exc1( Exceptions.Exception );
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
 END Exc1;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION Exc1;
-   
-(*---------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      S := EMIT( %class );
-   END Name;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      S := L"";
-   END ToString;
-
-(*---------------------------------------------------------------------------*)
-
 END Exc1;
 
 (*===========================================================================*)
 
 CLASS Exc2( Exception );
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
 END Exc2;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION Exc2;
-   
-(*---------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      S := EMIT( %class );
-   END Name;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
-   BEGIN
-      S := L"";
-   END ToString;
-
-(*---------------------------------------------------------------------------*)
-
 END Exc2;
 
 (*===========================================================================*)
@@ -118,7 +80,7 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed: ", t );
 
       RETURN test.trSuccess;
    END Run;

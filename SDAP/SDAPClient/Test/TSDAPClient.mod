@@ -103,14 +103,14 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    BEGIN
-      Host^.Log^.LogSC( log.dldMessage, L"", L"Connect: ", Error );
+      Host^.Log^.LogSC( log.ldMessage, 0, L"", L"Connect: ", Error );
    END OnConnect;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    BEGIN
-      Host^.Log^.LogSC( log.dldMessage, L"", L"Close: ", Error );
+      Host^.Log^.LogSC( log.ldMessage, 0, L"", L"Close: ", Error );
    END OnDisconnect;
 
 (*---------------------------------------------------------------------------*)
@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
    BEGIN
       Sync.IInc( REF ReceiveCount );
-      Host^.Log^.LogSSSS( log.dldMessage, L"", OA( Data.Length-1, Data.rawData ), L" ", OA( Value.Length-1, Value.rawData ), L" " );
+      Host^.Log^.LogSSSS( log.ldMessage, 0, L"", OA( Data.Length-1, Data.Data ), L" ", OA( Value.Length-1, Value.Data ), L" " );
    END OnReceive;
 
 (*---------------------------------------------------------------------------*)

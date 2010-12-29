@@ -1,3 +1,109 @@
+Version 1.2.1312/R 3.9.2010
+- BUG: #227, model name of length 1 character was not recognized in pt.xml files
+       properly, which could cause various problems with pt.xml rendering (infinite
+       looping in pt:for etc.).
+- BUG: #229, index.pt.xml does not use pt:access and thus it is not able being protected
+       from unauthorized access
+- BUG: #230, pt.xml without target root element was not rendered, text files (js, txt) were
+       impossible to render.
+- BUG: #232, if session expired during userLogin.pt.xml page displayed, SmartServer
+       redirected web to admin login page. Now it redirects to index page.
+- NEW: #228, logout page was extended with "nextpage=<page>" parameter to redirect web
+       after logout. Default behavior was changed from redirecting to login page to
+       redirecting to index page.
+- NEW: #231, session validity time is now configurable using "session_validity" parameter
+       of "[server]" section.
+
+Version 1.2.1291/R 30.7.2010
+- BUG: #226, functions (get, getwix) were not registered for admin pages (index etc.)
+
+Version 1.2.1285/R 26.7.2010
+- BUG: #214, heavily communicating SDAP/XMLSocket clients could block server
+       after client disconnect in infinite wait. Next, the server was not able
+       to reconnect KNX connection if it had been lost.
+- BUG: #215, race condition in web server caused server crash. The race condition
+       occured if single HTTP client asked particular page more times during a short
+       time.
+- BUG: #223, users defined through admin web interface were lost after server restart.
+- BUG: #225, javascript function CorrectNumber worked improperly for value 0 send
+       as being not string.
+- CHG: #224, if server's function (Get, Set) failed operating KNX, whole call was
+       taken as failed and function call remained visible in browser URI. Now
+       the function is meant as failed only if it is missing or it has bad number
+       of the parameters.
+
+Version 1.2.1227/R 22.5.2010
+- BUG: #208, "System.Licensing.SerialNumber" contained invalid XML characters, which
+       damaged XMLSocket transfer of the item
+- BUG: #210, configuration file examples contained bad names of administration roles       
+- CHG: #64, predefined users and roles cannot be renamed either deleted
+- CHG: #207, when data is sent through HTTP, the stream can disconnect prematurely.
+       Now the state is considered being fully correct.
+- CHG: #211, XMLSocket interface now returns all cached data even if KNX is not
+       connected. Now XMLSocket behaves the same way as SDAP.
+- NEW: #205, SOFT PLC and iWebKit examples description was added to documentation
+
+Version 1.2.1218/R RC2 19.5.2010
+- BUG: #203, in documentation, preformatted texts contained bad accented characters 
+- BUG: #208, "getWix" function was renamed to "getwix", as it was intended
+- CHG: #199, in cache_mode only, web interface does not display error message after
+       direct write, it displays "Write succeeded"
+- CHG: #202, "getwix" function and "Wix" program was more described in the documentation,
+       new examples for "Wix" setup and "getwix" function were added to installation
+- CHG: #206, possibility to log to used pages with name/password was reduced to log in
+       using password (key or code) only              
+- NEW: #200, "Changes.txt" file link was added to StartMenu
+- NEW: #200, "default.cfg" file edit link was added to StartMenu
+- NEW: #204, new example "11 intervals.pt.xml" with relational operator and text
+       coloring added
+- NEW: #205, "RCWare" (soft PLC) description, libraries and link to the vendor including
+       documentation were added
+  
+Version 1.2.1201/R RC1 2.5.2010
+- BUG: #85, if get of two variables in pt.xml was written without space (like in
+       ${get(3/0/0)}${get(3/0/1)}) the second get was not rendered
+- BUG: #150, sometimes "Uptime" displayed in status page showed "60" minutes instead
+       of correct "0" minutes
+- BUG: #157, line number of "address" parameter of "interface" section was always
+       badly read as 0
+- BUG: #158, "discover" tool occasionaly crashed if more than single interface was
+       present in the network
+- BUG: #162, comment lines present in configuration file could cause ignoring of parameters
+       after comment line or reporting of strange errors
+- BUG: #163, if "?set(addr,)" appended to URI was used, SmartServer could crash. If set
+       was filled with both parameters the crash never occured.
+- BUG: #164, example pages and some of administration web server pages had bad encoding
+- BUG: #174, in some configuration files counting of lines was improper, line number
+       was bigger than expected
+- BUG: #175, DLLs had bad ProductVersion
+- BUG: #177, if client requested language different from Czech or English "?unknown text"
+       texts were returned. Now English is used as fallback.
+- BUG: #178, "set" command did not accept spaces in value argument
+- BUG: #189, "set" command did not accept decimal numbers neither with decimal dot neither
+       with decimal comma
+- BUG: #190, examples sending decimal value sent values with decimal comma instead of
+       decimal dot
+- BUG: #195, if input pt.xml file contains two or more child elements inside <pt:template>
+       element, the output badly contained more XML declarations. This was fixed, but
+       the primary cause, presence of two or more XML roots in output, cannot be repaired with
+       SmartServer, it is a responsibility of pt.xml file author.
+- CHG: #152, name of Win32 service was changed to EIB/KNX SmartServer
+- CHG: #165, pt.xml now can contain elements with namespace prefixes. These are correctly
+       rendered to output.
+- CHG: #170, C runtime library was dimnished
+- CHG: #182, times displayed in logs are in local time
+- CHG: #183, Program menu now uses NeNo folder as a root
+- NEW: #64, ability to create and use more login names and permissions to different pages
+       was added
+- NEW: #151, new configuration parameter "name" in section "project" was added,
+       the parameter value is displayed in status page
+- NEW: #153, new examples of user pt.xml pages were added
+- NEW: #166, pt.xml now supports "pt.variable" tag
+- NEW: #169, minidumps are now written in unexpected program states
+- NEW: #172, new pt.xml function "getwix" was added to support Papouch Wix program
+- NEW: #173, pt.xml now supports relational operators
+- NEW: #193, SDAP now offers self licence number in "System.Licensing.SerialNumber" object
+
 Version 1.1.1075/R RTM 14.12.2009
 - BUG: #161, server wrote negative EIS 5 numbers as malformed positive numbers
 

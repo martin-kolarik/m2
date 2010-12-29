@@ -168,12 +168,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DevSDAPBridgeSvc", "..\..\S
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LoggerFilter", "..\..\Library\LoggerFilter\LoggerFilter.vcproj", "{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AirMotion", "..\..\DeviceIO\AirMotion\AirMotion.vcproj", "{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
@@ -181,6 +175,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AirMotion", "..\..\DeviceIO
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDAPBridge", "..\..\CWDriver\SDAPBridge\SDAPBridge.vcproj", "{FE61491C-7A7A-4BAE-8DCB-E9AC901D1BF4}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XML", "..\..\Library\XML\XML.vcproj", "{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
 		Release.AspNetCompiler.Debug = "False"
@@ -479,16 +479,6 @@ Global
 		{6FD15983-21B4-472D-B9A6-850EA888DB90}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{6FD15983-21B4-472D-B9A6-850EA888DB90}.Release|Win32.ActiveCfg = Release|Win32
 		{6FD15983-21B4-472D-B9A6-850EA888DB90}.Release|Win32.Build.0 = Release|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Win32.ActiveCfg = Debug|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Debug|Win32.Build.0 = Debug|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Any CPU.ActiveCfg = Release|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Win32.ActiveCfg = Release|Win32
-		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Win32.Build.0 = Release|Win32
 		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
 		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Mixed Platforms.Build.0 = Debug|Win32
@@ -509,6 +499,16 @@ Global
 		{FE61491C-7A7A-4BAE-8DCB-E9AC901D1BF4}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{FE61491C-7A7A-4BAE-8DCB-E9AC901D1BF4}.Release|Win32.ActiveCfg = Release|Win32
 		{FE61491C-7A7A-4BAE-8DCB-E9AC901D1BF4}.Release|Win32.Build.0 = Release|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Debug|Win32.Build.0 = Debug|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Release|Any CPU.ActiveCfg = Release|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Release|Win32.ActiveCfg = Release|Win32
+		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

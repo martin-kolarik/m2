@@ -16,9 +16,9 @@ extern "C" __DLL_IMPORT void __cdecl Reset();
 
 extern "C" __DLL_IMPORT void __cdecl Mark( BOOLEAN Enter, INTEGER Source_HIGH, const WCHAR* Source, CARDINAL Line );
 
-extern "C" __DLL_IMPORT void __cdecl AllocateHook( const ADDRESS A, const CARDINAL S );
-extern "C" __DLL_IMPORT void __cdecl DeallocateHook( const ADDRESS A );
-extern "C" __DLL_IMPORT void __cdecl ReallocateHook( const ADDRESS O, const ADDRESS N, const CARDINAL S );
+extern "C" __DLL_IMPORT void __cdecl AllocateHook( const M2ADDRESS A, const CARDINAL S );
+extern "C" __DLL_IMPORT void __cdecl DeallocateHook( const M2ADDRESS A );
+extern "C" __DLL_IMPORT void __cdecl ReallocateHook( const M2ADDRESS O, const M2ADDRESS N, const CARDINAL S );
 
 // m2cpp emitted macro
 # define LEAKSTART_()                       SwitchOn()

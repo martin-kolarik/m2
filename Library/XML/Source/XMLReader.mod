@@ -443,6 +443,8 @@ CLASS IMPLEMENTATION CXMLReader;
 	   IF _IStream = NIL THEN
 	      NEW( stream );
          _IStream := stream;
+      ELSE
+         stream := TPStream( _IStream );
 	   END;
 	   stream^.Stream := _Stream;
 
@@ -522,7 +524,7 @@ CLASS IMPLEMENTATION CXMLReader;
       ELSIF xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True THEN
          RETURN xmle_S_FALSE;
       END;
-      RETURN Error2Error( xmlLITE.TPIXmlReader( _IReader )^.MoveToAttributeByName( Name.szData, NIL ));
+      RETURN Error2Error( xmlLITE.TPIXmlReader( _IReader )^.MoveToAttributeByName( Name.Data, NIL ));
    END MoveToAttributeByName;
 
 (*---------------------------------------------------------------------------*)

@@ -47,11 +47,11 @@ CLASS IMPLEMENTATION CRunInPipe;
        tr.Stream := out;
        tr.Encoding := Languages.cp_Console();
        WHILE tr.ReadLine( OUT s, Sync.FOREVER, TRUE ) IN Sync.arsCompletions DO
-         Host^.Log^.LogS( log.dlcInfo, L"", OAsz( s.szData ));
+         Host^.Log^.LogS( log.lcInfo, 0, L"", OAsz( s.Data ));
        END; // while
 
      CATCH e : IOO.CIOException DO
-       Host^.Log^.LogExc( log.dlcError, L"", e );
+       Host^.Log^.LogExc( log.lcError, 0, L"", e );
        RETURN test.trFailure;
      END;
      

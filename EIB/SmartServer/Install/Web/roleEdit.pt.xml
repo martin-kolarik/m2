@@ -16,7 +16,7 @@
                     <div class="middle">
                         <div id="menu">
                             <p><a href="users">${msg.menu.users}</a></p>
-                            <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
+                            <p class="logout"><a href="logout?nextpage=login">${msg.menu.logout}</a></p>
                         </div>
 
                         <div class="content">
@@ -38,7 +38,7 @@
                                                     <pt:input model="name"/>
                                                 </td>
                                             </tr>
-                                            <tr>
+                                            <tr pt:condition="false">
                                                 <td>${msg.roleEdit.keyed}</td>
                                                 <td class="spare"> </td>
                                                 <td>

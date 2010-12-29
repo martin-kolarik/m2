@@ -264,8 +264,8 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    PUBLIC PROCEDURE GetObject( CONST Address : eib_def.TAddress; OUT PObject : TPObject ) : BOOLEAN;
    
    // internal
-   PROCEDURE FindBehaviour( BehaviourName : ARRAY OF WCHAR; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
-   PROCEDURE FindObjectType( ObjectTypeName : ARRAY OF WCHAR; OUT ObjectType : TObjectType ) : BOOLEAN;
+   PROCEDURE FindBehaviour( CONST BehaviourName : StringsO.IString; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
+   PROCEDURE FindObjectType( CONST ObjectTypeName : StringsO.IString; OUT ObjectType : TObjectType ) : BOOLEAN;
    PROCEDURE AddObject( Class : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType; ObjectType : TObjectType ) : TPObject;
    PROCEDURE DoneObjects( NILExecutive : BOOLEAN );
 

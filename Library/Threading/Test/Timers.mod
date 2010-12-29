@@ -119,7 +119,7 @@ CLASS IMPLEMENTATION CMH;
          INC( Test^.Count );
       
       ELSE
-         Test^.Host^.Log^.LogSC( log.dlcInfo, L"", L"  Timer: ", CARDINAL( TimerId ));
+         Test^.Host^.Log^.LogSC( log.lcInfo, 0, L"", L"  Timer: ", CARDINAL( TimerId ));
          INC( Test^.Count, TimerId );
 
          IF TimerId = 12 THEN
@@ -127,41 +127,41 @@ CLASS IMPLEMENTATION CMH;
            IF TimerRunning( 1 ) THEN
               StopTimer( 1 );
            ELSE
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly NOT running: ", 1 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly NOT running: ", 1 );
            END;
            IF TimerRunning( 1 ) THEN
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly running: ", 1 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly running: ", 1 );
            END;
 
            IF TimerRunning( 2 ) THEN
               StopTimer( 2 );
            ELSE
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly NOT running: ", 2 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly NOT running: ", 2 );
            END;
            IF TimerRunning( 2 ) THEN
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly running: ", 2 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly running: ", 2 );
            END;
 
            IF TimerRunning( 3 ) THEN
               StopTimer( 3 );
            ELSE
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly NOT running: ", 3 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly NOT running: ", 3 );
            END;
            IF TimerRunning( 3 ) THEN
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly running: ", 3 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly running: ", 3 );
            END;
 
            IF TimerRunning( 4 ) THEN
               StopTimer( 4 );
            ELSE
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly NOT running: ", 4 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly NOT running: ", 4 );
            END;
            IF TimerRunning( 4 ) THEN
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly running: ", 4 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly running: ", 4 );
            END;
 
            IF TimerRunning( 12 ) THEN
-              Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Unexpectedly running: ", 12 );
+              Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Unexpectedly running: ", 12 );
               StopTimer( 12 );
            END;
             

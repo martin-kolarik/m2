@@ -49,7 +49,7 @@ PROCEDURE ResultToName( Result : TAsyncResult; OUT Name : ARRAY OF WCHAR ) : BOO
 (*================================================================================*)
 
 CONST
-   FOREVER   = 0FFFFFFFFH;
+   FOREVER   = CARDINAL( 0FFFFFFFFH );
    FORSAFETY = 12321;
 
 PROCEDURE Sleep( Time : CARDINAL );

@@ -42,7 +42,7 @@ CLASS CTextWriter;
 	PUBLIC PROCEDURE WriteM( CONST String : PWCHAR; Length : CARDINAL; LineEnd : BOOLEAN ); // Length is WCHAR count
 
 	PUBLIC PROCEDURE WriteINT32( I : INT32; Base : CARDINAL; LineEnd : BOOLEAN );
-	PUBLIC PROCEDURE WriteExc( CONST e : Exceptions.CException; LineEnd : BOOLEAN );
+	PUBLIC PROCEDURE WriteExc( CONST e : Exceptions.Exception; LineEnd : BOOLEAN );
 
 	PUBLIC PROCEDURE LineEnd();
 	

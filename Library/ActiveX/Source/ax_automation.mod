@@ -3,6 +3,9 @@ IMPLEMENTATION MODULE ax_automation;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
+  
+FROM Debug IMPORT
+   LogAssertionW;
 
 IMPORT
   windows;
@@ -150,10 +153,11 @@ CLASS IMPLEMENTATION CInterface;
   BEGIN
 (*%T DEBUG *)
     DbgOutREL( ADR( SELF ));
-    IF ReferenceCount = 0 THEN
-      ADDRESS( 0 )^ := 0;
-    END;
 (*%E DEBUG *)
+      IF ReferenceCount = 0 THEN
+         ASSERTLOG( FALSE, L"RefCount = 0, already released" );
+         RETURN;
+      END;
     DEC( ReferenceCount );
     IF ReferenceCount <> 0 THEN
       RETURN windows.ULONG( ReferenceCount );
