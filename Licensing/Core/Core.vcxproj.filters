@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="CPPs">
+      <UniqueIdentifier>{75155a74-9865-4dde-ac86-eb4ab7984bec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{007ce330-a2f6-4633-bfb5-cd12306d0d59}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\DiskInfo.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Engine.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Items.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\lec.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Number.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Scrambler.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Store.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Uniquer.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Validator.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Defs.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\DiskInfo.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Engine.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Items.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\lec.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Number.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Scrambler.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Store.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Uniquer.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Validator.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\TClient.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TDiskInfo.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\THash.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TRegActN.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TScrambler.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TSerial.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TStore.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Core.proj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="~Build\DiskInfo.cpp">
+      <Filter>CPPs</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="~Build\DiskInfo.h">
+      <Filter>CPPs</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
