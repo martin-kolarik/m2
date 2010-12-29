@@ -32,28 +32,27 @@ VAR
 (*================================================================================*)
 
 CONST
+   DEFAULT_PORT = 10001;
+
+CONST
    B_SYNCHRONIZE  = 0FFH;
    B_INTERLEAVE_1 = 0FFH;
    B_INTERLEAVE_2 = 0FEH;
-   
-   POLL_PERIOD_DEFAULT = 30000;
 
 #save, option( pack => 1 )
 TYPE
    TPacketType = (
       ptUnknown,
-      ptArm,
-      ptDisarm,
-      ptInfo
+      ptInfo,
+      ptArm = 70H,
+      ptDisarm = 71H
    );
    
-   TInfoType : BYTE = (
+   TInfoType = INT8(
       itViolation1 = 0H,
       itViolation2 = 1H,
       itTamper1 = 2H,
-      itTamper2 = 3H,
-      itArm = 70H,
-      itDisarm = 71H
+      itTamper2 = 3H
    );
    
 TYPE
@@ -65,7 +64,7 @@ TYPE
                  | ptArm :
                     ArmSync1 : BYTE;
                     ArmSync2 : BYTE;
-                    ArmDataType : TDataType;
+                    ArmDataType : TPacketType;
                     ArmCode : ARRAY [0..7] OF BYTE;
                     ArmZones : ARRAY [0..3] OF BYTE;
                     ArmMode : BYTE;
@@ -74,14 +73,14 @@ TYPE
                  | ptDisarm :
                     DisarmSync1 : BYTE;
                     DisarmSync2 : BYTE;
-                    DisarmDataType : TDataType;
+                    DisarmDataType : TPacketType;
                     DisarmCode : ARRAY [0..7] OF BYTE;
                     DisarmZones : ARRAY [0..3] OF BYTE;
                     DisarmCRC : BYTE;
                  //-----
                  | ptInfo :
                     Interleave : BYTE;
-                    InfoDataType : TDataType;
+                    InfoDataType : TInfoType;
                     Data : ARRAY [0..3] OF BYTE;
                     Xor : BYTE;
                     InfoCRC : BYTE;
@@ -103,7 +102,6 @@ CLASS CPacket; // class is wrapping some foreign data area
       FilledPacket : TPPacket;
 
    PUBLIC READONLY PROPERTY
-      ValueType : TValueType;
       Packet : TPPacket;
       Length : CARDINAL;
       
@@ -152,11 +150,10 @@ CLASS IMPLEMENTATION CPacket;
       _Packet := Value;
       IF _Packet = NIL THEN
          RETURN;
-      END;
-      IF _Packet^.ArmSync2 = B_SYNCHRONIZE OF // differences in this byte are principal
-         IF _Packet^.ArmDataType = itArm THEN
+      ELSIF _Packet^.ArmSync2 = B_SYNCHRONIZE THEN // differences in this byte are principal
+         IF _Packet^.ArmDataType = ptArm THEN
             _PacketType := ptArm;
-         ELSIF _Packet^.ArmDataType = itDisarm THEN
+         ELSIF _Packet^.ArmDataType = ptDisarm THEN
             _PacketType := ptDisarm;
          ELSE
             ASSERT( FALSE );
@@ -263,18 +260,20 @@ CLASS IMPLEMENTATION CPacket;
       CASE _PacketType OF
       //-----
       | ptArm, ptDisarm :
-         IF KnownLength < FIELDOFS( TPacket.ValueType ) + SIZE( TPacket.ValueType ) THEN
+         IF KnownLength < 17 THEN
             RETURN FALSE;
-         ELSIF _Packet^.ValueType = CH_DIGITAL THEN
-            FirstIndexAfterData := FIELDOFS( TPacket.dChkSum );
-            FirstIndexAfterFrame := FirstIndexAfterData + SIZE( TPacket.dChkSum );
-         ELSE
-            FirstIndexAfterData := FIELDOFS( TPacket.nChkSum );
-            FirstIndexAfterFrame := FirstIndexAfterData + SIZE( TPacket.nChkSum );
          END;
+         FirstIndexAfterData := FIELDOFS( TPacket.ArmCRC );
+         FirstIndexAfterFrame := FirstIndexAfterData + SIZE( TPacket.ArmCRC );
          ApplyChecksum := TRUE;
       //-----
       | ptInfo :
+         IF KnownLength < 8 THEN
+            RETURN FALSE;
+         END;
+         FirstIndexAfterData := FIELDOFS( TPacket.InfoCRC );
+         FirstIndexAfterFrame := FirstIndexAfterData + SIZE( TPacket.InfoCRC );
+         ApplyChecksum := TRUE;
       //-----
       ELSE
          RETURN FALSE;
@@ -297,7 +296,7 @@ CLASS IMPLEMENTATION CPacket;
          _Packet^.DisarmSync2 := B_SYNCHRONIZE;
          _Packet^.DisarmDataType := ptDisarm;
       END;
-   END SetPacketCharacters;
+   END SetPacketBoundaries;
 
 (*---------------------------------------------------------------------------*)
 
@@ -335,19 +334,19 @@ CLASS IMPLEMENTATION CNS;
       DataRoot := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
       Root^.AddChild( DataRoot );
 
-      I := CreateNewItem( L"Humidity",    ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 5 )); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Temperature", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 6 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Humidity",    ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
 
-      I := CreateNewItem( L"Humidity setpoint",    ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 13 )); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Temperature setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 11 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Humidity setpoint",    ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
 
-      I := CreateNewItem( L"Temperature (bath) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 29 )); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Temperature (party) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 33 )); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Temperature (standby) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 31 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature (bath) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature (party) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature (standby) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
 
-      I := CreateNewItem( L"Humidity (bath) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 30 )); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Humidity (party) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 34 )); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Humidity (standby) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 32 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Humidity (bath) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Humidity (party) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Humidity (standby) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -375,23 +374,21 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 
    PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
    BEGIN
-      RETURN _PeriodHandle <> NIL;
+      RETURN _Running;
    END Running;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      IF _PeriodHandle <> NIL THEN
+      IF _Running THEN
          RETURN Sync.arAlreadyPending;
       END;
+      _Running := TRUE;
 
       _Lock.Lock();
       State := tasIdle;
       _Lock.Unlock();
-
-      _PoolDelegate.TimeoutSink := ADR( SELF );
-      threadpool.pool()^.WaitTimeout( ADR( _PoolDelegate ), 0, PollPeriodMS, FALSE, FALSE, OUT _PeriodHandle );
 
       RETURN Sync.arCompleted;
    END Start;
@@ -400,20 +397,8 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
-      _PoolDelegate.TimeoutSink := NIL;
-      IF _PeriodHandle <> NIL THEN
-         threadpool.pool()^.Abort( REF _PeriodHandle );
-      END;
+      _Running := FALSE;
    END Stop;
-
-(*---------------------------------------------------------------------------*)
-
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
-   BEGIN
-      IF PoolHandle = _PeriodHandle THEN
-         EventTime();
-      END;
-   END OnTimeout;
 
 (*---------------------------------------------------------------------------*)
 
@@ -424,94 +409,27 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE EventTime();
-   VAR
-      al : Sync.AutoLock;
-   BEGIN
-      al.Take( REF _Lock );
-      IF State = tasIdle THEN
-         State := tasWaitUpdate;
-         _Driven^.UpdateDeviceBuffer();
-      END;
-   END EventTime;
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE EventAbort();
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (abort)" );
       State := tasIdle;
       _ItemToWrite := NIL;
    END EventAbort;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EventACK();
+   PUBLIC PROCEDURE EventInfo( Packet : ADDRESS );
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
-      CASE State OF
-      | tasWaitUpdate :
-         State := tasWaitData;
-         _Driven^.AskData();
-      | tasWaitWrite :
-         _Driven^.Sent( Sync.arCompleted, _ItemToWrite );
-         _ItemToWrite := NIL;
-         State := tasWaitData;
-         _Driven^.AskData();
-      END;
-   END EventACK;
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (info)" );
+      _Driven^.ProcessData( Packet );
 
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE EventNAK();
-   VAR
-      al : Sync.AutoLock;
-   BEGIN
-      al.Take( REF _Lock );
-      IF State = tasWaitUpdate THEN
-         IF _ItemToWrite = NIL THEN
-            State := tasIdle;
-         ELSE
-            State := tasWaitWrite;
-            _Driven^.SendData( _ItemToWrite );
-         END;
-      END;
-   END EventNAK;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE EventSTX( Packet : ADDRESS );
-   VAR
-      al : Sync.AutoLock;
-   BEGIN
-      al.Take( REF _Lock );
-      IF State = tasWaitData THEN
-         _Driven^.Ack();
-         _Driven^.ProcessData( Packet );
-         IF _ItemToWrite = NIL THEN
-            _Driven^.AskData();
-         ELSE
-            State := tasWaitWrite;
-            _Driven^.SendData( _ItemToWrite );
-         END;
-      END;
-   END EventSTX;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE EventNoData();
-   VAR
-      al : Sync.AutoLock;
-   BEGIN
-      al.Take( REF _Lock );
-      IF State = tasWaitData THEN
-         State := tasIdle;
-      END;
-   END EventNoData;
+      State := tasWaitWrite;
+      _Driven^.SendData( _ItemToWrite );
+   END EventInfo;
 
 (*---------------------------------------------------------------------------*)
 
@@ -519,7 +437,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (write)" );
       IF _ItemToWrite <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
@@ -537,17 +455,12 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (timeout)" );
       CASE State OF
-      | tasWaitUpdate :
-         State := tasIdle;
-      | tasWaitData :
-         State := tasIdle;
       | tasWaitWrite :
          _Driven^.Sent( Sync.arTimeout, _ItemToWrite );
          _ItemToWrite := NIL;
-         State := tasWaitData;
-         _Driven^.AskData();
+         State := tasIdle;
       END; // CASE
    END EventTimeout;
 
@@ -570,9 +483,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 BEGIN
    _State := tasIdle;
    _Driven := NIL;
-   _PeriodHandle := NIL;
    _ItemToWrite := NIL;
-   PollPeriodMS := POLL_PERIOD_DEFAULT;
 FINALLY
    Stop();
 END CDeviceAutomaton;
@@ -595,7 +506,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       _PoolDelegate.TimeoutSink := ADR( SELF );
 
       Logger.LogS( log.ldMessage, 0, L"Integra", L"Started" );
-      RETURN Connection.OpenS( _HostAddress, TRUE, 500 );
+      RETURN Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
    END Start;
 
 (*---------------------------------------------------------------------------*)
@@ -632,20 +543,16 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Arm();
-   VAR
-      Packet : TPacket;
-      Wrapper : CPacket;
+   PUBLIC VIRTUAL PROCEDURE ProcessData( Packet : ADDRESS );
    BEGIN
-      Packet.FIRST := 0C;
-      Wrapper.EmptyPacket := ADR( Packet );
-      Wrapper.PacketType := ptACK;
-      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 0, 0 );
-   END Ack;
+      PIO^.OnRx( Sync.arCompleted, TPPacket( Packet ));
+   END ProcessData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Disarm();
+   PUBLIC VIRTUAL PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
+   BEGIN
+   (*
    VAR
       Packet : TPacket;
       Wrapper : CPacket;
@@ -655,14 +562,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       Wrapper.PacketType := ptDataRequest;
       Wrapper.DeviceAddress := _DeviceAddress;
       Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 150, 500 );
-   END AskData;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE ProcessData( Packet : ADDRESS );
-   BEGIN
-      PIO^.OnRx( Sync.arCompleted, TPPacket( Packet ));
-   END ProcessData;
+   *)
+   END SendData;
 
 (*---------------------------------------------------------------------------*)
 
@@ -695,18 +596,16 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    INTERNAL VIRTUAL PROCEDURE DetectDataStart( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexOfFrame, FirstIndexOfData : CARDINAL ) : BOOLEAN;
    VAR
-      ch : CHAR;
+      dataByte : CARD8;
       i : CARDINAL := 0;
       l : CARDINAL := Data.Length;
    BEGIN
       WHILE i < l DO
          TRY
-            ch := CHAR( Data[i] ); // ch in CASE is not handled correctly by CASE
-            CASE ch OF
-            | CH_NUL,
-              CH_STX,
-              CH_ACK,
-              CH_BEL :
+            dataByte := CARD8( Data[i] ); // ch in CASE is not handled correctly by CASE
+            CASE dataByte OF
+            | B_INTERLEAVE_1,
+              B_INTERLEAVE_2 :
                FirstIndexOfFrame := i;
                FirstIndexOfData := i;
                RETURN TRUE;
@@ -758,14 +657,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
          Wrapper.FilledPacket := Data.Data;
          CASE Wrapper.PacketType OF
-         | ptData :
-            Automaton^.EventSTX( Data.Data );
-         | ptACK :
-            Automaton^.EventACK();
-         | ptNAK :
-            Automaton^.EventNAK();
-         | ptNoData :
-            Automaton^.EventNoData();
+         | ptInfo :
+            Automaton^.EventInfo( Data.Data );
          ELSE
             ASSERTLOG( FALSE );
          END;
@@ -792,7 +685,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    CONST
       keyHost = L"host";
       keyAddress = L"address";
-      keyPollPeriod = L"poll_period";
    VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
 
@@ -824,10 +716,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF NOT iniFile.GetKeyInt( keyAddress, OUT l, OUT _DeviceAddress ) THEN
             LogError( l, Texts._AddressKeyMissing, NIL );
          END;
-         IF NOT iniFile.GetKeyInt( keyPollPeriod, OUT l, OUT _PollPeriodMS ) THEN
-            _PollPeriodMS := POLL_PERIOD_DEFAULT;
-         END;
-         Automaton^.PollPeriodMS := _PollPeriodMS;
       ELSE
          LogError( 0, Texts._ConfigurationSectionMissing, ADR( iniFileSection ));
       END;
@@ -844,7 +732,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF NOT Connection.Connected THEN
          Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
-         Connection.OpenS( _HostAddress, TRUE, 500 );
+         Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
       END;
    
       IF INTEGER( HIGH( Data )) >= 0 THEN // HACK
@@ -955,7 +843,6 @@ BEGIN
    Automaton := NIL;
    _RxTimeoutHandle := 0;
    _TxTimeoutHandle := 0;
-   _PollPeriodMS := POLL_PERIOD_DEFAULT;
    _DeviceAddress := 1;
 END CDeviceCommunicator;
 
@@ -1041,7 +928,9 @@ CLASS IMPLEMENTATION CIO;
       Result : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN
       IF Direction = IOO.dirRead THEN // get data immediatelly
+         (*
          GetValueFromPtr( nsitem.TPnsItem( Item )^.Data, OUT Value );
+         *)
          Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
          
          RETURN Sync.arCompleted;
@@ -1050,7 +939,9 @@ CLASS IMPLEMENTATION CIO;
          _Item := Item;
          _Callback := Delegate;
 
+         (*
          SetValueToPtr( REF nsitem.TPnsItem( Item )^.Data, Value );
+         *)
          DeviceAutomaton.EventWrite( _Item );
 
          RETURN Sync.arPending;
@@ -1074,14 +965,15 @@ CLASS IMPLEMENTATION CIO;
       IF Result = Sync.arCompleted THEN
          // prepare value
          Wrapper.FilledPacket := PPacket;
-         CASE Wrapper.ValueType OF
-         | vtAnalog, vtInteger, vtDigital :
+         CASE Wrapper.PacketType OF
+         | ptInfo :
          ELSE
             ASSERTLOG( FALSE );
             RETURN;
          END;
          
          // lookup for item and set data to it
+         (*
          FOR i := 0 TO DataRoot^.Count-1 DO
             IF ( GetValueIndexFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueIndex ) AND
                ( GetTypeFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueType ) THEN
@@ -1096,6 +988,7 @@ CLASS IMPLEMENTATION CIO;
                EXIT;
             END;
          END;
+         *)
          
       END;
    END OnRx;
