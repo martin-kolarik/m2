@@ -1,0 +1,82 @@
+DEFINITION MODULE SMTPSender;
+
+IMPORT
+   log,
+   MailMessage,
+   MailPerson,
+   Sync,
+   threadcall;
+
+(*================================================================================*)
+
+TYPE
+   TSmtpPhase = ( // used to signalize where the failure has occured
+      MessageCreation,
+      MessageValidation,
+      ClientConnect,
+      ServerConnect,
+      Ehlo,
+      AuthenticationFailed,
+      AuthenticationRequired,
+      MailFrom,
+      RcptTo,
+      RecipientsRejected,
+      StartData,
+      Headers,
+      MessageBody,
+      MessageAttachments,
+      MessageFinalization,
+      ConnectionFinalization
+   );
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPNotifier = POINTER TO INotifier;
+   TPSender = POINTER TO ISender;
+
+INTERFACE INotifier;
+
+   PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST message : MailMessage.TPMailMessage; userId : PTR; CONST failedRecipientsList : MailPerson.TPPersons );
+
+END INotifier;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE ISender;
+
+   // notification
+   PROPERTY
+      Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
+      Notifier : TPNotifier;
+      Logger : log.TPILogger;
+
+   // send
+   PROCEDURE Send( CONST message : MailMessage.TPMailMessage; userId : PTR; takeOwnership : BOOLEAN ) : Sync.TAsyncResult; // synchronous for lightWeight, asynchronous for not lightWeight, arCannotStart means message is incorrect
+
+   // configuration
+   PROPERTY
+      Server : StringsO.CString; // host:port format, if port is missing 25 is used
+      Mailer : StringsO.CString; // can be empty
+      Login : StringsO.CString; // can be empty 
+      Password : StringsO.CString; // can be empty
+      TimeToLive : CARDINAL; // seconds, the message will stay in the queue for the time; maximal time is year (3*10E7), default is 2 days
+      GenerateMessageId : BOOLEAN; // if set, each message will be given own message id; otherwise the header will not be generated; default TRUE
+
+   // query methods
+   READONLY PROPERTY
+      Count : CARDINAL;
+      Empty : BOOLEAN;
+
+END ISender;
+
+(*================================================================================*)
+
+PROCEDURE New( OUT sender : TPSender; lightWeight, testNotToUseSmtp : BOOLEAN ) : BOOLEAN;
+   // for lightWeight, synchronous not threaded ISender is created, otherwise timeouting, queued and threaded ISender is used
+   // for NOT lightWeight AND testNotToSendMessages messages pass throught sender, but they are not sent using SMTP
+PROCEDURE Dispose( REF sender : TPSender );
+
+(*================================================================================*)
+
+END SMTPSender.

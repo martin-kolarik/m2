@@ -6,7 +6,8 @@ IMPORT
    inetaddr,
    IOO,
    netsocket,
-   Sync;
+   Sync,
+   threadcall;
    
 #save, option( dll_export => on )
 
@@ -15,18 +16,21 @@ IMPORT
 TYPE
    TPIConnection = POINTER TO IConnection;
    TPIClientConnection = POINTER TO IClientConnection;
-   TPIBufferedClientConnection = POINTER TO IBufferedClientConnection;
    TPIServerConnection = POINTER TO IServerConnection;
-   TPIBufferedServerConnection = POINTER TO IBufferedServerConnection;
+   TPIAsynchronousConnection = POINTER TO IAsynchronousConnection;
+   TPIBufferedConnection = POINTER TO IBufferedConnection;
 
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IConnection;
 
    READONLY PROPERTY
+      Connected : BOOLEAN;
       LocalAddress : inetaddr.INETADDR;
       RemoteAddress : inetaddr.INETADDR;
       Stream : IOO.TPStream;
+
+   PROCEDURE Close();
 
 END IConnection;
 
@@ -34,25 +38,9 @@ END IConnection;
 
 INTERFACE IClientConnection( IConnection );
    
-   READONLY PROPERTY
-      Connected : BOOLEAN;
-   PROPERTY
-      CallbackMode : IOO.TCallbackMode; // default ioo.cbmPooled
-      Notifier : netsocket.TPSocketNotifier;
-
-   PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-   PROCEDURE Close();
+   PROCEDURE Open( Host : ARRAY OF WCHAR; DefaultPort : CARDINAL; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult; // DefaultPort is used when Host does not contain it
 
 END IClientConnection;
-
-(*--------------------------------------------------------------------------------*)
-
-INTERFACE IBufferedClientConnection( IClientConnection );
-   
-   READONLY PROPERTY
-      BufferedStream : IOO.TPBufferedStream;
-      
-END IBufferedClientConnection;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -61,12 +49,22 @@ END IServerConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-INTERFACE IBufferedServerConnection( IServerConnection );
+INTERFACE IAsynchronousConnection;
 
+   PROPERTY
+      Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
+      Notifier : netsocket.TPSocketNotifier;
+
+END IAsynchronousConnection;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IBufferedConnection;
+   
    READONLY PROPERTY
       BufferedStream : IOO.TPBufferedStream;
-
-END IBufferedServerConnection;
+      
+END IBufferedConnection;
 
 (*================================================================================*)
 

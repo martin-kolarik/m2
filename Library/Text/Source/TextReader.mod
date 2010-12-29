@@ -141,6 +141,8 @@ CLASS IMPLEMENTATION CTextReader;
                cl := 0;
             ELSIF ( Result = Sync.arNoData ) AND NOT Line.Empty THEN // last line not ended with CR must be returned as valid, NoData must come hereafter
                RETURN Sync.arCompleted;
+            ELSIF Result = Sync.arAborted THEN // here something could still in the buffer, try it
+               cl := 0; // fall down and continue
             ELSE
                RETURN Result;
             END;
@@ -308,8 +310,20 @@ CLASS IMPLEMENTATION CTextReader;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      RETURN _Stream^.Read( ADR( _SProxy ), TimeoutMS, WaitForResult );
+      IF WaitForResult THEN
+         _SProxy.Waitable := TRUE;
+      END;
+      Result := _Stream^.Read( ADR( _SProxy ), TimeoutMS, WaitForResult );
+      IF Result <> Sync.arAlreadyPending THEN // _SProxy is already known to the stream
+         RETURN Result;
+      ELSIF WaitForResult THEN
+         RETURN _SProxy.WaitCompletion( TimeoutMS );
+      ELSE
+         RETURN Sync.arPending;
+      END;
    END ReadFromStream;
 
 (*--------------------------------------------------------------------------------*)

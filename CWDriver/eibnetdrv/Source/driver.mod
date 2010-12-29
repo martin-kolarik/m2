@@ -16,8 +16,12 @@ FROM Exceptions IMPORT
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 IMPORT
    cllv,
+   datetime,
    diface,
    drv_def,
    eib_def,
@@ -28,7 +32,9 @@ IMPORT
    INIFile,
    IOO,
    iovalue,
+   lists,
    log,
+   LogConfig,
    msgqueuethread,
    Resources,
    srvcore,
@@ -37,8 +43,7 @@ IMPORT
    Sync,
    TextReader,
    Texts,
-   threadcall,
-   Time;
+   threadcall;
 
 //================================================================================
 
@@ -162,6 +167,7 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS diface.ICWDriver, srvcore.IEIB
    CallbackId               : ADDRESS;
    CallbackProc             : drv_def.TDriverCallbackW;
    ClientName               : ARRAY [0..63] OF WCHAR;
+   LogAppenders             : lists.CPtrList;
 
    StatusChannel            : CARDINAL;
    WatchDogChannel          : CARDINAL;
@@ -285,14 +291,14 @@ CLASS IMPLEMENTATION CEIBDriver;
          RETURN FALSE;
       END;
 
-      CASE INIFile.ConfigureLog( TS, L"", REF log.logger()^, OUT ErrorLine ) OF
-      | INIFile.clrUnknownTarget :
+      CASE LogConfig.ConfigureLog( TS, L"", REF log.logger()^, REF LogAppenders, OUT ErrorLine ) OF
+      | LogConfig.clrUnknownTarget :
          Logger.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._UnknownDebugMode ] ), ErrorLine, 0 );
          RETURN FALSE;
-      | INIFile.clrUnknownLevel :
+      | LogConfig.clrUnknownLevel :
          Logger.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._UnknownDebugLevel ] ), ErrorLine, 0 );
          RETURN FALSE;
-      | INIFile.clrTargetFileMissingFile :
+      | LogConfig.clrTargetFileMissingFile :
          Logger.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( DR()^[ Texts._FileDebugMissingFile ] ), ErrorLine, 0 );
          RETURN FALSE;
       END;
@@ -460,21 +466,21 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC VIRTUAL PROCEDURE DriverRun();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_RUN, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), OP_RUN, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END DriverRun;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE DriverStop();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_STOP, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), OP_STOP, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END DriverStop;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_DISPOSE, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), OP_DISPOSE, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END Dispose;
 
 //--------------------------------------------------------------------------------
@@ -503,7 +509,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       ELSIF PObject^.Reading THEN
          // pass down
       ELSIF eib_def.aofForceRead IN PObject^.GetFlags() THEN
-         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( Time.UptimeMS())) < 0 ) THEN
+         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( datetime.UptimeMS())) < 0 ) THEN
             // still cannot read, pass away
             RETURN;
          END;
@@ -986,6 +992,8 @@ CLASS IMPLEMENTATION CEIBDriver;
 
       //-----         
       | OP_DISPOSE :
+         LogConfig.DisposeAppenderList( REF LogAppenders );
+
          SUPER.Dispose();
          CEIBDriver.FINALLY();
 

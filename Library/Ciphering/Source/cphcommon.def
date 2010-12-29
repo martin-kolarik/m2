@@ -13,6 +13,7 @@ PROCEDURE ToHex( CONST Bin : ARRAY OF BYTE; OUT String : ARRAY OF WCHAR );
 
 (*--------------------------------------------------------------------------------*)
 
+PROCEDURE BASE64InputGranularity() : CARDINAL;
 PROCEDURE BASE64CharCount( SrcBytes : CARDINAL ) : CARDINAL;
 PROCEDURE BASE64ByteCount( BASE64Chars : CARDINAL ) : CARDINAL; 
 

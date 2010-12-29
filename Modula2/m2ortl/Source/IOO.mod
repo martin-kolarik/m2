@@ -86,7 +86,7 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC PROPERTY Waitable GET : BOOLEAN;
   BEGIN
-    RETURN _Signal.RawHandle = NIL;
+    RETURN _Signal.RawHandle <> NIL;
   END Waitable;
 
 (*--------------------------------------------------------------------------------*)
@@ -344,6 +344,8 @@ CLASS IMPLEMENTATION CRingBufferProxy;
     | dirWrite :
       RingBuffer^.CommitReading( Completed );
     END; // CASE
+
+    _Lock.Exchg( REF SELF.Result, Sync.arCompleted );
     _Signal.Signal();
   END CompleteData;
 
@@ -1512,7 +1514,7 @@ CLASS IMPLEMENTATION CMemoryStream;
       ELSIF Position > INT64( _Length ) THEN
         _Offset := _Length;
       ELSE
-        _Offset := PTR( Position );
+        _Offset := 0 + Position;
       END;
     | soCurrent :
       IF Position > 0 THEN
@@ -1534,7 +1536,8 @@ CLASS IMPLEMENTATION CMemoryStream;
       ELSIF Position > INT64( _Length ) THEN
         _Offset := 0;
       ELSE
-        _Offset := _Length - PTR( Position );
+        // _Offset := _Length - PTR( Position );
+        _Offset := DEC( _Length, Position );
       END;
     END; // CASE
   END Seek;

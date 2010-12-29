@@ -30,7 +30,7 @@ CLASS CNetworkStream( IOO.AStream );
     Position   : CARD64;
 
   PUBLIC PROCEDURE FromSocket( Socket : netsocket.TPDSocket; TakeSocketOwnership : BOOLEAN; Access : IOO.TAccess ); // Access tells the stream what should be allowed
-  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR; DefaultPort : CARDINAL ); // the DefaultPort is used if ServerDoes not contain the port number inside self
 
   PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
   PUBLIC FINAL PROCEDURE Flush();

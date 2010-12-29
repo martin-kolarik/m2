@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{29d07f55-f868-4082-a049-afe8bed30447}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\cphcommon.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\cphfilter.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\crc.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\digest.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\hash.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\md5.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\rijndael.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\sha1.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\sha256.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\cphcommon.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\cphfilter.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\crc.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\digest.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\hash.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\md5.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\rijndael.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\sha1.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\sha256.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\TAES.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TBase64D.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TRijndaelFilter.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TSHA.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Ciphering.proj" />
+    <None Include="Source\cphcommonO.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\cphcommonO.mod">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>

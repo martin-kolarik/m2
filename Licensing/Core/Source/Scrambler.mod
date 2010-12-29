@@ -34,7 +34,7 @@ END ROTR8;
 
 (*--------------------------------------------------------------------------------*)
 
-INLINE PROCEDURE Rebit( srcbits, destbits : CARDINAL; CONST In : ARRAY OF BYTE; OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL );
+PROCEDURE Rebit( srcbits, destbits : CARDINAL; CONST In : ARRAY OF BYTE; OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL );
 VAR
 	c : CARDINAL;
 	last, mask : CARD8;
@@ -86,7 +86,7 @@ END Rebit;
 
 (*--------------------------------------------------------------------------------*)
 
-INLINE PROCEDURE B2G( GroupWidth : CARDINAL; Separator : WCHAR; CONST In : ARRAY OF BYTE; Control : CARD8; OUT Out : ARRAY OF WCHAR );
+PROCEDURE B2G( GroupWidth : CARDINAL; Separator : WCHAR; CONST In : ARRAY OF BYTE; Control : CARD8; OUT Out : ARRAY OF WCHAR );
 VAR
 	c : BITSET8;
 	i, j : CARDINAL;
@@ -135,7 +135,7 @@ END B2G;
 
 (*--------------------------------------------------------------------------------*)
 
-INLINE PROCEDURE G2B( GroupWidth : CARDINAL; Separator : WCHAR; CONST In : ARRAY OF WCHAR; OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+PROCEDURE G2B( GroupWidth : CARDINAL; Separator : WCHAR; CONST In : ARRAY OF WCHAR; OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
 VAR
 	h, i, j, s : CARDINAL;
 BEGIN

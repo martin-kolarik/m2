@@ -7,7 +7,7 @@ IMPORT
    Storage,
    Strings,
    Sync,
-   windows;
+   Tls;
 
 //--------------------------------------------------------------------------------
 
@@ -148,10 +148,8 @@ TYPE
 
 CLASS CExceptionHandler;
    PRIVATE VAR
-      Lock : Sync.LOCK;
-      TlsAllocated : BOOLEAN;
-      TlsIndex : CARDINAL;
       Heap : PTR;
+      ThreadLocalStorage : Tls.TPIThreadLocalStorage;
       
    LOCAL PROCEDURE StoreException( Source : POINTER TO Exception );
    LOCAL PROCEDURE IsCatchedBy( catchRtti : ADDRESS ) : BOOLEAN;
@@ -174,14 +172,7 @@ CLASS IMPLEMENTATION CExceptionHandler;
       END;
       rtti := RTTI( Source^ );
    
-      Lock.Lock();
-      IF NOT TlsAllocated THEN
-         TlsAllocated := TRUE;
-         TlsIndex := windows.TlsAlloc();
-      END;
-      Lock.Unlock();
-      
-      ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
+      ExceptionInfo := ThreadLocalStorage^.Value;
       IF ExceptionInfo = NIL THEN // this is a documented inital value too
 
          IF NOT Storage.HeapAllocate( Heap, OUT ExceptionInfo, SIZE( TExceptionInfo )) THEN
@@ -191,7 +182,7 @@ CLASS IMPLEMENTATION CExceptionHandler;
          ExceptionInfo^.storageLength := 0;
          ExceptionInfo^.storage := NIL;
 
-         windows.TlsSetValue( TlsIndex, ExceptionInfo );
+         ThreadLocalStorage^.Value := ExceptionInfo;
       END;
 
       ExceptionInfo^.rtti := rtti;
@@ -212,10 +203,7 @@ CLASS IMPLEMENTATION CExceptionHandler;
    VAR
       ExceptionInfo : TPExceptionInfo;
    BEGIN
-      IF NOT TlsAllocated THEN
-         RETURN FALSE;
-      END;
-      ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
+      ExceptionInfo := ThreadLocalStorage^.Value;
       IF ( ExceptionInfo = NIL ) OR ( ExceptionInfo^.rtti = NIL ) THEN
          RETURN FALSE;
       ELSIF TPException( ExceptionInfo^.storage )^ IS LOOSE RTTI catchRtti THEN
@@ -231,25 +219,22 @@ CLASS IMPLEMENTATION CExceptionHandler;
    VAR
       ExceptionInfo : TPExceptionInfo;
    BEGIN
-      IF NOT TlsAllocated THEN
+      ExceptionInfo := ThreadLocalStorage^.Value;
+      IF ExceptionInfo = NIL THEN
          RETURN NIL;
+      ELSE
+         RETURN TPException( ExceptionInfo^.storage );
       END;
-      ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
-      RETURN TPException( ExceptionInfo^.storage );
    END RetrieveException;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   TlsAllocated := FALSE;
-   TlsIndex := 0;
+   Tls.Create( OUT ThreadLocalStorage );
    Storage.CreateHeap( OUT Heap );
 FINALLY
-   IF TlsAllocated THEN
-      windows.TlsFree( TlsIndex );
-      TlsAllocated := FALSE;
-   END;
-   Storage.DisposeHeap( OUT Heap );
+   Storage.DisposeHeap( REF Heap );
+   Tls.Dispose( REF ThreadLocalStorage );
 END CExceptionHandler;
 
 (*--------------------------------------------------------------------------------*)

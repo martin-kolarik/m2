@@ -9,6 +9,7 @@ IMPORT
    array,
    arrays,
    cphcommon,
+   datetime,
    Defs,
    Engine,
    Exceptions,
@@ -28,8 +29,7 @@ IMPORT
    StringsO,
    TextReader,
    TextWriter,
-   Uniquer,
-   time;
+   Uniquer;
 
 // target user is set by build system
 // CONST
@@ -144,15 +144,15 @@ VAR
       expBegin : StringsO.CString;
       expEnd : StringsO.CString;
       flags : ARRAY [0..7] OF WCHAR := L"";
-      jd : time.TJD;
+      jd : datetime.TJD;
       ps : StringsO.TPString;
       s : ARRAY [0..63] OF WCHAR;
    #endif
    
    #if Licensor #or Client #or Activator #then
       an : Number.CActivation;
-      dtb : time.DateTime;
-      dte : time.DateTime;
+      dtb : datetime.DateTime;
+      dte : datetime.DateTime;
       out : TextWriter.TPTextWriter := TextWriter.stdout();
       owner : StringsO.CString;
       pathOrFilter : StringsO.CString;
@@ -785,7 +785,7 @@ BEGIN
                   NEW( licenceItem );
                   licenceItem^.ProductId := item^.ProductId;
                   licenceItem^.Type := sn.Type;
-                  licenceItem^.Created := time.NowUTC();
+                  licenceItem^.Created := datetime.NowUTC();
                   so.Assign( sns.Current^ );
                   licenceItem^.Serial := so;
                   licenceItem^.Owner := owner;
@@ -966,7 +966,7 @@ BEGIN
                err^.WriteOA( L'  the month count is not valid', TRUE );
                RETURN 210;
             END;
-            jd := time.GetCurrentJD() + time.DaysToJDC( i * 31 );
+            jd := datetime.GetCurrentJD() + datetime.DaysToJDC( i * 31 );
             dte.FromJD( jd, 0, 0 );
          ELSIF NOT dte.FromStringOA( OA( expEnd.Length-1, expEnd.Data ), dateFormat ) THEN
             err^.WriteOA( L'  the end date is not valid', TRUE );
@@ -980,9 +980,9 @@ BEGIN
          an.Origin := dtb;
          an.Months := -1;
       ELSE
-         jd := MAX2( time.TJD( 2120500080000000 ), dtb.JulianDate ); // 2120500080000000 is minimal origin (see Number.mod)
-         i := time.JDCToDays( dte.JulianDate - jd ) DIV 31 + 1;
-         dte.FromJD( jd + time.DaysToJDC( i * 31 ), 0, 0 );
+         jd := MAX2( datetime.TJD( 2120500080000000 ), dtb.JulianDate ); // 2120500080000000 is minimal origin (see Number.mod)
+         i := datetime.JDCToDays( dte.JulianDate - jd ) DIV 31 + 1;
+         dte.FromJD( jd + datetime.DaysToJDC( i * 31 ), 0, 0 );
          dte.ToStringOA( dateFormat, TRUE, FALSE, OUT s );
          err^.WriteOA( L'  expiration counted to ', FALSE ); err^.WriteOA( s, TRUE );
          an.Origin := dtb; // dtbs sooner than 2120500080000000 are trimmed inside an.Origin.set
@@ -1070,7 +1070,7 @@ BEGIN
                   // check if activation does not exists
                   NEW( activationItem );
                   activationItem^.ProductId := item^.ProductId;
-                  activationItem^.Created := time.NowUTC();
+                  activationItem^.Created := datetime.NowUTC();
                   activationItem^.OfSerial := Items.TPLicence( item )^.Serial;
                   activationItem^.UId := uid;
                   dte := an.Origin;
@@ -1080,7 +1080,7 @@ BEGIN
                      activationItem^.Starts := dte;
                   ELSE
                      activationItem^.Starts := dte;
-                     dte.FromJD( dte.JulianDate + time.DaysToJDC( an.Months * 31 ), 0, 0 );
+                     dte.FromJD( dte.JulianDate + datetime.DaysToJDC( an.Months * 31 ), 0, 0 );
                      activationItem^.Expires := dte;
                   END;
 

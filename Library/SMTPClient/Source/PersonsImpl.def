@@ -1,0 +1,41 @@
+DEFINITION MODULE PersonsImpl;
+(* internal module of SmtpClient library, procedures should NOT be used outside it *)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   lists,
+   MailPerson,
+   StringsO;
+
+(*================================================================================*)
+
+TYPE
+   TPPersonsImpl = POINTER TO CPersonsImpl;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CPersonsImpl IMPLEMENTS MailPerson.IPersons;
+
+   // IPersons
+   PUBLIC VIRTUAL PROCEDURE Add( CONST New : MailPerson.Person );
+   PUBLIC VIRTUAL PROCEDURE AddS( CONST Name, Address : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Empty : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY
+      Current : MailPerson.Person;
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
+
+   // SELF
+   PRIVATE VAR
+      _Persons : lists.CStringStringList;
+
+END CPersonsImpl;
+
+(*================================================================================*)
+
+END PersonsImpl.

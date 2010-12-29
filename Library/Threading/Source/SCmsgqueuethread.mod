@@ -9,10 +9,10 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
   
 IMPORT
+   datetime,
    msghandler,
    SCmsg,
-   Sync,
-   time;
+   Sync;
 
 (*===========================================================================*)
 
@@ -20,7 +20,14 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   PUBLIC VIRTUAL READONLY PROPERTY InfoType GET : thread.TInfoType;
+   BEGIN
+      RETURN thread.infoTypeMessage;
+   END InfoType;
+
+(*---------------------------------------------------------------------------*)
+  
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       CurrentTime : CARDINAL;
       Msg : SCmsg.SCMessage;
@@ -29,10 +36,10 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
       Timeout : CARDINAL;
       Timer : PTR;
    BEGIN
-      OnStart();
+      OnStart( Restarted );
 
       LOOP
-         Timeout := Support^.GetTimeoutToFirstElapsed( time.UptimeMS());
+         Timeout := Support^.GetTimeoutToFirstElapsed( datetime.UptimeMS());
          CASE Helper.WaitForStopRequestAndSignal( Queue.Consume, Timeout ) OF
          //-----
          | Sync.arCompleted : // graceful EXIT
@@ -54,7 +61,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
          
          //-----
          | Sync.arTimeout :
-            CurrentTime := time.UptimeMS();
+            CurrentTime := datetime.UptimeMS();
             WHILE Support^.GetFirstElapsed( CurrentTime, OUT Target, OUT Timer ) DO
                
                Msg.Source := ADR( SELF );
@@ -78,11 +85,11 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
-                                      WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC FINAL PROCEDURE DispatchCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                        WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
-      RETURN Support^.ThreadCall( Target, Operation, Parameters, PReturnValue, WaitForResult, WaitTimeoutMS );
-   END ThreadCall;
+      RETURN Support^.DispatchCall( Target, Operation, Parameters, PReturnValue, WaitForResult, WaitTimeoutMS );
+   END DispatchCall;
 
 (*---------------------------------------------------------------------------*)
 
@@ -167,7 +174,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    BEGIN
    END OnStart;
 

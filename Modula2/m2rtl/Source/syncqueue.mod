@@ -9,8 +9,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move, Zero;
    
 IMPORT
-   time;
-
+   datetime;
+   
 (*================================================================================*)
 
 CLASS IMPLEMENTATION RingBuffer;
@@ -254,20 +254,20 @@ CLASS IMPLEMENTATION RingBuffer;
          IF NOT Wait THEN
             RETURN Sync.arPending;
          END;
-         Start := time.UptimeMS();
+         Start := datetime.UptimeMS();
          IF Produce = NIL THEN
             LOOP
                Sync.Sleep( FlushSleep );
                IF Empty THEN
                   Result := Sync.arCompleted; EXIT;
-               ELSIF time.UptimeMS() - Start > Timeout THEN
+               ELSIF datetime.UptimeMS() - Start > Timeout THEN
                   Result := Sync.arTimeout; EXIT;
                END;
             END; // LOOP
          ELSE
             Result := Produce^.Wait( Timeout );
          END;
-         SpentTime := time.UptimeMS() - Start;
+         SpentTime := datetime.UptimeMS() - Start;
       | Sync.pcqConsumed :   
          IF NOT Empty THEN // asymmetric, but it is safer than using Full (state change empty/not empty is more frequent than state empty/full
             RETURN Sync.arCompleted;
@@ -276,21 +276,21 @@ CLASS IMPLEMENTATION RingBuffer;
          IF NOT Wait THEN
             RETURN Sync.arPending;
          END;
-         Start := time.UptimeMS();
+         Start := datetime.UptimeMS();
          IF Consume = NIL THEN
-            Start := time.UptimeMS();
+            Start := datetime.UptimeMS();
             LOOP
                Sync.Sleep( FlushSleep );
                IF NOT Empty THEN
                   Result := Sync.arCompleted; EXIT;
-               ELSIF time.UptimeMS() - Start > Timeout THEN
+               ELSIF datetime.UptimeMS() - Start > Timeout THEN
                   Result := Sync.arTimeout; EXIT;
                END;
             END; // LOOP
          ELSE
             Result := Consume^.Wait( Timeout );
          END;
-         SpentTime := time.UptimeMS() - Start;
+         SpentTime := datetime.UptimeMS() - Start;
       END;
       RETURN Result;
    END Flush;
@@ -813,20 +813,20 @@ CLASS IMPLEMENTATION CDatagramQueue;
          IF NOT Wait THEN
             RETURN Sync.arPending;
          END;
-         Start := time.UptimeMS();
+         Start := datetime.UptimeMS();
          IF Produce = NIL THEN
             LOOP
                Sync.Sleep( FlushSleep );
                IF Empty THEN
                   Result := Sync.arCompleted; EXIT;
-               ELSIF time.UptimeMS() - Start > Timeout THEN
+               ELSIF datetime.UptimeMS() - Start > Timeout THEN
                   Result := Sync.arTimeout; EXIT;
                END;
             END; // LOOP
          ELSE
             Result := Produce^.Wait( Timeout );
          END;
-         SpentTime := time.UptimeMS() - Start;
+         SpentTime := datetime.UptimeMS() - Start;
       | Sync.pcqConsumed :   
          IF NOT Empty THEN // asymmetric, but it is safer than using Full (state change empty/not empty is more frequent than state empty/full
             RETURN Sync.arCompleted;
@@ -835,21 +835,21 @@ CLASS IMPLEMENTATION CDatagramQueue;
          IF NOT Wait THEN
             RETURN Sync.arPending;
          END;
-         Start := time.UptimeMS();
+         Start := datetime.UptimeMS();
          IF Consume = NIL THEN
-            Start := time.UptimeMS();
+            Start := datetime.UptimeMS();
             LOOP
                Sync.Sleep( FlushSleep );
                IF NOT Empty THEN
                   Result := Sync.arCompleted; EXIT;
-               ELSIF time.UptimeMS() - Start > Timeout THEN
+               ELSIF datetime.UptimeMS() - Start > Timeout THEN
                   Result := Sync.arTimeout; EXIT;
                END;
             END; // LOOP
          ELSE
             Result := Consume^.Wait( Timeout );
          END;
-         SpentTime := time.UptimeMS() - Start;
+         SpentTime := datetime.UptimeMS() - Start;
       END;
       RETURN Result;
    END Flush;

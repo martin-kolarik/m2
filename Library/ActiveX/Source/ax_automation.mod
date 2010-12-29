@@ -5,7 +5,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
   
 FROM Debug IMPORT
-   LogAssertionW;
+   Assertion, LogAssertionW;
 
 IMPORT
   windows;
@@ -156,7 +156,7 @@ CLASS IMPLEMENTATION CInterface;
 (*%E DEBUG *)
       IF ReferenceCount = 0 THEN
          ASSERTLOG( FALSE, L"RefCount = 0, already released" );
-         RETURN;
+         RETURN 0;
       END;
     DEC( ReferenceCount );
     IF ReferenceCount <> 0 THEN

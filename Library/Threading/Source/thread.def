@@ -3,17 +3,29 @@ DEFINITION MODULE thread;
 (*===========================================================================*)
 
 IMPORT
-  OSALthread,
-  Win32thread;
+   OSALthread,
+   Win32thread;
+
+CONST
+   TRecoveryType ::= OSALthread.TRecoveryType;
+      recoveryTypeStop ::= OSALthread.recoveryTypeStop;
+      recoveryTypeRestart ::= OSALthread.recoveryTypeRestart;
+   TInfoType ::= OSALthread.TInfoType;
+      infoTypeGeneric ::= OSALthread.infoTypeGeneric;
+      infoTypeMessage ::= OSALthread.infoTypeMessage;
+      infoTypePool ::= OSALthread.infoTypePool;
+      infoTypeWorker ::= OSALthread.infoTypeWorker;
 
 CONST
   IRunnableHelper ::= OSALthread.IRunnableHelper;
   IRunnable ::= OSALthread.IRunnable;
+  ICrashHandler ::= OSALthread.ICrashHandler;
   IThread ::= OSALthread.IThread;
 CONST
   Thread ::= Win32thread.Win32Thread;
+  Current ::= Win32thread.Current;
 TYPE
-  TPThread = POINTER TO Thread;
+  TPThread = Win32thread.TPWin32Thread;
 
 (*===========================================================================*)
 

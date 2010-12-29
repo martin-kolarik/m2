@@ -476,7 +476,7 @@ CLASS IMPLEMENTATION CMemoryBuffer;
 	VAR
 		LData : ADDRESS;
 	BEGIN
-		IF Bytes < _Size THEN
+		IF Bytes <= _Size THEN
 			RETURN;
 		END;
 		IF OwnMemory THEN

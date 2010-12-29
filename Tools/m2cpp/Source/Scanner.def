@@ -4,9 +4,9 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+  datetime,
   FIO,
   StringsO,
-  time,
   windows;
 
 //============================================================
@@ -94,7 +94,7 @@ CLASS CScanner;
 
   Val         : StringsO.CString;
   
-  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : time.DateTime ) : CARDINAL;
+  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : datetime.DateTime ) : CARDINAL;
 
   PROCEDURE NextCh();
   PROCEDURE AddCh();

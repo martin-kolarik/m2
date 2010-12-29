@@ -4,7 +4,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
 IMPORT
-   time,
+   datetime,
    lists,
    StringsO,
    Uniquer;
@@ -27,7 +27,7 @@ ABSTRACT CLASS CItem;
       Childs         : lists.CPtrList;
       State          : TItemState := TItemState{};
       _ProductId     : StringsO.CString;
-      _Created       : time.DateTime;
+      _Created       : datetime.DateTime;
       _TransportData : StringsO.CString;
    PUBLIC READONLY PROPERTY
       Valid          : BOOLEAN;
@@ -36,7 +36,7 @@ ABSTRACT CLASS CItem;
    PUBLIC PROPERTY
       Dirty          : BOOLEAN;
       ProductId      : StringsO.CString;
-      Created        : time.DateTime;
+      Created        : datetime.DateTime;
       TransportData  : StringsO.CString;
       CreatedString  : StringsO.CString;
       
@@ -148,17 +148,17 @@ END CLicence;
 CLASS CActivation( CLockedItem );
    PRIVATE VAR
       _OfSerial : StringsO.CString;
-      _Starts   : time.DateTime;
-      _Expires  : time.DateTime;
+      _Starts   : datetime.DateTime;
+      _Expires  : datetime.DateTime;
    PUBLIC PROPERTY
       OfSerial      : StringsO.CString;
-      Starts        : time.DateTime;
+      Starts        : datetime.DateTime;
       StartsString  : StringsO.CString;
-      Expires       : time.DateTime;
+      Expires       : datetime.DateTime;
       ExpiresString : StringsO.CString;
 
    PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
-   PUBLIC PROCEDURE ValidFor( CONST datetime : time.DateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE ValidFor( CONST datetime : datetime.DateTime ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data
    PUBLIC VIRTUAL PROCEDURE ValidateByTransportData();

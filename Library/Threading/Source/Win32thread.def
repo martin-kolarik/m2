@@ -11,6 +11,9 @@ IMPORT
   
 #save, option( dll_export => on )
 
+TYPE
+   TPWin32Thread = POINTER TO Win32Thread;
+
 CLASS Win32Thread IMPLEMENTS OSALthread.IThread, OSALthread.IRunnableHelper;
   PRIVATE VAR
     _RunLock : Sync.SIGNAL;
@@ -18,34 +21,41 @@ CLASS Win32Thread IMPLEMENTS OSALthread.IThread, OSALthread.IRunnableHelper;
     _HThread : Sync.WAITABLE;
     _WMsg : TRISTATE;
     _Runnable : OSALthread.TPRunnable;
+    _CrashHandler : OSALthread.TPCrashHandler;
 
   INTERNAL READONLY VAR // TODO -- hack, until threadpool will be switched to Sync.SIGNAL from Sync.WAITABLE
     _HExit : Sync.SIGNAL;
     
-  // IThread    
-  PUBLIC VIRTUAL READONLY PROPERTY
-    Id : PTR;
-    SelfContext : BOOLEAN;
-  PUBLIC PROPERTY
-    WithMessages : BOOLEAN;
+   // IThread    
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Id : PTR;
+      SelfContext : BOOLEAN;
+      InfoType : OSALthread.TInfoType;
+   PUBLIC VIRTUAL PROPERTY
+      CrashHandler : OSALthread.TPCrashHandler; // can be NIL, in the case crash notifier is simply not called
+  
+   PUBLIC FINAL PROCEDURE Start( WaitRun : BOOLEAN ) : sync.TAsyncResult;
+   PUBLIC FINAL PROCEDURE Stop( WaitStop : BOOLEAN ) : sync.TAsyncResult;
+   PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : sync.TAsyncResult;
 
-  PUBLIC FINAL PROCEDURE Start( WaitRun : BOOLEAN ) : sync.TAsyncResult;
-  PUBLIC FINAL PROCEDURE Stop( WaitStop : BOOLEAN ) : sync.TAsyncResult;
-  PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : sync.TAsyncResult;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
 
-  INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
+   PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable ) : sync.TAsyncResult;
 
-  PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable ) : sync.TAsyncResult;
+   // IRunnableHelper
+   PUBLIC VIRTUAL PROCEDURE WaitForStopRequest( Timeout : CARDINAL ) : sync.TAsyncResult; // arCompleted for Stop request
+   PUBLIC VIRTUAL PROCEDURE WaitForStopRequestAndSignal( CONST Signal : sync.PSIGNAL; Timeout : CARDINAL ) : sync.TAsyncResult; // arCompleted for Stop request, arPartCompleted for SIGNAL
+   PUBLIC VIRTUAL PROCEDURE WaitForStopRequestAndSignals( CONST Signal : ARRAY OF sync.PSIGNAL; Timeout : CARDINAL; OUT IndexOfSignal : CARDINAL ) : Sync.TAsyncResult; // arCompleted for Stop request, arPartCompleted for SIGNAL
 
-  // IRunnableHelper
-  PUBLIC VIRTUAL PROCEDURE WaitForStopRequest( Timeout : CARDINAL ) : sync.TAsyncResult; // arCompleted for Stop request
-  PUBLIC VIRTUAL PROCEDURE WaitForStopRequestAndSignal( CONST Signal : sync.PSIGNAL; Timeout : CARDINAL ) : sync.TAsyncResult; // arCompleted for Stop request, arPartCompleted for SIGNAL
-  PUBLIC VIRTUAL PROCEDURE WaitForStopRequestAndSignals( CONST Signal : ARRAY OF sync.PSIGNAL; Timeout : CARDINAL; OUT IndexOfSignal : CARDINAL ) : Sync.TAsyncResult; // arCompleted for Stop request, arPartCompleted for SIGNAL
+   // SELF
+   PUBLIC PROPERTY
+      WithMessages : BOOLEAN;
 
-  // SELF
-  LOCAL PROCEDURE Exec() : CARDINAL;
-  VIRTUAL FINALLY Win32Thread();
+   LOCAL PROCEDURE Exec() : CARDINAL;
+   VIRTUAL FINALLY Win32Thread();
 END Win32Thread;
+
+PROCEDURE Current() : TPWin32Thread;
 
 #restore
 

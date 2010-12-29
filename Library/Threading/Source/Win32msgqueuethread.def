@@ -14,7 +14,7 @@ IMPORT
   
 #save, option( dll_export => on )
 
-CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThreadProcedureCallHandler, OSALmsg.IMessageQueueThread;
+CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThreadProcedureCallDispatcher, OSALmsg.IMessageQueueThread;
 // behavior: DispatchMessage for Root = NIL and MessageToHandler = FALSE == Win32 default
 // behavior: Root^.OnMessage for Root <> NIL
 // behavior: Handler^.OnMessage for Root = NIL
@@ -22,11 +22,13 @@ CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.I
       Support : msgthreadsupport.TPSupport;
 
    // IThread/IRunnable
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      InfoType : thread.TInfoType;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    
-   // IThreadProcedureCallHandler
-   PUBLIC FINAL PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
-                                      WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   // IThreadProcedureCallDispatcher
+   PUBLIC FINAL PROCEDURE DispatchCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                        WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    
    // IMessageTarget
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
@@ -40,7 +42,7 @@ CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.I
    PUBLIC VIRTUAL PROCEDURE StopTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR );
    PUBLIC VIRTUAL PROCEDURE TimerRunning( CONST Target : msghandler.IMessageTarget; TimerId : PTR ) : BOOLEAN;
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    INTERNAL VIRTUAL PROCEDURE OnExit();
    INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Handler : msghandler.TPIMessageTarget ) : BOOLEAN;
 

@@ -42,7 +42,9 @@ CLASS IMPLEMENTATION CTest;
    VAR
       DI : DiskInfo.CDiskInfo;
       i : CARDINAL;
+      #if #contains( LicenceMachineId, L"M" ) #then
       MACSource : Uniquer.MACSource;
+      #endif
       uid : Uniquer.TUId;
    BEGIN
       SELF.Host := Host;
@@ -50,18 +52,20 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Check drives" );
       
       FOR i := 0 TO 25 DO
-	      IF DiskInfo.LoadDiskInfo( i, OUT DI ) THEN
-	         Host^.Log^.LogS( log.lcError, 0, L"", OA( DI.Model.Length-1, DI.Model.Data ));
-	      END;
+         IF DiskInfo.LoadDiskInfo( i, OUT DI ) THEN
+            Host^.Log^.LogS( log.lcError, 0, L"", OA( DI.Model.Length-1, DI.Model.Data ));
+         END;
       END;
       
       Host^.StopPhaseWithResult( test.trSuccess );
 
+      #if #contains( LicenceMachineId, L"M" ) #then
       Host^.StartPhase( L"MAC Source" );
 
       uid := MACSource.UId;      
       
       Host^.StopPhaseWithResult( test.trSuccess );
+      #endif
 
       RETURN test.trSuccess;
    END Run;

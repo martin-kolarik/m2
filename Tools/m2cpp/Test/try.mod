@@ -3,6 +3,9 @@ MODULE Try;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
+FROM Exceptions IMPORT
+   TestIfCatched, StoreException, RetrieveException;
+
 IMPORT
 	Exceptions;
 
@@ -125,14 +128,12 @@ IMPORT
     END;
   END SEH;
   
-  PROCEDURE THR1() : INTEGER THROWS Exceptions.CException;
+  PROCEDURE THR1() : INTEGER THROWS Exceptions.Exception;
   BEGIN
     RETURN 0;
   END THR1;
   
   PROCEDURE THR2();
-  VAR
-    V : Exceptions.CException;
   BEGIN
     // THROW V; // error
     // THR1(); // error
@@ -158,7 +159,7 @@ IMPORT
   BEGIN
     TRY
       THR1(); // OK
-    CATCH e : Exceptions.CException DO
+    CATCH e : Exceptions.Exception DO
     END;
   END THR5;
 
@@ -166,9 +167,62 @@ IMPORT
   BEGIN
     TRY
       THROW NEW( Exceptions.CModula2Exception )^; // OK
-      THROW NEW( Exceptions.CException )^; // OK
-    CATCH e : Exceptions.CException DO
+      THROW NEW( Exceptions.Exception )^; // OK
+    CATCH e : Exceptions.Exception DO
     END;
   END THR6;
+
+  PROCEDURE THR7() THROWS Exceptions.Exception;
+  BEGIN
+    THROW NEW( Exceptions.Exception )^;  
+  END THR7;
+
+  PROCEDURE THR8() : CARDINAL THROWS Exceptions.Exception;
+  BEGIN
+    THROW NEW( Exceptions.Exception )^;
+    RETURN 0;
+  END THR8;
+
+  PROCEDURE THR9() : CARDINAL THROWS Exceptions.Exception;
+  BEGIN
+    TRY
+      THR7();
+      THROW NEW( Exceptions.Exception )^;  
+    CATCH e : Exceptions.Exception DO
+      THROW e;  
+    END;
+    RETURN 0;
+  END THR9;
+
+  PROCEDURE THR10() THROWS Exceptions.Exception;
+  BEGIN
+    TRY
+      // THR7();
+      THROW NEW( Exceptions.Exception )^;  
+    CATCH e : Exceptions.Exception DO
+      THROW e;  
+    END;
+  END THR10;
+
+  PROCEDURE THR11() : CARDINAL THROWS Exceptions.Exception;
+  BEGIN
+    TRY
+      IF THR8() = 0 THEN END;
+      THROW NEW( Exceptions.Exception )^;  
+    CATCH e : Exceptions.Exception DO
+      THROW e;  
+    END;
+    RETURN 0;
+  END THR11;
+
+  PROCEDURE THR12() THROWS Exceptions.Exception;
+  BEGIN
+    TRY
+      IF THR8() = 0 THEN END;
+      THROW NEW( Exceptions.Exception )^;  
+    CATCH e : Exceptions.Exception DO
+      THROW e;  
+    END;
+  END THR12;
 
 END Try.

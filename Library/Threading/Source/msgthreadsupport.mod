@@ -6,8 +6,11 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
+   datetime,
+   Log,
    msghandler,
-   time;
+   Rtti,
+   StringsO;
    
 (*===========================================================================*)
 
@@ -31,8 +34,21 @@ CLASS IMPLEMENTATION CSupport;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Dispose();
+   VAR
+      logger : Log.TPLogger;
+      name : StringsO.CString;
    BEGIN
-      ASSERTLOG( Joined.Empty );
+      // diagnostics report
+      IF NOT Joined.Empty THEN
+         logger := Log.logger();
+         Joined.Reset();
+         WHILE Joined.MoveNext() DO
+            name.FromOAA( 0, OAsz( Rtti.TPRTTI( RTTI( OSALmsg.TPMessageHandler( Joined.Current )^ ))^.Name ));
+            logger^.LogS( Log.ldDebug, 0, EMITW( %class ), OA( name.Length-1, name.Data ));
+         END; // WHILE
+         ASSERTLOG( FALSE, L"Unexpectedly not empty." );
+      END;
+
       Joined.Dispose();
       OfThread := NIL;
    END Dispose;
@@ -43,7 +59,7 @@ CLASS IMPLEMENTATION CSupport;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := ThreadCall( ADR( SELF ), OP_JOIN, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
+      Result := DispatchCall( ADR( SELF ), OP_JOIN, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END Join;
 
@@ -53,7 +69,7 @@ CLASS IMPLEMENTATION CSupport;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := ThreadCall( ADR( SELF ), OP_LEAVE, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
+      Result := DispatchCall( ADR( SELF ), OP_LEAVE, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END Leave;
    
@@ -68,7 +84,7 @@ CLASS IMPLEMENTATION CSupport;
       Parameters[1] := TimerId;
       Parameters[2] := PeriodMS;
       Parameters[3] := PTR( Repeat );
-      Result := ThreadCall( ADR( SELF ), OP_START_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+      Result := DispatchCall( ADR( SELF ), OP_START_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END StartTimer;
 
@@ -81,14 +97,14 @@ CLASS IMPLEMENTATION CSupport;
    BEGIN
       Parameters[0] := Target;
       Parameters[1] := TimerId;
-      Result := ThreadCall( ADR( SELF ), OP_STOP_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+      Result := DispatchCall( ADR( SELF ), OP_STOP_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END StopTimer;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
-                                WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE DispatchCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                  WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
       Call : threadcall.TPThreadProcedureCall;
       MSG : msghandler.Message;
@@ -127,7 +143,7 @@ CLASS IMPLEMENTATION CSupport;
          PReturnValue^ := ReturnValue;
       END;
       RETURN Sync.arCompleted;
-   END ThreadCall;                         
+   END DispatchCall;                         
 
 (*---------------------------------------------------------------------------*)
 
@@ -221,7 +237,10 @@ CLASS IMPLEMENTATION CSupport;
 
    PRIVATE PROCEDURE DoJoin( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERTLOG( NOT IsJoined( Handler ));
+      IF IsJoined( Handler ) THEN
+         ASSERTLOG( FALSE, L"Handler is already joined, cannot join" );
+         RETURN;
+      END;
 
       JoinedLock.Lock();
       Joined.Add( Handler, 0 );
@@ -234,7 +253,10 @@ CLASS IMPLEMENTATION CSupport;
 
    PRIVATE PROCEDURE DoLeave( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERTLOG( IsJoined( Handler ));
+      IF NOT IsJoined( Handler ) THEN
+         ASSERTLOG( FALSE, L"Handler is not joined, cannot leave" );
+         RETURN;
+      END;
 
       JoinedLock.Lock();
       Joined.Remove( Handler );
@@ -251,7 +273,7 @@ CLASS IMPLEMENTATION CSupport;
       Data : PTR;
       RepeatPTR : PTR;
    BEGIN
-      CurrentTime := time.UptimeMS();
+      CurrentTime := datetime.UptimeMS();
       IF Repeat THEN
          RepeatPTR := 1;
       ELSE

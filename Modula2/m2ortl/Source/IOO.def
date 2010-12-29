@@ -311,7 +311,7 @@ CLASS CBufferedStream( AStream ) IMPLEMENTS IBufferedReader;
    PUBLIC VIRTUAL PROCEDURE ReadOut( Length : CARDINAL ); // consumes data from read buffer
 
    // procedures special to BufferedStream
-   PUBLIC PROCEDURE CommitWrite(); // if WMode = wmCommited
+   PUBLIC PROCEDURE CommitWrite(); // for all modes except bmByPass
   
    INTERNAL FINAL PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
      // Action should always call Complete, except it returns arPending, arCannotStart or arAlreadyPending.

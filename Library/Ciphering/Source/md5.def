@@ -38,7 +38,7 @@ CLASS CMD5( digest.Digester );
 
 	// in ancestor PUBLIC PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT digest : CDigest );
 
-	PRIVATE INLINE PROCEDURE md5_process( CONST data : TBuffer );
+	PRIVATE PROCEDURE md5_process( CONST data : TBuffer );
 END CMD5;
 
 (*================================================================================*)

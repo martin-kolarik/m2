@@ -1,0 +1,31 @@
+<Project
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <PropertyGroup>
+        <Manufacturer>NeNo</Manufacturer>
+
+        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
+        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
+        <LanguageStyle>UNICODE</LanguageStyle>
+        <Language Condition="$(Language)==''">Czech</Language>
+        <CLib>Private</CLib>
+        <Licensing>off</Licensing>
+        <LicenceMachineId>M</LicenceMachineId>
+        <LeakChecking>off</LeakChecking>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(MSBuildProjectName)=='IBSSupport'">
+        <Result>Dynamic</Result>
+    </PropertyGroup>
+    <PropertyGroup Condition="$(MSBuildProjectName)=='SCCore'">
+        <ComponentType>Generic</ComponentType>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ProductM2Control></ProductM2Control>
+        <ProductCLControl></ProductCLControl>
+        <ProductRCControl></ProductRCControl>
+        <ProductLNControl></ProductLNControl>
+    </PropertyGroup>
+
+</Project>

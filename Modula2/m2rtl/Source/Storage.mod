@@ -38,9 +38,9 @@ END M2ALLOCATE;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE M2DEALLOCATE( OUT a : ADDRESS );
+PROCEDURE M2DEALLOCATE( REF a : ADDRESS );
 BEGIN
-   HeapDeallocate( GHeap, OUT a );
+   HeapDeallocate( GHeap, REF a );
 END M2DEALLOCATE;
 
 //--------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ END CreateHeap;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE DisposeHeap( OUT Heap : PTR );
+PROCEDURE DisposeHeap( REF Heap : PTR );
 BEGIN
    IF Heap = NIL THEN
       RETURN;
@@ -90,7 +90,7 @@ END HeapAllocate;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE HeapDeallocate( Heap : PTR; OUT a : ADDRESS ) : BOOLEAN;
+PROCEDURE HeapDeallocate( Heap : PTR; REF a : ADDRESS ) : BOOLEAN;
 BEGIN
    IF ( a = NIL ) OR ( Heap = NIL ) THEN
       RETURN FALSE;

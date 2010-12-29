@@ -9,6 +9,7 @@ IMPORT
   Storage,
   Strings,
   Sync,
+  Tls,
   windows;
 
 //================================================================================
@@ -66,7 +67,7 @@ CLASS CLeakDetector;
   Lock : Sync.LOCK;
   Allocations : avltree.CAVLTree;
   Filters : avltree.CAVLTree;
-  LHeap : windows.HANDLE;
+  LHeap : PTR;
   Log : log.CLogger;
   
   LOCAL PROCEDURE SwitchOn();
@@ -96,7 +97,7 @@ TYPE
 
 VAR
   LD : CLeakDetector;
-  tlsTrack : CARDINAL;
+  ThreadLocalStorage : Tls.TPIThreadLocalStorage := NIL;
 
 //--------------------------------------------------------------------------------
 
@@ -230,7 +231,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       RETURN;
     END;
 
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     IF Track = NIL THEN
       RETURN;
     END;
@@ -263,7 +264,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       RETURN;
     END;
 
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     IF Track = NIL THEN
       RETURN;
     ELSIF Track^.Index = -1 THEN
@@ -302,7 +303,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       RETURN;
     END;
 
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     IF Track = NIL THEN
       RETURN;
     ELSIF Track^.Index = -1 THEN
@@ -337,7 +338,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       RETURN;
     END;
 
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     IF Track = NIL THEN
       RETURN;
     ELSIF Track^.Index = -1 THEN
@@ -375,15 +376,21 @@ CLASS IMPLEMENTATION CLeakDetector;
 //--------------------------------------------------------------------------------
   
   LOCAL PROCEDURE iAllocate( size : CARDINAL ) : ADDRESS;
+  VAR
+    a : ADDRESS;
   BEGIN
-    RETURN windows.HeapAlloc( LHeap, 0, size );
+    IF Storage.HeapAllocate( LHeap, OUT a, size ) THEN
+      RETURN a;
+    ELSE
+      RETURN NIL;
+    END;
   END iAllocate;
 
 //--------------------------------------------------------------------------------
   
   LOCAL PROCEDURE iDeallocate( a : ADDRESS );
   BEGIN
-    windows.HeapFree( LHeap, 0, a );
+    Storage.HeapDeallocate( LHeap, REF a );
   END iDeallocate;
   
 //--------------------------------------------------------------------------------
@@ -431,16 +438,16 @@ CLASS IMPLEMENTATION CLeakDetector;
     Allocations.FINALLY(); // OK
     Filters.FINALLY(); // OK
 
-    windows.HeapDestroy( LHeap );
+    Storage.DisposeHeap( REF LHeap );
   END CLeakDetector;
 
 //--------------------------------------------------------------------------------
   
 BEGIN
   Running := TRUE;
-  LHeap := windows.HeapCreate( 0, 0, 0 );
+  Storage.CreateHeap( OUT LHeap );
   Lock.Init( Sync.ltSpin, L"", FALSE );
-  Log.SetLogName( "LD" );
+  Log.SetName( "LD" );
   Log.Output := log.outsKernel;
   Log.Level := log.lcWarning;
 END CLeakDetector;
@@ -523,26 +530,26 @@ VAR
 BEGIN
   CASE Reason OF
   | windows.DLL_PROCESS_ATTACH :
-    tlsTrack := windows.TlsAlloc();
+    Tls.Create( OUT ThreadLocalStorage );
 
     Track := LD.iAllocate( SIZE( TTrack ));
-    windows.TlsSetValue( tlsTrack, Track );
     Track^ := emptyTrack;
+    ThreadLocalStorage^.Value := Track;
 
-  | windows.DLL_PROCESS_DETACH :
-    Track := windows.TlsGetValue( tlsTrack );
-    LD.iDeallocate( Track );
-
-    windows.TlsFree( tlsTrack );
-  
   | windows.DLL_THREAD_ATTACH :
     Track := LD.iAllocate( SIZE( TTrack ));
-    windows.TlsSetValue( tlsTrack, Track );
     Track^ := emptyTrack;
+    ThreadLocalStorage^.Value := Track;
   
   | windows.DLL_THREAD_DETACH :
-    Track := windows.TlsGetValue( tlsTrack );
+    Track := ThreadLocalStorage^.Value;
     LD.iDeallocate( Track );
+
+  | windows.DLL_PROCESS_DETACH :
+    Track := ThreadLocalStorage^.Value;
+    LD.iDeallocate( Track );
+
+    Tls.Dispose( REF ThreadLocalStorage );
   END; // CASE
 
   RETURN TRUE;

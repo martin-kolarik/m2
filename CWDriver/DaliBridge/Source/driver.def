@@ -84,7 +84,7 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver, DaliBridge.IDaliEventSink;
    // IEventSink
    LOCAL VIRTUAL PROCEDURE OnDeviceFound( CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST Address : DaliBridge.DaliAddress; LongAddress : CARDINAL );
    LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie );
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress; Command : DaliBridge.TDaliCommand; Data : CARD8; ClientId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress; Command : DaliBridge.TDaliCommand; Data : CARD32; ClientId : PTR; CONST UserId : StringsO.TPString );
    
    // helpers
    PRIVATE PROCEDURE EnqueueEvent( Event : ADDRESS; EventType : PTR );

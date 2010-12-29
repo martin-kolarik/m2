@@ -65,7 +65,7 @@ END CWriter;
 CLASS CReaderThread( thread.Thread );
    PUBLIC VAR
       Test : TPTest;
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 END CReaderThread;   
 
 (*---------------------------------------------------------------------------*)
@@ -165,7 +165,7 @@ CLASS IMPLEMENTATION CReaderThread;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       c : CARDINAL;
       r : sync.TAsyncResult;
@@ -221,7 +221,7 @@ CLASS IMPLEMENTATION CTest;
          Writer.Summa := 0;
 
          // start
-         NetWriteStream.FromServer( L"127.0.0.1:4444" );
+         NetWriteStream.FromServer( L"127.0.0.1:4444", 0 );
          WaitForMessages( 50 );
          ReaderThread.Start( TRUE );
      
@@ -273,7 +273,7 @@ CLASS IMPLEMENTATION CTest;
          Writer.Summa := 0;
 
          // start
-         NetWriteStream.FromServer( L"127.0.0.1:4444" );
+         NetWriteStream.FromServer( L"127.0.0.1:4444", 0 );
          WaitForMessages( 50 );
          
          IF BigBlock THEN

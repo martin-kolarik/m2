@@ -6,11 +6,11 @@ FROM Storage IMPORT
 (*# call( o_a_copy => off ) *)
 
 IMPORT
+  datetime,
   list,
   lists,
   avltree,
-  stacks,
-  time;
+  stacks;
   
 IMPORT
   Strings,
@@ -82,6 +82,7 @@ TYPE
   TPSGoto           = POINTER TO CSGoto;
   TPSASM            = POINTER TO CSASM;
   TPSTRY            = POINTER TO CSTRY;
+  TPSTHROW          = POINTER TO CSTHROW;
 
 //============================================================
 
@@ -187,7 +188,6 @@ TYPE
       ukReturnInCOM,
       ukReturnInThrowing,
       ukReturnInCPPTry,
-      ukThrowingInCPPTry,
     ukIf,
       ukIfExpr,
         ukIfBlock,
@@ -264,7 +264,9 @@ TYPE
       ukCatchVarDef,
       ukCatchDoBlock,
 
-    ukSThrow
+    ukSThrow,
+    ukSThrowInTry,
+    ukSThrowInCatch
       
   );
   TUnitKindSet = SET OF TUnitKind;
@@ -428,6 +430,7 @@ TYPE
     eoAssignSelf,
     eoHaveReturnInCPPTry, // proecdure contains TRY in CPP style
       eoInsideCPPTry, // for proper RETURN/FINALLY handling, SEHTry this solves by itself
+      eoInsideCPPCatch, // for proper RETURN/FINALLY handling, SEHTry this solves by itself
       eoTryReturnsValue,
     eoReturnInRetval, // COM methods, throwing methods
       eoCOM,
@@ -1054,7 +1057,7 @@ TYPE
   );
 
 CLASS CModuleEnvironment;
-   Timestamp    : time.DateTime;
+   Timestamp    : datetime.DateTime;
    Library      : StringsO.CString;
    Prefix       : TModuleNamePrefix;
    ClassAM      : TAccessModifier;
@@ -1571,15 +1574,6 @@ END CSASM;
 
 //------------------------------------------------------------
 
-CLASS CCATCH( CUnit );
-   S : CSymbols;
-
-  PUBLIC VIRTUAL READONLY PROPERTY
-    Symbols : TPSymbols;
-END CCATCH;
-
-//------------------------------------------------------------
-
 CLASS CSTRY( CStatement );
    CatchLabel : TPLabel;
    InnerThrows : lists.CPtrList;
@@ -1588,6 +1582,23 @@ CLASS CSTRY( CStatement );
 	LocalThrowEnabled : BOOLEAN;
 	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
 END CSTRY;
+
+//------------------------------------------------------------
+
+CLASS CSTHROW( CStatement );
+   Label : TPLabel;
+	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+   VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+END CSTHROW;
+
+//------------------------------------------------------------
+
+CLASS CCATCH( CUnit );
+   S : CSymbols;
+
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Symbols : TPSymbols;
+END CCATCH;
 
 //============================================================
 
