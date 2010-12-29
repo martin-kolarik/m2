@@ -29,7 +29,7 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    sdapClient.ISDAPClientEvents;
 
    // IRunnable
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 
    // IConfigurable
 	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
@@ -48,6 +48,7 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    // SELF
    PRIVATE VAR
       _Logger : log.CLogger;
+      _AppenderList : lists.CPtrList;
       _SDAPHost : StringsO.CString;
       _SDAPClient : sdapClient.TPISDAPClient;
       _Loader : loader.CLoader;
