@@ -7,10 +7,11 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Dynamic</CLib>
+        <CLib>Private</CLib>
         <Result>Program</Result>
         <Test>off</Test>
         <LeakChecking>off</LeakChecking>
+        <StackReservation>512000</StackReservation>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)!='m2cpp'">

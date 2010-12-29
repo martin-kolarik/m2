@@ -3,10 +3,10 @@ MODULE lrconvspeed;
 // mii: 3.7, cpp: 2.6, sc: 0.52
 
 IMPORT
+   DateTime,
    lrconv,
 //   Str,
    Strings,
-   Time,
    windows;
 
 (*  
@@ -143,15 +143,15 @@ END F;
       i : CARDINAL;
       s : LONGREAL;
       S : ARRAY [0..255] OF WCHAR;
-      t : Time.TTime64;
+      t : DateTime.TTime64;
    BEGIN
 
 (*   
-      t := Time.time();
+      t := DateTime.time();
       FOR i := 0 TO L-1 DO
          Str.CorrectedRealToStrW( R, 15, FALSE, S, b );
       END;
-      s := Time.difftime( Time.time(), t );
+      s := DateTime.difftime( DateTime.time(), t );
       
       windows.OutputDebugStringW( L"mii: " );
       windows.OutputDebugStringW( ADR( S ));
@@ -161,11 +161,11 @@ END F;
       windows.OutputDebugStringW( ADR( crlf ));
 *)      
 
-      t := Time.time();
+      t := DateTime.time();
       FOR i := 0 TO L-1 DO
          Strings.FromLONGREALExtW( R, -1, -1, FALSE, L"", OUT S );
       END;
-      s := Time.difftime( Time.time(), t );
+      s := DateTime.difftime( DateTime.time(), t );
 
       windows.OutputDebugStringW( L"cpp: " );
       windows.OutputDebugStringW( ADR( S ));
@@ -174,11 +174,11 @@ END F;
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
-      t := Time.time();
+      t := DateTime.time();
       FOR i := 0 TO L-1 DO
          lrconv.LONGREALToStrW( R, -1, -1, FALSE, 0W, OUT S );
       END;
-      s := Time.difftime( Time.time(), t );
+      s := DateTime.difftime( DateTime.time(), t );
 
       windows.OutputDebugStringW( L"lrc: " );
       windows.OutputDebugStringW( ADR( S ));
@@ -188,22 +188,22 @@ END F;
       windows.OutputDebugStringW( ADR( crlf ));
 
 (*
-      t := Time.time();
+      t := DateTime.time();
       FOR i := 0 TO 10000*L-1 DO
          F( math.log10( 5.467777 ));
       END;
-      s := Time.difftime( Time.time(), t );
+      s := DateTime.difftime( DateTime.time(), t );
 
       Strings.FromLONGREALW( s, -1, -1, OUT S );
       windows.OutputDebugStringW( L"cma: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
-      t := Time.time();
+      t :=DateTime.time();
       FOR i := 0 TO 10000*L-1 DO
          F( LONGREAL( TenExponent( 5.467777 )));
       END;
-      s := Time.difftime( Time.time(), t );
+      s := DateTime.difftime( DateTime.time(), t );
 
       Strings.FromLONGREALW( s, -1, -1, OUT S );
       windows.OutputDebugStringW( L"lma: " );

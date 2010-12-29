@@ -2,7 +2,7 @@ DEFINITION MODULE FIO;
 // File Input/Output module
 
 IMPORT
-   time;
+   datetime;
 
 (*============================================================*)
 
@@ -64,10 +64,10 @@ PROCEDURE Truncate( F: File );
 PROCEDURE Flush( F: File );
 PROCEDURE EndOfFile( F: File ): BOOLEAN;
 
-PROCEDURE GetFileTime( F: File ): time.DateTime;
-PROCEDURE SetFileTime( F: File; Time : time.DateTime );
-PROCEDURE FileTimeToDateTime( FileTime : CARD64 ) : time.DateTime;
-PROCEDURE DateTimeToFileTime( DateTime : time.DateTime ) : CARD64;
+PROCEDURE GetFileTime( F: File ): datetime.DateTime;
+PROCEDURE SetFileTime( F: File; Time : datetime.DateTime );
+PROCEDURE FileTimeToDateTime( FileTime : CARD64 ) : datetime.DateTime;
+PROCEDURE DateTimeToFileTime( DateTime : datetime.DateTime ) : CARD64;
 
 PROCEDURE WrBin( F: File; Buf : ARRAY OF BYTE; Count: CARDINAL ) : CARDINAL;
 PROCEDURE WrStrW( F: File; Buf : ARRAY OF WCHAR );

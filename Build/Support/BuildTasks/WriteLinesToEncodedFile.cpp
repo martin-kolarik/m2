@@ -65,7 +65,10 @@ namespace Tasks {
       try {
         streamWriter = gcnew IO::StreamWriter (file->GetMetadata ("FullPath"), !overwrite, encoding);
         for (;i<lines->Length;i++) {
-          streamWriter->WriteLine(lines->GetValue(i));
+          String^ line = lines->GetValue(i)->ToString();
+          line = line->Replace("%28", "(");
+          line = line->Replace("%29", ")");
+          streamWriter->WriteLine(line);
         }
         return true;
       } catch (Exception^ ex) {

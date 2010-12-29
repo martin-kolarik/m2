@@ -863,7 +863,7 @@ CLASS IMPLEMENTATION CRijndael;
 
 (*--------------------------------------------------------------------------------*)
 
-	PRIVATE INLINE PROCEDURE OperateXFB( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL );
+	PRIVATE PROCEDURE OperateXFB( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL );
 	VAR
 		io, l : CARDINAL;
 		lbyte : BYTE; // lbyte and...
@@ -931,7 +931,7 @@ CLASS IMPLEMENTATION CRijndael;
 
 (*--------------------------------------------------------------------------------*)
 
-	PRIVATE INLINE PROCEDURE OperateCFB8( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL );
+	PRIVATE PROCEDURE OperateCFB8( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL );
 	VAR
 		i, io, l : CARDINAL;
 		lregister : TBlock;

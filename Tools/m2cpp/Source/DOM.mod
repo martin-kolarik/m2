@@ -225,10 +225,8 @@ CLASS IMPLEMENTATION CUnit;
         G^.Indent(); TPSymbol( U )^.T^.Generate( G, gcsName ); G^.OutS( L' _ReturnResult; // deferred return result' ); G^.EOL();
       END;
       IF eoHaveReturnInCPPTry IN Options THEN
-         G^.LineS( L'BOOLEAN _FinallyReturns = false; // TRY/FINALLY exit control' );
-         IF eoThrowing IN Options THEN
-            G^.LineS( L'BOOLEAN _FinallyThrows = false; // TRY/FINALLY exit control' );
-         END;
+         G^.LineS( L'BOOLEAN _FinallyReturns = FALSE; // TRY/FINALLY exit control' );
+         G^.LineS( L'BOOLEAN _FinallyRethrow = FALSE; // by default, no exception is returned from finally' );
       END;
       IF NOT Childs.Empty THEN
         G^.EOL();
@@ -352,15 +350,6 @@ CLASS IMPLEMENTATION CUnit;
          G^.Indent(); G^.OutS( L"catch (..." );
       ELSE
          G^.Indent(); G^.OutS( L"else if (true" );
-      END;
-      RETURN gumNoIndent;
-
-    | ukSThrow :
-      G^.Indent();
-      IF eoCPPExceptions IN Options THEN
-         G^.OutS( L'throw ' );
-      ELSE
-         Project.Current()^.OD^.MEnv.MIID[miidStoreException]^.Generate( G, gcsName ); G^.OutS( L'(&' );
       END;
       RETURN gumNoIndent;
 
@@ -488,8 +477,11 @@ CLASS IMPLEMENTATION CUnit;
       END;
     | ukBlockBodyOfCOMProcedure :
       G^.LineS( L'return 0; // implicit return' );
-    | ukBlockBodyOfReturnInTryProc,
-      ukBlockBodyOfReturnInTryFunc :
+    | ukBlockBodyOfReturnInTryProc :
+      IF eoThrowing IN Options THEN
+         G^.LineS( L'return FALSE; // implicit exception return' );
+      END;
+    | ukBlockBodyOfReturnInTryFunc :
 
     | ukClassInitStart :
 
@@ -576,17 +568,28 @@ CLASS IMPLEMENTATION CUnit;
         G^.Enter();
         IF eoTryReturnsValue IN Options THEN
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyThrows) { return TRUE; } // RETURN from TRY/THROW' );
-            G^.LineS( L'if (_FinallyReturns) { *RetVal = _ReturnResult; return FALSE; } // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) {' );
+            G^.Enter();
+              G^.LineS( L'if (_FinallyRethrow) {' );
+              G^.Enter();
+                G^.LineS( L'return TRUE; // THROW from CATCH' );
+              G^.Leave();
+              G^.LineS( L'} else {' );
+              G^.Enter();
+                G^.LineS( L'*RetVal = _ReturnResult; // RETURN from TRY/CATCH' );
+                G^.LineS( L'return FALSE; // RETURN from TRY/CATCH' );
+              G^.Leave();
+              G^.LineS( L'}' );
+            G^.Leave();
+            G^.LineS( L'}' );
           ELSE
-            G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY/CATCH' );
           END;
         ELSE
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyThrows) { return TRUE; } // RETURN from TRY/THROW' );
-            G^.LineS( L'if (_FinallyReturns) return FALSE; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return _FinallyRethrow; // RETURN/THROW from TRY/CATCH' );
           ELSE
-            G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY/CATCH' );
           END;
         END;
         G^.Leave();
@@ -605,14 +608,6 @@ CLASS IMPLEMENTATION CUnit;
       ukFinallySEHBlock,
       ukCatchDoBlock :
       G^.LineRB();
-
-    | ukSThrow :
-      IF eoCPPExceptions IN Options THEN
-         G^.OutSC(); G^.EOL();
-      ELSE
-         G^.OutS( L");"); G^.EOL();
-         G^.LineS( L"return TRUE;" );
-      END;
 
     ELSE
 
@@ -3738,15 +3733,17 @@ CLASS IMPLEMENTATION CClass;
       G^.OutS( L' { public:' ); G^.EOL();
       
       // output of RTTI information
-      G^.Enter();
-         G^.LineS( L'static const RTTI rtti;' );
-         IF eoVMT IN Options THEN
-            G^.LineS( L'virtual const RTTI* rtti_get() const;' );
-         ELSE
-            G^.LineS( L'const RTTI* rtti_get() const;' );
-         END;
-      G^.Leave();
-      G^.EOL();
+      IF UnitKind <> ukNestedForwardedFrame THEN // frames are internal, they do not have RTTI
+         G^.Enter();
+            G^.LineS( L'static const RTTI rtti;' );
+            IF eoVMT IN Options THEN
+               G^.LineS( L'virtual const RTTI* rtti_get() const;' );
+            ELSE
+               G^.LineS( L'const RTTI* rtti_get() const;' );
+            END;
+         G^.Leave();
+         G^.EOL();
+      END;
 
     #if CPP_ACCESS_MODIFIERS #then
       IF UnitKind = ukNestedForwardedFrame THEN
@@ -10719,17 +10716,12 @@ CLASS IMPLEMENTATION CSReturn;
     | ukReturnInCPPTry :
       G^.Indent();
       IF Childs.Empty THEN
-        G^.OutS( L"_FinallyReturns = true;" ); G^.EOL();
-        G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
+        G^.Indent(); G^.OutS( L"_FinallyReturns = TRUE; goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
         RETURN gumSimple;
       ELSE
         G^.OutS( L'_ReturnResult = ' );
         RETURN gumNoIndent;
       END;
-    | ukThrowingInCPPTry :
-      G^.LineS( L"_FinallyThrows = true;" );
-      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
-      RETURN gumSimple;
     END;
     RETURN gumEmpty;
   END GenHead;
@@ -10755,8 +10747,7 @@ CLASS IMPLEMENTATION CSReturn;
     | ukReturnInThrowing :
       G^.LineS( L"return FALSE;" ); // exception
     | ukReturnInCPPTry :
-      G^.LineS( L"_FinallyReturns = true;" );
-      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      G^.Indent(); G^.OutS( L"_FinallyReturns = TRUE; goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
     END;
   END GenTail;
 
@@ -10935,19 +10926,6 @@ END CSASM;
 
 //============================================================
 
-CLASS IMPLEMENTATION CCATCH;
-
-  VIRTUAL READONLY PROPERTY Symbols GET : TPSymbols;
-  BEGIN
-    RETURN ADR( S );
-  END Symbols;
-
-BEGIN
-   UnitKind := ukCatchBlock;
-END CCATCH;
-
-//============================================================
-
 CLASS IMPLEMENTATION CSTRY;
 
 	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
@@ -10964,6 +10942,52 @@ BEGIN
 	CatchLabel := NIL;
    LocalThrowEnabled := TRUE;
 END CSTRY;
+
+//============================================================
+
+CLASS IMPLEMENTATION CSTHROW;
+
+   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+   BEGIN
+      G^.Indent();
+      IF eoCPPExceptions IN Options THEN
+         G^.OutS( L'throw ' );
+      ELSE
+         Project.Current()^.OD^.MEnv.MIID[miidStoreException]^.Generate( G, gcsName ); G^.OutS( L'(&' );
+      END;
+      RETURN gumNoIndent;
+   END GenHead;
+
+   VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+   BEGIN
+      IF eoCPPExceptions IN Options THEN
+         G^.OutSC(); G^.EOL();
+      ELSIF UnitKind = ukSThrowInTry THEN
+         G^.OutS( L");"); G^.OutS( L" goto " ); Label^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      ELSIF UnitKind = ukSThrowInCatch THEN
+         G^.OutS( L"); _FinallyReturns = TRUE; _FinallyRethrow = TRUE; goto " ); Label^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      ELSE
+         G^.OutS( L"); return TRUE;"); G^.EOL();
+      END;
+   END GenTail;
+
+BEGIN
+   UnitKind := ukSThrow;
+   Label := NIL;
+END CSTHROW;
+
+//============================================================
+
+CLASS IMPLEMENTATION CCATCH;
+
+  VIRTUAL READONLY PROPERTY Symbols GET : TPSymbols;
+  BEGIN
+    RETURN ADR( S );
+  END Symbols;
+
+BEGIN
+   UnitKind := ukCatchBlock;
+END CCATCH;
 
 //============================================================
 

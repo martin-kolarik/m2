@@ -15,7 +15,7 @@
         <OutputDirName Condition="$(ConfigurationName)=='Release'">~Release</OutputDirName>
         <OutputDirName Condition="$(ConfigurationName)!='Release'">~Debug</OutputDirName>
         <!-- IntermediateDirName>%40$(OutputDirName)</IntermediateDirName -->
-        <IntermediateDirName>~Build</IntermediateDirName>
+        <IntermediateDirName>~Build.$(ConfigurationName)</IntermediateDirName>
         <HeaderDirName>$(IntermediateDirName)</HeaderDirName>
 
         <OutputDir>$(OutputDirName)</OutputDir>
@@ -246,7 +246,6 @@
     <Target Name="CPPs" Condition="(@(DEFFiles)!='' or @(MODFiles)!='')"
             Inputs="@(DEFFilesDir);@(MODFilesDir)"
             Outputs="@(DEFFilesDir -> '$(HeaderDir)\%(Filename).h');@(MODFilesDir -> '$(IntermediateDir)\%(Filename).cpp')">
-        <Message Importance="high" Text="$(M2PROD)" />
         <Exec WorkingDirectory="$(SourceDir)"
               Command="$(M2) $(M2PROD) $(M2DEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFilesDir -> '%(FileName).def', ' ') @(MODFilesDir -> '%(FileName).mod', ' ')"/>
     </Target>
@@ -278,6 +277,7 @@
             <Output TaskParameter="Revision" ItemName="FileVersionBuilds"/>
             <Output TaskParameter="RevisionId" ItemName="FileRevisionIds"/>
         </HgVersion>
+        <Message Text="@(FileRevisionIds)" Importance="high"/>
         <Error Condition="@(FileRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
         <MinMax Input="@(FileVersionBuilds)">
             <Output TaskParameter="Maximum" PropertyName="FileVersionBuild"/>
@@ -321,7 +321,7 @@
         <!-- Message Text="## @(ExportToInterfaceObjects)" Importance="high" / -->
     </Target>
 
-    <Target Name="ComponentIncludes"
+    <Target Name="ComponentTestIncludes"
             DependsOnTargets="CPPs;TestCPPs">
         <!-- here CPPs are noted (and it is not left for automatic dependency by Object), because .h files from standalone .def files must be built too -->        
     </Target>
@@ -340,7 +340,7 @@
         <Exec Condition="$(Result)=='Program'"
               WorkingDirectory="$(IntermediateDir)"
               Command="$(LINK) $(LINKDEF) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
-        <Exec Condition="$(Result)!='Static' And $(CLib)=='Dynamic'"
+        <Exec Condition="$(Result)=='Program' Or ($(Result)=='Dynamic' And $(CLib)=='Dynamic')"
               Command="$(MT)"/>
     </Target>
 
@@ -361,9 +361,18 @@
         <Exec WorkingDirectory="$(OutputDir)"
               Command="$(LICSIGN) *.tlic"/>
     </Target>
+    
+    <Target Name="ComponentSign"
+            Condition="$(SignCertificatePath)!='' And (
+                         @(ExportToInterface)!='' Or @(Objects)!=''
+                       )"
+            DependsOnTargets="ComponentCode">
+        <Exec Condition="$(Result)=='Program' Or $(Result)=='Dynamic'"
+              Command="signtool sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"/>
+    </Target>
 
     <Target Name="Component"
-            DependsOnTargets="ComponentInterface;ComponentCode;ComponentIncludes;ComponentTestBuild;ComponentRuntimes;ComponentTestExec;BuildProductLicence"/>
+            DependsOnTargets="ComponentInterface;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTestIncludes;ComponentTestBuild;ComponentTestExec;BuildProductLicence"/>
 
 
     <!-- outer, visible targets -->

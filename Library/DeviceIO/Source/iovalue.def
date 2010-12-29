@@ -4,8 +4,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   StringsO,
-   time;
+   datetime,
+   StringsO;
 
 (*---------------------------------------------------------------------------*)
 
@@ -48,7 +48,7 @@ TYPE
                   | vtLong     : Long     : INT64;
                   | vtFloat    : Float    : LONGREAL;
                   | vtString   : String   : POINTER TO StringsO.CString;
-                  | vtDate     : Date     : time.TJD;
+                  | vtDate     : Date     : datetime.TJD;
                   END;
                END; // RECORD
    TPStorage = POINTER TO TStorage;
@@ -77,7 +77,7 @@ CLASS Value;
       Long : INT64;
       Float : LONGREAL;
       String : StringsO.CString;
-      Date : time.TJD; // JD * 86400 * 10000 = count of 100 ns
+      Date : datetime.TJD; // JD * 86400 * 10000 = count of 100 ns
       // TODO
       // Data : StorageO.CMemoryBuffer;
    PUBLIC READONLY PROPERTY

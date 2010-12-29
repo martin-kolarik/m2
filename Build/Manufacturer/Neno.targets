@@ -14,6 +14,8 @@
         <URL>http://www.neno.cz</URL>
         <UpdateURL>http://www.neno.cz</UpdateURL>
         <!-- UpdateURL>http://update.neno.cz/$(ProductId)</UpdateURL -->
+        <SignCertificatePath>$(RootBuildPath)\Manufacturer\SmartControl.p12</SignCertificatePath>
+        <SignCertificatePassword>Vlakem181570</SignCertificatePassword>
     </PropertyGroup>
 
     <!-- language identifiers -->

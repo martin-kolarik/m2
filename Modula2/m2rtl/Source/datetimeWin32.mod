@@ -1,31 +1,31 @@
-IMPLEMENTATION MODULE TimeWin32;
+IMPLEMENTATION MODULE DateTimeWin32;
 
 (*===========================================================================*)
 
-PROCEDURE SystemTimeToJD( CONST SystemTime : windows.SYSTEMTIME ) : time.TJD;
+PROCEDURE SystemTimeToJD( CONST SystemTime : windows.SYSTEMTIME ) : datetime.TJD;
 BEGIN
-  RETURN time.JD( INTEGER( SystemTime.wYear ),
+  RETURN datetime.JD( INTEGER( SystemTime.wYear ),
              INTEGER( SystemTime.wMonth ),
              INTEGER( SystemTime.wDay ),
-             time.HMS2fd( CARDINAL( SystemTime.wHour ), CARDINAL( SystemTime.wMinute ), CARDINAL( SystemTime.wSecond ), CARDINAL( SystemTime.wMilliseconds )));
+             datetime.HMS2fd( CARDINAL( SystemTime.wHour ), CARDINAL( SystemTime.wMinute ), CARDINAL( SystemTime.wSecond ), CARDINAL( SystemTime.wMilliseconds )));
 END SystemTimeToJD;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE JDToSystemTime( JD : time.TJD; OUT SystemTime : windows.SYSTEMTIME );
+PROCEDURE JDToSystemTime( JD : datetime.TJD; OUT SystemTime : windows.SYSTEMTIME );
 VAR
   C1, C2, C3, C4 : CARDINAL;
   FD             : CARDINAL;
   I1, I2, I3     : INTEGER;
 BEGIN
-  time.iJD( JD, OUT I1, OUT I2, OUT I3, OUT FD );
+  datetime.iJD( JD, OUT I1, OUT I2, OUT I3, OUT FD );
   WITH SystemTime DO
     wYear := WORD( I1 );
     wMonth := WORD( I2 ); 
     wDay := WORD( I3 );
-    wDayOfWeek := WORD( CARDINAL( time.ToSJD( JD ) + 1.5 ) MOD 7 ); // ( JD + 0.5 ) MOD 7 gives 0 = Monday
+    wDayOfWeek := WORD( CARDINAL( datetime.ToSJD( JD ) + 1.5 ) MOD 7 ); // ( JD + 0.5 ) MOD 7 gives 0 = Monday
 
-    time.fd2HMS( FD, OUT C1, OUT C2, OUT C3, OUT C4 );
+    datetime.fd2HMS( FD, OUT C1, OUT C2, OUT C3, OUT C4 );
     wHour := WORD( C1 );
     wMinute := WORD( C2 );
     wSecond := WORD( C3 );
@@ -35,7 +35,7 @@ END JDToSystemTime;
 
 (*===========================================================================*)
 
-PROCEDURE DateTimeToSystemTime( CONST DateTime : time.DateTime; OUT SystemTime : windows.SYSTEMTIME );
+PROCEDURE DateTimeToSystemTime( CONST DateTime : datetime.DateTime; OUT SystemTime : windows.SYSTEMTIME );
 BEGIN
   SystemTime.wYear := WORD( MAX2( 1601, DateTime.Year ));
   SystemTime.wMonth := WORD( DateTime.Month );
@@ -49,7 +49,7 @@ END DateTimeToSystemTime;
 
 (*--------------------------------------------------------------------------*)
 
-PROCEDURE SystemTimeToDateTime( CONST SystemTime : windows.SYSTEMTIME; OUT DateTime : time.DateTime );
+PROCEDURE SystemTimeToDateTime( CONST SystemTime : windows.SYSTEMTIME; OUT DateTime : datetime.DateTime );
 BEGIN
 	DateTime.Year := INTEGER( SystemTime.wYear );
 	DateTime.Month := CARDINAL( SystemTime.wMonth );
@@ -62,4 +62,4 @@ END SystemTimeToDateTime;
 
 (*===========================================================================*)
 
-END TimeWin32.
+END DateTimeWin32.

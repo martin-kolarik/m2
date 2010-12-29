@@ -27,9 +27,9 @@ CLASS CList;
   INTERNAL VAR
     PFirst      : TPListElem;
     PLast       : TPListElem;
-  PUBLIC READONLY VAR
-    Count       : CARDINAL;
+    _Count      : CARDINAL;
   PUBLIC READONLY PROPERTY
+    Count       : CARDINAL;
     Empty       : BOOLEAN;
   PUBLIC VAR
     CheckOwning : BOOLEAN;

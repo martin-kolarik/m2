@@ -17,10 +17,7 @@
 
     <!-- 3 PRODUCT DEFINITION -->
     <ItemGroup>
-        <Components Include="api\clib">
-            <CLib>Dynamic</CLib>
-        </Components>
-        <Components Include="Modula2\modula2;API\win32;Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\Resources"/>
+        <Components Include="Modula2\modula2;API\CLib;API\win32;Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\Resources"/>
         <Messages Include="err;wrn"/>
         <Modules Include="console;generator;scanner;parser;dom;types;project"/>
         <Program Include="program"/>

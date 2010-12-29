@@ -46,7 +46,7 @@ CLASS CServerThread( msgqueuethread.MessageQueueThread );
    PRIVATE VAR
       mvc : MVC.TPMVC := NIL;
       Controller : CController;
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    INTERNAL VIRTUAL PROCEDURE OnExit();
 END CServerThread;
 
@@ -106,7 +106,7 @@ CLASS IMPLEMENTATION CServerThread;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    VAR
       root : StringsO.CString;
    BEGIN

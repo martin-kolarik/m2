@@ -38,6 +38,13 @@ CLASS IMPLEMENTATION CList;
 
 (*---------------------------------------------------------------------------*)
 
+  PUBLIC PROPERTY CList.Count GET : CARDINAL;
+  BEGIN
+    RETURN _Count;
+  END CList.Count;
+
+(*---------------------------------------------------------------------------*)
+
   PUBLIC PROPERTY CList.Empty GET : BOOLEAN;
   BEGIN
     RETURN PFirst = NIL;
@@ -49,7 +56,7 @@ CLASS IMPLEMENTATION CList;
   VAR
     PE : TPListElem;
   BEGIN
-    IF ( Index < 0 ) OR ( Index >= INTEGER( Count )) THEN
+    IF ( Index < 0 ) OR ( Index >= INTEGER( _Count )) THEN
       RETURN NIL;
     END;
     PE := PFirst;
@@ -72,7 +79,7 @@ CLASS IMPLEMENTATION CList;
     END;
     PElem^.PNext := PFirst;
     PFirst := PElem;
-    INC( Count );
+    INC( _Count );
   END InsertFirst;
 
 (*---------------------------------------------------------------------------*)
@@ -92,7 +99,7 @@ CLASS IMPLEMENTATION CList;
       END;
       PElem^.PNext := PBefore;
       PBefore^.PPrev := PElem;
-      INC( Count );
+      INC( _Count );
     END;
   END InsertBefore;
 
@@ -109,7 +116,7 @@ CLASS IMPLEMENTATION CList;
       PElem^.PPrev := PLast;
     END;
     PLast := PElem;
-    INC( Count );
+    INC( _Count );
   END Append;
 
 (*---------------------------------------------------------------------------*)
@@ -148,7 +155,7 @@ CLASS IMPLEMENTATION CList;
     ELSE
       PElem^.PNext^.PPrev := PElem^.PPrev;
     END;
-    DEC( Count );
+    DEC( _Count );
   END Remove;
 
 (*---------------------------------------------------------------------------*)
@@ -241,7 +248,7 @@ CLASS IMPLEMENTATION CList;
             List.PFirst^.PPrev := PLast;
          END;
          PLast := List.PLast;
-         INC( Count, List.Count );
+         INC( _Count, List.Count );
          List.Clear();
       END;
    END AppendList;
@@ -252,7 +259,7 @@ CLASS IMPLEMENTATION CList;
   BEGIN
     PFirst := NIL;
     PLast := NIL;
-    Count := 0;
+    _Count := 0;
   END Clear;
 
 (*---------------------------------------------------------------------------*)
@@ -292,7 +299,7 @@ CLASS IMPLEMENTATION CList;
 BEGIN
   PFirst := NIL;
   PLast := NIL;
-  Count := 0;
+  _Count := 0;
   CheckOwning := FALSE;
 FINALLY
   Dispose();

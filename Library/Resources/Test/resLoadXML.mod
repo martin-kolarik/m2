@@ -4,7 +4,7 @@ IMPORT
   com,
   Resources;
 
-  # save, call( prefix => cdecl )
+  # save, call( convention => cdecl )
   PROCEDURE wmain();
   VAR
     E : ARRAY [0..3] OF WCHAR;

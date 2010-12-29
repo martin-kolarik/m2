@@ -1,53 +1,21 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DevSDAPBridgeSvc", "DevSDAPBridgeSvc.vcproj", "{6FD15983-21B4-472D-B9A6-850EA888DB90}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DevSDAPBridgeSvc", "DevSDAPBridgeSvc.vcxproj", "{6FD15983-21B4-472D-B9A6-850EA888DB90}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIOSDAPBridge", "..\DeviceIOSDAPBridge\DeviceIOSDAPBridge.vcproj", "{E057E01E-5040-4335-82BD-6CD36A174008}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIOSDAPBridge", "..\DeviceIOSDAPBridge\DeviceIOSDAPBridge.vcxproj", "{E057E01E-5040-4335-82BD-6CD36A174008}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StiebelHP", "..\..\DeviceIO\StiebelHP\StiebelHP.vcproj", "{110D6346-F1BD-4EC9-A0CF-E86C8B14EB1B}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StiebelHP", "..\..\DeviceIO\StiebelHP\StiebelHP.vcxproj", "{110D6346-F1BD-4EC9-A0CF-E86C8B14EB1B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcxproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AirMotion", "..\..\DeviceIO\AirMotion\AirMotion.vcproj", "{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AirMotion", "..\..\DeviceIO\AirMotion\AirMotion.vcxproj", "{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDAPBridge", "..\..\CWDriver\SDAPBridge\SDAPBridge.vcproj", "{FE61491C-7A7A-4BAE-8DCB-E9AC901D1BF4}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDAPBridge", "..\..\CWDriver\SDAPBridge\SDAPBridge.vcxproj", "{FE61491C-7A7A-4BAE-8DCB-E9AC901D1BF4}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDAPClient", "..\SDAPClient\SDAPClient.vcproj", "{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDAPClient", "..\SDAPClient\SDAPClient.vcxproj", "{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2rtl", "..\..\Modula2\m2rtl\m2rtl.vcproj", "{8995D229-D00F-4F29-B235-14249D391D21}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2rtl", "..\..\Modula2\m2rtl\m2rtl.vcxproj", "{8995D229-D00F-4F29-B235-14249D391D21}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Integra", "..\..\DeviceIO\Integra\Integra.vcproj", "{FB5FC811-FE09-4505-BFD8-8C30FCE69355}"
 	ProjectSection(WebsiteProperties) = preProject
@@ -62,9 +30,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LogConfig", "..\..\Library\
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(TextTemplating) = postSolution
-		TextTemplating = 1
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
@@ -113,5 +78,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(TextTemplating) = postSolution
+		TextTemplating = 1
 	EndGlobalSection
 EndGlobal

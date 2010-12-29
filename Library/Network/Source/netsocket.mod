@@ -323,10 +323,40 @@ CLASS IMPLEMENTATION SSocket;
       Remote := Value;
       IF Socket = winsock.INVALID_SOCKET THEN
          RETURN;
-       END;
+      END;
       MulticastJoin();
    END MulticastGroup;
   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Broadcast GET : BOOLEAN;
+   BEGIN
+      RETURN _Broadcast;
+   END Broadcast;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Broadcast SET( Value : BOOLEAN );
+   VAR
+      wb : windows.BOOL;
+   BEGIN
+      _Broadcast := Value;
+      IF Socket = winsock.INVALID_SOCKET THEN
+         RETURN;
+      END;
+
+      IF _Broadcast THEN
+         wb := windows.True;
+         IF winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb )) <> 0 THEN
+            ASSERTLOG( FALSE );
+            _Broadcast := FALSE;
+         END;
+      ELSE
+         wb := windows.False;
+         winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb ));
+      END;
+   END Broadcast;
+
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult;
@@ -336,6 +366,7 @@ CLASS IMPLEMENTATION SSocket;
       len : CARDINAL;
       na : inetaddr.INETADDR;
       Result : CARDINAL;
+      wb : windows.BOOL := windows.True;
    BEGIN
       Close( TRUE );
       // create socket
@@ -362,6 +393,12 @@ CLASS IMPLEMENTATION SSocket;
       END;
       IF _Type = stDatagram THEN
          _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnection} ), BITSET32( posConnectPrerequisities )); // allow reading data
+         IF _Broadcast THEN
+            Error := winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb ));
+            IF Error <> 0 THEN
+               GOTO Failed;
+            END;
+         END;
          MulticastJoin();
       END;
       // obtain real port number
@@ -883,7 +920,7 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
       Addr : inetaddr.INETADDR;
       LPending : TPendingOperation;
@@ -907,7 +944,7 @@ CLASS IMPLEMENTATION DSocket;
       SELF.Result := Sync.arUnknown;
       _HSignal.Reset();
 
-      NumericAddress := Addr.FromOA( Server, 0 );
+      NumericAddress := Addr.FromOA( Server, DefaultPort );
       IF NumericAddress THEN // we know where to connect immediatelly
          _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
          Remote := Addr;
@@ -935,7 +972,7 @@ CLASS IMPLEMENTATION DSocket;
          END;
 
          AddRef(); // allow DNS finish after my Release
-         dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, 0, OUT ResolveAddr );
+         dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, DefaultPort, OUT ResolveAddr );
          // now, wait for DNS and connect after its response
       END;
 

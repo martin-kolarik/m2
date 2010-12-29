@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{a350a798-5664-4649-8952-2a29e6d282ee}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\adviser.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\io.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\iovalue.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\ns.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\nsitem.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\nslookup.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\sdap.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\xmlsocket.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\adviser.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\cache.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\device.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\io.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\iocached.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\iovalue.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\ns.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\nsitem.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\nslookup.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\sdap.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\xmlsocket.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\TAdviser.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TSDValue.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="DeviceIO.proj" />
+  </ItemGroup>
+</Project>

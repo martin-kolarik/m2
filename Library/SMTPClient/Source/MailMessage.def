@@ -1,0 +1,57 @@
+DEFINITION MODULE MailMessage;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   datetime,
+   IOO,
+   lists,
+   MailPerson,
+   StringsO;
+
+(*================================================================================*)
+
+TYPE
+   TPriority = (
+      PriorityNormal,
+      PriorityLow,
+      PriorityHigh
+   );
+
+(*================================================================================*)
+
+TYPE
+   TPMailMessage = POINTER TO IMailMessage;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IMailMessage;
+
+   PROPERTY
+      Sender : MailPerson.Person;
+      ReplyTo : MailPerson.Person; // until set, it shares the value with Sender
+      Recipient : MailPerson.Person; // for fast access to single recipient
+      Priority : TPriority;
+      Subject : StringsO.CString;
+      BodyMimeType : StringsO.CString; // any of the correct format, charset will be ignored/replaced if present; unspecified MimeType will default to "text/plain; format=flowed; delsp=yes"
+      GrabFailedRecipients : BOOLEAN; // in the case failedRecipients of Sender's callback will be filled
+
+   READONLY PROPERTY
+      Created : datetime.DateTime;
+      Recipients : MailPerson.TPPersons;
+      CCs : MailPerson.TPPersons;
+      BCCs : MailPerson.TPPersons;
+      Body : IOO.TPStream;
+      Attachments : lists.TPStringStringList; // list of paths + mimetypes, if mimetype is empty application/octet-stream is used
+
+END IMailMessage;
+
+(*================================================================================*)
+
+PROCEDURE New( OUT Message : TPMailMessage ) : BOOLEAN;
+PROCEDURE Dispose( REF Message : TPMailMessage );
+
+(*================================================================================*)
+
+END MailMessage.

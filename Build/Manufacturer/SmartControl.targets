@@ -13,6 +13,8 @@
         <Support>http://www.smartcontrol.cz/support</Support>
         <URL>http://www.smartcontrol.cz</URL>
         <UpdateURL>http://www.smartcontrol.cz/update/$(ProductId)</UpdateURL>
+        <SignCertificatePath>$(RootBuildPath)\Manufacturer\SmartControl.p12</SignCertificatePath>
+        <SignCertificatePassword>Vlakem181570</SignCertificatePassword>
     </PropertyGroup>
 
     <!-- language identifiers -->

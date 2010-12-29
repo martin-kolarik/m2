@@ -44,6 +44,7 @@ INTERFACE ILogger;
    PROCEDURE LogSCC( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
    PROCEDURE LogSH( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
    PROCEDURE LogSP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+   PROCEDURE LogSSP( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR; P : PTR );
    PROCEDURE LogSCP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
    PROCEDURE LogSHP( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
    PROCEDURE LogSB( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );

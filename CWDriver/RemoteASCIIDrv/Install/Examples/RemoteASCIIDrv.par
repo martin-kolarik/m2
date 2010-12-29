@@ -1,6 +1,6 @@
 [RemoteASCIIDrv]
 delimiter = ~
 
-[debug]
-debug_mode = kernel
-debug_level = info
+[log]
+target = kernel
+level = info

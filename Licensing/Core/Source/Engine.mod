@@ -8,11 +8,11 @@ FROM Storage IMPORT
 
 IMPORT
    array,
+   datetime,
    Items,
    lists,
    Store,
    Strings,
-   time,
    Validator;
 
 (*================================================================================*)
@@ -330,7 +330,7 @@ BEGIN
       NEW( info );
          
       info^.ProductId := product^.ProductId;
-      info^.Created := time.NowUTC();
+      info^.Created := datetime.NowUTC();
 
       // keep the code same as in engine.mod
       #if #contains( LicenceMachineId, L"M" ) #then

@@ -63,7 +63,7 @@ CLASS IMPLEMENTATION CDNS;
       s : ARRAY [0..255] OF WCHAR := L"";
       request : ARRAY [0..15] OF WCHAR;
    BEGIN
-      Strings.FromCARD32W( CARDINAL( RequestId ), 10, OUT request );
+      Strings.FromCARD64W( CARD64( RequestId ), 10, OUT request );
       Strings.AppendW( REF request, L": " );
       IF Result = 0 THEN
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
@@ -86,7 +86,7 @@ CLASS IMPLEMENTATION CDNS;
       s : ARRAY [0..255] OF WCHAR;
       request : ARRAY [0..15] OF WCHAR;
    BEGIN
-      Strings.FromCARD32W( CARDINAL( RequestId ), 10, OUT request );
+      Strings.FromCARD64W( CARD64( RequestId ), 10, OUT request );
       Strings.AppendW( REF request, L": " );
       IF Result = 0 THEN
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
@@ -217,6 +217,7 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   Results[0] := 0;
    testimpl.tests()^.AddTest( L"Network::DNS", ADR( Test ));
 END CTest;
 

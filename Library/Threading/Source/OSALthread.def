@@ -11,6 +11,7 @@ IMPORT
 TYPE
    TPRunnable = POINTER TO IRunnable;
    TPThread = POINTER TO IThread;
+   TPCrashHandler = POINTER TO ICrashHandler;
 
 (*---------------------------------------------------------------------------*)
 
@@ -24,15 +25,39 @@ END IRunnableHelper;
 
 INTERFACE IRunnable;
    // main run routine
-   INTERNAL PROCEDURE OnRun( CONST Helper : IRunnableHelper ) : CARDINAL;
+   INTERNAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : IRunnableHelper ) : CARDINAL; // Restarted is TRUE if recovery from crash has been requested
 END IRunnable;
 
 (*---------------------------------------------------------------------------*)
+
+TYPE
+   TRecoveryType = (
+      recoveryTypeStop,
+      recoveryTypeRestart
+   );
+
+INTERFACE ICrashHandler;
+   // called if unhandled OS exception is catched
+   PUBLIC PROCEDURE OnCrash( Thread : TPThread ) : TRecoveryType;
+END ICrashHandler;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TInfoType = (
+      infoTypeGeneric,
+      infoTypeMessage,
+      infoTypePool,
+      infoTypeWorker
+   );
 
 INTERFACE IThread( IRunnable );
    PUBLIC READONLY PROPERTY
       Id : PTR;
       SelfContext : BOOLEAN;
+      InfoType : TInfoType;
+   PUBLIC PROPERTY
+      CrashHandler : TPCrashHandler; // can be NIL, in the case crash notifier is simply not called
 
    // fully controlled thread approach
    PUBLIC PROCEDURE Start( WaitRun : BOOLEAN ) : Sync.TAsyncResult; // command
@@ -56,10 +81,14 @@ END IThreadProcedureCallTarget;
 
 (*---------------------------------------------------------------------------*)
 
-INTERFACE IThreadProcedureCallHandler;
-   PUBLIC PROCEDURE ThreadCall( Target : TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
-                                WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-END IThreadProcedureCallHandler;
+TYPE
+   TPIThreadProcedureCallDispatcher = POINTER TO IThreadProcedureCallDispatcher;
+
+INTERFACE IThreadProcedureCallDispatcher;
+   PUBLIC PROCEDURE DispatchCall( Target : TPIThreadProcedureCallTarget;
+                                  Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                  WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+END IThreadProcedureCallDispatcher;
 
 (*===========================================================================*)
 

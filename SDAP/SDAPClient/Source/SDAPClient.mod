@@ -68,7 +68,7 @@ CLASS CSDAPClient IMPLEMENTS ISDAPClient;
    
    // self
    PRIVATE VAR
-      _Connection : rawconnection.TCPConnection;
+      _Connection : rawconnection.ClientTCPConnection;
       _NetworkNotifier : CNotifier;
       _ClientNotifier : TPISDAPClientEvents;
       _Reader : TextReader.CTextReader;
@@ -164,7 +164,7 @@ CLASS IMPLEMENTATION CSDAPClient;
       IF _Connection.Connected THEN
          RETURN Sync.arAlreadyPending;
       ELSE
-         RETURN _Connection.OpenS( Host, FALSE, Sync.FORSAFETY );
+         RETURN _Connection.OpenS( Host, 6007, FALSE, Sync.FORSAFETY );
       END;
    END Connect;
 
@@ -265,7 +265,7 @@ CLASS IMPLEMENTATION CSDAPClient;
          | rdsWaitData : // now line contains data
             i := Line.ItemS( StringsO.WCHARS{L" "}, 0, 0, FALSE, OUT s );
             Line.ItemS( StringsO.WCHARS{L" "}, i, 0, FALSE, OUT t );
-            IF NOT s.Empty AND NOT t.Empty AND ( _ClientNotifier <> NIL ) THEN
+            IF NOT s.Empty AND ( _ClientNotifier <> NIL ) THEN
                _ClientNotifier^.OnReceive( s, t );
             END;
 
@@ -302,8 +302,8 @@ BEGIN
    _Connection.Notifier := ADR( _NetworkNotifier );
    _NetworkNotifier.Client := ADR( SELF );
    _ClientNotifier := NIL;
-   _Reader.Stream := _Connection.Stream;
-   _Writer.Stream := _Connection.Stream;
+   _Reader.Stream := _Connection.BufferedStream;
+   _Writer.Stream := _Connection.BufferedStream;
 END CSDAPClient;
 
 (*================================================================================*)

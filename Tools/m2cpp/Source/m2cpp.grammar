@@ -2840,10 +2840,10 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
                                                                   c^.AddUnit( V2 );
                                                                END;
                                                                IF P <> NIL THEN
-                                                                  INCL( P^.Options, DOM.eoInsideCPPTry );
+                                                                  INCL( P^.Options, DOM.eoInsideCPPCatch );
                                                                END; .)
     "DO" ntStatements<RequestedReturnType, R>               (. IF P <> NIL THEN
-                                                                  EXCL( P^.Options, DOM.eoInsideCPPTry );
+                                                                  EXCL( P^.Options, DOM.eoInsideCPPCatch );
                                                                   IF ( R > retUnknown ) AND ( R < retGOTO ) THEN
                                                                      INCL( P^.Options, DOM.eoHaveReturnInCPPTry );
                                                                   END;
@@ -2858,22 +2858,22 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
 ntThrowStatement                                             (. E : DOM.TPExpression;
                                                                 P : DOM.TPProcedureType := c^.CurrentP();
                                                                 R : DOM.TPSReturn;
-                                                                U : DOM.TPUnit; .)
+                                                                S : DOM.TPSTHROW := NEW( DOM.CSTHROW ); .)
   = "THROW"                                                  (. IF ( DOM.eoCPPExceptions NOT IN c^.Options ) AND ( c^.OD^.MEnv.MIID[DOM.miidStoreException] = NIL ) THEN
                                                                    SemErr( err._MissingStoreException );
                                                                 END;
                                                                 IF DOM.eoInsideCPPTry IN P^.Options THEN
-                                                                   NEW( R );
-                                                                   R^.UnitKind := DOM.ukThrowingInCPPTry;
-                                                                   R^.L := DOM.TPLabel( c^.TStack.PeekData());
-                                                                   c^.AddUnit( R );
-                                                                   c^.EnterUnit( R );
-                                                                ELSE
-                                                                   U := c^.EnterNewUnit( DOM.ukSThrow );
-                                                                END; .)
-     ntExpression<E>                                         (. c^.AddUnit( E );
-                                                                c^.CheckTypeIsException( E^.T );
-                                                                c^.CheckIfThrowIsPossible( E^.T );
+                                                                   S^.UnitKind := DOM.ukSThrowInTry;
+                                                                   S^.Label := DOM.TPSTRY( c^.TStack.Peek())^.CatchLabel;
+                                                                ELSIF DOM.eoInsideCPPCatch IN P^.Options THEN
+                                                                   S^.UnitKind := DOM.ukSThrowInCatch;
+                                                                   S^.Label := c^.TStack.PeekData();
+                                                                END;
+                                                                c^.AddUnit( S );
+                                                                c^.EnterUnit( S ); .)
+     ntExpression<E>                                         (.    c^.AddUnit( E );
+                                                                   c^.CheckTypeIsException( E^.T );
+                                                                   c^.CheckIfThrowIsPossible( E^.T );
                                                                 c^.LeaveUnit(); .)
 .
 

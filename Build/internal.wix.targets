@@ -71,6 +71,9 @@
               Command="&quot;$(Candle)&quot; $(SetupFile) -dProductVersion=$(ProductVersion) -dProductGUID=$(ProductGUID) $(CandleDefs)"/>
         <Exec WorkingDirectory="$(OutputDir)"
               Command="&quot;$(Light)&quot; -b &quot;..\$(SetupDir)&quot; &quot;..\$(SetupObj)&quot; &quot;$(WiXSrc)\WixUI_Licence.wixlib&quot; -loc &quot;$(WiXSrc)\WixUI_$(RFC1766Long).wxl&quot; -loc &quot;$(WixSrc)\WixUI_Licence_$(RFC1766Long).wxl&quot; -out $(SetupResult)"/>
+        <Exec Condition="$(SignCertificatePath)!=''"
+              WorkingDirectory="$(OutputDir)"
+              Command="signtool sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(SetupResult)"/>
     </Target>
 
     <Target Name="Digests"

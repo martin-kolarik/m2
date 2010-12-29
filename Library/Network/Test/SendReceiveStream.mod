@@ -190,7 +190,7 @@ CLASS IMPLEMENTATION CTest;
       Reader.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1:4444" );
+      WriteStream.FromServer( L"127.0.0.1:4444", 0 );
   
       // run
       Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
@@ -227,7 +227,7 @@ CLASS IMPLEMENTATION CTest;
       Reader.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1:4444" );
+      WriteStream.FromServer( L"127.0.0.1:4444", 0 );
   
       // run
       Count := 0; // must start from 0, it is due to comparsion with PrevCount in receiver, but here is Count incremented before send
@@ -270,7 +270,7 @@ CLASS IMPLEMENTATION CTest;
       Writer.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1:4444" );
+      WriteStream.FromServer( L"127.0.0.1:4444", 0 );
   
       // run
       Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
@@ -308,7 +308,7 @@ CLASS IMPLEMENTATION CTest;
       Writer.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1:4444" );
+      WriteStream.FromServer( L"127.0.0.1:4444", 0 );
   
       // run
       Count := 0; // must start from 0, it is due to comparsion with PrevCount in receiver, but here is Count incremented before send

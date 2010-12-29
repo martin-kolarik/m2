@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\array.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\arrays.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\avltree.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\bitarray.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\list.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\lists.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\maps.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\stack.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\stacks.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\syncmaps.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\array.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\arrays.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\avltree.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\bitarray.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\list.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\lists.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\maps.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\stack.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\stacks.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\syncmaps.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="ADT.proj" />
+    <None Include="Source\synclists.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\synclists.mod">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -78,6 +78,7 @@ FROM Debug IMPORT
    Assertion;
 
 IMPORT
+   DateTime,
    FIO,
    FIOO,
    IOO,
@@ -85,8 +86,7 @@ IMPORT
    Storage,
    Strings,
    StringsO,
-   Sync,
-   Time;
+   Sync;
 
 IMPORT
    INIFile,
@@ -1028,7 +1028,7 @@ CLASS IMPLEMENTATION CEIBServer;
                   PObject := AddObject( Priority, BFlags, EIT, ObjectType );
                END;
             ELSIF p.Empty THEN
-               EXIT;
+               RETURN TRUE;
             END;
             p.Trim();
 
@@ -2117,7 +2117,7 @@ CLASS IMPLEMENTATION CEIBServer;
             IF c = 0 THEN
                PObject^.RecoveryExpiration := 0;
             ELSE
-               PObject^.RecoveryExpiration := Time.UptimeMS() + c;
+               PObject^.RecoveryExpiration := DateTime.UptimeMS() + c;
                IF PObject^.RecoveryExpiration = 0 THEN
                   PObject^.RecoveryExpiration := 1;
                END;
@@ -2487,7 +2487,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
-      DT : Time.DateTime;
+      DT : DateTime.DateTime;
       fd : CARDINAL;
       H, M, S, WD : CARDINAL;
       i : INTEGER;
@@ -2566,7 +2566,7 @@ CLASS IMPLEMENTATION CEIBServer;
             MM := DT.Month;
             D := DT.Day;
          ELSE
-            Time.iJD( Value.Date, OUT Y, OUT MM, OUT D, OUT fd );
+            DateTime.iJD( Value.Date, OUT Y, OUT MM, OUT D, OUT fd );
          END;
          EV.SetDate( Y, MM, D );
 
@@ -2613,7 +2613,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
-      dt : Time.DateTime;
+      dt : DateTime.DateTime;
       s : ARRAY [0..255] OF WCHAR;
       Y, M, D, H, S : CARDINAL;
       b1 : BOOLEAN;
@@ -2675,7 +2675,7 @@ CLASS IMPLEMENTATION CEIBServer;
                Value.FromStringOA( L"", FALSE );
             END;
          ELSE
-            Value.Date := Time.JD( Y, M, D, 0 );
+            Value.Date := DateTime.JD( Y, M, D, 0 );
          END;
 
       | eib_def.eitValue, eib_def.eitValueRange :
@@ -2723,6 +2723,21 @@ BEGIN
    Stack := stackUnknown;
    _CacheOnlyMode := FALSE;
 
+   DeviceId := MAX( CARDINAL );
+   PromiscuousMode := FALSE;
+   InputQueueLength := 256;
+   ACKTimeout := 500;
+   BUSYDelay := 200;
+   SendDelay := 0;
+   WriteDelay := 0;
+   IgnoreRepeated := TRUE;
+   InitReadRepeatDelay := 5000;
+   InitReadRepeatCount := 3;
+   InitReadRepeat := 0;
+   TimeAsString := FALSE;
+   DateAsString := FALSE;
+   Groups[0] := 0FFH; // satisfy initialization warning
+
    EIB := NIL;
    Sink.Server := ADR( SELF );
    EventSink := NIL;
@@ -2744,7 +2759,6 @@ BEGIN
    cllvdata := NIL;
    cllvlength := 0;
 
-   InitToDefault();
    InitReadItems := 0;
    oobData.ItemType := lists.blitSlot32;
    prData.ItemType := lists.blitSlot64;

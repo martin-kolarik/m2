@@ -12,7 +12,8 @@ IMPORT
    netsocket,
    netstream,
    StringsO,
-   Sync;
+   Sync,
+   threadcall;
    
 TYPE
    TPConnectionNotifier = POINTER TO CConnectionNotifier;
@@ -21,45 +22,90 @@ TYPE
 
 (*================================================================================*)
 
-ABSTRACT CLASS IPConnection IMPLEMENTS connection.IBufferedClientConnection;
-   LOCAL VAR
+LOCAL CLASS IPConnection;
+   INTERNAL VAR
       _BStream : IOO.CBufferedStream;
       _NStream : netstream.CNetworkStream;
       _Notifier : TPConnectionNotifier;
+   LOCAL VAR
       _Socket : netsocket.TPDSocket;
+END IPConnection;
 
-   PUBLIC VIRTUAL PROPERTY
-      CallbackMode : IOO.TCallbackMode; // default ioo.cbmPooled
-      Notifier : netsocket.TPSocketNotifier;
+(*--------------------------------------------------------------------------------*)
 
+LOCAL CLASS ClientIPConnection( IPConnection ) IMPLEMENTS connection.IClientConnection, connection.IAsynchronousConnection, connection.IBufferedConnection;
+
+   // IConnection
    PUBLIC VIRTUAL READONLY PROPERTY
       Connected : BOOLEAN;
       LocalAddress : inetaddr.INETADDR;
       RemoteAddress : inetaddr.INETADDR;
       Stream : IOO.TPStream;
-      BufferedStream : IOO.TPBufferedStream;
-   
-   PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+
    PUBLIC VIRTUAL PROCEDURE Close();
 
-END IPConnection;
+   // IClientConnection
+   PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; DefaultPort : CARDINAL; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
 
-(*================================================================================*)
+   // IAsynchronousConnection   
+   PUBLIC VIRTUAL PROPERTY
+      Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
+      Notifier : netsocket.TPSocketNotifier;
 
-TYPE
-   TPTCPConnection = POINTER TO TCPConnection;
+   // IBufferedConnection   
+   PUBLIC VIRTUAL READONLY PROPERTY
+      BufferedStream : IOO.TPBufferedStream;
 
-CLASS TCPConnection( IPConnection );
-END TCPConnection;
+   // own   
+   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; DefaultPort : CARDINAL; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+
+END ClientIPConnection;
 
 (*--------------------------------------------------------------------------------*)
 
 TYPE
-   TPUDPConnection = POINTER TO UDPConnection;
+   TPClientTCPConnection = POINTER TO ClientTCPConnection;
 
-CLASS UDPConnection( IPConnection );
-END UDPConnection;
+CLASS ClientTCPConnection( ClientIPConnection );
+END ClientTCPConnection;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPClientUDPConnection = POINTER TO ClientUDPConnection;
+
+CLASS ClientUDPConnection( ClientIPConnection );
+END ClientUDPConnection;
+
+(*================================================================================*)
+
+TYPE
+   TPServerTCPConnection = POINTER TO ServerTCPConnection;
+
+LOCAL CLASS ServerTCPConnection( IPConnection ) IMPLEMENTS connection.IServerConnection, connection.IAsynchronousConnection, connection.IBufferedConnection;
+   
+   // IConnection
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Connected : BOOLEAN;
+      LocalAddress : inetaddr.INETADDR;
+      RemoteAddress : inetaddr.INETADDR;
+      Stream : IOO.TPStream;
+
+   PUBLIC VIRTUAL PROCEDURE Close();
+
+   // IAsynchronousConnection   
+   PUBLIC VIRTUAL PROPERTY
+      Dispatcher : threadcall.TPIThreadProcedureCallDispatcher; // default NIL, which means notifier is called directly from network thread
+      Notifier : netsocket.TPSocketNotifier;
+
+   // IBufferedConnection   
+   PUBLIC VIRTUAL READONLY PROPERTY
+      BufferedStream : IOO.TPBufferedStream;
+
+   // own   
+   PUBLIC PROCEDURE Accept( CONST ListenSocket : netsocket.TPSSocket; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult; // WaitForResult, TimeoutMS not implemented yet
+
+END ServerTCPConnection;
 
 (*================================================================================*)
 

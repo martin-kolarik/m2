@@ -38,7 +38,7 @@ CLASS CSHA1( digest.Digester );
 
 	// in ancestor PUBLIC PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT digest : CDigest );
 
-	PRIVATE INLINE PROCEDURE sha1_process( CONST data : TBuffer );
+	PRIVATE PROCEDURE sha1_process( CONST data : TBuffer );
 END CSHA1;
 
 (*================================================================================*)

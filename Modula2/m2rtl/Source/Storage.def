@@ -9,7 +9,7 @@ PROCEDURE PageSize() : CARDINAL;
 
 #save, option( leak_info => on )
 PROCEDURE M2ALLOCATE( OUT a : ADDRESS; size : CARDINAL );
-PROCEDURE M2DEALLOCATE( OUT a : ADDRESS );
+PROCEDURE M2DEALLOCATE( REF a : ADDRESS );
 PROCEDURE M2REALLOCATE( REF a : ADDRESS; size : CARDINAL );
 #restore
 
@@ -22,11 +22,11 @@ CONST
 // private heaps
 
 PROCEDURE CreateHeap( OUT Heap : PTR ) : BOOLEAN;
-PROCEDURE DisposeHeap( OUT Heap : PTR );
+PROCEDURE DisposeHeap( REF Heap : PTR );
 
 #save, option( leak_info => on )
 PROCEDURE HeapAllocate( Heap : PTR; OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN;
-PROCEDURE HeapDeallocate( Heap : PTR; OUT a : ADDRESS ) : BOOLEAN;
+PROCEDURE HeapDeallocate( Heap : PTR; REF a : ADDRESS ) : BOOLEAN;
 PROCEDURE HeapReallocate( Heap : PTR; REF a : ADDRESS; size : CARDINAL ) : BOOLEAN;
 #restore
 

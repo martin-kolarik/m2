@@ -11,9 +11,6 @@ PROCEDURE wmain4() : INTEGER;
 #restore
 VAR
    c : CARD64;
-	f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
-	s : ARRAY [0..255] OF WCHAR;
-	sa : ARRAY [0..255] OF CHAR;
 	
 	PROCEDURE out( h : CARD64 );
 	BEGIN

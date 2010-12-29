@@ -6,6 +6,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
+    datetime,
 	FIO,
 	iobject,
 	IOO,
@@ -14,8 +15,7 @@ IMPORT
 	StorageO,
 	StringsO,
 	Sync,
-	Texts,
-	time;
+	Texts;
 
 (*================================================================================*)
 
@@ -480,7 +480,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       Connection.Close();
       Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Stopped" );
 
-   	LogConfig.DisposeAppenderList( REF _AppenderList );
+   	  LogConfig.DisposeAppenderList( REF _AppenderList );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -973,7 +973,7 @@ CLASS IMPLEMENTATION CIO;
    VAR
       b : BOOLEAN;
       delegate : io.CCompletionDataInfo;
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       item : TErrorItem;
       itemFor : INTEGER;
       Result : Sync.TAsyncResult := Sync.arCompleted;
