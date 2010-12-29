@@ -9,6 +9,7 @@
         <CLib>Private</CLib>
         <Result>Program</Result>
         <LeakChecking>off</LeakChecking>
+        <UACElevation>on</UACElevation>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)!='svcinst'">
