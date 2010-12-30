@@ -46,8 +46,11 @@ END CNS;
 
 (*---------------------------------------------------------------------------*)
 
+TYPE
+   TPPacket = POINTER TO CPacket;
+
 INTERFACE IAutomatonRequest;
-   PROCEDURE ProcessData( Packet : ADDRESS );
+   PROCEDURE OnData( Packet : TPPacket );
    PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
    PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
 END IAutomatonRequest;
@@ -79,7 +82,7 @@ CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl;
 
    // events -- coming from DeviceCommunicator
    PUBLIC PROCEDURE EventAbort();
-   PUBLIC PROCEDURE EventInfo( Packet : ADDRESS );
+   PUBLIC PROCEDURE EventInfo( Packet : TPPacket );
    PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE EventTimeout();
    
@@ -100,12 +103,11 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    PRIVATE VAR
       _AppenderList : lists.CPtrList;
 		_HostAddress : StringsO.CString;
-		_SDAPAddress : StringsO.CString;
 		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash
-		_RxTimeoutHandle : threadpool.TPoolHandle;
+      _LastReceiveTime : CARDINAL;
+		_ConnectionTimeoutHandle : threadpool.TPoolHandle;
 		_TxTimeoutHandle : threadpool.TPoolHandle;
 		_PoolDelegate : threadpool.CSinkDelegate;
-		_DeviceAddress : CARDINAL;
 
    // ASocketNotifier
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
@@ -121,7 +123,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // IAutomatonRequest
-   PUBLIC VIRTUAL PROCEDURE ProcessData( Packet : ADDRESS );
+   PUBLIC VIRTUAL PROCEDURE OnData( Packet : TPPacket );
    PUBLIC VIRTUAL PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
    PUBLIC VIRTUAL PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
 
@@ -135,12 +137,12 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 	
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
+   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout : CARDINAL );
    PUBLIC PROCEDURE Abort();
    
    // private
 	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
-   PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
+   PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; REF Handle : threadpool.TPoolHandle );
    PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
 END CDeviceCommunicator;
 
@@ -148,7 +150,6 @@ END CDeviceCommunicator;
 
 TYPE
 	TPNSI = POINTER TO CNSI;
-	TPPacket = POINTER TO TPacket;
 
 CLASS CIO( io.AItemizedIO );
 	LOCAL VAR
