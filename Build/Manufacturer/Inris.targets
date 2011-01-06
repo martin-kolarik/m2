@@ -3,7 +3,7 @@
 
     <!-- main resource properties -->
     <PropertyGroup>
-        <CopyrightYears Condition="$(CopyrightYears)==''">2007-2009</CopyrightYears>
+        <CopyrightYears Condition="$(CopyrightYears)==''">2007-2011</CopyrightYears>
         <CompanyName Condition="$(CompanyName)==''">Inris®</CompanyName>
         <LegalCopyright Condition="$(LegalCopyright)==''">Copyright © Inris® $(CopyrightYears)</LegalCopyright>
         <LegalTrademarks Condition="$(LegalTrademarks)==''">Inris</LegalTrademarks>
