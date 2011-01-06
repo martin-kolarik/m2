@@ -121,6 +121,8 @@ CLASS CPacket; // class is wrapping some foreign data area
    PRIVATE VAR
       _PacketType : TPacketType;
       _Packet : TPWirePacket;
+      _Length : CARDINAL;
+      _Shifted : BOOLEAN;
 
    PUBLIC PROPERTY
       PacketType : TPacketType;
@@ -132,12 +134,14 @@ CLASS CPacket; // class is wrapping some foreign data area
    PUBLIC READONLY PROPERTY
       Packet : TPWirePacket;
       Length : CARDINAL;
+      Shifted : BOOLEAN;
       
    PUBLIC PROCEDURE ComputeCheckSum();
    PUBLIC PROCEDURE TestCheckSum() : BOOLEAN;
    PUBLIC PROCEDURE Complete( KnownLength : CARDINAL; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyChecksum : BOOLEAN ) : BOOLEAN;
 
    PRIVATE PROCEDURE SetPacketBoundaries(); // _Packet MUST not be NIL
+   PRIVATE PROCEDURE DetermineLengthAndShift(); // _Packet MUST not be NIL
 END CPacket;
 
 (*===========================================================================*)
@@ -158,6 +162,7 @@ CLASS IMPLEMENTATION CPacket;
       _PacketType := Value;
       IF _Packet <> NIL THEN
          SetPacketBoundaries();
+         DetermineLengthAndShift();
       END;
    END PacketType;
 
@@ -168,6 +173,7 @@ CLASS IMPLEMENTATION CPacket;
       _Packet := Value;
       IF _PacketType <> ptUnknown THEN
          SetPacketBoundaries();
+         DetermineLengthAndShift();
       END;
    END EmptyPacket;
 
@@ -190,6 +196,7 @@ CLASS IMPLEMENTATION CPacket;
       ELSE // assume info
          _PacketType := ptInfo;
       END;
+      DetermineLengthAndShift();
    END FilledPacket;
 
 (*---------------------------------------------------------------------------*)
@@ -202,53 +209,16 @@ CLASS IMPLEMENTATION CPacket;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Length GET : CARDINAL;
-   VAR
-      i : CARDINAL;
-      xor : CARD8;
    BEGIN
-      IF _Packet = NIL THEN
-         RETURN 0;
-      END;
-      CASE _PacketType OF
-      | ptArm :
-         RETURN FIELDOFS( TWirePacket.ArmCRC ) + SIZE( TWirePacket.ArmCRC );
-      | ptDisarm :
-         RETURN FIELDOFS( TWirePacket.DisarmCRC ) + SIZE( TWirePacket.DisarmCRC );
-      | ptInfo :
-         CASE _Packet^.InfoDataType OF
-         // fixed lengths
-         | itDateTime:
-            RETURN 3 + 7;
-         | itOutputsState:
-            RETURN 3 + 9;
-         // variable lengths
-         | itViolation1, itViolation2, itTamper1, itTamper2, itAlarm1, itAlarm2, itTamperAlarm1, itTamperAlarm2, itAlarmMemory1, itAlarmMemory2, itTamperAlarmMemory1, itTamperAlarmMemory2,
-           itBypasses1, itBypasses2, itNoViolation1, itNoViolation2, itLongViolation1, itLongViolation2, itArmedPartitions, itPartEntry, itPartExit1, itPartExit2, itPartAlarm, itPartFire,
-           itPartAlarmMemory, itPartFireMemory, it27:
-            xor := CARD8( _Packet^.InfoDataType );
-            FOR i := 0 TO 3 DO
-               xor := xor + CARD8( _Packet^.InfoData[i] );
-            END;
-            IF xor = _Packet^.InfoData[4] THEN // 5 data bytes
-               RETURN 3 + 5;
-            ELSE
-               RETURN 3 + 4;
-            END;
-         | it28 :
-            IF _Packet^.InfoData[0] = 0 THEN
-               RETURN 3 + 5;
-            ELSIF _Packet^.InfoData[0] = 1 THEN
-               RETURN 3 + 9;
-            ELSE // for safety
-               RETURN 3 + 4;
-            END;
-         // safety, 7 bytes is the shortest packet, return the length
-         ELSE
-            RETURN 3 + 4;
-         END;
-      END;
-      RETURN 0;
+      RETURN _Length;
    END Length;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Shifted GET : BOOLEAN;
+   BEGIN
+      RETURN _Shifted;
+   END Shifted;
 
 (*---------------------------------------------------------------------------*)
 
@@ -289,7 +259,7 @@ CLASS IMPLEMENTATION CPacket;
       CASE _PacketType OF
       | ptInfo :
          chksumFrom := 0;
-         chksumOffset := Length-1;
+         chksumOffset := _Length-1;
       ELSE
          RETURN FALSE;
       END;
@@ -318,7 +288,7 @@ CLASS IMPLEMENTATION CPacket;
          IF KnownLength < 7 THEN (* 7 is the minimal length of the packet *)
             RETURN FALSE;
          END;
-         FirstIndexAfterFrame := Length;;
+         FirstIndexAfterFrame := _Length;
          FirstIndexAfterData := FirstIndexAfterFrame - SIZE( BYTE ); // - SIZE( CRC )
          ApplyChecksum := TRUE;
       //-----
@@ -348,9 +318,64 @@ CLASS IMPLEMENTATION CPacket;
 
 (*---------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE DetermineLengthAndShift();
+   VAR
+      i : CARDINAL;
+      xor : CARD8;
+   BEGIN
+      _Shifted := FALSE;
+      _Length := 0;
+      IF _Packet = NIL THEN
+         RETURN;
+      END;
+      CASE _PacketType OF
+      | ptArm :
+         _Length := FIELDOFS( TWirePacket.ArmCRC ) + SIZE( TWirePacket.ArmCRC );
+      | ptDisarm :
+         _Length := FIELDOFS( TWirePacket.DisarmCRC ) + SIZE( TWirePacket.DisarmCRC );
+      | ptInfo :
+         CASE _Packet^.InfoDataType OF
+         // fixed lengths
+         | itDateTime:
+            _Length := 3 + 7;
+         | itOutputsState:
+            _Length := 3 + 9;
+         // variable lengths
+         | itViolation1, itViolation2, itTamper1, itTamper2, itAlarm1, itAlarm2, itTamperAlarm1, itTamperAlarm2, itAlarmMemory1, itAlarmMemory2, itTamperAlarmMemory1, itTamperAlarmMemory2,
+           itBypasses1, itBypasses2, itNoViolation1, itNoViolation2, itLongViolation1, itLongViolation2, itArmedPartitions, itPartEntry, itPartExit1, itPartExit2, itPartAlarm, itPartFire,
+           itPartAlarmMemory, itPartFireMemory, it27:
+            xor := CARD8( _Packet^.InfoDataType );
+            FOR i := 0 TO 3 DO
+               xor := xor + CARD8( _Packet^.InfoData[i] );
+            END;
+            IF xor = _Packet^.InfoData[4] THEN // 5 data bytes
+               _Length := 3 + 5;
+               _Shifted := TRUE;
+            ELSE
+               _Length := 3 + 4;
+            END;
+         | it28 :
+            IF _Packet^.InfoData[0] = 0 THEN
+               _Length := 3 + 5;
+            ELSIF _Packet^.InfoData[0] = 1 THEN
+               _Length := 3 + 9;
+            ELSE // for safety
+               _Length := 3 + 4;
+            END;
+         // safety, 7 bytes is the shortest packet, return the length
+         ELSE
+            _Length := 3 + 4;
+         END;
+      END;
+   END DetermineLengthAndShift;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
    _PacketType := ptUnknown;
    _Packet := NIL;
+   _Shifted := FALSE;
+   _Length := 0;
 END CPacket;
 
 (*===========================================================================*)
@@ -428,15 +453,16 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   VAR
+      al : Sync.AutoLock;
    BEGIN
       IF _Running THEN
          RETURN Sync.arAlreadyPending;
       END;
-      _Running := TRUE;
 
-      _Lock.Lock();
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (start)" );
+      _Running := TRUE;
       State := tasIdle;
-      _Lock.Unlock();
 
       RETURN Sync.arCompleted;
    END Start;
@@ -444,7 +470,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Stop();
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (stop)" );
       _Running := FALSE;
    END Stop;
 
@@ -474,11 +503,6 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    BEGIN
       al.TakeSafe( REF _Lock, L"Unable to lock automaton (info)" );
       _Driven^.OnData( Packet );
-
-      IF _ItemToWrite <> NIL THEN
-         State := tasWaitWrite;
-         _Driven^.SendData( _ItemToWrite );
-      END;
    END EventInfo;
 
 (*---------------------------------------------------------------------------*)
@@ -491,28 +515,16 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
       IF _ItemToWrite <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
+
       _ItemToWrite := ItemToWrite;
-      IF State = tasIdle THEN
-         State := tasWaitWrite;
-         _Driven^.SendData( _ItemToWrite );
-      END;
-      RETURN Sync.arPending;
+      State := tasWaitWrite;
+      _Driven^.SendData( _ItemToWrite );
+      State := tasIdle;
+      _Driven^.Sent( Sync.arCompleted, _ItemToWrite );
+      _ItemToWrite := NIL;
+
+      RETURN Sync.arCompleted;
    END EventWrite;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE EventTimeout();
-   VAR
-      al : Sync.AutoLock;
-   BEGIN
-      al.TakeSafe( REF _Lock, L"Unable to lock automaton (timeout)" );
-      CASE State OF
-      | tasWaitWrite :
-         _Driven^.Sent( Sync.arTimeout, _ItemToWrite );
-         _ItemToWrite := NIL;
-         State := tasIdle;
-      END; // CASE
-   END EventTimeout;
 
 (*---------------------------------------------------------------------------*)
 
@@ -569,7 +581,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       _PoolDelegate.TimeoutSink := NIL;
    
-      StopTimeout( REF _TxTimeoutHandle );
       StopTimeout( REF _ConnectionTimeoutHandle );
 
       Connection.Close();
@@ -582,12 +593,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
-      IF PoolHandle = _TxTimeoutHandle THEN
-         _TxTimeoutHandle := NIL;
-         Logger.LogS( log.ldTrace, 0, L"Integra", L"Tx timeout" );
-         Automaton^.EventTimeout();
-
-      ELSIF PoolHandle = _ConnectionTimeoutHandle THEN
+      IF PoolHandle = _ConnectionTimeoutHandle THEN
          IF NOT Connection.Connected THEN
             Logger.LogS( log.ldTrace, 0, L"Integra", L"Disconnected (periodic check), trying to reconnect" );
             Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
@@ -713,8 +719,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       Wrapper : CPacket;
    BEGIN
-      StopTimeout( REF _TxTimeoutHandle );
-
       IF Result = Sync.arCompleted THEN
          _LastReceiveTime := datetime.UptimeMS();
 
@@ -725,10 +729,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          ELSE
             ASSERTLOG( FALSE );
          END;
-
-      ELSE
-         Automaton^.EventTimeout();
- 
       END;
    END OnRx;
 
@@ -783,7 +783,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; _SendAsIs : BOOLEAN; _RepeatCount : CARDINAL; _TxTimeout : CARDINAL );
+   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; _SendAsIs : BOOLEAN; _RepeatCount : CARDINAL );
    VAR
       c : CARDINAL;
       Result : Sync.TAsyncResult;
@@ -802,10 +802,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          END;
       END;
       
-      IF _TxTimeout > 0 THEN
-         StartTimeout( _TxTimeout, TRUE, REF _TxTimeoutHandle );
-      END;
-
       Logger.LogSCB( log.ldDebug, 0, L"Integra", L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
       Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
       IF Result = Sync.arTimeout THEN
@@ -818,13 +814,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    PUBLIC PROCEDURE Abort();
    BEGIN
       Automaton^.EventAbort();
-      StopTimeout( REF _TxTimeoutHandle );
       Connection.Stream^.AbortWriting();
    END Abort;
 
 //---------------------------------------------------------
 
-   PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer );
    VAR
       LDI, LI : CARDINAL := 0;
       LRxBuffer : StorageO.CMemoryBuffer;
@@ -836,40 +831,42 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          Logger.LogSC( log.ldError, 0, L"Integra", L'rx error: ', CARDINAL( Result ));
          OnRx( Result, LRxBuffer );
          RxBuffer.Clear();
-         RETURN FALSE;
+         RETURN;
       ELSIF NOT Data.Empty THEN
          RxBuffer.Append( Data );
          Logger.LogSCB( log.ldDebug, 0, L"Integra", L'rx success, len: ', Data.Length, Data.Data, Data.Length );
       END;
 
-      IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
-         RxBuffer.Clear();
-         RETURN FALSE;
-      ELSIF LI > 0 THEN
-         RxBuffer.RemoveStart( LI );
-         DEC( LDI, LI );
-         LI := 0;
-      END;
+      LOOP
+         IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
+            RxBuffer.Clear();
+            RETURN;
+         ELSIF LI > 0 THEN
+            RxBuffer.RemoveStart( LI );
+            DEC( LDI, LI );
+            LI := 0;
+         END;
 
-      IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT ApplyChecksum ) THEN
-         RETURN FALSE;
-      END;
+         IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT ApplyChecksum ) THEN
+            RETURN;
+         END;
 
-      IF ApplyChecksum THEN
-         RxBuffer.Subbuffer( LI, TI - LI, OUT LRxBuffer );
-         ChkSumOK := TestChkSum( LRxBuffer );
-      END;
-      IF ChkSumOK THEN
-         RxBuffer.Subbuffer( LDI, TDI - LDI, OUT LRxBuffer );
-         OnRx( Result, LRxBuffer );
-      END;
+         IF ApplyChecksum THEN
+            RxBuffer.Subbuffer( LI, TI - LI, OUT LRxBuffer );
+            ChkSumOK := TestChkSum( LRxBuffer );
+         END;
+         IF ChkSumOK THEN
+            RxBuffer.Subbuffer( LDI, TDI - LDI, OUT LRxBuffer );
+            OnRx( Result, LRxBuffer );
+         END;
 
-      IF RxBuffer.Length = TI THEN
-         RxBuffer.Clear();
-      ELSE
-         RxBuffer.RemoveStart( TI );
-      END;
-      RETURN NOT RxBuffer.Empty;
+         IF RxBuffer.Length = TI THEN
+            RxBuffer.Clear();
+            RETURN;
+         ELSE
+            RxBuffer.RemoveStart( TI );
+         END;
+      END; // LOOP
    END HandleRx;
 
 //---------------------------------------------------------
@@ -898,7 +895,6 @@ BEGIN
    Automaton := NIL;
    _LastReceiveTime := 0;
    _ConnectionTimeoutHandle := NIL;
-   _TxTimeoutHandle := NIL;
 END CDeviceCommunicator;
 
 (*===========================================================================*)
@@ -1026,6 +1022,7 @@ CLASS IMPLEMENTATION CIO;
          END;
 
 DeviceCommunicator.Logger.LogSCC( log.ldDebug, 0, L"Integra", L'Received info: ', CARDINAL( PPacket^.Packet^.InfoDataType ), PPacket^.Length );
+DeviceCommunicator.Logger.LogSC( log.ldDebug, 0, L"Integra", L'  shifted: ', CARDINAL( PPacket^.Shifted ));
 
          
          // lookup for item and set data to it

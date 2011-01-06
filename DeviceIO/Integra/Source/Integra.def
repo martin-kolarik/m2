@@ -84,7 +84,6 @@ CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl;
    PUBLIC PROCEDURE EventAbort();
    PUBLIC PROCEDURE EventInfo( Packet : TPPacket );
    PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE EventTimeout();
    
    PRIVATE PROPERTY
       State : TAutomatonState;
@@ -106,7 +105,6 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash
       _LastReceiveTime : CARDINAL;
 		_ConnectionTimeoutHandle : threadpool.TPoolHandle;
-		_TxTimeoutHandle : threadpool.TPoolHandle;
 		_PoolDelegate : threadpool.CSinkDelegate;
 
    // ASocketNotifier
@@ -137,11 +135,11 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 	
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout : CARDINAL );
+   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL );
    PUBLIC PROCEDURE Abort();
    
    // private
-	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer );
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; REF Handle : threadpool.TPoolHandle );
    PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
 END CDeviceCommunicator;
