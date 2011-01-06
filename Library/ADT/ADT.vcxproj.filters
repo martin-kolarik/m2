@@ -9,6 +9,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{d6978b69-6836-4f94-9997-50e2c407d037}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\array.mod">
@@ -77,6 +80,18 @@
     </None>
     <None Include="Source\synclists.mod">
       <Filter>Source Files</Filter>
+    </None>
+    <None Include="Test\AbstractArray.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\IntegerArray.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\ListOp.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TBitArrayOAs.mod">
+      <Filter>Test</Filter>
     </None>
   </ItemGroup>
 </Project>
