@@ -58,7 +58,7 @@ INTERFACE IMvcRequest;
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
-      FunctionCalled : BOOLEAN;
+      URIParameters : lists.TPStringStringList; // URI parameters not known to MVC and thus not assigned to controller's container
       
    PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
 END IMvcRequest;
@@ -124,9 +124,10 @@ INTERFACE IContainer;
    PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
    
    // view side
-   PROCEDURE SetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names, PFunctionCalled can be NIL
-   PROCEDURE GetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names, PFunctionCalled can be NIL
+   PROCEDURE SetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names, PFunctionCalled can be NIL
+   PROCEDURE GetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names, PFunctionCalled can be NIL
    PROCEDURE Format( CONST Request : IMvcRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data, including message texts. MessageSource can be NIL.
+   PROCEDURE IsFunctionCall( CONST Model : StringsO.IString ) : BOOLEAN; // does only a formal check, it returns TRUE also for functions without function handler paired
    
    // There can be more active mappings, each identified by ControllerURI.
    PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
@@ -203,7 +204,7 @@ PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; resolverContext : P
 PROCEDURE absoluteRedirectView( CONST FullURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST ContextRelativeURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
-PROCEDURE rawTextView( CONST text, downloadName : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN ) : TPView; // if content is empty, default one is used
+PROCEDURE rawTextView( CONST text, downloadName : ARRAY OF WCHAR; CONST contentType : StringsO.IString; dispositionFlag : BOOLEAN ) : TPView; // if content is empty, default one is used
 PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR; overrideLanguage : BOOLEAN; overriddenLanguage : Languages.TLanguage ) : TPView;
 
 #restore

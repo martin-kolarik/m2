@@ -136,6 +136,7 @@ CONST
    FN_SET = L"set";
    FN_GET = L"get";
    FN_GETWIX = L"getwix";
+   FN_SETV = L"setv"; // set without redirect
    FN_EQUAL = L"equal";
    FN_NOTEQUAL = L"notEqual";
    FN_LESS = L"less";
@@ -181,7 +182,8 @@ CLASS IMPLEMENTATION CController;
       name, s, value1, value2 : StringsO.CString;
       real1, real2 : LONGREAL;
    BEGIN
-      IF FunctionName.EqualsOA( FN_SET ) THEN
+      IF FunctionName.EqualsOA( FN_SET ) OR
+         FunctionName.EqualsOA( FN_SETV ) THEN
          IF Parameters.Count < 2 THEN
             RETURN mvc.crMissingParameter;
          END;
@@ -360,6 +362,7 @@ CLASS IMPLEMENTATION CController;
       Container.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_SETV, ADR( SELF ));
 
       version.FromOA( ProductVersion );
       Container.AddStringOA( VERSION, version );
@@ -379,10 +382,16 @@ CLASS IMPLEMENTATION CController;
       authorized : BOOLEAN := FALSE;
       authTokens : lists.CStringStringList;
       data : PTR;
+      empty : StringsO.CString;
+      functionsCalled : CARDINAL := 0;
       role : EibSrvWeb.TRole;
       roleName : StringsO.CString;
       s : StringsO.CString;
+      setsCalled : CARDINAL := 0;
+      singleSetCalled : BOOLEAN := FALSE;
       uri : StringsO.CString;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
+      value : StringsO.CString;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
@@ -391,13 +400,45 @@ CLASS IMPLEMENTATION CController;
          role := EibSrvWeb.roleGuest;
       END;
       
-      IF Request.ModelContainer^.GetStringOA( LANGUAGE, OUT s ) AND NOT s.Empty THEN // override language
-         SetOverriddenLanguage( Request, s );
-         s.Clear();
+      // process parameters not known to views' models
+      IF uriParameters^.GetOA( LANGUAGE, OUT s ) THEN // override language
          Request.ModelContainer^.AddStringOA( LANGUAGE, s ); // set empty, reset the value
+         SetOverriddenLanguage( Request, s );
 
+         uri := Request.ControllerURI;
          View := mvc.redirectView( OA( uri.Length-1, uri.rawData )); // language switch cannot carry other parameters
          RETURN TRUE;
+
+      // process other unknown parameters to detect functions
+      ELSIF uriParameters^.Count = 0 THEN
+         // fall down to normal controller processing
+
+      // process other unknown parameters to detect functions
+      ELSE
+         uriParameters^.Reset();
+         WHILE uriParameters^.MoveNext() DO
+            IF Request.ModelContainer^.IsFunctionCall( uriParameters^.Current^ ) THEN
+               INC( functionsCalled );
+               IF uriParameters^.Current^.StartsWithOA( FN_SET + L"(" ) THEN
+                  INC( setsCalled );
+               END;
+               IF Request.ModelContainer^.GetModelValue( Request, Request.MessageSource, Language( Request ), uriParameters^.Current^, OUT value ) THEN
+                  s.Append( value );
+               ELSE
+                  s.AppendOA( L"##error: function call failed" );
+               END;
+               s.AppendOA( CRLF );
+            END;
+         END; // WHILE URIParameter
+
+         singleSetCalled := ( functionsCalled = 1 ) AND ( setsCalled = 1 );
+         IF ( functionsCalled = 0 ) OR singleSetCalled THEN
+            // fall down, single set falls to the same page, no function means no action
+         ELSE // do not render "normal" view output, but textual function output
+            View := mvc.rawTextView( OA( s.Length-1, s.rawData ), L"", empty, FALSE ); // language switch cannot carry other parameters
+            RETURN TRUE;
+         END;
+      // end of parameters processing
       END;
       
       IF Fallback THEN
@@ -405,7 +446,7 @@ CLASS IMPLEMENTATION CController;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
             View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
 
-         ELSIF Request.FunctionCalled THEN // some call was performed, redirect to self
+         ELSIF singleSetCalled THEN // some set call was performed, redirect to self
             View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
          
          ELSE // no call during the request
@@ -452,10 +493,8 @@ CLASS IMPLEMENTATION CController;
       
       ELSIF Request.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
          InvalidateUser( REF Request );
-         IF Request.ModelContainer^.GetStringOA( LOGOUT_NEXT_PAGE, OUT s ) THEN
+         IF uriParameters^.GetOA( LOGOUT_NEXT_PAGE, OUT s ) THEN
             View := mvc.redirectView( OA( s.Length-1, s.rawData ));
-            s.Clear();
-            Request.ModelContainer^.AddStringOA( LOGOUT_NEXT_PAGE, s ); // empty, prepare redirect during logout
          ELSE
             View := mvc.redirectView( INDEX_PAGE );
          END;
@@ -597,9 +636,6 @@ CLASS IMPLEMENTATION CController;
          View := GetPageTemplateView( Request, LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to status page
-         sp.Clear();
-         Request.ModelContainer^.AddStringOA( LOGOUT_NEXT_PAGE, sp ); // empty, prepare redirect during logout
-
          Request.Session^.Remove( SESSION_LOGGED );
          Request.Session^.Add( SESSION_LOGGED, ADR( SELF ));
          View := mvc.redirectView( STATUS_PAGE );

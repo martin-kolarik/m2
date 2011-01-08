@@ -1384,11 +1384,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( idx, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, index, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, index, value );
          END;
          IF NOT order.Empty THEN
             value.FromCARD32( item, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value );
          END;
 
          nl.Reset(); // prepare parsing
@@ -1538,21 +1538,21 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          
          IF NOT item.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, item, current^, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, item, current^ );
          END;
          IF NOT data.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, data, currentData^, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, data, currentData^ );
          END;
          IF NOT odd.Empty THEN
             SetModelBoolean( odd, loopItem AND 1 = 1 );
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( loopItem-1, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, index, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, index, value );
          END;
          IF NOT order.Empty THEN
             value.FromCARD32( loopItem, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value );
          END;
 
          nl.Reset(); // prepare parsing
@@ -1649,7 +1649,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteElementStartOA( L"", L"input" );
 
       Writer.WriteAttributeStringOA( L"", L"type", OAsz( ptype ));
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, fullModel, OUT value, NIL ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, fullModel, OUT value ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
          IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
             Writer.WriteAttributeStringOA( L"", L"value", L"true" );
@@ -1659,7 +1659,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          ELSE            
             Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
          END;
-      ELSIF Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, model, OUT value, NIL ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, model, OUT value ) THEN // model = item
          WriteFormNameAttribute( model );
          IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
             Writer.WriteAttributeStringOA( L"", L"value", L"true" );
@@ -1737,9 +1737,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Writer.WriteElementStartOA( L"", L"option" );
 
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, fullModel, OUT value, NIL ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, fullModel, OUT value ) THEN // model = form.item
          Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
-      ELSIF Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, model, OUT value, NIL ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, model, OUT value ) THEN // model = item
          Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
@@ -2071,7 +2071,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       ELSIF Value.EqualsOA( L"true" ) OR Value.EqualsOA( L"1" ) THEN
          RETURN TRUE;
-      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, Value, OUT modelValue, NIL ) THEN
+      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, Value, OUT modelValue ) THEN
          RETURN TRUE; // value not found, string is not empty
       ELSIF modelValue.EqualsOA( L"false" ) OR modelValue.EqualsOA( L"0" ) OR modelValue.Empty THEN
          RETURN FALSE;
