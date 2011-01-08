@@ -175,7 +175,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : mvc.TCallResult;
+   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IMvcRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : mvc.TCallResult;
    VAR
       b : BOOLEAN;
       name, s, value1, value2 : StringsO.CString;
@@ -373,7 +373,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
    VAR
       authMethodInfo : StringsO.CString;
       authorized : BOOLEAN := FALSE;
@@ -566,7 +566,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessLogin( REF Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessLogin( REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       redirected : BOOLEAN;
       su, sp : StringsO.CString;
@@ -611,7 +611,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       c : CARDINAL;
@@ -734,7 +734,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -826,7 +826,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -876,7 +876,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -911,7 +911,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       empty, fid : StringsO.CString;
@@ -971,7 +971,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       cs : StringsO.CString;
       empty : StringsO.CString;
@@ -1019,7 +1019,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       action : StringsO.CString;
       currentName : StringsO.CString;
@@ -1118,7 +1118,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       action : StringsO.CString;
       currentName : StringsO.CString;
@@ -1232,7 +1232,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessUserLogin( REF Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserLogin( REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       redirected : BOOLEAN;
       src, su, sp : StringsO.CString;
@@ -1278,7 +1278,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IMvcRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
    VAR
       role : EibSrvWeb.TRole;
       Role : StringsO.CString;
@@ -1297,7 +1297,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE InvalidateUser( REF Request : mvc.IHttpRequest );
+   PRIVATE PROCEDURE InvalidateUser( REF Request : mvc.IMvcRequest );
    BEGIN
       // cleanup session
       Request.Session^.Remove( SESSION_LOGGED ); // kill potentially logged user
@@ -1312,7 +1312,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE SetOverriddenLanguage( CONST Request : mvc.IHttpRequest; CONST Language : StringsO.IString );
+   PRIVATE PROCEDURE SetOverriddenLanguage( CONST Request : mvc.IMvcRequest; CONST Language : StringsO.IString );
    VAR
       _Language : Languages.TLanguage;
    BEGIN
@@ -1329,7 +1329,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Language( CONST Request : mvc.IHttpRequest ) : Languages.TLanguage;
+   PRIVATE PROCEDURE Language( CONST Request : mvc.IMvcRequest ) : Languages.TLanguage;
    VAR
       _Language : Languages.TLanguage;
    BEGIN
@@ -1342,7 +1342,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE GetPageTemplateView( CONST Request : mvc.IHttpRequest; CONST ViewName : ARRAY OF WCHAR ) : mvc.TPView;
+   PRIVATE PROCEDURE GetPageTemplateView( CONST Request : mvc.IMvcRequest; CONST ViewName : ARRAY OF WCHAR ) : mvc.TPView;
    VAR
       _Language : Languages.TLanguage;
       View : mvc.TPView;

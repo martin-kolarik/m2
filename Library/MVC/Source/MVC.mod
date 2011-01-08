@@ -63,15 +63,15 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IMvcRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
    // There can be more active mappings, each identified by ControllerURI.
    PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
-   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IMvcRequest; CONST ControllerURI : StringsO.IString );
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -329,7 +329,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
@@ -497,7 +497,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
@@ -682,7 +682,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IMvcRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
    VAR
       i, mi, j : INTEGER;
       model : StringsO.CString;
@@ -763,7 +763,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IMvcRequest; CONST ControllerURI : StringsO.IString );
    VAR
       empty : StringsO.CString;
       LSetId : StringsO.CString;
@@ -809,15 +809,15 @@ CLASS CSynchronizedContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IMvcRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
    // There can be more active mappings, each identified by ControllerURI.
    PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
-   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IMvcRequest; CONST ControllerURI : StringsO.IString );
    
    PRIVATE PROCEDURE LockWrite() : BOOLEAN;
    PRIVATE PROCEDURE UnlockWrite();
@@ -976,7 +976,7 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    VAR
       b : BOOLEAN := FALSE;
    BEGIN
@@ -989,7 +989,7 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    VAR
       b : BOOLEAN := FALSE;
    BEGIN
@@ -1002,7 +1002,7 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IMvcRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
    BEGIN
       RETURN Container.Format( Request, FailOnError, Source, MessageSource, language, OUT Formatted );
    END Format;
@@ -1043,7 +1043,7 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IMvcRequest; CONST ControllerURI : StringsO.IString );
    BEGIN
       IF LockWrite() THEN
          Container.ResetModelValues( Request, ControllerURI );
@@ -1093,9 +1093,9 @@ END CSynchronizedContainer;
 
 (*================================================================================*)
 
-CLASS CHttpRequest IMPLEMENTS IHttpRequest;
+CLASS CMvcRequest IMPLEMENTS IMvcRequest;
 
-   // IHttpRequest
+   // IMvcRequest
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestSource : inetaddr.INETADDR;
       RequestVerb : HttpCommon.TVerb;
@@ -1126,11 +1126,11 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
    
    LOCAL PROCEDURE SetFunctionCalled( FunctionCalled : BOOLEAN );
 
-END CHttpRequest;
+END CMvcRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CHttpRequest;
+CLASS IMPLEMENTATION CMvcRequest;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1263,13 +1263,13 @@ BEGIN
    _MessageSource := NIL;
    _Language := -1;
    _FunctionCalled := FALSE;
-END CHttpRequest;
+END CMvcRequest;
 
 (*================================================================================*)
 
-CLASS CHttpResponse IMPLEMENTS IHttpResponse;
+CLASS CMvcResponse IMPLEMENTS IMvcResponse;
 
-   // IHttpRequest
+   // IMvcResponse
    PUBLIC VIRTUAL PROPERTY
       StatusCode : HttpCommon.THttpResponse;
       Length : CARD64; // default none
@@ -1292,11 +1292,11 @@ CLASS CHttpResponse IMPLEMENTS IHttpResponse;
 
    LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
 
-END CHttpResponse;
+END CMvcResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CHttpResponse;
+CLASS IMPLEMENTATION CMvcResponse;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1435,7 +1435,7 @@ BEGIN
    _Connection := NIL;
    _Session := NIL;
    _Container := NIL;   
-END CHttpResponse;
+END CMvcResponse;
 
 (*================================================================================*)
 
@@ -1566,8 +1566,8 @@ CLASS IMPLEMENTATION CMVC;
       l : CARDINAL;
       mappedName : StringsO.CString;
       modelValue : StringsO.CString;
-      request : CHttpRequest;
-      response : CHttpResponse;
+      request : CMvcRequest;
+      response : CMvcResponse;
       Result : Sync.TAsyncResult;
       view : TPView;
    BEGIN
