@@ -27,12 +27,12 @@ TYPE
 
 (*================================================================================*)
 
-CLASS EIBNetListener( netsrv.AListener ); // netsrv produces in thread callbacks
+CLASS KNXNetListener( netsrv.AListener ); // netsrv produces in thread callbacks
    LOCAL VAR
       Connection : TPConnection := NIL;
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
    LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket ); // both types
-END EIBNetListener;
+END KNXNetListener;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -73,7 +73,7 @@ CLASS CConnection( msghandler.MessageHandler );
       _Logger : log.TPLogger := NIL;
       _Mode : TConnectionMode := cmTunnelingHPAI;
       _Socket : netsocket.TPSSocket := NIL;
-      _Listener : POINTER TO EIBNetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
+      _Listener : POINTER TO KNXNetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
       _AutoReconnectDelay : CARDINAL := 0;
       _TunnelingMode : TTunnelingMode := tmEMI;
       // data control
@@ -119,7 +119,7 @@ CLASS CConnection( msghandler.MessageHandler );
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    INTERNAL VIRTUAL PROCEDURE On_P_Sent();
-   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TKNXStackStatus );
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : knx_def.TPacket );
    INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : knx_def.TPacket ) : BOOLEAN;
 

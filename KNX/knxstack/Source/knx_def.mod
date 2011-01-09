@@ -281,7 +281,7 @@ END CAddress;
 
 (*===========================================================================*)
 
-PROCEDURE TypeToString( type : TEIBType; VAR string : ARRAY OF WCHAR ); // returns symbolic names
+PROCEDURE TypeToString( type : TKNXType; VAR string : ARRAY OF WCHAR ); // returns symbolic names
 BEGIN
   CASE type OF
   | eitSwitch : ASSIGN( string, L'switch' );
@@ -304,7 +304,7 @@ END TypeToString;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE NumberToType( number : INTEGER; VAR type : TEIBType ) : BOOLEAN;
+PROCEDURE NumberToType( number : INTEGER; VAR type : TKNXType ) : BOOLEAN;
 BEGIN
   CASE number OF
   | 1 : type := eis1;
@@ -328,7 +328,7 @@ END NumberToType;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE StringToType( String : ARRAY OF WCHAR; VAR EIT : TEIBType ) : BOOLEAN;
+PROCEDURE StringToType( String : ARRAY OF WCHAR; VAR EIT : TKNXType ) : BOOLEAN;
 VAR
   i : CARDINAL;
   b : BOOLEAN;
@@ -390,8 +390,8 @@ TYPE
 
   // variant for accessing CValue.Data
   TVariantData = RECORD
-                   CASE : TEIBType OF
-                   | eitUnknown:    Data       : TEIBValueData;
+                   CASE : TKNXType OF
+                   | eitUnknown:    Data       : TKNXValueData;
                    | eitSwitch:     State      : BOOLEAN;
                    | eitIncrease:   How        : TIncrease;
                                     Amount     : CARDINAL; // percent
@@ -425,14 +425,14 @@ CLASS IMPLEMENTATION CValue;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetType( Type : TEIBType );
+  PUBLIC PROCEDURE SetType( Type : TKNXType );
   BEGIN
     SELF.Type := Type;
   END SetType;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetType() : TEIBType;
+  PUBLIC PROCEDURE GetType() : TKNXType;
   BEGIN
     RETURN Type;
   END GetType;
@@ -914,8 +914,8 @@ CLASS IMPLEMENTATION EMIPacket;
   PUBLIC PROCEDURE SetSourceAddress( CONST Address : CAddress );
   BEGIN
     IF Address.Type = addressPhysical THEN
-      Source.EIBHi := Address.Address.APIHi;
-      Source.EIBLo := Address.Address.APILo;
+      Source.KNXHi := Address.Address.APIHi;
+      Source.KNXLo := Address.Address.APILo;
     END;
   END SetSourceAddress;
 
@@ -926,8 +926,8 @@ CLASS IMPLEMENTATION EMIPacket;
     Address : CAddress;
   BEGIN
     Address.Type := addressPhysical;
-    Address.Address.APIHi := Source.EIBHi;
-    Address.Address.APILo := Source.EIBLo;
+    Address.Address.APIHi := Source.KNXHi;
+    Address.Address.APILo := Source.KNXLo;
     RETURN Address;
   END GetSourceAddress;
 
@@ -959,8 +959,8 @@ CLASS IMPLEMENTATION EMIPacket;
   PUBLIC PROCEDURE SetDestinationAddress( CONST Address : CAddress );
   BEGIN
     SetDestinationAddressType( Address.Type );
-    Destination.EIBHi := Address.Address.APIHi;
-    Destination.EIBLo := Address.Address.APILo;
+    Destination.KNXHi := Address.Address.APIHi;
+    Destination.KNXLo := Address.Address.APILo;
   END SetDestinationAddress;
 
 (*---------------------------------------------------------------------------*)
@@ -970,8 +970,8 @@ CLASS IMPLEMENTATION EMIPacket;
     Address : CAddress;
   BEGIN
     Address.Type := GetDestinationAddressType();
-    Address.Address.APIHi := Destination.EIBHi;
-    Address.Address.APILo := Destination.EIBLo;
+    Address.Address.APIHi := Destination.KNXHi;
+    Address.Address.APILo := Destination.KNXLo;
     RETURN Address;
   END GetDestinationAddress;
 

@@ -6,10 +6,10 @@ IMPORT
 IMPORT
    arrays,
 	windows,
-	eibnet,
 	browser,
 	Log,
 	netinit,
+	protocol,
 	Sync;
 
 PROCEDURE Wait( i : CARDINAL );
@@ -51,7 +51,7 @@ END CDelegate;
 PROCEDURE Test();
 VAR
   B : browser.CBrowser;
-  C : eibnet.CConnection;
+  C : protocol.CConnection;
   D : CDelegate;
 BEGIN
 	B.Browse( ADR( D ), 500 );

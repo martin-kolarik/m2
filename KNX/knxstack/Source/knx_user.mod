@@ -35,16 +35,16 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY Type GET : knx_def.TEIBType;
+  PUBLIC PROPERTY Type GET : knx_def.TKNXType;
   BEGIN
      RETURN Value.GetType();
   END Type;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Init( POfStack : knx_stack.TPEIBStack; Type : knx_def.TEIBType; Behaviour : TObjectBehaviour );
+  PUBLIC PROCEDURE Init( POfStack : knx_stack.TPKNXStack; Type : knx_def.TKNXType; Behaviour : TObjectBehaviour );
   BEGIN
-    PExecutive := knx_stack.TPEIBStackApplicationLayer( POfStack^.Layers[ knx_stack.eltApplication ] );
+    PExecutive := knx_stack.TPKNXStackApplicationLayer( POfStack^.Layers[ knx_stack.kltApplication ] );
     Value.SetType( Type );
     CASE Behaviour OF
     | obTransmitter :
@@ -90,7 +90,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Executive() : knx_stack.TPEIBStackApplicationLayer;
+  PUBLIC PROCEDURE Executive() : knx_stack.TPKNXStackApplicationLayer;
   BEGIN
     RETURN PExecutive;
   END Executive;
@@ -119,7 +119,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : knx_status.TEIBStackStatus );
+  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : knx_status.TKNXStackStatus );
   VAR
     CurrentState : TObjectState;
   BEGIN
@@ -140,7 +140,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : knx_status.TEIBStackStatus; CONST PPacket : knx_def.TPPacket );
+  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : knx_status.TKNXStackStatus; CONST PPacket : knx_def.TPPacket );
   VAR
     CurrentInitReadState : TInitReadState;
     CurrentState : TObjectState;
@@ -213,7 +213,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : knx_status.TEIBStackStatus );
+  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : knx_status.TKNXStackStatus );
   VAR
     CurrentState : TObjectState;
   BEGIN
@@ -523,9 +523,9 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetValue( CONST _Value : knx_def.TValue; OUT Changed : BOOLEAN ) : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE SetValue( CONST _Value : knx_def.TValue; OUT Changed : BOOLEAN ) : knx_status.TKNXStackStatus;
   VAR
-    Result : knx_status.TEIBStackStatus;
+    Result : knx_status.TKNXStackStatus;
   BEGIN
     Lock();
     Changed := NOT Value.Equals( _Value );
@@ -537,11 +537,11 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetValue( OUT _Value : knx_def.TValue; UseCached, ForceReadIgnoringObjectFlags : BOOLEAN ) : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE GetValue( OUT _Value : knx_def.TValue; UseCached, ForceReadIgnoringObjectFlags : BOOLEAN ) : knx_status.TKNXStackStatus;
   VAR
     b : BOOLEAN;
     PGroup : TPAU_Group;
-    Result : knx_status.TEIBStackStatus := knx_status.essOK;
+    Result : knx_status.TKNXStackStatus := knx_status.essOK;
   BEGIN
     Lock();
 
@@ -581,11 +581,11 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Transmit() : knx_status.TEIBStackStatus;
+   PUBLIC PROCEDURE Transmit() : knx_status.TKNXStackStatus;
    VAR
       Address : knx_def.TAddress;
       PGroup : TPAU_Group;
-      Result : knx_status.TEIBStackStatus;
+      Result : knx_status.TKNXStackStatus;
    BEGIN
       Lock();
    
@@ -610,7 +610,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE InitiateTransmit( CONST Address : knx_def.TAddress; CONST Value : knx_def.TValue ) : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE InitiateTransmit( CONST Address : knx_def.TAddress; CONST Value : knx_def.TValue ) : knx_status.TKNXStackStatus;
   VAR
     LPacket : knx_def.TPacket;
   BEGIN
@@ -621,7 +621,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE InitiateGetValue( CONST Address : knx_def.TAddress ) : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE InitiateGetValue( CONST Address : knx_def.TAddress ) : knx_status.TKNXStackStatus;
   BEGIN
       Executive()^.A_GroupValue_Read_Req( ADR( SELF ), Address, Class );
       RETURN knx_status.essAU_Pending;
@@ -706,31 +706,31 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TEIBStackStatus; CurrentState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TKNXStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueReadRequestSent;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : knx_status.TEIBStackStatus; CurrentState : TObjectState; CurrentInitReadState : TInitReadState );
+  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : knx_status.TKNXStackStatus; CurrentState : TObjectState; CurrentInitReadState : TInitReadState );
   BEGIN
   END ValueRead;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : knx_status.TEIBStackStatus; CurrentState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : knx_status.TKNXStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueUpdated;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : knx_status.TEIBStackStatus; CurrentState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : knx_status.TKNXStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueWritten;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE eit2prl( eit : knx_def.TEIBType; VAR prl : knx_stack.TprLength ) : BOOLEAN;
+  PRIVATE PROCEDURE eit2prl( eit : knx_def.TKNXType; VAR prl : knx_stack.TprLength ) : BOOLEAN;
   BEGIN
     CASE eit OF
     | knx_def.eitSwitch, knx_def.eitIncrease, knx_def.eitMove, knx_def.eitPriority :

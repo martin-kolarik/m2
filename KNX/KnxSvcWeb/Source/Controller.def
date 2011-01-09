@@ -51,11 +51,11 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
 
    // SELF
-   PUBLIC PROCEDURE BindToEibSrv( web : KnxSvcWeb.TPEibSrvWeb );
+   PUBLIC PROCEDURE BindToKnxSrv( web : KnxSvcWeb.TPKnxSvcWeb );
 
    // private and helpers   
    PRIVATE VAR
-      _Web : KnxSvcWeb.TPEibSrvWeb;
+      _Web : KnxSvcWeb.TPKnxSvcWeb;
 
    PRIVATE PROCEDURE ProcessLogin( REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;

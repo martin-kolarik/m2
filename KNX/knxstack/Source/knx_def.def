@@ -44,8 +44,8 @@ TYPE
                      | 1 : dw    : CARD16; //
                      | 2 : APILo : CARD8;  // Little Endian in API,
                            APIHi : CARD8;
-                     | 3 : EIBHi : CARD8;  // Big Endian inside packet
-                           EIBLo : CARD8;
+                     | 3 : KNXHi : CARD8;  // Big Endian inside packet
+                           KNXLo : CARD8;
                      END; // CASE
                    END; // RECORD
 
@@ -188,16 +188,16 @@ CONST
 
 TYPE
   TA_ObjectFlags_Item = (
-    aofCommunicated, // EIB
-    aofReadable,     // EIB
-    aofTransmit,     // EIB
-    aofWritable,     // EIB
-    aofUpdate,       // EIB
+    aofCommunicated, // KNX
+    aofReadable,     // KNX
+    aofTransmit,     // KNX
+    aofWritable,     // KNX
+    aofUpdate,       // KNX
 
-    aofForceRead,    // extension, the object will always be communicated from EIB
+    aofForceRead,    // extension, the object will always be communicated from KNX
     aofAdvise,       // extension, the object notify back itself value notwithstanding fact it cannot notify (is e.g. only aofTransmit)
-    aofInitRead,     // extension, the object after creating read self first value from EIB
-    aofEIBValue,     // extension, user, the object has sent/received the value to/from EIB, so it is synchronized
+    aofInitRead,     // extension, the object after creating read self first value from KNX
+    aofKNXValue,     // extension, user, the object has sent/received the value to/from KNX, so it is synchronized
     
     aofPromiscuous   // extension, user, the object listens to all data of the proper length
   );
@@ -256,7 +256,7 @@ CONST
 (*--------------------------------------------------------------------------------*)
 
 TYPE
-  TEIBType = (
+  TKNXType = (
     eitUnknown,
     eitSwitch,       // EIS 1
     eitIncrease,     // EIS 2 Control
@@ -277,9 +277,9 @@ TYPE
     eitString        // EIS 15
   );
 
-PROCEDURE TypeToString( type : TEIBType; VAR string : ARRAY OF WCHAR ); // returns symbolic names
-PROCEDURE NumberToType( number : INTEGER; VAR type : TEIBType ) : BOOLEAN;
-PROCEDURE StringToType( String : ARRAY OF WCHAR; VAR EIT : TEIBType ) : BOOLEAN;
+PROCEDURE TypeToString( type : TKNXType; VAR string : ARRAY OF WCHAR ); // returns symbolic names
+PROCEDURE NumberToType( number : INTEGER; VAR type : TKNXType ) : BOOLEAN;
+PROCEDURE StringToType( String : ARRAY OF WCHAR; VAR EIT : TKNXType ) : BOOLEAN;
 
 CONST
   eis1         ::= eitSwitch;
@@ -302,17 +302,17 @@ CONST
   eis15        ::= eitString;
 
 TYPE
-  TEIBValueData = ARRAY [0..31] OF BYTE;
-  TPEIBValueData = POINTER TO TEIBValueData;
+  TKNXValueData = ARRAY [0..31] OF BYTE;
+  TPKNXValueData = POINTER TO TKNXValueData;
 
 CLASS CValue;
   LOCAL VAR
-    Type : TEIBType;
+    Type : TKNXType;
   PUBLIC VAR
-    Data : TEIBValueData;
+    Data : TKNXValueData;
     
-  PUBLIC PROCEDURE SetType( Type : TEIBType );
-  PUBLIC PROCEDURE GetType() : TEIBType;
+  PUBLIC PROCEDURE SetType( Type : TKNXType );
+  PUBLIC PROCEDURE GetType() : TKNXType;
 
   PUBLIC PROCEDURE CopyFrom( CONST Value : CValue );
   PUBLIC PROCEDURE Equals( CONST Value : CValue ) : BOOLEAN;

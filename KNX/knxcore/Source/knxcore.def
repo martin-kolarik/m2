@@ -25,7 +25,7 @@ IMPORT
 //================================================================================
 
 TYPE
-   TPEIBServer = POINTER TO CEIBServer;
+   TPKNXServer = POINTER TO CKNXServer;
    TPObject = POINTER TO CObject;
    
 TYPE
@@ -42,14 +42,14 @@ TYPE
 //--------------------------------------------------------------------------------
 
 CLASS CObject( knx_user.CUserObject );
-   Server             : TPEIBServer;
+   Server             : TPKNXServer;
 
    Name               : StringsO.CString;
    Comment            : StringsO.CString;
    StringValue        : StringsO.CString; // to accomodate strings longer than 14 bytes
 
-   RSStatus           : knx_status.TEIBStackStatus;
-   WSStatus           : knx_status.TEIBStackStatus;
+   RSStatus           : knx_status.TKNXStackStatus;
+   WSStatus           : knx_status.TKNXStackStatus;
    ReadRepeatCount    : CARDINAL;
    RecoveryExpiration : CARDINAL;
    _ObjectType        : TObjectType;
@@ -66,16 +66,16 @@ CLASS CObject( knx_user.CUserObject );
    INTERNAL VIRTUAL PROCEDURE Unlock();
 
    // handling events, NOT synchronized, if there is a need (e.g. if synchronized helper is not called) accessing object data inside MUST be synchronized
-   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TEIBStackStatus; CurrentState : knx_user.TObjectState );
-   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : knx_status.TEIBStackStatus; CurrentState : knx_user.TObjectState; CurrentInitReadState : knx_user.TInitReadState );
-   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : knx_status.TEIBStackStatus; CurrentState : knx_user.TObjectState );
-   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : knx_status.TEIBStackStatus; CurrentState : knx_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState; CurrentInitReadState : knx_user.TInitReadState );
+   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState );
 END CObject;
 
 //--------------------------------------------------------------------------------
 
-CLASS CStackSink IMPLEMENTS knx_stack.IEIBStackEventSink;
-   Server : TPEIBServer;
+CLASS CStackSink IMPLEMENTS knx_stack.IKNXStackEventSink;
+   Server : TPKNXServer;
    PUBLIC VIRTUAL PROCEDURE OnDeviceConnected();
    PUBLIC VIRTUAL PROCEDURE OnDeviceDisconnected();
 END CStackSink;
@@ -86,7 +86,7 @@ TYPE
    TPPromiscuousData = POINTER TO PromiscuousData;
 
 CLASS PromiscuousData;
-   Status  : knx_status.TEIBStackStatus;
+   Status  : knx_status.TKNXStackStatus;
    Address : knx_def.CAddress;
    Value   : knx_def.CValue;
 END PromiscuousData;
@@ -109,7 +109,7 @@ TYPE
       stackUnknown,
       stackUSB,
       stackFalcon,
-      stackEIBNet
+      stackKNXNet
    );
 
    TRStatusItem = (
@@ -132,9 +132,9 @@ TYPE
                      END;
 
 TYPE
-   TPEIBServerSink = POINTER TO IEIBServerSink;
+   TPKNXServerSink = POINTER TO IKNXServerSink;
    
-INTERFACE IEIBServerSink;
+INTERFACE IKNXServerSink;
    PROCEDURE OnConnect();
    PROCEDURE OnDisconnect();
    PROCEDURE OnInitReadCompleted();
@@ -142,17 +142,17 @@ INTERFACE IEIBServerSink;
    PROCEDURE OnWritten( PObject : TPObject );
    PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
-END IEIBServerSink;
+END IKNXServerSink;
 
-CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMapper, io.IIO;
+CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMapper, io.IIO;
    RStatus                  : TRStatus;
    ConfigurationPath        : StringsO.CString;
 
    Stack                    : TStack;
-   EIB                      : knx_stack.TPEIBStack;
-   EIBBoundaryLock          : Sync.LOCK;
+   KNX                      : knx_stack.TPKNXStack;
+   KNXBoundaryLock          : Sync.LOCK;
    Sink                     : CStackSink;
-   EventSink                : TPEIBServerSink;
+   EventSink                : TPKNXServerSink;
    Logger                   : log.CLogger;
    R                        : Resources.CResources;
    _Advise                  : io.TAdvise;
@@ -193,7 +193,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    ObjectLock               : Sync.LOCK;
    Groups                   : ARRAY CARD16 OF CARD16; // maps group addresses to object indexes
    Objects                  : arrays.CPtrArray;
-   prObjects                : ARRAY knx_def.TEIBType OF CObject; // promiscuous objects
+   prObjects                : ARRAY knx_def.TKNXType OF CObject; // promiscuous objects
 
    InitReadItems            : CARDINAL;
    InitReadRepeat           : CARDINAL;
@@ -267,7 +267,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    // internal
    PROCEDURE FindBehaviour( CONST BehaviourName : StringsO.IString; VAR Priority : knx_def.TPriority; VAR Flags : knx_def.TA_ObjectFlags ) : BOOLEAN;
    PROCEDURE FindObjectType( CONST ObjectTypeName : StringsO.IString; OUT ObjectType : TObjectType ) : BOOLEAN;
-   PROCEDURE AddObject( Class : knx_def.TPriority; Flags : knx_def.TA_ObjectFlags; Type : knx_def.TEIBType; ObjectType : TObjectType ) : TPObject;
+   PROCEDURE AddObject( Class : knx_def.TPriority; Flags : knx_def.TA_ObjectFlags; Type : knx_def.TKNXType; ObjectType : TObjectType ) : TPObject;
    PROCEDURE DoneObjects( NILExecutive : BOOLEAN );
 
    // object callbacks
@@ -275,7 +275,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    LOCAL PROCEDURE ValueRead( PObject : TPObject; CurrentState : knx_user.TObjectState; CurrentInitReadState : knx_user.TInitReadState ); // dtto
    LOCAL PROCEDURE ValueUpdated( Direction : IOO.TDirection; PObject : TPObject; CurrentState : knx_user.TObjectState ); // dtto
    LOCAL PROCEDURE ValueWritten( PObject : TPObject; CurrentState : knx_user.TObjectState ); // dtto
-   PRIVATE PROCEDURE EnqueuePromiscuous( Status : knx_status.TEIBStackStatus; PObject : TPObject );
+   PRIVATE PROCEDURE EnqueuePromiscuous( Status : knx_status.TKNXStackStatus; PObject : TPObject );
 
    // helpers
    PROCEDURE DoInitRead( RepeatFlag : BOOLEAN );
@@ -286,9 +286,9 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    LOCAL PROCEDURE LockObjects();
    LOCAL PROCEDURE UnlockObjects();
 
-   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : iovalue.Value; DestEVType : knx_def.TEIBType; OUT EV : knx_def.TValue; OUT SupportingStringData : StringsO.IString );
-   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : knx_def.TValue; CONST SupportingStringData : StringsO.IString; OUT Value : iovalue.Value );
-END CEIBServer;
+   LOCAL PROCEDURE IOValue2KNXValue( CONST Value : iovalue.Value; DestEVType : knx_def.TKNXType; OUT EV : knx_def.TValue; OUT SupportingStringData : StringsO.IString );
+   LOCAL PROCEDURE KNXValue2IOValue( CONST EV : knx_def.TValue; CONST SupportingStringData : StringsO.IString; OUT Value : iovalue.Value );
+END CKNXServer;
 
 //================================================================================
 

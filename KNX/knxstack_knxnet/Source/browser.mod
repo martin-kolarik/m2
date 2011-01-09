@@ -34,9 +34,9 @@ CLASS IMPLEMENTATION CBrowser;
    BEGIN
       LDelegate := Sync.ICmpExchgPtr( REF SELF.Delegate, Delegate, NIL );
       IF LDelegate = NIL THEN // previous value
-         logger()^.LogS( ldTrace, 0, L"EIBNet Browser", "started" );
+         logger()^.LogS( ldTrace, 0, L"KNXNet Browser", "started" );
       ELSE
-         logger()^.LogS( ldTrace, 0, L"EIBNet Browser", "not started -- already pending" );
+         logger()^.LogS( ldTrace, 0, L"KNXNet Browser", "not started -- already pending" );
          RETURN Sync.arAlreadyPending;
       END;
       Delegate^.AddRef();
@@ -49,7 +49,7 @@ CLASS IMPLEMENTATION CBrowser;
          RETURN Sync.arPending;
       END;
 
-      logger()^.LogSC( ldTrace, 0, L"EIBNet Browser", "stopped with error: ", CARDINAL( res ));
+      logger()^.LogSC( ldTrace, 0, L"KNXNet Browser", "stopped with error: ", CARDINAL( res ));
       Sync.IExchgPtr( REF SELF.Delegate, NIL );
       RETURN Sync.arCannotStart;
    END Browse;
@@ -63,7 +63,7 @@ CLASS IMPLEMENTATION CBrowser;
    BEGIN
       LDelegate := Sync.IExchgPtr( REF SELF.Delegate, NIL );
       IF LDelegate <> NIL THEN
-         logger()^.LogSC( ldTrace, 0, L"EIBNet Browser", "stopped with servers: ", Servers.Count );
+         logger()^.LogSC( ldTrace, 0, L"KNXNet Browser", "stopped with servers: ", Servers.Count );
 
          l := Servers.Count;
          IF l = 0 THEN
@@ -85,7 +85,7 @@ CLASS IMPLEMENTATION CBrowser;
       String : ARRAY [0..63] OF WCHAR;
    BEGIN
       packet.Address.ToOA( FALSE, OUT String );
-      logger()^.LogSS( ldTrace, 0, L"EIBNet Browser", "found server: ", String );
+      logger()^.LogSS( ldTrace, 0, L"KNXNet Browser", "found server: ", String );
 
       NEW( Server );
       Server^.HPAI := packet.HPAI;
@@ -98,7 +98,7 @@ CLASS IMPLEMENTATION CBrowser;
       Server^.Address := ai;
 
       ai := packet.RoutingAddress;
-      ai.Port := transport.EIBNET_IPPORT;
+      ai.Port := transport.KNXNET_IPPORT;
       Server^.RoutingAddress := ai;
 
       Servers.Add( Server );

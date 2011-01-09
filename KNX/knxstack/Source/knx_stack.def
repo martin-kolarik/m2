@@ -21,39 +21,39 @@ IMPORT
 // common
 
 TYPE
-  TEIBStackLayerType = (
-    eltUndefined,
-    eltAbstract,
-    eltPhysical,
-    eltLink,
-    eltNetwork,
-    eltTransport,
-    eltApplication,
-    eltUser
+  TKNXStackLayerType = (
+    kltUndefined,
+    kltAbstract,
+    kltPhysical,
+    kltLink,
+    kltNetwork,
+    kltTransport,
+    kltApplication,
+    kltUser
   );
 
-  TEIBStackLayerHirerarchy = ARRAY TEIBStackLayerType OF TEIBStackLayerType;
+  TKNXStackLayerHirerarchy = ARRAY TKNXStackLayerType OF TKNXStackLayerType;
 
 CONST
-  eibExecutive = TEIBStackLayerHirerarchy(
-    eltUndefined,   // for eltUdefined
-    eltUndefined,   // for eltAbstract
-    eltUndefined,   // for eltPhysical
-    eltPhysical,    // for eltLink
-    eltLink,        // for eltNetwork
-    eltNetwork,     // for eltTransport
-    eltTransport,   // for eltApplication
-    eltApplication  // for eltUser
+  knxExecutive = TKNXStackLayerHirerarchy(
+    kltUndefined,   // for kltUdefined
+    kltUndefined,   // for kltAbstract
+    kltUndefined,   // for kltPhysical
+    kltPhysical,    // for kltLink
+    kltLink,        // for kltNetwork
+    kltNetwork,     // for kltTransport
+    kltTransport,   // for kltApplication
+    kltApplication  // for kltUser
   );
-  eibListener = TEIBStackLayerHirerarchy(
-    eltUndefined,   // for eltUdefined
-    eltUndefined,   // for eltAbstract
-    eltLink,        // for eltPhysical
-    eltNetwork,     // for eltLink
-    eltTransport,   // for eltNetwork
-    eltApplication, // for eltTransport
-    eltUser,        // for eltApplication
-    eltUndefined    // for eltUser
+  knxListener = TKNXStackLayerHirerarchy(
+    kltUndefined,   // for kltUdefined
+    kltUndefined,   // for kltAbstract
+    kltLink,        // for kltPhysical
+    kltNetwork,     // for kltLink
+    kltTransport,   // for kltNetwork
+    kltApplication, // for kltTransport
+    kltUser,        // for kltApplication
+    kltUndefined    // for kltUser
   );
 
 (*--------------------------------------------------------------------------------*)
@@ -95,60 +95,60 @@ TYPE
 // abstract layer
 
 TYPE
-  TPEIBStack          = POINTER TO CEIBStack;
-  TPEIBStackEventSink = POINTER TO IEIBStackEventSink;
-  TPEIBStackLayer     = POINTER TO CEIBStackLayer;
+  TPKNXStack          = POINTER TO CKNXStack;
+  TPKNXStackEventSink = POINTER TO IKNXStackEventSink;
+  TPKNXStackLayer     = POINTER TO CKNXStackLayer;
 
-CLASS CEIBStackLayer;
+CLASS CKNXStackLayer;
   INTERNAL VAR
-    LayerType  : TEIBStackLayerType; // CONST
-    PExecutive : TPEIBStackLayer;
-    PListener  : TPEIBStackLayer;
+    LayerType  : TKNXStackLayerType; // CONST
+    PExecutive : TPKNXStackLayer;
+    PListener  : TPKNXStackLayer;
   PUBLIC VAR
-    PStack     : TPEIBStack;
+    PStack     : TPKNXStack;
 
   // common
   INTERNAL VIRTUAL PROCEDURE IsSelf( CONST Address : knx_def.TAddress ) : BOOLEAN;
-  LOCAL VIRTUAL PROCEDURE GetLayerType() : TEIBStackLayerType;
+  LOCAL VIRTUAL PROCEDURE GetLayerType() : TKNXStackLayerType;
   LOCAL VIRTUAL PROCEDURE Freeable() : BOOLEAN;
   // PROCEDURE Executive() : LayerTypeExecutive
   // PROCEDURE Listener() : LayerTypeListener
 
   // chaining
   LOCAL VIRTUAL PROCEDURE SetExecutive(
-          PExcecutive : TPEIBStackLayer
+          PExcecutive : TPKNXStackLayer
   );
   LOCAL VIRTUAL PROCEDURE SetListener(
-          PListener : TPEIBStackLayer
+          PListener : TPKNXStackLayer
   );
 
   // operation
   LOCAL VIRTUAL PROCEDURE Initialize_Req();
   LOCAL VIRTUAL PROCEDURE Initialize_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
 
   LOCAL VIRTUAL PROCEDURE Done_Req();
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
 
   LOCAL VIRTUAL PROCEDURE TimeoutUpdated( TimeoutId : TTimeoutId; UserId : LONGWORD );
   LOCAL VIRTUAL PROCEDURE Timeout( TimeoutId : TTimeoutId; UserId : LONGWORD );
 
-  VIRTUAL FINALLY CEIBStackLayer();
-END CEIBStackLayer;
+  VIRTUAL FINALLY CKNXStackLayer();
+END CKNXStackLayer;
 
 (*--------------------------------------------------------------------------------*)
 // helper object
 
 CLASS CTimeouter( msghandler.MessageHandler );
-  PLayer       : TPEIBStackLayer;
+  PLayer       : TPKNXStackLayer;
   TimeoutId    : TTimeoutId;
   TimeoutDelay : CARDINAL;
   UserId       : LONGWORD;
 
-  LOCAL PROCEDURE Init( PLayer : TPEIBStackLayer; TimeoutId : TTimeoutId; TimeoutDelay : CARDINAL; UserId : LONGWORD );
+  LOCAL PROCEDURE Init( PLayer : TPKNXStackLayer; TimeoutId : TTimeoutId; TimeoutDelay : CARDINAL; UserId : LONGWORD );
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
   LOCAL PROCEDURE Start();
@@ -161,13 +161,13 @@ END CTimeouter;
 // layers, forward pointer types
 
 TYPE
-  TPEIBStackPhysicalLayer    = POINTER TO CEIBStackPhysicalLayer;
-  TPEIBStackLinkLayer        = POINTER TO CEIBStackLinkLayer;
-  TPEIBStackNetworkLayer     = POINTER TO CEIBStackNetworkLayer;
-  TPEIBStackTransportLayer   = POINTER TO CEIBStackTransportLayer;
-  TPEIBStackApplicationLayer = POINTER TO CEIBStackApplicationLayer;
+  TPKNXStackPhysicalLayer    = POINTER TO CKNXStackPhysicalLayer;
+  TPKNXStackLinkLayer        = POINTER TO CKNXStackLinkLayer;
+  TPKNXStackNetworkLayer     = POINTER TO CKNXStackNetworkLayer;
+  TPKNXStackTransportLayer   = POINTER TO CKNXStackTransportLayer;
+  TPKNXStackApplicationLayer = POINTER TO CKNXStackApplicationLayer;
 
-  TPEIBStackUserLayer        = POINTER TO CEIBStackLayer; // abstract
+  TPKNXStackUserLayer        = POINTER TO CKNXStackLayer; // abstract
   TPObject                   = POINTER TO IUserObject;
 CONST
   TPSAP                      ::= TPObject;
@@ -175,10 +175,10 @@ CONST
 (*================================================================================*)
 // physical layer, mainly abstract
 
-CLASS CEIBStackPhysicalLayer( CEIBStackLayer );
+CLASS CKNXStackPhysicalLayer( CKNXStackLayer );
   // chaining
   // PROCEDURE Executive() : LayerTypeExecutive
-  PUBLIC PROCEDURE Listener() : TPEIBStackLinkLayer;
+  PUBLIC PROCEDURE Listener() : TPKNXStackLinkLayer;
 
   // operation
   LOCAL VIRTUAL PROCEDURE Initialize_Req();
@@ -187,7 +187,7 @@ CLASS CEIBStackPhysicalLayer( CEIBStackLayer );
   // :: service Ph_Reset
   PUBLIC VIRTUAL PROCEDURE Ph_Reset_Req();
   PUBLIC VIRTUAL PROCEDURE Ph_Reset_Con(
-    // Status : knx_status.TEIBStackStatus is generated inside
+    // Status : knx_status.TKNXStackStatus is generated inside
   );
 
   PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( // procedure MUST call Ph_Data_Sent (or assure that Ph_Data_Sent will be called) if sending succeeded
@@ -201,9 +201,9 @@ CLASS CEIBStackPhysicalLayer( CEIBStackLayer );
     // Packet is received and created inside
   );
   PUBLIC VIRTUAL PROCEDURE Ph_Data_Con(
-    // Status : knx_status.TEIBStackStatus is generated inside
+    // Status : knx_status.TKNXStackStatus is generated inside
   );
-END CEIBStackPhysicalLayer;
+END CKNXStackPhysicalLayer;
 
 (*================================================================================*)
 // link layer
@@ -255,15 +255,15 @@ CLASS CL_Request_Queue;
       VAR Pending     : BOOLEAN
   ) : BOOLEAN; // gets top packet
   LOCAL PROCEDURE PacketSent(
-          Status      : knx_status.TEIBStackStatus
-  ) : knx_status.TEIBStackStatus; // removes packet
+          Status      : knx_status.TKNXStackStatus
+  ) : knx_status.TKNXStackStatus; // removes packet
   LOCAL PROCEDURE PacketsPending() : CARDINAL;
 END CL_Request_Queue;
 
 (*--------------------------------------------------------------------------------*)
 
 CLASS CL_Data_Listener( list.CListElem );
-  PExecutive : TPEIBStackLinkLayer;
+  PExecutive : TPKNXStackLinkLayer;
 
   // public
   LOCAL VIRTUAL PROCEDURE Done();
@@ -282,7 +282,7 @@ CLASS CL_Data_Listener( list.CListElem );
 
   // default CALLS L_Data_Ind/Con to NetworkLayer
   LOCAL VIRTUAL PROCEDURE L_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical or group
           PPacket     : knx_def.TPPacket
   );
@@ -318,7 +318,7 @@ TYPE
 
 TYPE
   TL_Parameters = RECORD
-                    // EIB
+                    // KNX
                     LinkMode             : TL_LinkMode;
                     SelfAddress          : knx_def.TAddress;
                     NAK_Retry            : CARDINAL;
@@ -346,7 +346,7 @@ TYPE
               LastSend     : CARDINAL;
             END; // RECORD
 
-CLASS CEIBStackLinkLayer( CEIBStackLayer );
+CLASS CKNXStackLinkLayer( CKNXStackLayer );
   L_Parameters : TL_Parameters;
   L_Data       : TL_Data;
 
@@ -355,16 +355,16 @@ CLASS CEIBStackLinkLayer( CEIBStackLayer );
   LOCAL PROCEDURE IsSelfPacket( PPacket : knx_def.TPPacket ) : BOOLEAN;
 
   // chaining
-  PRIVATE PROCEDURE Executive() : TPEIBStackPhysicalLayer;
-  PRIVATE PROCEDURE Listener() : TPEIBStackLayer;
+  PRIVATE PROCEDURE Executive() : TPKNXStackPhysicalLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackLayer;
 
   // operation
   LOCAL VIRTUAL PROCEDURE Initialize_Req();
   LOCAL VIRTUAL PROCEDURE Initialize_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
 
   // listeners registration and multiplexing
@@ -382,7 +382,7 @@ CLASS CEIBStackLinkLayer( CEIBStackLayer );
           PPacket     : knx_def.TPPacket
   );
   PUBLIC PROCEDURE Ph_Data_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   PUBLIC VIRTUAL PROCEDURE L_Data_Ind_Res( // EXTENSION
           AcceptResponse : TL_AcceptResponse
@@ -401,7 +401,7 @@ CLASS CEIBStackLinkLayer( CEIBStackLayer );
   // default CALLS L_Data_Ind/Con to NetworkLayer
   INTERNAL VIRTUAL PROCEDURE L_Data_Con(
           PListener   : TPL_Data_Listener;
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical or group
           PPacket     : knx_def.TPPacket
   );
@@ -427,7 +427,7 @@ CLASS CEIBStackLinkLayer( CEIBStackLayer );
 
   // :: service busmon
   INTERNAL VIRTUAL PROCEDURE L_Busmonitor_Ind(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Time        : INT64;
           PPacket     : knx_def.TPPacket
   );
@@ -435,7 +435,7 @@ CLASS CEIBStackLinkLayer( CEIBStackLayer );
   // :: service information
   INTERNAL VIRTUAL PROCEDURE L_Service_Information_Ind();
 
-END CEIBStackLinkLayer;
+END CKNXStackLinkLayer;
 
 (*================================================================================*)
 // network layer
@@ -444,7 +444,7 @@ TYPE
   TPRoutingTable = POINTER TO CRoutingTable;
 
 CLASS CRoutingTable;
-  LOCAL VIRTUAL PROCEDURE EnumerateTargets( VAR EnumerateState : PTR; CONST Destination : knx_def.TAddress; VAR PInterface : TPEIBStackLinkLayer ) : BOOLEAN;
+  LOCAL VIRTUAL PROCEDURE EnumerateTargets( VAR EnumerateState : PTR; CONST Destination : knx_def.TAddress; VAR PInterface : TPKNXStackLinkLayer ) : BOOLEAN;
 END CRoutingTable;
 
 (*--------------------------------------------------------------------------------*)
@@ -474,7 +474,7 @@ TYPE
   TPN_L_Data_Listener = POINTER TO CN_L_Data_Listener;
 
 CLASS CN_L_Data_Listener( CL_Data_Listener );
-  PListener : TPEIBStackNetworkLayer;
+  PListener : TPKNXStackNetworkLayer;
 
   // methods
   LOCAL VIRTUAL PROCEDURE GetGroups( VAR Groups : TGroupInfo );
@@ -482,7 +482,7 @@ CLASS CN_L_Data_Listener( CL_Data_Listener );
   LOCAL PROCEDURE RemoveGroup( CONST Address : knx_def.TAddress );
 
   LOCAL VIRTUAL PROCEDURE L_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical or group
           PPacket     : knx_def.TPPacket
   );
@@ -496,24 +496,24 @@ END CN_L_Data_Listener;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CEIBStackNetworkLayer( CEIBStackLayer );
+CLASS CKNXStackNetworkLayer( CKNXStackLayer );
   N_Parameters : TN_Parameters;
   N_Data       : TN_Data;
 
   // chaining
   PRIVATE PROCEDURE Executive() : TPL_Data_Listener;
-  PRIVATE PROCEDURE Listener() : TPEIBStackTransportLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackTransportLayer;
 
   // inherited
   LOCAL VIRTUAL PROCEDURE Initialize_Req();
   LOCAL VIRTUAL PROCEDURE Done_Req();
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
 
   // LINK LAYER RECEPTION
   LOCAL PROCEDURE L_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical or group
           PPacket     : knx_def.TPPacket
   );
@@ -532,7 +532,7 @@ CLASS CEIBStackNetworkLayer( CEIBStackLayer );
   );
   // default CALLS N_Data_Ind/Con to TransportLayer
   INTERNAL VIRTUAL PROCEDURE N_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical
           PPacket     : knx_def.TPPacket
   );
@@ -551,7 +551,7 @@ CLASS CEIBStackNetworkLayer( CEIBStackLayer );
   );
   // default CALLS N_Data_Ind/Con to TransportLayer
   INTERNAL VIRTUAL PROCEDURE N_Groupdata_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // logical
           Packet      : knx_def.TPPacket
   );
@@ -569,7 +569,7 @@ CLASS CEIBStackNetworkLayer( CEIBStackLayer );
   );
   // default CALLS N_Data_Ind/Con to TransportLayer
   INTERNAL VIRTUAL PROCEDURE N_Broadcast_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   INTERNAL VIRTUAL PROCEDURE N_Broadcast_Ind(
           Source      : knx_def.TAddress; // physical
@@ -581,7 +581,7 @@ CLASS CEIBStackNetworkLayer( CEIBStackLayer );
   INTERNAL VIRTUAL PROCEDURE OnPacketDiscard(
           PPacket        : knx_def.TPPacket
   );
-END CEIBStackNetworkLayer;
+END CKNXStackNetworkLayer;
 
 (*================================================================================*)
 // transport layer
@@ -618,17 +618,17 @@ CONST // bits already converted to big endian
 TYPE
    TPConnection = ADDRESS;
 
-CLASS CEIBStackTransportLayer( CEIBStackLayer );
+CLASS CKNXStackTransportLayer( CKNXStackLayer );
 
   // chaining
-  PRIVATE PROCEDURE Executive() : TPEIBStackNetworkLayer;
-  PRIVATE PROCEDURE Listener() : TPEIBStackApplicationLayer;
+  PRIVATE PROCEDURE Executive() : TPKNXStackNetworkLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackApplicationLayer;
 
   // NETWORK LAYER RECEPTION
 
   // unicast data
   LOCAL PROCEDURE N_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical
           PPacket     : knx_def.TPPacket
   );
@@ -641,7 +641,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
 
   // multicast data
   LOCAL PROCEDURE N_Groupdata_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // logical
           Packet      : knx_def.TPPacket
   );
@@ -654,7 +654,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
 
   // broadcast data
   LOCAL PROCEDURE N_Broadcast_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   LOCAL PROCEDURE N_Broadcast_Ind(
           Source      : knx_def.TAddress; // physical
@@ -671,7 +671,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
   );
   // unicast connectionless data
   INTERNAL VIRTUAL PROCEDURE T_Data_Unack_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress
   );
   INTERNAL VIRTUAL PROCEDURE T_Data_Unack_Ind(
@@ -687,7 +687,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
       VAR PConnection : TPConnection
   );
   INTERNAL VIRTUAL PROCEDURE T_Connect_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   INTERNAL VIRTUAL PROCEDURE T_Connect_Ind(
@@ -698,7 +698,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
           PConnection : TPConnection
   );
   INTERNAL VIRTUAL PROCEDURE T_Disconnect_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   INTERNAL VIRTUAL PROCEDURE T_Disconnect_Ind(
@@ -711,7 +711,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
       VAR Packet      : knx_def.TPacket
   );
   INTERNAL VIRTUAL PROCEDURE T_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   INTERNAL VIRTUAL PROCEDURE T_Data_Ind(
@@ -724,7 +724,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
       VAR Packet      : knx_def.TPacket
   );
   INTERNAL VIRTUAL PROCEDURE T_Broadcast_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   INTERNAL VIRTUAL PROCEDURE T_Broadcast_Ind(
           Source      : knx_def.TAddress; // physical
@@ -739,7 +739,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
       VAR Packet      : knx_def.TPacket
   );
   INTERNAL VIRTUAL PROCEDURE T_Groupdata_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress;
           PPacket     : knx_def.TPPacket
   );
@@ -751,7 +751,7 @@ CLASS CEIBStackTransportLayer( CEIBStackLayer );
 
   // private transport layer stuffs
   PRIVATE PROCEDURE SetTPDU( VAR Packet : knx_def.TPacket; TPDU : TT_PDU );
-END CEIBStackTransportLayer;
+END CKNXStackTransportLayer;
 
 (*================================================================================*)
 // application layer
@@ -814,7 +814,7 @@ TYPE
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMessageSink;
+CLASS CKNXStackApplicationLayer( CKNXStackLayer ) IMPLEMENTS msghandlersink.IMessageSink;
    PRIVATE VAR
       Handler : msghandlersink.SinkMessageHandler;
       Queue : msgqueue.CPtrQueue;
@@ -824,11 +824,11 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
       A_Data : TA_Data;
 
   // chaining
-  PRIVATE PROCEDURE Executive() : TPEIBStackTransportLayer;
-  PRIVATE PROCEDURE Listener() : TPEIBStackUserLayer;
+  PRIVATE PROCEDURE Executive() : TPKNXStackTransportLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackUserLayer;
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
 
   LOCAL VIRTUAL PROCEDURE Timeout( TimeoutId : TTimeoutId; UserId : LONGWORD );
@@ -836,7 +836,7 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
   // TRANSPORT LAYER RECEPTION
   // unicast connectionless data
   LOCAL PROCEDURE T_Data_Unack_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress
   );
   LOCAL PROCEDURE T_Data_Unack_Ind(
@@ -847,21 +847,21 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
 
   // unicast data
   LOCAL PROCEDURE T_Connect_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   LOCAL PROCEDURE T_Connect_Ind(
           PConnection : TPConnection
   );
   LOCAL PROCEDURE T_Disconnect_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   LOCAL PROCEDURE T_Disconnect_Ind(
           PConnection : TPConnection
   );
   LOCAL PROCEDURE T_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   LOCAL PROCEDURE T_Data_Ind(
@@ -870,7 +870,7 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
 
   // broadcast data
   LOCAL PROCEDURE T_Broadcast_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   LOCAL PROCEDURE T_Broadcast_Ind(
           Source      : knx_def.TAddress; // physical
@@ -880,7 +880,7 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
 
   // multicast data
   LOCAL PROCEDURE T_Groupdata_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress;
           PPacket     : knx_def.TPPacket
   );
@@ -910,7 +910,7 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
       VAR Packet      : knx_def.TPacket
   );
   INTERNAL VIRTUAL PROCEDURE A_GroupValue_Process( // rewritting allow tracking of all groups
-          Status      : knx_status.TEIBStackStatus; // if needed, e.g. for pphCON
+          Status      : knx_status.TKNXStackStatus; // if needed, e.g. for pphCON
           POriginator : TPSAP;
           Phase       : TProcessPhase;
           APDU        : TA_PDU;
@@ -919,7 +919,7 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
     CONST PPacket     : knx_def.TPPacket
   );
   PRIVATE PROCEDURE A_GroupValue_Process_Single( // rewritting allow tracking of all groups
-          Status      : knx_status.TEIBStackStatus; // if needed, e.g. for pphCON
+          Status      : knx_status.TKNXStackStatus; // if needed, e.g. for pphCON
           POriginator : TPSAP;
           Phase       : TProcessPhase;
           APDU        : TA_PDU;
@@ -934,21 +934,21 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
           Update_L_Layer : BOOLEAN;
     CONST Address        : knx_def.TAddress;
           PObject        : TPSAP
-  ) : knx_status.TEIBStackStatus;
+  ) : knx_status.TKNXStackStatus;
   PUBLIC PROCEDURE A_Unsubscribe(
           Update_L_Layer : BOOLEAN;
     CONST Address        : knx_def.TAddress;
           PObject        : TPSAP
-  ) : knx_status.TEIBStackStatus;
+  ) : knx_status.TKNXStackStatus;
 
   PUBLIC PROCEDURE A_SubscribePromiscuous(
           Length         : TprLength;
           PObject        : TPSAP
-  ) : knx_status.TEIBStackStatus;
+  ) : knx_status.TKNXStackStatus;
   PUBLIC PROCEDURE A_UnsubscribePromiscuous(
           Length         : TprLength;
           PObject        : TPSAP
-  ) : knx_status.TEIBStackStatus;
+  ) : knx_status.TKNXStackStatus;
 
   PUBLIC PROCEDURE Update_L_Layer();
   
@@ -961,7 +961,7 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
 
   PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; POriginator : TPSAP; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress; CONST Packet : knx_def.TPacket );
   PRIVATE PROCEDURE A_GetPendingDestination( WhatIsPending : TPendingOperation; Class : knx_def.TPriority; VAR Destination : knx_def.TAddress ) : BOOLEAN;
-  PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : knx_status.TEIBStackStatus; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress );
+  PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : knx_status.TKNXStackStatus; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress );
   PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; PClass : knx_def.TPPriority ); // CAN be NIL, if start could select packet automatically
   PRIVATE PROCEDURE A_PendingIsTransactional( PendingOperation : TPendingOperation ) : BOOLEAN;
 
@@ -972,7 +972,7 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
 
   LOCAL PROCEDURE A_QueueLength( WhatIsPending : TPendingOperation ) : CARDINAL;
   LOCAL PROCEDURE A_SetPromiscuousMode( PromiscuousMode : BOOLEAN );
-END CEIBStackApplicationLayer;
+END CKNXStackApplicationLayer;
 
 (*================================================================================*)
 // multicast user layer is represented by objects
@@ -983,11 +983,11 @@ INTERFACE IUserObject;
   PROCEDURE AU_GroupValue_Read_Req(); // possible different thread
 
   PROCEDURE AU_GroupValue_Read_Con(  // possible different thread
-          Status : knx_status.TEIBStackStatus
+          Status : knx_status.TKNXStackStatus
   );
 
   PROCEDURE AU_GroupValue_Read_Res( // possible different thread
-          Status : knx_status.TEIBStackStatus;
+          Status : knx_status.TKNXStackStatus;
     CONST PPacket : knx_def.TPPacket
   );
 
@@ -996,7 +996,7 @@ INTERFACE IUserObject;
   );
 
   PROCEDURE AU_GroupValue_Write_Con( // possible different thread
-          Status : knx_status.TEIBStackStatus
+          Status : knx_status.TKNXStackStatus
   );
   
    // USER LAYER ADDRESSES
@@ -1012,7 +1012,7 @@ END IUserObject;
 (*================================================================================*)
 
 TYPE
-  TStackLayers = ARRAY [eltPhysical..eltUser] OF TPEIBStackLayer;
+  TStackLayers = ARRAY [kltPhysical..kltUser] OF TPKNXStackLayer;
 
 TYPE
   TStackStatus = (
@@ -1024,20 +1024,20 @@ TYPE
   );
   TStackStatusSet = SET OF TStackStatus;
 
-CLASS CEIBStack;
+CLASS CKNXStack;
   Status     : TStackStatusSet;
-  PEventSink : TPEIBStackEventSink;
+  PEventSink : TPKNXStackEventSink;
   Layers     : TStackLayers;
 
   // public methods
-  PUBLIC PROCEDURE Init( ConnectImmediatelly : BOOLEAN; InitLayerFrom, InitLayerTo : TEIBStackLayerType; PEventSink : TPEIBStackEventSink ) : knx_status.TEIBStackStatus;
-    // InitLayerFrom, InitLayerTo can be eltUnknown
-  PUBLIC PROCEDURE Connect() : knx_status.TEIBStackStatus;
-  PUBLIC PROCEDURE Disconnect() : knx_status.TEIBStackStatus;
-  PUBLIC PROCEDURE Done() : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Init( ConnectImmediatelly : BOOLEAN; InitLayerFrom, InitLayerTo : TKNXStackLayerType; PEventSink : TPKNXStackEventSink ) : knx_status.TKNXStackStatus;
+    // InitLayerFrom, InitLayerTo can be kltUnknown
+  PUBLIC PROCEDURE Connect() : knx_status.TKNXStackStatus;
+  PUBLIC PROCEDURE Disconnect() : knx_status.TKNXStackStatus;
+  PUBLIC PROCEDURE Done() : knx_status.TKNXStackStatus;
 
   // public configuration & queries
-  PUBLIC PROCEDURE SetStackAddress( CONST Address : knx_def.TAddress ) : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE SetStackAddress( CONST Address : knx_def.TAddress ) : knx_status.TKNXStackStatus;
   PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
   PUBLIC PROCEDURE SetParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC PROCEDURE GetParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
@@ -1047,7 +1047,7 @@ CLASS CEIBStack;
   PUBLIC PROCEDURE WriteQueueLength() : CARDINAL;
 
   // rewritable methods, ALL rewritable methods are OPTIONAL
-  INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : TEIBStackLayerType; VAR PLayer : TPEIBStackLayer ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : TKNXStackLayerType; VAR PLayer : TPKNXStackLayer ) : BOOLEAN;
     // method creates layer, otherwise returns FALSE (this is correct and it is handled by stack itself)
   LOCAL VIRTUAL PROCEDURE CreateL_Data_Listener( VAR PL_Data_Listener : TPL_Data_Listener ) : BOOLEAN;
     // method creates link layer listener, which is used for communication between link and network layers
@@ -1056,35 +1056,35 @@ CLASS CEIBStack;
     // called inside SetParameter
   INTERNAL VIRTUAL PROCEDURE ConstructParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
     // called inside GetParameter
-  INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TKNXStackStatus;
     // called from Init, user init actions
-  INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TKNXStackStatus;
     // called from Connect, connect itself
-  INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TKNXStackStatus;
     // called from Disconnnect, disconnect itself
-  INTERNAL VIRTUAL PROCEDURE Dispose() : knx_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE Dispose() : knx_status.TKNXStackStatus;
     // called from Done, user done actions
-  LOCAL VIRTUAL PROCEDURE OnError( Layer : TEIBStackLayerType; ErrorCode : knx_status.TEIBStackStatus );
+  LOCAL VIRTUAL PROCEDURE OnError( Layer : TKNXStackLayerType; ErrorCode : knx_status.TKNXStackStatus );
 
   PUBLIC VIRTUAL PROCEDURE DeviceConnected() : BOOLEAN;
     // if the HW/iface is found
-  PUBLIC VIRTUAL PROCEDURE EIBConnected() : BOOLEAN;
-    // if the whole connection to EIB is OK
+  PUBLIC VIRTUAL PROCEDURE KNXConnected() : BOOLEAN;
+    // if the whole connection to KNX is OK
   PUBLIC PROCEDURE OnDeviceConnected();
     // callback
   PUBLIC PROCEDURE OnDeviceDisconnected();
     // callback
 
   // private methods
-  PRIVATE PROCEDURE CreateLayerInternal( Layer : TEIBStackLayerType; VAR PLayer : TPEIBStackLayer ) : BOOLEAN;
-END CEIBStack;
+  PRIVATE PROCEDURE CreateLayerInternal( Layer : TKNXStackLayerType; VAR PLayer : TPKNXStackLayer ) : BOOLEAN;
+END CKNXStack;
 
 (*--------------------------------------------------------------------------------*)
 
-INTERFACE IEIBStackEventSink;
+INTERFACE IKNXStackEventSink;
   PROCEDURE OnDeviceConnected();
   PROCEDURE OnDeviceDisconnected();
-END IEIBStackEventSink;
+END IKNXStackEventSink;
 
 (*================================================================================*)
 

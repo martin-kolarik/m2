@@ -4,7 +4,7 @@ DEFINITION MODULE knx_status;
 // common
 
 TYPE
-  TEIBStackStatus = (
+  TKNXStackStatus = (
     // common
     essOK,
     essConError,
@@ -51,15 +51,15 @@ TYPE
     addFinalized
   );
 
-  TEIBStackLayerType = (
-    eltUndefined,
-    eltAbstract,
-    eltPhysical,
-    eltLink,
-    eltNetwork,
-    eltTransport,
-    eltApplication,
-    eltUser
+  TKNXStackLayerType = (
+    kltUndefined,
+    kltAbstract,
+    kltPhysical,
+    kltLink,
+    kltNetwork,
+    kltTransport,
+    kltApplication,
+    kltUser
   );
 
 END knx_status.

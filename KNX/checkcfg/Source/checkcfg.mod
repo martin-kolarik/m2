@@ -32,14 +32,14 @@ VAR
    Args : lists.CStringList;
    DI : FSO.CDirectoryInfo;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
-   EIB : knxcore.CEIBServer;
    ErrorText : StringsO.CString;
    i : INTEGER;
    Line : CARDINAL;
+   KNX : knxcore.CKNXServer;
    R : Resources.CResources;
    stdout : TextWriter.TPTextWriter := TextWriter.stdout();
 BEGIN
-   EIB.EXEFlag := TRUE;
+   KNX.EXEFlag := TRUE;
    R.LoadRES2( EMIT( %exe ), L"checkcfg.Texts" );
 
    i := 1;
@@ -64,10 +64,10 @@ BEGIN
          REPEAT
             stdout^.WriteOA( L"  ", FALSE ); stdout^.Write( DI.Path, FALSE ); stdout^.WriteOA( 9W, FALSE );
 
-            EIB.Dispose();
+            KNX.Dispose();
             ErrorText.Clear();
-            IF EIB.LoadConfiguration( DI.Path, OUT ErrorText, OUT Line ) THEN
-               stdout^.WriteOA( OAsz( R[Texts._Success] ), FALSE ); stdout^.WriteOA( 9W, FALSE ); stdout^.WriteINT32( EIB.Objects.Count, 10, FALSE ); stdout^.WriteOA( OAsz( R[Texts._Objects] ), TRUE );
+            IF KNX.LoadConfiguration( DI.Path, OUT ErrorText, OUT Line ) THEN
+               stdout^.WriteOA( OAsz( R[Texts._Success] ), FALSE ); stdout^.WriteOA( 9W, FALSE ); stdout^.WriteINT32( KNX.Objects.Count, 10, FALSE ); stdout^.WriteOA( OAsz( R[Texts._Objects] ), TRUE );
             ELSE
                stdout^.WriteOA( OAsz( R[Texts._Failed] ), TRUE );
                stdout^.WriteOA( OAsz( R[Texts._Line] ), FALSE ); stdout^.WriteINT32( Line, 10, FALSE ); stdout^.WriteOA( L": ", FALSE );
@@ -77,7 +77,7 @@ BEGIN
          UNTIL NOT DI.MoveNext();
       END; // IF DI
    END; // WHILE
-   EIB.Dispose();
+   KNX.Dispose();
 
    RETURN 0;
 

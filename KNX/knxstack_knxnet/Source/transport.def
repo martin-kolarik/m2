@@ -12,8 +12,8 @@ IMPORT
 // global & common networking
 
 CONST
-   EIBNET_DISCOVERY_ADDRESS = L"224.0.23.12:3671";
-   EIBNET_IPPORT = 3671;
+   KNXNET_DISCOVERY_ADDRESS = L"224.0.23.12:3671";
+   KNXNET_IPPORT = 3671;
 
    HEART_BEAT_PERIOD = 60 * 1000;
    HEART_BEAT_TIMEOUT = 10 * 1000;
@@ -30,7 +30,7 @@ CONST
 
 TYPE
    TProtocolVersion = CARD8(
-      EIBNETIP_VERSION_10 = 010H // BCD 1.0
+      KNXNETIP_VERSION_10 = 010H // BCD 1.0
    );
    
    TServiceFamily = CARD8(
@@ -112,7 +112,7 @@ TYPE
 CLASS V1Header;
    LOCAL VAR
       _HdrLength : CARD8 := HEADER_SIZE_10;
-      _Version   : TProtocolVersion := EIBNETIP_VERSION_10;
+      _Version   : TProtocolVersion := KNXNETIP_VERSION_10;
       _Service   : TService := SERVICE_UNKNOWN;
       _PktLength : CARD16 := HEADER_SIZE_10;
 END V1Header; // RECORD
@@ -122,7 +122,7 @@ CLASS HostProtocolAddressInformation;
       _HPAILength       : CARD8 := 8; // default
       _HostProtocolCode : THostProtocolCode := IPV4_UDP;
       _IPAddress        : inetaddr.TIPV4;
-      _Port             : CARD16 := REVERSE( CARD16( EIBNET_IPPORT ));
+      _Port             : CARD16 := REVERSE( CARD16( KNXNET_IPPORT ));
    PUBLIC PROPERTY
       Address : inetaddr.INETADDR;
       Port    : CARDINAL;

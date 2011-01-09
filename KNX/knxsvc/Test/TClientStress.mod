@@ -388,7 +388,7 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   testimpl.tests()^.AddTest( L"EibSrv::ClientStress", ADR( Test ));
+   testimpl.tests()^.AddTest( L"KnxSvc::ClientStress", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)

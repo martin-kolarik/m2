@@ -8,29 +8,29 @@ IMPORT
   log;
 
 (*================================================================================*)
-// EIBNet connection
+// KNXNet/IP connection
 
 TYPE
-   TPEIBNetStack = POINTER TO CEIBNetStack;
+   TPKNXNetStack = POINTER TO CKNXNetStack;
 
-CLASS CEIBNetStack( knx_stack.CEIBStack );
+CLASS CKNXNetStack( knx_stack.CKNXStack );
 
    PUBLIC PROCEDURE SetLogger( Logger : log.TPLogger );
 
    PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : knx_stack.TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
 
-   INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TEIBStackStatus;
-   INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TEIBStackStatus;
-   INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TEIBStackStatus;
-   INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : knx_stack.TEIBStackLayerType; VAR PLayer : knx_stack.TPEIBStackLayer ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TKNXStackStatus;
+   INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TKNXStackStatus;
+   INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TKNXStackStatus;
+   INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : knx_stack.TKNXStackLayerType; VAR PLayer : knx_stack.TPKNXStackLayer ) : BOOLEAN;
 
    // known: link.mode = routing|tunneling, link.address = ipaddress|multicastgroup, link.port = ipport
    INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
    INTERNAL VIRTUAL PROCEDURE ConstructParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE DeviceConnected() : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE EIBConnected() : BOOLEAN;
-END CEIBNetStack;
+   PUBLIC VIRTUAL PROCEDURE KNXConnected() : BOOLEAN;
+END CKNXNetStack;
 
 (*================================================================================*)
 

@@ -158,7 +158,7 @@ BEGIN
       ELSE
          Result.IPs.Reset();
          WHILE Result.IPs.MoveNext() DO
-            Id.FromOA( L"eibnet:" );
+            Id.FromOA( L"knxnet:" );
             Id.Append( Result.IPs.Current^ );
             IF ForceFlag AND First THEN
                TS.SetKeyStr( L"id", Id, NOT First );

@@ -599,10 +599,10 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE BindToEibSrv( web : KnxSvcWeb.TPEibSrvWeb );
+   PUBLIC PROCEDURE BindToKnxSrv( web : KnxSvcWeb.TPKnxSvcWeb );
    BEGIN
       _Web := web;
-   END BindToEibSrv;
+   END BindToKnxSrv;
    
 (*--------------------------------------------------------------------------------*)
 
@@ -665,12 +665,12 @@ CLASS IMPLEMENTATION CController;
    BEGIN
       // check actions to do
       IF Request.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
-         _Web^.ConnectEIB();
+         _Web^.ConnectKNX();
          Request.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
       ELSIF Request.ModelContainer^.GetBooleanOA( STATUS_DISCONNECT, OUT b ) AND b THEN
-         _Web^.DisconnectEIB();
+         _Web^.DisconnectKNX();
          Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
@@ -784,7 +784,7 @@ CLASS IMPLEMENTATION CController;
       // check actions to do
       IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
          IF Request.ModelContainer^.GetStringOA( CONTROL_CONFIG_FILE, OUT cs ) THEN
-            _Web^.ConfigureEIB( cs );
+            _Web^.ConfigureKNX( cs );
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;

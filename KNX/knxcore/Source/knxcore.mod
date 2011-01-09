@@ -10,7 +10,7 @@ FROM Exceptions IMPORT
 
 21.10.2007 -- started to split to core/svc/driver
 01.09.2007 -- started with SDAP/Server
---.08.2007 -- checked operations, EIB network code complete
+--.08.2007 -- checked operations, KNX network code complete
 26.07.2007 -- first alpha, unchanged sources, started removing abundant code
 12.07.2007 -- started to connect EIBNetStack
  4.07.2007 -- changes to EIBServer and new m2
@@ -59,7 +59,7 @@ FROM Exceptions IMPORT
                 -- added remap of status L_Con_Timeout to LCON error code
 17.10.2004 -- modified HWConnected, but it should be analyzed more...
 15.10.2004 -- added RSStatus handling into ValueWritten
- 4.10.2004 -- added INCL( aofEIBValue ) into ValueUpdated for success
+ 4.10.2004 -- added INCL( aofKNXValue ) into ValueUpdated for success
 23.09.2004 -- removed RSStatus = essOK from input OOBData. The place is bad,
                      OOB data must be read without changing error -- error during init
                      read must be reported too.
@@ -168,7 +168,7 @@ END CBehaviour;
 TYPE
    TStatusChannelItem = (
       schiUSBConnected,
-      schiEIBConnected,
+      schiKNXConnected,
       schiInitReadPending,
       schiInputQueueOverflow,
       schiHavePromiscuousData
@@ -270,7 +270,7 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TEIBStackStatus; CurrentState : knx_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState );
    BEGIN
       RSStatus := Status;
       Server^.ValueReadRequestSent( ADR( SELF ), CurrentState );
@@ -278,7 +278,7 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : knx_status.TEIBStackStatus; CurrentState : knx_user.TObjectState; CurrentInitReadState : knx_user.TInitReadState );
+   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState; CurrentInitReadState : knx_user.TInitReadState );
    BEGIN
       RSStatus := Status;
       Server^.ValueRead( ADR( SELF ), CurrentState, CurrentInitReadState );
@@ -286,7 +286,7 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : knx_status.TEIBStackStatus; CurrentState : knx_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState );
    VAR
       EISString : knx_def.TEISStringW;
       value : knx_def.TValue;
@@ -302,12 +302,12 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : knx_status.TEIBStackStatus; CurrentState : knx_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState );
    BEGIN
       WSStatus := Status;
       Server^.ValueWritten( ADR( SELF ), CurrentState );
       IF ( Status = knx_status.essOK ) AND ( knx_def.TA_ObjectFlags{knx_def.aofForceRead, knx_def.aofWritable} * GetFlags() = knx_def.TA_ObjectFlags{knx_def.aofWritable} ) THEN
-         // element always read from EIB cannot be reset for reading;
+         // element always read from KNX cannot be reset for reading;
          // only writable elements can be reset for reading too
          RSStatus := knx_status.essOK;
       END;
@@ -435,7 +435,7 @@ END CSuspendableResult;
 
 //================================================================================
 
-CLASS IMPLEMENTATION CEIBServer;
+CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
@@ -651,7 +651,7 @@ CLASS IMPLEMENTATION CEIBServer;
       IF _CacheOnlyMode THEN
          RETURN rsRunning IN RStatus;
       ELSE
-         RETURN ( rsRunning IN RStatus ) AND ( EIB <> NIL ) AND EIB^.DeviceConnected();
+         RETURN ( rsRunning IN RStatus ) AND ( KNX <> NIL ) AND KNX^.DeviceConnected();
       END;
    END Running;
 
@@ -691,7 +691,7 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF rsRunning IN RStatus THEN
          RETURN Sync.arCompleted;
-      ELSIF EIB = NIL THEN
+      ELSIF KNX = NIL THEN
          RETURN Sync.arCannotStart;
       ELSE
          INCL( RStatus, rsRunning );
@@ -715,7 +715,7 @@ CLASS IMPLEMENTATION CEIBServer;
          StopTimer( tiForceRead );
          StopTimer( tiInitReadDelay );
          EXCL( RStatus, rsInitReadFinished );
-         EIB^.Connect();
+         KNX^.Connect();
       END;
 
       IF Running THEN
@@ -740,8 +740,8 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          StopTimer( tiForceRead );
          StopTimer( tiInitReadDelay );
-         IF EIB <> NIL THEN
-            EIB^.Disconnect();
+         IF KNX <> NIL THEN
+            KNX^.Disconnect();
          END;
       END;
    END Stop;
@@ -795,7 +795,7 @@ CLASS IMPLEMENTATION CEIBServer;
       
       IF Item = itemConnected THEN
          IF Direction = IOO.dirRead THEN
-            Value.Boolean := _CacheOnlyMode OR ( EIB <> NIL ) AND EIB^.EIBConnected();
+            Value.Boolean := _CacheOnlyMode OR ( KNX <> NIL ) AND KNX^.KNXConnected();
             RETURN Sync.arCompleted;
          ELSE
             RETURN Sync.arCannotStart;
@@ -805,11 +805,11 @@ CLASS IMPLEMENTATION CEIBServer;
       PObject := TPObject( Item );
       IF Direction = IOO.dirRead THEN
          PObject^.GetValue( OUT EV, TRUE, FALSE );
-         EIBValue2IOValue( EV, PObject^.StringValue, OUT Value );
+         KNXValue2IOValue( EV, PObject^.StringValue, OUT Value );
 
       ELSE // dirWrite
       
-         IOValue2EIBValue( Value, PObject^.Type, OUT EV, OUT PObject^.StringValue );
+         IOValue2KNXValue( Value, PObject^.Type, OUT EV, OUT PObject^.StringValue );
          PObject^.SetValue( EV, OUT changed );
 
          // log operation originator
@@ -832,7 +832,7 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
       END;
 
-      IF EIB^.DeviceConnected() THEN
+      IF KNX^.DeviceConnected() THEN
          RETURN Sync.arCompleted;
       ELSE
          RETURN Sync.arCompletedFromCache;
@@ -868,9 +868,9 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF _CacheOnlyMode THEN
          s.FromOA( L"CACHE" );
-      ELSIF EIB = NIL THEN
+      ELSIF KNX = NIL THEN
          // fall down
-      ELSIF EIB^.GetParameter( L"link.connection", OUT connection ) THEN
+      ELSIF KNX^.GetParameter( L"link.connection", OUT connection ) THEN
          s.FromOA( connection );
       END;
       RETURN s;
@@ -902,6 +902,7 @@ CLASS IMPLEMENTATION CEIBServer;
       knId                   = L'id';
          kvFalcon            = L'falcon';
          kvEIBNet            = L'eibnet';
+         kvKNXNet            = L'knxnet';
       knKey                  = L'key';
       knCacheOnlyMode        = L'cache_only';
       knMode                 = L'mode';
@@ -994,7 +995,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToEIT( REF ErrorMessage : StringsO.CString; CONST String : StringsO.IString; VAR EIT : knx_def.TEIBType ) : BOOLEAN;
+      PROCEDURE StringToEIT( REF ErrorMessage : StringsO.CString; CONST String : StringsO.IString; VAR EIT : knx_def.TKNXType ) : BOOLEAN;
       BEGIN
          IF String[0] = WCHAR( 0 ) THEN
             ErrorMessage.FromOA( OAsz( R[ Texts._MissingType ] ));
@@ -1010,7 +1011,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; CONST String : StringsO.CString; StartFromItem : CARDINAL; Priority : knx_def.TPriority; BFlags : knx_def.TA_ObjectFlags; EIT : knx_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
+      PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; CONST String : StringsO.CString; StartFromItem : CARDINAL; Priority : knx_def.TPriority; BFlags : knx_def.TA_ObjectFlags; EIT : knx_def.TKNXType; ObjectType : TObjectType ) : BOOLEAN;
       LABEL
          NextItem, NextItemAfterComment;
       VAR
@@ -1093,7 +1094,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToMultipleObjects( REF ErrorMessage : StringsO.CString; CONST String : StringsO.IString; StartFromItem : CARDINAL; Priority : knx_def.TPriority; BFlags : knx_def.TA_ObjectFlags; EIT : knx_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
+      PROCEDURE StringToMultipleObjects( REF ErrorMessage : StringsO.CString; CONST String : StringsO.IString; StartFromItem : CARDINAL; Priority : knx_def.TPriority; BFlags : knx_def.TA_ObjectFlags; EIT : knx_def.TKNXType; ObjectType : TObjectType ) : BOOLEAN;
       LABEL
          NextItem;
       VAR
@@ -1228,7 +1229,7 @@ CLASS IMPLEMENTATION CEIBServer;
          spaceSet = StringsO.WCHARS{ L" " };
       VAR
          c, i : CARDINAL;
-         EIT : knx_def.TEIBType;
+         EIT : knx_def.TKNXType;
          GroupAddress : knx_def.CAddress;
          so, item, io : StringsO.CString;
          Path : FIO.PathStrW;
@@ -1404,7 +1405,7 @@ CLASS IMPLEMENTATION CEIBServer;
       Blocks : lists.CStringList;
       c : CARDINAL;
       Connection, Key : ARRAY [0..255] OF WCHAR;
-      EIT : knx_def.TEIBType;
+      EIT : knx_def.TKNXType;
       ErrorMessageOA : ARRAY [0..255] OF WCHAR;
       ES : PTR;
       i : CARDINAL;
@@ -1462,6 +1463,11 @@ CLASS IMPLEMENTATION CEIBServer;
                so.SubstringOA( c+LENGTH( kvEIBNet )+1, MAX( CARDINAL ), OUT Connection );
                Strings.TrimW( REF Connection );
                DeviceId := LONGWORD( -2 );
+            ELSIF so.StartsWithOA( kvKNXNet ) THEN
+               c := so.IndexOfOA( kvKNXNet, 0 );
+               so.SubstringOA( c+LENGTH( kvKNXNet )+1, MAX( CARDINAL ), OUT Connection );
+               Strings.TrimW( REF Connection );
+               DeviceId := LONGWORD( -2 );
             END;
          END;
          IF TS.GetKeyStr( knKey, OUT ErrorLine, OUT so ) THEN
@@ -1472,34 +1478,34 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
       END; // IF snDevice
       IF _CacheOnlyMode THEN
-         NEW( knxstack_knxnet.TPEIBNetStack( EIB ));
+         NEW( knxstack_knxnet.TPKNXNetStack( KNX ));
       ELSIF DeviceId = LONGWORD( -1 ) THEN
          // Stack := stackFalcon;
-         // NEW( falconStack.TPFalconStack( EIB ));
-         // ASSIGN( falconStack.TPFalconStack( EIB )^.Connection, FalconConnection );
-         // ASSIGN( falconStack.TPFalconStack( EIB )^.Key, Key );
+         // NEW( falconStack.TPFalconStack( KNX ));
+         // ASSIGN( falconStack.TPFalconStack( KNX )^.Connection, FalconConnection );
+         // ASSIGN( falconStack.TPFalconStack( KNX )^.Key, Key );
          ErrorMessage.FromOA( OAsz( R[ Texts._UnsupportedStack ] ));
          GOTO Fail;
       ELSIF DeviceId = LONGWORD( -2 ) THEN
-         Stack := stackEIBNet;
-         NEW( knxstack_knxnet.TPEIBNetStack( EIB ));
+         Stack := stackKNXNet;
+         NEW( knxstack_knxnet.TPKNXNetStack( KNX ));
       ELSE
          // Stack := stackUSB;
-         // NEW( eibusb.TPTPUARTStack( EIB ));
+         // NEW( eibusb.TPTPUARTStack( KNX ));
          ErrorMessage.FromOA( OAsz( R[ Texts._UnsupportedStack ] ));
          GOTO Fail;
       END;
 
-      EIB^.Init( FALSE, knx_stack.eltUndefined, knx_stack.eltUndefined, ADR( Sink ));
-      knxstack_knxnet.TPEIBNetStack( EIB )^.SetLogger( ADR( Logger ));
+      KNX^.Init( FALSE, knx_stack.kltUndefined, knx_stack.kltUndefined, ADR( Sink ));
+      knxstack_knxnet.TPKNXNetStack( KNX )^.SetLogger( ADR( Logger ));
 
-      IF NOT EIB^.SetParameter( L"link.connection", Connection, OUT ErrorMessageOA ) THEN
+      IF NOT KNX^.SetParameter( L"link.connection", Connection, OUT ErrorMessageOA ) THEN
          CreateParameterError( Texts._BadConnection, ErrorMessageOA, REF ErrorMessage );
          GOTO Fail;
       END;
       // still inside snDevice
       IF TS.GetKeyStr( knMode, OUT ErrorLine, OUT so ) THEN
-         IF NOT EIB^.SetParameter( L"link.mode", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
+         IF NOT KNX^.SetParameter( L"link.mode", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
             CreateParameterError( Texts._BadMode, ErrorMessageOA, REF ErrorMessage );
             GOTO Fail;
          END;
@@ -1511,13 +1517,13 @@ CLASS IMPLEMENTATION CEIBServer;
             InputQueueLength := c;
          END;
          IF TS.GetKeyStr( knOutputQueueLength, OUT ErrorLine, OUT so ) THEN
-            IF NOT EIB^.SetParameter( L"link.outputQueueLength", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
+            IF NOT KNX^.SetParameter( L"link.outputQueueLength", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
                CreateParameterError( Texts._BadOutputQueueLength, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
          END;
          IF TS.GetKeyStr( knWriteQueueLength, OUT ErrorLine, OUT so ) THEN
-            IF NOT EIB^.SetParameter( L"application.pendingQueueLength.write", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
+            IF NOT KNX^.SetParameter( L"application.pendingQueueLength.write", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
                CreateParameterError( Texts._BadWriteQueueLength, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
@@ -1533,13 +1539,13 @@ CLASS IMPLEMENTATION CEIBServer;
             ACKTimeout := c;
          END;
          IF TS.GetKeyStr( knACKMethod, OUT ErrorLine, OUT so ) THEN
-            IF NOT EIB^.SetParameter( L"link.ackMethod", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
+            IF NOT KNX^.SetParameter( L"link.ackMethod", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
                CreateParameterError( Texts._BadACKMethod, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
          END;
          IF TS.GetKeyStr( knRetryCount, OUT ErrorLine, OUT so ) THEN
-            IF NOT EIB^.SetParameter( L"link.retryCount", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
+            IF NOT KNX^.SetParameter( L"link.retryCount", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
                CreateParameterError( Texts._BadRetryCount, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
@@ -1835,32 +1841,32 @@ CLASS IMPLEMENTATION CEIBServer;
       END; // IF snFormats
 
       IF NOT _CacheOnlyMode THEN
-         EIB^.SetStackAddress( Address );
+         KNX^.SetStackAddress( Address );
 
          IF PromiscuousMode THEN
-            EIB^.SetParameter( L"application.promiscuousMode", L"true", OUT ErrorMessageOA );
+            KNX^.SetParameter( L"application.promiscuousMode", L"true", OUT ErrorMessageOA );
          ELSE
-            EIB^.SetParameter( L"application.promiscuousMode", L"false", OUT ErrorMessageOA );
+            KNX^.SetParameter( L"application.promiscuousMode", L"false", OUT ErrorMessageOA );
          END;
          IF PromiscuousMode THEN
             FOR EIT := knx_def.eitSwitch TO knx_def.eitString DO WITH prObjects[EIT] DO
                Server := ADR( SELF );
-               Init( EIB, EIT, knx_user.obNone );
+               Init( KNX, EIT, knx_user.obNone );
                SetClass( knx_def.priorityNormal );
                SetFlags( fullIOFlags + knx_def.TA_ObjectFlags{knx_def.aofPromiscuous} );
                SubscribePromiscuous();
             END; END; // WITH // FOR
          END; // IF PromiscuousMode
 
-         EIB^.SetTimeout( knx_stack.tidL_ACKTimeout, ACKTimeout, 0 );
-         EIB^.SetTimeout( knx_stack.tidL_BUSYDelay, BUSYDelay, 0 );
-         EIB^.SetTimeout( knx_stack.tidL_SendDelay, SendDelay, 0 );
-         EIB^.SetTimeout( knx_stack.tidA_PendingDelay, WriteDelay, knx_stack.pendingGroupWrite );
-         EIB^.SetTimeout( knx_stack.tidA_PendingDelay, ReadOnStart.Delay, knx_stack.pendingGroupRead );
-         EIB^.SetTimeout( knx_stack.tidA_PendingTimeout, ReadOnStart.Timeout, knx_stack.pendingGroupRead );
+         KNX^.SetTimeout( knx_stack.tidL_ACKTimeout, ACKTimeout, 0 );
+         KNX^.SetTimeout( knx_stack.tidL_BUSYDelay, BUSYDelay, 0 );
+         KNX^.SetTimeout( knx_stack.tidL_SendDelay, SendDelay, 0 );
+         KNX^.SetTimeout( knx_stack.tidA_PendingDelay, WriteDelay, knx_stack.pendingGroupWrite );
+         KNX^.SetTimeout( knx_stack.tidA_PendingDelay, ReadOnStart.Delay, knx_stack.pendingGroupRead );
+         KNX^.SetTimeout( knx_stack.tidA_PendingTimeout, ReadOnStart.Timeout, knx_stack.pendingGroupRead );
 
          IF NOT PromiscuousMode THEN
-            knx_stack.TPEIBStackApplicationLayer( EIB^.Layers[ knx_stack.eltApplication ] )^.Update_L_Layer();
+            knx_stack.TPKNXStackApplicationLayer( KNX^.Layers[ knx_stack.kltApplication ] )^.Update_L_Layer();
          END;
       END; // IF NOT _CacheOnlyMode
       
@@ -2038,7 +2044,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PROCEDURE AddObject( Priority : knx_def.TPriority; Flags : knx_def.TA_ObjectFlags; Type : knx_def.TEIBType; ObjectType : TObjectType ) : TPObject;
+   PROCEDURE AddObject( Priority : knx_def.TPriority; Flags : knx_def.TA_ObjectFlags; Type : knx_def.TKNXType; ObjectType : TObjectType ) : TPObject;
    VAR
       PObject : TPObject;
    BEGIN
@@ -2051,7 +2057,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
       NEW( PObject );
       PObject^.Server := ADR( SELF );
-      PObject^.Init( EIB, Type, knx_user.obNone );
+      PObject^.Init( KNX, Type, knx_user.obNone );
       PObject^.SetClass( Priority );
       PObject^.SetFlags( Flags );
       PObject^.ObjectType := ObjectType;
@@ -2065,7 +2071,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PROCEDURE DoneObjects( NILExecutive : BOOLEAN );
    VAR
-      EIT : knx_def.TEIBType;
+      EIT : knx_def.TKNXType;
       i : CARDINAL;
       PObject : TPObject;
    BEGIN
@@ -2107,7 +2113,7 @@ CLASS IMPLEMENTATION CEIBServer;
       CASE PObject^.RSStatus OF
       //-----
       | knx_status.essOK :
-         INCL( PObject^.Flags, knx_def.aofEIBValue );
+         INCL( PObject^.Flags, knx_def.aofKNXValue );
       
       //-----
       | knx_status.essConError, // A_Read without L_ACK -- called from ValueReadRequestSent
@@ -2182,7 +2188,7 @@ CLASS IMPLEMENTATION CEIBServer;
       IF knx_user.osReading IN CurrentState THEN // value is NOT OOB
          RETURN;
       ELSIF PObject^.RSStatus = knx_status.essOK THEN
-         INCL( PObject^.Flags, knx_def.aofEIBValue );
+         INCL( PObject^.Flags, knx_def.aofKNXValue );
       END;
       IF Result.Counted OR Result.Expired THEN
          RETURN;
@@ -2192,11 +2198,11 @@ CLASS IMPLEMENTATION CEIBServer;
          // pass down
       ELSIF ( objtLogNoChange IN PObject^.ObjectType ) OR // log always
             ( objtLogOnChange IN PObject^.ObjectType ) AND ( knx_user.osChanged IN CurrentState ) OR // log changes
-            ( Direction = IOO.dirWrite ) AND NOT EIB^.DeviceConnected() THEN // always allow log failures
+            ( Direction = IOO.dirWrite ) AND NOT KNX^.DeviceConnected() THEN // always allow log failures
 
          valuesConverted := TRUE;
          PObject^.GetValue( OUT EValue, TRUE, FALSE );
-         EIBValue2IOValue( EValue, PObject^.StringValue, OUT io );
+         KNXValue2IOValue( EValue, PObject^.StringValue, OUT io );
          value := io.String;
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
 
@@ -2208,7 +2214,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
          IF Direction = IOO.dirRead THEN
             _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "UPDATE", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
-         ELSIF NOT EIB^.DeviceConnected() THEN
+         ELSIF NOT KNX^.DeviceConnected() THEN
             IF _CacheOnlyMode THEN
                _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET TO CACHE", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
             ELSE
@@ -2227,7 +2233,7 @@ CLASS IMPLEMENTATION CEIBServer;
          IF _AdviseListener <> NIL THEN
             IF NOT valuesConverted THEN
                PObject^.GetValue( OUT EValue, TRUE, FALSE );
-               EIBValue2IOValue( EValue, PObject^.StringValue, OUT io );
+               KNXValue2IOValue( EValue, PObject^.StringValue, OUT io );
             END;
             _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
          END;
@@ -2245,7 +2251,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
          IF NOT valuesConverted THEN
             PObject^.GetValue( OUT EValue, TRUE, FALSE );
-            EIBValue2IOValue( EValue, PObject^.StringValue, OUT io );
+            KNXValue2IOValue( EValue, PObject^.StringValue, OUT io );
          END;
 
          IF ( Direction = IOO.dirRead ) AND ( EventSink <> NIL ) THEN
@@ -2273,7 +2279,7 @@ CLASS IMPLEMENTATION CEIBServer;
       value : StringsO.CString;
    BEGIN
       IF PObject^.WSStatus = knx_status.essOK THEN
-         INCL( PObject^.Flags, knx_def.aofEIBValue );
+         INCL( PObject^.Flags, knx_def.aofKNXValue );
       END;
       IF EventSink <> NIL THEN
          IF knx_user.osWriting IN CurrentState THEN
@@ -2293,7 +2299,7 @@ CLASS IMPLEMENTATION CEIBServer;
             ( PObject^.WSStatus <> knx_status.essOK ) THEN // always allow log errors
 
          PObject^.GetValue( OUT EValue, TRUE, FALSE );
-         EIBValue2IOValue( EValue, PObject^.StringValue, OUT io );
+         KNXValue2IOValue( EValue, PObject^.StringValue, OUT io );
          value := io.String;
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
 
@@ -2318,7 +2324,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE EnqueuePromiscuous( Status : knx_status.TEIBStackStatus; PObject : TPObject );
+   PRIVATE PROCEDURE EnqueuePromiscuous( Status : knx_status.TKNXStackStatus; PObject : TPObject );
    VAR
       EValue : knx_def.CValue;
       prItem : PromiscuousData;
@@ -2379,9 +2385,9 @@ CLASS IMPLEMENTATION CEIBServer;
       Behaviours.Dispose();
       _ForceReadPeriod := 0;
       _ReadersCount := 0;
-      IF EIB <> NIL THEN
-         EIB^.Done();
-         DISPOSE( EIB );
+      IF KNX <> NIL THEN
+         KNX^.Done();
+         DISPOSE( KNX );
       END;
       Storage.Fill( ADR( Groups ), SIZE( Groups ), 0FFH );
    END InitToDefault;
@@ -2458,8 +2464,8 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF NOT( rsInitReadRepeat IN RStatus ) THEN
          RStatus := RStatus - TRStatus{rsInitReadPending} + TRStatus{rsInitReadFinished};
-         EIB^.SetTimeout( knx_stack.tidA_PendingDelay, ReadDuringRun.Delay, knx_stack.pendingGroupRead );
-         EIB^.SetTimeout( knx_stack.tidA_PendingTimeout, ReadDuringRun.Timeout, knx_stack.pendingGroupRead );
+         KNX^.SetTimeout( knx_stack.tidA_PendingDelay, ReadDuringRun.Delay, knx_stack.pendingGroupRead );
+         KNX^.SetTimeout( knx_stack.tidA_PendingTimeout, ReadDuringRun.Timeout, knx_stack.pendingGroupRead );
          StopTimer( tiInitReadDelay );
          IF EventSink <> NIL THEN
             EventSink^.OnInitReadCompleted();
@@ -2491,7 +2497,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : iovalue.Value; DestEVType : knx_def.TEIBType; OUT EV : knx_def.TValue; OUT SupportingStringData : StringsO.IString );
+   LOCAL PROCEDURE IOValue2KNXValue( CONST Value : iovalue.Value; DestEVType : knx_def.TKNXType; OUT EV : knx_def.TValue; OUT SupportingStringData : StringsO.IString );
    VAR
       c : CARDINAL;
       Day : knx_def.TDay;
@@ -2614,11 +2620,11 @@ CLASS IMPLEMENTATION CEIBServer;
          EV.SetString( s );
       END; // CASE EV.Type
 
-   END IOValue2EIBValue;
+   END IOValue2KNXValue;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : knx_def.TValue; CONST SupportingStringData : StringsO.IString; OUT Value : iovalue.Value );
+   LOCAL PROCEDURE KNXValue2IOValue( CONST EV : knx_def.TValue; CONST SupportingStringData : StringsO.IString; OUT Value : iovalue.Value );
    VAR
       c : CARDINAL;
       Day : knx_def.TDay;
@@ -2723,7 +2729,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
       END; // CASE EV.Type
 
-   END EIBValue2IOValue;
+   END KNXValue2IOValue;
 
 //--------------------------------------------------------------------------------
 
@@ -2747,7 +2753,7 @@ BEGIN
    DateAsString := FALSE;
    Groups[0] := 0FFH; // satisfy initialization warning
 
-   EIB := NIL;
+   KNX := NIL;
    Sink.Server := ADR( SELF );
    EventSink := NIL;
    _Advise := io.advWithData;
@@ -2774,7 +2780,7 @@ BEGIN
    ASSERT( SIZE( PromiscuousData ) < 64 );
 FINALLY
    Dispose();
-END CEIBServer;
+END CKNXServer;
 
 //================================================================================
 

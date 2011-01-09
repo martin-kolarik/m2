@@ -13,14 +13,14 @@ IMPLEMENTATION MODULE knx_stack;
            -- PendingCount and A_PendingQueueOverflow and limit was created
            -- added priority queue for A_pending operations
 15.03.2005 -- added clearing of osReading into errornenous ValueReadRequestSent -- such request stops reading
- 3.02.2005 -- added CEIBStack.SetParameter & CEIBStack.OutputQueueLength
+ 3.02.2005 -- added CKNXStack.SetParameter & CKNXStack.OutputQueueLength
            -- corrected (using tidL_Communicate) error causing stack overflow for
               communications not emptying output queue for a long Time. The correction
               splits Con-Req-Con recursion into Con-MSG||MSG-Req sequention.
  1.02.2005 -- added BUSYDelayer
            -- blocked T_Connect_Ind for Source = Desctination
            -- added acceptation of repeated packet if it is the first found with new data
-           -- added CEIBStack.IsSelfPacket
+           -- added CKNXStack.IsSelfPacket
  2.11.2004 -- added LineBusy, TransceiverFault errors and OutputQueueLength parameter
 27.10.2004 -- added delays between read operations
 17.10.2004 -- L_Data_Ind corrected -- N_Groupdata_Ind should be called if GroupRepeatedAllowed,
@@ -53,7 +53,7 @@ IMPORT
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CEIBStackLayer;
+CLASS IMPLEMENTATION CKNXStackLayer;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -64,7 +64,7 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE GetLayerType() : TEIBStackLayerType;
+  LOCAL VIRTUAL PROCEDURE GetLayerType() : TKNXStackLayerType;
   BEGIN
     RETURN LayerType;
   END GetLayerType;
@@ -79,12 +79,12 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE SetExecutive(
-          _PExecutive : TPEIBStackLayer
+          _PExecutive : TPKNXStackLayer
   );
   BEGIN
     IF _PExecutive = NIL THEN
       PExecutive := NIL;
-    ELSIF _PExecutive^.GetLayerType() = eibExecutive[ LayerType ] THEN
+    ELSIF _PExecutive^.GetLayerType() = knxExecutive[ LayerType ] THEN
       PExecutive := _PExecutive;
     ELSE
       PExecutive := NIL;
@@ -94,12 +94,12 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE SetListener(
-          _PListener : TPEIBStackLayer
+          _PListener : TPKNXStackLayer
   );
   BEGIN
     IF _PListener = NIL THEN
       PListener := NIL;
-    ELSIF _PListener^.GetLayerType() = eibListener[ LayerType ] THEN
+    ELSIF _PListener^.GetLayerType() = knxListener[ LayerType ] THEN
       PListener := _PListener;
     ELSE
       PListener := NIL;
@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Initialize_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN
     IF PListener <> NIL THEN
@@ -140,7 +140,7 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN
     IF PListener <> NIL THEN
@@ -162,18 +162,18 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  VIRTUAL FINALLY CEIBStackLayer();
+  VIRTUAL FINALLY CKNXStackLayer();
   BEGIN
-  END CEIBStackLayer;
+  END CKNXStackLayer;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  LayerType := eltAbstract;
+  LayerType := kltAbstract;
   PStack := NIL;
   PExecutive := NIL;
   PListener := NIL;
-END CEIBStackLayer;
+END CKNXStackLayer;
 
 (*--------------------------------------------------------------------------------*)
 (*--------------------------------------------------------------------------------*)
@@ -182,7 +182,7 @@ CLASS IMPLEMENTATION CTimeouter;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE Init( _PLayer : TPEIBStackLayer; _TimeoutId : TTimeoutId; _TimeoutDelay : CARDINAL; _UserId : LONGWORD );
+  LOCAL PROCEDURE Init( _PLayer : TPKNXStackLayer; _TimeoutId : TTimeoutId; _TimeoutDelay : CARDINAL; _UserId : LONGWORD );
   BEGIN
     PLayer := _PLayer;
     TimeoutId := _TimeoutId;
@@ -248,7 +248,7 @@ END CTimeouter;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CEIBStackPhysicalLayer;
+CLASS IMPLEMENTATION CKNXStackPhysicalLayer;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -260,9 +260,9 @@ CLASS IMPLEMENTATION CEIBStackPhysicalLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Listener() : TPEIBStackLinkLayer;
+  PUBLIC PROCEDURE Listener() : TPKNXStackLinkLayer;
   BEGIN
-    RETURN TPEIBStackLinkLayer( PListener );
+    RETURN TPKNXStackLinkLayer( PListener );
   END Listener;
 
 (*--------------------------------------------------------------------------------*)
@@ -276,7 +276,7 @@ CLASS IMPLEMENTATION CEIBStackPhysicalLayer;
   PUBLIC VIRTUAL PROCEDURE Ph_Reset_Con(
   );
   BEGIN
-    // Status : knx_status.TEIBStackStatus is generated inside
+    // Status : knx_status.TKNXStackStatus is generated inside
     Initialize_Con( knx_status.essOK );
   END Ph_Reset_Con;
 
@@ -315,8 +315,8 @@ CLASS IMPLEMENTATION CEIBStackPhysicalLayer;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  LayerType := eltPhysical;
-END CEIBStackPhysicalLayer;
+  LayerType := kltPhysical;
+END CKNXStackPhysicalLayer;
 
 (*================================================================================*)
 
@@ -465,8 +465,8 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE PacketSent(
-          Status    : knx_status.TEIBStackStatus
-  ) : knx_status.TEIBStackStatus; // removes packet from queue
+          Status    : knx_status.TKNXStackStatus
+  ) : knx_status.TKNXStackStatus; // removes packet from queue
   LABEL
     Remove;
   VAR
@@ -583,7 +583,7 @@ CLASS IMPLEMENTATION CL_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE L_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical or group
           PPacket     : knx_def.TPPacket
   );
@@ -610,7 +610,7 @@ END CL_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CEIBStackLinkLayer;
+CLASS IMPLEMENTATION CKNXStackLinkLayer;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -631,14 +631,14 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE Executive() : TPEIBStackPhysicalLayer;
+  PRIVATE PROCEDURE Executive() : TPKNXStackPhysicalLayer;
   BEGIN
-    RETURN TPEIBStackPhysicalLayer( PExecutive );
+    RETURN TPKNXStackPhysicalLayer( PExecutive );
   END Executive;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE Listener() : TPEIBStackLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackLayer;
   BEGIN
     RETURN NIL;
   END Listener;
@@ -658,7 +658,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Initialize_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN // now, initialized
     ASSERT( L_Data.State = lsWaitResetCon );
@@ -673,7 +673,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN
     L_Data.Queue.Done();
@@ -848,7 +848,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE Ph_Data_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   VAR
     CRT : TCommunicateRequestType;
@@ -966,7 +966,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
   INTERNAL VIRTUAL PROCEDURE L_Data_Con(
           PListener   : TPL_Data_Listener;
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical or group
           PPacket     : knx_def.TPPacket
   );
@@ -1017,7 +1017,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE L_Busmonitor_Ind(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Time        : INT64;
           PPacket     : knx_def.TPPacket
   );
@@ -1033,7 +1033,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  LayerType := eltLink;
+  LayerType := kltLink;
 
   L_Parameters.LinkMode := lmNormal;
   L_Parameters.NAK_Retry := 3;
@@ -1052,7 +1052,7 @@ BEGIN
   L_Data.ACKTimeouter.Init( ADR( SELF ), tidL_ACKTimeout, L_Parameters.ACKTimeout, 0 );
   L_Data.BUSYDelayer.Init( ADR( SELF ), tidL_BUSYDelay, L_Parameters.BUSYDelay, 0 );
   L_Data.SendDelayer.Init( ADR( SELF ), tidL_SendDelay, L_Parameters.SendDelay, 0 );
-END CEIBStackLinkLayer;
+END CKNXStackLinkLayer;
 
 (*================================================================================*)
 
@@ -1060,7 +1060,7 @@ CLASS IMPLEMENTATION CRoutingTable;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE EnumerateTargets( VAR EnumerateState : PTR; CONST Destination : knx_def.TAddress; VAR PInterface : TPEIBStackLinkLayer ) : BOOLEAN;
+  LOCAL VIRTUAL PROCEDURE EnumerateTargets( VAR EnumerateState : PTR; CONST Destination : knx_def.TAddress; VAR PInterface : TPKNXStackLinkLayer ) : BOOLEAN;
   BEGIN
     RETURN FALSE;
   END EnumerateTargets;
@@ -1099,7 +1099,7 @@ CLASS IMPLEMENTATION CN_L_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE L_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical or group
           PPacket     : knx_def.TPPacket
   );
@@ -1128,7 +1128,7 @@ END CN_L_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CEIBStackNetworkLayer;
+CLASS IMPLEMENTATION CKNXStackNetworkLayer;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1139,9 +1139,9 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE Listener() : TPEIBStackTransportLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackTransportLayer;
   BEGIN
-    RETURN TPEIBStackTransportLayer( PListener );
+    RETURN TPKNXStackTransportLayer( PListener );
   END Listener;
 
 (*--------------------------------------------------------------------------------*)
@@ -1156,7 +1156,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
         TPN_L_Data_Listener( PL_Data_Listener )^.PListener := ADR( SELF );
       END;
       N_Data.PL_Listener := PL_Data_Listener;
-      TPEIBStackLinkLayer( PExecutive )^.RegisterListener( PL_Data_Listener );
+      TPKNXStackLinkLayer( PExecutive )^.RegisterListener( PL_Data_Listener );
     END;
     SUPER.Initialize_Req();
   END Initialize_Req;
@@ -1166,7 +1166,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
   LOCAL VIRTUAL PROCEDURE Done_Req();
   BEGIN
     IF N_Data.PL_Listener <> NIL THEN
-      TPEIBStackLinkLayer( PExecutive )^.ForgetListener( N_Data.PL_Listener );
+      TPKNXStackLinkLayer( PExecutive )^.ForgetListener( N_Data.PL_Listener );
     END;
     SUPER.Done_Req();
   END Done_Req;
@@ -1174,7 +1174,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN
     IF N_Data.PL_Listener <> NIL THEN
@@ -1191,7 +1191,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE L_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical or group
           PPacket     : knx_def.TPPacket
   );
@@ -1218,7 +1218,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
   VAR
     ES : PTR;
     LPacket : knx_def.TPacket;
-    PInterface : TPEIBStackLinkLayer;
+    PInterface : TPKNXStackLinkLayer;
     RoutingCounter : CARDINAL;
   BEGIN
     CASE N_Parameters.DeviceType OF
@@ -1288,7 +1288,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical
           PPacket     : knx_def.TPPacket
   );
@@ -1324,7 +1324,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Groupdata_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // logical
           PPacket     : knx_def.TPPacket
   );
@@ -1362,7 +1362,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Broadcast_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN
     Listener()^.N_Broadcast_Con( Status );
@@ -1390,33 +1390,33 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  LayerType := eltNetwork;
+  LayerType := kltNetwork;
   Storage.Zero( ADR( N_Parameters ), SIZE( N_Parameters ));
   Storage.Zero( ADR( N_Data ), SIZE( N_Data ));
-END CEIBStackNetworkLayer;
+END CKNXStackNetworkLayer;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CEIBStackTransportLayer;
+CLASS IMPLEMENTATION CKNXStackTransportLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE Executive() : TPEIBStackNetworkLayer;
+  PRIVATE PROCEDURE Executive() : TPKNXStackNetworkLayer;
   BEGIN
-    RETURN TPEIBStackNetworkLayer( PExecutive );
+    RETURN TPKNXStackNetworkLayer( PExecutive );
   END Executive;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE Listener() : TPEIBStackApplicationLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackApplicationLayer;
   BEGIN
-    RETURN TPEIBStackApplicationLayer( PListener );
+    RETURN TPKNXStackApplicationLayer( PListener );
   END Listener;
 
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // physical
           PPacket     : knx_def.TPPacket
   );
@@ -1437,7 +1437,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Groupdata_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress; // logical
           PPacket     : knx_def.TPPacket
   );
@@ -1460,7 +1460,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Broadcast_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN
     T_Broadcast_Con( Status );
@@ -1490,7 +1490,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Data_Unack_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress
   );
   BEGIN
@@ -1518,7 +1518,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Connect_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1543,7 +1543,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Disconnect_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1570,7 +1570,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1598,7 +1598,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Broadcast_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN
     Listener()^.T_Broadcast_Con( Status );
@@ -1634,7 +1634,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Groupdata_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress;
           PPacket     : knx_def.TPPacket
   );
@@ -1668,8 +1668,8 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  LayerType := eltTransport;
-END CEIBStackTransportLayer;
+  LayerType := kltTransport;
+END CKNXStackTransportLayer;
 
 (*================================================================================*)
 (*================================================================================*)
@@ -1799,18 +1799,18 @@ END CPendingData;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CEIBStackApplicationLayer;
+CLASS IMPLEMENTATION CKNXStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE Executive() : TPEIBStackTransportLayer;
+  PRIVATE PROCEDURE Executive() : TPKNXStackTransportLayer;
   BEGIN
-    RETURN TPEIBStackTransportLayer( PExecutive );
+    RETURN TPKNXStackTransportLayer( PExecutive );
   END Executive;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE Listener() : TPEIBStackUserLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackUserLayer;
   BEGIN
     RETURN NIL;
   END Listener;
@@ -1818,7 +1818,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   VAR
     i : TPendingOperation;
@@ -1883,7 +1883,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Data_Unack_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress
   );
   BEGIN
@@ -1904,7 +1904,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Connect_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1921,7 +1921,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Disconnect_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1938,7 +1938,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Data_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1956,7 +1956,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Broadcast_Con(
-          Status      : knx_status.TEIBStackStatus
+          Status      : knx_status.TKNXStackStatus
   );
   BEGIN
   END T_Broadcast_Con;
@@ -1975,7 +1975,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Groupdata_Con(
-          Status      : knx_status.TEIBStackStatus;
+          Status      : knx_status.TKNXStackStatus;
           Destination : knx_def.TAddress;
           PPacket     : knx_def.TPPacket
   );
@@ -2055,7 +2055,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE A_GroupValue_Process(
-          Status      : knx_status.TEIBStackStatus; // if needed, e.g. for pphCON
+          Status      : knx_status.TKNXStackStatus; // if needed, e.g. for pphCON
           POriginator : TPSAP;
           Phase       : TProcessPhase;
           APDU        : TA_PDU;
@@ -2077,7 +2077,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   PRIVATE PROCEDURE A_GroupValue_Process_Single(
-          Status      : knx_status.TEIBStackStatus; // if needed, e.g. for pphCON
+          Status      : knx_status.TKNXStackStatus; // if needed, e.g. for pphCON
           POriginator : TPSAP;
           Phase       : TProcessPhase;
           APDU        : TA_PDU;
@@ -2103,7 +2103,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     //-----
     | pphIND :
       IF APDU = apduGroupValue_RS THEN
-        // IND, both EIB RS data and self Timeout appear here
+        // IND, both KNX RS data and self Timeout appear here
         WhatIsPending := pendingGroupRead;
         Registered := TRUE;
         Found := FALSE;
@@ -2184,7 +2184,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
           _Update_L_Layer : BOOLEAN;
     CONST Address         : knx_def.TAddress;
           PObject         : TPSAP
-  ) : knx_status.TEIBStackStatus;
+  ) : knx_status.TKNXStackStatus;
   VAR
     PA_Object : TPA_Object;
     PGroup : TPA_Group;
@@ -2196,8 +2196,8 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       NEW( PGroup );
       PGroup^.Address := Address;
       A_Data.Groups.Insert( PGroup );
-      IF PStack^.Layers[ eltNetwork ] <> NIL THEN
-        TPN_L_Data_Listener( TPEIBStackNetworkLayer( PStack^.Layers[ eltNetwork ] )^.N_Data.PL_Listener )^.AddGroup( Address );
+      IF PStack^.Layers[ kltNetwork ] <> NIL THEN
+        TPN_L_Data_Listener( TPKNXStackNetworkLayer( PStack^.Layers[ kltNetwork ] )^.N_Data.PL_Listener )^.AddGroup( Address );
       END;
       IF _Update_L_Layer THEN
         Update_L_Layer();
@@ -2224,7 +2224,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
           _Update_L_Layer : BOOLEAN;
     CONST Address         : knx_def.TAddress;
           PObject         : TPSAP
-  ) : knx_status.TEIBStackStatus;
+  ) : knx_status.TKNXStackStatus;
   VAR
     PA_Object : TPA_Object;
     PGroup : TPA_Group;
@@ -2245,8 +2245,8 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       PGroup^.Objects.Delete( PA_Object );
       IF PGroup^.Objects.Empty THEN
         A_Data.Groups.Delete( PGroup );
-        IF PStack^.Layers[ eltNetwork ] <> NIL THEN
-          TPN_L_Data_Listener( TPEIBStackNetworkLayer( PStack^.Layers[ eltNetwork ] )^.N_Data.PL_Listener )^.RemoveGroup( Address );
+        IF PStack^.Layers[ kltNetwork ] <> NIL THEN
+          TPN_L_Data_Listener( TPKNXStackNetworkLayer( PStack^.Layers[ kltNetwork ] )^.N_Data.PL_Listener )^.RemoveGroup( Address );
         END;
         IF _Update_L_Layer THEN
           Update_L_Layer();
@@ -2263,7 +2263,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   PUBLIC PROCEDURE A_SubscribePromiscuous(
           Length         : TprLength;
           PObject        : TPSAP
-  ) : knx_status.TEIBStackStatus;
+  ) : knx_status.TKNXStackStatus;
   VAR
     PA_Object : TPA_Object;
     PGroup : TPA_Group;
@@ -2297,7 +2297,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   PUBLIC PROCEDURE A_UnsubscribePromiscuous(
           Length         : TprLength;
           PObject        : TPSAP
-  ) : knx_status.TEIBStackStatus;
+  ) : knx_status.TKNXStackStatus;
   VAR
     PA_Object : TPA_Object;
     PGroup : TPA_Group;
@@ -2330,8 +2330,8 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   BEGIN
     DataLock.Lock();
 
-    IF PStack^.Layers[ eltNetwork ] <> NIL THEN
-      TPEIBStackNetworkLayer( PStack^.Layers[ eltNetwork ] )^.N_Data.PL_Listener^.GroupsUpdated();
+    IF PStack^.Layers[ kltNetwork ] <> NIL THEN
+      TPKNXStackNetworkLayer( PStack^.Layers[ kltNetwork ] )^.N_Data.PL_Listener^.GroupsUpdated();
     END;
 
     DataLock.Unlock();
@@ -2428,7 +2428,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : knx_status.TEIBStackStatus; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress );
+  PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : knx_status.TKNXStackStatus; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress );
   VAR
     PSPO : TPPendingData;
   BEGIN
@@ -2636,7 +2636,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  LayerType := eltApplication;
+  LayerType := kltApplication;
   Storage.Zero( ADR( A_Parameters ), SIZE( A_Parameters ));
   A_Parameters.PendingTimeout[ pendingGroupRead ] := 2500;
   
@@ -2652,27 +2652,27 @@ BEGIN
 
   Storage.Zero( ADR( A_Data.prGroup ), SIZE( A_Data.prGroup ));
   Storage.Zero( ADR( A_Data.prObject ), SIZE( A_Data.prObject ));
-END CEIBStackApplicationLayer;
+END CKNXStackApplicationLayer;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CEIBStack;
+CLASS IMPLEMENTATION CKNXStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Init( ConnectImmediatelly : BOOLEAN; InitLayerFrom, InitLayerTo : TEIBStackLayerType; PSink : TPEIBStackEventSink ) : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Init( ConnectImmediatelly : BOOLEAN; InitLayerFrom, InitLayerTo : TKNXStackLayerType; PSink : TPKNXStackEventSink ) : knx_status.TKNXStackStatus;
   VAR
-    Layer : TEIBStackLayerType;
-    PLayer : TPEIBStackLayer;
-    Result : knx_status.TEIBStackStatus;
+    Layer : TKNXStackLayerType;
+    PLayer : TPKNXStackLayer;
+    Result : knx_status.TKNXStackStatus;
   BEGIN
     PEventSink := PSink;
 
-    IF InitLayerFrom = eltUndefined THEN
-      InitLayerFrom := eltPhysical;
+    IF InitLayerFrom = kltUndefined THEN
+      InitLayerFrom := kltPhysical;
     END;
-    IF InitLayerTo = eltUndefined THEN
-      InitLayerTo := eltUser;
+    IF InitLayerTo = kltUndefined THEN
+      InitLayerTo := kltUser;
     END;
 
     Layer := InitLayerFrom;
@@ -2682,7 +2682,7 @@ CLASS IMPLEMENTATION CEIBStack;
       END;
       Layers[ Layer ] := PLayer;
 
-      IF Layer > eltPhysical THEN
+      IF Layer > kltPhysical THEN
         DEC( Layer );
         IF Layers[ Layer ] <> NIL THEN
           Layers[ Layer ]^.SetListener( PLayer );
@@ -2716,9 +2716,9 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Connect() : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Connect() : knx_status.TKNXStackStatus;
   VAR
-    Result : knx_status.TEIBStackStatus;
+    Result : knx_status.TKNXStackStatus;
   BEGIN
     IF ssConnected IN Status THEN
       Result := knx_status.essAlreadyConnected;
@@ -2731,9 +2731,9 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Disconnect() : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Disconnect() : knx_status.TKNXStackStatus;
   VAR
-    Result : knx_status.TEIBStackStatus;
+    Result : knx_status.TKNXStackStatus;
   BEGIN
     IF ssConnected IN Status THEN
       Result := DisconnectBUS();
@@ -2746,10 +2746,10 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Done() : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Done() : knx_status.TKNXStackStatus;
   VAR
-    Layer : TEIBStackLayerType;
-    Result : knx_status.TEIBStackStatus;
+    Layer : TKNXStackLayerType;
+    Result : knx_status.TKNXStackStatus;
   BEGIN
     Disconnect();
     IF ssFinalized IN Status THEN
@@ -2759,7 +2759,7 @@ CLASS IMPLEMENTATION CEIBStack;
       INCL( Status, ssFinalized );
 
       // done layers
-      Layer := eltPhysical;
+      Layer := kltPhysical;
       LOOP
         IF Layers[ Layer ] <> NIL THEN
           IF Layers[ Layer ]^.Freeable() THEN
@@ -2768,7 +2768,7 @@ CLASS IMPLEMENTATION CEIBStack;
             Layers[ Layer ] := NIL;
           END;
         END; // if layer exists
-        IF Layer = eltUser THEN
+        IF Layer = kltUser THEN
           EXIT;
         ELSE
           INC( Layer );
@@ -2780,14 +2780,14 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetStackAddress( CONST Address : knx_def.TAddress ) : knx_status.TEIBStackStatus;
+  PUBLIC PROCEDURE SetStackAddress( CONST Address : knx_def.TAddress ) : knx_status.TKNXStackStatus;
   BEGIN
     IF knx_def.TPAddress( ADR( Address ))^.GetAddressType() <> knx_def.addressPhysical THEN
       RETURN knx_status.essL_Bad_Address_Type;
-    ELSIF Layers[ eltLink ] = NIL THEN
+    ELSIF Layers[ kltLink ] = NIL THEN
       RETURN knx_status.essL_Layer_Undefined;
     END;
-    TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.SelfAddress := Address;
+    TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.SelfAddress := Address;
     RETURN knx_status.essOK;
   END SetStackAddress;
 
@@ -2795,13 +2795,13 @@ CLASS IMPLEMENTATION CEIBStack;
 
   PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
   VAR
-    Layer : TEIBStackLayerType;
+    Layer : TKNXStackLayerType;
   BEGIN
     CASE TimeoutId OF
     | tidL_ACKTimeout, tidL_BUSYDelay, tidL_SendDelay :
-      Layer := eltLink;
+      Layer := kltLink;
     | tidA_PendingTimeout, tidA_PendingDelay :
-      Layer := eltApplication;
+      Layer := kltApplication;
     ELSE
       RETURN;
     END;
@@ -2810,15 +2810,15 @@ CLASS IMPLEMENTATION CEIBStack;
     END;
     CASE TimeoutId OF
     | tidL_ACKTimeout :
-      TPEIBStackLinkLayer( Layers[ Layer ] )^.L_Parameters.ACKTimeout := Timeout;
+      TPKNXStackLinkLayer( Layers[ Layer ] )^.L_Parameters.ACKTimeout := Timeout;
     | tidL_BUSYDelay :
-      TPEIBStackLinkLayer( Layers[ Layer ] )^.L_Parameters.BUSYDelay := Timeout;
+      TPKNXStackLinkLayer( Layers[ Layer ] )^.L_Parameters.BUSYDelay := Timeout;
     | tidL_SendDelay :
-      TPEIBStackLinkLayer( Layers[ Layer ] )^.L_Parameters.SendDelay := Timeout;
+      TPKNXStackLinkLayer( Layers[ Layer ] )^.L_Parameters.SendDelay := Timeout;
     | tidA_PendingTimeout :
-      TPEIBStackApplicationLayer( Layers[ Layer ] )^.A_Parameters.PendingTimeout[ TPendingOperation( AuxiliarySpecification ) ] := Timeout;
+      TPKNXStackApplicationLayer( Layers[ Layer ] )^.A_Parameters.PendingTimeout[ TPendingOperation( AuxiliarySpecification ) ] := Timeout;
     | tidA_PendingDelay :
-      TPEIBStackApplicationLayer( Layers[ Layer ] )^.A_Parameters.PendingDelay[ TPendingOperation( AuxiliarySpecification ) ] := Timeout;
+      TPKNXStackApplicationLayer( Layers[ Layer ] )^.A_Parameters.PendingDelay[ TPendingOperation( AuxiliarySpecification ) ] := Timeout;
     END;
     Layers[ Layer ]^.TimeoutUpdated( TimeoutId, AuxiliarySpecification );
   END SetTimeout;
@@ -2847,7 +2847,7 @@ CLASS IMPLEMENTATION CEIBStack;
       END;
 
     ELSIF EQUALS( L"link.outputQueueLength", Parameter ) THEN
-      IF NOT Strings.ToCARD32W( Value, 10, OUT TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.OutputQueueLength ) THEN
+      IF NOT Strings.ToCARD32W( Value, 10, OUT TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.OutputQueueLength ) THEN
          ErrorText := L"Expected number";
          RETURN FALSE;
       END;
@@ -2858,28 +2858,28 @@ CLASS IMPLEMENTATION CEIBStack;
          RETURN FALSE;
       END;
       c := MIN2( 10, c );
-      TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.BUSY_Retry := c;
-      TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.NAK_Retry := c;
+      TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.BUSY_Retry := c;
+      TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.NAK_Retry := c;
 
     ELSIF EQUALS( L"application.pendingQueueLength.read", Parameter ) THEN
-      IF NOT Strings.ToCARD32W( Value, 10, OUT TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupRead ] ) THEN
+      IF NOT Strings.ToCARD32W( Value, 10, OUT TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_Parameters.PendingCount[ pendingGroupRead ] ) THEN
          ErrorText := L"Expected number";
          RETURN FALSE;
       END;
 
     ELSIF EQUALS( L"application.pendingQueueLength.write", Parameter ) THEN
-      IF NOT Strings.ToCARD32W( Value, 10, OUT TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupWrite ] ) THEN
+      IF NOT Strings.ToCARD32W( Value, 10, OUT TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_Parameters.PendingCount[ pendingGroupWrite ] ) THEN
          ErrorText := L"Expected number";
          RETURN FALSE;
       END;
 
     ELSIF EQUALS( L"application.promiscuousMode", Parameter ) THEN
       IF EQUALS( L"false",  Value ) THEN
-         TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.CheckAddressed := TRUE;
-         TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_SetPromiscuousMode( FALSE );
+         TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.CheckAddressed := TRUE;
+         TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_SetPromiscuousMode( FALSE );
       ELSIF EQUALS( L"true",  Value ) THEN
-         TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.CheckAddressed := FALSE;
-         TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_SetPromiscuousMode( TRUE );
+         TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.CheckAddressed := FALSE;
+         TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_SetPromiscuousMode( TRUE );
       ELSE
          ErrorText := L"Expected true | false";
          RETURN FALSE;
@@ -2909,15 +2909,15 @@ CLASS IMPLEMENTATION CEIBStack;
       IF EQUALS( L"link.ackMethod", Parameter ) THEN
          Value := kvKnown;
       ELSIF EQUALS( L"link.outputQueueLength", Parameter ) THEN
-         Strings.FromCARD32W( TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.OutputQueueLength, 10, OUT Value );
+         Strings.FromCARD32W( TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.OutputQueueLength, 10, OUT Value );
       ELSIF EQUALS( L"link.retryCount", Parameter ) THEN
-         Strings.FromCARD32W( TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.BUSY_Retry, 10, OUT Value );
+         Strings.FromCARD32W( TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.BUSY_Retry, 10, OUT Value );
       ELSIF EQUALS( L"application.pendingQueueLength.read", Parameter ) THEN
-         Strings.FromCARD32W( TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupRead ], 10, OUT Value );
+         Strings.FromCARD32W( TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_Parameters.PendingCount[ pendingGroupRead ], 10, OUT Value );
       ELSIF EQUALS( L"application.pendingQueueLength.write", Parameter ) THEN
-         Strings.FromCARD32W( TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupWrite ], 10, OUT Value );
+         Strings.FromCARD32W( TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_Parameters.PendingCount[ pendingGroupWrite ], 10, OUT Value );
       ELSIF EQUALS( L"application.promiscuousMode", Parameter ) THEN
-         IF TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PromiscuousMode THEN
+         IF TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_Parameters.PromiscuousMode THEN
             Value := kvTrue;
          ELSE
             Value := kvFalse;
@@ -2932,26 +2932,26 @@ CLASS IMPLEMENTATION CEIBStack;
 
   PUBLIC PROCEDURE IsSelfPacket( PPacket : knx_def.TPPacket ) : BOOLEAN;
   BEGIN
-    RETURN TPEIBStackLinkLayer( Layers[ eltLink ] )^.IsSelfPacket( PPacket );
+    RETURN TPKNXStackLinkLayer( Layers[ kltLink ] )^.IsSelfPacket( PPacket );
   END IsSelfPacket;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE OutputQueueLength() : CARDINAL;
   BEGIN
-    RETURN TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Data.Queue.PacketsPending();
+    RETURN TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Data.Queue.PacketsPending();
   END OutputQueueLength;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE WriteQueueLength() : CARDINAL;
   BEGIN
-    RETURN TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_QueueLength( pendingGroupWrite );
+    RETURN TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_QueueLength( pendingGroupWrite );
   END WriteQueueLength;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : TEIBStackLayerType; VAR PLayer : TPEIBStackLayer ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : TKNXStackLayerType; VAR PLayer : TPKNXStackLayer ) : BOOLEAN;
   BEGIN
     RETURN FALSE;
   END CreateLayer;
@@ -2979,19 +2979,19 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TKNXStackStatus;
   VAR
-    Layer : TEIBStackLayerType;
+    Layer : TKNXStackLayerType;
   BEGIN
-    Layer := eltUser;
+    Layer := kltUser;
     LOOP // start initializing from most top level I know
-      IF ( Layers[ Layer ] = NIL ) OR ( Layers[ Layer ]^.GetLayerType() = eltAbstract ) THEN
+      IF ( Layers[ Layer ] = NIL ) OR ( Layers[ Layer ]^.GetLayerType() = kltAbstract ) THEN
         DEC( Layer );
       ELSE
         Layers[ Layer ]^.Initialize_Req();
         EXIT;
       END;
-      IF Layer = eltPhysical THEN
+      IF Layer = kltPhysical THEN
         EXIT;
       END;
     END; // LOOP
@@ -3000,34 +3000,34 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TKNXStackStatus;
   BEGIN
     RETURN knx_status.essOK;
   END ConnectBUS;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TKNXStackStatus;
   BEGIN
     RETURN knx_status.essOK;
   END DisconnectBUS;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE Dispose() : knx_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE Dispose() : knx_status.TKNXStackStatus;
   VAR
-    Layer : TEIBStackLayerType;
+    Layer : TKNXStackLayerType;
   BEGIN
     // call Done_Req
-    Layer := eltUser;
+    Layer := kltUser;
     LOOP // start initializing from most top level I know
-      IF ( Layers[ Layer ] = NIL ) OR ( Layers[ Layer ]^.GetLayerType() = eltAbstract ) THEN
+      IF ( Layers[ Layer ] = NIL ) OR ( Layers[ Layer ]^.GetLayerType() = kltAbstract ) THEN
         DEC( Layer );
       ELSE
         Layers[ Layer ]^.Done_Req();
         EXIT;
       END;
-      IF Layer = eltPhysical THEN
+      IF Layer = kltPhysical THEN
         EXIT;
       END;
     END; // LOOP
@@ -3036,7 +3036,7 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnError( Layer : TEIBStackLayerType; ErrorCode : knx_status.TEIBStackStatus );
+  LOCAL VIRTUAL PROCEDURE OnError( Layer : TKNXStackLayerType; ErrorCode : knx_status.TKNXStackStatus );
   BEGIN
   END OnError;
 
@@ -3049,10 +3049,10 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE EIBConnected() : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE KNXConnected() : BOOLEAN;
   BEGIN
     RETURN FALSE;
-  END EIBConnected;
+  END KNXConnected;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -3074,7 +3074,7 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE CreateLayerInternal( Layer : TEIBStackLayerType; VAR PLayer : TPEIBStackLayer ) : BOOLEAN;
+  PRIVATE PROCEDURE CreateLayerInternal( Layer : TKNXStackLayerType; VAR PLayer : TPKNXStackLayer ) : BOOLEAN;
   LABEL
     Created;
   BEGIN
@@ -3083,18 +3083,18 @@ CLASS IMPLEMENTATION CEIBStack;
     END;
 
     CASE Layer OF
-    | eltPhysical :
-      NEW( TPEIBStackPhysicalLayer( PLayer ));
-    | eltLink :
-      NEW( TPEIBStackLinkLayer( PLayer ));
-    | eltNetwork :
-      NEW( TPEIBStackNetworkLayer( PLayer ));
-    | eltTransport :
-      NEW( TPEIBStackTransportLayer( PLayer ));
-    | eltApplication :
-      NEW( TPEIBStackApplicationLayer( PLayer ));
-    | eltUser :
-      NEW( TPEIBStackUserLayer( PLayer ));
+    | kltPhysical :
+      NEW( TPKNXStackPhysicalLayer( PLayer ));
+    | kltLink :
+      NEW( TPKNXStackLinkLayer( PLayer ));
+    | kltNetwork :
+      NEW( TPKNXStackNetworkLayer( PLayer ));
+    | kltTransport :
+      NEW( TPKNXStackTransportLayer( PLayer ));
+    | kltApplication :
+      NEW( TPKNXStackApplicationLayer( PLayer ));
+    | kltUser :
+      NEW( TPKNXStackUserLayer( PLayer ));
     END;
 
   Created:
@@ -3108,7 +3108,7 @@ BEGIN
   Status := TStackStatusSet{};
   PEventSink := NIL;
   Storage.Zero( ADR( Layers ), SIZE( Layers ));
-END CEIBStack;
+END CKNXStack;
 
 (*================================================================================*)
 

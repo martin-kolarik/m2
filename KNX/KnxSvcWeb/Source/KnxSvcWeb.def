@@ -30,11 +30,11 @@ TYPE
    );
 
 TYPE
-   TPEibSrvWeb = POINTER TO CEibSrvWeb;
+   TPKnxSvcWeb = POINTER TO CKnxSvcWeb;
 
-CLASS CEibSrvWeb IMPLEMENTS knxcore.IEIBServerSink, threadcall.IThreadProcedureCallTarget;
+CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureCallTarget;
 
-   // IEIBServerSink
+   // IKNXServerSink
    PUBLIC VIRTUAL PROCEDURE OnConnect();
    PUBLIC VIRTUAL PROCEDURE OnDisconnect();
    PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
@@ -68,9 +68,9 @@ CLASS CEibSrvWeb IMPLEMENTS knxcore.IEIBServerSink, threadcall.IThreadProcedureC
       DataLogger : Log.TPBufferedLogger;
       Project : StringsO.TPString;
       
-   PUBLIC PROCEDURE ConnectEIB();
-   PUBLIC PROCEDURE DisconnectEIB();
-   PUBLIC PROCEDURE ConfigureEIB( CONST ConfigFilePath : StringsO.CString );
+   PUBLIC PROCEDURE ConnectKNX();
+   PUBLIC PROCEDURE DisconnectKNX();
+   PUBLIC PROCEDURE ConfigureKNX( CONST ConfigFilePath : StringsO.CString );
    
    PUBLIC PROCEDURE OperatedDeviceName( index : CARDINAL ) : PWCHAR;
    PUBLIC PROCEDURE OperateDevice( index : CARDINAL; StartNotStop : BOOLEAN );
@@ -101,7 +101,7 @@ CLASS CEibSrvWeb IMPLEMENTS knxcore.IEIBServerSink, threadcall.IThreadProcedureC
       _Context : StringsO.CString;
       _RootDir : StringsO.CString;
       _MessageFile : StringsO.CString;
-      _EIB : knxcore.TPEIBServer;
+      _KNX : knxcore.TPKNXServer;
       _MVC : mvc.TPMVC;
       _Port : CARDINAL;
       _SessionValidity : CARDINAL; // in seconds, 30 minutes by default
@@ -132,7 +132,7 @@ CLASS CEibSrvWeb IMPLEMENTS knxcore.IEIBServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE Init(
       Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR;
       CONST cfg : INIfile.CINIFile;
-      EIB : knxcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl;
+      KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl;
       ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    
    PUBLIC READONLY PROPERTY
@@ -149,7 +149,7 @@ CLASS CEibSrvWeb IMPLEMENTS knxcore.IEIBServerSink, threadcall.IThreadProcedureC
 
    PRIVATE PROCEDURE AdjustHours( CONST dt : datetime.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF datetime.TJD );
 
-END CEibSrvWeb;
+END CKnxSvcWeb;
 
 (*================================================================================*)
 

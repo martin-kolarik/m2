@@ -66,7 +66,7 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
+CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    LOCAL VIRTUAL READONLY PROPERTY
       Name : PWCHAR;
       Configuration : StringsO.TPString;
@@ -77,11 +77,11 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       DataLogger : Log.CBufferedLogger; 
       HttpLogger : Log.CLogger; 
       NetworkLogger : Log.CLogger; 
-      EIB : knxcore.TPEIBServer := NIL;
+      KNX : knxcore.TPKNXServer := NIL;
       Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
       XMLS : xmlsocket.TPXMLSocketServer := NIL;
-      Web : KnxSvcWeb.CEibSrvWeb;
+      Web : KnxSvcWeb.CKnxSvcWeb;
       CDI : TControlledDeviceInfo;
 
    // service, OS thread
@@ -98,14 +98,14 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
    PRIVATE PROCEDURE _OnPause();
    PRIVATE PROCEDURE _OnContinue();
    PRIVATE PROCEDURE _OnStop();
-END CEibSvc;
+END CKnxSvc;
 
 (*================================================================================*)
 
 CONST
    ServiceName = ProductId;
 
-CLASS IMPLEMENTATION CEibSvc;
+CLASS IMPLEMENTATION CKnxSvc;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -118,10 +118,10 @@ CLASS IMPLEMENTATION CEibSvc;
 
    LOCAL PROPERTY Configuration GET : StringsO.TPString;
    BEGIN
-      IF EIB = NIL THEN
+      IF KNX = NIL THEN
          RETURN NIL;
       ELSE
-         RETURN EIB^.Configuration;
+         RETURN KNX^.Configuration;
       END;
    END Configuration;
 
@@ -225,21 +225,21 @@ CLASS IMPLEMENTATION CEibSvc;
       LogConfig.ConfigureLog( cfg, L"networklog", REF NetworkLogger, REF LogAppenders, OUT line );
       NetworkLogger.LocalTime := TRUE;
       
-      ASSERT( EIB = NIL );
-      NEW( EIB );
-      EIB^.Init( TRUE );
-      EIB^.EXEFlag := TRUE;
-      EIB^.cllvData := ADR( cllv.data );
-      EIB^.cllvLength := cllv.length;
-      EIB^.DataLogger := ADR( DataLogger );
+      ASSERT( KNX = NIL );
+      NEW( KNX );
+      KNX^.Init( TRUE );
+      KNX^.EXEFlag := TRUE;
+      KNX^.cllvData := ADR( cllv.data );
+      KNX^.cllvLength := cllv.length;
+      KNX^.DataLogger := ADR( DataLogger );
       
       configuration[0].Type := device.citIString;
       configuration[0].iString := ADR( s1 );
-      Result := EIB^.Configure( configuration, ADR( ConfigLogger ));
+      Result := KNX^.Configure( configuration, ADR( ConfigLogger ));
       
       ASSERT( Adviser = NIL );
       NEW( Adviser );
-      Adviser^.Device := EIB;
+      Adviser^.Device := KNX;
       Adviser^.Start();
 
       ASSERT( SDAP = NIL );
@@ -268,11 +268,11 @@ CLASS IMPLEMENTATION CEibSvc;
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       
-      IF Web.Init( 6005, L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
+      IF Web.Init( 6005, L"/SmartServer", cfg, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
       END;
       IF Result = Sync.arCompleted THEN
-         EIB^.Start();
+         KNX^.Start();
       END;
 
       SetServiceState( Service.ssRunning, 0 );
@@ -282,10 +282,10 @@ CLASS IMPLEMENTATION CEibSvc;
 
    PRIVATE PROCEDURE _OnPause();
    BEGIN
-      IF EIB = NIL THEN
-         LogEvent( -1, L"Svc.OnPause called for EIB = NIL" );
+      IF KNX = NIL THEN
+         LogEvent( -1, L"Svc.OnPause called for KNX = NIL" );
       ELSE
-         EIB^.Stop();
+         KNX^.Stop();
       END;
 
       SetServiceState( Service.ssPaused, 0 );
@@ -295,10 +295,10 @@ CLASS IMPLEMENTATION CEibSvc;
 
    PRIVATE PROCEDURE _OnContinue();
    BEGIN
-      IF EIB = NIL THEN
-         LogEvent( -1, L"Svc.OnContinue called for EIB = NIL" );
+      IF KNX = NIL THEN
+         LogEvent( -1, L"Svc.OnContinue called for KNX = NIL" );
       ELSE
-         EIB^.Start();
+         KNX^.Start();
       END;
 
       SetServiceState( Service.ssRunning, 0 );
@@ -325,10 +325,10 @@ CLASS IMPLEMENTATION CEibSvc;
          DISPOSE( Adviser );
       END;
 
-      IF EIB <> NIL THEN
-         EIB^.Stop();
-         EIB^.Dispose();
-         DISPOSE( EIB );
+      IF KNX <> NIL THEN
+         KNX^.Stop();
+         KNX^.Dispose();
+         DISPOSE( KNX );
       END;
 
       ConfigLogger.BufferClear();      
@@ -361,18 +361,18 @@ BEGIN
    ConfigLogger.Level := Log.ldTrace;
    ConfigLogger.BufferSize := 16;
    ConfigLogger.BufferMode := Log.bmStoreFirst;
-END CEibSvc;
+END CKnxSvc;
 
 (*================================================================================*)
 
 VAR
-   EibSvc : CEibSvc;
+   KnxSvc : CKnxSvc;
 
 # save, call( convention => cdecl )
 PROCEDURE Main( argc : INTEGER; argp : ADDRESS ) : INTEGER;
 # restore
 VAR
-   PService : Service.TPService := ADR( EibSvc );
+   PService : Service.TPService := ADR( KnxSvc );
 BEGIN
    Service.Run( OA( 0, ADR( PService )), FALSE, 0 );
    RETURN 0;

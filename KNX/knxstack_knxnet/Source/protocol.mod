@@ -17,7 +17,7 @@ IMPORT
 (*================================================================================*)
 
 CONST
-   DEBUG_PREFIX = L"EibNet.Connection";
+   DEBUG_PREFIX = L"KnxNet.Connection";
 
 PROCEDURE LogSHPAI( Logger : log.TPLogger; Level : Log.TLevel; Prefix, S : ARRAY OF WCHAR; CONST HPAI : transport.HostProtocolAddressInformation );
 VAR
@@ -43,7 +43,7 @@ END LogSCHPAI;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION EIBNetListener;
+CLASS IMPLEMENTATION KNXNetListener;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -66,7 +66,7 @@ CLASS IMPLEMENTATION EIBNetListener;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-END EIBNetListener;
+END KNXNetListener;
 
 (*================================================================================*)
 
@@ -183,7 +183,7 @@ CLASS IMPLEMENTATION CConnection;
       // set itself
       HPAIData.Address := Value;
       IF Value.Multicast THEN
-         HPAIData.Port := transport.EIBNET_IPPORT; // to be sure
+         HPAIData.Port := transport.KNXNET_IPPORT; // to be sure
       ELSE
          HPAICtrl.Address := Value;
       END;
@@ -321,7 +321,7 @@ CLASS IMPLEMENTATION CConnection;
          END;
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
       | cmRouting :
-         ai.Port := transport.EIBNET_IPPORT;
+         ai.Port := transport.KNXNET_IPPORT;
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, 0, ADR( _Socket )) = 0;
       ELSE
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
@@ -355,7 +355,7 @@ CLASS IMPLEMENTATION CConnection;
          ai.Port := _Socket^.LocalAddress.Port;
          HPAISelf.Address := ai;
 
-         ai.FromOA( transport.EIBNET_DISCOVERY_ADDRESS, transport.EIBNET_IPPORT );
+         ai.FromOA( transport.KNXNET_DISCOVERY_ADDRESS, transport.KNXNET_IPPORT );
          _Socket^.MulticastGroup := ai;
          IOState := ioReady;
 
@@ -667,7 +667,7 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TKNXStackStatus );
    BEGIN
    END On_L_CON;
 
@@ -827,7 +827,7 @@ CLASS IMPLEMENTATION CConnection;
          END;
          _Logger^.LogSCP( ldDebug, 0, DEBUG_PREFIX, L"SEND R_CON status: ", CARDINAL( ChannelId ), PTR( EMI.GetError() ));
 
-         // IOState := ioReady; -- not to set here, CConnection is ready after T_CON, L_ACK is matter of EIB and stack itself (and ACKTimeout is set there, of course)
+         // IOState := ioReady; -- not to set here, CConnection is ready after T_CON, L_ACK is matter of KNX and stack itself (and ACKTimeout is set there, of course)
          // ioReady is set in OnTunnelingACK.
          IF Error THEN
             On_L_CON( knx_status.essConError );
@@ -874,7 +874,7 @@ CLASS IMPLEMENTATION CConnection;
       StopTimer( PTR( tiACK ));
       SendErr := 0; // reset connection recovery counter
 
-      // Set ioReady here, CConnection is ready after T_CON. L_ACK is matter of EIB and stack itself (and ACKTimeout is set there, of course, and counted too).
+      // Set ioReady here, CConnection is ready after T_CON. L_ACK is matter of KNX and stack itself (and ACKTimeout is set there, of course, and counted too).
       IOState := ioReady;
 
       // notify stack about mine job finish   
@@ -1056,8 +1056,8 @@ CLASS IMPLEMENTATION CConnection;
 
    FINALLY CConnection;
    BEGIN
-      StopTimer( PTR( tiConnect )); // tiAutoReconnect timer can alive -- it is started in Connect. But, device is not connected and outer (EibStack's) call to Disconnect is skipped as Disconnect is not needed. tiConnect is not stopped for that case. It must be done here.
-      StopTimer( PTR( tiAutoReconnect )); // tiAutoReconnect timer can alive -- after Connect, when time elapses, tiAutoConnect is started. But device is not connected and outer (EibStack's) call to Disconnect is skipped as Disconnect is not needed. tiAutoConnect is not stopped for that case. It must be done here.
+      StopTimer( PTR( tiConnect )); // tiAutoReconnect timer can alive -- it is started in Connect. But, device is not connected and outer (KnxStack's) call to Disconnect is skipped as Disconnect is not needed. tiConnect is not stopped for that case. It must be done here.
+      StopTimer( PTR( tiAutoReconnect )); // tiAutoReconnect timer can alive -- after Connect, when time elapses, tiAutoConnect is started. But device is not connected and outer (KnxStack's) call to Disconnect is skipped as Disconnect is not needed. tiAutoConnect is not stopped for that case. It must be done here.
 
       Disconnect( TRUE );
 

@@ -51,7 +51,7 @@ CONST
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CEibSrvWeb;
+CLASS IMPLEMENTATION CKnxSvcWeb;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -116,12 +116,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       dt.SetNowUTC();
       AdjustHours( dt, REF _GotByHour, REF _GotByHourModified );
 
-      _EIB^.QueueLock.Lock();
+      _KNX^.QueueLock.Lock();
 
-      Sync.IExchgAdd( REF _GotByHour[dt.Hour MOD 24], _EIB^.oobData.Count );
-      _EIB^.oobData.Dispose();
+      Sync.IExchgAdd( REF _GotByHour[dt.Hour MOD 24], _KNX^.oobData.Count );
+      _KNX^.oobData.Dispose();
 
-      _EIB^.QueueLock.Unlock();
+      _KNX^.QueueLock.Unlock();
    END OnInputQueueAdd;
 
 (*--------------------------------------------------------------------------------*)
@@ -143,22 +143,22 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       | cmdLoadConfiguration :
          configFilePath := StringsO.TPString( Parameters[0] );
       
-         wasRunning := _EIB^.Running;
-         _EIB^.Stop();
+         wasRunning := _KNX^.Running;
+         _KNX^.Stop();
 
          configuration[0].Type := device.citIString;
          configuration[0].iString := configFilePath;
-         IF _EIB^.Configure( configuration, _ConfigLogger ) = Sync.arCompleted THEN
+         IF _KNX^.Configure( configuration, _ConfigLogger ) = Sync.arCompleted THEN
             IF wasRunning THEN
-               _EIB^.Start();
+               _KNX^.Start();
             END;
          END;
 
       | cmdStart :
-         _EIB^.Start();
+         _KNX^.Start();
 
       | cmdStop :
-         _EIB^.Stop();
+         _KNX^.Stop();
          
       | cmdDeviceStart :
          index := PCARDINAL( Parameters[0] )^;
@@ -191,7 +191,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY Configuration GET : StringsO.TPString;
    BEGIN
-      RETURN _EIB^.Configuration;
+      RETURN _KNX^.Configuration;
    END Configuration;
 
 (*--------------------------------------------------------------------------------*)
@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY CacheOnlyMode GET : BOOLEAN;
    BEGIN
-      RETURN _EIB^.CacheOnlyMode;
+      RETURN _KNX^.CacheOnlyMode;
    END CacheOnlyMode;
 
 (*--------------------------------------------------------------------------------*)
@@ -264,11 +264,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       startTime : datetime.DateTime;
    BEGIN
       // no need to sync
-      IF _EIB^.PResult^.Suspended THEN
+      IF _KNX^.PResult^.Suspended THEN
          startTime.FromJD( _StartedTime, 0, 0 );
          RETURN startTime;
       ELSE
-         RETURN _EIB^.PResult^.Expires;
+         RETURN _KNX^.PResult^.Expires;
       END;
    END LicenceExpires;
 
@@ -281,7 +281,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       s : StringsO.CString;
    BEGIN
       // no need to sync
-      _EIB^.PResult^.GetLicences( OUT licences );
+      _KNX^.PResult^.GetLicences( OUT licences );
       IF licences.GetFirst( OUT s, OUT ptrType ) THEN
          RETURN lec.TLicenceType( LOPTRLONGWORD( ptrType ));
       ELSE
@@ -298,7 +298,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       s : StringsO.CString;
    BEGIN
       // no need to sync
-      _EIB^.PResult^.GetLicences( OUT licences );
+      _KNX^.PResult^.GetLicences( OUT licences );
       IF NOT licences.GetFirst( OUT s, OUT ptrType ) THEN
          s.Clear();
       END;
@@ -309,7 +309,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY Connection GET : StringsO.CString;
    BEGIN
-      RETURN _EIB^.Connection;
+      RETURN _KNX^.Connection;
    END Connection;
 
 (*--------------------------------------------------------------------------------*)
@@ -400,34 +400,34 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ConnectEIB();
+   PUBLIC PROCEDURE ConnectKNX();
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
       Result := msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
-   END ConnectEIB;
+   END ConnectKNX;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DisconnectEIB();
+   PUBLIC PROCEDURE DisconnectKNX();
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
       Result := msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
-   END DisconnectEIB;
+   END DisconnectKNX;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ConfigureEIB( CONST configFilePath : StringsO.CString );
+   PUBLIC PROCEDURE ConfigureKNX( CONST configFilePath : StringsO.CString );
    VAR
       pConfigFilePath : StringsO.TPString := ADR( configFilePath );
       Result : Sync.TAsyncResult;
    BEGIN
       Result := msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdLoadConfiguration ), OA( 0, ADR( pConfigFilePath )), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
-   END ConfigureEIB;
+   END ConfigureKNX;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -482,7 +482,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Value : iovalue.Value;
    BEGIN
       // no need to sync, NameToHash is be thread safe
-      IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
+      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
          RETURN FALSE;
       END;
       s.Assign( value );
@@ -493,7 +493,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Originator.SetDescription( d );
 
       // no need to sync, IOh is be thread safe
-      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) IN Sync.arsCompletions;
+      RETURN _KNX^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) IN Sync.arsCompletions;
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
@@ -505,11 +505,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       s : StringsO.CString;
    BEGIN
       // no need to sync, NameToHash is be thread safe
-      IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
+      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
-      IF _EIB^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+      IF _KNX^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
       s := io.String;
@@ -526,11 +526,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       s : StringsO.CString;
    BEGIN
       // no need to sync, NameToHash is be thread safe
-      IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
+      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
-      IF _EIB^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+      IF _KNX^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
       
@@ -877,7 +877,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : knxcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
       snProject = L"project";
          knName = L"name";
@@ -903,7 +903,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       _Port := Port;
       _Context.FromOA( ContextName );
-      _EIB := EIB;
+      _KNX := KNX;
       _DeviceCount := MIN2( HIGH( DeviceNames ), HIGH( Devices )) + 1;
       _DeviceNames := ADR( DeviceNames );
       _Devices := ADR( Devices );
@@ -1013,8 +1013,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END; // FOR
       _StartedTime := datetime.GetCurrentJD();      
 
-      // hook EIB
-      _EIB^.EventSink := ADR( SELF );
+      // hook KNX
+      _KNX^.EventSink := ADR( SELF );
    END Run;
 
 (*--------------------------------------------------------------------------------*)
@@ -1030,8 +1030,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _Users.Dispose();
       _SysUsers.Dispose();
       
-      // unhook EIB
-      _EIB^.EventSink := NIL;
+      // unhook KNX
+      _KNX^.EventSink := NIL;
       
       ASSERT( _MVC <> NIL );
       RemoveControllers();
@@ -1158,7 +1158,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    BEGIN
       IF _Controller = NIL THEN
          NEW( Controller.TPController( _Controller ));
-         Controller.TPController( _Controller )^.BindToEibSrv( ADR( SELF ));
+         Controller.TPController( _Controller )^.BindToKnxSrv( ADR( SELF ));
       END;
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, L"" ); // index
@@ -1239,7 +1239,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _EIB := NIL;
+   _KNX := NIL;
    _MVC := NIL;
    _DeviceCount := 0;
    _DeviceNames := NIL;
@@ -1262,7 +1262,7 @@ BEGIN
    _AccessList.Policy := accesslist.actAllow;
 FINALLY
    Stop();   
-END CEibSrvWeb;
+END CKnxSvcWeb;
 
 (*================================================================================*)
 
