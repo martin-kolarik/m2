@@ -14,7 +14,9 @@ IMPORT
    FIO,
    FIOO,
    INIfile,
+   lists,
    Log,
+   LogConfig,
    msgqueuethread,
    netinit,
    Registry,
@@ -50,6 +52,7 @@ CLASS CBridgeSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallT
       Name : PWCHAR;
       
    PRIVATE VAR
+      AppenderList : lists.CPtrList;
       ConfigLogger : Log.CLogger;
       Bridge : DeviceIOSDAPBridge.TPBridge := NIL;
 
@@ -88,28 +91,28 @@ CLASS IMPLEMENTATION CBridgeSvc;
    LOCAL VIRTUAL PROCEDURE OnStart();
    BEGIN
       scinit.Startup();
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnStart;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnPause();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdPause ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdPause ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnPause;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnContinue();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdContinue ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdContinue ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnContinue;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnStop();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
 
       Sync.Sleep( 1000 ); // give some time to message thread to stop self -- it should be solve by some polling (e.g. netinit.CleanedUp), but this is sufficient now
 
@@ -163,8 +166,8 @@ CLASS IMPLEMENTATION CBridgeSvc;
       FIOO.PathAdd( REF s1, s2 );
       cfg.LoadPath( OA( s1.Length-1, s1.Data ));
       
-      INIfile.ConfigureLog( cfg, L"", REF Log.logger()^, OUT line );
-      ConfigLogger.SetUpByLogger( Log.logger()^ );
+      LogConfig.ConfigureLog( cfg, L"", REF Log.logger()^, REF AppenderList, OUT line );
+      Log.ConfigureByAppender( REF ConfigLogger, Log.logger()^ );
       
       ASSERT( Bridge = NIL );
       DeviceIOSDAPBridge.newDeviceIOSDAPBridge( OUT Bridge );
@@ -215,6 +218,8 @@ CLASS IMPLEMENTATION CBridgeSvc;
          Bridge^.Dispose();
          DISPOSE( Bridge );
       END;
+
+      LogConfig.DisposeAppenderList( REF AppenderList );
 
       // do this sooner than scinit.Cleanup, because scinit.Cleanup is called from different thread
       netinit.Cleanup();

@@ -54,7 +54,7 @@ END CNS;
 CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
    LOCAL VAR
       PIO : TPIO;
-      Connection : rawconnection.TCPConnection;
+      Connection : rawconnection.ClientTCPConnection;
       RxBuffer : StorageO.CMemoryBuffer;
       Logger : log.CLogger;
 
