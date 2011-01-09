@@ -1,5 +1,4 @@
-DEFINITION MODULE AirMotion;
-// setpoint process.value control.value
+DEFINITION MODULE Integra;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -205,7 +204,7 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CAirMotionDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 	PRIVATE VAR
 		_NS : CNS;
 		_IO : CIO;
@@ -226,8 +225,8 @@ CLASS CAirMotionDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 
 	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-END CAirMotionDevice;
+END CIntegraDevice;
 
 (*---------------------------------------------------------------------------*)
 
-END AirMotion.
+END Integra.

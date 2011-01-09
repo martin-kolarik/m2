@@ -3,7 +3,7 @@
 
     <!-- main resource properties -->
     <PropertyGroup>
-        <CopyrightYears Condition="$(CopyrightYears)==''">2008-2009</CopyrightYears>
+        <CopyrightYears Condition="$(CopyrightYears)==''">2008-2011</CopyrightYears>
         <CompanyName Condition="$(CompanyName)==''">NeNo®</CompanyName>
         <LegalCopyright Condition="$(LegalCopyright)==''">Copyright © NeNo® $(CopyrightYears)</LegalCopyright>
         <LegalTrademarks Condition="$(LegalTrademarks)==''">NeNo SmartVision</LegalTrademarks>

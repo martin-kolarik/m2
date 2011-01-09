@@ -16,6 +16,7 @@ IMPORT
    lec,
    lists,
    Log,
+   MIME,
    Strings;
 
 (*--------------------------------------------------------------------------------*)
@@ -34,6 +35,8 @@ CONST
    MESSAGE = L"message";
    LOGIN_REDIRECTED = L"redirected";
    USER_LOGIN_SOURCE_PAGE = L"sourcePage";
+   LANGUAGE = L"language";
+   INVALID_LANGUAGE = -1;
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -53,6 +56,10 @@ CONST
    LOGIN_USERNAME = L"username";
    LOGIN_PASSWORD = L"password";
    LOGOUT_NEXT_PAGE = L"nextpage";
+   ERROR_LOGIN_NOT_FOUND_OR_EXPIRED = L"login.invalidLoginOrSessionExpired";
+   ERROR_USER_LOGIN_NOT_FOUND_OR_EXPIRED = L"userLogin.invalidLoginOrSessionExpired";
+   ERROR_LOGIN_BAD_CREDENTIALS = L"login.badCredentials";
+   ERROR_USER_LOGIN_BAD_CREDENTIALS = L"userLogin.badCredentials";
    
    DATETIME_FORMAT_CS = L"d. MMMM H.mm:ss";
    DATETIME_FORMAT_EN = L"MMMM d, H:mm:ss";
@@ -71,7 +78,9 @@ CONST
    STATUS_CONNECT = L"connect";
    STATUS_DISCONNECT = L"disconnect";
    STATUS_PROJECT = L"project";
-   
+   STATUS_TEXT_VALID_UNTIL = L"status.licenceValidUntil";
+   STATUS_TEXT_PERMANENT = L"status.licencePermanent";   
+
    CONTROL_DEVICES_NAME = L"names";
    CONTROL_DEVICES_RUN = L"runStatus";
    CONTROL_DEVICES_IDX = L"indexes";
@@ -129,6 +138,7 @@ CONST
    FN_SET = L"set";
    FN_GET = L"get";
    FN_GETWIX = L"getwix";
+   FN_SETV = L"setv"; // set without redirect
    FN_EQUAL = L"equal";
    FN_NOTEQUAL = L"notEqual";
    FN_LESS = L"less";
@@ -168,13 +178,14 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : mvc.TCallResult;
+   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IMvcRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : mvc.TCallResult;
    VAR
       b : BOOLEAN;
       name, s, value1, value2 : StringsO.CString;
       real1, real2 : LONGREAL;
    BEGIN
-      IF FunctionName.EqualsOA( FN_SET ) THEN
+      IF FunctionName.EqualsOA( FN_SET ) OR
+         FunctionName.EqualsOA( FN_SETV ) THEN
          IF Parameters.Count < 2 THEN
             RETURN mvc.crMissingParameter;
          END;
@@ -247,7 +258,7 @@ CLASS IMPLEMENTATION CController;
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 < real2;
             ELSE
-               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) = -1;
+               b := value1.CompareLanguage( Language( Request ), TRUE, value2 ) = -1;
             END;
             IF b THEN
                RetVal^.FromOA( TRUE_S );
@@ -266,7 +277,7 @@ CLASS IMPLEMENTATION CController;
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 <= real2;
             ELSE
-               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) <> 1;
+               b := value1.CompareLanguage( Language( Request ), TRUE, value2 ) <> 1;
             END;
             IF b THEN
                RetVal^.FromOA( TRUE_S );
@@ -285,7 +296,7 @@ CLASS IMPLEMENTATION CController;
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 > real2;
             ELSE
-               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) = 1;
+               b := value1.CompareLanguage( Language( Request ), TRUE, value2 ) = 1;
             END;
             IF b THEN
                RetVal^.FromOA( TRUE_S );
@@ -304,7 +315,7 @@ CLASS IMPLEMENTATION CController;
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 >= real2;
             ELSE
-               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) <> -1;
+               b := value1.CompareLanguage( Language( Request ), TRUE, value2 ) <> -1;
             END;
             IF b THEN
                RetVal^.FromOA( TRUE_S );
@@ -328,7 +339,7 @@ CLASS IMPLEMENTATION CController;
       s.Assign( Source );
       s.Lowerize();
       IF Source.EndsWithOA( L"cfg" ) THEN
-         HttpTools.FormatContentOA( HttpTools.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentHeader );
+         MIME.FormatContentOA( MIME.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentHeader );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -339,8 +350,11 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
    VAR
+      empty : StringsO.CString;
       version : StringsO.CString;
    BEGIN
+      Container.AddStringOA( LANGUAGE, empty );
+
       Container.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
@@ -350,6 +364,7 @@ CLASS IMPLEMENTATION CController;
       Container.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
+      Container.AddFunctionHandlerOA( FN_SETV, ADR( SELF ));
 
       version.FromOA( ProductVersion );
       Container.AddStringOA( VERSION, version );
@@ -363,22 +378,69 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
    VAR
       authMethodInfo : StringsO.CString;
       authorized : BOOLEAN := FALSE;
       authTokens : lists.CStringStringList;
       data : PTR;
+      empty : StringsO.CString;
+      functionsCalled : CARDINAL := 0;
       role : EibSrvWeb.TRole;
       roleName : StringsO.CString;
       s : StringsO.CString;
+      setsCalled : CARDINAL := 0;
+      singleSetCalled : BOOLEAN := FALSE;
       uri : StringsO.CString;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
+      value : StringsO.CString;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
       ELSE
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
          role := EibSrvWeb.roleGuest;
+      END;
+      
+      // process parameters not known to views' models
+      IF uriParameters^.GetOA( LANGUAGE, OUT s ) THEN // override language
+         Request.ModelContainer^.AddStringOA( LANGUAGE, s ); // set empty, reset the value
+         SetOverriddenLanguage( Request, s );
+
+         uri := Request.ControllerURI;
+         View := mvc.redirectView( OA( uri.Length-1, uri.Data )); // language switch cannot carry other parameters
+         RETURN TRUE;
+
+      // process other unknown parameters to detect functions
+      ELSIF uriParameters^.Count = 0 THEN
+         // fall down to normal controller processing
+
+      // process other unknown parameters to detect functions
+      ELSE
+         uriParameters^.Reset();
+         WHILE uriParameters^.MoveNext() DO
+            IF Request.ModelContainer^.IsFunctionCall( uriParameters^.Current^ ) THEN
+               INC( functionsCalled );
+               IF uriParameters^.Current^.StartsWithOA( FN_SET + L"(" ) THEN
+                  INC( setsCalled );
+               END;
+               IF Request.ModelContainer^.GetModelValue( Request, Request.MessageSource, Language( Request ), uriParameters^.Current^, OUT value ) THEN
+                  s.Append( value );
+               ELSE
+                  s.AppendOA( L"##error: function call failed" );
+               END;
+               s.AppendOA( CRLF );
+            END;
+         END; // WHILE URIParameter
+
+         singleSetCalled := ( functionsCalled = 1 ) AND ( setsCalled = 1 );
+         IF ( functionsCalled = 0 ) OR singleSetCalled THEN
+            // fall down, single set falls to the same page, no function means no action
+         ELSE // do not render "normal" view output, but textual function output
+            View := mvc.rawTextView( OA( s.Length-1, s.Data ), L"", empty, FALSE ); // language switch cannot carry other parameters
+            RETURN TRUE;
+         END;
+      // end of parameters processing
       END;
       
       IF Fallback THEN
@@ -386,11 +448,11 @@ CLASS IMPLEMENTATION CController;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
             View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.Data ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
 
-         ELSIF Request.FunctionCalled THEN // some call was performed, redirect to self
+         ELSIF singleSetCalled THEN // some set call was performed, redirect to self
             View := mvc.redirectView( OA( uri.Length-1, uri.Data ));
          
          ELSE // no call during the request
-            View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.Data ));
+            View := GetPageTemplateView( Request, OA( uri.Length-1, uri.Data ));
 
             // handle authentication
             IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
@@ -429,14 +491,12 @@ CLASS IMPLEMENTATION CController;
          RETURN TRUE;
       
       ELSIF Request.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
-         RETURN ProcessLogin( Request, OUT View );
+         RETURN ProcessLogin( REF Request, OUT View );
       
       ELSIF Request.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
-         InvalidateUser( Request );
-         IF Request.ModelContainer^.GetStringOA( LOGOUT_NEXT_PAGE, OUT s ) THEN
+         InvalidateUser( REF Request );
+         IF uriParameters^.GetOA( LOGOUT_NEXT_PAGE, OUT s ) THEN
             View := mvc.redirectView( OA( s.Length-1, s.Data ));
-            s.Clear();
-            Request.ModelContainer^.AddStringOA( LOGOUT_NEXT_PAGE, s ); // empty, prepare redirect during logout
          ELSE
             View := mvc.redirectView( INDEX_PAGE );
          END;
@@ -450,10 +510,10 @@ CLASS IMPLEMENTATION CController;
       // user login must be processed before system login redirect         
       ELSIF Request.ControllerURI.EqualsOA( USER_LOGIN_PAGE ) THEN
          IF Request.ModelContainer^.GetStringOA( USER_LOGIN_SOURCE_PAGE, OUT s ) THEN // OK
-            RETURN ProcessUserLogin( Request, OUT View );
+            RETURN ProcessUserLogin( REF Request, OUT View );
          ELSE // nowhere to user-login, redirect to login
             Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
-            Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.invalidLoginOrSessionExpired", OUT s );
+            Request.MessageSource^.GetMessageOA( Language( Request ), ERROR_USER_LOGIN_NOT_FOUND_OR_EXPIRED, OUT s );
             Request.ModelContainer^.AddStringOA( MESSAGE, s );
 
             View := mvc.redirectView( INDEX_VIEW );
@@ -461,10 +521,10 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF NOT Request.Session^.Get( SESSION_LOGGED, OUT data ) OR ( data <> PTR( ADR( SELF ))) THEN
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
 
          Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
-         Request.MessageSource^.GetMessageOA( Request.Language, L"login.invalidLoginOrSessionExpired", OUT s );
+         Request.MessageSource^.GetMessageOA( Language( Request ), ERROR_LOGIN_NOT_FOUND_OR_EXPIRED, OUT s );
          Request.ModelContainer^.AddStringOA( MESSAGE, s );
 
          View := mvc.redirectView( LOGIN_PAGE );
@@ -547,7 +607,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessLogin( REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       redirected : BOOLEAN;
       su, sp : StringsO.CString;
@@ -561,26 +621,23 @@ CLASS IMPLEMENTATION CController;
          END;
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
-         View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
+         View := GetPageTemplateView( Request, LOGIN_VIEW );
 
       // post, try to login
       ELSIF NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
             NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
 
-         Request.MessageSource^.GetMessageOA( Request.Language, L"login.badCredentials", OUT su );
+         Request.MessageSource^.GetMessageOA( Language( Request ), ERROR_LOGIN_BAD_CREDENTIALS, OUT su );
          Request.ModelContainer^.AddStringOA( MESSAGE, su );
 
          sp.Clear();
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
-         View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
+         View := GetPageTemplateView( Request, LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to status page
-         sp.Clear();
-         Request.ModelContainer^.AddStringOA( LOGOUT_NEXT_PAGE, sp ); // empty, prepare redirect during logout
-
          Request.Session^.Remove( SESSION_LOGGED );
          Request.Session^.Add( SESSION_LOGGED, ADR( SELF ));
          View := mvc.redirectView( STATUS_PAGE );
@@ -592,7 +649,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       c : CARDINAL;
@@ -600,6 +657,7 @@ CLASS IMPLEMENTATION CController;
       currentDT : datetime.DateTime;
       currentTime : datetime.TJD;
       dt : datetime.DateTime;
+      language : Languages.TLanguage;
       LangName : ARRAY[0..15] OF WCHAR;
       lt : lec.TLicenceType;
       s : ARRAY [0..63] OF WCHAR;
@@ -618,6 +676,8 @@ CLASS IMPLEMENTATION CController;
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
       END;
+
+      language := Language( Request );
    
       b := _Web^.Connected;
       Request.ModelContainer^.AddBooleanOA( STATUS_CONNECTED, b );
@@ -634,11 +694,11 @@ CLASS IMPLEMENTATION CController;
          dt.JulianDate := starttime;
       END;
       dt.SetZoneToLocal();
-      IF Languages.LanguageToRFC1766( Request.Language, OUT LangName ) AND Strings.StartsWithW( LangName, L"cs" ) THEN
-         b := dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
+      IF Languages.LanguageToRFC1766( language, OUT LangName ) AND Strings.StartsWithW( LangName, L"cs" ) THEN
+         b := dt.ToLanguageStringOA( language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
       ELSE
          LangName := L""; // it is used below too
-         b := dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
+         b := dt.ToLanguageStringOA( language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
       END;
       IF b THEN
          cs.FromOA( s );
@@ -669,15 +729,15 @@ CLASS IMPLEMENTATION CController;
 
       dt := _Web^.LicenceExpires;
       IF dt.Day = 0 THEN
-         Request.MessageSource^.GetMessageOA( Request.Language, L"status.licencePermanent", OUT cs );
+         Request.MessageSource^.GetMessageOA( Language( Request ), STATUS_TEXT_PERMANENT, OUT cs );
       ELSE
          dt.SetZoneToLocal();
          IF Strings.StartsWithW( LangName, L"cs" ) THEN
-            dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
+            dt.ToLanguageStringOA( language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
          ELSE
-            dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
+            dt.ToLanguageStringOA( language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
          END;
-         Request.MessageSource^.GetMessageOA( Request.Language, L"status.licenceValidUntil", OUT cs );
+         Request.MessageSource^.GetMessageOA( language, STATUS_TEXT_VALID_UNTIL, OUT cs );
          cs.AppendOA( s );
       END;
       Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR ( currentDT < dt ));
@@ -706,13 +766,13 @@ CLASS IMPLEMENTATION CController;
       
       Request.ModelContainer^.AddStringOA( STATUS_PROJECT, _Web^.Project^ );
  
-      View := mvc.pageTemplateView( ADR( SELF ), STATUS_VIEW );
+      View := GetPageTemplateView( Request, STATUS_VIEW );
       RETURN TRUE;
    END ProcessStatus;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -763,7 +823,7 @@ CLASS IMPLEMENTATION CController;
       count := _Web^.OperatedDeviceCount;
       IF count > 0 THEN
          FOR i := 0 TO count-1 DO
-            Request.MessageSource^.GetMessageOA( Request.Language, OAsz( _Web^.OperatedDeviceName( i )), OUT cs );
+            Request.MessageSource^.GetMessageOA( Language( Request ), OAsz( _Web^.OperatedDeviceName( i )), OUT cs );
             listDevices^.Add( cs, cs );
 
             IF _Web^.DeviceRunning( i ) THEN
@@ -798,13 +858,13 @@ CLASS IMPLEMENTATION CController;
       END;
       Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_LOG, cs );
             
-      View := mvc.pageTemplateView( ADR( SELF ), CONTROL_VIEW );
+      View := GetPageTemplateView( Request, CONTROL_VIEW );
       RETURN TRUE;
    END ProcessControl;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -843,7 +903,7 @@ CLASS IMPLEMENTATION CController;
          END;
 
          Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
-         View := mvc.pageTemplateView( ADR( SELF ), DATA_LOG_VIEW );
+         View := GetPageTemplateView( Request, DATA_LOG_VIEW );
       END;
 
       cs.FromOA( L"-1" );
@@ -854,7 +914,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -878,7 +938,7 @@ CLASS IMPLEMENTATION CController;
          View := mvc.rawTextView( OA( logS.Length-1, logS.Data ), L"systemlog", empty, TRUE );
       ELSE
          Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
-         View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
+         View := GetPageTemplateView( Request, SYSTEM_LOG_VIEW );
       END;
 
       cs.FromOA( L"-1" );
@@ -889,7 +949,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       empty, fid : StringsO.CString;
@@ -943,13 +1003,13 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddStringOA( IO_WRITE_VALUE, wvalue );
       Request.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, wfailed );
 
-      View := mvc.pageTemplateView( ADR( SELF ), IO_VIEW );
+      View := GetPageTemplateView( Request, IO_VIEW );
       RETURN TRUE;
    END ProcessIO;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       cs : StringsO.CString;
       empty : StringsO.CString;
@@ -991,13 +1051,13 @@ CLASS IMPLEMENTATION CController;
          END;
       END; // FOR
    
-      View := mvc.pageTemplateView( ADR( SELF ), USERS_VIEW );
+      View := GetPageTemplateView( Request, USERS_VIEW );
       RETURN TRUE;
    END ProcessUsers;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       action : StringsO.CString;
       currentName : StringsO.CString;
@@ -1024,7 +1084,7 @@ CLASS IMPLEMENTATION CController;
             DEC( id );
             IF NOT _Web^.GetRole( id, OUT role, OUT currentName ) THEN
                Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
-               Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
+               Request.MessageSource^.GetMessageOA( Language( Request ), USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
                Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
             END;
          END;
@@ -1041,16 +1101,16 @@ CLASS IMPLEMENTATION CController;
          END;
          
          IF roleName.Empty THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), ROLE_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
          ELSIF _Web^.CheckRenameRoleConflict( currentName, roleName ) THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), ROLE_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
 
          ELSIF _Web^.UpdateRole( currentName, roleName, role ) THEN
             Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
             View := mvc.redirectView( USERS_PAGE );
             RETURN TRUE;
          ELSE // error during updating
-            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), ROLE_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
          END;
 
          // fill error message
@@ -1069,7 +1129,7 @@ CLASS IMPLEMENTATION CController;
                   View := mvc.redirectView( USERS_PAGE );
                   RETURN TRUE;
                ELSE // role cannot be deleted
-                  Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
+                  Request.MessageSource^.GetMessageOA( Language( Request ), ROLE_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
                   Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
                END;
 
@@ -1090,13 +1150,13 @@ CLASS IMPLEMENTATION CController;
       // Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = EibSrvWeb.roleUserKeyed );
       Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, ( role <> EibSrvWeb.roleSystemUser ) AND ( role <> EibSrvWeb.roleSystemAdministrator ));
 
-      View := mvc.pageTemplateView( ADR( SELF ), ROLE_EDIT_VIEW );
+      View := GetPageTemplateView( Request, ROLE_EDIT_VIEW );
       RETURN TRUE;
    END ProcessRoleEdit;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       action : StringsO.CString;
       currentName : StringsO.CString;
@@ -1125,7 +1185,7 @@ CLASS IMPLEMENTATION CController;
             DEC( id );
             IF NOT _Web^.GetUser( id, OUT role, OUT currentName, OUT roleName ) THEN
                Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
-               Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
+               Request.MessageSource^.GetMessageOA( Language( Request ), USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
                Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
             END;
          END;
@@ -1138,22 +1198,22 @@ CLASS IMPLEMENTATION CController;
          Request.ModelContainer^.GetStringOA( USER_EDIT_PASSWORD2, OUT cs2 );
          Request.ModelContainer^.GetStringOA( USER_EDIT_ROLE, OUT roleName );
          IF userName.Empty THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
          ELSIF cs1.Empty THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDEMPTY, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_PASSWORDEMPTY, OUT cs1 );
          ELSIF cs1 <> cs2 THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH, OUT cs1 );
          ELSIF roleName.Empty THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYROLE, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_EMPTYROLE, OUT cs1 );
          ELSIF _Web^.CheckRenameUserConflict( currentName, userName ) THEN
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
 
          ELSIF _Web^.UpdateUser( roleName, currentName, userName, cs2 ) THEN // either add new or update edited user
             Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
             View := mvc.redirectView( USERS_PAGE );
             RETURN TRUE;
          ELSE // error during updating
-            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
+            Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
          END;
 
          // fill error message
@@ -1172,7 +1232,7 @@ CLASS IMPLEMENTATION CController;
                   View := mvc.redirectView( USERS_PAGE );
                   RETURN TRUE;
                ELSE // user cannot be deleted
-                  Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
+                  Request.MessageSource^.GetMessageOA( Language( Request ), USER_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
                   Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
                END;
 
@@ -1204,13 +1264,13 @@ CLASS IMPLEMENTATION CController;
          INC( i );
       END; // WHILE
    
-      View := mvc.pageTemplateView( ADR( SELF ), USER_EDIT_VIEW );
+      View := GetPageTemplateView( Request, USER_EDIT_VIEW );
       RETURN TRUE;
    END ProcessUserEdit;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessUserLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserLogin( REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       redirected : BOOLEAN;
       src, su, sp : StringsO.CString;
@@ -1224,7 +1284,7 @@ CLASS IMPLEMENTATION CController;
          END;
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
-         View := mvc.pageTemplateView( ADR( SELF ), USER_LOGIN_VIEW );
+         View := GetPageTemplateView( Request, USER_LOGIN_VIEW );
 
       // post, try to login
       ELSIF // checked before ProcessUserLogin is called, but there "src" must be get:
@@ -1232,15 +1292,15 @@ CLASS IMPLEMENTATION CController;
             NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
             NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
-         InvalidateUser( Request );
+         InvalidateUser( REF Request );
 
-         Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.badCredentials", OUT su );
+         Request.MessageSource^.GetMessageOA( Language( Request ), ERROR_USER_LOGIN_BAD_CREDENTIALS, OUT su );
          Request.ModelContainer^.AddStringOA( MESSAGE, su );
 
          sp.Clear();
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
-         View := mvc.pageTemplateView( ADR( SELF ), USER_LOGIN_VIEW );
+         View := GetPageTemplateView( Request, USER_LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to source page
          Request.ModelContainer^.RemoveOA( USER_LOGIN_SOURCE_PAGE );
@@ -1256,7 +1316,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IMvcRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
    VAR
       role : EibSrvWeb.TRole;
       Role : StringsO.CString;
@@ -1275,15 +1335,66 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE InvalidateUser( CONST Request : mvc.IHttpRequest );
+   PRIVATE PROCEDURE InvalidateUser( REF Request : mvc.IMvcRequest );
    BEGIN
+      // cleanup session
       Request.Session^.Remove( SESSION_LOGGED ); // kill potentially logged user
 
       Request.Session^.Remove( SESSION_ROLE );
       Request.Session^.Add( SESSION_ROLE, PTR( EibSrvWeb.roleGuest ));
 
-      Request.ModelContainer^.RemoveOA( ROLE_NAME );
+      // cleanup and recreate container
+      Request.ModelContainer^.Dispose();
+      InitializeModelContainer( REF Request.ModelContainer^ );
    END InvalidateUser;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE SetOverriddenLanguage( CONST Request : mvc.IMvcRequest; CONST Language : StringsO.IString );
+   VAR
+      _Language : Languages.TLanguage;
+   BEGIN
+      IF Language.Empty THEN
+         RETURN; // do nothing
+      ELSIF Language.EqualsOA( L"client" ) THEN
+         _Language := INVALID_LANGUAGE;
+      ELSIF NOT HttpTools.DecodeLanguage( Language, OUT _Language ) THEN
+         _Language := INVALID_LANGUAGE;
+      END;
+      Request.Session^.Remove( LANGUAGE );
+      Request.Session^.Add( LANGUAGE, _Language );
+   END SetOverriddenLanguage;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Language( CONST Request : mvc.IMvcRequest ) : Languages.TLanguage;
+   VAR
+      _Language : Languages.TLanguage;
+   BEGIN
+      IF Request.Session^.Get( LANGUAGE, OUT _Language ) THEN
+         RETURN _Language;
+      ELSE
+         RETURN Request.Language;
+      END;
+   END Language;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE GetPageTemplateView( CONST Request : mvc.IMvcRequest; CONST ViewName : ARRAY OF WCHAR ) : mvc.TPView;
+   VAR
+      _Language : Languages.TLanguage;
+      View : mvc.TPView;
+   BEGIN
+      IF NOT Request.Session^.Get( LANGUAGE, OUT _Language ) THEN
+         _Language := INVALID_LANGUAGE;
+      END;
+      IF _Language = INVALID_LANGUAGE THEN
+         View := mvc.pageTemplateView( ADR( SELF ), ViewName, FALSE, 0 );
+      ELSE
+         View := mvc.pageTemplateView( ADR( SELF ), ViewName, TRUE, _Language );
+      END;
+      RETURN View;
+   END GetPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 

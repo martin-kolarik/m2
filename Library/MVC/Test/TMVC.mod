@@ -37,7 +37,7 @@ CLASS CController IMPLEMENTS MVC.IController;
    PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : MVC.IContainer );
    PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : MVC.IContainer );
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : MVC.IHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : MVC.IMvcRequest; OUT View : MVC.TPView ) : BOOLEAN;
 END CController;
 
 (*---------------------------------------------------------------------------*)
@@ -155,7 +155,7 @@ CLASS IMPLEMENTATION CController;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : MVC.IHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : MVC.IMvcRequest; OUT View : MVC.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       l : lists.TPStringStringList;
@@ -213,7 +213,7 @@ CLASS IMPLEMENTATION CController;
          s.FromOA( L"MAPD" ); m^.AddOA( L"block", s );
          s.FromOA( L"MAPE" ); m^.AddOA( L"mlock", s );
 
-         View := MVC.pageTemplateView( NIL, L"d:\work\smartcontrol\code\library\httpsrv\~Debug\page.pt" );
+         View := MVC.pageTemplateView( NIL, L"d:\work\smartcontrol\code\library\httpsrv\~Debug\page.pt", FALSE, 0 );
       END;
       RETURN TRUE;
    END ProcessRequest;
