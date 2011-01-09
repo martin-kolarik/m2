@@ -12,9 +12,11 @@ IMPORT
    FIOO,
    HttpCommon,
    HttpTools,
+   Languages,
    lec,
    lists,
    Log,
+   MIME,
    Strings;
 
 (*--------------------------------------------------------------------------------*)
@@ -33,6 +35,8 @@ CONST
    MESSAGE = L"message";
    LOGIN_REDIRECTED = L"redirected";
    USER_LOGIN_SOURCE_PAGE = L"sourcePage";
+   LANGUAGE = L"language";
+   INVALID_LANGUAGE = -1;
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -335,7 +339,7 @@ CLASS IMPLEMENTATION CController;
       s.Assign( Source );
       s.Lowerize();
       IF Source.EndsWithOA( L"cfg" ) THEN
-         HttpTools.FormatContentOA( HttpTools.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentHeader );
+         MIME.FormatContentOA( MIME.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentHeader );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -404,7 +408,7 @@ CLASS IMPLEMENTATION CController;
          SetOverriddenLanguage( Request, s );
 
          uri := Request.ControllerURI;
-         View := mvc.redirectView( OA( uri.Length-1, uri.rawData )); // language switch cannot carry other parameters
+         View := mvc.redirectView( OA( uri.Length-1, uri.Data )); // language switch cannot carry other parameters
          RETURN TRUE;
 
       // process other unknown parameters to detect functions
@@ -433,7 +437,7 @@ CLASS IMPLEMENTATION CController;
          IF ( functionsCalled = 0 ) OR singleSetCalled THEN
             // fall down, single set falls to the same page, no function means no action
          ELSE // do not render "normal" view output, but textual function output
-            View := mvc.rawTextView( OA( s.Length-1, s.rawData ), L"", empty, FALSE ); // language switch cannot carry other parameters
+            View := mvc.rawTextView( OA( s.Length-1, s.Data ), L"", empty, FALSE ); // language switch cannot carry other parameters
             RETURN TRUE;
          END;
       // end of parameters processing
@@ -442,13 +446,13 @@ CLASS IMPLEMENTATION CController;
       IF Fallback THEN
          uri := Request.ControllerURI;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
-            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.Data ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
 
          ELSIF singleSetCalled THEN // some set call was performed, redirect to self
-            View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
+            View := mvc.redirectView( OA( uri.Length-1, uri.Data ));
          
          ELSE // no call during the request
-            View := GetPageTemplateView( Request, OA( uri.Length-1, uri.rawData ));
+            View := GetPageTemplateView( Request, OA( uri.Length-1, uri.Data ));
 
             // handle authentication
             IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
@@ -492,7 +496,7 @@ CLASS IMPLEMENTATION CController;
       ELSIF Request.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
          InvalidateUser( REF Request );
          IF uriParameters^.GetOA( LOGOUT_NEXT_PAGE, OUT s ) THEN
-            View := mvc.redirectView( OA( s.Length-1, s.rawData ));
+            View := mvc.redirectView( OA( s.Length-1, s.Data ));
          ELSE
             View := mvc.redirectView( INDEX_PAGE );
          END;

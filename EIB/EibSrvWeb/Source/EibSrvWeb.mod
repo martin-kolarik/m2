@@ -404,7 +404,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      Result := msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END ConnectEIB;
 
@@ -414,7 +414,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      Result := msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END DisconnectEIB;
    
@@ -425,7 +425,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       pConfigFilePath : StringsO.TPString := ADR( configFilePath );
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdLoadConfiguration ), OA( 0, ADR( pConfigFilePath )), NIL, TRUE, Sync.FORSAFETY );
+      Result := msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdLoadConfiguration ), OA( 0, ADR( pConfigFilePath )), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END ConfigureEIB;
 
@@ -450,10 +450,10 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF index >= _DeviceCount THEN
          Log.logger()^.LogS( Log.lcWarning, 0, LOG_PREFIX, L"OperateDevice index out of range." );
       ELSIF StartNotStop THEN
-         Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdDeviceStart ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
+         Result := msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdDeviceStart ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
          ASSERTLOG( Result <> Sync.arTimeout );
       ELSE
-         Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdDeviceStop ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
+         Result := msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdDeviceStop ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
          ASSERTLOG( Result <> Sync.arTimeout );
       END;
    END OperateDevice;

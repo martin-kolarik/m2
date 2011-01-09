@@ -582,7 +582,7 @@ CLASS IMPLEMENTATION CContainer;
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
          msgFunctionShortcut := sindex1.EqualsOA( MSG_FUNCTION_HANDLER );
-         IF msgFunctionShortcut OR GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN // note, that embedded handler has the precedence, like in 'msg.id' form
+         IF msgFunctionShortcut OR GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.Data ), OUT functionHandler ) THEN // note, that embedded handler has the precedence, like in 'msg.id' form
             model.Substring( i+1, j-i-1, OUT parameters );
             parameters.Trim();
             ii := 0;

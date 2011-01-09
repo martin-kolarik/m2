@@ -130,28 +130,28 @@ CLASS IMPLEMENTATION CEibSvc;
    LOCAL VIRTUAL PROCEDURE OnStart();
    BEGIN
       scinit.Startup();
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnStart;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnPause();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdPause ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdPause ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnPause;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnContinue();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdContinue ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdContinue ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnContinue;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnStop();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      msgqueuethread.global()^.DispatchCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
 
       Sync.Sleep( 1000 ); // give some time to message thread to stop self -- it should be solve by some polling (e.g. netinit.CleanedUp), but this is sufficient now
 
