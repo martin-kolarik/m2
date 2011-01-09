@@ -6,10 +6,10 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   eib_def,
-   eibnet,
+   knx_def,
    inetaddr,
    lists,
+   protocol,
    Resources,
    scinit,
    StringsO,
@@ -19,12 +19,12 @@ IMPORT
    
 (*================================================================================*)
 
-CLASS CBusmonConnection( eibnet.CConnection );
+CLASS CBusmonConnection( protocol.CConnection );
 
    // CConnection
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
-   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : knx_def.TPacket );
 
    // SELF
    PRIVATE PROCEDURE BytesToString( data : ARRAY OF BYTE; OUT s : StringsO.CString );
@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : knx_def.TPacket );
    VAR
       s : StringsO.CString;
    BEGIN
@@ -144,8 +144,8 @@ BEGIN
 
    ia.FromOA( L"10.0.0.6:3671", 0 );
 
-   Busmon.Mode := eibnet.cmTunnelingBlind;
-   Busmon.TunnelingMode := eibnet.tmRaw;
+   Busmon.Mode := protocol.cmTunnelingBlind;
+   Busmon.TunnelingMode := protocol.tmRaw;
    Busmon.RemoteAddress := ia;
    
    Busmon.Connect( 0 );

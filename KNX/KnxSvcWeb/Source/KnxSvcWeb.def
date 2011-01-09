@@ -1,4 +1,4 @@
-DEFINITION MODULE EibSrvWeb;
+DEFINITION MODULE KnxSvcWeb;
 
 (*================================================================================*)
 
@@ -11,10 +11,10 @@ IMPORT
    inetaddr,
    INIfile,
    io,
+   knxcore,
    lec,
    Log,
    mvc,
-   srvcore,
    StringsO,
    threadcall;
 
@@ -32,14 +32,14 @@ TYPE
 TYPE
    TPEibSrvWeb = POINTER TO CEibSrvWeb;
 
-CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureCallTarget;
+CLASS CEibSrvWeb IMPLEMENTS knxcore.IEIBServerSink, threadcall.IThreadProcedureCallTarget;
 
    // IEIBServerSink
    PUBLIC VIRTUAL PROCEDURE OnConnect();
    PUBLIC VIRTUAL PROCEDURE OnDisconnect();
    PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
-   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : srvcore.TPObject );
-   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : knxcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : knxcore.TPObject );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
    
@@ -101,7 +101,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _Context : StringsO.CString;
       _RootDir : StringsO.CString;
       _MessageFile : StringsO.CString;
-      _EIB : srvcore.TPEIBServer;
+      _EIB : knxcore.TPEIBServer;
       _MVC : mvc.TPMVC;
       _Port : CARDINAL;
       _SessionValidity : CARDINAL; // in seconds, 30 minutes by default
@@ -132,7 +132,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE Init(
       Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR;
       CONST cfg : INIfile.CINIFile;
-      EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl;
+      EIB : knxcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl;
       ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    
    PUBLIC READONLY PROPERTY
@@ -153,4 +153,4 @@ END CEibSrvWeb;
 
 (*================================================================================*)
 
-END EibSrvWeb.
+END KnxSvcWeb.

@@ -1,16 +1,16 @@
-DEFINITION MODULE eibnet;
+DEFINITION MODULE protocol;
 
 (*================================================================================*)
 
 IMPORT
-   core,
-   eib_def,
-   eib_status,
+   knx_def,
+   knx_status,
    inetaddr,
    log,
    netsocket,
    netsrv,
-   Sync;
+   Sync,
+   transport;
 
 (*================================================================================*)
 
@@ -78,12 +78,12 @@ CLASS CConnection( msghandler.MessageHandler );
       _TunnelingMode : TTunnelingMode := tmEMI;
       // data control
       IOState : TIOState := ioDisconnected;
-      HPAISelf : core.HostProtocolAddressInformation;
-      HPAICtrl : core.HostProtocolAddressInformation;
-      HPAIData : core.HostProtocolAddressInformation;
+      HPAISelf : transport.HostProtocolAddressInformation;
+      HPAICtrl : transport.HostProtocolAddressInformation;
+      HPAIData : transport.HostProtocolAddressInformation;
       ChannelId : CARD8 := 0;
       // data flow
-      EMI : eib_def.TPacket;
+      EMI : knx_def.TPacket;
       OutSeq : CARDINAL := 0;
       InSeq : CARDINAL := 0;
       AltInSeq : CARDINAL := 0; // AltInSeq contains InSeq one step backward, this works around curious bug, when there is in single RECEIVE packet unexpectedly high SeqNo. This work around allows returning back to SeqNo before.
@@ -108,38 +108,38 @@ CLASS CConnection( msghandler.MessageHandler );
    PUBLIC PROCEDURE Connect( Timeout : CARDINAL ) : Sync.TAsyncResult; // timeout is used for cmScanning only
    PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN ) : Sync.TAsyncResult;
 
-   PUBLIC PROCEDURE SendPacket( CONST EMI : eib_def.TPacket ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendPacket( CONST EMI : knx_def.TPacket ) : Sync.TAsyncResult;
    LOCAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
    LOCAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
 
    INTERNAL VIRTUAL PROCEDURE OnScanCompleted();
-   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : core.SearchResponse );
-   INTERNAL VIRTUAL PROCEDURE OnDescriptionResponse( CONST packet : core.DescriptionResponse );
+   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : transport.SearchResponse );
+   INTERNAL VIRTUAL PROCEDURE OnDescriptionResponse( CONST packet : transport.DescriptionResponse );
 
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    INTERNAL VIRTUAL PROCEDURE On_P_Sent();
-   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
-   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
-   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : knx_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : knx_def.TPacket ) : BOOLEAN;
 
-   PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
-   PRIVATE PROCEDURE OnRoutingLostMessage( CONST packet : core.RoutingLostMessage );
+   PRIVATE PROCEDURE OnRoutingIndication( CONST packet : transport.RoutingIndication );
+   PRIVATE PROCEDURE OnRoutingLostMessage( CONST packet : transport.RoutingLostMessage );
 
-   PRIVATE PROCEDURE OnConnectResponse( CONST packet : core.ConnectResponse );
-   PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : core.ConnectionStateResponse );
-   PRIVATE PROCEDURE OnDisconnectRequest( CONST packet : core.DisconnectRequest );
-   PRIVATE PROCEDURE OnDisconnectResponse( CONST packet : core.DisconnectResponse );
-   PRIVATE PROCEDURE OnTunnelingRequest( CONST packet : core.TunnelingRequest );
-   PRIVATE PROCEDURE OnTunnelingACK( CONST packet : core.TunnelingACK );
+   PRIVATE PROCEDURE OnConnectResponse( CONST packet : transport.ConnectResponse );
+   PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : transport.ConnectionStateResponse );
+   PRIVATE PROCEDURE OnDisconnectRequest( CONST packet : transport.DisconnectRequest );
+   PRIVATE PROCEDURE OnDisconnectResponse( CONST packet : transport.DisconnectResponse );
+   PRIVATE PROCEDURE OnTunnelingRequest( CONST packet : transport.TunnelingRequest );
+   PRIVATE PROCEDURE OnTunnelingACK( CONST packet : transport.TunnelingACK );
 
    PRIVATE PROCEDURE DoSend() : Sync.TAsyncResult;
    PRIVATE PROCEDURE DataDisconnect(); // first phase
    PRIVATE PROCEDURE DeviceDisconnect(); // second phase
    PRIVATE PROCEDURE ProcessHbFailure();
-   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : eib_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
+   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : knx_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
 END CConnection;
 
 (*================================================================================*)
 
-END eibnet.
+END protocol.

@@ -8,10 +8,10 @@ FROM Storage IMPORT
 IMPORT
    winsock,
    FSO,
+   knxcore,
    lists,
    Resources,
    scinit,
-   srvcore,
    Strings,
    StringsO,
    Texts,
@@ -32,7 +32,7 @@ VAR
    Args : lists.CStringList;
    DI : FSO.CDirectoryInfo;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
-   EIB : srvcore.CEIBServer;
+   EIB : knxcore.CEIBServer;
    ErrorText : StringsO.CString;
    i : INTEGER;
    Line : CARDINAL;

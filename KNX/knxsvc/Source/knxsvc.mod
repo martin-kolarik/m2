@@ -1,4 +1,4 @@
-MODULE srvsvc;
+MODULE knxsvc;
 
 (*================================================================================*)
 
@@ -12,12 +12,13 @@ IMPORT
    adviser,
    cllv,
    device,
-   EibSrvWeb,
    FIO,
    FIOO,
    io,
    INIfile,
    inetaddr,
+   knxcore,
+   KnxSvcWeb,
    lists,
    Log,
    LogConfig,
@@ -27,7 +28,6 @@ IMPORT
    scinit,
    sdap,
    Service,
-   srvcore,
    Strings,
    StringsO,
    Sync,
@@ -77,11 +77,11 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       DataLogger : Log.CBufferedLogger; 
       HttpLogger : Log.CLogger; 
       NetworkLogger : Log.CLogger; 
-      EIB : srvcore.TPEIBServer := NIL;
+      EIB : knxcore.TPEIBServer := NIL;
       Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
       XMLS : xmlsocket.TPXMLSocketServer := NIL;
-      Web : EibSrvWeb.CEibSrvWeb;
+      Web : KnxSvcWeb.CEibSrvWeb;
       CDI : TControlledDeviceInfo;
 
    // service, OS thread
@@ -380,4 +380,4 @@ END Main;
 
 (*================================================================================*)
 
-END srvsvc.
+END knxsvc.

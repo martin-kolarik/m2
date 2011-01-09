@@ -7,7 +7,6 @@ FROM Debug IMPORT
    
 IMPORT
    datetime,
-   EibSrvWeb,
    FIO,
    FIOO,
    HttpCommon,
@@ -386,7 +385,7 @@ CLASS IMPLEMENTATION CController;
       data : PTR;
       empty : StringsO.CString;
       functionsCalled : CARDINAL := 0;
-      role : EibSrvWeb.TRole;
+      role : KnxSvcWeb.TRole;
       roleName : StringsO.CString;
       s : StringsO.CString;
       setsCalled : CARDINAL := 0;
@@ -396,10 +395,10 @@ CLASS IMPLEMENTATION CController;
       value : StringsO.CString;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
-         role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
+         role := KnxSvcWeb.TRole( LOPTRLONGWORD( data ));
       ELSE
          InvalidateUser( REF Request );
-         role := EibSrvWeb.roleGuest;
+         role := KnxSvcWeb.roleGuest;
       END;
       
       // process parameters not known to views' models
@@ -460,7 +459,7 @@ CLASS IMPLEMENTATION CController;
             END;
             // authMethodInfo is ignored now, method is always native
 
-            IF authTokens.Empty OR ( role = EibSrvWeb.roleSystemAdministrator ) THEN // if page does not want to authorize or if admin is logged
+            IF authTokens.Empty OR ( role = KnxSvcWeb.roleSystemAdministrator ) THEN // if page does not want to authorize or if admin is logged
                authorized := TRUE;
             ELSIF Request.ModelContainer^.GetStringOA( ROLE_NAME, OUT roleName ) THEN // check role, it takes sense only if is somebody is logged
                authTokens.Reset();
@@ -531,16 +530,16 @@ CLASS IMPLEMENTATION CController;
          RETURN TRUE;
    
       // all next pages require system role, either sysadmin or sysuser
-      ELSIF ( role <> EibSrvWeb.roleSystemUser ) AND ( role <> EibSrvWeb.roleSystemAdministrator ) THEN
+      ELSIF ( role <> KnxSvcWeb.roleSystemUser ) AND ( role <> KnxSvcWeb.roleSystemAdministrator ) THEN
          View := mvc.httpStatusCodeCustomView( ADR( SELF ), HttpCommon.httpres_Unauthorized );
          RETURN TRUE;
       
       ELSIF Request.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = KnxSvcWeb.roleSystemAdministrator );
          RETURN ProcessStatus( Request, OUT View );
 
       ELSIF Request.ControllerURI.EqualsOA( CONTROL_PAGE ) THEN
-         IF role = EibSrvWeb.roleSystemAdministrator THEN
+         IF role = KnxSvcWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessControl( Request, OUT View );
          ELSE
@@ -549,7 +548,7 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF Request.ControllerURI.EqualsOA( SYSTEM_LOG_PAGE ) THEN
-         IF role = EibSrvWeb.roleSystemAdministrator THEN
+         IF role = KnxSvcWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessSystemLog( Request, OUT View );
          ELSE
@@ -558,15 +557,15 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF Request.ControllerURI.EqualsOA( DATA_LOG_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = KnxSvcWeb.roleSystemAdministrator );
          RETURN ProcessDataLog( Request, OUT View );
 
       ELSIF Request.ControllerURI.EqualsOA( IO_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = KnxSvcWeb.roleSystemAdministrator );
          RETURN ProcessIO( Request, OUT View );
 
       ELSIF Request.ControllerURI.EqualsOA( USERS_PAGE ) THEN
-         IF role = EibSrvWeb.roleSystemAdministrator THEN
+         IF role = KnxSvcWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessUsers( Request, OUT View );
          ELSE
@@ -575,7 +574,7 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF Request.ControllerURI.EqualsOA( ROLE_EDIT_PAGE ) THEN
-         IF role = EibSrvWeb.roleSystemAdministrator THEN
+         IF role = KnxSvcWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessRoleEdit( Request, OUT View );
          ELSE
@@ -584,7 +583,7 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF Request.ControllerURI.EqualsOA( USER_EDIT_PAGE ) THEN
-         IF role = EibSrvWeb.roleSystemAdministrator THEN
+         IF role = KnxSvcWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessUserEdit( Request, OUT View );
          ELSE
@@ -600,7 +599,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE BindToEibSrv( web : EibSrvWeb.TPEibSrvWeb );
+   PUBLIC PROCEDURE BindToEibSrv( web : KnxSvcWeb.TPEibSrvWeb );
    BEGIN
       _Web := web;
    END BindToEibSrv;
@@ -1018,7 +1017,7 @@ CLASS IMPLEMENTATION CController;
       listRoleIds : lists.TPStringStringList;
       listUsers : lists.TPStringStringList;
       listUserIds : lists.TPStringStringList;
-      role : EibSrvWeb.TRole;
+      role : KnxSvcWeb.TRole;
       roleName : StringsO.CString;
       userName : StringsO.CString;
    BEGIN
@@ -1033,7 +1032,7 @@ CLASS IMPLEMENTATION CController;
       // roles
       FOR i := 0 TO _Web^.RolesCount-1 DO
          IF _Web^.GetRole( i, OUT role, OUT roleName ) THEN
-            IF ( role = EibSrvWeb.roleSystemAdministrator ) OR ( role = EibSrvWeb.roleSystemUser ) THEN
+            IF ( role = KnxSvcWeb.roleSystemAdministrator ) OR ( role = KnxSvcWeb.roleSystemUser ) THEN
                CONTINUE;
             END;
             listRoles^.Add( roleName, roleName );
@@ -1067,7 +1066,7 @@ CLASS IMPLEMENTATION CController;
       id : CARDINAL;
       ids : StringsO.CString;
       keyed : BOOLEAN;
-      role : EibSrvWeb.TRole;
+      role : KnxSvcWeb.TRole;
       roleName : StringsO.CString;
    BEGIN
       Request.ModelContainer^.AddBooleanOA( USERS_ERROR, FALSE );
@@ -1095,9 +1094,9 @@ CLASS IMPLEMENTATION CController;
          Request.ModelContainer^.GetStringOA( ROLE_EDIT_NAME, OUT roleName ); 
          Request.ModelContainer^.GetBooleanOA( ROLE_EDIT_KEYED, OUT keyed ); 
          IF keyed THEN
-            role := EibSrvWeb.roleUserKeyed;
+            role := KnxSvcWeb.roleUserKeyed;
          ELSE
-            role := EibSrvWeb.roleUserNamed;
+            role := KnxSvcWeb.roleUserNamed;
          END;
          
          IF roleName.Empty THEN
@@ -1147,8 +1146,8 @@ CLASS IMPLEMENTATION CController;
 
       Request.ModelContainer^.AddStringOA( ROLE_EDIT_NAME, currentName );
       // user role is always KEYED -- see #206
-      // Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = EibSrvWeb.roleUserKeyed );
-      Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, ( role <> EibSrvWeb.roleSystemUser ) AND ( role <> EibSrvWeb.roleSystemAdministrator ));
+      // Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = KnxSvcWeb.roleUserKeyed );
+      Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, ( role <> KnxSvcWeb.roleSystemUser ) AND ( role <> KnxSvcWeb.roleSystemAdministrator ));
 
       View := GetPageTemplateView( Request, ROLE_EDIT_VIEW );
       RETURN TRUE;
@@ -1167,7 +1166,7 @@ CLASS IMPLEMENTATION CController;
       ids : StringsO.CString;
       listRoles : lists.TPStringStringList;
       listRoleIds : lists.TPStringStringList;
-      role : EibSrvWeb.TRole;
+      role : KnxSvcWeb.TRole;
       roleName : StringsO.CString;
       userName : StringsO.CString;
    BEGIN
@@ -1180,7 +1179,7 @@ CLASS IMPLEMENTATION CController;
       IF NOT ids.Empty THEN
          ids.ToINT32( 10, OUT id );
          IF id = -1 THEN // new user is to be edited
-            role := EibSrvWeb.roleUserNamed;
+            role := KnxSvcWeb.roleUserNamed;
          ELSE
             DEC( id );
             IF NOT _Web^.GetUser( id, OUT role, OUT currentName, OUT roleName ) THEN
@@ -1318,7 +1317,7 @@ CLASS IMPLEMENTATION CController;
 
    PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IMvcRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
    VAR
-      role : EibSrvWeb.TRole;
+      role : KnxSvcWeb.TRole;
       Role : StringsO.CString;
    BEGIN
       role := _Web^.Authenticate( UserName, Password, OUT Role );
@@ -1328,9 +1327,9 @@ CLASS IMPLEMENTATION CController;
 
       Request.ModelContainer^.RemoveOA( ROLE_NAME );
       Request.ModelContainer^.AddStringOA( ROLE_NAME, Role );
-      Request.ModelContainer^.AddBooleanOA( ROLE_IS_KEYED, role = EibSrvWeb.roleUserKeyed );
+      Request.ModelContainer^.AddBooleanOA( ROLE_IS_KEYED, role = KnxSvcWeb.roleUserKeyed );
 
-      RETURN role <> EibSrvWeb.roleGuest;
+      RETURN role <> KnxSvcWeb.roleGuest;
    END ValidateUser;
    
 (*--------------------------------------------------------------------------------*)
@@ -1341,7 +1340,7 @@ CLASS IMPLEMENTATION CController;
       Request.Session^.Remove( SESSION_LOGGED ); // kill potentially logged user
 
       Request.Session^.Remove( SESSION_ROLE );
-      Request.Session^.Add( SESSION_ROLE, PTR( EibSrvWeb.roleGuest ));
+      Request.Session^.Add( SESSION_ROLE, PTR( KnxSvcWeb.roleGuest ));
 
       // cleanup and recreate container
       Request.ModelContainer^.Dispose();

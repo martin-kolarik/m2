@@ -1,10 +1,10 @@
-DEFINITION MODULE EIBNetStack;
+DEFINITION MODULE KNXStack_KNXNet;
 
 (*================================================================================*)
 
 IMPORT
-  eib_status,
-  eib_stack,
+  knx_status,
+  knx_stack,
   log;
 
 (*================================================================================*)
@@ -13,16 +13,16 @@ IMPORT
 TYPE
    TPEIBNetStack = POINTER TO CEIBNetStack;
 
-CLASS CEIBNetStack( eib_stack.CEIBStack );
+CLASS CEIBNetStack( knx_stack.CEIBStack );
 
    PUBLIC PROCEDURE SetLogger( Logger : log.TPLogger );
 
-   PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : eib_stack.TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
+   PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : knx_stack.TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
 
-   INTERNAL VIRTUAL PROCEDURE Initialize() : eib_status.TEIBStackStatus;
-   INTERNAL VIRTUAL PROCEDURE ConnectBUS() : eib_status.TEIBStackStatus;
-   INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : eib_status.TEIBStackStatus;
-   INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : eib_stack.TEIBStackLayerType; VAR PLayer : eib_stack.TPEIBStackLayer ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : knx_stack.TEIBStackLayerType; VAR PLayer : knx_stack.TPEIBStackLayer ) : BOOLEAN;
 
    // known: link.mode = routing|tunneling, link.address = ipaddress|multicastgroup, link.port = ipport
    INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
@@ -34,4 +34,4 @@ END CEIBNetStack;
 
 (*================================================================================*)
 
-END EIBNetStack.
+END KNXStack_KNXNet.

@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE core;
+IMPLEMENTATION MODULE transport;
 
 (*================================================================================*)
 
@@ -207,11 +207,11 @@ CLASS IMPLEMENTATION SearchResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY PhysicalAddress GET : eib_def.TAddress;
+   PUBLIC PROPERTY PhysicalAddress GET : knx_def.TAddress;
    VAR
-      Address : eib_def.TAddress;
+      Address : knx_def.TAddress;
    BEGIN
-      Address.SetAddressType( eib_def.addressPhysical );
+      Address.SetAddressType( knx_def.addressPhysical );
       Address.SetPacketAddress( _DIB.PhysicalAddress );
       RETURN Address;
    END PhysicalAddress;
@@ -300,11 +300,11 @@ CLASS IMPLEMENTATION DescriptionResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY PhysicalAddress GET : eib_def.TAddress;
+   PUBLIC PROPERTY PhysicalAddress GET : knx_def.TAddress;
    VAR
-      Address : eib_def.TAddress;
+      Address : knx_def.TAddress;
    BEGIN
-      Address.SetAddressType( eib_def.addressPhysical );
+      Address.SetAddressType( knx_def.addressPhysical );
       Address.SetPacketAddress( _DIB.PhysicalAddress );
       RETURN Address;
    END PhysicalAddress;
@@ -446,11 +446,11 @@ CLASS IMPLEMENTATION ConnectResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY PhysicalAddress GET : eib_def.TAddress;
+   PUBLIC PROPERTY PhysicalAddress GET : knx_def.TAddress;
    VAR
-      Address : eib_def.TAddress;
+      Address : knx_def.TAddress;
    BEGIN
-      Address.SetAddressType( eib_def.addressPhysical );
+      Address.SetAddressType( knx_def.addressPhysical );
       Address.SetPacketAddress( _CRD._Address );
       RETURN Address;
    END PhysicalAddress;
@@ -596,9 +596,9 @@ CLASS IMPLEMENTATION TunnelingRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY EMI GET : eib_def.TPacket;
+   PUBLIC PROPERTY EMI GET : knx_def.TPacket;
    VAR
-      packet : eib_def.TPacket;
+      packet : knx_def.TPacket;
    BEGIN
       _EMI.ToEMI( OUT packet );
       RETURN packet;
@@ -606,7 +606,7 @@ CLASS IMPLEMENTATION TunnelingRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY EMI SET( CONST Value : eib_def.TPacket );
+   PUBLIC PROPERTY EMI SET( CONST Value : knx_def.TPacket );
    BEGIN
       _EMI.FromEMI( Value );
       Length := HEADER_SIZE_10 + SIZE( _CHDR ) + _EMI.Length;
@@ -676,9 +676,9 @@ CLASS IMPLEMENTATION RoutingIndication;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY EMI GET : eib_def.TPacket;
+   PUBLIC PROPERTY EMI GET : knx_def.TPacket;
    VAR
-      packet : eib_def.TPacket;
+      packet : knx_def.TPacket;
    BEGIN
       _EMI.ToEMI( OUT packet );
       RETURN packet;
@@ -686,10 +686,10 @@ CLASS IMPLEMENTATION RoutingIndication;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY EMI SET( CONST Value : eib_def.TPacket );
+   PUBLIC PROPERTY EMI SET( CONST Value : knx_def.TPacket );
    BEGIN
       _EMI.FromEMI( Value );
-      _EMI.Code := eib_def.L_Data_IND;
+      _EMI.Code := knx_def.L_Data_IND;
       Length := HEADER_SIZE_10 + _EMI.Length;
    END EMI;
 
@@ -728,4 +728,4 @@ END RoutingLostMessage;
 
 (*================================================================================*)
 
-END core.
+END transport.

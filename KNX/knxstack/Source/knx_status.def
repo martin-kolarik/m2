@@ -1,4 +1,4 @@
-DEFINITION MODULE eib_status;
+DEFINITION MODULE knx_status;
 
 (*================================================================================*)
 // common
@@ -62,4 +62,4 @@ TYPE
     eltUser
   );
 
-END eib_status.
+END knx_status.

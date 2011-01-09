@@ -1,11 +1,5 @@
-IMPLEMENTATION MODULE eib_def;
+IMPLEMENTATION MODULE knx_def;
 
-(*================================================================================*)
-(*/* changes:
-
-03.05.2006 -- corrected eitDate -- values for eitDate were get from minutes (!) and moreover, years were badly interpretted (1900/2000)
-
-*/*)
 (*===========================================================================*)
 
 FROM Debug IMPORT
@@ -1205,8 +1199,8 @@ CLASS IMPLEMENTATION EMIPacket;
     T4B = RECORD b0, b1, b2, b3 : BYTE; END;
   VAR
     Day : TDay;
-    EISString : eib_def.TEISString;
-    EISStringW : eib_def.TEISStringW;
+    EISString : knx_def.TEISString;
+    EISStringW : knx_def.TEISStringW;
     Exp : CARD8;
     Flags : TAccessFlagSet;
     i : CARDINAL;
@@ -1506,4 +1500,4 @@ END cEMIPacket;
 
 (*===========================================================================*)
 
-END eib_def.
+END knx_def.

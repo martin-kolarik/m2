@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE eib_user;
+IMPLEMENTATION MODULE knx_user;
 
 (*================================================================================*)
 (*/* changes:
@@ -17,7 +17,7 @@ TYPE
   TPAU_Group = POINTER TO CAU_Group;
 
 CLASS CAU_Group( list.CListElem );
-  Address  : eib_def.TAddress;
+  Address  : knx_def.TAddress;
   ReadFlag : BOOLEAN;
 END CAU_Group;
 
@@ -35,26 +35,26 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY Type GET : eib_def.TEIBType;
+  PUBLIC PROPERTY Type GET : knx_def.TEIBType;
   BEGIN
      RETURN Value.GetType();
   END Type;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Init( POfStack : eib_stack.TPEIBStack; Type : eib_def.TEIBType; Behaviour : TObjectBehaviour );
+  PUBLIC PROCEDURE Init( POfStack : knx_stack.TPEIBStack; Type : knx_def.TEIBType; Behaviour : TObjectBehaviour );
   BEGIN
-    PExecutive := eib_stack.TPEIBStackApplicationLayer( POfStack^.Layers[ eib_stack.eltApplication ] );
+    PExecutive := knx_stack.TPEIBStackApplicationLayer( POfStack^.Layers[ knx_stack.eltApplication ] );
     Value.SetType( Type );
     CASE Behaviour OF
     | obTransmitter :
-      SetFlags( eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} );
+      SetFlags( knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofTransmit} );
     | obTransmitterWithStatus :
-      SetFlags( eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit, eib_def.aofUpdate, eib_def.aofWritable} );
+      SetFlags( knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofTransmit, knx_def.aofUpdate, knx_def.aofWritable} );
     | obTracker :
-      SetFlags( eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofWritable} );
+      SetFlags( knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofUpdate, knx_def.aofWritable} );
     | obReader :
-      SetFlags( eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofForceRead} );
+      SetFlags( knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofUpdate, knx_def.aofForceRead} );
     END; // CASE
   END Init;
 
@@ -90,7 +90,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Executive() : eib_stack.TPEIBStackApplicationLayer;
+  PUBLIC PROCEDURE Executive() : knx_stack.TPEIBStackApplicationLayer;
   BEGIN
     RETURN PExecutive;
   END Executive;
@@ -99,14 +99,14 @@ CLASS IMPLEMENTATION CUserObject;
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Req();
   VAR
-    LPacket : eib_def.TPacket;
+    LPacket : knx_def.TPacket;
     PGroup : TPAU_Group;
   BEGIN
     Lock();
     IF NOT Groups.GetFirst( OUT PGroup ) THEN
       Unlock();
       RETURN;
-    ELSIF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofReadable} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofReadable} THEN
+    ELSIF knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofReadable} * Flags <> knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofReadable} THEN
       Unlock();
       RETURN;
     END;
@@ -119,18 +119,18 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus );
+  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : knx_status.TEIBStackStatus );
   VAR
     CurrentState : TObjectState;
   BEGIN
-    IF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate} THEN
+    IF knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofUpdate} * Flags <> knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofUpdate} THEN
       RETURN;
     END;
 
     Lock();
     State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted};
     CurrentState := State;
-    IF Status <> eib_status.essOK THEN // errorneous request kills reading
+    IF Status <> knx_status.essOK THEN // errorneous request kills reading
       State := State - TObjectState{osTransmitted, osReading};
     END;
     Unlock();
@@ -140,17 +140,17 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket );
+  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : knx_status.TEIBStackStatus; CONST PPacket : knx_def.TPPacket );
   VAR
     CurrentInitReadState : TInitReadState;
     CurrentState : TObjectState;
-    LValue : eib_def.TValue;
+    LValue : knx_def.TValue;
     eq : BOOLEAN;
   BEGIN
-    IF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate} THEN
+    IF knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofUpdate} * Flags <> knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofUpdate} THEN
       RETURN;
 
-    ELSIF Status = eib_status.essOK THEN
+    ELSIF Status = knx_status.essOK THEN
       LValue.SetType( Value.GetType());
       PPacket^.ToValue( OUT LValue );
 
@@ -167,8 +167,8 @@ CLASS IMPLEMENTATION CUserObject;
       State := State - TObjectState{osTransmitted, osReading, osUpdated, osChanged};
       Unlock();
 
-      ValueRead( eib_status.essOK, CurrentState, CurrentInitReadState );
-      ValueUpdated( eib_status.essOK, CurrentState );
+      ValueRead( knx_status.essOK, CurrentState, CurrentInitReadState );
+      ValueUpdated( knx_status.essOK, CurrentState );
     ELSE
       Lock();
       CurrentState := State;
@@ -183,13 +183,13 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket );
+  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : knx_def.TPPacket );
   VAR
     CurrentState : TObjectState;
-    LValue : eib_def.TValue;
+    LValue : knx_def.TValue;
     eq : BOOLEAN;
   BEGIN
-    IF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofWritable} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofWritable} THEN
+    IF knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofWritable} * Flags <> knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofWritable} THEN
       RETURN;
     END;
 
@@ -208,16 +208,16 @@ CLASS IMPLEMENTATION CUserObject;
     State := State - TObjectState{osUpdated, osChanged};
     Unlock();
 
-    ValueUpdated( eib_status.essOK, CurrentState );
+    ValueUpdated( knx_status.essOK, CurrentState );
   END AU_GroupValue_Write_Ind;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus );
+  PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : knx_status.TEIBStackStatus );
   VAR
     CurrentState : TObjectState;
   BEGIN
-    IF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} THEN
+    IF knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofTransmit} * Flags <> knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofTransmit} THEN
       RETURN;
     END;
 
@@ -232,9 +232,9 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROPERTY ReadAddress GET : eib_def.TAddress;
+  PUBLIC VIRTUAL PROPERTY ReadAddress GET : knx_def.TAddress;
   VAR
-    Address : eib_def.TAddress;
+    Address : knx_def.TAddress;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
@@ -247,36 +247,36 @@ CLASS IMPLEMENTATION CUserObject;
     ELSIF Groups.GetFirst( OUT PGroup ) THEN
       Address := PGroup^.Address;
     ELSE
-      Address.SetAddressType( eib_def.addressUnknown );
+      Address.SetAddressType( knx_def.addressUnknown );
     END;
     RETURN Address;
   END ReadAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY ReadAddress SET( CONST Address : eib_def.TAddress );
+  PUBLIC PROPERTY ReadAddress SET( CONST Address : knx_def.TAddress );
   BEGIN
     SetReadFlag( Address, TRUE );
   END ReadAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY SendAddress GET : eib_def.TAddress;
+  PUBLIC PROPERTY SendAddress GET : knx_def.TAddress;
   VAR
-    Address : eib_def.TAddress;
+    Address : knx_def.TAddress;
     PGroup : TPAU_Group;
   BEGIN
     IF Groups.GetFirst( OUT PGroup ) THEN
       Address := PGroup^.Address;
     ELSE
-      Address.SetAddressType( eib_def.addressUnknown );
+      Address.SetAddressType( knx_def.addressUnknown );
     END;
     RETURN Address;
   END SendAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY SendAddress SET( CONST Address : eib_def.TAddress );
+  PUBLIC PROPERTY SendAddress SET( CONST Address : knx_def.TAddress );
   VAR
     PGroup : TPAU_Group;
     b : BOOLEAN;
@@ -296,14 +296,14 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY PromiscuousAddress GET : eib_def.TAddress;
+  PUBLIC PROPERTY PromiscuousAddress GET : knx_def.TAddress;
   BEGIN
     RETURN prAddress;
   END PromiscuousAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY PromiscuousAddress SET( CONST Address : eib_def.TAddress );
+  PUBLIC PROPERTY PromiscuousAddress SET( CONST Address : knx_def.TAddress );
   BEGIN
     prAddress := Address;
   END PromiscuousAddress;
@@ -312,26 +312,26 @@ CLASS IMPLEMENTATION CUserObject;
 
   PUBLIC PROPERTY Promiscuous GET : BOOLEAN;
   BEGIN
-    RETURN eib_def.aofPromiscuous IN Flags;
+    RETURN knx_def.aofPromiscuous IN Flags;
   END Promiscuous;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetFlags() : eib_def.TA_ObjectFlags;
+  PUBLIC PROCEDURE GetFlags() : knx_def.TA_ObjectFlags;
   BEGIN
     RETURN Flags;
   END GetFlags;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetFlags( _Flags : eib_def.TA_ObjectFlags );
+  PUBLIC PROCEDURE SetFlags( _Flags : knx_def.TA_ObjectFlags );
   BEGIN
     Flags := _Flags;
   END SetFlags;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetSendFlag( CONST Address : eib_def.TAddress; VAR SendFlag : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE GetSendFlag( CONST Address : knx_def.TAddress; VAR SendFlag : BOOLEAN ) : BOOLEAN;
   VAR
     PGroup : TPAU_Group;
   BEGIN
@@ -347,7 +347,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetSendFlag( CONST Address : eib_def.TAddress; SendFlag : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE SetSendFlag( CONST Address : knx_def.TAddress; SendFlag : BOOLEAN ) : BOOLEAN;
   VAR
     PGroup : TPAU_Group;
     b : BOOLEAN;
@@ -366,7 +366,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetReadFlag( CONST Address : eib_def.TAddress; VAR ReadFlag : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE GetReadFlag( CONST Address : knx_def.TAddress; VAR ReadFlag : BOOLEAN ) : BOOLEAN;
   VAR
     PGroup : TPAU_Group;
     b : BOOLEAN;
@@ -383,7 +383,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetReadFlag( CONST Address : eib_def.TAddress; ReadFlag : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE SetReadFlag( CONST Address : knx_def.TAddress; ReadFlag : BOOLEAN ) : BOOLEAN;
   VAR
     PGroup : TPAU_Group;
     PPrevious : TPAU_Group;
@@ -408,21 +408,21 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetClass() : eib_def.TPriority;
+  PUBLIC PROCEDURE GetClass() : knx_def.TPriority;
   BEGIN
     RETURN Class;
   END GetClass;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetClass( _Class : eib_def.TPriority );
+  PUBLIC PROCEDURE SetClass( _Class : knx_def.TPriority );
   BEGIN
     Class := _Class;
   END SetClass;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE AddAddress( SendFlag : BOOLEAN; UpdateWholeStack : BOOLEAN; CONST Address : eib_def.TAddress );
+  PUBLIC PROCEDURE AddAddress( SendFlag : BOOLEAN; UpdateWholeStack : BOOLEAN; CONST Address : knx_def.TAddress );
   VAR
     PGroup : TPAU_Group;
     b : BOOLEAN;
@@ -449,7 +449,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE RemoveAddress( UpdateWholeStack : BOOLEAN; CONST Address : eib_def.TAddress );
+  PUBLIC PROCEDURE RemoveAddress( UpdateWholeStack : BOOLEAN; CONST Address : knx_def.TAddress );
   VAR
     PGroup : TPAU_Group;
     b : BOOLEAN;
@@ -469,7 +469,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE HaveAddress( CONST Address : eib_def.TAddress ) : BOOLEAN;
+  PUBLIC PROCEDURE HaveAddress( CONST Address : knx_def.TAddress ) : BOOLEAN;
   VAR
     PGroup : TPAU_Group;
     b : BOOLEAN;
@@ -485,7 +485,7 @@ CLASS IMPLEMENTATION CUserObject;
 
   PUBLIC PROCEDURE SubscribePromiscuous();
   VAR
-    prl : eib_stack.TprLength;
+    prl : knx_stack.TprLength;
   BEGIN
     IF eit2prl( Value.GetType(), prl ) THEN
       PExecutive^.A_SubscribePromiscuous( prl, ADR( SELF ));
@@ -496,7 +496,7 @@ CLASS IMPLEMENTATION CUserObject;
 
   PUBLIC PROCEDURE UnsubscribePromiscuous();
   VAR
-    prl : eib_stack.TprLength;
+    prl : knx_stack.TprLength;
   BEGIN
     IF eit2prl( Value.GetType(), prl ) THEN
       PExecutive^.A_UnsubscribePromiscuous( prl, ADR( SELF ));
@@ -505,7 +505,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE EnumerateAddress( VAR EnumerationState : PTR; VAR Address : eib_def.TAddress ) : BOOLEAN;
+  PUBLIC PROCEDURE EnumerateAddress( VAR EnumerationState : PTR; VAR Address : knx_def.TAddress ) : BOOLEAN;
   VAR
     PGroup : TPAU_Group;
   BEGIN
@@ -523,9 +523,9 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetValue( CONST _Value : eib_def.TValue; OUT Changed : BOOLEAN ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE SetValue( CONST _Value : knx_def.TValue; OUT Changed : BOOLEAN ) : knx_status.TEIBStackStatus;
   VAR
-    Result : eib_status.TEIBStackStatus;
+    Result : knx_status.TEIBStackStatus;
   BEGIN
     Lock();
     Changed := NOT Value.Equals( _Value );
@@ -537,25 +537,25 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetValue( OUT _Value : eib_def.TValue; UseCached, ForceReadIgnoringObjectFlags : BOOLEAN ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE GetValue( OUT _Value : knx_def.TValue; UseCached, ForceReadIgnoringObjectFlags : BOOLEAN ) : knx_status.TEIBStackStatus;
   VAR
     b : BOOLEAN;
     PGroup : TPAU_Group;
-    Result : eib_status.TEIBStackStatus := eib_status.essOK;
+    Result : knx_status.TEIBStackStatus := knx_status.essOK;
   BEGIN
     Lock();
 
-    IF eib_def.aofPromiscuous IN Flags THEN
+    IF knx_def.aofPromiscuous IN Flags THEN
       _Value.CopyFrom( Value );
 
     ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
       Unlock();
-      RETURN eib_status.essAU_NoAddress;
+      RETURN knx_status.essAU_NoAddress;
 
     ELSIF UseCached THEN
       _Value.CopyFrom( Value );
 
-    ELSIF ForceReadIgnoringObjectFlags OR ( eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofForceRead} * Flags = eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofForceRead} ) THEN
+    ELSIF ForceReadIgnoringObjectFlags OR ( knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofForceRead} * Flags = knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofForceRead} ) THEN
       b := TRUE;
       WHILE b AND NOT PGroup^.ReadFlag DO
         b := Groups.NextOf( PGroup, OUT PGroup );
@@ -581,22 +581,22 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
+   PUBLIC PROCEDURE Transmit() : knx_status.TEIBStackStatus;
    VAR
-      Address : eib_def.TAddress;
+      Address : knx_def.TAddress;
       PGroup : TPAU_Group;
-      Result : eib_status.TEIBStackStatus;
+      Result : knx_status.TEIBStackStatus;
    BEGIN
       Lock();
    
-      IF eib_def.aofPromiscuous IN Flags THEN
+      IF knx_def.aofPromiscuous IN Flags THEN
          Address := PromiscuousAddress;
       ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
          Unlock();
-         RETURN eib_status.essAU_NoAddress;
-      ELSIF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} THEN
+         RETURN knx_status.essAU_NoAddress;
+      ELSIF knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofTransmit} * Flags <> knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofTransmit} THEN
          Unlock();
-         RETURN eib_status.essAU_TransmitDisallowed;
+         RETURN knx_status.essAU_TransmitDisallowed;
       ELSE
          Address := PGroup^.Address;
       END;
@@ -610,21 +610,21 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE InitiateTransmit( CONST Address : eib_def.TAddress; CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE InitiateTransmit( CONST Address : knx_def.TAddress; CONST Value : knx_def.TValue ) : knx_status.TEIBStackStatus;
   VAR
-    LPacket : eib_def.TPacket;
+    LPacket : knx_def.TPacket;
   BEGIN
     LPacket.FromValue( Value );
     Executive()^.A_GroupValue_Write_Req( ADR( SELF ), Address, Class, LPacket );
-    RETURN eib_status.essAU_Pending;
+    RETURN knx_status.essAU_Pending;
   END InitiateTransmit;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE InitiateGetValue( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE InitiateGetValue( CONST Address : knx_def.TAddress ) : knx_status.TEIBStackStatus;
   BEGIN
       Executive()^.A_GroupValue_Read_Req( ADR( SELF ), Address, Class );
-      RETURN eib_status.essAU_Pending;
+      RETURN knx_status.essAU_Pending;
   END InitiateGetValue;
 
 (*--------------------------------------------------------------------------------*)
@@ -706,45 +706,45 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TEIBStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueReadRequestSent;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState; CurrentInitReadState : TInitReadState );
+  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : knx_status.TEIBStackStatus; CurrentState : TObjectState; CurrentInitReadState : TInitReadState );
   BEGIN
   END ValueRead;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : knx_status.TEIBStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueUpdated;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : knx_status.TEIBStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueWritten;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE eit2prl( eit : eib_def.TEIBType; VAR prl : eib_stack.TprLength ) : BOOLEAN;
+  PRIVATE PROCEDURE eit2prl( eit : knx_def.TEIBType; VAR prl : knx_stack.TprLength ) : BOOLEAN;
   BEGIN
     CASE eit OF
-    | eib_def.eitSwitch, eib_def.eitIncrease, eib_def.eitMove, eib_def.eitPriority :
-      prl := eib_stack.prl1;
-    | eib_def.eitScaling, eib_def.eitScaling255, eib_def.eitChar, eib_def.eit8bit :
-      prl := eib_stack.prl2;
-    | eib_def.eitValue, eib_def.eit16bit :
-      prl := eib_stack.prl3;
-    | eib_def.eitTime, eib_def.eitDate :
-      prl := eib_stack.prl4;
-    | eib_def.eitFloat, eib_def.eit32bit :
-      prl := eib_stack.prl5;
-    | eib_def.eitString :
-      prl := eib_stack.prl15;
+    | knx_def.eitSwitch, knx_def.eitIncrease, knx_def.eitMove, knx_def.eitPriority :
+      prl := knx_stack.prl1;
+    | knx_def.eitScaling, knx_def.eitScaling255, knx_def.eitChar, knx_def.eit8bit :
+      prl := knx_stack.prl2;
+    | knx_def.eitValue, knx_def.eit16bit :
+      prl := knx_stack.prl3;
+    | knx_def.eitTime, knx_def.eitDate :
+      prl := knx_stack.prl4;
+    | knx_def.eitFloat, knx_def.eit32bit :
+      prl := knx_stack.prl5;
+    | knx_def.eitString :
+      prl := knx_stack.prl15;
     ELSE
       RETURN FALSE;
     END;
@@ -764,11 +764,11 @@ CLASS IMPLEMENTATION CUserObject;
 
 BEGIN
   PExecutive := NIL;
-  Class := eib_def.priorityNormal;
+  Class := knx_def.priorityNormal;
   State := TObjectState{osUnknown};
-  Flags := eib_def.TA_ObjectFlags{};
+  Flags := knx_def.TA_ObjectFlags{};
 END CUserObject;
 
 (*================================================================================*)
 
-END eib_user.
+END knx_user.

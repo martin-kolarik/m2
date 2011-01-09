@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE eib_stack;
+IMPLEMENTATION MODULE knx_stack;
 
 (*# warn( 4006 => off ) *) // exported symbol already defined
 
@@ -41,7 +41,7 @@ FROM Debug IMPORT
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
-FROM eib_def IMPORT
+FROM knx_def IMPORT
   do8, do9, do10, do11, do12, do13, do14, do15, do16, do17, do18, do19, do20, do21;
 
 IMPORT
@@ -57,7 +57,7 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE IsSelf( CONST Address : eib_def.TAddress ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE IsSelf( CONST Address : knx_def.TAddress ) : BOOLEAN;
   BEGIN
     RETURN FALSE;
   END IsSelf;
@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Initialize_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN
     IF PListener <> NIL THEN
@@ -131,7 +131,7 @@ CLASS IMPLEMENTATION CEIBStackLayer;
   LOCAL VIRTUAL PROCEDURE Done_Req();
   BEGIN
     IF PExecutive = NIL THEN
-      Done_Con( eib_status.essOK );
+      Done_Con( knx_status.essOK );
     ELSE
       PExecutive^.Done_Req();
     END;
@@ -140,7 +140,7 @@ CLASS IMPLEMENTATION CEIBStackLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN
     IF PListener <> NIL THEN
@@ -276,14 +276,14 @@ CLASS IMPLEMENTATION CEIBStackPhysicalLayer;
   PUBLIC VIRTUAL PROCEDURE Ph_Reset_Con(
   );
   BEGIN
-    // Status : eib_status.TEIBStackStatus is generated inside
-    Initialize_Con( eib_status.essOK );
+    // Status : knx_status.TEIBStackStatus is generated inside
+    Initialize_Con( knx_status.essOK );
   END Ph_Reset_Con;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE Ph_Data_Req(
-      VAR Packet      : eib_def.TPacket
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
   END Ph_Data_Req;
@@ -325,7 +325,7 @@ TYPE
 
 CLASS CL_Request( list.CListElem );
   PListener  : TPL_Data_Listener;
-  Packet     : eib_def.TPacket; // packet assembled to send
+  Packet     : knx_def.TPacket; // packet assembled to send
   NAK_Retry  : CARDINAL;
   BUSY_Retry : CARDINAL;
   Pending    : BOOLEAN;
@@ -357,12 +357,12 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 
   LOCAL PROCEDURE Done();
   VAR
-    Priority : eib_def.TPriority;
+    Priority : knx_def.TPriority;
   BEGIN
-    Priority := eib_def.priorityLowest;
+    Priority := knx_def.priorityLowest;
     LOOP
       Requests[ Priority ].Dispose();
-      IF Priority = eib_def.priorityHighest THEN
+      IF Priority = knx_def.priorityHighest THEN
         EXIT;
       ELSE
         INC( Priority );
@@ -374,7 +374,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 
   LOCAL PROCEDURE AppendPacket(
           PListener  : TPL_Data_Listener;
-          PPacket    : eib_def.TPPacket;
+          PPacket    : knx_def.TPPacket;
           NAK_Retry  : CARDINAL;
           BUSY_Retry : CARDINAL
   );
@@ -395,7 +395,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 
   LOCAL PROCEDURE GetActiveRequest(
       VAR PListener : TPL_Data_Listener;
-      VAR Packet    : eib_def.TPacket;
+      VAR Packet    : knx_def.TPacket;
       VAR Pending   : BOOLEAN
   ) : BOOLEAN; // gets top packet
   BEGIN
@@ -415,14 +415,14 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE GetPacketToSend(
-      VAR Packet  : eib_def.TPacket;
+      VAR Packet  : knx_def.TPacket;
       VAR Pending : BOOLEAN
   ) : BOOLEAN; // gets top packet
   LABEL
     Found;
   VAR
     PE : TPL_Request;
-    Priority : eib_def.TPriority;
+    Priority : knx_def.TPriority;
   BEGIN
     IF PCurrent <> NIL THEN
       Packet := TPL_Request( PCurrent )^.Packet;
@@ -430,7 +430,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
       TPL_Request( PCurrent )^.Pending := TRUE;
       RETURN TRUE;
     END;
-    Priority := eib_def.priorityHighest;
+    Priority := knx_def.priorityHighest;
 
     LOOP
       IF Requests[ Priority ].Empty THEN
@@ -443,7 +443,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
         INC( Counts[ Priority ] );
         GOTO Found;
       END;
-      IF Priority = eib_def.priorityLowest THEN
+      IF Priority = knx_def.priorityLowest THEN
         EXIT;
       ELSE
         DEC( Priority );
@@ -465,28 +465,28 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE PacketSent(
-          Status    : eib_status.TEIBStackStatus
-  ) : eib_status.TEIBStackStatus; // removes packet from queue
+          Status    : knx_status.TEIBStackStatus
+  ) : knx_status.TEIBStackStatus; // removes packet from queue
   LABEL
     Remove;
   VAR
-    Priority : eib_def.TPriority;
+    Priority : knx_def.TPriority;
   BEGIN
     IF PCurrent = NIL THEN
-      RETURN eib_status.essOK;
+      RETURN knx_status.essOK;
     END;
     Priority := TPL_Request( PCurrent )^.Packet.GetPriority();
 
-    IF Status = eib_status.essOK THEN
+    IF Status = knx_status.essOK THEN
       GOTO Remove;
-    ELSIF Status = eib_status.essConError THEN
+    ELSIF Status = knx_status.essConError THEN
       IF TPL_Request( PCurrent )^.NAK_Retry = 0 THEN
         GOTO Remove;
       ELSE
         DEC( TPL_Request( PCurrent )^.NAK_Retry );
         TPL_Request( PCurrent )^.Pending := FALSE;
       END;
-    ELSE // ELSIF Status = eib_status.essTransceiverFault THEN and any other error
+    ELSE // ELSIF Status = knx_status.essTransceiverFault THEN and any other error
       IF TPL_Request( PCurrent )^.BUSY_Retry = 0 THEN
         GOTO Remove;
       ELSE
@@ -499,7 +499,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
   Remove:
     Requests[ Priority ].Delete( PCurrent );
     PCurrent := NIL;
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END PacketSent;
 
 (*--------------------------------------------------------------------------------*)
@@ -507,13 +507,13 @@ CLASS IMPLEMENTATION CL_Request_Queue;
   LOCAL PROCEDURE PacketsPending() : CARDINAL;
   VAR
     c : CARDINAL;
-    Priority : eib_def.TPriority;
+    Priority : knx_def.TPriority;
   BEGIN
     c := 0;
-    Priority := eib_def.priorityHighest;
+    Priority := knx_def.priorityHighest;
     LOOP
       c := c + Requests[ Priority ].Count;
-      IF Priority = eib_def.priorityLowest THEN
+      IF Priority = knx_def.priorityLowest THEN
         EXIT;
       ELSE
         DEC( Priority );
@@ -565,9 +565,9 @@ CLASS IMPLEMENTATION CL_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE L_Data_Req(
-          Destination : eib_def.TAddress; // physical or group
-          Class       : eib_def.TPriority;
-      VAR Packet      : eib_def.TPacket
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
     PExecutive^.L_Data_Req( ADR( SELF ), Destination, Class, Packet );
@@ -583,9 +583,9 @@ CLASS IMPLEMENTATION CL_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE L_Data_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress; // physical or group
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress; // physical or group
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
   END L_Data_Con;
@@ -593,10 +593,10 @@ CLASS IMPLEMENTATION CL_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE L_Data_Ind(
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // physical or group
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
   END L_Data_Ind;
@@ -614,16 +614,16 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE IsSelf( CONST Address : eib_def.TAddress ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE IsSelf( CONST Address : knx_def.TAddress ) : BOOLEAN;
   BEGIN
     RETURN L_Parameters.SelfAddress.Equals( Address );
   END IsSelf;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE IsSelfPacket( PPacket : eib_def.TPPacket ) : BOOLEAN;
+  LOCAL PROCEDURE IsSelfPacket( PPacket : knx_def.TPPacket ) : BOOLEAN;
   VAR
-    Address : eib_def.TAddress;
+    Address : knx_def.TAddress;
   BEGIN
     Address := PPacket^.GetSourceAddress();
     RETURN IsSelf( Address );
@@ -658,11 +658,11 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Initialize_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN // now, initialized
     ASSERT( L_Data.State = lsWaitResetCon );
-    IF Status = eib_status.essOK THEN
+    IF Status = knx_status.essOK THEN
       L_Data.State := lsNormalIdle;
     ELSE
       L_Data.State := lsStop;
@@ -673,7 +673,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN
     L_Data.Queue.Done();
@@ -712,7 +712,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
     //-----
     | tidL_ACKTimeout :
-      Ph_Data_Con( eib_status.essL_Timeout );
+      Ph_Data_Con( knx_status.essL_Timeout );
 
     //-----
     | tidL_BUSYDelay :
@@ -792,14 +792,14 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE Ph_Data_Ind(
-          PPacket      : eib_def.TPPacket
+          PPacket      : knx_def.TPPacket
   );
   VAR
-    Destination : eib_def.TAddress;
+    Destination : knx_def.TAddress;
     Addressed : BOOLEAN;
   BEGIN
     IF L_Parameters.LinkMode = lmBusMonitor THEN
-      L_Busmonitor_Ind( eib_status.essOK, datetime.UptimeMS64(), PPacket );
+      L_Busmonitor_Ind( knx_status.essOK, datetime.UptimeMS64(), PPacket );
       RETURN;
     ELSIF IsSelfPacket( PPacket ) THEN
       L_Service_Information_Ind();
@@ -812,11 +812,11 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     IF NOT L_Parameters.CheckAddressed THEN
       // assume I AM Addressed, as the lower layer check this
       Addressed := TRUE;
-    ELSIF Destination.GetAddressType() = eib_def.addressPhysical THEN
+    ELSIF Destination.GetAddressType() = knx_def.addressPhysical THEN
       Addressed := IsSelf( Destination );
     ELSIF Destination.IsBroadcast() THEN
       Addressed := TRUE;
-    ELSE // if all addreib_status.esses are checked in device L_Data.Groups contains 
+    ELSE // if all addrknx_status.esses are checked in device L_Data.Groups contains 
       Addressed := CARD16( Destination.GetGroupAddress1()) IN L_Data.Groups;
     END;
 
@@ -833,7 +833,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
       L_Data_Ind_Res( larACK );
     ELSE
       L_Data_Ind_Res( larNAK );
-      RETURN; // not to proceib_status.ess
+      RETURN; // not to procknx_status.ess
     END;
 
     // pass to higer lever
@@ -848,11 +848,11 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE Ph_Data_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   VAR
     CRT : TCommunicateRequestType;
-    LPacket : eib_def.TPacket;
+    LPacket : knx_def.TPacket;
     PListener : TPL_Data_Listener;
     Pending : BOOLEAN;
   BEGIN
@@ -866,7 +866,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
       L_Data.ACKTimeouter.Stop();
       L_Data.BUSYDelayer.Stop();
       // notify higher level only if packet is removed -- so only if it is NOT retransmitted
-      IF L_Data.Queue.PacketSent( Status ) <> eib_status.essOK THEN // retransmit after some delay
+      IF L_Data.Queue.PacketSent( Status ) <> knx_status.essOK THEN // retransmit after some delay
         CRT := crtL_LayerWithBUSYDelay;
       ELSE
         L_Data_Con( PListener, Status, LPacket.GetDestinationAddress(), ADR( LPacket ));
@@ -888,9 +888,9 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
   LOCAL VIRTUAL PROCEDURE L_Data_Req(
           _PListener  : TPL_Data_Listener;
-          Destination : eib_def.TAddress; // physical or group
-          Class       : eib_def.TPriority;
-      VAR Packet      : eib_def.TPacket
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
     Packet.SetPriority( Class );
@@ -902,7 +902,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     ELSIF L_Data.Queue.PacketsPending() < L_Parameters.OutputQueueLength THEN
       L_Data.Queue.AppendPacket( _PListener, ADR( Packet ), L_Parameters.NAK_Retry, L_Parameters.BUSY_Retry );
     ELSE
-      L_Data_Con( _PListener, eib_status.essL_OutputQueueOverflow, Destination, ADR( Packet ));
+      L_Data_Con( _PListener, knx_status.essL_OutputQueueOverflow, Destination, ADR( Packet ));
     END;
   END L_Data_Req;
 
@@ -911,7 +911,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
   LOCAL VIRTUAL PROCEDURE Communicate( RequestType : TCommunicateRequestType );
   VAR
     delay : CARDINAL;
-    Packet : eib_def.TPacket;
+    Packet : knx_def.TPacket;
     Pending : BOOLEAN;
     Send : BOOLEAN;
   BEGIN
@@ -966,9 +966,9 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
   INTERNAL VIRTUAL PROCEDURE L_Data_Con(
           PListener   : TPL_Data_Listener;
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress; // physical or group
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress; // physical or group
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     PListener^.L_Data_Con( Status, PPacket^.GetDestinationAddress(), PPacket );
@@ -977,10 +977,10 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   PRIVATE PROCEDURE Process_L_Data_Ind(
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // physical or group
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   VAR
     PListener : TPL_Data_Listener;
@@ -997,10 +997,10 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
   VIRTUAL PROCEDURE L_Data_Ind(
           PListener   : TPL_Data_Listener;
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // physical or group
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     PListener^.L_Data_Ind( Source, Destination, Class, PPacket );
@@ -1017,9 +1017,9 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE L_Busmonitor_Ind(
-          Status      : eib_status.TEIBStackStatus;
+          Status      : knx_status.TEIBStackStatus;
           Time        : INT64;
-          PPacket     : eib_def.TPPacket
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
   END L_Busmonitor_Ind;
@@ -1060,7 +1060,7 @@ CLASS IMPLEMENTATION CRoutingTable;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE EnumerateTargets( VAR EnumerateState : PTR; CONST Destination : eib_def.TAddress; VAR PInterface : TPEIBStackLinkLayer ) : BOOLEAN;
+  LOCAL VIRTUAL PROCEDURE EnumerateTargets( VAR EnumerateState : PTR; CONST Destination : knx_def.TAddress; VAR PInterface : TPEIBStackLinkLayer ) : BOOLEAN;
   BEGIN
     RETURN FALSE;
   END EnumerateTargets;
@@ -1084,14 +1084,14 @@ CLASS IMPLEMENTATION CN_L_Data_Listener;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE AddGroup( CONST Address : eib_def.TAddress );
+  LOCAL PROCEDURE AddGroup( CONST Address : knx_def.TAddress );
   BEGIN
     INCL( PListener^.N_Data.Groups, CARD16( Address.GetGroupAddress1()) );
   END AddGroup;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE RemoveGroup( CONST Address : eib_def.TAddress );
+  LOCAL PROCEDURE RemoveGroup( CONST Address : knx_def.TAddress );
   BEGIN
     EXCL( PListener^.N_Data.Groups, CARD16( Address.GetGroupAddress1()) );
   END RemoveGroup;
@@ -1099,9 +1099,9 @@ CLASS IMPLEMENTATION CN_L_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE L_Data_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress; // physical or group
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress; // physical or group
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     PListener^.L_Data_Con( Status, Destination, PPacket );
@@ -1110,10 +1110,10 @@ CLASS IMPLEMENTATION CN_L_Data_Listener;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE L_Data_Ind(
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // physical or group
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     PListener^.L_Data_Ind( Source, Destination, Class, PPacket );
@@ -1174,7 +1174,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN
     IF N_Data.PL_Listener <> NIL THEN
@@ -1191,12 +1191,12 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE L_Data_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress; // physical or group
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress; // physical or group
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
-    IF Destination.GetAddressType() = eib_def.addressPhysical THEN
+    IF Destination.GetAddressType() = knx_def.addressPhysical THEN
       N_Data_Con( Status, Destination, PPacket );
     ELSIF Destination.IsBroadcast() THEN
       N_Broadcast_Con( Status );
@@ -1208,16 +1208,16 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE L_Data_Ind(
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // physical or group
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   LABEL
     EndDevice;
   VAR
     ES : PTR;
-    LPacket : eib_def.TPacket;
+    LPacket : knx_def.TPacket;
     PInterface : TPEIBStackLinkLayer;
     RoutingCounter : CARDINAL;
   BEGIN
@@ -1225,7 +1225,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
     //----------
     | ndtEndDevice :
     EndDevice:
-      IF Destination.GetAddressType() = eib_def.addressPhysical THEN
+      IF Destination.GetAddressType() = knx_def.addressPhysical THEN
         N_Data_Ind( Source, Destination, Class, PPacket );
 
       ELSIF Destination.IsBroadcast() THEN
@@ -1250,15 +1250,15 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
       END;
     //----------
     | ndtBridge, ndtRouter :
-      IF IsSelf( Destination ) THEN // self addreib_status.ess is always physical, act as normal end device
+      IF IsSelf( Destination ) THEN // self addrknx_status.ess is always physical, act as normal end device
         GOTO EndDevice;
       END;
 
       RoutingCounter := PPacket^.GetRoutingCounter();
-      IF RoutingCounter = eib_def.ncRouteDiscard THEN // discard packet
+      IF RoutingCounter = knx_def.ncRouteDiscard THEN // discard packet
         OnPacketDiscard( PPacket );
         RETURN;
-      ELSIF RoutingCounter <> eib_def.ncRoutePassOn THEN
+      ELSIF RoutingCounter <> knx_def.ncRoutePassOn THEN
         DEC( RoutingCounter );
       END;
 
@@ -1275,12 +1275,12 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE N_Data_Req(
-          Destination    : eib_def.TAddress; // physical
-          Class          : eib_def.TPriority;
-      VAR Packet         : eib_def.TPacket
+          Destination    : knx_def.TAddress; // physical
+          Class          : knx_def.TPriority;
+      VAR Packet         : knx_def.TPacket
   );
   BEGIN
-    Packet.SetRoutingCounter( eib_def.ncRouteDefault );
+    Packet.SetRoutingCounter( knx_def.ncRouteDefault );
     Executive()^.L_Data_Req( Destination, Class, Packet );
     Executive()^.Communicate( crtN_LayerRequest ); // start communication always
   END N_Data_Req;
@@ -1288,9 +1288,9 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Data_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress; // physical
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress; // physical
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     Listener()^.N_Data_Con( Status, Destination, PPacket );
@@ -1299,10 +1299,10 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Data_Ind(
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // physical, self
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical, self
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     Listener()^.N_Data_Ind( Source, Destination, Class, PPacket );
@@ -1311,12 +1311,12 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE N_Groupdata_Req(
-          Destination    : eib_def.TAddress; // logical
-          Class          : eib_def.TPriority;
-      VAR Packet         : eib_def.TPacket
+          Destination    : knx_def.TAddress; // logical
+          Class          : knx_def.TPriority;
+      VAR Packet         : knx_def.TPacket
   );
   BEGIN
-    Packet.SetRoutingCounter( eib_def.ncRouteDefault );
+    Packet.SetRoutingCounter( knx_def.ncRouteDefault );
     Executive()^.L_Data_Req( Destination, Class, Packet );
     Executive()^.Communicate( crtN_LayerRequest ); // start communication always
   END N_Groupdata_Req;
@@ -1324,9 +1324,9 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Groupdata_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress; // logical
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress; // logical
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     Listener()^.N_Groupdata_Con( Status, Destination, PPacket );
@@ -1335,10 +1335,10 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Groupdata_Ind(
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // group, one of self objects
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // group, one of self objects
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     Listener()^.N_Groupdata_Ind( Source, Destination, Class, PPacket );
@@ -1347,13 +1347,13 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE N_Broadcast_Req(
-          Class          : eib_def.TPriority;
-      VAR Packet         : eib_def.TPacket
+          Class          : knx_def.TPriority;
+      VAR Packet         : knx_def.TPacket
   );
   VAR
-    Destination : eib_def.TAddress;
+    Destination : knx_def.TAddress;
   BEGIN
-    Packet.SetRoutingCounter( eib_def.ncRouteDefault );
+    Packet.SetRoutingCounter( knx_def.ncRouteDefault );
     Destination.SetBroadcast();
     Executive()^.L_Data_Req( Destination, Class, Packet );
     Executive()^.Communicate( crtN_LayerRequest ); // start communication always
@@ -1362,7 +1362,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Broadcast_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN
     Listener()^.N_Broadcast_Con( Status );
@@ -1371,9 +1371,9 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE N_Broadcast_Ind(
-          Source      : eib_def.TAddress; // physical
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     Listener()^.N_Broadcast_Ind( Source, Class, PPacket );
@@ -1382,7 +1382,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
 (*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE OnPacketDiscard(
-          PPacket        : eib_def.TPPacket
+          PPacket        : knx_def.TPPacket
   );
   BEGIN
   END OnPacketDiscard;
@@ -1416,9 +1416,9 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Data_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress; // physical
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress; // physical
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
   END N_Data_Con;
@@ -1426,10 +1426,10 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Data_Ind(
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // physical, self
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical, self
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
   END N_Data_Ind;
@@ -1437,9 +1437,9 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Groupdata_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress; // logical
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress; // logical
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     T_Groupdata_Con( Status, Destination, PPacket );
@@ -1448,10 +1448,10 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Groupdata_Ind(
-          Source      : eib_def.TAddress; // physical
-          Destination : eib_def.TAddress; // group, one of self objects
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // group, one of self objects
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     T_Groupdata_Ind( Destination, Class, PPacket );
@@ -1460,7 +1460,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Broadcast_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN
     T_Broadcast_Con( Status );
@@ -1469,9 +1469,9 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE N_Broadcast_Ind(
-          Source      : eib_def.TAddress; // physical
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     T_Broadcast_Ind( Source, Class, PPacket );
@@ -1480,9 +1480,9 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Data_Unack_Req(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-      VAR Packet      : eib_def.TPacket
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
   END T_Data_Unack_Req;
@@ -1490,8 +1490,8 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Data_Unack_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress
   );
   BEGIN
   END T_Data_Unack_Con;
@@ -1499,9 +1499,9 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Data_Unack_Ind(
-          Source      : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
   END T_Data_Unack_Ind;
@@ -1509,7 +1509,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Connect_Req(
-          Destination : eib_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical
       VAR PConnection : TPConnection
   );
   BEGIN
@@ -1518,7 +1518,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Connect_Con(
-          Status      : eib_status.TEIBStackStatus;
+          Status      : knx_status.TEIBStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1543,7 +1543,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Disconnect_Con(
-          Status      : eib_status.TEIBStackStatus;
+          Status      : knx_status.TEIBStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1561,8 +1561,8 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 
   LOCAL PROCEDURE T_Data_Req(
           PConnection : TPConnection;
-          Class       : eib_def.TPriority;
-      VAR Packet      : eib_def.TPacket
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
   END T_Data_Req;
@@ -1570,7 +1570,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Data_Con(
-          Status      : eib_status.TEIBStackStatus;
+          Status      : knx_status.TEIBStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1587,8 +1587,8 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE T_Broadcast_Req(
-          Class       : eib_def.TPriority;
-      VAR Packet      : eib_def.TPacket
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
     SetTPDU( Packet, tpduBroadcastData_REQ );
@@ -1598,7 +1598,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Broadcast_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN
     Listener()^.T_Broadcast_Con( Status );
@@ -1607,9 +1607,9 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Broadcast_Ind(
-          Source      : eib_def.TAddress; // physical
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     Listener()^.T_Broadcast_Ind( Source, Class, PPacket );
@@ -1618,13 +1618,13 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE T_Groupdata_Req(
-          Destination : eib_def.TAddress; // cr_id
-          Class       : eib_def.TPriority;
-      VAR Packet      : eib_def.TPacket
+          Destination : knx_def.TAddress; // cr_id
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
-    IF Destination.GetAddressType() = eib_def.addressPhysical THEN
-      T_Groupdata_Con( eib_status.essT_Bad_Address_Type, Destination, ADR( Packet ));
+    IF Destination.GetAddressType() = knx_def.addressPhysical THEN
+      T_Groupdata_Con( knx_status.essT_Bad_Address_Type, Destination, ADR( Packet ));
     ELSE
       SetTPDU( Packet, tpduGroupdata_REQ );
       Executive()^.N_Groupdata_Req( Destination, Class, Packet );
@@ -1634,9 +1634,9 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Groupdata_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress;
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     Listener()^.T_Groupdata_Con( Status, Destination, PPacket );
@@ -1645,9 +1645,9 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE T_Groupdata_Ind(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     Listener()^.T_Groupdata_Ind( Destination, Class, PPacket );
@@ -1655,7 +1655,7 @@ CLASS IMPLEMENTATION CEIBStackTransportLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE SetTPDU( VAR Packet : eib_def.TPacket; TPDU : TT_PDU );
+  PRIVATE PROCEDURE SetTPDU( VAR Packet : knx_def.TPacket; TPDU : TT_PDU );
   BEGIN
     CASE TPDU OF
     | tpduConnect_REQ, tpduDisconnect_REQ :
@@ -1680,7 +1680,7 @@ TYPE
 
 CLASS CA_PendingOperation( list.CListElem );
   WhatIsPending : TPendingOperation;
-  Destination   : eib_def.TAddress;
+  Destination   : knx_def.TAddress;
   ObjectIndex   : CARDINAL;
   PropertyId    : CARDINAL;
 END CA_PendingOperation;
@@ -1706,7 +1706,7 @@ END CA_Object;
 (*--------------------------------------------------------------------------------*)
 
 CLASS CA_Group( avltree.CAVLTreeElem );
-  Address : eib_def.TAddress;
+  Address : knx_def.TAddress;
   Objects : list.CList;
 
   // inherited
@@ -1781,9 +1781,9 @@ TYPE
 CLASS CPendingData( list.CListElem );
   WhatIsPending : TPendingOperation;
   POriginator   : TPSAP;
-  Destination   : eib_def.TAddress;
-  Class         : eib_def.TPriority;
-  Packet        : eib_def.TPacket;
+  Destination   : knx_def.TAddress;
+  Class         : knx_def.TPriority;
+  Packet        : knx_def.TPacket;
   Pending       : BOOLEAN;
 END CPendingData;
 
@@ -1793,7 +1793,7 @@ CLASS IMPLEMENTATION CPendingData;
 BEGIN
   WhatIsPending := pendingGroupRead;
   POriginator := NIL;
-  Class := eib_def.priorityNormal;
+  Class := knx_def.priorityNormal;
   Pending := FALSE;
 END CPendingData;
 
@@ -1818,11 +1818,11 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE Done_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   VAR
     i : TPendingOperation;
-    j : eib_def.TPriority;
+    j : knx_def.TPriority;
   BEGIN
     A_Data.Groups.Dispose();
 
@@ -1843,10 +1843,10 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
     i := pendingGroupRead;
     LOOP
-      j := eib_def.priorityLowest;
+      j := knx_def.priorityLowest;
       LOOP
         A_Data.Pending[i][j].Dispose();
-        IF j = eib_def.priorityHighest THEN
+        IF j = knx_def.priorityHighest THEN
           EXIT;
         ELSE
           INC( j );
@@ -1873,7 +1873,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       // bypass T_GroupData_Ind, which could be called here. The bypass is done to directly enter
       // A_GroupValue_Process parameters.
       IF ( TPendingOperation( UserId ) = pendingGroupRead ) AND A_GetFirstPending( pendingGroupRead, NIL, PSPO ) THEN
-        A_GroupValue_Process( eib_status.essA_Timeout, NIL, pphIND, apduGroupValue_RS, PSPO^.Class, PSPO^.Destination, NIL ); // informs all SAPs
+        A_GroupValue_Process( knx_status.essA_Timeout, NIL, pphIND, apduGroupValue_RS, PSPO^.Class, PSPO^.Destination, NIL ); // informs all SAPs
       END;
     | tidA_PendingDelay :
       A_StartPendingOperation( TPendingOperation( UserId ), FALSE, NIL );
@@ -1883,8 +1883,8 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Data_Unack_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress
   );
   BEGIN
     // nothing to do, services are acknowledged remotelly
@@ -1893,9 +1893,9 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Data_Unack_Ind(
-          Source      : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
   END T_Data_Unack_Ind;
@@ -1904,7 +1904,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Connect_Con(
-          Status      : eib_status.TEIBStackStatus;
+          Status      : knx_status.TEIBStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1921,7 +1921,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Disconnect_Con(
-          Status      : eib_status.TEIBStackStatus;
+          Status      : knx_status.TEIBStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1938,7 +1938,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Data_Con(
-          Status      : eib_status.TEIBStackStatus;
+          Status      : knx_status.TEIBStackStatus;
           PConnection : TPConnection
   );
   BEGIN
@@ -1956,7 +1956,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Broadcast_Con(
-          Status      : eib_status.TEIBStackStatus
+          Status      : knx_status.TEIBStackStatus
   );
   BEGIN
   END T_Broadcast_Con;
@@ -1964,9 +1964,9 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Broadcast_Ind(
-          Source      : eib_def.TAddress; // physical
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Source      : knx_def.TAddress; // physical
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
   END T_Broadcast_Ind;
@@ -1975,9 +1975,9 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Groupdata_Con(
-          Status      : eib_status.TEIBStackStatus;
-          Destination : eib_def.TAddress;
-          PPacket     : eib_def.TPPacket
+          Status      : knx_status.TEIBStackStatus;
+          Destination : knx_def.TAddress;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     CASE GetAPDU( PPacket ) OF
@@ -1992,18 +1992,18 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE T_Groupdata_Ind(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          PPacket     : eib_def.TPPacket
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
   );
   BEGIN
     CASE GetAPDU( PPacket ) OF
     | apduGroupValue_RD :
-      A_GroupValue_Process( eib_status.essOK, NIL, pphIND, apduGroupValue_RD, Class, Destination, PPacket ); // informs all SAPs
+      A_GroupValue_Process( knx_status.essOK, NIL, pphIND, apduGroupValue_RD, Class, Destination, PPacket ); // informs all SAPs
     | apduGroupValue_RS :
-      A_GroupValue_Process( eib_status.essOK, NIL, pphIND, apduGroupValue_RS, Class, Destination, PPacket ); // informs all SAPs
+      A_GroupValue_Process( knx_status.essOK, NIL, pphIND, apduGroupValue_RS, Class, Destination, PPacket ); // informs all SAPs
     | apduGroupValue_WR :
-      A_GroupValue_Process( eib_status.essOK, NIL, pphIND, apduGroupValue_WR, Class, Destination, PPacket ); // informs all SAPs
+      A_GroupValue_Process( knx_status.essOK, NIL, pphIND, apduGroupValue_WR, Class, Destination, PPacket ); // informs all SAPs
     // ELSE unknown and unsupported ACPI are ignored
     END; // CASE
   END T_Groupdata_Ind;
@@ -2012,11 +2012,11 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
   PUBLIC PROCEDURE A_GroupValue_Read_Req(
           POriginator : TPSAP;
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority
   );
   VAR
-    LPacket : eib_def.TPacket;
+    LPacket : knx_def.TPacket;
   BEGIN
     SetAPDU( LPacket, apduGroupValue_RD );
     LPacket.SetDataLength( 1 );
@@ -2027,25 +2027,25 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
   PUBLIC PROCEDURE A_GroupValue_Read_Res(
           POriginator : TPSAP;
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-      VAR Packet      : eib_def.TPacket
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
     SetAPDU( Packet, apduGroupValue_RS );
     // update remote objects
     Executive()^.T_Groupdata_Req( Destination, Class, Packet );
     // update local objects
-    A_GroupValue_Process( eib_status.essOK, POriginator, pphRES, apduGroupValue_RS, Class, Destination, ADR( Packet ));
+    A_GroupValue_Process( knx_status.essOK, POriginator, pphRES, apduGroupValue_RS, Class, Destination, ADR( Packet ));
   END A_GroupValue_Read_Res;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE A_GroupValue_Write_Req(
           POriginator : TPSAP;
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-      VAR Packet      : eib_def.TPacket
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
   );
   BEGIN
     SetAPDU( Packet, apduGroupValue_WR );
@@ -2055,13 +2055,13 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE A_GroupValue_Process(
-          Status      : eib_status.TEIBStackStatus; // if needed, e.g. for pphCON
+          Status      : knx_status.TEIBStackStatus; // if needed, e.g. for pphCON
           POriginator : TPSAP;
           Phase       : TProcessPhase;
           APDU        : TA_PDU;
-          Class       : eib_def.TPriority;
-          Destination : eib_def.TAddress;
-    CONST PPacket     : eib_def.TPPacket
+          Class       : knx_def.TPriority;
+          Destination : knx_def.TAddress;
+    CONST PPacket     : knx_def.TPPacket
   );
   VAR
     PGroup : TPA_Group;
@@ -2077,21 +2077,21 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 (*--------------------------------------------------------------------------------*)
 
   PRIVATE PROCEDURE A_GroupValue_Process_Single(
-          Status      : eib_status.TEIBStackStatus; // if needed, e.g. for pphCON
+          Status      : knx_status.TEIBStackStatus; // if needed, e.g. for pphCON
           POriginator : TPSAP;
           Phase       : TProcessPhase;
           APDU        : TA_PDU;
-          Class       : eib_def.TPriority;
-          Destination : eib_def.TAddress;
-    CONST PPacket     : eib_def.TPPacket;
+          Class       : knx_def.TPriority;
+          Destination : knx_def.TAddress;
+    CONST PPacket     : knx_def.TPPacket;
           Promiscuous : BOOLEAN;
           PGroup      : TPA_Group
   );
   VAR
     ES : PTR;
     Found : BOOLEAN;
-    PendingDestination : eib_def.TAddress;
-    PendingObjectAddress : eib_def.TAddress;
+    PendingDestination : knx_def.TAddress;
+    PendingObjectAddress : knx_def.TAddress;
     PObject : TPSAP;
     Registered : BOOLEAN;
     WhatIsPending : TPendingOperation;
@@ -2112,7 +2112,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     | pphCON :
       CASE APDU OF
       | apduGroupValue_RD :
-        IF Status <> eib_status.essOK THEN
+        IF Status <> knx_status.essOK THEN
           // errorneous CON (e.g. UNACKED), so the pending Read must be removed
           WhatIsPending := pendingGroupRead;
           Registered := TRUE;
@@ -2146,7 +2146,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
             ELSE // check SendAddress
                PendingObjectAddress := PObject^.SendAddress;
             END;
-            Found := ( PendingObjectAddress.GetAddressType() <> eib_def.addressUnknown ) AND ( PendingObjectAddress = PendingDestination );
+            Found := ( PendingObjectAddress.GetAddressType() <> knx_def.addressUnknown ) AND ( PendingObjectAddress = PendingDestination );
          END;
 
       CASE Phase OF
@@ -2170,10 +2170,10 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
         // notification of local response
         PObject^.AU_GroupValue_Read_Res( Status, PPacket );
       END; // CASE
-    END; END; // IF not proceib_status.essing self // WHILE
+    END; END; // IF not procknx_status.essing self // WHILE
 
     IF Registered AND Found THEN
-      // this is a pending apduGroupRead operation, which needs further proceib_status.essing
+      // this is a pending apduGroupRead operation, which needs further procknx_status.essing
       A_PendingOperationFinished( WhatIsPending, Status, Class, PendingDestination );
     END;
   END A_GroupValue_Process_Single;
@@ -2182,9 +2182,9 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
   PUBLIC PROCEDURE A_Subscribe(
           _Update_L_Layer : BOOLEAN;
-    CONST Address         : eib_def.TAddress;
+    CONST Address         : knx_def.TAddress;
           PObject         : TPSAP
-  ) : eib_status.TEIBStackStatus;
+  ) : knx_status.TEIBStackStatus;
   VAR
     PA_Object : TPA_Object;
     PGroup : TPA_Group;
@@ -2215,16 +2215,16 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     END;
 
     DataLock.Unlock();
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END A_Subscribe;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE A_Unsubscribe(
           _Update_L_Layer : BOOLEAN;
-    CONST Address         : eib_def.TAddress;
+    CONST Address         : knx_def.TAddress;
           PObject         : TPSAP
-  ) : eib_status.TEIBStackStatus;
+  ) : knx_status.TEIBStackStatus;
   VAR
     PA_Object : TPA_Object;
     PGroup : TPA_Group;
@@ -2234,7 +2234,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
     IF NOT A_Group_SearchGroup( Address, PGroup ) THEN
        DataLock.Unlock();
-       RETURN eib_status.essOK;
+       RETURN knx_status.essOK;
     END;
 
     b := PGroup^.Objects.GetFirst( OUT PA_Object );
@@ -2255,7 +2255,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     END;
 
     DataLock.Unlock();
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END A_Unsubscribe;
 
 (*--------------------------------------------------------------------------------*)
@@ -2263,7 +2263,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   PUBLIC PROCEDURE A_SubscribePromiscuous(
           Length         : TprLength;
           PObject        : TPSAP
-  ) : eib_status.TEIBStackStatus;
+  ) : knx_status.TEIBStackStatus;
   VAR
     PA_Object : TPA_Object;
     PGroup : TPA_Group;
@@ -2273,7 +2273,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
     IF NOT A_Parameters.PromiscuousMode THEN
        DataLock.Unlock();
-       RETURN eib_status.essA_PromiscuousSubscribeDisallowed;
+       RETURN knx_status.essA_PromiscuousSubscribeDisallowed;
     END;
 
     PGroup := A_Data.prGroup[Length];
@@ -2289,7 +2289,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     END;
 
     DataLock.Unlock();
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END A_SubscribePromiscuous;
 
 (*--------------------------------------------------------------------------------*)
@@ -2297,7 +2297,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   PUBLIC PROCEDURE A_UnsubscribePromiscuous(
           Length         : TprLength;
           PObject        : TPSAP
-  ) : eib_status.TEIBStackStatus;
+  ) : knx_status.TEIBStackStatus;
   VAR
     PA_Object : TPA_Object;
     PGroup : TPA_Group;
@@ -2307,7 +2307,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
     IF NOT A_Parameters.PromiscuousMode THEN
        DataLock.Unlock();
-       RETURN eib_status.essA_PromiscuousSubscribeDisallowed;
+       RETURN knx_status.essA_PromiscuousSubscribeDisallowed;
     END;
 
     PGroup := A_Data.prGroup[Length];
@@ -2321,7 +2321,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     END;
 
     DataLock.Unlock();
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END A_UnsubscribePromiscuous;
 
 (*--------------------------------------------------------------------------------*)
@@ -2359,9 +2359,9 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE GetAPDU( PPacket : eib_def.TPPacket ) : TA_PDU;
+  PRIVATE PROCEDURE GetAPDU( PPacket : knx_def.TPPacket ) : TA_PDU;
   VAR
-    Check : eib_def.TTransportControl;
+    Check : knx_def.TTransportControl;
   BEGIN
     Check := PPacket^.TransportControl * maskGroup;
     IF Check = acpis[ apduGroupValue_RD ].ACPI THEN
@@ -2378,14 +2378,14 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE SetAPDU( VAR Packet : eib_def.TPacket; ACPI : TA_PDU );
+  PRIVATE PROCEDURE SetAPDU( VAR Packet : knx_def.TPacket; ACPI : TA_PDU );
   BEGIN
     Packet.TransportControl := Packet.TransportControl - acpis[ACPI].Mask + acpis[ACPI].ACPI;
   END SetAPDU;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; POriginator : TPSAP; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
+  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; POriginator : TPSAP; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress; CONST Packet : knx_def.TPacket );
   VAR
     PPendingData : TPPendingData;
   BEGIN
@@ -2395,9 +2395,9 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       // queue limit reached
       CASE WhatIsPending OF
       | pendingGroupRead :
-        A_GroupValue_Process( eib_status.essA_ReadQueueOverflow, POriginator, pphCON, apduGroupValue_WR, Class, Destination, ADR( Packet ));
+        A_GroupValue_Process( knx_status.essA_ReadQueueOverflow, POriginator, pphCON, apduGroupValue_WR, Class, Destination, ADR( Packet ));
       | pendingGroupWrite :
-        A_GroupValue_Process( eib_status.essA_WriteQueueOverflow, POriginator, pphCON, apduGroupValue_RD, Class, Destination, ADR( Packet ));
+        A_GroupValue_Process( knx_status.essA_WriteQueueOverflow, POriginator, pphCON, apduGroupValue_RD, Class, Destination, ADR( Packet ));
       END;
       RETURN;
     END;
@@ -2414,7 +2414,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_GetPendingDestination( WhatIsPending : TPendingOperation; Class : eib_def.TPriority; VAR Destination : eib_def.TAddress ) : BOOLEAN;
+  PRIVATE PROCEDURE A_GetPendingDestination( WhatIsPending : TPendingOperation; Class : knx_def.TPriority; VAR Destination : knx_def.TAddress ) : BOOLEAN;
   VAR
     PSPO : TPPendingData;
   BEGIN
@@ -2428,7 +2428,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : eib_status.TEIBStackStatus; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress );
+  PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : knx_status.TEIBStackStatus; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress );
   VAR
     PSPO : TPPendingData;
   BEGIN
@@ -2447,7 +2447,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; PClass : eib_def.TPPriority ); // CAN be NIL, if start could select packet automatically
+  PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; PClass : knx_def.TPPriority ); // CAN be NIL, if start could select packet automatically
   VAR
     delay : CARDINAL;
     PSPO : TPPendingData;
@@ -2481,12 +2481,12 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       // ask remote objects
       Executive()^.T_Groupdata_Req( PSPO^.Destination, PSPO^.Class, PSPO^.Packet );
       // ask local objects
-      A_GroupValue_Process( eib_status.essOK, PSPO^.POriginator, pphIND, apduGroupValue_RD, PSPO^.Class, PSPO^.Destination, ADR( PSPO^.Packet ));
+      A_GroupValue_Process( knx_status.essOK, PSPO^.POriginator, pphIND, apduGroupValue_RD, PSPO^.Class, PSPO^.Destination, ADR( PSPO^.Packet ));
     | pendingGroupWrite :
       // update remote objects
       Executive()^.T_Groupdata_Req( PSPO^.Destination, PSPO^.Class, PSPO^.Packet );
       // update local objects
-      A_GroupValue_Process( eib_status.essOK, PSPO^.POriginator, pphIND, apduGroupValue_WR, PSPO^.Class, PSPO^.Destination, ADR( PSPO^.Packet ));
+      A_GroupValue_Process( knx_status.essOK, PSPO^.POriginator, pphIND, apduGroupValue_WR, PSPO^.Class, PSPO^.Destination, ADR( PSPO^.Packet ));
     ELSE
       ASSERT( FALSE );
     END;
@@ -2504,7 +2504,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_Group_SearchGroup( CONST Address : eib_def.TAddress; VAR PGroup : TPA_Group ) : BOOLEAN;
+  PRIVATE PROCEDURE A_Group_SearchGroup( CONST Address : knx_def.TAddress; VAR PGroup : TPA_Group ) : BOOLEAN;
   VAR
     A_Group : CA_Group;
   BEGIN
@@ -2514,23 +2514,23 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_Group_SearchPromiscuousGroupByLength( CONST PPacket : eib_def.TPPacket; OUT PGroup : TPA_Group ) : BOOLEAN;
+  PRIVATE PROCEDURE A_Group_SearchPromiscuousGroupByLength( CONST PPacket : knx_def.TPPacket; OUT PGroup : TPA_Group ) : BOOLEAN;
   BEGIN
     IF A_Data.prGroup[prl1] = NIL THEN
       RETURN FALSE;
     END;
     CASE PPacket^.GetDataLength() OF
-    | CARDINAL( eib_def.ncsDataLength1 ) : // eitSwitch, eitIncrease, eitPriority
+    | CARDINAL( knx_def.ncsDataLength1 ) : // eitSwitch, eitIncrease, eitPriority
       PGroup := A_Data.prGroup[prl1];
-    | CARDINAL( eib_def.ncsDataLength2 ) : // eitScaling, eitScaling255, eitChar, eit8bit
+    | CARDINAL( knx_def.ncsDataLength2 ) : // eitScaling, eitScaling255, eitChar, eit8bit
       PGroup := A_Data.prGroup[prl2];
-    | CARDINAL( eib_def.ncsDataLength3 ) : // eitValue, eit16bit
+    | CARDINAL( knx_def.ncsDataLength3 ) : // eitValue, eit16bit
       PGroup := A_Data.prGroup[prl3];
-    | CARDINAL( eib_def.ncsDataLength4 ) : // eitTime, eitDate
+    | CARDINAL( knx_def.ncsDataLength4 ) : // eitTime, eitDate
       PGroup := A_Data.prGroup[prl4];
-    | CARDINAL( eib_def.ncsDataLength5 ) : // eitFloat, eit32bit
+    | CARDINAL( knx_def.ncsDataLength5 ) : // eitFloat, eit32bit
       PGroup := A_Data.prGroup[prl5];
-    | CARDINAL( eib_def.ncsDataLength15 ) : // eitString
+    | CARDINAL( knx_def.ncsDataLength15 ) : // eitString
       PGroup := A_Data.prGroup[prl15];
     ELSE
       RETURN FALSE;
@@ -2540,13 +2540,13 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
      
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_GetFirstPending( WhatIsPending : TPendingOperation; PClass : eib_def.TPPriority; VAR _PSPO : ADDRESS ) : BOOLEAN;
+  PRIVATE PROCEDURE A_GetFirstPending( WhatIsPending : TPendingOperation; PClass : knx_def.TPPriority; VAR _PSPO : ADDRESS ) : BOOLEAN;
   VAR
     PSPO : TPPendingData;
-    priority : eib_def.TPriority;
+    priority : knx_def.TPriority;
   BEGIN
     IF PClass = NIL THEN
-      priority := eib_def.priorityHighest;
+      priority := knx_def.priorityHighest;
     ELSE
       priority := PClass^;
     END;
@@ -2556,7 +2556,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
         RETURN TRUE;
       ELSIF PClass <> NIL THEN
         RETURN FALSE; // restricted nothing to get
-      ELSIF priority = eib_def.priorityLowest THEN
+      ELSIF priority = knx_def.priorityLowest THEN
         RETURN FALSE; // nothing to get
       ELSE
         DEC( priority );
@@ -2566,13 +2566,13 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_GetLastStarted( WhatIsPending : TPendingOperation; PClass : eib_def.TPPriority; VAR _PSPO : ADDRESS ) : BOOLEAN;
+  PRIVATE PROCEDURE A_GetLastStarted( WhatIsPending : TPendingOperation; PClass : knx_def.TPPriority; VAR _PSPO : ADDRESS ) : BOOLEAN;
   VAR
     PSPO : TPPendingData;
-    priority : eib_def.TPriority;
+    priority : knx_def.TPriority;
   BEGIN
     IF PClass = NIL THEN
-      priority := eib_def.priorityHighest;
+      priority := knx_def.priorityHighest;
     ELSE
       priority := PClass^;
     END;
@@ -2582,7 +2582,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
         RETURN TRUE;
       ELSIF PClass <> NIL THEN
         RETURN FALSE; // restricted nothing to get
-      ELSIF priority = eib_def.priorityLowest THEN
+      ELSIF priority = knx_def.priorityLowest THEN
         RETURN FALSE; // nothing to get
       ELSE
         DEC( priority );
@@ -2595,13 +2595,13 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   LOCAL PROCEDURE A_QueueLength( WhatIsPending : TPendingOperation ) : CARDINAL;
   VAR
     c : CARDINAL;
-    j : eib_def.TPriority;
+    j : knx_def.TPriority;
   BEGIN
     c := 0;
-    j := eib_def.priorityLowest;
+    j := knx_def.priorityLowest;
     LOOP
       c := c + A_Data.Pending[ WhatIsPending ][j].Count + Queue.Count;
-      IF j = eib_def.priorityHighest THEN
+      IF j = knx_def.priorityHighest THEN
         EXIT;
       ELSE
         INC( j );
@@ -2660,11 +2660,11 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Init( ConnectImmediatelly : BOOLEAN; InitLayerFrom, InitLayerTo : TEIBStackLayerType; PSink : TPEIBStackEventSink ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Init( ConnectImmediatelly : BOOLEAN; InitLayerFrom, InitLayerTo : TEIBStackLayerType; PSink : TPEIBStackEventSink ) : knx_status.TEIBStackStatus;
   VAR
     Layer : TEIBStackLayerType;
     PLayer : TPEIBStackLayer;
-    Result : eib_status.TEIBStackStatus;
+    Result : knx_status.TEIBStackStatus;
   BEGIN
     PEventSink := PSink;
 
@@ -2678,7 +2678,7 @@ CLASS IMPLEMENTATION CEIBStack;
     Layer := InitLayerFrom;
     LOOP
       IF NOT CreateLayerInternal( Layer, PLayer ) THEN
-        RETURN eib_status.essUnableToCreateLayer;
+        RETURN knx_status.essUnableToCreateLayer;
       END;
       Layers[ Layer ] := PLayer;
 
@@ -2701,7 +2701,7 @@ CLASS IMPLEMENTATION CEIBStack;
     END; // LOOP
     
     Result := Initialize();
-    IF Result = eib_status.essOK THEN
+    IF Result = knx_status.essOK THEN
       INCL( Status, ssInitialized );
     ELSE
       RETURN Result;
@@ -2710,18 +2710,18 @@ CLASS IMPLEMENTATION CEIBStack;
     IF ConnectImmediatelly THEN
       RETURN Connect();
     ELSE
-      RETURN eib_status.essOK;
+      RETURN knx_status.essOK;
     END;
   END Init;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Connect() : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Connect() : knx_status.TEIBStackStatus;
   VAR
-    Result : eib_status.TEIBStackStatus;
+    Result : knx_status.TEIBStackStatus;
   BEGIN
     IF ssConnected IN Status THEN
-      Result := eib_status.essAlreadyConnected;
+      Result := knx_status.essAlreadyConnected;
     ELSE
       INCL( Status, ssConnected );
       Result := ConnectBUS();
@@ -2731,29 +2731,29 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Disconnect() : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Disconnect() : knx_status.TEIBStackStatus;
   VAR
-    Result : eib_status.TEIBStackStatus;
+    Result : knx_status.TEIBStackStatus;
   BEGIN
     IF ssConnected IN Status THEN
       Result := DisconnectBUS();
       EXCL( Status, ssConnected );
     ELSE
-      Result := eib_status.essNotConnected;
+      Result := knx_status.essNotConnected;
     END;
     RETURN Result;
   END Disconnect;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Done() : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE Done() : knx_status.TEIBStackStatus;
   VAR
     Layer : TEIBStackLayerType;
-    Result : eib_status.TEIBStackStatus;
+    Result : knx_status.TEIBStackStatus;
   BEGIN
     Disconnect();
     IF ssFinalized IN Status THEN
-      Result := eib_status.essAlreadyFinalized;
+      Result := knx_status.essAlreadyFinalized;
     ELSE
       Result := Dispose();
       INCL( Status, ssFinalized );
@@ -2780,15 +2780,15 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetStackAddress( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE SetStackAddress( CONST Address : knx_def.TAddress ) : knx_status.TEIBStackStatus;
   BEGIN
-    IF eib_def.TPAddress( ADR( Address ))^.GetAddressType() <> eib_def.addressPhysical THEN
-      RETURN eib_status.essL_Bad_Address_Type;
+    IF knx_def.TPAddress( ADR( Address ))^.GetAddressType() <> knx_def.addressPhysical THEN
+      RETURN knx_status.essL_Bad_Address_Type;
     ELSIF Layers[ eltLink ] = NIL THEN
-      RETURN eib_status.essL_Layer_Undefined;
+      RETURN knx_status.essL_Layer_Undefined;
     END;
     TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.SelfAddress := Address;
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END SetStackAddress;
 
 (*--------------------------------------------------------------------------------*)
@@ -2836,11 +2836,11 @@ CLASS IMPLEMENTATION CEIBStack;
   BEGIN
     IF EQUALS( L"link.ackMethod", Parameter ) THEN
       IF EQUALS( Value, kvNone ) THEN
-         // ACKMethod := eib_stack.ackmNone;
+         // ACKMethod := knx_stack.ackmNone;
       ELSIF EQUALS( Value, kvKnown ) THEN
-         // ACKMethod := eib_stack.ackmKnown;
+         // ACKMethod := knx_stack.ackmKnown;
       ELSIF EQUALS( Value, kvAll ) THEN
-         // ACKMethod := eib_stack.ackmAll;
+         // ACKMethod := knx_stack.ackmAll;
       ELSE
          ErrorText := L"Expected none | known | all";
          RETURN FALSE;
@@ -2930,7 +2930,7 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE IsSelfPacket( PPacket : eib_def.TPPacket ) : BOOLEAN;
+  PUBLIC PROCEDURE IsSelfPacket( PPacket : knx_def.TPPacket ) : BOOLEAN;
   BEGIN
     RETURN TPEIBStackLinkLayer( Layers[ eltLink ] )^.IsSelfPacket( PPacket );
   END IsSelfPacket;
@@ -2979,7 +2979,7 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE Initialize() : eib_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TEIBStackStatus;
   VAR
     Layer : TEIBStackLayerType;
   BEGIN
@@ -2995,26 +2995,26 @@ CLASS IMPLEMENTATION CEIBStack;
         EXIT;
       END;
     END; // LOOP
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END Initialize;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ConnectBUS() : eib_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TEIBStackStatus;
   BEGIN
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END ConnectBUS;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : eib_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TEIBStackStatus;
   BEGIN
-    RETURN eib_status.essOK;
+    RETURN knx_status.essOK;
   END DisconnectBUS;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE Dispose() : eib_status.TEIBStackStatus;
+  INTERNAL VIRTUAL PROCEDURE Dispose() : knx_status.TEIBStackStatus;
   VAR
     Layer : TEIBStackLayerType;
   BEGIN
@@ -3036,7 +3036,7 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnError( Layer : TEIBStackLayerType; ErrorCode : eib_status.TEIBStackStatus );
+  LOCAL VIRTUAL PROCEDURE OnError( Layer : TEIBStackLayerType; ErrorCode : knx_status.TEIBStackStatus );
   BEGIN
   END OnError;
 
@@ -3112,4 +3112,4 @@ END CEIBStack;
 
 (*================================================================================*)
 
-END eib_stack.
+END knx_stack.

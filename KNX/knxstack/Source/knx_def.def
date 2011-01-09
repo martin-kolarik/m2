@@ -1,4 +1,4 @@
-DEFINITION MODULE eib_def;
+DEFINITION MODULE knx_def;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -468,4 +468,4 @@ END cEMIPacket;
 
 (*# restore *)
 
-END eib_def.
+END knx_def.

@@ -12,7 +12,7 @@ FROM Log IMPORT
 
 CLASS IMPLEMENTATION CServer;
 BEGIN
-   ServiceFamilies := core.TServiceFamilies{};
+   ServiceFamilies := transport.TServiceFamilies{};
 END CServer;
 
 (*================================================================================*)
@@ -30,7 +30,7 @@ CLASS IMPLEMENTATION CBrowser;
    VAR
       LDelegate : TPBrowserDelegate;
       res : Sync.TAsyncResult;
-      sr : core.SearchRequest;
+      sr : transport.SearchRequest;
    BEGIN
       LDelegate := Sync.ICmpExchgPtr( REF SELF.Delegate, Delegate, NIL );
       IF LDelegate = NIL THEN // previous value
@@ -78,7 +78,7 @@ CLASS IMPLEMENTATION CBrowser;
    
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : core.SearchResponse );
+   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : transport.SearchResponse );
    VAR
       ai : inetaddr.INETADDR;
       Server : TPServer;
@@ -98,7 +98,7 @@ CLASS IMPLEMENTATION CBrowser;
       Server^.Address := ai;
 
       ai := packet.RoutingAddress;
-      ai.Port := core.EIBNET_IPPORT;
+      ai.Port := transport.EIBNET_IPPORT;
       Server^.RoutingAddress := ai;
 
       Servers.Add( Server );
@@ -120,7 +120,7 @@ CLASS IMPLEMENTATION CBrowser;
 
 BEGIN
    Delegate := NIL;
-   Mode := eibnet.cmScanning;
+   Mode := protocol.cmScanning;
 END CBrowser;
 
 (*================================================================================*)

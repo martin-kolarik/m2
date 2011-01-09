@@ -1,10 +1,10 @@
-DEFINITION MODULE core;
+DEFINITION MODULE transport;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   eib_def,
+   knx_def,
    inetaddr,
    StringsO;
 
@@ -134,7 +134,7 @@ TYPE
                 Type            : TDIBType;
                 Medium          : TKNXMedium;
                 Status          : TStatus;
-                PhysicalAddress : eib_def.TPacketAddress;
+                PhysicalAddress : knx_def.TPacketAddress;
                 ProjectId       : CARD16;
                 SerialNo        : ARRAY [0..5] OF BYTE;
                 RoutingAddress  : inetaddr.TIPV4;
@@ -199,7 +199,7 @@ CLASS SearchResponse( HPAIPacket );
       SupportedFamilies : TServiceFamilies;
       Name              : StringsO.CString;
       MAC               : StringsO.CString;
-      PhysicalAddress   : eib_def.TAddress;
+      PhysicalAddress   : knx_def.TAddress;
       RoutingAddress    : inetaddr.INETADDR;
 END SearchResponse;
 #restore
@@ -224,7 +224,7 @@ CLASS DescriptionResponse( Packet );
       SupportedFamilies : TServiceFamilies;
       Name              : StringsO.CString;
       MAC               : StringsO.CString;
-      PhysicalAddress   : eib_def.TAddress;
+      PhysicalAddress   : knx_def.TAddress;
       RoutingAddress    : inetaddr.INETADDR;
       ManufacturerId    : CARD16;
 END DescriptionResponse;
@@ -274,7 +274,7 @@ CLASS CRD;
    LOCAL VAR
       _CRDLength : CARD8 := 4; // this
       _Type      : TConnectionType := TUNNEL_CONNECTION;
-      _Address   : eib_def.TPacketAddress;
+      _Address   : knx_def.TPacketAddress;
 END CRD;
 #restore
 
@@ -302,7 +302,7 @@ CLASS ConnectResponse( HPAIConnectionPacket );
    PUBLIC READONLY PROPERTY
       Valid           : BOOLEAN;
       DataHPAI        : HostProtocolAddressInformation;
-      PhysicalAddress : eib_def.TAddress;
+      PhysicalAddress : knx_def.TAddress;
 END ConnectResponse;
 #restore
 
@@ -378,11 +378,11 @@ TYPE
 
 CLASS TunnelingRequest( TunnelingPacket );
    PRIVATE VAR
-      _EMI : eib_def.cEMIPacket;
+      _EMI : knx_def.cEMIPacket;
    PUBLIC READONLY PROPERTY
       Valid : BOOLEAN;
    PUBLIC PROPERTY
-      EMI : eib_def.TPacket;
+      EMI : knx_def.TPacket;
 END TunnelingRequest;
 
 TYPE
@@ -403,11 +403,11 @@ TYPE
 
 CLASS RoutingIndication( Packet );
    PRIVATE VAR
-      _EMI : eib_def.cEMIPacket;
+      _EMI : knx_def.cEMIPacket;
    PUBLIC READONLY PROPERTY
       Valid : BOOLEAN;
    PUBLIC PROPERTY
-      EMI : eib_def.TPacket;
+      EMI : knx_def.TPacket;
 END RoutingIndication;
 
 TYPE
@@ -424,4 +424,4 @@ END RoutingLostMessage;
 
 (*================================================================================*)
 
-END core.
+END transport.

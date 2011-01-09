@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE EIBNetStack;
+IMPLEMENTATION MODULE KNXStack_KNXNet;
 
 (*================================================================================*)
 (*/* UPDATES
@@ -9,21 +9,21 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
   
 IMPORT
-   core,
    dns,
-   eib_def,
-   eibnet,
+   knx_def,
    inetaddr,
    log,
+   protocol,
    Strings,
-   Sync;
+   Sync,
+   transport;
 
 (*================================================================================*)
 
 TYPE
    TPEIBNetPhysicalLayer = POINTER TO EIBNetPhysicalLayer;
 
-CLASS CStackConnection( eibnet.CConnection );
+CLASS CStackConnection( protocol.CConnection );
    LOCAL VAR
       Stack : TPEIBNetPhysicalLayer := NIL;
 
@@ -31,20 +31,20 @@ CLASS CStackConnection( eibnet.CConnection );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
 
    INTERNAL VIRTUAL PROCEDURE On_P_Sent();
-   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
-   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : knx_def.TPacket );
 
-   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : knx_def.TPacket ) : BOOLEAN;
 END CStackConnection;
 
 (*================================================================================*)
 
-CLASS EIBNetPhysicalLayer( eib_stack.CEIBStackPhysicalLayer );
+CLASS EIBNetPhysicalLayer( knx_stack.CEIBStackPhysicalLayer );
    PRIVATE VAR
       Connection : CStackConnection;
    PUBLIC PROPERTY
       Logger : log.TPLogger;
-      Mode : eibnet.TConnectionMode;
+      Mode : protocol.TConnectionMode;
       RemoteAddress : inetaddr.INETADDR; // routing or remote/tunneling address
 
    PUBLIC PROCEDURE Connect() : Sync.TAsyncResult;
@@ -55,7 +55,7 @@ CLASS EIBNetPhysicalLayer( eib_stack.CEIBStackPhysicalLayer );
    LOCAL VIRTUAL PROCEDURE Done_Req();
 
    PUBLIC VIRTUAL PROCEDURE Ph_Reset_Req();
-   PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( VAR EMI : eib_def.TPacket );
+   PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( VAR EMI : knx_def.TPacket );
 END EIBNetPhysicalLayer;
 
 (*================================================================================*)
@@ -85,23 +85,23 @@ CLASS IMPLEMENTATION CStackConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TEIBStackStatus );
    BEGIN
       Stack^.Listener()^.Ph_Data_Con( Status );
    END On_L_CON;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : knx_def.TPacket );
    BEGIN
-      Stack^.Listener()^.Ph_Data_Ind( eib_def.TPPacket( ADR( packet )));
+      Stack^.Listener()^.Ph_Data_Ind( knx_def.TPPacket( ADR( packet )));
    END On_L_IND;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : knx_def.TPacket ) : BOOLEAN;
    BEGIN
-      RETURN Stack^.PStack^.IsSelfPacket( eib_def.TPPacket( ADR( packet )));
+      RETURN Stack^.PStack^.IsSelfPacket( knx_def.TPPacket( ADR( packet )));
    END TestSelfPacket;
 
 (*--------------------------------------------------------------------------------*)
@@ -129,14 +129,14 @@ CLASS IMPLEMENTATION EIBNetPhysicalLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Mode GET : eibnet.TConnectionMode;
+   PUBLIC PROPERTY Mode GET : protocol.TConnectionMode;
    BEGIN
       RETURN Connection.Mode;
    END Mode;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Mode SET( Value : eibnet.TConnectionMode );
+   PUBLIC PROPERTY Mode SET( Value : protocol.TConnectionMode );
    BEGIN
       Connection.Mode := Value;
    END Mode;
@@ -159,7 +159,7 @@ CLASS IMPLEMENTATION EIBNetPhysicalLayer;
 
    PUBLIC PROCEDURE Connect() : Sync.TAsyncResult;
    BEGIN
-      Connection.AutoReconnectDelay := core.HEART_BEAT_TIMEOUT;
+      Connection.AutoReconnectDelay := transport.HEART_BEAT_TIMEOUT;
       RETURN Connection.Connect( 0 );
    END Connect;
 
@@ -182,7 +182,7 @@ CLASS IMPLEMENTATION EIBNetPhysicalLayer;
 
    LOCAL VIRTUAL PROCEDURE Initialize_Req();
    BEGIN
-      Initialize_Con( eib_status.essOK );
+      Initialize_Con( knx_status.essOK );
    END Initialize_Req;
 
 (*--------------------------------------------------------------------------------*)
@@ -190,7 +190,7 @@ CLASS IMPLEMENTATION EIBNetPhysicalLayer;
    LOCAL VIRTUAL PROCEDURE Done_Req();
    BEGIN
       Connection.Disconnect( TRUE );
-      Done_Con( eib_status.essOK );
+      Done_Con( knx_status.essOK );
    END Done_Req;
 
 (*--------------------------------------------------------------------------------*)
@@ -203,12 +203,12 @@ CLASS IMPLEMENTATION EIBNetPhysicalLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( VAR Packet : eib_def.TPacket );
+   PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( VAR Packet : knx_def.TPacket );
    BEGIN
       IF NOT Connection.Connected THEN
-         Listener()^.Ph_Data_Con( eib_status.essLineBusy );
+         Listener()^.Ph_Data_Con( knx_status.essLineBusy );
       ELSIF Connection.SendPacket( Packet ) NOT IN Sync.arsStarts THEN
-         Listener()^.Ph_Data_Con( eib_status.essLineBusy );
+         Listener()^.Ph_Data_Con( knx_status.essLineBusy );
       END;
    END Ph_Data_Req;
 
@@ -226,15 +226,15 @@ CLASS IMPLEMENTATION CEIBNetStack;
 
    PUBLIC PROCEDURE SetLogger( Logger : log.TPLogger );
    BEGIN
-      TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Logger := Logger;
+      TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.Logger := Logger;
    END SetLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : eib_stack.TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
+   PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : knx_stack.TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
    BEGIN
       CASE TimeoutId OF
-      | eib_stack.tidL_ACKTimeout, eib_stack.tidL_BUSYDelay :
+      | knx_stack.tidL_ACKTimeout, knx_stack.tidL_BUSYDelay :
         // timeouts are fixed and cannot be changed
       ELSE
          SUPER.SetTimeout( TimeoutId, Timeout, AuxiliarySpecification );
@@ -243,50 +243,50 @@ CLASS IMPLEMENTATION CEIBNetStack;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE Initialize() : eib_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TEIBStackStatus;
    VAR
-      res : eib_status.TEIBStackStatus;
+      res : knx_status.TEIBStackStatus;
    BEGIN
       res := SUPER.Initialize();
-      IF res <> eib_status.essOK THEN
+      IF res <> knx_status.essOK THEN
          RETURN res;
       END;
 
       // TUNNELING_REQUEST_TIME_OUT is counted twice, because send is tried twice; the coefficient 2.5 stands for
       // safety. And more, ACK timeout should never appear if connection and physical layer is correct.
-      SUPER.SetTimeout( eib_stack.tidL_ACKTimeout, 25 * core.TUNNELING_REQUEST_TIME_OUT DIV 10, 0 );
-      SUPER.SetTimeout( eib_stack.tidL_BUSYDelay, 25 * core.TUNNELING_REQUEST_TIME_OUT DIV 10, 0 );
+      SUPER.SetTimeout( knx_stack.tidL_ACKTimeout, 25 * transport.TUNNELING_REQUEST_TIME_OUT DIV 10, 0 );
+      SUPER.SetTimeout( knx_stack.tidL_BUSYDelay, 25 * transport.TUNNELING_REQUEST_TIME_OUT DIV 10, 0 );
 
-      RETURN eib_status.essOK;
+      RETURN knx_status.essOK;
    END Initialize;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE ConnectBUS() : eib_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TEIBStackStatus;
    BEGIN
-      IF TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Connect() IN Sync.arsStarts THEN
-         RETURN eib_status.essOK;
+      IF TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.Connect() IN Sync.arsStarts THEN
+         RETURN knx_status.essOK;
       ELSE
-         RETURN eib_status.essConnectError;
+         RETURN knx_status.essConnectError;
       END;
    END ConnectBUS;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : eib_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TEIBStackStatus;
    BEGIN
-      IF TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Disconnect() IN Sync.arsStarts THEN
-         RETURN eib_status.essOK;
+      IF TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.Disconnect() IN Sync.arsStarts THEN
+         RETURN knx_status.essOK;
       ELSE
-         RETURN eib_status.essConnectError;
+         RETURN knx_status.essConnectError;
       END;
    END DisconnectBUS;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : eib_stack.TEIBStackLayerType; VAR PLayer : eib_stack.TPEIBStackLayer ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : knx_stack.TEIBStackLayerType; VAR PLayer : knx_stack.TPEIBStackLayer ) : BOOLEAN;
   BEGIN
-    IF Layer = eib_stack.eltPhysical THEN
+    IF Layer = knx_stack.eltPhysical THEN
       NEW( TPEIBNetPhysicalLayer( PLayer ));
       RETURN TRUE;
     ELSE
@@ -306,11 +306,11 @@ CLASS IMPLEMENTATION CEIBNetStack;
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
          IF EQUALS( Value, kvRouting ) THEN
-            TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Mode := eibnet.cmRouting;
+            TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.Mode := protocol.cmRouting;
          ELSIF EQUALS( Value, kvTunneling ) THEN
-            TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Mode := eibnet.cmTunnelingHPAI;
+            TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.Mode := protocol.cmTunnelingHPAI;
          ELSIF EQUALS( Value, kvTunnelingNAT ) THEN
-            TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Mode := eibnet.cmTunnelingBlind;
+            TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.Mode := protocol.cmTunnelingBlind;
          ELSE
             ErrorText := L"Expected routing | tunneling | tunneling-NAT ";
             RETURN 0;
@@ -318,10 +318,10 @@ CLASS IMPLEMENTATION CEIBNetStack;
 
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
          ErrorText := L"Expected DNS name | IP address optionally followed by colon and port number (like 10.0.0.1:3778)";
-         IF NOT dns.NameToAddressWait( Value, core.EIBNET_IPPORT, 2000, OUT OA( 0, ADR( Addr ))) THEN
+         IF NOT dns.NameToAddressWait( Value, transport.EIBNET_IPPORT, 2000, OUT OA( 0, ADR( Addr ))) THEN
             RETURN 0;
          END;
-         TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemoteAddress := Addr;
+         TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.RemoteAddress := Addr;
          
       ELSE
          RETURN -1;
@@ -338,17 +338,17 @@ CLASS IMPLEMENTATION CEIBNetStack;
       kvTunnelingNAT = L"tunneling-NAT";
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
-         CASE TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Mode OF
-         | eibnet.cmRouting :
+         CASE TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.Mode OF
+         | protocol.cmRouting :
             Value := kvRouting;
-         | eibnet.cmTunnelingHPAI :
+         | protocol.cmTunnelingHPAI :
             Value := kvTunneling;
-         | eibnet.cmTunnelingBlind :
+         | protocol.cmTunnelingBlind :
             Value := kvTunnelingNAT;
          END;
 
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
-         TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemoteAddress.ToOA( TRUE, OUT Value );
+         TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.RemoteAddress.ToOA( TRUE, OUT Value );
          
       ELSE
          RETURN FALSE;
@@ -360,7 +360,7 @@ CLASS IMPLEMENTATION CEIBNetStack;
 
   PUBLIC VIRTUAL PROCEDURE DeviceConnected() : BOOLEAN;
   BEGIN
-    RETURN TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Connected();
+    RETURN TPEIBNetPhysicalLayer( Layers[ knx_stack.eltPhysical ] )^.Connected();
   END DeviceConnected;
 
 (*--------------------------------------------------------------------------------*)
@@ -377,4 +377,4 @@ END CEIBNetStack;
 
 (*================================================================================*)
 
-END EIBNetStack.
+END KNXStack_KNXNet.

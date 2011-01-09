@@ -7,12 +7,12 @@ FROM Storage IMPORT
 
 IMPORT
    arrays,
-   core,
    Delegate,
-   eibnet,
    inetaddr,
+   protocol,
    StringsO,
-   Sync;
+   Sync,
+   transport;
 
 (*================================================================================*)
 
@@ -21,9 +21,9 @@ TYPE
 
 CLASS CServer;
    PUBLIC VAR
-      HPAI            : core.HostProtocolAddressInformation;
+      HPAI            : transport.HostProtocolAddressInformation;
       Description     : StringsO.CString;
-      ServiceFamilies : core.TServiceFamilies;
+      ServiceFamilies : transport.TServiceFamilies;
       MAC             : StringsO.CString;
       Address         : inetaddr.INETADDR;
       RoutingAddress  : inetaddr.INETADDR;
@@ -40,7 +40,7 @@ END CBrowserDelegate;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CBrowser( eibnet.CConnection );
+CLASS CBrowser( protocol.CConnection );
    PRIVATE VAR
       Delegate : TPBrowserDelegate;
       Servers  : arrays.CPtrArray;
@@ -48,7 +48,7 @@ CLASS CBrowser( eibnet.CConnection );
    PUBLIC PROCEDURE Browse( Delegate : TPBrowserDelegate; Timeout : CARDINAL ) : Sync.TAsyncResult; // if Timeout = 0 then the default one is used
 
    INTERNAL VIRTUAL PROCEDURE OnScanCompleted();
-   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : core.SearchResponse );
+   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : transport.SearchResponse );
 
    PRIVATE PROCEDURE DisposeServers();
 END CBrowser;

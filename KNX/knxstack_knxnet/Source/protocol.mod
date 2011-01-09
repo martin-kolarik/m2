@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE eibnet;
+IMPLEMENTATION MODULE protocol;
 
 FROM Debug IMPORT
    Assertion, LogAssertionW;
@@ -19,7 +19,7 @@ IMPORT
 CONST
    DEBUG_PREFIX = L"EibNet.Connection";
 
-PROCEDURE LogSHPAI( Logger : log.TPLogger; Level : Log.TLevel; Prefix, S : ARRAY OF WCHAR; CONST HPAI : core.HostProtocolAddressInformation );
+PROCEDURE LogSHPAI( Logger : log.TPLogger; Level : Log.TLevel; Prefix, S : ARRAY OF WCHAR; CONST HPAI : transport.HostProtocolAddressInformation );
 VAR
    Address : ARRAY [0..63] OF WCHAR;
 BEGIN
@@ -29,7 +29,7 @@ END LogSHPAI;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE LogSCHPAI( Logger : log.TPLogger; Level : Log.TLevel; Prefix, S : ARRAY OF WCHAR; C : CARDINAL; CONST HPAI : core.HostProtocolAddressInformation );
+PROCEDURE LogSCHPAI( Logger : log.TPLogger; Level : Log.TLevel; Prefix, S : ARRAY OF WCHAR; C : CARDINAL; CONST HPAI : transport.HostProtocolAddressInformation );
 VAR
    Address : ARRAY [0..63] OF WCHAR;
    n : ARRAY [0..15] OF WCHAR;
@@ -183,7 +183,7 @@ CLASS IMPLEMENTATION CConnection;
       // set itself
       HPAIData.Address := Value;
       IF Value.Multicast THEN
-         HPAIData.Port := core.EIBNET_IPPORT; // to be sure
+         HPAIData.Port := transport.EIBNET_IPPORT; // to be sure
       ELSE
          HPAICtrl.Address := Value;
       END;
@@ -259,7 +259,7 @@ CLASS IMPLEMENTATION CConnection;
                _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"ROUTING L_CON ok" );
 
                IOState := ioReady;
-               On_L_CON( eib_status.essOK );
+               On_L_CON( knx_status.essOK );
             
             ELSE  // resend data
                _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"T_CON timeout, repeat SEND: ", CARDINAL( ChannelId ));
@@ -274,7 +274,7 @@ CLASS IMPLEMENTATION CConnection;
             // INC( OutSeq ); // prepare next writing -- unable to do, if remote peer does not ACKs packet, it expects ONLY the next one... Maybe, it should accept newer packets, but it does not do so
             INC( SendErr ); // increment connection recovery counter
             IOState := ioReady;
-            On_L_CON( eib_status.essL_Timeout );
+            On_L_CON( knx_status.essL_Timeout );
 
          ELSE
             ASSERT( FALSE );
@@ -300,7 +300,7 @@ CLASS IMPLEMENTATION CConnection;
    PUBLIC PROCEDURE Connect( Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
       ai : inetaddr.INETADDR;
-      cr : core.ConnectRequest;
+      cr : transport.ConnectRequest;
       l : CARDINAL;
       timeout : CARDINAL := 0;
       b : BOOLEAN;
@@ -321,7 +321,7 @@ CLASS IMPLEMENTATION CConnection;
          END;
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
       | cmRouting :
-         ai.Port := core.EIBNET_IPPORT;
+         ai.Port := transport.EIBNET_IPPORT;
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, 0, ADR( _Socket )) = 0;
       ELSE
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
@@ -355,7 +355,7 @@ CLASS IMPLEMENTATION CConnection;
          ai.Port := _Socket^.LocalAddress.Port;
          HPAISelf.Address := ai;
 
-         ai.FromOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
+         ai.FromOA( transport.EIBNET_DISCOVERY_ADDRESS, transport.EIBNET_IPPORT );
          _Socket^.MulticastGroup := ai;
          IOState := ioReady;
 
@@ -391,11 +391,11 @@ CLASS IMPLEMENTATION CConnection;
       // here we are always in tunneling mode
       CASE _TunnelingMode OF
       | tmEMI :
-         cr.KNXLayer := core.TUNNEL_LINKLAYER;
+         cr.KNXLayer := transport.TUNNEL_LINKLAYER;
       | tmRaw :
-         cr.KNXLayer := core.TUNNEL_RAW;
+         cr.KNXLayer := transport.TUNNEL_RAW;
       | tmBusmonitor :
-         cr.KNXLayer := core.TUNNEL_BUSMONITOR;
+         cr.KNXLayer := transport.TUNNEL_BUSMONITOR;
       ELSE
          ASSERTLOG( FALSE );
       END;
@@ -408,7 +408,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN ) : Sync.TAsyncResult;
    VAR
-      dr : core.DisconnectRequest;
+      dr : transport.DisconnectRequest;
       abortive : BOOLEAN := FALSE;
    BEGIN
       IF Abortive AND ( IOState <> ioDisconnected ) THEN
@@ -437,7 +437,7 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SendPacket( CONST EMI : eib_def.TPacket ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendPacket( CONST EMI : knx_def.TPacket ) : Sync.TAsyncResult;
    BEGIN
       IF ( IOState = ioDisconnected ) OR ( IOState = ioConnecting ) OR ( IOState = ioDisconnecting ) THEN
          _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"SEND request when disconnected" );
@@ -463,7 +463,7 @@ CLASS IMPLEMENTATION CConnection;
       buffer : ARRAY [0..255] OF BYTE;
       ia : inetaddr.INETADDR;
       l : CARDINAL := 0;
-      packet : core.TPPacket := core.TPPacket( ADR( buffer ));
+      packet : transport.TPPacket := transport.TPPacket( ADR( buffer ));
       Result : Sync.TAsyncResult;
    BEGIN
       // not to test L before recvfrom, recvfrom is re-enabling function and should be called after notification even if dataavailable = 0
@@ -486,8 +486,8 @@ CLASS IMPLEMENTATION CConnection;
       //-----
       | cmScanning :
          CASE packet^.Service OF
-         | core.SEARCH_RESPONSE,
-           core.DESCRIPTION_RESPONSE :
+         | transport.SEARCH_RESPONSE,
+           transport.DESCRIPTION_RESPONSE :
          ELSE
             _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected in SCANNING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
             _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
@@ -496,9 +496,9 @@ CLASS IMPLEMENTATION CConnection;
       //-----
       | cmRouting :
          CASE packet^.Service OF
-         | core.DESCRIPTION_RESPONSE,
-           core.ROUTING_INDICATION,
-           core.ROUTING_LOST_MESSAGE :
+         | transport.DESCRIPTION_RESPONSE,
+           transport.ROUTING_INDICATION,
+           transport.ROUTING_LOST_MESSAGE :
          ELSE
             _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected in ROUTING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
             _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
@@ -507,23 +507,23 @@ CLASS IMPLEMENTATION CConnection;
       //-----
       | cmTunnelingHPAI, cmTunnelingBlind :
          CASE packet^.Service OF
-         | core.DESCRIPTION_RESPONSE :
-         | core.CONNECT_RESPONSE :
+         | transport.DESCRIPTION_RESPONSE :
+         | transport.CONNECT_RESPONSE :
             IF IOState <> ioConnecting THEN
                _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
                _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
                RETURN;
             END;
-         | core.CONNECTIONSTATE_RESPONSE,
-           core.DISCONNECT_REQUEST,
-           core.TUNNELING_REQUEST,
-           core.TUNNELING_ACK :
+         | transport.CONNECTIONSTATE_RESPONSE,
+           transport.DISCONNECT_REQUEST,
+           transport.TUNNELING_REQUEST,
+           transport.TUNNELING_ACK :
             IF IOState NOT IN iosConnected THEN
                _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
                _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
                RETURN;
             END;
-         | core.DISCONNECT_RESPONSE :
+         | transport.DISCONNECT_RESPONSE :
             IF IOState <> ioDisconnecting THEN
                _Logger^.LogSCP( ldMessage, 0, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
                _Logger^.LogSB( ldMessage, 0, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
@@ -539,72 +539,72 @@ CLASS IMPLEMENTATION CConnection;
       
       CASE packet^.Service OF
       //-----
-      | core.SEARCH_RESPONSE :
-         IF core.TPSearchResponse( packet )^.Valid THEN
-            OnSearchResponse( core.TPSearchResponse( packet )^ );
+      | transport.SEARCH_RESPONSE :
+         IF transport.TPSearchResponse( packet )^.Valid THEN
+            OnSearchResponse( transport.TPSearchResponse( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.DESCRIPTION_RESPONSE :
-         IF core.TPDescriptionResponse( packet )^.Valid THEN
-            OnDescriptionResponse( core.TPDescriptionResponse( packet )^ );
+      | transport.DESCRIPTION_RESPONSE :
+         IF transport.TPDescriptionResponse( packet )^.Valid THEN
+            OnDescriptionResponse( transport.TPDescriptionResponse( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.ROUTING_INDICATION :
-         IF core.TPRoutingIndication( packet )^.Valid THEN
-            OnRoutingIndication( core.TPRoutingIndication( packet )^ );
+      | transport.ROUTING_INDICATION :
+         IF transport.TPRoutingIndication( packet )^.Valid THEN
+            OnRoutingIndication( transport.TPRoutingIndication( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.ROUTING_LOST_MESSAGE :
-         IF core.TPRoutingLostMessage( packet )^.Valid THEN
-            OnRoutingLostMessage( core.TPRoutingLostMessage( packet )^ );
+      | transport.ROUTING_LOST_MESSAGE :
+         IF transport.TPRoutingLostMessage( packet )^.Valid THEN
+            OnRoutingLostMessage( transport.TPRoutingLostMessage( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.CONNECT_RESPONSE :
-         IF core.TPConnectResponse( packet )^.Valid THEN
-            OnConnectResponse( core.TPConnectResponse( packet )^ );
+      | transport.CONNECT_RESPONSE :
+         IF transport.TPConnectResponse( packet )^.Valid THEN
+            OnConnectResponse( transport.TPConnectResponse( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.CONNECTIONSTATE_RESPONSE :
-         IF core.TPConnectionStateResponse( packet )^.Valid THEN
-            OnConnectionStateResponse( core.TPConnectionStateResponse( packet )^ );
+      | transport.CONNECTIONSTATE_RESPONSE :
+         IF transport.TPConnectionStateResponse( packet )^.Valid THEN
+            OnConnectionStateResponse( transport.TPConnectionStateResponse( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.DISCONNECT_REQUEST :
-         IF core.TPDisconnectRequest( packet )^.Valid THEN
-            OnDisconnectRequest( core.TPDisconnectRequest( packet )^ );
+      | transport.DISCONNECT_REQUEST :
+         IF transport.TPDisconnectRequest( packet )^.Valid THEN
+            OnDisconnectRequest( transport.TPDisconnectRequest( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.DISCONNECT_RESPONSE :
-         IF core.TPDisconnectResponse( packet )^.Valid THEN
-            OnDisconnectResponse( core.TPDisconnectResponse( packet )^ );
+      | transport.DISCONNECT_RESPONSE :
+         IF transport.TPDisconnectResponse( packet )^.Valid THEN
+            OnDisconnectResponse( transport.TPDisconnectResponse( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.TUNNELING_REQUEST :
-         IF core.TPTunnelingRequest( packet )^.Valid THEN
-            OnTunnelingRequest( core.TPTunnelingRequest( packet )^ );
+      | transport.TUNNELING_REQUEST :
+         IF transport.TPTunnelingRequest( packet )^.Valid THEN
+            OnTunnelingRequest( transport.TPTunnelingRequest( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
-      | core.TUNNELING_ACK :
-         IF core.TPTunnelingACK( packet )^.Valid THEN
-            OnTunnelingACK( core.TPTunnelingACK( packet )^ );
+      | transport.TUNNELING_ACK :
+         IF transport.TPTunnelingACK( packet )^.Valid THEN
+            OnTunnelingACK( transport.TPTunnelingACK( packet )^ );
          ELSE
             _Logger^.LogSCB( ldMessage, 0, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
@@ -637,13 +637,13 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : core.SearchResponse );
+   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : transport.SearchResponse );
    BEGIN
    END OnSearchResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnDescriptionResponse( CONST packet : core.DescriptionResponse );
+   INTERNAL VIRTUAL PROCEDURE OnDescriptionResponse( CONST packet : transport.DescriptionResponse );
    BEGIN
    END OnDescriptionResponse;
 
@@ -667,28 +667,28 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TEIBStackStatus );
    BEGIN
    END On_L_CON;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : knx_def.TPacket );
    BEGIN
    END On_L_IND;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : knx_def.TPacket ) : BOOLEAN;
    BEGIN
       RETURN TRUE;
    END TestSelfPacket;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
+   PRIVATE PROCEDURE OnRoutingIndication( CONST packet : transport.RoutingIndication );
    VAR
-      EMI : eib_def.TPacket;
+      EMI : knx_def.TPacket;
    BEGIN
       EMI := packet.EMI;
       IF TestSelfPacket( EMI ) THEN // not to accept telegram from self
@@ -701,21 +701,21 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnRoutingLostMessage( CONST packet : core.RoutingLostMessage );
+   PRIVATE PROCEDURE OnRoutingLostMessage( CONST packet : transport.RoutingLostMessage );
    BEGIN
       _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"ROUTING L_CON error, lost: ", CARDINAL( packet.LostCount ));
 
       StopTimer( PTR( tiACK ));
       IOState := ioReady;
       
-      On_L_CON( eib_status.essLineBusy );
+      On_L_CON( knx_status.essLineBusy );
    END OnRoutingLostMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnConnectResponse( CONST packet : core.ConnectResponse );
+   PRIVATE PROCEDURE OnConnectResponse( CONST packet : transport.ConnectResponse );
    BEGIN
-      IF packet.Status = core.E_NO_ERROR THEN
+      IF packet.Status = transport.E_NO_ERROR THEN
          StopTimer( PTR( tiConnect ));
          
          IOState := ioReady;
@@ -732,7 +732,7 @@ CLASS IMPLEMENTATION CConnection;
          LogSCHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"CONNECTed in TUNNELING mode: ", CARDINAL( ChannelId ), HPAIData );
 
          HbRepeat := maximalHbRepeat;
-         StartTimer( PTR( tiHeartbeat ), core.HEART_BEAT_PERIOD, TRUE );
+         StartTimer( PTR( tiHeartbeat ), transport.HEART_BEAT_PERIOD, TRUE );
 
          OnConnect();
       ELSE
@@ -744,9 +744,9 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : core.ConnectionStateResponse );
+   PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : transport.ConnectionStateResponse );
    BEGIN
-      IF packet.Status = core.E_NO_ERROR THEN
+      IF packet.Status = transport.E_NO_ERROR THEN
          LogSCHPAI( _Logger, ldDebug, DEBUG_PREFIX, L"HEARTBEAT response: ", CARDINAL( ChannelId ), HPAIData );
 
          StopTimer( PTR( tiHeartbeatRepeat ));
@@ -764,9 +764,9 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnDisconnectRequest( CONST packet : core.DisconnectRequest );
+   PRIVATE PROCEDURE OnDisconnectRequest( CONST packet : transport.DisconnectRequest );
    VAR
-      dr : core.DisconnectResponse;
+      dr : transport.DisconnectResponse;
    BEGIN
       IF NOT Disconnected THEN
          LogSCHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"remote DISCONNECT request: ", CARDINAL( ChannelId ), HPAIData );
@@ -782,18 +782,18 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnDisconnectResponse( CONST packet : core.DisconnectResponse );
+   PRIVATE PROCEDURE OnDisconnectResponse( CONST packet : transport.DisconnectResponse );
    BEGIN
       DeviceDisconnect();
    END OnDisconnectResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnTunnelingRequest( CONST packet : core.TunnelingRequest );
+   PRIVATE PROCEDURE OnTunnelingRequest( CONST packet : transport.TunnelingRequest );
    VAR
-      EMI : eib_def.TPacket;
+      EMI : knx_def.TPacket;
       Error : BOOLEAN;
-      tack : core.TunnelingACK;
+      tack : transport.TunnelingACK;
       pSeq : CARD8 := packet.Sequence;
    BEGIN
       IF packet.ChannelId <> ChannelId THEN
@@ -818,7 +818,7 @@ CLASS IMPLEMENTATION CConnection;
 
       EMI := packet.EMI;
       CASE EMI.Code OF
-      | eib_def.L_Data_CON, eib_def.L_Data_CON_EMI2 : // L_CON
+      | knx_def.L_Data_CON, knx_def.L_Data_CON_EMI2 : // L_CON
          Error := EMI.GetError();
          IF Error THEN
             LogPacket( FALSE, L"SEND R_CON error", EMI, ADR( packet ), packet.Length, FALSE );
@@ -830,12 +830,12 @@ CLASS IMPLEMENTATION CConnection;
          // IOState := ioReady; -- not to set here, CConnection is ready after T_CON, L_ACK is matter of EIB and stack itself (and ACKTimeout is set there, of course)
          // ioReady is set in OnTunnelingACK.
          IF Error THEN
-            On_L_CON( eib_status.essConError );
+            On_L_CON( knx_status.essConError );
          ELSE
-            On_L_CON( eib_status.essOK );
+            On_L_CON( knx_status.essOK );
          END;
 
-      | eib_def.L_Data_IND, eib_def.L_Data_IND_EMI2 : // L_IND
+      | knx_def.L_Data_IND, knx_def.L_Data_IND_EMI2 : // L_IND
          LogPacket( FALSE, L"RECEIVE", EMI, ADR( packet ), packet.Length, FALSE );
          On_L_IND( EMI );
 
@@ -850,9 +850,9 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnTunnelingACK( CONST packet : core.TunnelingACK );
+   PRIVATE PROCEDURE OnTunnelingACK( CONST packet : transport.TunnelingACK );
    VAR
-      Status : core.TStatus;
+      Status : transport.TStatus;
    BEGIN
       IF packet.ChannelId <> ChannelId THEN
          _Logger^.LogSC( ldMessage, 0, DEBUG_PREFIX, L"SEND T_CON unexpected channel: ", CARDINAL( ChannelId ));
@@ -882,15 +882,15 @@ CLASS IMPLEMENTATION CConnection;
 
       // and handle error
       CASE Status OF
-      | core.E_NO_ERROR :
+      | transport.E_NO_ERROR :
          // no L_CON must be done here, L_CON is received and processed when cEMI frame carries it, only notify send and leave timeouting etc. to Stack
-      | core.E_SEQUENCE_NUMBER : // error in seq numbers, this is not recoverable
-         On_L_CON( eib_status.essTransceiverFault );
+      | transport.E_SEQUENCE_NUMBER : // error in seq numbers, this is not recoverable
+         On_L_CON( knx_status.essTransceiverFault );
          Disconnect( FALSE );
-      | core.E_DATA_CONNECTION, core.E_KNX_CONNECTION :
-         On_L_CON( eib_status.essTransceiverFault );
+      | transport.E_DATA_CONNECTION, transport.E_KNX_CONNECTION :
+         On_L_CON( knx_status.essTransceiverFault );
       ELSE
-         On_L_CON( eib_status.essLineBusy );
+         On_L_CON( knx_status.essLineBusy );
       END;
    END OnTunnelingACK;
 
@@ -898,10 +898,10 @@ CLASS IMPLEMENTATION CConnection;
 
    PRIVATE PROCEDURE DoSend() : Sync.TAsyncResult;
    VAR
-      address : eib_def.TAddress;
+      address : knx_def.TAddress;
       res : Sync.TAsyncResult;
-      rr : core.RoutingIndication;
-      tr : core.TunnelingRequest;
+      rr : transport.RoutingIndication;
+      tr : transport.TunnelingRequest;
       s : ARRAY [0..31] OF WCHAR;
    BEGIN
       IF _Mode = cmRouting THEN
@@ -909,7 +909,7 @@ CLASS IMPLEMENTATION CConnection;
 
          LogPacket( TRUE, L"ROUTED out", EMI, ADR( rr ), rr.Length, FALSE );
 
-         StartTimer( PTR( tiACK ), core.ROUTING_L_CON_TIME_OUT, FALSE );
+         StartTimer( PTR( tiACK ), transport.ROUTING_L_CON_TIME_OUT, FALSE );
          res := _Socket^.SendOA( OA( rr.Length-1, ADR( rr ))); // send to internal multicast group
 
       ELSIF _Mode = cmScanning THEN
@@ -922,7 +922,7 @@ CLASS IMPLEMENTATION CConnection;
          
          LogPacket( TRUE, L"SEND", EMI, ADR( tr ), tr.Length, FALSE );
 
-         StartTimer( PTR( tiACK ), core.TUNNELING_REQUEST_TIME_OUT, FALSE );
+         StartTimer( PTR( tiACK ), transport.TUNNELING_REQUEST_TIME_OUT, FALSE );
          res := _Socket^.SendToOA( OA( tr.Length-1, ADR( tr )), HPAIData.Address ); // send to specified address
       END;
 
@@ -944,7 +944,7 @@ CLASS IMPLEMENTATION CConnection;
       SendErr := 0; // reset connection recovery counter
 
       IF IOState IN iosPending THEN
-         On_L_CON( eib_status.essTransceiverFault );
+         On_L_CON( knx_status.essTransceiverFault );
       END;
       
       IOState := ioDisconnecting;
@@ -979,7 +979,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PRIVATE PROCEDURE ProcessHbFailure();
    VAR
-      hb : core.ConnectionStateRequest;
+      hb : transport.ConnectionStateRequest;
    BEGIN
       IF HbRepeat = 0 THEN
          Disconnect( FALSE );
@@ -992,15 +992,15 @@ CLASS IMPLEMENTATION CConnection;
 
       hb.ControlHPAI := HPAISelf;
       hb.ChannelId := ChannelId;
-      StartTimer( PTR( tiHeartbeatRepeat ), core.HEART_BEAT_TIMEOUT, FALSE );
+      StartTimer( PTR( tiHeartbeatRepeat ), transport.HEART_BEAT_TIMEOUT, FALSE );
       _Socket^.SendToOA( OA( hb.Length-1, ADR( hb )), HPAICtrl.Address );
    END ProcessHbFailure;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : eib_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
+   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : knx_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
    VAR
-      address : eib_def.TAddress;
+      address : knx_def.TAddress;
       s : ARRAY [0..31] OF WCHAR;
       seq : CARDINAL;
       out : ARRAY [0..63] OF WCHAR;
@@ -1017,7 +1017,7 @@ CLASS IMPLEMENTATION CConnection;
          Strings.AppendW( REF out, s ); 
       
          address := packet.GetDestinationAddress();
-         IF address.GetAddressType() = eib_def.addressGroup THEN
+         IF address.GetAddressType() = knx_def.addressGroup THEN
             address.GetGroupAddress3( TRUE, OUT s );
             Strings.AppendW( REF out, L" group: " ); _Logger^.LogSS( ldTrace, 0, DEBUG_PREFIX, out, s );
          ELSE
@@ -1074,4 +1074,4 @@ END CConnection;
 
 (*================================================================================*)
 
-END eibnet.
+END protocol.

@@ -6,7 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   EibSrvWeb,
+   KnxSvcWeb,
    FSO,
    Languages,
    mvc,
@@ -51,11 +51,11 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
 
    // SELF
-   PUBLIC PROCEDURE BindToEibSrv( web : EibSrvWeb.TPEibSrvWeb );
+   PUBLIC PROCEDURE BindToEibSrv( web : KnxSvcWeb.TPEibSrvWeb );
 
    // private and helpers   
    PRIVATE VAR
-      _Web : EibSrvWeb.TPEibSrvWeb;
+      _Web : KnxSvcWeb.TPEibSrvWeb;
 
    PRIVATE PROCEDURE ProcessLogin( REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
    PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;

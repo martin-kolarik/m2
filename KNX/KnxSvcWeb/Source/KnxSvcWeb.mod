@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE EibSrvWeb;
+IMPLEMENTATION MODULE KnxSvcWeb;
 
 (*================================================================================*)
 
@@ -91,13 +91,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : knxcore.TPObject );
    BEGIN
    END OnRead;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : knxcore.TPObject );
    VAR
       dt : datetime.DateTime;
    BEGIN
@@ -877,7 +877,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : knxcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
       snProject = L"project";
          knName = L"name";
@@ -1266,4 +1266,4 @@ END CEibSrvWeb;
 
 (*================================================================================*)
 
-END EibSrvWeb.
+END KnxSvcWeb.
