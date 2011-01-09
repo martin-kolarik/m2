@@ -68,7 +68,9 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="SmartServer.definition.proj" />
+    <None Include="SmartServer.definition.proj">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="SmartServer.proj" />
     <None Include="Install\SmartServer.wxs" />
   </ItemGroup>

@@ -12,7 +12,7 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='srvsvc'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='knxsvc'">
         <Result>Program</Result>
     </PropertyGroup>
 
