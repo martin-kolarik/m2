@@ -107,7 +107,7 @@ END CDeviceAutomaton;
 CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink, IAutomatonRequest;
 	LOCAL VAR
 		PIO : TPIO;
-		Connection : rawconnection.TCPConnection;
+		Connection : rawconnection.ClientTCPConnection;
 		RxBuffer : StorageO.CMemoryBuffer;
 		Logger : log.CLogger;
 		Automaton : POINTER TO CDeviceAutomaton;

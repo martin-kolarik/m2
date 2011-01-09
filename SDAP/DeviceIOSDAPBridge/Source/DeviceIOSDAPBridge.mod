@@ -11,6 +11,7 @@ IMPORT
    IOO,
    iovalue,
    log,
+   LogConfig,
    ns,
    resources,
    Sync,
@@ -52,7 +53,7 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       cb : io.CCompletionDataInfo;
       item : TPItem;
@@ -116,7 +117,7 @@ CLASS IMPLEMENTATION ABridge;
                END;
                _Result.Inc();
 
-               IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+               IF NOT _Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
                   _Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Querying: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ));
                END;
 
@@ -141,7 +142,7 @@ CLASS IMPLEMENTATION ABridge;
                   CONTINUE;
                END;
 
-               IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+               IF NOT _Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
                   _Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Got value: ", OA( valueString.Length-1,  valueString.Data ));
                END;
 
@@ -180,7 +181,7 @@ CLASS IMPLEMENTATION ABridge;
                   END;
                   _Result.Inc();
 
-                  IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+                  IF NOT _Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
                      _Logger.LogSSSS( log.ldDebug, 0, LOG_NAME, L"Writing: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ), L"", OA( valueString.Length-1, valueString.Data ));
                   END;
 
@@ -239,7 +240,7 @@ CLASS IMPLEMENTATION ABridge;
 	   iniFile : INIFile.TPINIFile;
 	   item : POINTER TO CItem;
 	   nameDevMap : maps.CStringMap;
-	   key : ARRAY [0..127] OF WCHAR;
+	   key : StringsO.CString;
 	   l : CARDINAL;
 	   Result : Sync.TAsyncResult := Sync.arCompleted;
 	   s : StringsO.CString;
@@ -304,7 +305,7 @@ CLASS IMPLEMENTATION ABridge;
 	   END;
 	   
 	   // logger
-	   INIFile.ConfigureLog( iniFile^, L"", REF _Logger, OUT l );
+	   LogConfig.ConfigureLog( iniFile^, L"", REF _Logger, REF _AppenderList, OUT l );
 
       // SDAP
       IF iniFile^.SetSection( secSDAP ) THEN
@@ -321,7 +322,7 @@ CLASS IMPLEMENTATION ABridge;
       IF iniFile^.SetSection( secDevices ) THEN
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
-            devices.AddOA( key, value );
+            devices.Add( key, value );
          END; // WHILE
       END;
 
@@ -385,9 +386,8 @@ CLASS IMPLEMENTATION ABridge;
       IF iniFile^.SetSection( secSDAPToDevice ) THEN // deviceId = sdapId
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
-            IF NOT GetHash( key, OUT dev, OUT hash ) THEN
-               s.FromOA( key );
-               LogError( l, Texts._DataItemNotFound, ADR( s ));
+            IF NOT GetHash( OA( key.Length-1, key.Data ), OUT dev, OUT hash ) THEN
+               LogError( l, Texts._DataItemNotFound, ADR( key ));
                CONTINUE;
             END;
             
@@ -395,7 +395,7 @@ CLASS IMPLEMENTATION ABridge;
             item^.Direction := IOO.dirWrite;
             item^.Device := dev;
             item^.Hash := hash;
-            item^.SDAPName.Assign( value );
+            item^.SDAPName := value;
             
             _Data.Add( item, 0 );
          END; // WHILE
@@ -408,7 +408,7 @@ CLASS IMPLEMENTATION ABridge;
       
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
-            IF EQUALS( key, keyPeriod ) THEN
+            IF key.EqualsOA( keyPeriod ) THEN
                CONTINUE;
             ELSIF NOT GetHash( OA( value.Length-1, value.Data ), OUT dev, OUT hash ) THEN
                LogError( l, Texts._DataItemNotFound, ADR( value ));
@@ -419,7 +419,7 @@ CLASS IMPLEMENTATION ABridge;
             item^.Direction := IOO.dirRead;
             item^.Device := dev;
             item^.Hash := hash;
-            item^.SDAPName.FromOA( key );
+            item^.SDAPName := key;
             
             _Data.Add( item, 0 );
          END; // WHILE
@@ -577,6 +577,8 @@ CLASS IMPLEMENTATION ABridge;
          _SDAPClient^.Dispose();
          _SDAPClient := NIL;
       END;
+
+	   LogConfig.DisposeAppenderList( REF _AppenderList );
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)

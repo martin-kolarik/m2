@@ -12,6 +12,7 @@ IMPORT
    FIO,
    iobject,
    IOO,
+   LogConfig,
    resources,
    Storage,
    StorageO,
@@ -29,6 +30,9 @@ VAR
    R : resources.CResources;
 
 (*================================================================================*)
+
+CONST
+   DEFAULT_PORT = 10001;
 
 CONST
    CH_NUL = 0C;
@@ -833,7 +837,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (time)" );
       IF State = tasIdle THEN
          State := tasWaitUpdate;
          _Driven^.UpdateDeviceBuffer();
@@ -846,7 +850,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (abort)" );
       State := tasIdle;
       _ItemToWrite := NIL;
    END EventAbort;
@@ -857,7 +861,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (ACK)" );
       CASE State OF
       | tasWaitUpdate :
          State := tasWaitData;
@@ -876,7 +880,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (NAK)" );
       IF State = tasWaitUpdate THEN
          IF _ItemToWrite = NIL THEN
             State := tasIdle;
@@ -893,7 +897,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (STX)" );
       IF State = tasWaitData THEN
          _Driven^.Ack();
          _Driven^.ProcessData( Packet );
@@ -912,7 +916,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (no data)" );
       IF State = tasWaitData THEN
          State := tasIdle;
       END;
@@ -924,7 +928,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (write)" );
       IF _ItemToWrite <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
@@ -942,7 +946,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (timeout)" );
       CASE State OF
       | tasWaitUpdate :
          State := tasIdle;
@@ -1000,7 +1004,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       _PoolDelegate.TimeoutSink := ADR( SELF );
 
       Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Started" );
-      RETURN Connection.OpenS( _HostAddress, TRUE, 500 );
+      RETURN Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
    END Start;
 
 (*---------------------------------------------------------------------------*)
@@ -1260,7 +1264,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF addonText <> NIL THEN
             msg.Append( addonText^ );
          END;
-         Log^.LogFilePos( log.lcError, 0, L"AirMotion", L"", OA( msg.Length-1, msg.rawData ), line, 0 );
+         Log^.LogFilePos( log.lcError, 0, L"AirMotion", L"", OA( msg.Length-1, msg.Data ), line, 0 );
       END LogError;
 
       (*----------*)
@@ -1268,8 +1272,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       l : CARDINAL;
    BEGIN
-      IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.rawData )) THEN
-         INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.rawData ), REF Logger, OUT l );
+      IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.Data )) THEN
+         LogConfig.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, REF _AppenderList, OUT l );
          IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _HostAddress ) THEN
             LogError( l, Texts._HostKeyMissing, NIL );
          END;
@@ -1296,7 +1300,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF NOT Connection.Connected THEN
          Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
-         Connection.OpenS( _HostAddress, TRUE, 500 );
+         Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
       END;
    
       IF INTEGER( HIGH( Data )) >= 0 THEN // HACK

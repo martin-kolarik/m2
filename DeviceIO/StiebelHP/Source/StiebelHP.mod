@@ -24,6 +24,9 @@ VAR
 
 (*================================================================================*)
 
+CONST
+   DEFAULT_PORT = 10001;
+
 TYPE
 	TDeviceType = INT8(
 		dtController = 0DH,
@@ -465,7 +468,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    	_PoolDelegate.TimeoutSink := ADR( SELF );
 
       Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Started" );
-      RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
+      RETURN Connection.OpenS( _DeviceAddress, DEFAULT_PORT, TRUE, 500 );
    END Start;
 
 (*---------------------------------------------------------------------------*)
@@ -647,7 +650,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	BEGIN
 	   IF NOT Connection.Connected THEN
 	      Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
-         Connection.OpenS( _DeviceAddress, TRUE, 500 );
+         Connection.OpenS( _DeviceAddress, DEFAULT_PORT, TRUE, 500 );
 	   END;
 	
 		IF INTEGER( HIGH( Data )) >= 0 THEN // HACK

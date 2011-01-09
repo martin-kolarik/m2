@@ -320,7 +320,8 @@ CLASS IMPLEMENTATION CUnit;
       IF eoCPPExceptions IN Options THEN
          G^.LineS( L"try {" );
       ELSE
-         G^.LineS( L"{ // native TRY" );
+         G^.LineS( L"// TRY, native" );
+         G^.LineS( L"{" );
       END;
     | ukTrySEHBlock :
       G^.LineS( L"__try {" );
@@ -331,13 +332,14 @@ CLASS IMPLEMENTATION CUnit;
       ukCatchDoBlock :
       G^.OutS( L") {" ); G^.EOL();
     | ukFinallyCPPBlock :
-      G^.LineS( L"{ // FINALLY" );
+      G^.LineS( L"// FINALLY" );
+      G^.LineS( L"{" );
       RETURN gumIndent;
     | ukFinallySEHBlock :
       G^.OutS( L" __finally {" ); G^.EOL();
       RETURN gumSimple;
     | ukCatchBlock :
-      G^.EOL();
+      G^.LineS( L"// CATCH" );
       IF eoCPPExceptions IN Options THEN
          G^.Indent(); G^.OutS( L"catch (" );
       ELSE
@@ -345,7 +347,7 @@ CLASS IMPLEMENTATION CUnit;
       END;
       RETURN gumNoIndent;
     | ukCatchAnyBlock :
-      G^.EOL();
+      G^.LineS( L"// CATCH any" );
       IF eoCPPExceptions IN Options THEN
          G^.Indent(); G^.OutS( L"catch (..." );
       ELSE
@@ -601,7 +603,8 @@ CLASS IMPLEMENTATION CUnit;
     | ukTryBlock :
       G^.LineRB();
       IF eoCPPExceptions NOT IN Options THEN
-         G^.LineS( L'if (false) { // first if of CATCHes' );
+         G^.LineS( L'// CATCH, first if of CATCHes' );
+         G^.LineS( L'if (false) {' );
          G^.LineS( L'}' );
       END;
     | ukExceptDoBlock,
