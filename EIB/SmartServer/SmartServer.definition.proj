@@ -12,8 +12,8 @@
         <SetupLicensing>on</SetupLicensing>
         <LeakChecking>off</LeakChecking>
 
-        <ProductVersionMajor>1</ProductVersionMajor>
-        <ProductVersionMinor>2</ProductVersionMinor>
+        <ProductVersionMajor>2</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='svcsrv' Or $(MSBuildProjectName)=='checkcfg' Or $(MSBuildProjectName)=='discover' Or $(MSBuildProjectName)=='LicTool'">
