@@ -29,11 +29,11 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\eibnetstack;$(RootPath)\KNX\srvsvc;$(RootPath)\KNX\EibSrvWeb;$(RootPath)\KNX\SmartServer"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\eibnetstack;$(RootPath)\KNX\knxsvc;$(RootPath)\KNX\KnxSvcWeb;$(RootPath)\KNX\SmartServer"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;Component\scmvc;Library\DeviceIO;KNX\srvcore;KNX\EibSrvWeb"/>
-        <Program Include="srvsvc"/>
+        <Components Include="Component\sccore;Component\scmvc;Library\DeviceIO;KNX\knxcore;KNX\KnxSvcWeb"/>
+        <Program Include="knxsvc"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

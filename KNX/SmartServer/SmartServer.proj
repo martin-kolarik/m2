@@ -9,12 +9,12 @@
         <ProductGUID>2E913ED6-D3C0-427D-B3B2-1D7AC3CFE725</ProductGUID>
         <ProductUpgradeGUID>67E4985B-93E9-43ED-8B7E-5D381F094F5D</ProductUpgradeGUID>
 
-        <ProductId>NeNo.EibSrv</ProductId>
-        <ProductNote>Stable</ProductNote>
+        <ProductId>NeNo.KnxSrv</ProductId>
+        <ProductNote>Beta</ProductNote>
         <!-- DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod -->
 
-        <FileDisplayName>EIB/KNX Server</FileDisplayName>
-        <FileDescription>EIB/KNX SmartServer</FileDescription>
+        <FileDisplayName>KNX SmartServer</FileDisplayName>
+        <FileDescription>KNX SmartServer -- a KNX object server</FileDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -23,9 +23,9 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvsvc;$(RootPath)\EIB\EibSrvWeb;$(RootPath)\EIB\SmartServer"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxsvc;$(RootPath)\KNX\KnxSvcWeb;$(RootPath)\KNX\SmartServer"/>
 
-        <Components Include="Component\sccore;Component\scmvc;EIB\srvsvc;EIB\checkcfg;EIB\discover;Licensing\LicTool;Tools\svcinst"/>
+        <Components Include="Component\sccore;Component\scmvc;KNX\knxsvc;KNX\checkcfg;KNX\discover;Licensing\LicTool;Tools\svcinst"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

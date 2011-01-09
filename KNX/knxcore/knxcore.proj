@@ -17,9 +17,9 @@
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Component\sccore"/>
-        <Components Include="Licensing\Core;Library\DeviceIO;KNX\knxstack;KNX\knxstack.knxnet"/>
+        <Components Include="Licensing\Core;Library\DeviceIO;KNX\knxstack;KNX\knxstack_knxnet"/>
         <Messages Include="Texts"/>
-        <Modules Include="srvcore"/>
+        <Modules Include="knxcore"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

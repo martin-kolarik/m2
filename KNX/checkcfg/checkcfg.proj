@@ -9,13 +9,13 @@
         <ProductGUID>C016DBAB-2F26-46ad-8B12-12C5C79D4B2A</ProductGUID>
         <ProductUpgradeGUID>3A80E4D6-DBDF-4ca6-8100-7E513A139764</ProductUpgradeGUID>
 
-        <ProductId>SmartControl.EibCheckCfg</ProductId>
+        <ProductId>SmartControl.KnxSvcCheckCfg</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
         <ProductNote></ProductNote>
 
-        <FileDisplayName>EIB/KNX Configuration Checker</FileDisplayName>
-        <FileDescription>EIB/KNX group object provider configuration checker</FileDescription>
+        <FileDisplayName>KNX Configuration Checker</FileDisplayName>
+        <FileDescription>KNX object server configuration checker</FileDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -24,10 +24,10 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\srvcore"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxcore"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;EIB\srvcore"/>
+        <Components Include="Component\sccore;KNX\knxcore"/>
         <Messages Include="Texts"/>
         <Program Include="checkcfg"/>
     </ItemGroup>

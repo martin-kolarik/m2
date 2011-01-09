@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -18,30 +18,30 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Source\eib_def.mod">
+    <None Include="Source\knx_def.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\eib_stack.mod">
+    <None Include="Source\knx_stack.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\eib_user.mod">
+    <None Include="Source\knx_user.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\eib_def.def">
+    <None Include="Source\knx_def.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\eib_stack.def">
+    <None Include="Source\knx_stack.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\eib_status.def">
+    <None Include="Source\knx_status.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\eib_user.def">
+    <None Include="Source\knx_user.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Test\eibtest.mod">
+    <None Include="Test\knxtest.mod">
       <Filter>Test</Filter>
     </None>
-    <None Include="eibstack.proj" />
+    <None Include="knxstack.proj" />
   </ItemGroup>
 </Project>

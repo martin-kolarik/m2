@@ -16,7 +16,7 @@
         <ProductVersionMinor>0</ProductVersionMinor>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='svcsrv' Or $(MSBuildProjectName)=='checkcfg' Or $(MSBuildProjectName)=='discover' Or $(MSBuildProjectName)=='LicTool'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='knxsvc' Or $(MSBuildProjectName)=='checkcfg' Or $(MSBuildProjectName)=='discover' Or $(MSBuildProjectName)=='LicTool'">
         <Result>Program</Result>
     </PropertyGroup>
 

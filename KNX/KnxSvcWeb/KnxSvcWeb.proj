@@ -4,7 +4,7 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>EIB/KNX SmartServer Administration Web Interface</FileDescription>
+        <FileDescription>KNX SmartServer Administration Web Interface</FileDescription>
         <FileVersionMajor>1</FileVersionMajor>
         <FileVersionMinor>0</FileVersionMinor>
     </PropertyGroup>
@@ -15,11 +15,11 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\SmartServer"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\SmartServer"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\scmvc;EIB\srvcore"/>
-        <Modules Include="Controller;EibSrvWeb"/>
+        <Components Include="Component\scmvc;KNX\knxcore"/>
+        <Modules Include="Controller;KnxSvcWeb"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
