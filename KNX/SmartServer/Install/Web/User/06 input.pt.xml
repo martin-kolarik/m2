@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+
+    <html>
+        <head>
+            <title>06 input.pt.xml</title>
+            <script type="text/javascript">
+            
+                function correctNumber( isString, value )
+                {
+                    if( isString )
+                    {
+                        return value;
+                    }
+                    else
+                    {
+                        // avoid sending of empty string
+                        value = "" + value; 
+                        if( "" == value )
+                        {
+                            return null;
+                        }
+
+                        // replace decimal comma with decimal dot 
+                        var commaRE = /,/;
+                        return value.replace( commaRE, ".");
+                    }
+                }
+
+                function setValue( isString, address, value )
+                {
+                    try
+                    {
+                        value = correctNumber( isString, value ); // null is returned if correction fails
+                        if( value != null )
+                        {
+                            location.replace( location.pathname + "?set(" + address + "," + value + ")" );
+                        }
+                    }
+                    catch(error)
+                    {
+                        // intentionaly do nothing
+                    }
+                }
+
+            </script>
+        </head>
+        <body>
+            <h1>Set value by input example</h1>
+            <p>
+                Set brightness and press enter or button: <input type="text" value="${get(3/3/21)}" onchange="setValue( false, '3/3/21', this.value )" size="3" maxlength="3" /> % <input type="button" value="Set" />
+            </p>
+        </body>
+    </html>
+
+</pageTemplate>

@@ -1,0 +1,81 @@
+DEFINITION MODULE Controller;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   EibSrvWeb,
+   FSO,
+   Languages,
+   mvc,
+   StringsO;
+
+(*================================================================================*)
+
+CONST
+   INDEX_PAGE = L"index";
+   LOGIN_PAGE = L"login";
+   LOGOUT_PAGE = L"logout";
+   STATUS_PAGE = L"status";
+   CONTROL_PAGE = L"control";
+   DATA_LOG_PAGE = L"datalog";
+   SYSTEM_LOG_PAGE = L"syslog";
+   IO_PAGE = L"io";
+   USERS_PAGE = L"users";
+   ROLE_EDIT_PAGE = L"roleEdit";
+   USER_EDIT_PAGE = L"userEdit";
+   USER_LOGIN_PAGE = L"userLogin";
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPController = POINTER TO CController;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IMIMEResolver, mvc.IController;
+   // IFilePathResolver
+   PUBLIC VIRTUAL PROCEDURE ResolvePath( Context : PTR; CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
+   
+   // IFunctionHandler
+   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IMvcRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : mvc.TCallResult;
+
+   // IMIMEResolver
+   PUBLIC VIRTUAL PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
+
+   // IController
+   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
+   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : mvc.IContainer );
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
+
+   // SELF
+   PUBLIC PROCEDURE BindToEibSrv( web : EibSrvWeb.TPEibSrvWeb );
+
+   // private and helpers   
+   PRIVATE VAR
+      _Web : EibSrvWeb.TPEibSrvWeb;
+
+   PRIVATE PROCEDURE ProcessLogin( REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserLogin( REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN;
+
+   PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IMvcRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE InvalidateUser( REF Request : mvc.IMvcRequest );
+   PRIVATE PROCEDURE SetOverriddenLanguage( CONST Request : mvc.IMvcRequest; CONST Language : StringsO.IString );
+   PRIVATE PROCEDURE Language( CONST Request : mvc.IMvcRequest ) : Languages.TLanguage;
+   PRIVATE PROCEDURE GetPageTemplateView( CONST Request : mvc.IMvcRequest; CONST ViewName : ARRAY OF WCHAR ) : mvc.TPView;
+
+END CController;
+
+(*================================================================================*)
+
+END Controller.

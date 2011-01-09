@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+
+    <html>
+        <head>
+            <title>02 set.pt.xml</title>
+        </head>
+        <body>
+            <h1>Set value example</h1>
+            <p>
+                Switch <a href="?set(3/1/21,true)">on</a> or <a href="?set(3/1/21,false)">off</a>.
+            </p>
+        </body>
+    </html>
+
+</pageTemplate>

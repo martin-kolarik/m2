@@ -1,0 +1,145 @@
+DEFINITION MODULE eibnet;
+
+(*================================================================================*)
+
+IMPORT
+   core,
+   eib_def,
+   eib_status,
+   inetaddr,
+   log,
+   netsocket,
+   netsrv,
+   Sync;
+
+(*================================================================================*)
+
+// default settings
+CONST
+   BROWSE_TIMEOUT     = 10 * 1000;
+   DISCONNECT_TIMEOUT = 10 * 1000;
+   CONNECT_TIMEOUT    = 10 * 1000;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPConnection = POINTER TO CConnection;
+
+(*================================================================================*)
+
+CLASS EIBNetListener( netsrv.AListener ); // netsrv produces in thread callbacks
+   LOCAL VAR
+      Connection : TPConnection := NIL;
+   LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
+   LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket ); // both types
+END EIBNetListener;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TConnectionMode = (
+      cmScanning,
+      cmTunnelingHPAI, // uses HPAIs, on both client and server sides
+      cmTunnelingBlind, // uses empty HPAIs, tested with SIEMENS, isn't it only proprietal?
+      cmRouting
+   );
+   
+   TTunnelingMode = (
+      tmEMI,
+      tmRaw,
+      tmBusmonitor
+   );
+   
+   TIOState = (
+      ioDisconnected,
+      ioConnecting,
+      ioReady,
+      ioWaitTCON1, ioWaitTCON2,
+      ioDisconnecting
+   );
+   TIOStates = SET OF TIOState;
+   
+CONST
+   maximalHbRepeat = 3;
+
+   iosPending = TIOStates{ioWaitTCON1, ioWaitTCON2};
+   iosConnected = iosPending + TIOStates{ioReady};
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CConnection( msghandler.MessageHandler );
+   INTERNAL VAR
+      // management
+      _Logger : log.TPLogger := NIL;
+      _Mode : TConnectionMode := cmTunnelingHPAI;
+      _Socket : netsocket.TPSSocket := NIL;
+      _Listener : POINTER TO EIBNetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
+      _AutoReconnectDelay : CARDINAL := 0;
+      _TunnelingMode : TTunnelingMode := tmEMI;
+      // data control
+      IOState : TIOState := ioDisconnected;
+      HPAISelf : core.HostProtocolAddressInformation;
+      HPAICtrl : core.HostProtocolAddressInformation;
+      HPAIData : core.HostProtocolAddressInformation;
+      ChannelId : CARD8 := 0;
+      // data flow
+      EMI : eib_def.TPacket;
+      OutSeq : CARDINAL := 0;
+      InSeq : CARDINAL := 0;
+      AltInSeq : CARDINAL := 0; // AltInSeq contains InSeq one step backward, this works around curious bug, when there is in single RECEIVE packet unexpectedly high SeqNo. This work around allows returning back to SeqNo before.
+      HbRepeat : CARDINAL := maximalHbRepeat; // heartbeat, if it falls to zero, connection is killed
+      SendErr : CARDINAL := 0; // correction of bad server behaviour: if server does not ACK correct send (heartbeats work correctly), the connection must be reconnected. The server does not ACK packet with low numbers, it could be caused with previous lost ACK packet.
+   PUBLIC PROPERTY
+      Logger : log.TPLogger;
+      Mode : TConnectionMode;
+      RemoteAddress : inetaddr.INETADDR; // routing or remote address
+      AutoReconnectDelay : CARDINAL; // if zero no reconnecting is done, reconnect is done after calling OnDisconnect when this time elapses
+      TunnelingMode : TTunnelingMode;
+   PUBLIC READONLY PROPERTY
+      Connected : BOOLEAN;
+      Disconnected : BOOLEAN;
+      Pending : BOOLEAN;
+      
+   INITIALLY CConnection;
+   FINALLY CConnection;
+
+   INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
+
+   PUBLIC PROCEDURE Connect( Timeout : CARDINAL ) : Sync.TAsyncResult; // timeout is used for cmScanning only
+   PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN ) : Sync.TAsyncResult;
+
+   PUBLIC PROCEDURE SendPacket( CONST EMI : eib_def.TPacket ) : Sync.TAsyncResult;
+   LOCAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
+   LOCAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
+
+   INTERNAL VIRTUAL PROCEDURE OnScanCompleted();
+   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : core.SearchResponse );
+   INTERNAL VIRTUAL PROCEDURE OnDescriptionResponse( CONST packet : core.DescriptionResponse );
+
+   INTERNAL VIRTUAL PROCEDURE OnConnect();
+   INTERNAL VIRTUAL PROCEDURE OnDisconnect();
+   INTERNAL VIRTUAL PROCEDURE On_P_Sent();
+   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
+
+   PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
+   PRIVATE PROCEDURE OnRoutingLostMessage( CONST packet : core.RoutingLostMessage );
+
+   PRIVATE PROCEDURE OnConnectResponse( CONST packet : core.ConnectResponse );
+   PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : core.ConnectionStateResponse );
+   PRIVATE PROCEDURE OnDisconnectRequest( CONST packet : core.DisconnectRequest );
+   PRIVATE PROCEDURE OnDisconnectResponse( CONST packet : core.DisconnectResponse );
+   PRIVATE PROCEDURE OnTunnelingRequest( CONST packet : core.TunnelingRequest );
+   PRIVATE PROCEDURE OnTunnelingACK( CONST packet : core.TunnelingACK );
+
+   PRIVATE PROCEDURE DoSend() : Sync.TAsyncResult;
+   PRIVATE PROCEDURE DataDisconnect(); // first phase
+   PRIVATE PROCEDURE DeviceDisconnect(); // second phase
+   PRIVATE PROCEDURE ProcessHbFailure();
+   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : eib_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
+END CConnection;
+
+(*================================================================================*)
+
+END eibnet.

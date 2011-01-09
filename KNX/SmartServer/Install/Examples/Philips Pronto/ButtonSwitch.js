@@ -1,0 +1,1 @@
+livingRoom.Write( livingRoomState.value == "true" ? "false" : "true" );

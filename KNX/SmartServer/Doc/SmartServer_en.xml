@@ -1,0 +1,2696 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<document file="SmartServer" xml:lang="en" xmlns="http://www.mii.cz/2004/XML/Document/Common">
+  <header creator="martin" doc_type="generic" last_modified="2008-08-15" last_modifier="martin" version="1.0.1516.0"
+          xml:lang="en"></header>
+
+  <adjustment>
+    <classes>
+      <tableclass class="tblCommon" frame="yes" offset="3pt"></tableclass>
+    </classes>
+  </adjustment>
+
+  <text>
+    <section level="1" selfnumbered="no">
+      <title>SmartServer</title>
+
+      <text>
+        <p>SmartServer for KNX/EIB is a product which allows to remote clients (to visualization programs) to read and
+        write data from KNX/EIB bus. SmartServer is designed for continuous running, it is present in the operating
+        system as a service. SmartServer KNX/EIB keeps data in the cache, so their current values are available for
+        clients continually. Server can be remotely administrated by web interface (HTTP/HTML).</p>
+
+        <p>Server provides for clients two interfaces: XMLSocket and line-oriented text TCP/IP interface.</p>
+
+        <il>
+          <caption>Software and hardware requirements:</caption>
+
+          <li><p>operating system Windows XP SP2 and higher, XP Embedded SP2, Vista RTM and higher, Windows Server 2003
+          RTM and higer, Windows Server 2008 RTM and higher,</p></li>
+
+          <li><p>10 megabytes of free disk space,</p></li>
+
+          <li><p>an active network connection for connection with clients and KNX/EIB,</p></li>
+
+          <li><p>on the KNX/EIB devices EIBNet/IP (it is part of a KNX standard).</p></li>
+        </il>
+
+        <p>Version of the documentation: 1.2.1312</p>
+
+        <content>
+          <caption>Content</caption>
+        </content>
+
+        <section label="secInstallation" level="2">
+          <title>Installation and licence</title>
+
+          <text>
+            <p>The SmartServer installation packet (in the form of MSI file, MSI = Microsoft Installer) is installed
+            after start-up automatically to <file>Program Files\NeNo\EibSrv</file> folder. During the installation, it
+            is necessary to enter proper licence data (from licence certificate), or it is possible to install the
+            SmartServer as a demo version.</p>
+
+            <il>
+              <caption>Compared to the full version, the demo version is limited as follows:</caption>
+
+              <li><p>it allows to clients to perform only about <number>10000</number> clients operations
+              collectively,</p></li>
+
+              <li><p>it provides data to clients only about 30 minutes after start-up,</p></li>
+
+              <li><p>the limitation does not stop the service and does not terminate connection with clients; the
+              clients will stay connected, the server does not provide any data to them.</p></li>
+            </il>
+
+            <p>Installed SmartServer must be activated till 35 days after the installation. The activation can be
+            performed remotely (with connection to Internet) or from the command line, but always with help of the tool
+            (<type>activate</type>), which is installed together with the SmartServer. If the SmartServer is not
+            activated during the above shown 35 days, it will run as the demo version after lapse of this time.</p>
+
+            <section level="3">
+              <title>Licence activation</title>
+
+              <text>
+                <p>The activation runs in two steps. In the first step there is obtained there is obtained a
+                registration number, which is then sent to the technical support (of the seller). The technical support
+                will record this number and will create an activation number based on it, which will send back. In the
+                second step of activation<c.special what="dash" />the activation number is applied.</p>
+
+                <p>The registration number is obtained with help of <type>activate</type> tool as follows (record of
+                operations in command line):</p>
+
+                <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
+C:\Program Files\NeNo\EibSrv&gt;activate -Q *
+Licence support tool
+(c) NeNo 2009
+
+  found 2 records
+  found 2 unique records
+  found 2 valid records
+
+  processing licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxx"
+    for product "NeNo.EibSrv"
+    registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
+
+                <p>The above-mentioned registration number is not written, if the SmartServer is installed without a
+                licence (i.e. as demo version), or if the SmartServer is already activated.</p>
+
+                <p>After sending of the whole registration number (<type>REG-xxxxx-...-xxxxx</type>) and its processing
+                – an activation number will arise in the form <type>VAN-xxxxx-...-xxxxx</type>. This activation number
+                is applied again with help of activate tool:</p>
+
+                <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
+C:\Program Files\NeNo\EibSrv&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+Licence support tool
+(c) NeNo 2009
+
+  found 2 records
+  found 2 unique records
+  found 2 valid records
+
+  processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+  processing product "NeNo.EibSrv"</p.type>
+
+                <p>A fruitfulness of activation can be verified again with help of <type>activate</type>:</p>
+
+                <p.type>C:\Program Files\NeNo\EibSrv&gt;activate -I
+Licence support tool
+(c) NeNo 2009
+
+  found 3 records
+  found 3 unique records
+
+  product "NeNo.EibSrv"
+    licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+    type "----"
+      activated permanently</p.type>
+
+                <p>Caution: After the activation the SmartServer service (EIB/KNXServer) must be restarted. In computers
+                with embedded operation system (Windows XP Embedded), it is further necessary to record changes of
+                computer set-up on the disc and to restart the computer.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+
+        <section level="2">
+          <title>Configuration files</title>
+
+          <text>
+            <p>The SmartServer runs as a service of operation system and it starts immediately after installation. It
+            loads all its settings (KNX/EIB objects, communication, EIBNet/IPinterface) from a text file on the disc
+            (description, see bellow), which is allotted to the server with help of administrative web interface. The
+            configuration file cannot be modified with help of the administrative interface, the file must be recorded
+            on the disc by another way (locally, with help of RDP, VNC, etc.).</p>
+
+            <p>Without modification by the administrative interface, the server searches and loads, as starting file,
+            <file>default.cfg</file> configuration file, which is located in the same folder, as the server program
+            (<file>EibSrv.exe</file>). This starting configuration file is installed and contains also a list of all
+            available settings also with brief comments.</p>
+
+            <p>Program running as the service has limited possibilities of interaction with user, therefore it is not
+            possible to find out its proper loading from configuration file directly. Error messages about configuration
+            are available in administrative interface only. The configuration can be checked also before its setting
+            with help of tool of <file>checkcfg.exe</file> command line, which is delivered as a part of server
+            installation.</p>
+
+            <p>Configuration files for server are text ones, structured to sections ones (section names are between
+            <type>[</type> a <type>]</type> characters) and line oriented ones (parameters are recorded inside sections
+            on independent lines).</p>
+
+            <p>Sample configuration files are stored in <file>Examples</file> folder with the server program.</p>
+
+            <section label="secDevice" level="3">
+              <title><type>[project]</type></title>
+
+              <text>
+                <dl class="dlParameter">
+                  <caption><type>[device]</type> section contains following parameters:</caption>
+
+                  <dt><type>name</type></dt>
+
+                  <dd><p>for definition of project logical name. The name is displayed on status page of administration
+                  web interface.</p><p>Example:</p><p.type>name = Really Big Government Building</p.type></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section label="secDevice" level="3">
+              <title><type>[device]</type></title>
+
+              <text>
+                <dl class="dlParameter">
+                  <caption><type>[device]</type> section contains following parameters:</caption>
+
+                  <dt><type>id</type></dt>
+
+                  <dd><p>for definition of IP address and EIBNet/IP port of equipment; according to kind of
+                  communication, IP address must be either multicast (for <type>mode = routing</type>), or unicast (for
+                  <type>mode = tunnelling</type> or <type>mode = tunnelling-ACK</type>).Record of parameter consists
+                  from three parts, the parameter can be found in all examples:</p><p.type>id = eibnet:192.168.0.100:3671</p.type><p>whereas
+                  the last part (<number>3671</number>, port number) is optional. If a port is not recorded, the initial
+                  port according to KNX standard (i.e. just <number>3671</number>) is used.</p><p>In routing mode, a
+                  multicast address must be used. For proper communication of server with EIBNet/IP routers, the same
+                  multicast address must be recorded as in id parameter, as in configurations of single routers. The
+                  initial address according to KNX: 224.0.23.12 standard offers itself as a good choice. Then the
+                  configuration looks, e.g.:</p><p.type>id = eibnet:224.0.23.12</p.type></dd>
+
+                  <dt><type>mode</type></dt>
+
+                  <dd><p>For definition of kind of connection with EIBNet/IP equipment. Possible values of the parameter
+                  are displayed in the table <in label="tblMode"></in>.</p></dd>
+
+                  <dt><type>cache_only</type></dt>
+
+                  <dd><p>For allowing access to data objects without connection to KNX/EIB data bus. If parametr valus
+                  is <type>false</type> (defaut value), SmartServer requires connection to KNX/EIB to be established. If
+                  the connection is broken (or if it did not succeeded to establish), SmartServer does not provide data
+                  to clients either it does not displays it in web interface (there error message appears). If the
+                  parameter is set to value <type>true</type>, SmartServer will not connect the bus and data will be
+                  provided to clients continuously (but data will never be passed to the
+                  bus).</p><p>Example:</p><p.type>cache_only = false</p.type></dd>
+                </dl>
+
+                <f.table label="tblMode">
+                  <caption>Values of <type>mode</type> parameter</caption>
+
+                  <table class="tblCommon">
+                    <tr>
+                      <td>value</td>
+
+                      <td>meaning</td>
+
+                      <td>example</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>tunneling</type></td>
+
+                      <td>point-point communication with equipment is exclusive one (KNX Std. 3.8.4)</td>
+
+                      <td><file>01 test-direct.cfg</file></td>
+                    </tr>
+
+                    <tr>
+                      <td><type>routing</type></td>
+
+                      <td>multidirectional communication (multicasting), does not communicate with particular equipment,
+                      is exclusive one (KNX Std. 3.8.5)</td>
+
+                      <td><file>03 test-routing.cfg</file></td>
+                    </tr>
+
+                    <tr>
+                      <td><type>tunneling-NAT</type></td>
+
+                      <td>the same as tunnelling, but is able to pass through IP routers with NAT function (translation
+                      of addresses); Siemens extension, a function outside Siemens equipment is not verified</td>
+
+                      <td><file>02 test-nat.cfg</file></td>
+                    </tr>
+                  </table>
+                </f.table>
+              </text>
+            </section>
+
+            <section label="secInterface" level="3">
+              <title><type>[interface]</type></title>
+
+              <text>
+                <dl class="dlParameter">
+                  <caption><type>[interface]</type> section defines following parameters:</caption>
+
+                  <dt><type>address</type></dt>
+
+                  <dd><p>for definition of KNX physical address, which is used by server for sending of data to KNX/EIB
+                  data bus. The parameter is present in all examples. Example:</p><p.type>address = 1.2.1</p.type></dd>
+
+                  <dt><type>read_on_start_repeat_count</type></dt>
+
+                  <dd><p>Total number of initial loadings used by server for obtaining of starting values of data
+                  objects. The starting value of this parameter is 3, for details<c.special what="dash" />see chapter
+                  <in label="secReadStart"></in>. Example:</p><p.type>read_on_start_repeat_count = 5</p.type></dd>
+
+                  <dt><type>read_on_start_delay</type></dt>
+
+                  <dd><p>A delay used by server at repetition of initial loading. The Server repeats the loading, if all
+                  requested objects were not read out successfully. The starting value of this parameter is
+                  <number>5000</number> (milliseconds), for details<c.special what="dash" />see chapter <in
+                  label="secReadStart"></in>. Example:</p><p.type>read_on_start_delay = 8000</p.type></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section label="secInterface" level="3">
+              <title><type>[behaviours]</type></title>
+
+              <text>
+                <dl class="dlParameter">
+                  <caption><type>[behaviours]</type> section defines following parameters:</caption>
+
+                  <dt><type>readers_period</type></dt>
+
+                  <dd><p>for definition of period, which server uses for periodic reading of <type>reader</type> objects
+                  value from KNX. The parameter is optional, its default value is 0 (no periodic reading). Parameter
+                  unit is millisecond, so e.g. <number>60000</number> means period of 1 minute. Example:</p><p.type>readers_period = 300000</p.type><p>If
+                  no <type>reader</type> object exists, the parameter has no meaning.</p></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section label="secObjects" level="3">
+              <title><type>[objects]</type> a <type>[blocks]</type></title>
+
+              <text>
+                <p><type>[objects]</type> and <type>[blocks]</type> sections summarize all definitions of KNX data
+                items, which should be known to server and with which the server should communicate. For each data item,
+                it is necessary to know its address(-es), data type and kind of its communication in the configuration.
+                <type>[objects]</type> and <type>[blocks]</type> sections differ from each other by the kind of record
+                of these data.</p>
+
+                <p>Both sections record definitions of objects to lines, <type>[objects]</type> requests complete
+                information about data items on each line, on the contrary<c.special what="dash" /><type>[blocks]</type>
+                defines one data type and one kind of communication for the whole group of data items, thus <type>[objects]</type>
+                is well suitable for quick definition of several data items, whereas <type>[blocks]</type> allows larger
+                structuring of the configuration.</p>
+
+                <p>In both sections, the data objects can be defined with help of <type>objects</type>, <type>object</type>,
+                <type>logged_objects</type>, <type>logged_object</type>, <type>logged_on_change_objects</type> and
+                <type>logged_on_change_object</type> parameters. Their distinguishing is simple: <type>objects</type>,
+                <type>logged_objects</type> and <type>logged_on_change_objects</type> allow common definition of more
+                data objects (each with one group address); <type>object</type>, <type>logged_object</type> and <type>logged_on_change_object</type>
+                define one data object eventually connected with more group addresses (the model is the same as at
+                connection of communication objects with group addresses at current EIB programming in ETS).</p>
+
+                <p><type>logged_on_change_object</type>, <type>logged_objects</type> and <type>logged_object</type>
+                parameters serve for definition of data objects, which changes in time will be recorded in
+                administrative part of web interface (in <gui>Data history</gui> part). E.g. example configuration file
+                <file>12 test-logged.cfg</file> contains an example of use of monitored data objects.</p>
+
+                <p>In definition of data items, keywords according to the table <in label="tblDataTypes"></in> are
+                used.</p>
+
+                <f.table label="tblDataTypes">
+                  <caption>Data types</caption>
+
+                  <table class="tblCommon">
+                    <tr>
+                      <td>KNX/EIB data type (Std. 2.6)</td>
+
+                      <td>keyword 1</td>
+
+                      <td>keyword 2</td>
+
+                      <td>extension</td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />1 Switching</td>
+
+                      <td><type>eis1</type></td>
+
+                      <td><em><type>switch</type></em></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />2 Dimming</td>
+
+                      <td><type>eis2</type></td>
+
+                      <td><type>increase</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />3 Time</td>
+
+                      <td><type>eis3</type></td>
+
+                      <td><type>time</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />4 Date</td>
+
+                      <td><type>eis4</type></td>
+
+                      <td><type>date</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />5 Value</td>
+
+                      <td><type>eis5</type></td>
+
+                      <td><em><type>value</type></em></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />6 Scaling</td>
+
+                      <td><type>eis6</type></td>
+
+                      <td><em><type>scaling</type></em></td>
+
+                      <td><type>scaling255</type></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />7 Drive Control</td>
+
+                      <td><type>eis7</type></td>
+
+                      <td><type>updown</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />8 Priority (2-bit)</td>
+
+                      <td><type>eis8</type></td>
+
+                      <td><type>priority</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />9 Float</td>
+
+                      <td><type>eis9</type></td>
+
+                      <td><type>float</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />10 16-bit</td>
+
+                      <td><type>eis10</type></td>
+
+                      <td><type>counter16</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />11 32-bit</td>
+
+                      <td><type>eis11</type></td>
+
+                      <td><type>counter32</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />13 ASCII Char</td>
+
+                      <td><type>eis13</type></td>
+
+                      <td><type>char</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />14 8-bit</td>
+
+                      <td><type>eis14</type></td>
+
+                      <td><type>counter8</type></td>
+
+                      <td></td>
+                    </tr>
+
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />15 ASCII String</td>
+
+                      <td><type>eis15</type></td>
+
+                      <td><type>string</type></td>
+
+                      <td></td>
+                    </tr>
+                  </table>
+                </f.table>
+
+                <p>Note: <type>scaling255</type> extending type changes the standard function of EIS<c.special
+                what="thinspace" />6 type. While the data item of scaling type offers the standard range 0<c.special
+                what="interval" />100 (%) to clients, <type>scaling255</type> data item communicates with clients with
+                non-converted value in the range 0<c.special what="interval" />255.</p>
+
+                <p>Date (EIS<c.special what="thinspace" />4) and time (EIS<c.special what="thinspace" />3) are usually
+                displayed in the formatted form (see chapter <in label="secFormats"></in>). If formats are not used,
+                date is expressed as Julian date and time is expressed as number of seconds in the day with day of week
+                added to order of hundreds of thousands (1 = Monday).</p>
+
+                <p>The server in configuration uses keywords (the most frequent selections are shown in bolds) for
+                determination of the way of communication according to the table <in label="tblBehavior"></in>.</p>
+
+                <f.table label="tblBehavior">
+                  <caption>Ways of communication of data objects</caption>
+
+                  <table class="tblCommon">
+                    <tr>
+                      <td><type>tracker</type></td>
+
+                      <td>Data item is not written to EIB, it contains the last value flown through the data bus.</td>
+                    </tr>
+
+                    <tr>
+                      <td><em><type>tracker_init</type></em></td>
+
+                      <td>As <type>tracker</type>, but at start of server, or at restoration of connection with KNX/EIB,
+                      it reads out by forced way the current value from EIB. An equipment must exist in EIB, which will
+                      respond this requirement.</td>
+                    </tr>
+
+                    <tr>
+                      <td><em><type>transmitter</type></em></td>
+
+                      <td>Data item is written to EIB, it contains the last value written by some of clients, it does
+                      not accept values from EIB.</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>transmitter_with_status</type></td>
+
+                      <td>Data item is written to EIB and accepts values from EIB. It contains the last value either
+                      from EIB or from clients.</td>
+                    </tr>
+
+                    <tr>
+                      <td><type><em>transmitter_with_status_init</em></type></td>
+
+                      <td>As <type>transmitter_with_status</type>, but at starting or at restoration of connection it
+                      reads out the value from EIB by forced way as well as <type>tracker_init</type>.</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>reader</type></td>
+
+                      <td>As <type>tracker</type>, but moreover server reads item value in the period defined by <type>readers_period</type>
+                      parameter. Communication object in the EIB device must have R (read) flag set. There is an example
+                      in file <file>13 reader.cfg</file> installed.</td>
+                    </tr>
+                  </table>
+                </f.table>
+
+                <p>The last part of the definition of data objects, i.e. group addresses, can be recorded in
+                configuration by two ways: either as independent group addresses, or as an interval of group addresses
+                (interval is denoted with two periods<c.special what="dash" /><type>..</type>).</p>
+
+                <p>Example of records of data items with help of <type>[objects]</type> section:</p>
+
+                <p.type>[objects]
+objects = tracker, switch, 3/0/0..3/0/19
+objects = transmitter, switch, 5/3/100..5/3/119
+object = tracker_init, value, 2/0/0
+object = transmitter_with_status_init, switch, 3/3/10, 3/5/10
+logged_objects = tracker, switch, 1/1/0..1/1/29
+logged_on_change_objects = tracker, switch, 7/1/0..7/1/9</p.type>
+
+                <p>Example of records of data items with help of <type>[blocks]</type> section:</p>
+
+                <p.type>[blocks]
+block = statuses
+block = controls
+
+[statuses]
+type = switch
+behaviour = tracker
+objects = 3/0/0..3/0/19
+logged_objects = 1/2/0..1/2/29
+
+[controls]
+type = switch
+behaviour = transmitter
+objects = 5/3/100..5/3/119
+logged_on_change_objects = 1/7/0..1/7/9</p.type>
+
+                <p>It is obvious that in definitions with help of <type>[blocks]</type><c.special what="dash" />the list
+                of blocks (sections) is shown first and the blocks are consequently recorded. To avoid repeated entering
+                of the type and kind of communication in definitions of objects, they are included to type and behaviour
+                parameters. The second example defines the same objects, as the first two lines in example of use <type>[objects]</type>.</p>
+
+                <p>There can be written a short description enclosed in quotes before each data object (group address).
+                The description will appear in data log (in <gui>Data history</gui> web interface page). Example of
+                description written to data object:</p>
+
+                <p.type>[objects]
+object = tracker_init, value, "Outer temperature", 2/0/0
+
+[controls]
+type = switch
+behaviour = transmitter
+object = "Bedroom light", 5/2/0</p.type>
+
+                <p>Next examples of record of data items can be found in files: <file>04 init-read.cfg</file> (data
+                items with forced initial loading), <file>06 complex-object.cfg</file> (data items connected with more
+                group addresses), <file>08 blocks.cfg</file> (definition of data items with help of <type>[blocks]</type>
+                section).</p>
+              </text>
+            </section>
+
+            <section label="secReadStart" level="3">
+              <title><type>[read_start]</type></title>
+
+              <text>
+                <p><type>[read_start]</type> contains parameters for control of initial loading, i.e. of the first
+                loading of <type>tracker_init</type> and <type>transmitter_with_status_init</type> objects after start
+                of the server (see the chapter <in label="secObjects"></in>). The server loads such selected data
+                objects in block procedurally and tries to load them all. To prevent an overloading of the data bus at
+                starting (e.g., to allow recording to KNX just from the starting), the server puts delays between
+                loadings of single data objects (<type>delay</type> parameter). If some of objects cannot be loaded, the
+                server tries, after lapse of recovery delay (<type>[interface]</type> <type>read_on_start_delay</type>,
+                the chapter <in label="secInterface"></in>), to obtain them repeatedly by new loading. The server
+                proceeds by this way, till it will not exhaust the permitted number of initial loadings (parameter
+                <type>[interface]</type> <type>read_on_start_repeat_count</type>, see the chapter <in
+                label="secInterface"></in>).</p>
+
+                <p>If no problems occur in communication at starting, there is recommended to leave the initial values
+                of parameters (e.g., not to enter <type>read_start</type> section to the configuration file).</p>
+
+                <dl class="dlParameter">
+                  <caption><type>read_start</type> section contains following parameters::</caption>
+
+                  <dt><type>repeat_count</type></dt>
+
+                  <dd><p>The highest number of loadings performed by the server for obtaining of concrete data object.
+                  The server will finish the loading of data object as soon as the equipment in KNX
+                  responds.</p><p.type>repeat_count = 3</p.type><p>The starting value of this parameter is 1.</p></dd>
+
+                  <dt><type>delay</type></dt>
+
+                  <dd><p>A delay between loadings of single data objects. If data are loaded successfully without any
+                  problems, then single requirements for loading to KNX data bus will be sent just with this delay.
+                  Example:</p><p.type>delay = 200</p.type><p>The starting value of this parameter is 150
+                  (milliseconds).</p></dd>
+
+                  <dt><type>timeout</type></dt>
+
+                  <dd><p>A time, for which the server waits for the response. If nobody in KNX network responds till
+                  lapse of this time, the server repeats the request according to setting of <type>repeat_count</type>
+                  parameter.</p><p.type>timeout = 2000</p.type><p>The starting value of this parameter is
+                  <number>1500</number> (milliseconds).</p></dd>
+                </dl>
+
+                <p>The initial loading may (especially at large number of initialised data object) last relatively a
+                long time. E.g., at loading of 100 data objects the obtaining of the value itself (without repetition
+                and recovery) lasts in total 15 seconds (150<c.special what="thinspace" />ms<c.special
+                what="binarytimes" />100). Of course, during this time it is possible to load to the data bus
+                arbitrarily, nevertheless, the data for clients need not be valid yet (in such case the server will
+                return zero, <type>false</type> or empty text to clients).</p>
+              </text>
+            </section>
+
+            <section label="secFormats" level="3">
+              <title><type>[formats]</type></title>
+
+              <text>
+                <dl class="dlParameter">
+                  <caption><type>[formats]</type> section defines following parameters:</caption>
+
+                  <dt><type>time_as_string</type> and <type>date_as_string</type></dt>
+
+                  <dd><p>After starting of conversion of time and date data to the text format and vice versa. In
+                  initial status, the server works with date and time as with numbers (see chapter <in
+                  label="secObjects"></in>), which could be hardly convertible in clients. The server will use the mask
+                  for conversion determined by <type>time_format</type> or <type>date_format</type> parameter.
+                  Example:</p><p.type>time_as_string = true
+date_as_string = true</p.type></dd>
+
+                  <dt><type>time_format</type> and <type>date_format</type></dt>
+
+                  <dd><p>A mask for conversion of time and date data to the text format and vice versa. The mask is
+                  applicable only in case, when <type>time_as_string</type> or <type>date_as_string</type> parameter is
+                  set on the value <type>true</type>. Example:</p><p.type>time_format = HH:mm
+date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs displays the table <in
+                  label="tblDateTimeFormat"></in>.</p></dd>
+                </dl>
+
+                <f.table label="tblDateTimeFormat">
+                  <caption>Format signs of <type>time_format</type> and <type>date_format</type> parameters.</caption>
+
+                  <table class="tblCommon">
+                    <tr>
+                      <td>combination</td>
+
+                      <td>meaning</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>h</type>, <type>hh</type>, <type>H</type>, <type>HH</type></td>
+
+                      <td>12-hours time without and with leading zero, 24-hours time without and with leading zero</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>m</type>, <type>mm</type>, <type>s</type>, <type>ss</type></td>
+
+                      <td>minutes without and with leading zero, seconds without and with leading zero</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>d</type>, <type>dd</type></td>
+
+                      <td>day number without and with leading zero</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>M</type>, <type>MM</type>, <type>MMM</type>, <type>MMMM</type></td>
+
+                      <td>month number without and with leading zero, abbreviation of month name, month name</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>yy</type>, <type>yyyy</type></td>
+
+                      <td>double-digit and full number of year</td>
+                    </tr>
+                  </table>
+                </f.table>
+              </text>
+            </section>
+
+            <section label="secLog" level="3">
+              <title><type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> and <type>[networklog]</type></title>
+
+              <text>
+                <p><type>[log]</type> section determines the kind of listing of debugging and informative reports of the
+                server. There may be many detail reports, therefore it is recommended to list only the error statuses
+                during current operation.</p>
+
+                <p><type>[datalog]</type> section is an additive one and determines the place, where the server will
+                record the copies of reports of <gui>Data history</gui> of web interface. The rerouting of copies of
+                listings can be used for storage of longer data history, because data in web interface are limited by
+                number. In initial setting, the storage of data history, except of web interface, is not
+                switched-on.</p>
+
+                <p><type>[httplog]</type> section determines the place, where the server will record web access
+                messages. Default settings of the <type>[httplog]</type> section is to use settings of <type>[log]</type>
+                section. Recorded messages are in <diff>Common Log Format</diff>, which is the format broadly shared by
+                all web servers. <type>[httplog]</type> log will contain access messages only, error messages
+                (processing errors, etc.) are recorded according to <type>[log]</type> section settings.</p>
+
+                <p>The last <type>[networklog]</type> section offers separated logging of SDAP and XMLSocket client
+                connecting and disconnecting. Default settings of the <type>[networklog]</type> section is to use
+                settings of <type>[log]</type> section.</p>
+
+                <dl class="dlParameter">
+                  <caption>Following parameters are defined by sections:</caption>
+
+                  <dt><type>target</type></dt>
+
+                  <dd><p>For definition of output of debugging listings. Possible values of this parameter are shown in
+                  the table <in label="tblTarget"></in>.</p><p>The starting value of the parameter for <type>[log]</type>
+                  section is <type>kernel</type> and for <type>[datalog]</type> section is <type>none</type>.
+                  Example:</p><p.type>target = file</p.type></dd>
+
+                  <dt><type>level</type></dt>
+
+                  <dd><p>The rate of content of debugging listings is determined in four levels according to the table
+                  <in label="tblLevel"></in>.</p><p>The starting value of this parameter is <type>error</type>.
+                  Example:</p><p.type>level = warning</p.type></dd>
+
+                  <dt><type>file</type></dt>
+
+                  <dd><p>Path to the file with listings. The file grows continuously, therefore at permanent and detail
+                  listings it is necessary to take care about sufficient place on the disc. At use of the server in
+                  embedded systems (Windows XP Embedded), the use of file (at setting <type>target = file</type>) is not
+                  recommended, if the disc is Flash file (Compact Flash, etc.).</p><p>Example of record of the
+                  parameter:</p><p.type>file = z:\smartserver.log</p.type></dd>
+
+                  <dt><type>cached</type> (only for <type>[log]</type> and <type>[datalog]</type> sections)</dt>
+
+                  <dd><p>Length of history (number of records), which server stores for web interfaces purposes. The
+                  number should not be too big, as the records are stored in computer memory, which is limited. Memory
+                  consumption can be estimated as record number<c.special what="binarytimes" />100 bytes (in average,
+                  approximately).</p><p>The default value of the parameter is <number>1000</number>.</p></dd>
+
+                  <dt><type>fiter</type> (only for <type>[log]</type> and <type>[networklog]</type> sections)</dt>
+
+                  <dd><p>List of rules restricting log records. Each of <type>filter</type> line defines single rule,
+                  allowing or denying. The server comes through all rules, when recording, and the message is recorded
+                  only if all rules together allows it. On the start of applying rules the server assumes recording is
+                  allowed.</p><p>Rules have the format:</p><p.type>filter = allow | deny, &lt;mask&gt;</p.type><p>where
+                  <type>allow</type> or <type>deny</type> specifies allowing or denying rule and <type>&lt;mask&gt;</type>
+                  defines text mask, which the server matches the second part of message source against (see the chapter
+                  <in.about label="secDebug"></in.about>). For example, following rules allow recording of KNX
+                  connection messages only:</p><p.type>...
+filter = deny, *
+filter = allow, EibNet.Connection</p.type></dd>
+                </dl>
+
+                <f.table label="tblTarget">
+                  <caption>Values of <type>target</type> parameter.</caption>
+
+                  <table class="tblCommon">
+                    <tr>
+                      <td>value</td>
+
+                      <td>meaning</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>none</type></td>
+
+                      <td>no debugging listings will be written</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>kernel</type></td>
+
+                      <td>Listings will be forwarded to the operation system. These listings can be read with help of
+                      diagnostic tools, as e.g. DbgView application (<uri>http://technet.microsoft.com/enus/
+                      sysinternals/bb896647.aspx</uri>).</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>file</type></td>
+
+                      <td>Listings are recorded to the file determined by the <type>file</type> parameter.</td>
+                    </tr>
+                  </table>
+                </f.table>
+
+                <f.table label="tblLevel">
+                  <caption>Values of <type>level</type> parameter</caption>
+
+                  <table class="tblCommon">
+                    <tr>
+                      <td>value</td>
+
+                      <td>meaning</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>info</type></td>
+
+                      <td>The most of information, everything will be listed. It serves especially for accurate
+                      communication on the level of transmitted packets.</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>warning</type></td>
+
+                      <td>Moderately detail information. All reports, except of <type>info</type> level, will be listed.
+                      It serves for basic debugging and informatics.</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>error</type></td>
+
+                      <td>Basic information, recommended for permanent run. Only reports marked as <type>error</type> or
+                      <type>fatal</type> ones, i.e. the reports, by which the server informs about data error,
+                      communication or protocol, are listed.</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>fatal</type></td>
+
+                      <td>Minimum information. Only information about internal error statuses of the server will be
+                      listed.</td>
+                    </tr>
+                  </table>
+                </f.table>
+
+                <p>There are examples <file>10 debug-trace.cfg</file> a <file>11 debug-all.cfg</file> showing
+                configuration of debug outputs.</p>
+
+                <p>Description of debugging and diagnostic reports format is shown in the chapter <in.about
+                label="secDebug"></in.about>.</p>
+              </text>
+            </section>
+
+            <section label="secWeb" level="3">
+              <title><type>[web]</type></title>
+
+              <text>
+                <p><type>[web]</type> section defines parameters necessary for proper run of web interface of the
+                server. The SmartServer installation locates the data of web interface to the proper place, the contents
+                of the configuration section <type>[web]</type> corresponds to this place.</p>
+
+                <p>It is recommended to leave the settings of this section without modifications.</p>
+
+                <dl class="dlParameter">
+                  <caption>This section defines following parameters:</caption>
+
+                  <dt><type>web_root</type></dt>
+
+                  <dd><p>A root of the structure of data files of web interface. Files in this root are available on the
+                  address <uri>http://[server]/SmartServer</uri> (<uri>[server]</uri> is replaced by the name or address
+                  of the computer, on which the server runs). The files stored straight in the root are the system ones
+                  (administrative interface uses them) and must not be modified. User’s data (need not be used) are
+                  stored to <file>User</file> folder in the root, then these data are available on the address
+                  <uri>http://[server]/SmartServer/User/…</uri></p><p>Example of the parameter (it is also its starting
+                  value):</p><p.type>web_root = %exedir%\Web</p.type></dd>
+
+                  <dt><type>message_file</type></dt>
+
+                  <dd><p>A path to the file with texts of web interface. Installed file contains two languages and all
+                  text for the administrative interface. The file can be extended by texts (e.g. for use in user’s
+                  pages) and also by languages (current texts are translated and completed with other language
+                  identificator according to RFC 1766).</p><p>Example of the parameter (it is its starting
+                  value):</p><p.type>message_file = %exedir%\Web\SmartServer.xrs.xml</p.type><p>Example of the file
+                  contents with added translation to Slovakian:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;resources&gt;
+    &lt;strings version="1.0"&gt;
+        ...
+        &lt;string name="menu.status"&gt;
+            &lt;item lang="en-US"&gt;Overview&lt;/item&gt;
+            &lt;item lang="cs-CZ"&gt;Přehled&lt;/item&gt;
+            &lt;item lang="sk"&gt;Prehľad&lt;/item&gt;
+        &lt;/string&gt;
+        ...
+    &lt;/strings&gt;
+&lt;/resources&gt;</p.type></dd>
+                </dl>
+
+                <p>Both parameters of the section may contain text <type>%exedir%</type>, which substitutes the folder
+                with the server program (<file>EibSrv.exe</file>). This substitution text need not be used,
+                nevertheless, there must be set the full path to the root and to the file with texts.</p>
+              </text>
+            </section>
+
+            <section label="secUsers" level="3">
+              <title><type>[users]</type></title>
+
+              <text>
+                <p><type>[users]</type> defines the starting couple of users, which can be connected to the server. Next
+                users and their passwords can be set with help of web interface. A modification of data in this section
+                may represent no availability of web interface, it is recommended not to modify this section.</p>
+
+                <p>Initial settings:</p>
+
+                <p.type>[users]
+admin = admin, hb3fA4WsM68ZmQpM9O5L6GgmAU8Y5NNvrrKCXsx4Zrc=
+user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
+              </text>
+            </section>
+
+            <section label="secACL" level="3">
+              <title><type>[http_access_list]</type></title>
+
+              <text>
+                <p><type>[http_access_list]</type> section defines a list of rules, which denies or allows access to
+                server's web interface. Each rule (allowing or denying) is one IP address including network prefix
+                length. During each client access, the server comes through all rules which correspond to client IP
+                address and evaluates access permission found. The client is allowed to access if resulting permission
+                is allow. Default permission is allow.</p>
+
+                <p>Rule format is:</p>
+
+                <p.type>allow | deny = &lt;ipaddress&gt;[/&lt;prefix length&gt;]</p.type>
+
+                <p>Example of access allowed from localhost only (the computer with server installed):</p>
+
+                <p.type>[http_access_list]
+deny = 0.0.0.0/0
+allow = 127.0.0.1</p.type>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Import of data items from ETS</title>
+
+              <text>
+                <p>The definition of data items of the server may be significantly accelerated in cooperation with ETS
+                program. ETS can (according to its configuration) export group addresses of the project to the text file
+                determined for OPC server (KNX Association product, as well as ETS). This file (with ESF extension) can
+                accept the server configuration and use all data items from it. ESF file need not contain always all
+                necessary information, nevertheless, the server can deal with missing data (according to the setting,
+                see below).</p>
+
+                <p>The server will accept the data objects from ESF file inside <type>[objects]</type> section with help
+                of <type>esf_adapt</type>, <type>esf_strict</type> and <type>esf_ignore</type> parameters with
+                the meaning according to table <in label="tblESFConvert"></in>.</p>
+
+                <f.table label="tblESFConvert">
+                  <caption>Kinds of ESF file conversions</caption>
+
+                  <table class="tblCommon">
+                    <tr>
+                      <td><type>esf_adapt</type></td>
+
+                      <td>Data items without accurate data type will be accepted, their type will be modified according
+                      to typical use and the configuration will be loaded.</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>esf_strict</type></td>
+
+                      <td>Data items without accurate data type will be refused and the configuration will not be loaded
+                      (errors will be reported).</td>
+                    </tr>
+
+                    <tr>
+                      <td><type>esf_ignore</type></td>
+
+                      <td>Data items without accurate data type will be ignored and the configuration will be loaded
+                      (the server will not know the data ones, without types of items).</td>
+                    </tr>
+                  </table>
+                </f.table>
+
+                <p>All types recorded as <type>EIS<c.special what="thinspace" />1</type><c.special
+                what="interval" /><type>EIS<c.special what="thinspace" />15</type> are considered for accurate data
+                types. Inaccurate data types are shown in ESF file in the form, e.g. <type>Uncertain (3 byte</type>),
+                which allows (as mentioned above), at use of <type>esf_adapt</type> parameter, to select a suitable type
+                automatically. If this is not successful, then the loading of configuration will finish with error
+                message.</p>
+
+                <p>At loading of <type>esf_adapt</type> configuration, the server will convert inaccurate types to
+                accurate ones according to table <in label="tblESFTypeApproximation"></in>.</p>
+
+                <f.table label="tblESFTypeApproximation">
+                  <caption>Replacement of inaccurately determined types in ESF file</caption>
+
+                  <table class="tblCommon" width="1.8cm">
+                    <tr>
+                      <td>1 Bit</td>
+
+                      <td>4 Bit</td>
+
+                      <td>1 Byte</td>
+
+                      <td>2 Byte</td>
+
+                      <td>3 Byte</td>
+
+                      <td>4 Byte</td>
+
+                      <td>14 Byte</td>
+                    </tr>
+
+                    <tr>
+                      <td>switch</td>
+
+                      <td>increase</td>
+
+                      <td>scaling</td>
+
+                      <td>value</td>
+
+                      <td>time</td>
+
+                      <td>counter32</td>
+
+                      <td>string</td>
+                    </tr>
+                  </table>
+                </f.table>
+
+                <p>An example of the server configuration with help of ESF is stored in <file>09 ETS-Opc.cfg</file> and
+                <file>09 test.esf</file> files.</p>
+              </text>
+            </section>
+
+            <section label="secDebug" level="3">
+              <title>Debugging listings and information</title>
+
+              <text>
+                <p>At its run, the server can record information about current status and running operations. It can be
+                useful, e.g., at solution of problems with communications. On the start, the listings are not
+                switched-on, <type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> and <type>[networklog]</type>
+                configuration file sections serves for their switching-on and setting. Debugging information are not
+                necessary for current operation.</p>
+
+                <p>The output of debugging information is the text and the line one, and this it is easily legible. The
+                input setting of the server allows to monitor the listings with help of web interface, after
+                modification of the configuration<c.special what="dash" />all data can be stored to the file. Messages
+                of <type>[log]</type> and <type>[networklog]</type> sections have common formát (see below), <type>[httplog]</type>
+                section uses <diff>Common Log Format</diff>, <type>[datalog]</type> section has special format.</p>
+
+                <p>The example of <type>[log]</type> section records:</p>
+
+                <p.type>[2009-04-01 18:06:03.828] d sys/Net.Dispatcher:   address 192.168.1.102:4270
+[2009-04-01 18:06:03.828] t sys/sdap: GET 6/0/6
+[2009-04-01 18:06:25.609] I sys/HTTP: Request: /favicon.ico</p.type>
+
+                <p>The date and time of the listing are in the first part, in square brackets. All debugging listings
+                are in UTC time, which is one hour less in comparison with the civil Czech time in winter, and two hours
+                less in summer. Example: A listing with the time <type>18:06:03.828</type> was acquired on April
+                1<sup>st</sup>, so the corresponding civil time of acquirement is 20:06:03,828.</p>
+
+                <dl class="dlHanging">
+                  <caption>The second part, an independent letter, codes the kind of the report. The possibilities are
+                  as follows (they are classified from the most detail to the most important ones):</caption>
+
+                  <dt>d</dt>
+
+                  <dd><p>debugging report, the second level of details</p></dd>
+
+                  <dt>I</dt>
+
+                  <dd><p>common report, additional information</p></dd>
+
+                  <dt>t</dt>
+
+                  <dd><p>debugging report, the first level of details</p></dd>
+
+                  <dt>W</dt>
+
+                  <dd><p>common report, warning against possible troubles at certain situation</p></dd>
+
+                  <dt>m</dt>
+
+                  <dd><p>debugging report, important information</p></dd>
+
+                  <dt>E</dt>
+
+                  <dd><p>common report, error of the protocol, status or program, the server is able to continue in
+                  operation</p></dd>
+
+                  <dt>e</dt>
+
+                  <dd><p>debugging report, information about the error</p></dd>
+
+                  <dt>F</dt>
+
+                  <dd><p>common report, fatal error of the program, the server is not able to continue in
+                  operation</p></dd>
+                </dl>
+
+                <dl class="dlCommon">
+                  <caption>The third part of the report distinguishes the origin of the report; reports from following
+                  sources appears in the server:</caption>
+
+                  <dt>KNX/EibNet.Connection</dt>
+
+                  <dd><p>Connection with KNX interface, information about EibNet/IP protocol.</p></dd>
+
+                  <dt>sys/HTTP</dt>
+
+                  <dd><p>Web server, information about page transfers to clients.</p></dd>
+
+                  <dt>sys/Net.Dispatcher</dt>
+
+                  <dd><p>Net server for client connections, information about establishing and termination of connection
+                  and about transmission blocks.</p></dd>
+
+                  <dt>sys/sdap</dt>
+
+                  <dd><p>SDAP server, information about commands and responses received through SDAP.</p></dd>
+
+                  <dt>sys/xmls</dt>
+
+                  <dd><p>XMLSocket server, information about commands and responses received through XMLSocket.</p></dd>
+                </dl>
+
+                <p>Behind the third part in the debugging report there follows a text, which is not longer formalised
+                and which contains any data (such ones, which the origin wants to show).</p>
+
+                <p>The most frequent reason for use of debugging reports is the communication with help of EibNet/IP
+                protocol, i.e. the communication with KNX interface. The interface is an independent element outside the
+                server control, which may be switched on or off independently, or which may be used by somebody else for
+                connection with KNX. In every such case, the server has not connection with KNX and it is necessary to
+                switch on the debugging listings for diagnostics of troubles.</p>
+
+                <p>The chapter <in.about label="secCommunicationProblems"></in.about> is addressed to diagnostics and
+                debugging listings as well.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+
+        <section level="2">
+          <title>Connection to KNX</title>
+
+          <text>
+            <section level="3">
+              <title>Selection of kind of communication</title>
+
+              <text>
+                <p>The SmartServer supports both kinds of communication with KNX, which are usable for transmission of
+                data. Other kinds, which serve for KNX configuration and programming, are not supported by the
+                SmartServer. The SmartServer is not a tool for programming of elements in KNX data bus.</p>
+
+                <dl>
+                  <caption>The kind of communication is governed by <type>mode</type> parameter of <type>[device]</type>
+                  section of the configuration file (see <in label="secDevice"></in>). Following guide-post can be used
+                  for selection of the kind of communication:</caption>
+
+                  <dt>Does the interface support tunnelling only?</dt>
+
+                  <dd><p>This is valid practically for all interfaces available on the market. <type>tunnelling</type>
+                  or <type>tunnelling-NAT</type> must be used.</p></dd>
+
+                  <dt>Does the interface support routing?</dt>
+
+                  <dd><p>Its name will probably contain <qq>router</qq>, or it will be some sort of PLC. Any kind of
+                  communication can be used<c.special what="dash" /><type>tunnelling</type>, <type>tunnelling-NAT</type>
+                  or <type>routing</type>.</p><p>Nevertheless, because the router is determined just for transmission of
+                  data communication from KNX to IP network and back, it is recommended to select the kind of <type>routing</type>.</p></dd>
+
+                  <dt>Does the server or interface occur behind the router?</dt>
+
+                  <dd><p>The only variant will be <type>tunnelling-NAT</type> probably.</p></dd>
+
+                  <dt>Is the interface produced by other manufacturer than Siemens?</dt>
+
+                  <dd><p>There may be problems with <type>tunnelling-NAT</type> connection. Transfer through NAT is
+                  Siemens design, which evades KNX standard by this solution. On the other hand, the communication with
+                  the interface behaves according to customs in IP networks. In present time, also ETS supports the
+                  transfer through NAT, so it can be expected that also another producers than Siemens will support this
+                  kind of communication.</p><p>Nevertheless, till the <type>tunnelling-NAT</type> will be declared for
+                  standard solution, before its use it is necessary to verify (including connection behind NAT), if
+                  selected KNX interface does not have problems with it.</p></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Switches, routers and NAT</title>
+
+              <text>
+                <p>Routers in IP communications are located always between networks and logically connect them. Properly
+                set router transmits all KNX operation between networks without problems, nevertheless, EIBNet/IP
+                character may cause troubles in real cases.</p>
+
+                <dl>
+                  <caption>Problem issues for EIBNet/IP may be:</caption>
+
+                  <dt>IP multicasting</dt>
+
+                  <dd><p>Communication by the way of <type>routing</type> runs with help of IP multicasting, when one
+                  sent packet can be received by more IP recipients. Used IP multicasting is easily recognizable
+                  according to IP address<c.special what="dash" />multicast addresses start with number 224 and higher
+                  (e.g. 225.100.1.5).Switches and routers must be able to recognize and properly send the IP
+                  multicasting, which is not always true. At selection of the switch and router for kind of
+                  communication of routing it is always necessary to assure knowledge of IP multicasting
+                  element.</p></dd>
+
+                  <dt>NAT traversal</dt>
+
+                  <dd><p>NAT is a technology allowing exchanging of addresses and ports of senders and recipients in
+                  communication. The most frequent use of NAT is currently highly single-purpose one<c.special
+                  what="dash" />in home and office routers<c.special what="dash" />for connection of smaller network to
+                  Internet. To allow transfer between the SmartServer and interface through such EIBNet/IP communication
+                  router, it is always necessary to adjust setting of the router (of course, the router must be able to
+                  do it). </p><p>EIBNet/IP communication is UDP, a permanent connection is not established between
+                  elements, therefore the router must know, which data should be forwarded and where. For successful
+                  transfer through NAT router there must be assured that the external packet (from Internet, from WAN
+                  interface of the router) will direct the router inside to real equipment (to computer with the
+                  SmartServer or KNX interface). Routers usually decide about routing according to the protocol type
+                  (UDP) and the port number (if port is not changed, then number <number>3671</number> is valid for
+                  EIBNet/IP). In their configuration then there will exist a rule (port forwarding, for triggering,
+                  server inside, etc.), which will perform the UDP communication on selected port of the equipment with
+                  internal IP address. An accurate configuration differs router from router, nevertheless, the router
+                  configuration can be managed by any network specialist.</p><p>The transfer of data packages with help
+                  of NAT from inside of the network out (to Internet) usually need not be configured by any way.
+                  </p><p>To allow the operation of EIBNet/IP communication between the SmartServer a the KNX interface,
+                  all NAT routers on the route must be set properly. Typical case is, e.g., an interconnection of two
+                  smaller networks through Internet, when both networks have NAT routers on their interfaces. Both these
+                  routers must have configured transfer of external EIBNet/IP packages to internal network.</p></dd>
+
+                  <dt>Computer with more network cards, routers</dt>
+
+                  <dd><p>The tunnel communication in EIBNet/IP requires the client to announce to the server (KNX
+                  interface) its IP address (SmartServer) inside the data packet. The server will consequently send the
+                  response to this IP address. If a computer has more network cards (two Ethernet interface,
+                  Ethernet+WiFi, etc.), or if data pass through the router to another networks, then the communication
+                  by the way of <type>tunnelling</type> need not be successful. </p><p>In the first case (more network
+                  cards), an interface may get an address of improper interface in the data package, so its response may
+                  be sent on improper route and it will not reach the client (SmartServer).</p><p>In the second case
+                  (transfer through router), a local address may be stored to the data package in target network (where
+                  KNX interface has no sense, or is duplicated one, respectively). In such case, the interface either is
+                  not able to send the response at all, or will send it to another equipment.</p><p>If the
+                  above-mentioned troubles occur, it is recommended to use <type>tunnelling-NAT</type> or <type>routing</type>
+                  kind of communication.</p></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section label="secCommunicationProblems" level="3">
+              <title>Troubleshooting</title>
+
+              <text>
+                <p>If the connection is configured and despite of it, the server cannot be connected, the simplest way
+                is to use the diagnostic listings (see chapter <in label="secDebug"></in>). Debugging listings will
+                provide information, based on which it is possible to determine the reason of troubles easier.</p>
+
+                <p>Listings connected with KNX interface originate from KNX/EibNet.Connection source and they cover
+                establishing and disconnection of connection, data transfer (in all modes) and control information.
+                Listings with word <type>CONNECT</type> and <type>LISTENING</type> relate to establishing of connection,
+                listings with word <type>DISCONNECT</type> relate to disconnection of the connection. Data transferred
+                by tunnel connection contain words <type>SEND</type> or <type>RECEIVE</type>, data transferred with help
+                of routing contain words <type>ROUTED IN</type> or <type>ROUTED OUT</type>.</p>
+
+                <p>During its duration, each connection with KNX interface is designated by number. An interface assigns
+                the number of connection, usually each new connection gets the number higher by one. The number is
+                important for diagnostics of communication with KNX, because it must stay unchanged during one
+                connection. If the number of connection is changed in debugging listings, then something is probably
+                wrong in the communication. Following example shows listings of connection (only some lines are selected
+                from the record) with number <type>99</type>:</p>
+
+                <p.type>[3.450] t KNX/EibNet.Connection: CONNECTed in TUNNELING mode: 99 10.0.0.6:3671
+[3.700] t KNX/EibNet.Connection: RECEIVE 99 group: 2/1/30
+[3.970] t KNX/EibNet.Connection: SEND 99 group: 2/1/30 true
+[4.241] t KNX/EibNet.Connection: DISCONNECT request: 99 10.0.0.6:3671
+[4.251] t KNX/EibNet.Connection: DISCONNECTed: 99 10.0.0.6:3671</p.type>
+
+                <p>The example contains a successfully established connection. A connection, which cannot be
+                established, is shown in following record (two examples are shown):</p>
+
+                <p.type>[0.644] t KNX/EibNet.Connection: CONNECT request: 10.0.0.16:3671
+[0.661] t KNX/EibNet.Connection: CONNECT timeout
+...
+[9.130] t KNX/EibNet.Connection: CONNECT request: 10.0.0.6:3671
+[9.140] t KNX/EibNet.Connection: CONNECT failure: 36 10.0.0.6:3671
+[9.140] t KNX/EibNet.Connection: DISCONNECTed: 0 10.0.0.6:3671</p.type>
+
+                <p>In the first case, the server was not connected with KNX interface, because no response came in the
+                frame of determined time (<type>timeout</type>). The most frequent reasons of this behaviour are: IP
+                address or port addresses of the interface wrongly introduced, interface disconnected from network and
+                network unavailability of interface (e.g. if the interface is behind NAT interface, etc.).</p>
+
+                <dl class="dlHanging">
+                  <caption>In the second unsuccessful case the server interface found the connection, but the interface
+                  refused the connection with error <type>36</type>. Error codes are the part of KNX standard (KNX Std
+                  3.8.1), which currently defines following errors:</caption>
+
+                  <dt>34</dt>
+
+                  <dd><p>Interface does not support requested kind of connection. E.g., the server requests the tunnel
+                  connection, but the interface does not know it.</p></dd>
+
+                  <dt>35</dt>
+
+                  <dd><p>Interface does not support requested setting of connection. Presently not used.</p></dd>
+
+                  <dt>36</dt>
+
+                  <dd><p>Interface does not allow the connection, because its maximum number of connections is already
+                  exhausted.</p><p>This error is the most frequent one, because current KNX interface allows only one
+                  tunnel connection. If something else (other server, ETS) is connected to the interface, then
+                  connection of the server is not successful. The error may be caused also by outages of power-supply or
+                  network: if the server will not terminate the connection (e.g. at forced switch-off of the computer),
+                  then the interface waits for two minutes, before it allow to establish a new connection.</p></dd>
+                </dl>
+
+                <dl>
+                  <caption>A simple procedure for finding out of problems with connection may be, e.g., as
+                  follows:</caption>
+
+                  <dt>Attempt for connection finishes with error <type>timeout</type></dt>
+
+                  <dd><p>Check the network cable (<type>ping</type> on interface address must be successful), check if
+                  the interface is powered on. </p><p>Verify, if interface is running (if it is supplied, etc.). Make
+                  sure that you use the proper address and the interface port. If the interface is in local network,
+                  then with help of <file>discover</file> tool (part of server installation) find out addresses and
+                  ports of available interfaces.</p><p>If the interface is in a foreign network (if you are connected
+                  through Internet), then verify, if the UDP transfer in both directions (outside and inside) of
+                  selected port is allowed on routers between the server and the interface. Verify, if you are using the
+                  <type>tunnelling-ACK</type> kind of connection in such case.</p><p>If you are using the routing kind
+                  of connection, then verify, if routers and switches between the server and the interface support and
+                  properly work with IP multicast packets.</p></dd>
+
+                  <dt>Attempt for connection finishes with error <type>failure: XX</type></dt>
+
+                  <dd><p>If you are using the <type>tunnelling</type> or <type>tunnelling-ACK</type> kinds of
+                  connection, then verify, if another server, ETS, or some other program is not connected to the
+                  interface. In an affirmative case, disconnect it. </p><p>Make sure that during last two minutes an
+                  outage of server did not occur (forced switching-off of the computer, forced stopping of the server
+                  process). In affirmative case, wait two minutes or switch off and switch on the interface power
+                  supply.</p></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Examples of diagnostic messages</title>
+
+              <text>
+                <p>All examples contain real data, including time stamps. The length of operations or waiting is thus
+                easily readable.</p>
+
+                <p>T_CON = KNX interface acknowledge, R_CON = target KNX device acknowledge, seq = sequence number of
+                sent or received packets.</p>
+
+                <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface responded to it:</p>
+
+                <p.type>[12:03:27.789] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:03:27.794] t KNX/EibNet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
+
+                <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface did not respond to it,
+                after three tries server disconnected the connection.</p>
+
+                <p.type>[12:04:27.787] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:37.795] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:47.796] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:57.811] t KNX/EibNet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/EibNet.Connection: DISCONNECT timeout:  90 
+[12:05:07.825] t KNX/EibNet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/EibNet.Connection: Stop LISTENing on port:  60561</p.type>
+
+                <p>Successfull establishing of connection No.<c.special what="thinspace" />91 followed by initial
+                reading:</p>
+
+                <p.type>[12:05:37.841] t KNX/EibNet.Connection: LISTENing on port:  61829 
+[12:05:37.841] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[12:05:37.921] t KNX/...: CONNECTed in TUNNELING mode:  91 10.0.0.6:3671 
+[12:05:37.921] d KNX/srv: INIT:  2/0/0 
+[12:05:37.921] d KNX/srv: INIT:  2/0/1 
+[12:05:37.921] d KNX/srv: INIT:  2/0/21
+...</p.type>
+
+                <p>Unsuccessfull establishing of connection, KNX interface did not respond.</p>
+
+                <p.type>[12:05:17.826] t KNX/EibNet.Connection: LISTENing on port:  58083 
+[12:05:17.826] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[12:05:27.841] t KNX/EibNet.Connection: CONNECT timeout 
+[12:05:27.841] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[12:05:27.841] t KNX/EibNet.Connection: Stop LISTENing on port:  58083</p.type>
+
+                <p>Unsuccessfull establishing of connection, error number 36 means that KNX interface is connected to
+                another client:</p>
+
+                <p.type>[13:12:29.708] t KNX/EibNet.Connection: CONNECT timeout 
+[13:12:29.723] t KNX/EibNet.Connection: LISTENing on port:  55123 
+[13:12:29.723] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: CONNECT failure:  36 10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: Stop LISTENing on port:  55123</p.type>
+
+                <p>Successfull writing to KNX (T_CON status = 0, R_CON status = 0)</p>
+
+                <p.type>[13:00:46.566] d KNX/EibNet.Connection: SEND seq:  8 
+[13:00:46.566] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON status:  92 0 
+[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON seq:  8 
+[13:00:46.587] t KNX/EibNet.Connection: SEND R_CON ok 92 group:  3/1/21 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok seq:  9E 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok data: [06 ...] 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON status:  92 0</p.type>
+
+                <p>Unsuccessfull writing to KNX, KNX interface did not acknowledge the data (T_CON timeout), writing
+                repeats:</p>
+
+                <p.type>[13:07:02.741] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[13:07:02.742] d KNX/EibNet.Connection: SEND seq:  2 
+[13:07:02.742] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:07:03.746] t KNX/EibNet.Connection: T_CON timeout, repeat SEND:  94 
+[13:07:03.746] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[13:07:03.746] d KNX/EibNet.Connection: SEND seq:  2 
+[13:07:03.746] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:07:04.760] t KNX/EibNet.Connection: T_CON timeout, kill SEND:  94</p.type>
+
+                <p>Incoming KNX data, connection No.<c.special what="thinspace" />92:</p>
+
+                <p.type>[12:59:28.089] t KNX/EibNet.Connection: RECEIVE 92 group:  2/0/30 
+[12:59:28.089] d KNX/EibNet.Connection: RECEIVE seq:  67 
+[12:59:28.089] d KNX/EibNet.Connection: RECEIVE data: [06 ...]</p.type>
+
+                <p>End of connection No.<c.special what="thinspace" />91 (e.g. when server is stopped):</p>
+
+                <p.type>[12:54:46.964] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT forced as abortive 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
+              </text>
+            </section>
+          </text>
+        </section>
+
+        <section level="2">
+          <title>Web interface</title>
+
+          <text>
+            <section level="3">
+              <title>Location of source data and access</title>
+
+              <text>
+                <p>For administration and for user’s web pages connected with data from KNX, the SmartServer provides an
+                embedded web server. Administrative part is protected by name and password, user’s web pages are free
+                available. The server runs on IP port <number>6005</number>.</p>
+
+                <p>Administrative part of the server is available on the address
+                <uri>http://[server]:6005/SmartServer</uri>, user’s part of the server is available on the address
+                <uri>http://[server]:6005/SmartServer/User</uri> (<uri>[server]</uri> must be replaced with the name or
+                address of the computer, for a local computer there will be valid, e.g.
+                <uri>http://127.0.0.1:6005/SmartServer</uri>). All files, which should be available with help of server,
+                must be stored in <file>User</file> folder (and in subfolders, for details, see <in
+                label="secWeb"></in>).</p>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Administrative interface</title>
+
+              <text>
+                <p>Administrative interface is distributed to several pages protected by name and password. After
+                insertion URL <uri>http://[server]:6005/SmartServer</uri> to the address line of Internet browser and
+                clicking on <gui>Private pages</gui> link the SmartServer enters to the administrative interface.
+                Following page <gui>Login</gui> requires input of login data. After the SmartServer installation, the
+                name <gui>admin</gui> and the password <gui>admin</gui> is the valid couple.</p>
+
+                <p>The login to the administrative interface is timely limited and expires after 30 minutes of
+                inactivity.</p>
+
+                <dl>
+                  <caption>The administrative interface consists from following pages:</caption>
+
+                  <dt><gui>Overview</gui></dt>
+
+                  <dd><p>Introductory page with quick survey of status of server and its licence.</p><p>The possibility
+                  of connection and disconnection of the SmartServer with/from KNX interface is important. E.g., if KNX
+                  interface is shared and used currently as for configuration, as for programming of the equipment in
+                  KNX, then the SmartServer must be disconnected before ETS connection and connected again after
+                  completion of programming (otherwise the SmartServer will not provide valid data to clients).</p></dd>
+
+                  <dt><gui>Settings</gui></dt>
+
+                  <dd><p>Page for setting of the server configuration. It is possible to switch on and to switch off
+                  both client interface (SDAP client, XMLSocket client) and it is possible to change the server
+                  configuration. </p><p>The interface does not allow to load the configuration with help of browser or
+                  file and the configuration must enter to computer with the SmartServer by another way (with help of
+                  RDP, etc.). The configuration is changed after specification of the route to the configuration file
+                  (actual configuration file is filled in advance) and press of <gui>Apply</gui> push-button. E.g., at
+                  modification of setting of connection or at addition of new data objects, the configuration file is
+                  modified first (the new one is prepared) and is consequently applied by press of <gui>Apply</gui>
+                  push-button, without necessity to restart the SmartServer service. </p><p>With help of
+                  <gui>Save...</gui> link<c.special what="dash" />the actual configuration file can be loaded and stored
+                  in local computer. </p><p>Under the line with configuration and push-buttons, there is an area with
+                  listing of errors found out at loading of the configuration. If the configuration is OK (e.g. if it
+                  was checked in advance with help of <file>checkcfg</file> installed tool), always one line will be
+                  added about successful loading of the configuration. </p>Loading of configuration with help of
+                  <gui>Use</gui> push-button replaces only the configuration related to data objects of the server and
+                  to communication with KNX. The server accepts the system configuration, i.e. the configuration file
+                  section (<type>[log]</type>, <type>[datalog]</type> (<in label="secLog"></in>), <type>[web]</type>
+                  (<in label="secWeb"></in>) and <type>[users]</type> (<in label="secUsers"></in>)), at its start
+                  only.</dd>
+
+                  <dt><gui>Data history</gui></dt>
+
+                  <dd><p>The page displays the history of data operation of the server. In the list arranged from the
+                  newest events to the oldest ones there occurs following events<c.special
+                  what="dash" /><gui>UPDATE</gui> (receipt of data from data bus), <gui>SET OK</gui> (successful
+                  record), <gui>SET FAILED</gui> (starting of the record failed, e.g., if the SmartServer is not just
+                  connected to the data bus) and <gui>SET ERROR</gui> (the record was started, but finished with error).
+                  </p><p>Only such data objects occurs in the history, which was created in the configuration with help
+                  of <type>logged_objects</type>, <type>logged_objects_on_change</type>, <type>logged_object</type> and
+                  <type>logged_object_on_change</type> parameters (see chapter <in label="secObjects"></in>).</p></dd>
+
+                  <dt><gui>Logs</gui></dt>
+
+                  <dd><p>The page with system records will be mostly empty. Especially debugging and diagnostic listings
+                  are included among records, which are not listed, if they are not switched on. If the listings are
+                  switched on in <type>[log]</type> section, (see <in label="secLog"></in>), they will appear just
+                  here.</p></dd>
+
+                  <dt><gui>Direct IO</gui></dt>
+
+                  <dd><p>Simple page allowing directly record and load the server data objects.</p><p><gui>Read value
+                  from EIB</gui> requires insertion of the group address (e.g. <gui>3/2/3</gui>) to the field on the
+                  left from <gui>Load</gui> push-button and its press. The SmartServer will write the value or
+                  information about loading error. </p><p><gui>Write value to EIB</gui> works analogously, nevertheless,
+                  there is further requested an insertion of recorded value in the second field. E.g., if logic one
+                  should be recorded to the bit address <gui>3/1/1</gui>, it is set to the field with value
+                  <gui>true</gui>. After press of <gui>Write</gui> push-button, the SmartServer will announce the result
+                  of the record (and on <gui>Data history</gui> page one can check the feature of the writing).</p></dd>
+
+                  <dt><gui>Users</gui></dt>
+
+                  <dd><p>Page with two areas for editing of roles and users. The page is intended for two main goals: to
+                  set up access to administration web interface and to set up access to user defined pages.</p><p>Two of
+                  roles (<gui>sysadmin</gui> a <gui>sysuser</gui>) are system and it is not possible to edit neither
+                  delete them. These roles are not listed in role list, but they can be selected for user
+                  role.</p><p>System users (<gui>admin</gui> a <gui>user</gui> by default) read from configuration file
+                  (<file>default.cfg</file>, e.g.) also cannot be removed neither edited. Their passwords can be changed
+                  arbitrarily.</p><warning><p>Definition of users can be removed from the configuration file. Then, only
+                  users defined using web interface will be available. It is possible, that no user with
+                  <gui>sysadmin</gui> role will exist after the change, and the administration of SmartServer will not
+                  possible (there will be no way how to log in).</p></warning><dl>
+                      <caption>Editing of roles and users is simple. Web interface offers the following
+                      operations:</caption>
+
+                      <dt>Add role/user <figure file="Add32"></figure></dt>
+
+                      <dd><p>The form with user or role data is opened. After pressing <gui>Accept</gui> button the role
+                      or user will be created, also it is possible to get back (and not to create anything) using link
+                      <gui>Go back to users list</gui>.</p></dd>
+
+                      <dt>Delete role/user <figure file="Trash32"></figure></dt>
+
+                      <dd><p>Deletes particular role or user.</p></dd>
+
+                      <dt>Edit role/user <figure file="Edit32"></figure></dt>
+
+                      <dd><p>The same form as for creating user/role is opened. After data modification, changes again
+                      can be accepted using <gui>Accept</gui> button or revoked by using back link.</p></dd>
+                    </dl></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section label="secUserPages" level="3">
+              <title>User pages</title>
+
+              <text>
+                <p>All files in <file>Web/User</file> folder of the installation folder may be displayed without a
+                login. E.g., <file>index.html</file> example file (part of the server installation), present in this
+                folder, will be available in local computer as
+                <uri>http://127.0.0.1:6005/SmartServer/User/index.html</uri>.</p>
+
+                <p>Among files (current static HTML, figures, styles), there may be located files with
+                <file>pt.xml</file> extension (e.g. <file>example.pt.xml</file>, which is a part of installation), which
+                the SmartServer processes dynamically and thus allows to input live data of data objects from EIB inside
+                their contents. <file>pt.xml</file> files are XML, therefore they must be well formed and for use in the
+                SmartServer they must have defined XML namespace
+                <uri>http://www.smartcontrol.cz/2008/XML/Web/PageTemplate</uri>. If it will have proper suffix and wrong
+                namespace, the Smart-Server will not process it as dynamical one and will not input live data to it.</p>
+
+                <p>For creation of own user’s pages with live data there is recommended for all cases to create a copy
+                of the example file and modify this copy.</p>
+
+                <p>Live data get to the page with help of get function closed to signs <type>${</type> a <type>}</type>.
+                The SmartServer searches these signs and replaces them with actual value. Similarly it is possible to
+                record a value to EIB using <type>set</type> function. The record of value requires the user’s activity
+                (press of push-button, reference), therefore the SmartServer in user’s dynamic (<file>pt.xml</file>)
+                pages accepts set function as parameter of reference on page (on another one or on itself). It is also
+                possible to use a selection command (<type>pt :choose</type>) inside dynamic pages, which allows to
+                create the different contents of the page according to different values of logic data objects.</p>
+
+                <p><type>get</type> function is completed with similar function <type>getwix</type>, which is, before
+                all, intended to be used together with Wix visualization tool (see <uri>www.papouch.com</uri>). <type>getwix</type>
+                function is described further in the chapter <in label="secGetWix"></in>.</p>
+
+                <dl class="dlCaption">
+                  <caption>Following set of examples shows everything. After examples (<file>*.pt.xml</file>) there
+                  always follow HTML examples, which the SmartServer produces from patterns and which sends to the
+                  client:</caption>
+
+                  <dt>Display of value of the data object (<file>01 get.pt.xml</file>)</dt>
+
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;01 get.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: ${get(3/1/21)}.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p>result in client:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;01 get.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+
+                  <dt>Writing of a value (<file>02 set.pt.xml</file>)</dt>
+
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;02 set.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set value example&lt;/h1&gt;
+    &lt;p&gt;Switch &lt;a href="?set(3/1/21,true)"&gt;on&lt;/a&gt; or
+              &lt;a href="?set(3/1/21,false)"&gt;off&lt;/a&gt;&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p>result in client:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;02 set.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set value example&lt;/h1&gt;
+    &lt;p&gt;Switch 
+      &lt;a href="?set(3/1/21,true)"&gt;on&lt;/a&gt; or 
+      &lt;a href="?set(3/1/21,false)"&gt;off&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+
+                  <dt>Change of style according to the object value (<file>03 style.pt.xml</file>)</dt>
+
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;03 style.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Change style by get example&lt;/h1&gt;
+    &lt;pt:choose&gt;
+      &lt;pt:when condition="get(3/1/21)"&gt;
+        &lt;p style="color: green;"&gt;Green text.&lt;/p&gt;
+      &lt;/pt:when&gt;
+      &lt;pt:otherwise&gt;
+        &lt;p style="color: red;"&gt;Red text.&lt;/p&gt;
+      &lt;/pt:otherwise&gt;
+    &lt;/pt:choose&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p>result in client:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;03 style.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Change style by get example&lt;/h1&gt;
+    &lt;p style="color: red;"&gt;Red text.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+
+                  <dt>Combination of the record with condition (<file>04 set.pt.xml</file>)</dt>
+
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;04 set.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set according to current state&lt;/h1&gt;
+    &lt;pt:choose&gt;
+      &lt;pt:when condition="get(3/1/21)"&gt;
+        &lt;p style="color: green;"&gt;OK,
+          &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.
+        &lt;/p&gt;
+      &lt;/pt:when&gt;
+      &lt;pt:otherwise&gt;
+        &lt;p style="color: red;"&gt;Failure,
+          &lt;a href="?set(3/1/21,true)"&gt;switch on&lt;/a&gt;.
+        &lt;/p&gt;
+      &lt;/pt:otherwise&gt;
+    &lt;/pt:choose&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p>result in client:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;04 set.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set according to current state&lt;/h1&gt;
+    &lt;p style="color: green;"&gt;OK, 
+      &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+
+                  <dt>Repeated page loading (<file>05 get refresh.pt.xml</file>)</dt>
+
+                  <dd><p>The page is loaded repeatedly thanks to <type>&lt;meta&gt;</type> tag written inside <type>&lt;head&gt;</type>
+                  tag:</p><p.type>&lt;head&gt;  
+  &lt;meta http-equiv="refresh" content="5"/&gt;
+  ...</p.type></dd>
+
+                  <dt>Writing of user-entered value (<file>06 input.pt.xml</file>)</dt>
+
+                  <dd><p>The value of edit box is written to server. To write data (and to reload the page), <type>setValue</type>
+                  function (in JavaScript) is used:</p><p.type>function setValue( address, value )
+{
+    try
+    {
+        location.replace( location.pathname +
+                          "?set(" + address + "," + value + ")" );
+    }
+    catch(error)
+    {
+        // intentionaly do nothing
+    }
+}</p.type><p>The edit box itself is bound to the function using <type>onchange</type> attribute:</p><p.type>&lt;input type="text" value="${get(3/3/21)}"
+       onchange="setValue( '3/3/21', this.value )" size="3" maxlength="3" /&gt;</p.type></dd>
+
+                  <dt>Writing of value after pressing a button (<file>07 dimming.pt.xml</file>)</dt>
+
+                  <dd><p>The example uses the same <type>setValue</type> function as the example no. 6, the difference
+                  is only in values used.</p><p.type>&lt;input type="button" value="Increase" onclick="setValue( '3/2/21', 10 )"/&gt;
+&lt;input type="button" value="Decrease" onclick="setValue( '3/2/21', -10 )"/&gt;</p.type></dd>
+
+                  <dt>Writing of value when a button is pressed (<file>08 push button.pt.xml</file>)</dt>
+
+                  <dd><p>Communication a value during button press requires to not to reload page when the button is
+                  pressed. This behavior is achieved using AJAX mean, <type>XMLHttpRequest</type> object:</p><p.type>function setValue( address, value )
+{
+    try
+    {
+        var xmlhttp;
+        if (window.XMLHttpRequest)
+        {
+            // code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp = new XMLHttpRequest();
+        }
+        else
+        {
+            // code for IE6, IE5
+            xmlhttp = new ActiveXObject( "Microsoft.XMLHTTP" );
+        }
+        xmlhttp.open( "GET", location.pathname +
+                             "?set(" + address + "," + value + ")", true );
+        xmlhttp.send( null );
+    }
+    catch(error)
+    {
+        // intentionaly do nothing
+    }
+}</p.type><p>Next part of the example, <type>setValue</type> function call, is the same as in previous
+                  examples.</p></dd>
+
+                  <dt>Iteration and variable example (<file>09 table.pt.xml</file>)</dt>
+
+                  <dd><p>Sample of <type>pt:for</type> and <type>pt:variable</type> usage:</p><p.type>&lt;pt:for from="30" to="39" index="index" order="order" odd="odd"&gt;
+    &lt;pt:variable model="status" source="3/0/${index}" /&gt;
+    &lt;pt:variable model="brightness" source="3/3/${index}" /&gt;
+    &lt;tr&gt;
+        &lt;td&gt;${order}&lt;/td&gt;
+        &lt;td&gt;${get(status)}&lt;/td&gt;
+        &lt;td&gt;${get(brightness)}&lt;/td&gt;
+    &lt;/tr&gt;
+&lt;/pt:for&gt;</p.type></dd>
+
+                  <dt>Relational operators (<file>10 relations.pt.xml</file>)</dt>
+
+                  <dd><p>Example of relational functions available, functions are useful for comparing
+                  values:</p><p.type>&lt;p pt:condition="${equal(ementál,chleba)}"&gt;
+    ementál = chleba
+&lt;/p&gt;
+&lt;p pt:condition="${notEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt;&amp;amp;gt; chleba
+&lt;/p&gt;
+&lt;p pt:condition="${less(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt; chleba (incorrect in English, correct in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${lessEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt;= chleba (incorrect in English, correct in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${greater(ementál,chleba)}"&gt;
+    ementál &amp;amp;gt; chleba (correct in English, incorrect in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${greaterEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;gt;= chleba (correct in English, incorrect in Czech)
+&lt;/p&gt;</p.type></dd>
+                </dl>
+
+                <p>From examples it is obvious that signs specific for the SmartServer are clearly separated (<type>pt:...</type>)
+                and that the rest of the text is a current, not limited HTML. This is also the reason, why to use in
+                <file>pt.xml</file> files all HTML structures including styles, scripts, etc.</p>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Restricting an access to user pages</title>
+
+              <text>
+                <p>SmartServer allows restricting of access to all user pages rendered from <file>pt.xml</file> files.
+                Restricting of access to, e.g., text files or images is not supported.</p>
+
+                <il>
+                  <caption>Model of access control mechanism is simple:</caption>
+
+                  <li><p><file>pt.xml</file> file (aka page) determines, which user roles will be allowed to access.
+                  Typically each <file>pt.xml</file> file is bound to single role (but they can be many).</p></li>
+
+                  <li><p>Administrator (user with <gui>sysadmin</gui> role) defines these roles and binds them to users
+                  (users must be defined too, usually independently).</p></li>
+
+                  <li><p>When restricted page is accessed SmartServer checks which user is logged in. If user's role is
+                  correct, restricted page is immediately displayed. If user's role is not correct, the page with login
+                  request is displayed first.</p><p>If user with correct role logs in, SmartServer displays requested
+                  page.</p></li>
+
+                  <li><p>Administrator (user with <gui>sysadmin</gui> role) is allowed to access all pages.</p></li>
+                </il>
+
+                <il>
+                  <caption>There are two kind of roles:</caption>
+
+                  <li><p>role, which requires full user login (both name and password),</p></li>
+
+                  <li><p>role, which allows login using password (code, usually numerical) only.</p></li>
+                </il>
+
+                <p>Users are always defined fully, including both name and password. The differentiation, whether the
+                name will be used or not, is a property of the role which takes place just after the role is assigned to
+                particular user.</p>
+
+                <p>Role allows logging in using password (key) only, if there is <gui>Login by code only</gui> check box
+                checked in <gui>Role editing</gui> form.</p>
+
+                <warning><p>If more users with key-only login role use the same password, the resulting logged in user
+                is not precisely determined and any of them sharing the same password (key) will be logged
+                in.</p></warning>
+
+                <p>The role, which is required to access particular <file>pt.xml</file> file can be specified by two
+                ways depending on number of allowed roles. Single allowed role can be entered to attribute <type>role</type>
+                of <type>pt:access</type> tag in the following way:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
+
+    &lt;pt:access role="somerole" /&gt;
+
+    &lt;html&gt;
+...</p.type>
+
+                <p>If more roles are allowed to access the page, more complex form must be used:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
+
+    &lt;pt:access&gt;
+        &lt;pt:role&gt;roleone&lt;/pt:role&gt;
+        &lt;pt:role&gt;roletwo&lt;/pt:role&gt;
+        &lt;pt:role&gt;somerole&lt;/pt:role&gt;
+    &lt;/pt:access&gt;
+
+    &lt;html&gt;
+...</p.type>
+
+                <p>It is obvious, that <type>role</type> attribute was replaced with inner <type>pt:role</type> tags.
+                Both examples are a part of the installation (<file>singlerole.pt.xml</file> and
+                <file>multipleroles.pt.xml</file> files). To get these examples working, it is necessary to define roles
+                <type>roleone</type>, <type>roletwo</type> and <type>somerole</type> together with their particular
+                users just after installing the SmartServer.</p>
+
+                <p>To use access control safely and reliably it is recommended to have only a single role for a single
+                page.</p>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Repeated loading of pages</title>
+
+              <text>
+                <p>Browsing of web pages is oriented to users. A user will select an address, a reference, to which
+                he/she wants to move, and the browser will ask the server for data and the server will return them to
+                the browser. Between requirements the browser and the web server do not keep any connection and they do
+                not know about each other.</p>
+
+                <p>For display of data from the SmartServer it may be useful, if, from time to time, the browser itself
+                will ask the web server for new data. HTTP/HTML technology has no standard for this case, nevertheless,
+                the most of current browsers respects meta refresh tag for this purpose (without regard to the fact that
+                meta refresh is not recommended by W3C).</p>
+
+                <p>Use of meta refresh sign is best illustrated on example (the source file, <file>05 get
+                refresh.pt.xml</file> and the result sent to the browser are ranked one behind each other):</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta http-equiv="refresh" content="5"/&gt;
+    &lt;title&gt;05 get refresh.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: ${get(3/1/21)}.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type>
+
+                <p>result in client:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta http-equiv="refresh" content="5"/&gt;
+    &lt;title&gt;05 get refresh.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type>
+
+                <p>Addition of <type>&lt;meta refresh.../&gt;</type> tag will cause that the browser will ask the web
+                server for new data each five seconds.</p>
+              </text>
+            </section>
+
+            <section label="secGetWix" level="3">
+              <title>Wix<c.special what="dash" />the measuring software</title>
+
+              <text>
+                <p>Wix is a product of Papouch, s.r.o. company (<uri>www.papouch.com</uri>) targeted to fast and simple
+                presentation of data (values and graphs) read from measuring sensors produced by the company. As Wix
+                uses standard XML format for value transfers, SmartServer can be used (its web interface) as Wix data
+                source too.</p>
+
+                <p>Wix uses a special number format in its messages. To be able to use the number format, SmartServer
+                defines a special <type>getwix</type> function (for <type>get</type> function see the chapter <in
+                label="secUserPages"></in>).</p>
+
+                <p><type>getwix</type> function, in opposite to <type>get</type> function, returns all numbers ten times
+                greater and without the fraction part (to test the feature, simply <type>${get(...)}</type> can be
+                replaced with <type>${getwix(...)}</type> in all previously described examples).</p>
+
+                <p>The simplest wix data message looks like (more about Wix message format you can see in Wix
+                documentation):</p>
+
+                <p.type>&lt;thermometer&gt; 
+  &lt;temperature&gt;235&lt;/temperature&gt; 
+&lt;/thermometer&gt;</p.type>
+
+                <p>To get this message from SmartServer in a correct form, the user web page <file>pt.xml</file> file
+                must contain the following wrapping tags:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/plain"&gt;
+
+  &lt;thermometer&gt; 
+    &lt;temperature&gt;${getWix(1/1/1)}&lt;/temperature&gt; 
+  &lt;/thermometer&gt;
+
+&lt;/pageTemplate&gt;</p.type>
+
+                <p>Wix can be downloaded from the page <uri>http://www.papouch.com/<c.special
+                what="breakhint" />shop/<c.special what="breakhint" />scripts/<c.special
+                what="break" />_ruzne.asp?<c.special what="breakhint" />clanek=wix</uri>.</p>
+
+                <warning><p>Wix is not a product of NeNo company. NeNo company helds no warranty for it.</p></warning>
+
+                <p>SmartServer installation contains an example of Wix setting, see the chapter <in
+                label="secWixExample"></in>.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+
+        <section level="2">
+          <title>Interface for clients</title>
+
+          <text>
+            <section level="3">
+              <title>SDAP, line oriented text interface</title>
+
+              <text>
+                <p>SDAP (Simple Data Access Protocol) allows a remote access to the server data items and concurrently
+                also allows to perform some administrative tasks. SDAP is a text line protocol transferred with help of
+                TCP from the SmartServer on port <number>6007</number>. After connection to the server, no control data
+                are transferred by the protocol. After its establishing, the connection is permanent till its
+                termination by the client. In case of unrecognised outage of the network, the server will complete the
+                connection to 2 minutes, approximately.</p>
+
+                <p>SDAP confirms (response) all orders/requirements for server (request). If the confirmation will not
+                come after sending of the command, the command was neither accepted, nor elaborated. All commands and
+                responses are completed with signs CR and LF.</p>
+
+                <p>SDAP response to requirements by the line with status code, behind which, in some responses, there
+                may follow more next lines with information. The format of the status code is:</p>
+
+                <p.type>XXX.Y</p.type>
+
+                <p>or</p>
+
+                <p.type>XXX.Y N</p.type>
+
+                <p>where <type>XXX.Y</type> is the status code itself, <type>N</type> is the number of following lines
+                with next information and <type>Y</type> is an optional part further specifying the place of error (e.g.
+                number of parameter, which was erroneous).</p>
+
+                <dl class="dlHanging">
+                  <caption>Meaning of single status codes is as follows (2XX are affirmative responses, 3XX are
+                  temporary statuses, 4XX are errors on client’s side and 5XX are errors on server’s side):</caption>
+
+                  <dt>200</dt>
+
+                  <dd><p>The request was completely processed.</p></dd>
+
+                  <dt>201</dt>
+
+                  <dd><p>The request was processed, nevertheless, the server has no connection with EIB and data were
+                  only stored in the cache server.</p></dd>
+
+                  <dt>202</dt>
+
+                  <dd><p>Data advised by the server.</p></dd>
+
+                  <dt>300</dt>
+
+                  <dd><p>Operation is running.</p></dd>
+
+                  <dt>400</dt>
+
+                  <dd><p>Missing command in the request.</p></dd>
+
+                  <dt>401</dt>
+
+                  <dd><p>The request contains an unknown command.</p></dd>
+
+                  <dt>402</dt>
+
+                  <dd><p>The command is known, but its subcommand is not known.</p></dd>
+
+                  <dt>403</dt>
+
+                  <dd><p>Wrong number of parameters.</p></dd>
+
+                  <dt>404</dt>
+
+                  <dd><p>Wrong value of the parameter.</p></dd>
+
+                  <dt>405</dt>
+
+                  <dd><p>Unknown, non-existing source (e.g. non-existing data item).</p></dd>
+
+                  <dt>406</dt>
+
+                  <dd><p>Error during loading parameters (configuration).</p></dd>
+
+                  <dt>407</dt>
+
+                  <dd><p>Data item is read only.</p></dd>
+
+                  <dt>500</dt>
+
+                  <dd><p>Internal non-distinguished server error.</p></dd>
+
+                  <dt>501</dt>
+
+                  <dd><p>The service is not available (e.g. server is not running, etc.).</p></dd>
+
+                  <dt>502</dt>
+
+                  <dd><p>Non-supported requirement or command. The command is allowed in SDAP, but the server does not
+                  support it.</p></dd>
+                </dl>
+
+                <dl class="dlCommon">
+                  <caption>SDAP distinguishes following commands:</caption>
+
+                  <dt><type>exit</type></dt>
+
+                  <dd><p>The server terminates the connection with the client (but continues in activity). No return
+                  code.</p></dd>
+
+                  <dt><type>set</type></dt>
+
+                  <dd><p>Data are recorded to the server. The command format is <type>set group value</type>, where the
+                  <type>group</type> is the data item of the server (some group address) and the <type>value</type> is
+                  the value corresponding to the data type of the item. Example: <type>set 3/1/0 true</type>.</p><p>Possible
+                  return codes are: 200, 201, 405 a 5XX.</p><p>Example of communication to server:</p><p.type>set 3/1/0 false
+201</p.type></dd>
+
+                  <dt><type>get</type></dt>
+
+                  <dd><p>Loads data from the server. The command format is <type>get group</type>, where the <type>group</type>
+                  is the server data item (some group address). Example: <type>get 3/1/1</type>.</p><p>The server
+                  responds with return code 200 N, 201 N, 405 and 5XX, whereas N designates the number of following
+                  lines with values of data items in the form of the <type>group value</type>. The <type>value</type> is
+                  the value loaded from the server data item.</p><p>Example of communication to server:</p><p.type>get 3/1/1
+200 1
+3/1/1 30.5</p.type></dd>
+
+                  <dt><type>run</type></dt>
+
+                  <dd><p>The server starts, possible return codes are 200, 300 and 5XX.</p></dd>
+
+                  <dt><type>stop</type></dt>
+
+                  <dd><p>The server stops (is disconnected from EIB), possible return codes are 200 and 5XX.</p></dd>
+
+                  <dt><type>advise</type></dt>
+
+                  <dd><p>It subscribes the data object for advising, the server announces itself to the client the
+                  changes in object data. The command format is <type>advise group</type>, where <type>group</type> is
+                  the server data object (some group address) or <type>advise all</type>. <type>advise all</type>
+                  subscribes all server data objects for taking. Example: <type>advise 3/1/1</type> or <type>advise all</type>.</p><p>The
+                  server responds with return code 200, 405 and 5XX.</p><p>Example of communication with the
+                  server:</p><p.type>advise 3/1/1
+200</p.type><p>After subscribing of advising of values, the server monitors changes in taken data objects and in case of
+                  change it sends a message to the client with return code 202 N, where N designates the number of
+                  following lines with values of data objects in the form of <type>group value</type>. The <type>value</type>
+                  is the new value of the server data object.</p><p>Example of delivery of advised data:</p><p.type>202 1
+3/1/1 30.5</p.type></dd>
+
+                  <dt><type>unadvise</type></dt>
+
+                  <dd><p>Cancels advising of the data object. The command format is <type>unadvise group</type>, where
+                  <type>group</type> is the server data object (group address), or <type>unadvise all</type> (if
+                  advising of all data items is cancelled).</p><p>The server responds with return code 200, 405 and
+                  5XX.</p><p>Example of communication with the server:</p><p.type>unadvise all
+200</p.type></dd>
+                </dl>
+
+                <p>SmartServer also allows, using SDAP, reading of some of status data. The way how status data is read
+                is the same as for data items. Command <type>get</type> is used, only group address is replaced with
+                status object name (like Control.Connected in the example):</p>
+
+                <p.type>get Control.Connected
+200 1
+Control.Connected true</p.type>
+
+                <dl>
+                  <caption>SmartServer supports the following status objects:</caption>
+
+                  <dt><type>Control.Connected</type> (switch)</dt>
+
+                  <dd><p>State of connection to KNX, <type>true</type> value means that KNX is connected, <type>false</type>
+                  means that KNX is disconnected.</p></dd>
+
+                  <dt><type>System.Licensing.SerialNumber</type> (string)</dt>
+
+                  <dd><p>Licensing number of SmartServer.</p></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>XMLSocket</title>
+
+              <text>
+                <p>XMLSocket interface allows the data exchange with the server. XMLSocket is a line text protocol,
+                which is transferred TCP from the server on port 6006 with help of TCP. Each line of the protocol
+                contains well formed XML with data details. After its establishing, the connection is permanent till its
+                termination by the client. In case of unrecognised outage of the network, the server will complete the
+                connection to 2 minutes, approximately.</p>
+
+                <p>XML in the protocol has following format (example of real XML):</p>
+
+                <p.type>&lt;xmlsocket&gt;
+  &lt;notify&gt;
+    &lt;name&gt;3/1/0&lt;/name&gt;
+    &lt;value&gt;true&lt;/value&gt;
+  &lt;/notify&gt;
+&lt;/xmlsocket&gt;</p.type>
+
+                <p>The group address in the <type>name</type> tag need not be known to the server, in such case the
+                server ignores the requirement. Inside one <type>xmlsocket</type> tag, there may be more <type>notify</type>
+                tags, which allows to transfer more values by one communication.</p>
+
+                <p>XMLSocket protocol is especially the event one, the server sends to the client the data at their
+                change. Nevertheless, the client has also the possibility to ask the server for data, e.g. when the
+                animation in Flash starts. The format of requesting of data and value from the server is (example of
+                real XML):</p>
+
+                <p.type>&lt;xmlsocket&gt;
+  &lt;ask&gt;
+    &lt;name&gt;2/0/0&lt;/name&gt;
+  &lt;/ask&gt;
+&lt;/xmlsocket&gt;</p.type>
+
+                <p>There may be also more <type>ask</type> tags inside the <type>xmlsocket</type> one, so the client may
+                ask for more data together by one communication.</p>
+
+                <p>The last option of XMLSocket interface is driving of EIB/KNX connection. There are tags <type>&lt;connect/&gt;</type>
+                and <type>&lt;disconnect/&gt;</type> which connect or disconnect the server and the EIB/KNX interface.
+                Examples of connect and disconnect request are:</p>
+
+                <p.type>&lt;xmlsocket&gt;
+  &lt;connect/&gt;
+&lt;/xmlsocket&gt;</p.type>
+
+                <p.type>&lt;xmlsocket&gt;
+  &lt;disconnect/&gt;
+&lt;/xmlsocket&gt;</p.type>
+
+                <p>XMLSocket is able to detect KNX connection status similarly as SDAP, if name of special logical data
+                object <type>Control.Connected</type> is used. Example of advise message from server:</p>
+
+                <p.type>&lt;xmlsocket&gt;
+  &lt;notify&gt;
+    &lt;name&gt;Control.Connected&lt;/name&gt;
+    &lt;value&gt;false&lt;/value&gt;
+   &lt;/notify&gt;
+&lt;/xmlsocket&gt;</p.type>
+              </text>
+            </section>
+          </text>
+        </section>
+
+        <section level="2">
+          <title>Examples of clients</title>
+
+          <text>
+            <p>In the SmartServer installation there are included three examples of clients. The first client
+            (<file>Examples\Philips Pronto</file>) uses SDAP for communication, the second client (<file>Examples\Adobe
+            Flash</file>) uses XMLSocket for communication and the third one (<file>Examples\Wix</file>) uses pure web
+            interface of SmartServer.</p>
+
+            <section level="3">
+              <title>Philips Pronto</title>
+
+              <text>
+                <p>Philips Pronto is an universal remote controller with support of graphics, touch display, WiFi
+                communication and full support of programming. The support for general programs allows to create in
+                Pronto the communication interface for SDAP, with which information from EIB will get inside the Pronto
+                application and vice versa, and with help of which the program (user) may remotely control EIB.</p>
+
+                <p>JavaScript is the programming language of Pronto (the same language is used for client programming in
+                Internet pages), ProntoEdit Professional serves for programming of Pronto, the program is free available
+                for loading on pages <uri>http://www.pronto.philips.com</uri> (where, of course, a lot of information
+                about Pronto and its use can be found).</p>
+
+                <dl>
+                  <caption>Following files are in the example:</caption>
+
+                  <dt><file>Template.xcf</file></dt>
+
+                  <dd><p>A file with frame of application for Pronto. The application can be directly loaded to
+                  ProntoEdit and further modified. The application contains several displays for the A/V control and two
+                  displays (inside EIB equipment), which allow to control lights and blinds.</p><p>In the example, there
+                  is immediately obvious the kind of communication with EIB: The main JavaScript connected with the EIB
+                  equipment assures the communication with help of SDAP; what and how should be communicated<c.special
+                  what="dash" />this complies each of both immersed screens at its display to the main JavaScript and it
+                  itself then reach on incoming values. </p><p>The main communication script is stored in <gui>EIB/EIB
+                  Properties</gui> branch in <gui>Advanced</gui> tab.</p></dd>
+
+                  <dt><file>Main.js</file></dt>
+
+                  <dd><p>The main JavaScript are independently separated from previous file for simpler view. <type>IP_ADDRESS</type>
+                  variable is defined in introduction of the script; at the use it must be set to proper address of the
+                  SmartServer.</p><p>Functions <type>System.SetReadObjects</type>, <type>System.PageUpdate</type> and
+                  <type>System.ConnectionCheck</type> are the part of this script. These methods use scripts of pages
+                  for setting of communication of requested data items, reaction to their value and the new value and
+                  reaction to actual status of the communication. </p><p>Connection with the server is repeatedly
+                  established and terminated, because Pronto Script at transfer to StandBy mode incorrectly closes the
+                  TCP connection.</p></dd>
+
+                  <dt><file>Page.js</file></dt>
+
+                  <dd><p>JavaScript from the page for control of lights. In <file>Template.xcf</file>, the script is
+                  recorded in <gui>EIB/Lights</gui> branch in <gui>Advanced</gui> tab. </p><p>The above-mentioned
+                  methods from <file>Main.js</file> script are clearly used in the script.</p></dd>
+
+                  <dt><file>ButtonSwitch.js</file></dt>
+
+                  <dd><p>JavaScript from the push-button for switching-on and switching-off of the light. In
+                  <file>Template.xcf</file>, the script is recorded in <gui>Templates/Lights</gui> branch, in
+                  <gui>Light</gui> push-button, in <gui>Actions</gui> tab. </p><p>The script for the change of status of
+                  the server data object refers to variables defined in <file>Page.js</file> script.</p></dd>
+
+                  <dt><file>ButtonDim.js</file></dt>
+
+                  <dd><p>JavaScript from the push-button for dimming (reduction of brightness). In
+                  <file>Template.xcf</file>, the script is recorded in <gui>Templates/Lights</gui> branch, in
+                  <gui>Dimming</gui> push-button, in <gui>Actions</gui> tab.</p><p>The script for dimming (at holding of
+                  the push-button the brightness is continuously reduced), the script refers to variables defined in
+                  <file>Page.js</file> script.</p></dd>
+
+                  <dt><file>BlindsDown.js</file></dt>
+
+                  <dd><p>JavaScript from the push-button for blind close. In <file>Template.xcf</file>, the script is
+                  recorded in <gui>Templates/Blinds</gui> branch, in <gui>BlindsDown</gui> push-button, in
+                  <gui>Actions</gui> tab.</p><p>The script starts long movement (<type>CentralLong</type>) and counts
+                  time of button pressing. If the button is released in two seconds, the script stops the movement by
+                  writing a value to <type>CentralStep</type> object.</p></dd>
+                </dl>
+
+                <p>The following example shows page script (similar to <file>Page.js</file>) with explanation of its
+                parts. For better understanding it is good to know ProntoScript and JavaScript language in common:</p>
+
+                <p.type>// 1.
+deviceState = new CO( "3/0/12", "switch", widget( "DeviceDisplay" ));
+// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( new Array(
+  deviceState
+));
+
+// 5.
+System.PageUpdate = function( CO ) {
+  if( CO.widget == null ) {
+    // do nothing
+  } else if( CO.value == "true" ) {
+    CO.widget.setImage( CF.widget( "On1", "Res", "Sys" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "On2", "Res", "Sys" ).getImage(), 1 );
+  } else {
+    CO.widget.setImage( CF.widget( "Off1", "Res", "Sys" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "Off2", "Res", "Sys" ).getImage(), 1 );
+  }
+}</p.type>
+
+                <il numbered="yes">
+                  <caption>Meaning of the parts:</caption>
+
+                  <li><p>Here data object (= communication object = CO) with help of three-parameter constructor (<type>CO</type>)
+                  allowing store of user interface widget (function <type>widget</type> of ProntoScript, see
+                  ProntoScript documentation) is created. The object with group address <type>3/0/12</type> and of type
+                  <type>switch</type> is created, moreover, the object remembers reference to user interface widget
+                  named <gui>DeviceDisplay</gui>. The reference will be used later (in the <type>PageUpdate</type>
+                  function).</p></li>
+
+                  <li><p>Two-parameter constructor <type>CO</type> does not store any user interface reference. This is
+                  typical for data objects used only for sending values to SmartServer. Next in the script the object is
+                  not used, it also shows that objects is used later elsewhere. The data objects is only prepared by the
+                  page script.</p></li>
+
+                  <li><p>Usage of <file>Main.js</file> script function <type>ConnectionCheck</type>.
+                  <file>Main.js</file> calls <type>ConnectionCheck</type> (if it is not <type>null</type>) periodicaly,
+                  so the page script can display connection status. The used script searches for display widget named
+                  <gui>ConnectionStatus</gui> and sets its displayed image.</p></li>
+
+                  <li><p>Another <file>Main.js</file> function. Calling of <type>SetReadObjects</type> forces
+                  <file>Main.js</file> to periodicaly read values of all objects passed into the function. Page script
+                  does need bother with it anymore. If some value is read, <file>Main.js</file> calls <type>PageUpdate</type>
+                  function (if it is not <type>null</type>).</p><p>If pages are switched in Pronto application, <type>SetReadObjects</type>
+                  should be called with new data objects or with <type>null</type>, if no data should be read for the
+                  page.</p></li>
+
+                  <li><p><type>System.PageUpdate</type> function assignment, <file>Main.js</file> calls the function
+                  after each value receiving. In used script, there is reference to widget stored in data objects used
+                  for fast access to the widget<c.special what="dash" />for widget's image switching.</p></li>
+                </il>
+
+                <p>Scripts for Pronto allows arbitrary programming, so all shown examples can be modified or extended
+                according to particular application needs. Next example shows page script, which does not display any
+                changed values (it, e.g., contains only control buttons):</p>
+
+                <p.type>// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( null );
+
+// 5.
+System.PageUpdate = null;</p.type>
+
+                <p>In the page with both shown scripts there can be for example the button containing the following
+                script:</p>
+
+                <p.type>deviceControl.Write( "true" );</p.type>
+
+                <p>The last example shows start of <file>Main.js</file>, where principal constants are defined. These
+                constants are freely modifiable:</p>
+
+                <p.type>var DEBUG = true;
+var CORE_PERIOD = 200;
+var COMMUNICATE_EACH = 4; // count of periods
+
+var IP_ADDRESS = "10.0.1.133";
+var IP_PORT = "6007";</p.type>
+
+                <dl>
+                  <caption>Meanings of constats are:</caption>
+
+                  <dt><type>DEBUG</type></dt>
+
+                  <dd><p>Settings of debugging information flag, example scripts use the flag rarely.</p></dd>
+
+                  <dt><type>CORE_PERIOD</type></dt>
+
+                  <dd><p>Period in milliseconds, internal tick of <file>Main.js</file> script. In the ticks, e.g., the
+                  liveness of connection is checked. Shorter times could bring some problems due to performance of
+                  Pronto and due to communication medium used (WiFi).</p></dd>
+
+                  <dt><type>COMMUNICATE_EACH</type></dt>
+
+                  <dd><p>Number of <type>CORE_PERIOD</type> periods, after which <file>Main.js</file> reads data objects
+                  stated by <type>SetReadObjects</type> function call.</p></dd>
+
+                  <dt><type>IP_ADDRESS</type></dt>
+
+                  <dd><p>IP address of computer running SmartServer.</p></dd>
+
+                  <dt><type>IP_PORT</type></dt>
+
+                  <dd><p>IP port on which SmartServer listens for incoming connections.</p></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Adobe (Macromedia) Flash</title>
+
+              <text>
+                <p>Adobe Flash is, similarly as Pronto, fully programmable. By coincidence of accidents, Macromedia for
+                Flash also used the JavaScript program language, even when it was commercially named as ActionScript.
+                ActionScript directly supports XMLSocket interface, so the data exchange with the SmartServer is easy
+                (it lies in break and assembling of XML).</p>
+
+                <dl>
+                  <caption>Following files are in the example for Adobe Flash:</caption>
+
+                  <dt><file>SmartServerConnector.as</file></dt>
+
+                  <dd><p>File with example of the main communication script, which as analyses XML, as calls animation
+                  procedures for needed elements announcing changes of the value (to elements, which are
+                  registered).</p><p>Implementation of communication is encased to <type>SmartServerConnector</type>
+                  class, the class of program in Flash offers <type>Connect</type>, <type>Close</type>, <type>AskValue</type>
+                  and <type>Send</type> methods and <type>onConnect</type>, <type>onClose</type> and <type>onReceive</type>
+                  events (which may be followed by the program).</p></dd>
+
+                  <dt><file>send.as</file></dt>
+
+                  <dd><p>File with example of assembling and sending of data from Flash to the SmartServer.</p><p>The
+                  script, for example, defines <type>Connection</type> variable, which is the communication class from
+                  <file>SmartServerConnector.as</file> class, and calls its <type>Connect</type> method. In real
+                  application, this code will be probably located in another place, then in servicing of user’s event of
+                  the push-button.</p></dd>
+
+                  <dt><file>SmartServer.fla</file></dt>
+
+                  <dd><p>A source file of very simple animation with two push-buttons (one for loading of the value, the
+                  second one for the record). The file contains reference to above mentioned
+                  <file>SmartServerConnector.as</file> main script and uses them.</p></dd>
+                </dl>
+
+                <p>Example scripts can be inserted to application for Adobe Flash, e.g. using clipboard.</p>
+              </text>
+            </section>
+
+            <section label="secWixExample" level="3">
+              <title>Wix</title>
+
+              <text>
+                <il>
+                  <caption>To get Wix examples working, there are two steps which must be done:</caption>
+
+                  <li><p>User web pages of SmartServer must be prepared.</p></li>
+
+                  <li><p>Wix must be set up in way to read data from SmartServer.</p></li>
+                </il>
+
+                <dl>
+                  <caption>The first step, setting up of SmartServer, is the same as preparation of any other user web
+                  page (<file>pt.xml</file>) . The example (in the folder <file>Examples\Wix</file>) contains:</caption>
+
+                  <dt><file>default.cfg</file></dt>
+
+                  <dd><p>SmartServer configuration file, there are defined two data objects, each of object will be used
+                  in one of the following files.</p></dd>
+
+                  <dt><file>getwixLogical.xml</file></dt>
+
+                  <dd><p>The page offering a logical value to Wix.</p></dd>
+
+                  <dt><file>getwixNumber.xml</file></dt>
+
+                  <dd><p>The page offering a numerical value to Wix.</p></dd>
+                </dl>
+
+                <il>
+                  <caption>The second step, setting up of Wix, can be done:</caption>
+
+                  <li><p>Using the file <file>wx.core.cfg.xml</file> of the example. This Wix configuration file
+                  contains setting up of both sample data objects prepared in SmartServer. The file can simply be copied
+                  from the example to Wix just after installing it.</p></li>
+
+                  <li><p>Using standard Wix setup <gui>Add sensor</gui> function. To achieve correct communication with
+                  SmartServer, the sensor type <gui>TME-XML</gui> must be used and the correct user page address must be
+                  entered into <gui>XML server</gui> edit box (for instance, the example uses
+                  <uri>http://127.0.0.1:6005/<c.special what="breakhint" />SmartServer/<c.special
+                  what="breakhint" />User/<c.special what="breakhint" />getwixNumber.pt.xml</uri>).</p><p>Wix can
+                  display logical values as numbers (0 and 1), but both these values can also take so-called replacement
+                  text (see Wix documentation). As a result, the value can be displayed as fully descriptive two-stated
+                  text.</p><p>The sensor configuration is displayed in the following figure:</p><p.figure file="WixAdd"
+                      width="4cm">
+                      <caption>New sensor addition in Wix</caption>
+                    </p.figure></li>
+                </il>
+              </text>
+            </section>
+
+            <section label="secWixExample" level="3">
+              <title>RCWare</title>
+
+              <text>
+                <p>RCWare (<uri>http://rcware.eu/public/rcware</uri>) is a product of Domat Control System s.r.o.
+                company, which offers full possibility to control (soft PLC), visualize and to communicate with variety
+                of devices. SmartServer communicates with RCWare using SDAP, so in both environments there are all data
+                available.</p>
+
+                <dl>
+                  <caption>RCWare libraries for SDAP are installed with the product for newer versions, to get SDAP
+                  working in older versions the libraries must be copied from SmartServer installation. The libraries
+                  are installed in the folder <file>RCWare</file>, their targets differ for each of the file:</caption>
+
+                  <dt><file>ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll</file></dt>
+
+                  <dd><p>should be placed to <file>C:\Program Files\RcWare\SoftPLC\Drivers</file>.</p></dd>
+
+                  <dt><file>ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll</file></dt>
+
+                  <dd><p>should be placed to <file>C:\Program Files\RcWare\SoftPLC\Editors</file>.</p></dd>
+                </dl>
+
+                <p>RCWare itself is not a part of SmartServer installation, it must be downloaded from vendor's web
+                pages.</p>
+
+                <dl>
+                  <caption>Examples of RCWare cooperation with SmartServer are placed in <file>Examples\RCWare</file>
+                  folder:</caption>
+
+                  <dt><file>AirConditioning</file></dt>
+
+                  <dd><p>There is simple air quality control created in RCWare.</p></dd>
+
+                  <dt><file>ModbusWago</file></dt>
+
+                  <dd><p>There are two projects in the example, project for RCWare and a project for PLC Wago. RCWare
+                  application communicates with PLC using Modbus protocol, the project od PLC realizes a simple control
+                  algorithm.</p></dd>
+                </dl>
+
+                <warning><p>RCWare is not a product of NeNo company. NeNo company helds no warranty for it and does not
+                support it.</p></warning>
+              </text>
+            </section>
+
+            <section label="secWixExample" level="3">
+              <title>iWebKit/iPhone</title>
+
+              <text>
+                <dl>
+                  <caption>The example of iPhone (iPad) client; the example is created in iWebKit development tool
+                  (<uri>http://www.iwebkit.net</uri>). There are two files in <file>Examples\iWebKit</file>
+                  folder:</caption>
+
+                  <dt><file>iWebKit5.04.zip</file></dt>
+
+                  <dd><p>containing iWebKit tool installation, including documentation. Next information, how to use the
+                  toolkit, you can find on the mentioned web server.</p></dd>
+
+                  <dt><file>iphone.zip</file></dt>
+
+                  <dd><p>containing sample application displaying and setting values.</p></dd>
+                </dl>
+
+                <p>iWebKit uses HTML/HTTP, so it uses web browser (Safari on iPhone) for client communication. To get
+                the example working on SmartServer side the example (content of <file>iphone.zip</file>) must be copied
+                to the folder with SmartServer web.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+
+        <section level="2">
+          <title>Additional tools</title>
+
+          <text>
+            <dl class="dlCommon">
+              <caption>Except of examples, the main program and files of the SmartServer web interface contain several
+              tools, which may help at setting and diagnostics. All are installed as the part of the SmartServer and are
+              located in its installation directory. They are:</caption>
+
+              <dt><file>activate.exe</file></dt>
+
+              <dd><p>Program for activation of licences. Its usage is described in chapter <in.about
+              label="secInstallation"></in.about>.</p></dd>
+
+              <dt><file>discover.exe</file></dt>
+
+              <dd><p>A tool for browsing of local network, the result of work is the list of found Eib-Net/IP devices.
+              The program will find interfaces and routers. Example of the program output:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;discover
+  Searching...........................................
+  It was found 2 EIBNet/IP devices
+     1. IP Interface N148
+        MAC: 00-0E-8C-00-13-E8, IP: 10.0.0.6:3671
+     2. Internal Interface
+        MAC: 00-0E-8C-00-15-07, IP: 10.0.0.7:3671</p.type><p>Two devices were found, the devices have provided
+              information about self.</p></dd>
+
+              <dt><file>checkcfg.exe</file></dt>
+
+              <dd><p>Program for test of correctness of configuration file. The program loads configuration as the
+              server and writes found errors to the command line. In its output, the program may have more files (and
+              can verify them together then).</p><p>Example with right configuration:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;checkcfg default.cfg
+  default.cfg   OK      240 object/s</p.type><p>Example with wrong configuration:</p><p.type>C:\Program files\NeNo\EibSrv&gt;checkcfg default.cfg
+  default.cfg   ERROR
+    line 43: Unknown behaviour name (trac)</p.type></dd>
+            </dl>
+          </text>
+        </section>
+      </text>
+    </section>
+  </text>
+</document>

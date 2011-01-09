@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xsi:schemaLocation="http://schemas.microsoft.com/wix/2003/01/wi wix.xsd" xmlns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xse="http://schemas.microsoft.com/wix/2005/XmlSchemaExtension" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
+    <Product Codepage="$(var.CodePage)" Language="$(var.Language)" Manufacturer="$(var.Manufacturer)" Name="$(var.ProductDescription)" Version="$(var.ProductVersion)" Id="$(var.ProductGUID)" UpgradeCode="$(var.UpgradeGUID)">
+        <Package InstallerVersion="200" Compressed="yes" Id="????????-????-????-????-????????????" Languages="$(var.Language)" SummaryCodepage="$(var.CodePage)" />
+        <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1" />
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <?if $(var.CLib)=Shared ?>
+            <?if $(var.ConfigurationName)=Debug ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <?else ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <?endif ?>
+            <?endif ?>
+            <Directory Id="CommonAppDataFolder">
+                <Directory Id="NeNoData" Name="$(var.Manufacturer)">
+                    <Component Id="CommonAppFolderPermissions" Guid="04862C22-D968-4b8c-9B78-7BCD4190B11C">
+                        <CreateFolder>
+                            <Permission GenericAll="yes" User="SYSTEM" />
+                            <Permission GenericAll="yes" User="Administrators" />
+                            <Permission GenericRead="yes" GenericWrite="yes" GenericExecute="yes" Delete="yes" DeleteChild="yes" WriteAttributes="yes" WriteExtendedAttributes="yes" User="Users" />
+                            <Permission GenericRead="yes" GenericExecute="yes" User="Everyone" />
+                        </CreateFolder>
+                        <RemoveFolder Id="CommonAppFolderPermissionsRemove" On="uninstall"/>
+                    </Component>
+                </Directory>
+            </Directory>
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="NeNoProgram" Name="$(var.Manufacturer)">
+                    <Directory Id="INSTALLDIR" Name="SmartSrv" LongName="SmartServer">
+                        <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
+                            <File DiskId="1" Id="EibSrv.EXE" Name="EibSrv.exe" Source="EibSrv.exe" Vital="yes" KeyPath="yes" />
+                            <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Interactive="yes" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
+                                <ServiceDependency Id="Tcpip" />
+                            </ServiceInstall>
+                            <ServiceControl Id="SVCControlProgram" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                            <RemoveFolder Id="INSTALLDIRRemove" On="uninstall"/>
+                        </Component>
+                        <Component Guid="1FAB7C94-0544-4b30-80D9-2C824C43E4AD" Id="RuntimeLib">
+                            <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlRuntimeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="4FAC646A-EC30-4304-859A-14AB268C4B70" Id="MVCLib">
+                            <File Id="SCMVC.DLL" Name="SCMVC.dll" Source="SCMVC.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlMVCLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="14B49790-AE67-4a20-9852-C1935C7763D3" Id="DebugInfo">
+                            <File Id="EibSrv.PDB" Name="eibsrv.pdb" Source="eibsrv.pdb" DiskId="1" KeyPath="yes"/>
+                            <File Id="ScMvc.PDB" Name="scmvc.pdb" Source="scmvc.pdb" DiskId="1" />
+                            <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
+                            <File Id="EibSrv.MAP" Name="eibsrv.map" Source="eibsrv.map" DiskId="1" />
+                            <File Id="ScMvc.MAP" Name="scmvc.map" Source="scmvc.map" DiskId="1" />
+                            <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
+                        </Component>
+                        <Component Id="XMLLite.DLL" Guid="55B6DF2F-AD20-441f-9C80-562C89EE7A75">
+                            <File Id="xmllite.dll" Name="xmllite.dll" Source="$(var.BuildRoot)\xmllite.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="2C2ADF34-CF25-4d6a-9D1E-AFEBB50B9BFB" Id="ToolActivator">
+                            <File Id="Activate.EXE" Name="Activate.exe" Source="Activate.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="10E54A9E-6B54-4575-8462-3BA83C7242F1" Id="ToolSvcInst">
+                            <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="5D1E3BC9-F830-4214-8133-EA8711519553" Id="ToolCheckCfg">
+                            <File Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="EA0A744A-C7A9-4a5b-B3E3-5556DF659BB3" Id="ToolDiscover">
+                            <File Id="Discover.EXE" Name="Discover.exe" Source="Discover.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Id="Licence" Guid="BC838025-578C-46E8-A079-40E8B2134B03">
+                            <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" KeyPath="yes" />
+                            <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
+                        </Component>
+                        <Directory Id="RCWare" Name="RCWare">
+                            <Component Id="RCWareDLL1" Guid="36FD59CA-EAB9-457d-B031-57A1B469D5F5">
+                                <File Id="RCWareDLL1.dll" Name="RCWare1.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll"
+                                      Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            </Component>
+                            <Component Id="RCWareDLL2" Guid="428BF0C8-B96D-4894-A359-44297DF02B65">
+                                <File Id="RCWareDLL2.dll" Name="RCWare2.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll"
+                                      Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            </Component>
+                        </Directory>
+                        <?if $(var.LanguageName)=en ?>
+                            <Component Id="Documentation" Guid="D172AB6D-5999-4677-B590-8C5EB991973B">
+                                <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="Documentation" Advertise="yes" Icon="PDF.exe" />
+                                </File>
+                                <RemoveFolder Id="DocumentationFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="Changelog" Guid="1E7D7631-7496-4a06-8BF3-673DED82E3AD">
+                                <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="ChangeLogOpenShortcut" Directory="SmartServerDir" Name="Changes" LongName="Change log" Advertise="yes" Icon="TXT.exe" />
+                                </File>
+                                <RemoveFolder Id="ChangelogFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="DefaultConfiguration" Guid="A845DA49-44F1-40f9-BFAA-3110DC6FB7FF">
+                                <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuCFG" Directory="SmartServerDir" Name="CFG" LongName="Configuration" Advertise="yes" Icon="CFG.exe" />
+                                </File>
+                            </Component>
+                        <?endif ?>
+                        <?if $(var.LanguageName)=cs ?>
+                            <Component Id="Documentation" Guid="8FA98162-E511-435b-B80D-68149C625478">
+                                <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manuál" LongName="Dokumentace" Advertise="yes" Icon="PDF.exe" />
+                                </File>
+                                <RemoveFolder Id="DocumentationFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="Changelog" Guid="A72537D2-8BA9-4096-8BDC-0F25521F2049">
+                                <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="ChangeLogOpenShortcut" Directory="SmartServerDir" Name="Změny" LongName="Seznam změn" Advertise="yes" Icon="TXT.exe" />
+                                </File>
+                                <RemoveFolder Id="ChangelogFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="DefaultConfiguration" Guid="E3110039-B225-43ed-B91F-1C45A68D8B52">
+                                <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuCFG" Directory="SmartServerDir" Name="CFG" LongName="Konfigurace" Advertise="no" Icon="CFG.exe"
+                                              WorkingDirectory="INSTALLDIR" Target="[SystemFolder]notepad.exe" Arguments="[!default.cfg]" />
+                                </File>
+                            </Component>
+                        <?endif ?>
+                        <Directory Id="WEB" Name="Web">
+                            <Component Id="Web" Guid="7A88F76D-6C57-4047-95F6-79E8CB4730E4">
+                                <File Id="NeNo.css" LongName="NeNo.css" Name="NENO.CSS" Source="Web\NeNo.css" DiskId="1" />
+                                <File Id="Canvas.jpg" LongName="Canvas.jpg" Name="CANVAS.JPG" Source="Web\Canvas.jpg" DiskId="1" />
+                                <File Id="BackgroundStrip.png" LongName="BackgroundStrip.png" Name="BACKGRO.PNG" Source="Web\BackgroundStrip.png" DiskId="1" />
+                                <File Id="BackgroundStripThick.png" LongName="BackgroundStripThick.png" Name="BACKGROT.PNG" Source="Web\BackgroundStripThick.png" DiskId="1" />
+                                <File Id="control.pt.xml" LongName="control.pt.xml" Name="CONTROL.XML" Source="Web\control.pt.xml" DiskId="1" />
+                                <File Id="datalog.pt.xml" LongName="datalog.pt.xml" Name="DATALOG.XML" Source="Web\datalog.pt.xml" DiskId="1" />
+                                <File Id="io.pt.xml" LongName="io.pt.xml" Name="IO.XML" Source="Web\io.pt.xml" DiskId="1" />
+                                <File Id="login.pt.xml" LongName="login.pt.xml" Name="LOGIN.XML" Source="Web\login.pt.xml" DiskId="1" />
+                                <File Id="SmartServer.xrs.xml" LongName="SmartServer.xrs.xml" Name="SMARTSE.XML" Source="Web\SmartServer.xrs.xml" DiskId="1" />
+                                <File Id="status.pt.xml" LongName="status.pt.xml" Name="STATUS.XML" Source="Web\status.pt.xml" DiskId="1" />
+                                <File Id="syslog.pt.xml" LongName="syslog.pt.xml" Name="SYSLOG.XML" Source="Web\syslog.pt.xml" DiskId="1" />
+                                <File Id="Transparent.png" LongName="Transparent.png" Name="TRANSPA.PNG" Source="Web\Transparent.png" DiskId="1" />
+                                <File Id="TransparentBig.png" LongName="TransparentBig.png" Name="TRANSPB.PNG" Source="Web\TransparentBig.png" DiskId="1" />
+                                <File Id="index.pt.xml" LongName="index.pt.xml" Name="INDEX.XML" Source="Web\index.pt.xml" DiskId="1" />
+                                <File Id="Edit24.png" Name="Edit24.png" Source="Web\Edit24.png" DiskId="1" />
+                                <File Id="Trash24.png" Name="Trash24.png" Source="Web\Trash24.png" DiskId="1" />
+                                <File Id="Add24.png" Name="Add24.png" Source="Web\Add24.png" DiskId="1" />
+                                <File Id="users.pt.xml" LongName="users.pt.xml" Name="USERS.XML" Source="Web\users.pt.xml" DiskId="1" />
+                                <File Id="userEdit.pt.xml" LongName="userEdit.pt.xml" Name="USEREDIT.XML" Source="Web\userEdit.pt.xml" DiskId="1" />
+                                <File Id="roleEdit.pt.xml" LongName="roleEdit.pt.xml" Name="ROLEEDIT.XML" Source="Web\roleEdit.pt.xml" DiskId="1" />
+                                <File Id="userLogin.pt.xml" LongName="userLogin.pt.xml" Name="USERLOG.XML" Source="Web\userLogin.pt.xml" DiskId="1" />
+                                <File Id="userLoginCanvas.jpg" LongName="userLoginCanvas.jpg" Name="UCANVAS.JPG" Source="Web\userLoginCanvas.jpg" DiskId="1" />
+                                <File Id="error.401.pt.xml" LongName="error.401.pt.xml" Name="err401.XML" Source="Web\error.401.pt.xml" DiskId="1" />
+                            </Component>
+                            <Directory Id="UserWeb" Name="User">
+                                <Component Id="UserWeb" Guid="FDF719DB-B1DA-4401-BE5F-1FA854E7DB2D">
+                                    <File Id="index.html" LongName="index.html" Name="INDEX.HTM" Source="Web\User\index.html" DiskId="1" />
+                                </Component>
+                                <Component Id="UserWebExamples" Guid="38BA6B3C-694C-4AB4-A37C-337CF20F58AD">
+                                    <File Id="_01_get.pt.xml" LongName="01 get.pt.xml" Name="01GET.XML" Source="Web\User\01 get.pt.xml" DiskId="1" />
+                                    <File Id="_02_set.pt.xml" LongName="02 set.pt.xml" Name="02SET.XML" Source="Web\User\02 set.pt.xml" DiskId="1" />
+                                    <File Id="_03_style.pt.xml" LongName="03 style.pt.xml" Name="03STYLE.XML" Source="Web\User\03 style.pt.xml" DiskId="1" />
+                                    <File Id="_04_set.pt.xml" LongName="04 set.pt.xml" Name="04SET.XML" Source="Web\User\04 set.pt.xml" DiskId="1" />
+                                    <File Id="_05_get_refresh.pt.xml" LongName="05 get refresh.pt.xml" Name="05GETRE.XML" Source="Web\User\05 get refresh.pt.xml" DiskId="1" />
+                                    <File Id="_06_input.pt.xml" LongName="06 input.pt.xml" Name="06INPUT.XML" Source="Web\User\06 input.pt.xml" DiskId="1" />
+                                    <File Id="_07_dimming.pt.xml" LongName="07 dimming.pt.xml" Name="07DIM.XML" Source="Web\User\07 dimming.pt.xml" DiskId="1" />
+                                    <File Id="_08_push_button.pt.xml" LongName="08 push button.pt.xml" Name="08PUSHB.XML" Source="Web\User\08 push button.pt.xml" DiskId="1" />
+                                    <File Id="_09_table.pt.xml" LongName="09 table.pt.xml" Name="09TABLE.XML" Source="Web\User\09 table.pt.xml" DiskId="1" />
+                                    <File Id="_10_relations.pt.xml" LongName="10 relations.pt.xml" Name="10RELAT.XML" Source="Web\User\10 relations.pt.xml" DiskId="1" />
+                                    <File Id="_11_intervals.pt.xml" LongName="11 intervals.pt.xml" Name="11INTER.XML" Source="Web\User\11 intervals.pt.xml" DiskId="1" />
+                                    <File Id="_singlerole.pt.xml" LongName="singlerole.pt.xml" Name="ONEROLE.XML" Source="Web\User\singlerole.pt.xml" DiskId="1" />
+                                    <File Id="_multipleroles.pt.xml" LongName="multipleroles.pt.xml" Name="MUTLROLE.XML" Source="Web\User\multipleroles.pt.xml" DiskId="1" />
+                                </Component>
+                            </Directory>
+                        </Directory>
+                        <Directory Id="ETS3" Name="ETS3">
+                            <Component Id="ETSPR3" Guid="B4DD0905-C693-45b2-B846-E6AA106BD0DB">
+                                <File Id="VirtualObjectServer.pr3" LongName="Virtual Object Server.pr3" Name="VirtSrv.pr3" Source="ETS3\Virtual Object Server.pr3" DiskId="1" />
+                            </Component>
+                        </Directory>
+                        <Directory Id="EXAMPLES" Name="Examples">
+                            <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
+                                <File Id="_01_test_direct.cfg" LongName="01 test-direct.cfg" Name="01TEST.CFG" Source="Examples\01 test-direct.cfg" DiskId="1" />
+                                <File Id="_02_test_nat.cfg" LongName="02 test-nat.cfg" Name="02TEST.CFG" Source="Examples\02 test-nat.cfg" DiskId="1" />
+                                <File Id="_03_test_routing.cfg" LongName="03 test-routing.cfg" Name="03TEST.CFG" Source="Examples\03 test-routing.cfg" DiskId="1" />
+                                <File Id="_04_init_read.cfg" LongName="04 init-read.cfg" Name="04INIT.CFG" Source="Examples\04 init-read.cfg" DiskId="1" />
+                                <File Id="_06_complex_object.cfg" LongName="06 complex-object.cfg" Name="06COMPL.CFG" Source="Examples\06 complex-object.cfg" DiskId="1" />
+                                <File Id="_08_blocks.cfg" LongName="08 blocks.cfg" Name="08BLOCK.CFG" Source="Examples\08 blocks.cfg" DiskId="1" />
+                                <File Id="_09_ETS_Opc.cfg" LongName="09 ETS-Opc.cfg" Name="09ETS.CFG" Source="Examples\09 ETS-Opc.cfg" DiskId="1" />
+                                <File Id="_09_test.esf" LongName="09 test.esf" Name="09TEST.ESF" Source="Examples\09 test.esf" DiskId="1" />
+                                <File Id="_10_debug_trace.cfg" LongName="10 debug-trace.cfg" Name="10DEBUG.CFG" Source="Examples\10 debug-trace.cfg" DiskId="1" />
+                                <File Id="_11_debug_all.cfg" LongName="11 debug-all.cfg" Name="11DEBUG.CFG" Source="Examples\11 debug-all.cfg" DiskId="1" />
+                                <File Id="_12_test_logged.cfg" LongName="12 test-logged.cfg" Name="12TEST.CFG" Source="Examples\12 test-logged.cfg" DiskId="1" />
+                                <File Id="_13_reader.cfg" LongName="13 reader.cfg" Name="12READER.CFG" Source="Examples\13 reader.cfg" DiskId="1" />
+                            </Component>
+                            <Directory Id="Adobe_Flash" LongName="Adobe Flash" Name="Flash">
+                                <Component Id="ExamplesFlash" Guid="61E9CC52-47B5-48f3-8EC6-99D1894F9C20">
+                                    <File Id="SmartServerConnector.as" LongName="SmartServerConnector.as" Name="SRVCONN.AS" Source="Examples\Adobe Flash\SmartServerConnector.as" DiskId="1" />
+                                    <File Id="Send.as" LongName="Send.as" Name="SEND.AS" Source="Examples\Adobe Flash\Send.as" DiskId="1" />
+                                    <File Id="SmartServer.fla" LongName="SmartServer.fla" Name="SMARTSRV.FLA" Source="Examples\Adobe Flash\SmartServer.fla" DiskId="1" />
+                                </Component>
+                            </Directory>
+                            <Directory Id="Philips_Pronto" LongName="Philips Pronto" Name="Pronto">
+                                <Component Id="ExamplesPronto" Guid="CA0905D8-C0F5-4cf5-81EE-8427C8D63071">
+                                    <File Id="BlindsDown.js" LongName="BlindsDown.js" Name="BLINDS.JS" Source="Examples\Philips Pronto\BlindsDown.js" DiskId="1" />
+                                    <File Id="ButtonDim.js" LongName="ButtonDim.js" Name="BUTTOND.JS" Source="Examples\Philips Pronto\ButtonDim.js" DiskId="1" />
+                                    <File Id="ButtonSwitch.js" LongName="ButtonSwitch.js" Name="BUTTONS.JS" Source="Examples\Philips Pronto\ButtonSwitch.js" DiskId="1" />
+                                    <File Id="Main.js" LongName="Main.js" Name="MAIN.JS" Source="Examples\Philips Pronto\Main.js" DiskId="1" />
+                                    <File Id="Page.js" LongName="Page.js" Name="PAGE.JS" Source="Examples\Philips Pronto\Page.js" DiskId="1" />
+                                    <File Id="TemperaturesPage.js" LongName="TemperaturesPage.js" Name="TEMPPAGE.JS" Source="Examples\Philips Pronto\TemperaturesPage.js" DiskId="1" />
+                                    <File Id="Template_TSU9400_v2.xcf" LongName="Template_TSU9400_v2.xcf" Name="TEMP4V2.XCF" Source="Examples\Philips Pronto\Template_TSU9400_v2.xcf" DiskId="1" />
+                                    <File Id="Template_TSU9600_v1.xcf" LongName="Template_TSU9600_v1.xcf" Name="TEMP6V1.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v1.xcf" DiskId="1" />
+                                    <File Id="Template_TSU9600_v2.xcf" LongName="Template_TSU9600_v2.xcf" Name="TEMP6V2.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v2.xcf" DiskId="1" />
+                                </Component>
+                            </Directory>
+                            <Directory Id="Wix" Name="Wix">
+                                <Component Id="ExamplesWix" Guid="7196E9D5-DA50-4d9c-8500-94A6286210BD">
+                                    <File Id="wixDefault.cfg" Name="default.cfg" Source="Examples\Wix\default.cfg" DiskId="1" />
+                                    <File Id="getwixLogical.xml" Name="getwlog.xml" LongName="getwixLogical.pt.xml" Source="Examples\Wix\getwixLogical.pt.xml" DiskId="1" />
+                                    <File Id="getwixNumber.xml" Name="getwnum.xml" LongName="getwixNumber.pt.xml" Source="Examples\Wix\getwixNumber.pt.xml" DiskId="1" />
+                                    <File Id="wx.core.cfg.xml" Name="wix.cfg" LongName="wx.core.cfg.xml" Source="Examples\Wix\wx.core.cfg.xml" DiskId="1" />
+                                </Component>
+                            </Directory>
+                            <Directory Id="RCWareRoot" Name="RCWare">
+                                <Directory Id="RCWareAirConditioning" Name="AirCond" LongName="AirConditioning">
+                                    <Component Id="RCWE01" Guid="DB79D9E1-4536-45c1-B3B9-FBF8C5295D6D">
+                                        <File Id="RCWE0101" Name="File0101" LongName="Doudová.splcsln" Source="Examples\RCWare\AirConditioning\Doudová.splcsln" DiskId="1" />
+                                    </Component>
+                                    <Directory Id="RCWareAirConditioningVZT" Name="VZT">
+                                        <Component Id="RCWE02" Guid="D5B20714-37CF-472a-A4E9-FF0FF2593185">
+                                            <File Id="RCWE0201" Name="File0201" LongName="VZT.fupla" Source="Examples\RCWare\AirConditioning\VZT\VZT.fupla" DiskId="1" />
+                                            <File Id="RCWE0202" Name="File0202" LongName="VZT.hwvisual" Source="Examples\RCWare\AirConditioning\VZT\VZT.hwvisual" DiskId="1" />
+                                            <File Id="RCWE0203" Name="File0203" LongName="VZT.opcdef" Source="Examples\RCWare\AirConditioning\VZT\VZT.opcdef" DiskId="1" />
+                                            <File Id="RCWE0204" Name="File0204" LongName="VZT.splcproj" Source="Examples\RCWare\AirConditioning\VZT\VZT.splcproj" DiskId="1" />
+                                        </Component>
+                                        <Directory Id="RCWareAirConditioningVZTFUPLA" Name="FUPLA">
+                                            <Component Id="RCWE03" Guid="3C22D0B3-8B2A-4026-BE17-169228293767">
+                                                <File Id="RCWE0301" Name="File0301" LongName="schema0[f443654a-2afd-4b4f-9721-73cf7ec47a96].schema"
+                                                      Source="Examples\RCWare\AirConditioning\VZT\FUPLA\schema0[f443654a-2afd-4b4f-9721-73cf7ec47a96].schema" DiskId="1" />
+                                            </Component>
+                                        </Directory>
+                                    </Directory>
+                                </Directory>
+                                <Directory Id="RCWareModbusWago" Name="Wago" LongName="ModbusWago">
+                                    <Component Id="RCWE04" Guid="E06D31D2-DD8E-43bb-A5A2-E508D6B16897">
+                                        <File Id="RCWE0401" Name="File0401" LongName="default.cfg" Source="Examples\RCWare\ModbusWago\default.cfg" DiskId="1" />
+                                        <File Id="RCWE0402" Name="File0402" LongName="MODBUS WAGO popis adres.txt"
+                                              Source="Examples\RCWare\ModbusWago\MODBUS WAGO popis adres.txt" DiskId="1" />
+                                    </Component>
+                                    <Directory Id="RCWareModbusWagoRC" Name="Modbus" LongName="test_modbus">
+                                        <Component Id="RCWE05" Guid="7DACCBCA-094D-411c-A9A2-678FA689735C">
+                                            <File Id="RCWE0501" Name="File0501" LongName="test_SmartServer.pro" Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer.pro" DiskId="1" />
+                                            <File Id="RCWE0502" Name="File0502" LongName="test_SmartServer.SDB" Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer.SDB" DiskId="1" />
+                                            <File Id="RCWE0503" Name="File0503" LongName="test_SmartServer.SYM" Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer.SYM" DiskId="1" />
+                                            <File Id="RCWE0504" Name="File0504" LongName="test_SmartServer00002ed3r.ci"
+                                                  Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer00002ed3r.ci" DiskId="1" />
+                                            <File Id="RCWE0405" Name="File0405" LongName="test_SmartServer00002ed3r.ri"
+                                                  Source="Examples\RCWare\ModbusWago\test_modbus\test_SmartServer00002ed3r.ri" DiskId="1" />
+                                        </Component>
+                                    </Directory>
+                                    <Directory Id="RCWareModbusWagoSmartServer" Name="SmartSrv" LongName="test_SmartServer">
+                                        <Component Id="RCWE06" Guid="F56C218F-7516-4b6d-A5BC-C92CA934BA0F">
+                                            <File Id="RCWE0601" Name="File0601" LongName="test_SmartServer.splcsln"
+                                                  Source="Examples\RCWare\ModbusWago\test_SmartServer\test_SmartServer.splcsln" DiskId="1" />
+                                        </Component>
+                                        <Directory Id="RCWareModbusWagoSmartServerNewProject" Name="NewProj" LongName="NewProject">
+                                            <Component Id="RCWE07" Guid="C4EC0735-A037-4a74-A1B1-EED00CBA5E18">
+                                                <File Id="RCWE0701" Name="File0701" LongName="NewProject.fupla" Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\NewProject.fupla" DiskId="1" />
+                                                <File Id="RCWE0702" Name="File0702" LongName="NewProject.hwvisual" Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\NewProject.hwvisual" DiskId="1" />
+                                                <File Id="RCWE0703" Name="File0703" LongName="NewProject.opcdef" Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\NewProject.opcdef" DiskId="1" />
+                                                <File Id="RCWE0704" Name="File0704" LongName="NewProject.splcproj" Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\NewProject.splcproj" DiskId="1" />
+                                            </Component>
+                                            <Directory Id="RCWareModbusWagoSmartServerNewProjectFUPLA" Name="FUPLA">
+                                                <Component Id="RCWE08" Guid="784B6336-806F-4abb-B1D5-9B04AC8C11E8">
+                                                    <File Id="RCWE0801" Name="File0801" LongName="schema0[cc93a5bd-46e0-4f95-9901-b2baeae321d5].schema"
+                                                          Source="Examples\RCWare\ModbusWago\test_SmartServer\NewProject\FUPLA\schema0[cc93a5bd-46e0-4f95-9901-b2baeae321d5].schema" DiskId="1" />
+                                                </Component>
+                                            </Directory>
+                                        </Directory>
+                                    </Directory>
+                                </Directory>
+                            </Directory>
+                            <Directory Id="iWebKit" Name="iWebKit">
+                                <Component Id="ExamplesiWebKit" Guid="EAC4A79A-24A5-493d-B148-219081E4BD0E">
+                                    <File Id="iWebKit.zip" Name="iWebKit.cfg" LongName="iWebKit5.04.zip" Source="Examples\iWebKit\iWebKit5.04.zip" DiskId="1" />
+                                    <File Id="iPhone.zip" Name="iphone.zip" Source="Examples\iWebKit\iphone.zip" DiskId="1" />
+                                </Component>
+                            </Directory>
+                        </Directory>
+                        <?if $(var.LeakChecking)=on ?>
+                        <Component Guid="B77FFC41-B032-47C6-841B-12239073885D" Id="LeakDetector">
+                            <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
+                            </File>
+                        </Component>
+                        <?endif ?>
+                        <?if $(var.CLib)=Private ?>
+                        <?if $(var.ConfigurationName)=Debug ?>
+                        <Directory Id="Microsoft.VC80.DebugCRT" LongName="Microsoft.VC80.DebugCRT" Name="vc80">
+                            <Component Id="VC8Runtime" DiskId="1" Guid="74A623EF-9464-4A92-B9D2-649BA0DD9F95">
+                                <File Id="Microsoft.VC80.DebugCRT.manifest" LongName="Microsoft.VC80.DebugCRT.manifest" Name="vc80.MAN" Source="$(env.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC80.DebugCRT\Microsoft.VC80.DebugCRT.manifest" />
+                                <File Id="msvcr80d.dll" LongName="msvcr80d.dll" Name="MSVCR80.DLL" Source="$(env.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC80.DebugCRT\msvcr80d.dll" Vital="yes" />
+                            </Component>
+                        </Directory>
+                        <?else ?>
+                        <Directory Id="Microsoft.VC80.CRT" LongName="Microsoft.VC80.CRT" Name="vc80">
+                            <Component Id="VC8Runtime" DiskId="1" Guid="727EE31F-7E93-4D26-BE3F-9528769D6815">
+                                <File Id="Microsoft.VC80.CRT.manifest" LongName="Microsoft.VC80.CRT.manifest" Name="vc80.MAN" Source="$(env.VCINSTALLDIR)\redist\x86\Microsoft.VC80.CRT\Microsoft.VC80.CRT.manifest" />
+                                <File Id="msvcr80.dll" LongName="msvcr80.dll" Name="MSVCR80.DLL" Source="$(env.VCINSTALLDIR)\redist\x86\Microsoft.VC80.CRT\msvcr80.dll" Vital="yes" />
+                            </Component>
+                        </Directory>
+                        <?endif ?>
+                        <?endif ?>
+                    </Directory>
+                </Directory>
+            </Directory>
+            <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
+                <Directory Id="ProgramMenuDir" Name="NeNo">
+                    <Directory Id="SmartServerDir" Name='SmartSrv' LongName="KNX SmartServer" />
+                </Directory>
+            </Directory>
+        </Directory>
+        <?if $(var.CLib)=Private ?>
+        <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+            <ComponentRef Id="VC8Runtime" />
+        </Feature>
+        <?elseif $(var.CLib)=Shared ?>
+        <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+            <MergeRef Id="VC8Runtime" />
+            <MergeRef Id="VC8Policy" />
+        </Feature>
+        <?endif ?>
+        <Feature Id="Permissions" Level="1" AllowAdvertise="no" Display="hidden">
+            <ComponentRef Id="CommonAppFolderPermissions" />
+        </Feature>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
+            <ComponentRef Id="Program" />
+            <ComponentRef Id="RuntimeLib" />
+            <ComponentRef Id="MVCLib" />
+            <ComponentRef Id="Licence" />
+            <ComponentRef Id="ToolActivator" />
+            <ComponentRef Id="ToolSvcInst" />
+            <ComponentRef Id="ToolCheckCfg" />
+            <ComponentRef Id="ToolDiscover" />
+            <ComponentRef Id="Documentation" />
+            <ComponentRef Id="Changelog" />
+            <ComponentRef Id="DefaultConfiguration" />
+            <ComponentRef Id="ETSPR3" />
+            <ComponentRef Id="RCWareDLL1" />
+            <ComponentRef Id="RCWareDLL2" />
+            <ComponentRef Id="Web" />
+            <ComponentRef Id="UserWeb" />
+            <ComponentRef Id="UserWebExamples" />
+            <ComponentRef Id="Examples" />
+            <ComponentRef Id="ExamplesFlash" />
+            <ComponentRef Id="ExamplesPronto" />
+            <ComponentRef Id="ExamplesWix" />
+            <ComponentRef Id="ExamplesiWebKit" />
+            <ComponentRef Id="RCWE01" />
+            <ComponentRef Id="RCWE02" />
+            <ComponentRef Id="RCWE03" />
+            <ComponentRef Id="RCWE04" />
+            <ComponentRef Id="RCWE05" />
+            <ComponentRef Id="RCWE06" />
+            <ComponentRef Id="RCWE07" />
+            <ComponentRef Id="RCWE08" />
+            <?if $(var.LeakChecking)=on ?>
+            <ComponentRef Id="LeakDetector" />
+            <?endif ?>
+        </Feature>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="DebugInfo" Level="0">
+            <Condition Level="1">DEBUG_INFO</Condition>
+            <ComponentRef Id="DebugInfo" />
+        </Feature>
+        <Property Id="XMLLITEEXISTS">
+            <DirectorySearch Id="CheckXmlLiteDir" Path="[SystemFolder]" Depth="0">
+                <FileSearch Id="CheckXmlLiteFile" Name="xmllite.dll" />
+            </DirectorySearch>
+        </Property>
+        <Feature Id="XMLLiteFeature" Level="1">
+            <ComponentRef Id="XMLLite.DLL" />
+            <Condition Level="0">XMLLITEEXISTS</Condition>
+        </Feature>
+        <UIRef Id="WixUI_Licence" />
+        <UI />
+        <Icon Id="AddRemoveIcon" SourceFile="SmartServer.ico" />
+        <Icon Id="TXT.exe" SourceFile="TXT.ico" />
+        <Icon Id="PDF.exe" SourceFile="PDF.ico" />
+        <Icon Id="CFG.exe" SourceFile="CFG.ico" />
+        <?include $(var.BuildRoot)\Manufacturer.wxs ?>
+        <?include $(var.BuildRoot)\Upgrade.wxs ?>
+    </Product>
+</Wix>
