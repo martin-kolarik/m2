@@ -1,3 +1,17 @@
+Version 1.2.1407/R 28.12.2010
+- BUG: #237, an addition to #233, messages emitted by internal code (login failures, status
+       texts) did not respect the language set by user.
+
+Version 1.2.1401/R 17.11.2010
+- CHG: #235, a new function ${msg(...)} was introduced to pt.xml processing. The function
+       allows dynamic creation of message identifiers.
+- NEW: #233, SmartServer web interface is able to fix client language using
+       "?language=<rfc1766>" URL parameter. Default (automatic) detection of
+       language using client's HTTP header can be switched back using
+       "?language=client" call.   
+- NEW: #236, strings stored for SDAP clients are not limited to KNX length (14 bytes)
+       anymore.
+
 Version 1.2.1312/R 3.9.2010
 - BUG: #227, model name of length 1 character was not recognized in pt.xml files
        properly, which could cause various problems with pt.xml rendering (infinite

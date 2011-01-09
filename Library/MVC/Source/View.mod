@@ -35,7 +35,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    BEGIN
       Response.StatusCode := StatusCode;
       RETURN TRUE;
@@ -43,7 +43,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -68,7 +68,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -99,7 +99,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -107,7 +107,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -115,7 +115,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    VAR
       buffer : StorageO.CMemoryBuffer;
       Content : StringsO.CString;
@@ -203,7 +203,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -243,7 +243,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       i : CARDINAL;
       Location : StringsO.CString;
@@ -279,7 +279,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -287,7 +287,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -304,7 +304,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -336,7 +336,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       Content : StringsO.CString;
       now : datetime.DateTime;
@@ -354,7 +354,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -362,7 +362,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -379,7 +379,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -408,7 +408,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       now : datetime.DateTime;
       s : StringsO.CString;
@@ -434,7 +434,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -442,7 +442,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -459,7 +459,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -541,7 +541,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    LABEL
       Failure;
    VAR
@@ -556,6 +556,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Response.AllowCaching := FALSE;
       Response.LastModified := now;
+      
+      IF OverrideLanguage THEN
+         Language := OverriddenLanguage;
+      ELSE
+         Language := Request.Language;
+      END;
 
       // determine, if client supports XHTML by browser information
       IF Request.RequestHeaders^.Get( HttpCommon.Accept, OUT acceptHeader ) THEN
@@ -564,7 +570,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             xhtmlSupported := TRUE;
          END;
       END;
-      SELF.Request := MVC.TPHttpRequest( ADR( Request ));
+      SELF.Request := MVC.TPMvcRequest( ADR( Request ));
 
       CASE Load() OF
       | lsNotLoaded :
@@ -612,7 +618,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -620,7 +626,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -642,14 +648,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    VAR
       empty : StringsO.CString;
    BEGIN
       methodName.Clear();
       authenticationTokens.Dispose();
 
-      SELF.Request := MVC.TPHttpRequest( ADR( Request ));
+      SELF.Request := MVC.TPMvcRequest( ADR( Request ));
 
       CASE Load() OF
       | lsNotLoaded :
@@ -678,10 +684,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR; overrideLanguage : BOOLEAN; overriddenLanguage : Languages.TLanguage );
    BEGIN
       SELF.Resolver := Resolver;
       SELF.ViewName.FromOA( ViewName );
+      SELF.OverrideLanguage := overrideLanguage;
+      SELF.OverriddenLanguage := overriddenLanguage;
    END Init;
    
 (*--------------------------------------------------------------------------------*)
@@ -1377,11 +1385,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( idx, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, index, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, index, value );
          END;
          IF NOT order.Empty THEN
             value.FromCARD32( item, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, order, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value );
          END;
 
          nl.Reset(); // prepare parsing
@@ -1531,21 +1539,21 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          
          IF NOT item.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, item, current^, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, item, current^ );
          END;
          IF NOT data.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, data, currentData^, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, data, currentData^ );
          END;
          IF NOT odd.Empty THEN
             SetModelBoolean( odd, loopItem AND 1 = 1 );
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( loopItem-1, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, index, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, index, value );
          END;
          IF NOT order.Empty THEN
             value.FromCARD32( loopItem, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, order, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value );
          END;
 
          nl.Reset(); // prepare parsing
@@ -1642,7 +1650,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteElementStartOA( L"", L"input" );
 
       Writer.WriteAttributeStringOA( L"", L"type", OAsz( ptype ));
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value, NIL ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, fullModel, OUT value ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
          IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
             Writer.WriteAttributeStringOA( L"", L"value", L"true" );
@@ -1652,7 +1660,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          ELSE            
             Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
          END;
-      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value, NIL ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, model, OUT value ) THEN // model = item
          WriteFormNameAttribute( model );
          IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
             Writer.WriteAttributeStringOA( L"", L"value", L"true" );
@@ -1730,9 +1738,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Writer.WriteElementStartOA( L"", L"option" );
 
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value, NIL ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, fullModel, OUT value ) THEN // model = form.item
          Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
-      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value, NIL ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, model, OUT value ) THEN // model = item
          Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
@@ -1751,7 +1759,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
    BEGIN
       // TODO: react to error
-      Request^.ModelContainer^.Format( Request^, FALSE, Text, Request^.MessageSource, Request^.Language, OUT Parsed );
+      Request^.ModelContainer^.Format( Request^, FALSE, Text, Request^.MessageSource, Language, OUT Parsed );
    END ParseText;
 
 (*--------------------------------------------------------------------------------*)
@@ -2064,7 +2072,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       ELSIF Value.EqualsOA( L"true" ) OR Value.EqualsOA( L"1" ) THEN
          RETURN TRUE;
-      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Value, OUT modelValue, NIL ) THEN
+      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, Value, OUT modelValue ) THEN
          RETURN TRUE; // value not found, string is not empty
       ELSIF modelValue.EqualsOA( L"false" ) OR modelValue.EqualsOA( L"0" ) OR modelValue.Empty THEN
          RETURN FALSE;
@@ -2161,6 +2169,9 @@ BEGIN
    Request := NIL;
    Resolver := NIL;
    LoadState := lsNotLoaded;
+   OverrideLanguage := FALSE;
+   OverriddenLanguage := Languages.GetDefaultLanguage( Languages.dlUser );
+   Language := OverriddenLanguage;
    CurrentViewNameIndex := 1;
    Where := TWhere{};
    AuthTokens := NIL;
@@ -2179,7 +2190,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    BEGIN
       IF PageTemplateView^.FormatToBuffer( Request, REF Response, OUT Output ) THEN // OK, view file found, send it as response
          Response.OverrideStatusResponse := TRUE;
@@ -2193,7 +2204,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -2201,7 +2212,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -2219,7 +2230,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -2237,7 +2248,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
       Path.PrependOA( PREFIX );
       Path.AppendOA( SUFFIX );
       
-      PageTemplateView^.Init( Resolver, OA( Path.Length-1, Path.Data ));
+      PageTemplateView^.Init( Resolver, OA( Path.Length-1, Path.Data ), FALSE, 0 );
       SELF.StatusCode := StatusCode;
    END Init;
    
