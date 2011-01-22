@@ -6,39 +6,182 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
-  windows,
-  winnls;
+   windows,
+   winnls;
   
 IMPORT
-  Storage,
-  Strings,
-  Sync;
+   Storage,
+   Strings,
+   Sync;
 
 (*================================================================================================*)
 
-PROCEDURE UptimeMS(): CARDINAL;
+PROCEDURE UptimeMS32() : CARD32;
 BEGIN
-  RETURN CARDINAL( windows.GetTickCount() );
-END UptimeMS;
+   RETURN CARD32( windows.GetTickCount());
+END UptimeMS32;
 
 (*------------------------------------------------------------------------------------------------*)
 
 VAR
-  LastTicks    : CARDINAL;
-  LastTimeMS64 : TTime64;
-  TimeLock     : Sync.LOCK;
+   LastTicks32 : CARD32;
+   LastTimeMS64 : CARD64;
+   TimeLock : Sync.LOCK;
 
-PROCEDURE UptimeMS64(): TTime64;  // returns time from system startup in ms
+PROCEDURE UptimeMS64() : TTime64;  // returns time from system startup in ms
 VAR
-  ticks : CARDINAL;
+   ticks32 : CARD32;
 BEGIN
-  TimeLock.Lock();
-  ticks := windows.GetTickCount();
-  INC( LastTimeMS64, ticks - LastTicks );
-  LastTicks := ticks;
-  TimeLock.Unlock();
-  RETURN LastTimeMS64;
+   TimeLock.Lock();
+   ticks32 := UptimeMS32();
+   INC( LastTimeMS64, ticks32 - LastTicks32 );
+   LastTicks32 := ticks32;
+   TimeLock.Unlock();
+   RETURN LastTimeMS64;
 END UptimeMS64;
+
+(*================================================================================================*)
+// time span
+
+CLASS IMPLEMENTATION TimeSpan; // unit is 100 us, CANNNOT be negative
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Frequency GET : CARD64; // hertz
+   BEGIN
+      RETURN 10000;
+   END Frequency;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Microseconds GET : CARD64;
+   BEGIN
+      RETURN _Value * 100;
+   END Microseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Microseconds SET( Value : CARD64 );
+   BEGIN
+      _Value := Value DIV 100;
+   END Microseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Milliseconds : CARD64;
+   BEGIN
+      RETURN _Value DIV 10;
+   END Milliseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Milliseconds SET( Value : CARD64 );
+   BEGIN
+      _Value := Value * 10;
+   END Milliseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Seconds : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 10000.0;
+   END Seconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Seconds SET( Value : LONGREAL );
+   BEGIN
+      _Value := CARD64( Value * 10000.0 + 0.5 );
+   END Seconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Minutes : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 600000.0;
+   END Minutes;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Minutes SET( Value : LONGREAL );
+   BEGIN
+      _Value := CARD64( Value * 600000.0 );
+   END Minutes;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Hours : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 36000000.0;
+   END Hours;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Hours SET( Value : LONGREAL );
+   BEGIN
+      _Value := CARD64( Value * 36000000.0 );
+   END Hours;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Days : LONGREAL; // usable for a fraction of the day too, of course
+   BEGIN
+      RETURN LONGREAL( _Value ) / 864000000.0;
+   END Days;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Days SET( Value : LONGREAL );
+   BEGIN
+      _Value := CARD64( Value * 864000000.0 );
+   END Days;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE FromDHMS( D, H, M, S, MS : CARDINAL );
+   BEGIN
+      _Value := ( CARD64((( D * 24 + H ) * 60 + M ) * 60 + S ) * 1000 + CARD64( MS )) * 10;
+   END FromHMS;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToHMS( OUT D, H, M, S, MS : CARDINAL );
+   VAR
+      fd : CARD64 := Value;
+   BEGIN
+      fd := fd DIV 10;
+
+      MS := CARDINAL( fd MOD 1000 );
+      fd := fd DIV 1000;
+      S := CARDINAL( fd MOD 60 );
+      fd := fd DIV 60;
+      M := CARDINAL( fd MOD 60 );
+      fd := fd DIV 60;
+      H := CARDINAL( fd MOD 24 );
+      D := CARDINAL( fd DIV 24 );
+
+      IF MS = 1000 THEN
+         INC( S );
+         MS := 0;
+      END;
+      IF S = 60 THEN
+         INC( M );
+         S := 0;
+      END;
+      IF M = 60 THEN
+         INC( H );
+         M := 0;
+      END;
+      IF H = 24 THEN
+         INC( D );
+         H := 0;
+      END;
+   END ToHMS;
+
+(*------------------------------------------------------------------------------------------------*)
+
+BEGIN
+END TimeSpan;
 
 (*================================================================================================*)
 // high resolution timer
@@ -124,6 +267,77 @@ PROCEDURE difftime( CONST StopTime, StartTime : TTime64 ) : LONGREAL; // seconds
 BEGIN
   RETURN LONGREAL( StopTime - StartTime ) / LONGREAL( HiResTimerHz );
 END difftime;
+
+(*================================================================================================*)
+
+CLASS IMPLEMENTATION HighResolutionTime; // unit is 1/Frequency
+   
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC READONLY PROPERTY
+      Frequency : CARD64; // hertz
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC READONLY PROPERTY
+      Milliseconds : CARD64;
+
+(*------------------------------------------------------------------------------------------------*)
+
+      Seconds : LONGREAL;
+
+(*------------------------------------------------------------------------------------------------*)
+
+      Span : TimeSpan;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR =( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <>( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR +( Addend : TimeSpan ) : HighResolutionTime;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR -( Addend : TimeSpan ) : HighResolutionTime;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetNow();
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Difference( CONST From : HighResolutionTime ) : TimeSpan; // = SELF - From
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PRIVATE VAR
+      _Value : CARD64 := 0;
+
+(*------------------------------------------------------------------------------------------------*)
+
+END HighResolutionTime;
 
 (*================================================================================================*)
 

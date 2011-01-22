@@ -6,29 +6,72 @@ FROM Storage IMPORT
 IMPORT
    Languages;
 
-(*================================================================================================*)
-
 #save, option( dll_export => on )
 
-TYPE
-  TTime64  = INT64;
-  TPTime64 = POINTER TO TTime64;
+(*================================================================================================*)
+// uptime OS counters
 
-PROCEDURE UptimeMS(): CARDINAL; // returns time from system startup in ms
-PROCEDURE UptimeMS64(): TTime64; // returns time from system startup in ms
+PROCEDURE UptimeMS32() : CARD32; // returns time from system startup in ms
+PROCEDURE UptimeMS64() : CARD64; // returns time from system startup in ms
 
-// high resolution timer
-PROCEDURE GetHiResHz() : TTime64;
-PROCEDURE GetHiResTicks() : TTime64;
-PROCEDURE GetHiResDifference( REF fromTick : TTime64 ) : TTime64; // returns amount of ticks and sets fromTime to the current ticks
-PROCEDURE HiResTicksToLRS( ticks : TTime64 ) : LONGREAL; // converts ticks to seconds
-PROCEDURE HiResTicksToLRMS( ticks : TTime64 ) : LONGREAL; // converts ticks to miliseconds
-PROCEDURE HiResTicksToMS( ticks : TTime64 ) : TTime64; // converts ticks to miliseconds
-
-// like c/time
 CONST
-  time ::= GetHiResTicks;
-PROCEDURE difftime( CONST StopTime, StartTime : TTime64 ) : LONGREAL; // seconds
+   UptimeMS ::= UptimeMS32;
+
+(*================================================================================================*)
+// time span
+
+CLASS TimeSpan; // unit is 100 us, CANNNOT be negative
+
+   PUBLIC READONLY PROPERTY
+      Frequency : CARD64; // hertz
+
+   PUBLIC PROPERTY
+      Microseconds : CARD64;
+      Milliseconds : CARD64;
+      Seconds : LONGREAL;
+      Minutes : LONGREAL;
+      Hours : LONGREAL;
+      Days : LONGREAL; // usable for a fraction of the day too, of course
+
+   PUBLIC PROCEDURE FromDHMS( D, H, M, S, MS : CARDINAL );
+   PUBLIC PROCEDURE ToDHMS( OUT D, H, M, S, MS : CARDINAL );
+
+   PRIVATE VAR
+      _Value : CARD64 := 0;
+
+END TimeSpan;
+
+(*================================================================================================*)
+// high resolution timer
+
+CLASS HighResolutionTime; // unit is 1/Frequency
+   
+   PUBLIC READONLY PROPERTY
+      Frequency : CARD64; // hertz
+
+   PUBLIC READONLY PROPERTY
+      Milliseconds : CARD64;
+      Seconds : LONGREAL;
+      Span : TimeSpan;
+
+   PUBLIC OPERATOR =( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   PUBLIC OPERATOR <>( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   PUBLIC OPERATOR <( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   PUBLIC OPERATOR <=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   PUBLIC OPERATOR >( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   PUBLIC OPERATOR >=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   PUBLIC OPERATOR +( Addend : TimeSpan ) : HighResolutionTime;
+   PUBLIC OPERATOR -( Addend : TimeSpan ) : HighResolutionTime;
+
+   PUBLIC PROCEDURE SetNow();
+   PUBLIC PROCEDURE Difference( CONST From : HighResolutionTime ) : TimeSpan; // = SELF - From
+
+   PRIVATE VAR
+      _Value : CARD64 := 0;
+
+END HighResolutionTime;
+
+PROCEDURE NowHR() : HighResolutionTime;
 
 (*================================================================================================*)
 // JulianDate routines
