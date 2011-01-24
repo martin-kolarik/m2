@@ -117,9 +117,12 @@ BEGIN
    RETURN JD( 2007, 10, i MOD 2, 0.3 );
 END OJD;
 
-PROCEDURE NJD( i : CARDINAL ) : datetime.TJD;
+PROCEDURE NJD( i : CARDINAL ) : datetime.JulianDate;
+VAR
+   ts : datetime.TimeSpan;
 BEGIN
-   RETURN datetime.JD( 2007, 10, i MOD 2, 3*8640000 );
+   ts.Days := 0.3;
+   RETURN datetime.JulianDateDMYfd( 2007, 10, i MOD 2, ts );
 END NJD;
 
 (*===========================================================================*)

@@ -24,11 +24,11 @@ END UptimeMS32;
 (*------------------------------------------------------------------------------------------------*)
 
 VAR
-   LastTicks32 : CARD32;
-   LastTimeMS64 : CARD64;
+   LastTicks32 : CARD32 := 0;
+   LastTimeMS64 : CARD64 := 0;
    TimeLock : Sync.LOCK;
 
-PROCEDURE UptimeMS64() : TTime64;  // returns time from system startup in ms
+PROCEDURE UptimeMS64() : CARD64;  // returns time from system startup in ms
 VAR
    ticks32 : CARD32;
 BEGIN
@@ -43,113 +43,168 @@ END UptimeMS64;
 (*================================================================================================*)
 // time span
 
-CLASS IMPLEMENTATION TimeSpan; // unit is 100 us, CANNNOT be negative
+CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Frequency GET : CARD64; // hertz
+   PUBLIC PROPERTY Precision GET : CARD64; // hertz
    BEGIN
-      RETURN 10000;
-   END Frequency;
+      RETURN 10000000;
+   END Precision;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Microseconds GET : CARD64;
+   PUBLIC PROPERTY Value GET : INT64; // raw value, e.g. for transport purposes
    BEGIN
-      RETURN _Value * 100;
+      RETURN _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( _Value : INT64 ); // raw value, e.g. for transport purposes
+   BEGIN
+      SELF._Value := _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Microseconds GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 10.0;
    END Microseconds;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Microseconds SET( Value : CARD64 );
+   PUBLIC PROPERTY Microseconds SET( Value : LONGREAL );
    BEGIN
-      _Value := Value DIV 100;
+      _Value := INT64( Value * 10.0 + 0.5 );
    END Microseconds;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Milliseconds : CARD64;
-   BEGIN
-      RETURN _Value DIV 10;
-   END Milliseconds;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Milliseconds SET( Value : CARD64 );
-   BEGIN
-      _Value := Value * 10;
-   END Milliseconds;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Seconds : LONGREAL;
+   PUBLIC PROPERTY Milliseconds GET : LONGREAL;
    BEGIN
       RETURN LONGREAL( _Value ) / 10000.0;
+   END Milliseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Milliseconds SET( Value : LONGREAL );
+   BEGIN
+      _Value := INT64( Value * 10000.0 + 0.5 );
+   END Milliseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Seconds GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 10000000.0;
    END Seconds;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Seconds SET( Value : LONGREAL );
    BEGIN
-      _Value := CARD64( Value * 10000.0 + 0.5 );
+      _Value := CARD64( Value * 10000000.0 + 0.5 );
    END Seconds;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Minutes : LONGREAL;
+   PUBLIC PROPERTY Minutes GET : LONGREAL;
    BEGIN
-      RETURN LONGREAL( _Value ) / 600000.0;
+      RETURN LONGREAL( _Value ) / 600000000.0;
    END Minutes;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Minutes SET( Value : LONGREAL );
    BEGIN
-      _Value := CARD64( Value * 600000.0 );
+      _Value := CARD64( Value * 600000000.0 + 0.5 );
    END Minutes;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Hours : LONGREAL;
+   PUBLIC PROPERTY Hours GET : LONGREAL;
    BEGIN
-      RETURN LONGREAL( _Value ) / 36000000.0;
+      RETURN LONGREAL( _Value ) / 36000000000.0;
    END Hours;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Hours SET( Value : LONGREAL );
    BEGIN
-      _Value := CARD64( Value * 36000000.0 );
+      _Value := CARD64( Value * 36000000000.0 + 0.5 );
    END Hours;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Days : LONGREAL; // usable for a fraction of the day too, of course
+   PUBLIC PROPERTY Days GET : LONGREAL; // usable for a fraction of the day too, of course
    BEGIN
-      RETURN LONGREAL( _Value ) / 864000000.0;
+      RETURN LONGREAL( _Value ) / 864000000000.0;
    END Days;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Days SET( Value : LONGREAL );
    BEGIN
-      _Value := CARD64( Value * 864000000.0 );
+      _Value := CARD64( Value * 864000000000.0 + 0.5 );
    END Days;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC INLINE OPERATOR :=( CONST Source : TimeSpan );
+   BEGIN
+      _Value := Source._Value;
+   END :=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : TimeSpan;
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts._Value := _Value + Addend._Value;
+      RETURN ts;
+   END +;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : TimeSpan;
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts._Value := _Value - Addend._Value;
+      RETURN ts;
+   END -;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
+   BEGIN
+      INC( _Value, Addend._Value );
+   END Add;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
+   BEGIN
+      DEC( _Value, Addend._Value );
+   END Subtract;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE FromDHMS( D, H, M, S, MS : CARDINAL );
    BEGIN
-      _Value := ( CARD64((( D * 24 + H ) * 60 + M ) * 60 + S ) * 1000 + CARD64( MS )) * 10;
-   END FromHMS;
+      _Value := ( CARD64((( D * 24 + H ) * 60 + M ) * 60 + S ) * 1000000 + CARD64( MS )) * 10000;
+   END FromDHMS;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ToHMS( OUT D, H, M, S, MS : CARDINAL );
+   PUBLIC PROCEDURE ToDHMS( OUT D, H, M, S, MS : CARDINAL );
    VAR
-      fd : CARD64 := Value;
+      fd : CARD64 := _Value;
    BEGIN
-      fd := fd DIV 10;
+      fd := fd DIV 10000;
 
       MS := CARDINAL( fd MOD 1000 );
       fd := fd DIV 1000;
@@ -176,218 +231,129 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 us, CANNNOT be negative
          INC( D );
          H := 0;
       END;
-   END ToHMS;
+   END ToDHMS;
 
 (*------------------------------------------------------------------------------------------------*)
 
 BEGIN
 END TimeSpan;
 
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE TimeSpanZero() : TimeSpan;
+VAR
+   ts : TimeSpan;
+BEGIN
+   RETURN ts;
+END TimeSpanZero;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE TimeSpanMS32( Milliseconds : CARD32 ) : TimeSpan;
+VAR
+   ts : TimeSpan;
+BEGIN
+   ts.Milliseconds := LONGREAL( Milliseconds );
+   RETURN ts;
+END TimeSpanMS32;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE TimeSpanS( Seconds : LONGREAL ) : TimeSpan;
+VAR
+   ts : TimeSpan;
+BEGIN
+   ts.Seconds := Seconds;
+   RETURN ts;
+END TimeSpanS;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE TimeSpanD( Days : LONGREAL ) : TimeSpan;
+VAR
+   ts : TimeSpan;
+BEGIN
+   ts.Days := Days;
+   RETURN ts;
+END TimeSpanD;
+
 (*================================================================================================*)
 // high resolution timer
 
 VAR
-  FHaveHiResTimer : BOOLEAN;
-  HiResTimerHz    : TTime64;
+   HRTimeFound : BOOLEAN := FALSE;
+   HRTimeFrequency : CARD64;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE InitHiResTimer();
+PROCEDURE InitHRTime();
 VAR
-  li : windows.LARGE_INTEGER;
+   li : windows.LARGE_INTEGER;
 BEGIN
-  FHaveHiResTimer := windows.QueryPerformanceFrequency( li ) = windows.True;
-  IF FHaveHiResTimer THEN
-    HiResTimerHz := TTime64( li );
-  ELSE
-    HiResTimerHz := 1000;
-  END;
-END InitHiResTimer;
+   HRTimeFound := windows.QueryPerformanceFrequency( li ) = windows.True;
+   IF HRTimeFound THEN
+      HRTimeFrequency := CARD64( li );
+   ELSE
+      HRTimeFrequency := 1000;
+   END;
+END InitHRTime;
 
 (*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE GetHiResHz() : TTime64;
-BEGIN
-  RETURN HiResTimerHz;
-END GetHiResHz;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE GetHiResTicks() : TTime64;
-VAR
-  li : windows.LARGE_INTEGER;
-BEGIN
-  IF FHaveHiResTimer THEN
-    windows.QueryPerformanceCounter( li );
-    RETURN TTime64( li );
-  ELSE
-    RETURN UptimeMS64();
-  END;
-END GetHiResTicks;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE GetHiResDifference( REF fromTick : TTime64 ) : TTime64;
-VAR
-  ticks : TTime64;
-BEGIN
-  ticks := fromTick;
-  fromTick := GetHiResTicks();
-  RETURN fromTick - ticks;
-END GetHiResDifference;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE HiResTicksToMS( ticks : TTime64 ) : TTime64;
-CONST
-  secToMS = 1000;
-BEGIN
-  RETURN ( secToMS * ticks ) DIV HiResTimerHz;
-END HiResTicksToMS;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE HiResTicksToLRMS( ticks : TTime64 ) : LONGREAL;
-CONST
-  secToMS = 1000;
-BEGIN
-  RETURN LONGREAL( secToMS * ticks ) / LONGREAL( HiResTimerHz );
-END HiResTicksToLRMS;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE HiResTicksToLRS( ticks : TTime64 ) : LONGREAL;
-BEGIN
-  RETURN LONGREAL( ticks ) / LONGREAL( HiResTimerHz );
-END HiResTicksToLRS;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE difftime( CONST StopTime, StartTime : TTime64 ) : LONGREAL; // seconds
-BEGIN
-  RETURN LONGREAL( StopTime - StartTime ) / LONGREAL( HiResTimerHz );
-END difftime;
-
-(*================================================================================================*)
 
 CLASS IMPLEMENTATION HighResolutionTime; // unit is 1/Frequency
    
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC READONLY PROPERTY
-      Frequency : CARD64; // hertz
+   PUBLIC PROPERTY Precision GET : CARD64; // hertz
+   BEGIN
+      RETURN HRTimeFrequency;
+   END Precision;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC READONLY PROPERTY
-      Milliseconds : CARD64;
-
-(*------------------------------------------------------------------------------------------------*)
-
-      Seconds : LONGREAL;
-
-(*------------------------------------------------------------------------------------------------*)
-
-      Span : TimeSpan;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR =( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR <>( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR <( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR <=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR >( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR >=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR +( Addend : TimeSpan ) : HighResolutionTime;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR -( Addend : TimeSpan ) : HighResolutionTime;
+   PUBLIC OPERATOR -( CONST Addend : HighResolutionTime ) : TimeSpan;
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts.Seconds := LONGREAL( _Value - Addend._Value ) / LONGREAL( HRTimeFrequency );
+      RETURN ts;
+   END -;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetNow();
+   TYPE
+      PLARGE_INTEGER = POINTER TO windows.LARGE_INTEGER;
+   VAR
+      pli : PLARGE_INTEGER := PLARGE_INTEGER( ADR( _Value ));
+   BEGIN
+      IF HRTimeFound THEN
+         windows.QueryPerformanceCounter( pli^ );
+      ELSE
+         _Value := UptimeMS64();
+      END;
+   END SetNow;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Difference( CONST From : HighResolutionTime ) : TimeSpan; // = SELF - From
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PRIVATE VAR
-      _Value : CARD64 := 0;
-
-(*------------------------------------------------------------------------------------------------*)
-
+BEGIN
 END HighResolutionTime;
 
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE NowHR() : HighResolutionTime;
+VAR
+   hr : HighResolutionTime;
+BEGIN
+   hr.SetNow();
+   RETURN hr;
+END NowHR;
+
 (*================================================================================================*)
+// julian date
 
 CONST
-  scale = TJD( 864000000 ); // 100 ns
-  scaleLR = 864000000.0;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE fd( ri : TJD ) : CARDINAL;
-BEGIN
-   RETURN CARDINAL( ri MOD scale );
-END fd;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE HMS2fd( H, M, S, MS : CARDINAL ) : CARDINAL;
-BEGIN
-   RETURN ((( H * 60 + M ) * 60 + S ) * 1000 + MS ) * 10;
-END HMS2fd;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE fd2HMS( fd : CARDINAL; OUT H, M, S, MS : CARDINAL ) : BOOLEAN;
-BEGIN
-   fd := fd DIV 10;
-   MS := fd MOD 1000;
-   fd := fd DIV 1000;
-   S := fd MOD 60;
-   fd := fd DIV 60;
-   M := fd MOD 60;
-   H := fd DIV 60;
-
-   IF MS = 1000 THEN
-      INC( S );
-      MS := 0;
-   END;
-   IF S = 60 THEN
-      INC( M );
-      S := 0;
-   END;
-   IF M = 60 THEN
-       INC( H );
-      M := 0;
-   END;
-
-   RETURN H = 24;
-END fd2HMS;
-
-(*------------------------------------------------------------------------------------------------*)
+   scale = INT64( 864000000 ); // 100 us
 
 // speed up of julian months
 // julianMonth = 306001; -- multiples converted to table
@@ -396,164 +362,307 @@ TYPE
 CONST
    months = TMonths( 0,  30,  61,  91, 122, 153, 183, 214, 244, 275, 306, 336, 367, 397, 428, 459 );
 
-PROCEDURE JD( y : INTEGER; m, d, fd : CARDINAL ) : TJD;
-// JD ver 1.7 by mk - synchronized to day.mod utility
-// JD ver 1.8 by mk - scaled to INT64
-CONST
-   julianYear = 2922; // scaled by 8 (<< 3)
+(*------------------------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION JulianDate;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DayOfWeek GET : TDayOfWeek;
+   BEGIN
+      RETURN TDayOfWeek((( _Value + scale DIV 2 ) DIV scale ) MOD 7 );
+   END DayOfWeek;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : INT64; // e.g. for transport purposes
+   BEGIN
+      RETURN _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( _Value : INT64 );
+   BEGIN
+      SELF._Value := _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY FractionOfTheDay GET : TimeSpan; // values greater than 1 D are trimmed (only the fraction is used)
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts.Value := 1000 * ( _Value MOD scale );
+      RETURN ts;
+   END FractionOfTheDay;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY FractionOfTheDay SET( CONST Value : TimeSpan ); // values greater than 1 D are trimmed (only the fraction is used)
+   BEGIN
+      DEC( _Value, _Value MOD scale ); // remove existing fraction
+      INC( _Value, ( Value.Value DIV 1000 ) MOD scale ); // add scale from the span
+   END FractionOfTheDay;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Scientific GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / LONGREAL( scale );
+   END Scientific;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Scientific SET( Value : LONGREAL );
+   BEGIN
+      _Value := INT64(( Value + 0.5 / 864000000.0 ) * LONGREAL( scale ));
+   END Scientific;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR =( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN _Value = Comperand._Value;
+   END =;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <>( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <> Comperand._Value;
+   END <>;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <> Comperand._Value;
+   END <;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <=( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <> Comperand._Value;
+   END <=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <> Comperand._Value;
+   END >;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >=( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <> Comperand._Value;
+   END >=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC INLINE OPERATOR :=( CONST Source : JulianDate );
+   BEGIN
+      _Value := Source._Value;
+   END :=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : JulianDate;
+   VAR
+      jd : JulianDate;
+   BEGIN
+      jd._Value := INC( _Value, Addend.Value DIV 1000 );
+      RETURN jd;
+   END +;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : JulianDate;
+   VAR
+      jd : JulianDate;
+   BEGIN
+      jd._Value := DEC( _Value, Addend.Value DIV 1000 );
+      RETURN jd;
+   END -;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetNow();
+   BEGIN
+      _Value := NowJD()._Value;
+   END SetNow;
+   
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Less( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN SELF < Comperand;
+   END Less;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Greater( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN SELF > Comperand;
+   END Greater;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Equals( CONST Comperand : JulianDate ) : BOOLEAN;
+   BEGIN
+      RETURN SELF = Comperand;
+   END Equals;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
+   BEGIN
+      INC( _Value, Addend.Value DIV 1000 );
+   END Add;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
+   BEGIN
+      DEC( _Value, Addend.Value DIV 1000 );
+   END Subtract;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Difference( CONST Operand : JulianDate ) : TimeSpan; // SELF - Operand
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts.Value := 1000 * ( _Value - Operand._Value );
+      RETURN ts;
+   END Difference;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE FromYMD( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan );
+   CONST
+      julianYear = 2922; // scaled by 8 (<< 3)
+   VAR
+      a, c : INTEGER;
+   BEGIN
+      IF m > 12 THEN // to be sure
+         INC( y, m DIV 12 );
+         m := m MOD 12 + 1;
+      END;
+      IF m < 3 THEN
+         DEC( y );
+         INC( m, 13 );
+      ELSE
+         INC( m );
+      END;
+
+      IF y > 1582 THEN
+         a := y DIV 100;
+         c := 0;
+         d := INTEGER( d ) + a DIV 4 - a + 2;
+      ELSIF ( y = 1582 ) AND (( m > 11 ) OR ( m = 11 ) AND ( d >= 15 )) THEN
+         a := y DIV 100;
+         c := 0;
+         d := INTEGER( d ) + a DIV 4 - a + 2;
+      ELSIF y < 0 THEN
+         c := 6; // scaled by 8
+      END;
+
+      _Value := scale * (
+                  ( julianYear * y - c ) DIV 8 + // years
+                  months[m] + // months
+                  d // scale
+                ) +
+                INT64( 1486939248000000 ) + // year 0 boundary, 1720994.5
+                fd.Value DIV 1000; // fraction
+   END FromYMD;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToYMD( OUT y : INTEGER; OUT m, d : CARDINAL; OUT fd : TimeSpan );
+   CONST
+      gregorianCentury = 3652425; // scaled by 100
+      julianYear = 36525; // scaled by 100
+      julianMonth = 306001; // scaled by 10000
+   VAR
+      a, b, alfa, z : INTEGER;
+      jdl, jdx : INT64;
+   BEGIN
+      // works up to cca +/- 64000 years, see assert
+      jdl := _Value + INT64( 432000000 );
+
+      // separate fd, rescale to days
+      jdx := jdl DIV scale;
+      fd.Value := 1000 * ( jdl - scale * jdx );
+      z := INTEGER( jdx );
+      IF z >= MAX( INTEGER ) DIV 100 THEN
+         ASSERTLOG( FALSE );
+         z := MAX( INTEGER ) DIV 100 - 1;
+      END;
+
+      IF z < 2299161 THEN
+         a := z;
+      ELSE
+         alfa := ( 100 * z - 186721625 ) DIV gregorianCentury; // 1867216.25
+         a := z + 1 + alfa - alfa DIV 4;
+      END;
+
+      b := a + 1524;
+      y := ( 100 * b - 12210 ) DIV julianYear; // 122.1, years
+      b := b - ( julianYear * y ) DIV 100;
+
+      m := ( 10000 * b ) DIV julianMonth;
+      d := b - months[m];
+
+      IF m > 13 THEN
+         m := m - 13;
+      ELSE
+         m := m - 1;
+      END;
+      IF m > 2 THEN
+         y := y - 4716;
+      ELSE
+         y := y - 4715;
+      END;
+   END ToYMD;
+
+(*------------------------------------------------------------------------------------------------*)
+
+BEGIN
+END JulianDate;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE NowJD() : JulianDate;
 VAR
-  a, c : INTEGER;
+   dateTime : DateTime;
 BEGIN
-  IF m > 12 THEN // to be sure
-    INC( y, m DIV 12 );
-    m := m MOD 12 + 1;
-  END;
-  IF m < 3 THEN
-    DEC( y );
-    INC( m, 13 );
-  ELSE
-    INC( m );
-  END;
-
-  IF y > 1582 THEN
-    a := y DIV 100;
-    c := 0;
-    d := INTEGER( d ) + a DIV 4 - a + 2;
-  ELSIF ( y = 1582 ) AND (( m > 11 ) OR ( m = 11 ) AND ( d >= 15 )) THEN
-    a := y DIV 100;
-    c := 0;
-    d := INTEGER( d ) + a DIV 4 - a + 2;
-  ELSIF y < 0 THEN
-    c := 6; // scaled by 8
-  END;
-
-  RETURN scale * (
-            ( julianYear * y - c ) DIV 8 + // years
-            months[m] + // months
-            d // scale
-         ) +
-         TJD( 1486939248000000 ) + // year 0 boundary, 1720994.5
-         TJD( fd ); // fraction
-END JD;
+   dateTime.SetNowUTC();
+   RETURN dateTime.JulianDate;
+END NowJD;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE iJD( CONST jd : TJD; OUT y : INTEGER; OUT m, d, fd : CARDINAL );
-CONST
-   gregorianCentury = 3652425; // scaled by 100
-   julianYear = 36525; // scaled by 100
-   julianMonth = 306001; // scaled by 10000
+PROCEDURE JulianDateYMD( y : INTEGER; m, d : CARDINAL ) : JulianDate;
 VAR
-   a, b, alfa, z : INTEGER;
-   jdl, jdx : TJD;
+   jd : JulianDate;
 BEGIN
-   // works up to cca +/- 64000 years, see assert
-   jdl := jd + TJD( 432000000 );
-
-   // separate fd, rescale to days
-   jdx := jdl DIV scale;
-   fd := CARDINAL( jdl - scale * jdx );
-   z := INTEGER( jdx );
-   IF z >= MAX( INTEGER ) DIV 100 THEN
-      ASSERTLOG( FALSE );
-      z := MAX( INTEGER ) DIV 100 - 1;
-   END;
-
-   IF z < 2299161 THEN
-      a := z;
-   ELSE
-      alfa := ( 100 * z - 186721625 ) DIV gregorianCentury; // 1867216.25
-      a := z + 1 + alfa - alfa DIV 4;
-   END;
-
-   b := a + 1524;
-   y := ( 100 * b - 12210 ) DIV julianYear; // 122.1, years
-   b := b - ( julianYear * y ) DIV 100;
-
-   m := ( 10000 * b ) DIV julianMonth;
-   d := b - months[m];
-
-   IF m > 13 THEN
-      m := m - 13;
-   ELSE
-      m := m - 1;
-   END;
-   IF m > 2 THEN
-      y := y - 4716;
-   ELSE
-      y := y - 4715;
-   END;
-END iJD;
+   jd.FromYMD( y, m, d, TimeSpanZero());
+   RETURN jd;
+END JulianDateYMD;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE DayOfWeek( CONST jd : TJD ) : CARDINAL;
+PROCEDURE JulianDateYMDfd( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan ) : JulianDate;
+VAR
+   jd : JulianDate;
 BEGIN
-   RETURN JDCToDays( jd + scale DIV 2 ) MOD 7;
-END DayOfWeek;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE TrimFD( CONST jd : TJD ) : TJD;
-BEGIN
-   RETURN jd - jd MOD scale;
-END TrimFD;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE JDCToMS( CONST jd : TJDC ) : CARDINAL;
-BEGIN
-   RETURN CARDINAL( jd DIV 10 );
-END JDCToMS;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE MSToJDC( ms : CARDINAL ) : TJDC;
-BEGIN
-   RETURN TJDC( ms ) * 10;
-END MSToJDC;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE JDCToDays( CONST jd : TJDC ) : CARDINAL;
-BEGIN
-   RETURN CARDINAL( jd DIV scale );
-END JDCToDays;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE DaysToJDC( days : CARDINAL ) : TJDC;
-BEGIN
-   RETURN TJD( days ) * scale;
-END DaysToJDC;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE JDCToDaysLR( CONST jd : TJDC ) : LONGREAL;
-BEGIN
-   RETURN LONGREAL( jd ) / scaleLR;
-END JDCToDaysLR;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE DaysLRToJDC( days : LONGREAL ) : TJDC;
-BEGIN
-   RETURN TJD( days * scaleLR );
-END DaysLRToJDC;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE ToSJD( CONST jd : TJD ) : LONGREAL;
-BEGIN
-   RETURN LONGREAL( jd ) / LONGREAL( scale );
-END ToSJD;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE FromSJD( jd : LONGREAL ) : TJD;
-BEGIN
-   RETURN TJD(( jd + 0.5 / 864000000.0 ) * LONGREAL( scale ));
-END FromSJD;
+   jd.FromYMD( y, m, d, fd );
+   RETURN jd;
+END JulianDateYMDfd;
 
 (*================================================================================================*)
 
@@ -636,16 +745,6 @@ BEGIN
    TimeLock.Unlock();
    RETURN i;
 END GetCurrentDSTBias;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE GetCurrentJD() : TJD;
-VAR
-   dateTime : DateTime;
-BEGIN
-   dateTime.SetNowUTC();
-   RETURN dateTime.JulianDate;
-END GetCurrentJD;
 
 (*================================================================================================*)
 // local procedures needed for DateTime
@@ -1204,9 +1303,8 @@ CLASS IMPLEMENTATION DateTime;
          TDSTInterval( 31,  3,  2, 27, 10,  3 )  // 2002
       );
    VAR
-      DayOfWeek : CARDINAL;
       Interval  : TDSTInterval;
-      JD_       : TJD;
+      JD_ : datetime.JulianDate;
       PInterval : POINTER TO CONST TDSTInterval;
    BEGIN
       IF _Empty THEN
@@ -1221,15 +1319,13 @@ CLASS IMPLEMENTATION DateTime;
          PInterval := ADR( czBiasTable1[ _Year ] );
       ELSIF _Year > toYear3 THEN
          // get last march sunday
-         JD_ := JD( INTEGER( _Year ), 3, 31, 0 );
-         DayOfWeek := CARDINAL( ToSJD( JD_ ) + 1.5 ) MOD 7; // 0 is sunday
-         Interval.FromDay := 31 - DayOfWeek;
+         JD_ := JulianDateYMD( INTEGER( _Year ), 3, 31 );
+         Interval.FromDay := 31 - CARDINAL( JD_.DayOfWeek ) - 1;
          Interval.FromMonth := 3;
          Interval.FromHour := 2;
          // get last october sunday
-         JD_ := JD( INTEGER( _Year ), 10, 31, 0 );
-         DayOfWeek := CARDINAL( ToSJD( JD_ ) + 1.5 ) MOD 7; // 0 is sunday
-         Interval.ToDay := 31 - DayOfWeek;
+         JD_ := JulianDateYMD( INTEGER( _Year ), 10, 31 );
+         Interval.ToDay := 31 - CARDINAL( JD_.DayOfWeek ) - 1;
          Interval.ToMonth := 10;
          Interval.ToHour := 2;
          PInterval := ADR( Interval );
@@ -1262,38 +1358,43 @@ CLASS IMPLEMENTATION DateTime;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DayOfWeek GET : CARDINAL;
+   PUBLIC PROPERTY DayOfWeek GET : TDayOfWeek;
    BEGIN
       IF _DayOfWeekDirty THEN
          _DayOfWeekDirty := FALSE;
-         _DayOfWeek := CARDINAL( ToSJD( JulianDate ) + 1.5 ) MOD 7; // ( JD + 0.5 ) MOD 7 gives 0 = Monday
+         _DayOfWeek := JulianDate.DayOfWeek;
       END;
       RETURN _DayOfWeek;
    END DayOfWeek;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY JulianDate GET : TJD;
+   PUBLIC PROPERTY JulianDate GET : datetime.JulianDate;
+   VAR
+      jd : datetime.JulianDate;
+      ts : TimeSpan;
    BEGIN
-      IF _Empty THEN
-         RETURN 0;
-      ELSE
-         RETURN JD(
-                   INTEGER( _Year ),
-                   INTEGER( _Month ),
-                   INTEGER( _Day ),
-                   HMS2fd( _Hour, _Minute, _Second, _Millisecond ) + CARDINAL( _UTCBias + _DSTBias ) * 600000
-                );
+      IF NOT _Empty THEN
+         ts.FromDHMS( 0, _Hour, _Minute + CARDINAL( _UTCBias + _DSTBias ), _Second, _Millisecond );
+         jd.FromYMD( INTEGER( _Year ), INTEGER( _Month ), INTEGER( _Day ), ts );
       END;
+      RETURN jd;
    END JulianDate;
       
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY JulianDate SET( Value : TJD );
+   PUBLIC PROPERTY JulianDate SET( CONST Value : datetime.JulianDate );
    BEGIN
       FromJD( Value, 0, 0 );
    END JulianDate;
       
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR :=( CONST Source : DateTime );
+   BEGIN
+      Storage.Move( ADR( Source ), ADR( SELF ), SIZE( SELF ));
+   END :=;
+
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR = ( CONST Comperand : DateTime ) : BOOLEAN;
@@ -1338,7 +1439,7 @@ CLASS IMPLEMENTATION DateTime;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR + ( CONST Addend : TJDC ) : DateTime;
+   PUBLIC OPERATOR + ( CONST Addend : TimeSpan ) : DateTime;
    VAR
       dt : DateTime := SELF;
    BEGIN
@@ -1348,7 +1449,7 @@ CLASS IMPLEMENTATION DateTime;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR - ( CONST Addend : TJDC ) : DateTime;
+   PUBLIC OPERATOR - ( CONST Addend : TimeSpan ) : DateTime;
    VAR
       dt : DateTime := SELF;
    BEGIN
@@ -1401,7 +1502,7 @@ CLASS IMPLEMENTATION DateTime;
       _Day         := CARDINAL( st.wDay );
       _Month       := CARDINAL( st.wMonth );
       _Year        := CARDINAL( st.wYear );
-      _DayOfWeek   := CARDINAL( st.wDayOfWeek );
+      _DayOfWeek   := TDayOfWeek(( CARDINAL( st.wDayOfWeek ) + 6 ) MOD 7 );
       _UTCBias     := 0;
       _DSTBias     := 0;
    END SetNowLocal;
@@ -1421,7 +1522,7 @@ CLASS IMPLEMENTATION DateTime;
       _Day         := CARDINAL( st.wDay );
       _Month       := CARDINAL( st.wMonth );
       _Year        := CARDINAL( st.wYear );
-      _DayOfWeek   := CARDINAL( st.wDayOfWeek );
+      _DayOfWeek   := TDayOfWeek(( CARDINAL( st.wDayOfWeek ) + 6 ) MOD 7 );
       _UTCBias     := 0;
       _DSTBias     := 0;
    END SetNowUTC;
@@ -1456,31 +1557,34 @@ CLASS IMPLEMENTATION DateTime;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE FromJD( jd : TJD; utcBias, dstBias : INTEGER );
+   PUBLIC PROCEDURE FromJD( CONST jd : datetime.JulianDate; utcBias, dstBias : INTEGER );
    VAR
       FD : CARDINAL;
+      ljd : datetime.JulianDate := jd;
       Y, M, D : INTEGER;
+      ts : TimeSpan;
    BEGIN
-      jd := jd - TJD( dstBias + dstBias ) * 600000;
-      iJD( jd, OUT Y, OUT M, OUT D, OUT FD );
+      ts.Minutes := LONGREAL( dstBias + dstBias );
+      ljd.Subtract( ts );
+      ljd.ToYMD( OUT Y, OUT M, OUT D, OUT ts );
 
       _Empty := FALSE;
       _Year := CARDINAL( Y );
       _Month := CARDINAL( M );
       _Day := CARDINAL( D );
-      _DayOfWeek := CARDINAL( ToSJD( jd ) + 1.5 ) MOD 7; // ( JD + 0.5 ) MOD 7 gives 0 = Monday
+      _DayOfWeek := ljd.DayOfWeek;
       _DayOfWeekDirty := FALSE;
       _UTCBias := utcBias;
       _DSTBias := dstBias;
 
-      fd2HMS( FD, OUT _Hour, OUT _Minute, OUT _Second, OUT _Millisecond );
+      ts.ToDHMS( OUT D, OUT _Hour, OUT _Minute, OUT _Second, OUT _Millisecond );
    END FromJD;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE FromJDToLocal( JD : TJD );
+   PUBLIC PROCEDURE FromJDToLocal( CONST jd : datetime.JulianDate );
    BEGIN
-      FromJD( JD, GetZonalUTCBias(), GetZonalDSTBias());
+      FromJD( jd, GetZonalUTCBias(), GetZonalDSTBias());
    END FromJDToLocal;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -1580,23 +1684,23 @@ CLASS IMPLEMENTATION DateTime;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Add( Addend : TJDC );
+   PUBLIC PROCEDURE Add( Addend : TimeSpan );
    BEGIN
       JulianDate := JulianDate + Addend;
    END Add;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Subtract( Addend : TJDC );
+   PUBLIC PROCEDURE Subtract( Addend : TimeSpan );
    BEGIN
       JulianDate := JulianDate - Addend;
    END Subtract;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TJDC;
+   PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TimeSpan;
    BEGIN
-      RETURN JulianDate - Operand.JulianDate;
+      RETURN JulianDate.Difference( Operand.JulianDate );
    END Difference;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -2203,7 +2307,7 @@ BEGIN
    _Day := 0;
    _Month := 0;
    _Year := 0;
-   _DayOfWeek := 0;
+   _DayOfWeek := Monday;
    _DayOfWeekDirty := FALSE;
    _UTCBias := 0;
    _DSTBias := 0;
@@ -2233,11 +2337,9 @@ END NowUTC;
 
 INITIALLY __I();
 BEGIN
-   LastTicks := 0;
-   LastTimeMS64 := 0;
    ZoneInfoUpdated := 0;
    TimeLock.Init( Sync.ltSpin, L"", FALSE );
-   InitHiResTimer();
+   InitHRTime();
 END __I;
 
 (*================================================================================================*)

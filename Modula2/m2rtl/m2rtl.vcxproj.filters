@@ -17,9 +17,6 @@
     <None Include="Source\datetime.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\datetimeWin32.mod">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="Source\debug.mod">
       <Filter>Source Files</Filter>
     </None>
@@ -63,9 +60,6 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="Source\datetime.def">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="Source\datetimeWin32.def">
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\debug.def">

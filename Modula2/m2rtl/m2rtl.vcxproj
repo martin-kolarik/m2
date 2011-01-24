@@ -64,7 +64,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="Source\datetime.mod" />
-    <None Include="Source\datetimeWin32.mod" />
     <None Include="Source\debug.mod" />
     <None Include="Source\delegate.mod" />
     <None Include="Source\Exceptions.mod" />
@@ -80,7 +79,6 @@
     <None Include="Source\sync.mod" />
     <None Include="Source\syncqueue.mod" />
     <None Include="Source\datetime.def" />
-    <None Include="Source\datetimeWin32.def" />
     <None Include="Source\debug.def" />
     <None Include="Source\delegate.def" />
     <None Include="Source\Exceptions.def" />

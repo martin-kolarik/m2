@@ -9,6 +9,20 @@ IMPORT
 #save, option( dll_export => on )
 
 (*================================================================================================*)
+// common
+
+TYPE
+   TDayOfWeek = (
+      Monday = 0,
+      Tuesday,
+      Wednesday,
+      Thursday,
+      Friday,
+      Saturday,
+      Sunday
+   ); // TDayOfWeek
+
+(*================================================================================================*)
 // uptime OS counters
 
 PROCEDURE UptimeMS32() : CARD32; // returns time from system startup in ms
@@ -20,26 +34,39 @@ CONST
 (*================================================================================================*)
 // time span
 
-CLASS TimeSpan; // unit is 100 us, CANNNOT be negative
+CLASS TimeSpan; // unit is 100 ns
 
    PUBLIC READONLY PROPERTY
-      Frequency : CARD64; // hertz
+      Precision : CARD64; // hertz
 
    PUBLIC PROPERTY
-      Microseconds : CARD64;
-      Milliseconds : CARD64;
+      Value : INT64; // raw value, e.g. for transport purposes
+      Microseconds : LONGREAL;
+      Milliseconds : LONGREAL;
       Seconds : LONGREAL;
       Minutes : LONGREAL;
       Hours : LONGREAL;
       Days : LONGREAL; // usable for a fraction of the day too, of course
 
+   PUBLIC INLINE OPERATOR :=( CONST Source : TimeSpan );
+
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : TimeSpan;
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : TimeSpan;
+
+   PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
+   PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
    PUBLIC PROCEDURE FromDHMS( D, H, M, S, MS : CARDINAL );
-   PUBLIC PROCEDURE ToDHMS( OUT D, H, M, S, MS : CARDINAL );
+   PUBLIC PROCEDURE ToDHMS( OUT D, H, M, S, MS : CARDINAL ); // returns always positive values, even if the span is negative
 
    PRIVATE VAR
-      _Value : CARD64 := 0;
+      _Value : INT64 := 0;
 
 END TimeSpan;
+
+PROCEDURE TimeSpanZero() : TimeSpan;
+PROCEDURE TimeSpanMS32( Milliseconds : CARD32 ) : TimeSpan;
+PROCEDURE TimeSpanS( Seconds : LONGREAL ) : TimeSpan;
+PROCEDURE TimeSpanD( Days : LONGREAL ) : TimeSpan;
 
 (*================================================================================================*)
 // high resolution timer
@@ -47,24 +74,19 @@ END TimeSpan;
 CLASS HighResolutionTime; // unit is 1/Frequency
    
    PUBLIC READONLY PROPERTY
-      Frequency : CARD64; // hertz
+      Precision : CARD64; // hertz
 
-   PUBLIC READONLY PROPERTY
-      Milliseconds : CARD64;
-      Seconds : LONGREAL;
-      Span : TimeSpan;
-
-   PUBLIC OPERATOR =( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-   PUBLIC OPERATOR <>( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-   PUBLIC OPERATOR <( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-   PUBLIC OPERATOR <=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-   PUBLIC OPERATOR >( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-   PUBLIC OPERATOR >=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
-   PUBLIC OPERATOR +( Addend : TimeSpan ) : HighResolutionTime;
-   PUBLIC OPERATOR -( Addend : TimeSpan ) : HighResolutionTime;
+   // PUBLIC OPERATOR =( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   // PUBLIC OPERATOR <>( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   // PUBLIC OPERATOR <( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   // PUBLIC OPERATOR <=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   // PUBLIC OPERATOR >( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   // PUBLIC OPERATOR >=( CONST Comperand : HighResolutionTime ) : BOOLEAN;
+   // PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : HighResolutionTime;
+   // PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : HighResolutionTime;
+   PUBLIC OPERATOR -( CONST Addend : HighResolutionTime ) : TimeSpan;
 
    PUBLIC PROCEDURE SetNow();
-   PUBLIC PROCEDURE Difference( CONST From : HighResolutionTime ) : TimeSpan; // = SELF - From
 
    PRIVATE VAR
       _Value : CARD64 := 0;
@@ -76,35 +98,47 @@ PROCEDURE NowHR() : HighResolutionTime;
 (*================================================================================================*)
 // JulianDate routines
 
-TYPE
-   TJD  = INT64; // unit is 100 us
-   TPJD = POINTER TO INT64;
+CLASS JulianDate;
 
-   TJDC = TJD; // type interpreted as count of 100 us unit, not as whole JD
+   PUBLIC READONLY PROPERTY
+      DayOfWeek : TDayOfWeek;
 
-CONST
-   unitsInMillisecond = TJD( 10 );
-   unitsInSecond = TJD( 10000 );
-   unitsInDay = TJD( 864000000 ); 
+   PUBLIC PROPERTY
+      Value : INT64; // raw value, e.g. for transport purposes
+      FractionOfTheDay : TimeSpan; // values greater than 1 D are trimmed (only the fraction is used)
+      Scientific : LONGREAL;
 
-PROCEDURE fd( ri : TJD ) : CARDINAL;
-PROCEDURE HMS2fd( H, M, S, MS : CARDINAL ) : CARDINAL;
-PROCEDURE fd2HMS( fd : CARDINAL; OUT H, M, S, MS : CARDINAL ) : BOOLEAN;
+   PUBLIC INLINE OPERATOR :=( CONST Source : JulianDate );
 
-PROCEDURE JD( y : INTEGER; m, d, fd : CARDINAL ) : TJD;
-PROCEDURE iJD( CONST jd : TJD; OUT y : INTEGER; OUT m, d, fd : CARDINAL );
-PROCEDURE DayOfWeek( CONST jd : TJD ) : CARDINAL; // 0 is monday, 6 is sunday
-PROCEDURE TrimFD( CONST jd : TJD ) : TJD;
+   PUBLIC OPERATOR =( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <>( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <=( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR >( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR >=( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : JulianDate;
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : JulianDate;
 
-PROCEDURE JDCToMS( CONST jd : TJDC ) : CARDINAL;
-PROCEDURE MSToJDC( ms : CARDINAL ) : TJDC;
-PROCEDURE JDCToDays( CONST jd : TJDC ) : CARDINAL;
-PROCEDURE DaysToJDC( days : CARDINAL ) : TJDC;
-PROCEDURE JDCToDaysLR( CONST jd : TJDC ) : LONGREAL;
-PROCEDURE DaysLRToJDC( days : LONGREAL ) : TJDC;
+   PUBLIC PROCEDURE SetNow();
+   
+   PUBLIC PROCEDURE Less( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC PROCEDURE Greater( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC PROCEDURE Equals( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
+   PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
+   PUBLIC PROCEDURE Difference( CONST Operand : JulianDate ) : TimeSpan; // SELF - Operand
 
-PROCEDURE ToSJD( CONST jd : TJD ) : LONGREAL; // correct scientific Julian date
-PROCEDURE FromSJD( sjd : LONGREAL ) : TJD; // correct scientific Julian date
+   PUBLIC PROCEDURE FromYMD( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan );
+   PUBLIC PROCEDURE ToYMD( OUT y : INTEGER; OUT m, d : CARDINAL; OUT fd : TimeSpan );
+
+   PRIVATE VAR
+      _Value : INT64 := 0;
+
+END JulianDate;
+
+PROCEDURE NowJD() : JulianDate;
+PROCEDURE JulianDateYMD( y : INTEGER; m, d : CARDINAL ) : JulianDate;
+PROCEDURE JulianDateYMDfd( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan ) : JulianDate;
 
 (*================================================================================================*)
 // UTCBias always represents zone time only, thus,
@@ -119,9 +153,6 @@ PROCEDURE GetCurrentUTCBias() : INTEGER; // MINUTES!!
 PROCEDURE GetCurrentDSTBias() : INTEGER; // MINUTES;
   // returns bias in current zone according to current DST state
 
-// procedures return current local/system datetime in requested format
-PROCEDURE GetCurrentJD() : TJD; // JD is by definition UTC
-
 (*================================================================================================*)
 // date and time support
 
@@ -132,29 +163,31 @@ CLASS DateTime;
 
    PUBLIC PROPERTY
       Millisecond : CARDINAL;
-      Second      : CARDINAL;
-      Minute      : CARDINAL;
-      Hour        : CARDINAL;
-      Day         : CARDINAL;
-      Month       : CARDINAL;
-      Year        : INTEGER;
-      UTCBias     : INTEGER;
-      DSTBias     : INTEGER;
+      Second : CARDINAL;
+      Minute : CARDINAL;
+      Hour : CARDINAL;
+      Day : CARDINAL;
+      Month : CARDINAL;
+      Year : INTEGER;
+      UTCBias : INTEGER;
+      DSTBias : INTEGER;
    PUBLIC READONLY PROPERTY
       Empty : BOOLEAN;
       DstActive : BOOLEAN;
-      DayOfWeek : CARDINAL; // 0 is Sunday
+      DayOfWeek : TDayOfWeek;
    PUBLIC PROPERTY
-      JulianDate : TJD; // set sets biases to UTC, for another biases use FromJD
+      JulianDate : datetime.JulianDate; // set sets biases to UTC, for another biases use FromJD
       
+   PUBLIC OPERATOR :=( CONST Source : DateTime );
+
    PUBLIC OPERATOR =( CONST Comperand : DateTime ) : BOOLEAN;
    PUBLIC OPERATOR <>( CONST Comperand : DateTime ) : BOOLEAN;
    PUBLIC OPERATOR <( CONST Comperand : DateTime ) : BOOLEAN;
    PUBLIC OPERATOR <=( CONST Comperand : DateTime ) : BOOLEAN;
    PUBLIC OPERATOR >( CONST Comperand : DateTime ) : BOOLEAN;
    PUBLIC OPERATOR >=( CONST Comperand : DateTime ) : BOOLEAN;
-   PUBLIC OPERATOR +( Addend : TJDC ) : DateTime;
-   PUBLIC OPERATOR -( Addend : TJDC ) : DateTime;
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : DateTime;
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : DateTime;
         
    PUBLIC PROCEDURE Clear();
    PUBLIC PROCEDURE TrimDate();
@@ -164,15 +197,15 @@ CLASS DateTime;
    PUBLIC PROCEDURE SetZoneToLocal();
    PUBLIC PROCEDURE SetZoneToUTC();
    PUBLIC PROCEDURE SetZone( UTCBias, DSTBias : INTEGER ); // sets both biases in single call
-   PUBLIC PROCEDURE FromJDToLocal( JD : TJD ); // JD is missing time zone information, local one will be set
-   PUBLIC PROCEDURE FromJD( JD : TJD; UTCBias, DSTBias : INTEGER ); // JD is missing time zone information
+   PUBLIC PROCEDURE FromJDToLocal( CONST JD : datetime.JulianDate ); // JD is missing time zone information, local one will be set
+   PUBLIC PROCEDURE FromJD( CONST JD : datetime.JulianDate; UTCBias, DSTBias : INTEGER ); // JD is missing time zone information
    
    PUBLIC PROCEDURE Less( CONST Comperand : DateTime ) : BOOLEAN;
    PUBLIC PROCEDURE Greater( CONST Comperand : DateTime ) : BOOLEAN;
    PUBLIC PROCEDURE Equals( CONST Comperand : DateTime ) : BOOLEAN;
-   PUBLIC PROCEDURE Add( Addend : TJDC );
-   PUBLIC PROCEDURE Subtract( Addend : TJDC );
-   PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TJDC;
+   PUBLIC PROCEDURE Add( Addend : TimeSpan );
+   PUBLIC PROCEDURE Subtract( Addend : TimeSpan );
+   PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TimeSpan;
    
    PUBLIC PROCEDURE FromStringOA( CONST String, Format : ARRAY OF WCHAR ) : BOOLEAN;
    PUBLIC PROCEDURE FromLanguageStringOA( Language : Languages.TLanguage; CONST String, Format : ARRAY OF WCHAR ) : BOOLEAN;
@@ -188,12 +221,13 @@ CLASS DateTime;
       _Day         : CARDINAL;
       _Month       : CARDINAL;
       _Year        : INTEGER;
-      _DayOfWeek   : CARDINAL;
+      _DayOfWeek   : TDayOfWeek;
       _DayOfWeekDirty : BOOLEAN;
       // UTC = LocalTime + UTCBias + DSTBias
       // biases are in minutes
       _UTCBias     : INTEGER;  // if DateTime contains system (UTC) time, the UTCBias is 0
       _DSTBias     : INTEGER;  // if DateTime contains system (UTC) time, the DSTBias is 0
+
 END DateTime;
 
 PROCEDURE NowLocal() : DateTime;
