@@ -156,7 +156,11 @@ CLASS IMPLEMENTATION CBitArray;
         IF i > hi THEN
           EXIT;
         END;
-        INC( _BitsCount^[i] );
+        IF Value THEN
+          INC( _BitsCount^[i] );
+        ELSE
+          DEC( _BitsCount^[i] );
+        END;
         INC( i );
       END; // LOOP
     END; // IF PBitsCount <> NIL
@@ -247,9 +251,17 @@ CLASS IMPLEMENTATION CBitArray;
    PUBLIC PROCEDURE Invert();
    VAR
       i : INTEGER;
+      pb : PBYTE;
    BEGIN
-      FOR i := 0 TO (_Allocated >> 5)-1 DO
-         _Data^[i] := _Data^[i] / BITSET32( -1 );
+      pb := PBYTE( _Data );
+      FOR i := 0 TO CountToBytes( _Allocated )-1 DO
+         DEC( Count, bitsCount[ PCARD8( pb )^ ] );
+         pb^ := pb^ XOR 0FFH;
+         INC( Count, bitsCount[ PCARD8( pb )^ ] );
+         INC( pb );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
       END;
    END Invert;
 
@@ -259,11 +271,21 @@ CLASS IMPLEMENTATION CBitArray;
    VAR
       i : INTEGER;
       l1, l2 : CARDINAL;
+      pb1, pb2 : PBYTE;
    BEGIN
-      l1 := _Allocated >> 5;
-      l2 := With._Allocated >> 5;
+      l1 := CountToBytes( _Allocated );
+      l2 := CountToBytes( With._Allocated );
+      pb1 := PBYTE( _Data );
+      pb2 := PBYTE( With._Data );
       FOR i := 0 TO MIN2( l1, l2 )-1 DO
-         _Data^[i] := _Data^[i] + With._Data^[i];
+         DEC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         pb1^ := pb1^ OR pb2^;
+         INC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         INC( pb1 );
+         INC( pb2 );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
       END;
    END Or;
 
@@ -273,11 +295,21 @@ CLASS IMPLEMENTATION CBitArray;
    VAR
       i : INTEGER;
       l1, l2 : CARDINAL;
+      pb1, pb2 : PBYTE;
    BEGIN
-      l1 := _Allocated >> 5;
-      l2 := With._Allocated >> 5;
+      l1 := CountToBytes( _Allocated );
+      l2 := CountToBytes( With._Allocated );
+      pb1 := PBYTE( _Data );
+      pb2 := PBYTE( With._Data );
       FOR i := 0 TO MIN2( l1, l2 )-1 DO
-         _Data^[i] := _Data^[i] * With._Data^[i];
+         DEC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         pb1^ := pb1^ AND pb2^;
+         INC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         INC( pb1 );
+         INC( pb2 );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
       END;
    END And;
 
@@ -287,11 +319,21 @@ CLASS IMPLEMENTATION CBitArray;
    VAR
       i : INTEGER;
       l1, l2 : CARDINAL;
+      pb1, pb2 : PBYTE;
    BEGIN
-      l1 := _Allocated >> 5;
-      l2 := With._Allocated >> 5;
+      l1 := CountToBytes( _Allocated );
+      l2 := CountToBytes( With._Allocated );
+      pb1 := PBYTE( _Data );
+      pb2 := PBYTE( With._Data );
       FOR i := 0 TO MIN2( l1, l2 )-1 DO
-         _Data^[i] := _Data^[i] / With._Data^[i];
+         DEC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         pb1^ := pb1^ XOR pb2^;
+         INC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         INC( pb1 );
+         INC( pb2 );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
       END;
    END Xor;
 
@@ -385,38 +427,57 @@ CLASS IMPLEMENTATION CBitArray;
 
 //--------------------------------------------------------------
 
-   PUBLIC PROCEDURE FromOA( FirstBit : CARDINAL; CONST Source : ARRAY OF BYTE ); // adopts source bits starting with FirstBit
+   PUBLIC PROCEDURE FromOA( ToByte : CARDINAL; CONST Source : ARRAY OF BYTE ); // adopts source bits starting with FirstBit
    VAR
-      from : INTEGER;
-      i : INTEGER;
+      i : CARDINAL;
       l1, l2 : CARDINAL;
+      pb : PBYTE;
    BEGIN
-      from := FirstBit >> 3;
+      ToByte := ToByte >> 3;
       l1 := CountToBytes( _Allocated );
-      l2 := from + HIGH( Source ) + 1;
+      l2 := ToByte + HIGH( Source ) + 1;
       IF ResizeOnSet AND ( l2 > l1 ) THEN
-         Size := l2;
+         Size := 8 * l2;
          l1 := CountToBytes( _Allocated );
+      ELSIF ToByte > l1 THEN
+         ExclAll();
+         RETURN;
       END;
-      FOR i := 0 TO MIN2( l1, l2 )-1 DO
-         PBYTE( _Data@[i+from] )^ := Source[i];
+      pb := PBYTE( _Data@[ToByte] );
+      FOR i := 0 TO MIN2( l1, l2 )-ToByte-1 DO
+         DEC( Count, bitsCount[ PCARD8( pb )^ ] );
+         pb^ := Source[i];
+         INC( Count, bitsCount[ PCARD8( pb )^ ] );
+         INC( pb );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
       END;
    END FromOA;
 
 //--------------------------------------------------------------
 
-   PUBLIC PROCEDURE ToOA( FirstBit : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Filled : CARDINAL );
+   PUBLIC PROCEDURE ToOA( FromByte : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Filled : CARDINAL );
    VAR
-      from : INTEGER;
-      i : INTEGER;
+      count : CARDINAL;
+      i : CARDINAL;
       l1, l2 : CARDINAL;
+      pb : PBYTE;
    BEGIN
-      from := FirstBit >> 3;
-      l1 := INTEGER( CountToBytes( _Allocated )) - from;
+      FromByte := FromByte >> 3;
+      count := CountToBytes( _Allocated );
+      IF FromByte >= count THEN
+         Filled := 0;
+         RETURN;
+      ELSE
+         l1 := count - FromByte;
+      END;
       l2 := HIGH( Destination ) + 1;
-      Filled := MIN2( l1, l2 );
+      Filled := MIN2( l1, l2 ) - FromByte;
+      pb := PBYTE( _Data@[FromByte] );
       FOR i := 0 TO Filled-1 DO
-         Destination[i] := PBYTE( _Data@[i+from] )^;
+         Destination[i] := pb^;
+         INC( pb );
       END;
    END ToOA;
 
