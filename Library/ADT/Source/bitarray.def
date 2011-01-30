@@ -12,7 +12,8 @@ TYPE
   TData;
   TBitsCount;
 
-CLASS CBitArray;
+CLASS CBitArray; // BITS ARE COUNTED FROM 0
+
   INTERNAL READONLY VAR
     _Data        : TData;
     _Allocated   : CARDINAL;
@@ -26,9 +27,10 @@ CLASS CBitArray;
     ResizeOnSet  : BOOLEAN := TRUE;
   PUBLIC PROPERTY
     CountBits    : BOOLEAN;
+  
+   PUBLIC OPERATOR :=( CONST source : CBitArray );
     
-  PUBLIC
-    INDEX( Index : INTEGER ) : BOOLEAN;
+  PUBLIC INDEX( Index : INTEGER ) : BOOLEAN;
 
   PRIVATE VIRTUAL PROCEDURE __VMT();
   PUBLIC PROCEDURE Clear(); // the same as ExclAll()
@@ -53,6 +55,7 @@ CLASS CBitArray;
 
   INTERNAL INLINE PROCEDURE CountToBytes( Count : CARDINAL ) : CARDINAL;
   INTERNAL PROCEDURE AdjustBitsCount() : CARDINAL;
+
 END CBitArray;
 
 #restore

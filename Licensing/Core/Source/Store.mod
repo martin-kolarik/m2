@@ -194,7 +194,6 @@ CLASS IMPLEMENTATION CFileStorage;
          END;
       //-----
       | fomFileByProduct :
-         processed.Count := count;
          processed.ExclAll();
          LOOP
             // search products

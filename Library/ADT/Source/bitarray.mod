@@ -113,6 +113,14 @@ CLASS IMPLEMENTATION CBitArray;
 
 //--------------------------------------------------------------
 
+   PUBLIC OPERATOR CBitArray.:=( CONST source : CBitArray );
+   BEGIN
+      Size := source.Size;
+      FromOA( 0, OA( CountToBytes( source._Allocated )-1, source._Data ));
+   END CBitArray.:=;
+    
+//--------------------------------------------------------------
+
   PUBLIC INDEX CBitArray GET( Index : INTEGER ) : BOOLEAN;
   BEGIN
     IF ( Index >= INTEGER( _Allocated )) OR ( Index < 0 ) THEN
@@ -130,7 +138,9 @@ CLASS IMPLEMENTATION CBitArray;
     i : CARDINAL;
     b : BOOLEAN;
   BEGIN
-    IF Index >= INTEGER( _Allocated ) THEN
+    IF Index < 0 THEN
+      RETURN;
+    ELSIF Index >= INTEGER( _Allocated ) THEN
       IF ResizeOnSet THEN
         Size := ( Index + 31 ) << 5 >> 5;
       ELSE
