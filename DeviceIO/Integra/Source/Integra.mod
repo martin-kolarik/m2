@@ -9,6 +9,7 @@ FROM Exceptions IMPORT
    TestIfCatched, RetrieveException, CModula2Exception;
 
 IMPORT
+   bitarray,
    datetime,
    FIO,
    iobject,
@@ -23,7 +24,7 @@ IMPORT
    Texts;
    
 IMPORT
-   Log;
+   log;
 
 (*================================================================================*)
 
@@ -38,12 +39,13 @@ CONST
 
 CONST
    B_SYNCHRONIZE  = 0FFH;
+   B_STOP         = 0AAH;
    B_INTERLEAVE_1 = 0FFH;
    B_INTERLEAVE_2 = 0FEH;
 
 #save, option( pack => 1 )
 TYPE
-   TPacketType = (
+   TPacketType = INT8(
       ptUnknown,
       ptInfo,
       ptArm = 70H,
@@ -97,6 +99,9 @@ TYPE
                     ArmZones : ARRAY [0..3] OF BYTE;
                     ArmMode : BYTE;
                     ArmCRC : BYTE;
+                    ArmOuterCRC : BYTE;
+                    ArmTrail1 : BYTE;
+                    ArmTrail2 : BYTE;
                  //-----
                  | ptDisarm :
                     DisarmSync1 : BYTE;
@@ -105,6 +110,9 @@ TYPE
                     DisarmCode : ARRAY [0..7] OF BYTE;
                     DisarmZones : ARRAY [0..3] OF BYTE;
                     DisarmCRC : BYTE;
+                    DisarmOuterCRC : BYTE;
+                    DisarmTrail1 : BYTE;
+                    DisarmTrail2 : BYTE;
                  //-----
                  | ptInfo :
                     Interleave : BYTE;
@@ -237,13 +245,28 @@ CLASS IMPLEMENTATION CPacket;
          ASSERTLOG( FALSE );
          RETURN;
       END;
-      
+
+      // inner chksum      
+      chksum := 0;
+      FOR i := chksumFrom TO chksumOffset - 1 DO
+         chksum := chksum XOR PCARD8( _Packet@[i] )^;
+      END; // FOR
+      PCARD8( _Packet@[chksumOffset] )^ := chksum;
+
+      // outer chksum
+      chksumFrom := 2;
+      IF _PacketType = ptArm THEN
+         chksumOffset := FIELDOFS( TWirePacket.ArmOuterCRC );
+      ELSE
+         chksumOffset := FIELDOFS( TWirePacket.DisarmOuterCRC );
+      END;
+
       chksum := 0;
       FOR i := chksumFrom TO chksumOffset - 1 DO
          INC( chksum, PCARD8( _Packet@[i] )^ );
       END; // FOR
-
       PCARD8( _Packet@[chksumOffset] )^ := chksum;
+
    END ComputeCheckSum;
 
 (*---------------------------------------------------------------------------*)
@@ -309,10 +332,14 @@ CLASS IMPLEMENTATION CPacket;
          _Packet^.ArmSync1 := B_SYNCHRONIZE;
          _Packet^.ArmSync2 := B_SYNCHRONIZE;
          _Packet^.ArmDataType := ptArm;
+         _Packet^.ArmTrail1 := B_SYNCHRONIZE;
+         _Packet^.ArmTrail2 := B_STOP;
       | ptDisarm :
          _Packet^.DisarmSync1 := B_SYNCHRONIZE;
          _Packet^.DisarmSync2 := B_SYNCHRONIZE;
          _Packet^.DisarmDataType := ptDisarm;
+         _Packet^.DisarmTrail1 := B_SYNCHRONIZE;
+         _Packet^.DisarmTrail2 := B_STOP;
       END;
    END SetPacketBoundaries;
 
@@ -330,9 +357,9 @@ CLASS IMPLEMENTATION CPacket;
       END;
       CASE _PacketType OF
       | ptArm :
-         _Length := FIELDOFS( TWirePacket.ArmCRC ) + SIZE( TWirePacket.ArmCRC );
+         _Length := FIELDOFS( TWirePacket.ArmTrail2 ) + SIZE( TWirePacket.ArmTrail2 );
       | ptDisarm :
-         _Length := FIELDOFS( TWirePacket.DisarmCRC ) + SIZE( TWirePacket.DisarmCRC );
+         _Length := FIELDOFS( TWirePacket.DisarmTrail2 ) + SIZE( TWirePacket.DisarmTrail2 );
       | ptInfo :
          CASE _Packet^.InfoDataType OF
          // fixed lengths
@@ -380,6 +407,32 @@ END CPacket;
 
 (*===========================================================================*)
 
+TYPE
+   TPArea = POINTER TO CArea;
+
+CLASS CArea;
+   LOCAL VAR
+      Description : StringsO.CString;
+      Zones : bitarray.CBitArray;
+      Alarm : bitarray.CBitArray;
+      ScanForAlarm : BOOLEAN;
+
+      Operation : TPacketType; // temporary
+      Password : StringsO.CString; // temporary
+END CArea; // CArea
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CArea;
+BEGIN
+   Zones.Size := 128;
+   Alarm.Size := 128;
+   ScanForAlarm := TRUE;
+   Operation := ptUnknown;
+END CArea;
+
+(*================================================================================*)
+
 CLASS IMPLEMENTATION CNS;
 
 (*---------------------------------------------------------------------------*)
@@ -399,27 +452,11 @@ CLASS IMPLEMENTATION CNS;
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE CreateStructure();
-   VAR
-     I : ns.TPnsItem;
    BEGIN
       Root^.AddChild( CreateNewItem( L"Control", ns.ntName, iovalue.vtString, 0 ));
 
       DataRoot := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
       Root^.AddChild( DataRoot );
-
-      I := CreateNewItem( L"Humidity",    ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Temperature", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-
-      I := CreateNewItem( L"Humidity setpoint",    ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Temperature setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-
-      I := CreateNewItem( L"Temperature (bath) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Temperature (party) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Temperature (standby) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-
-      I := CreateNewItem( L"Humidity (bath) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Humidity (party) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
-      I := CreateNewItem( L"Humidity (standby) setpoint", ns.ntValue, iovalue.vtFloat, 0 ); DataRoot^.AddChild( I );
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -558,13 +595,18 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
    BEGIN
-      RETURN Connection.Connected;
+      RETURN _Started;
    END Running;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
+      IF _Started THEN
+         RETURN Sync.arAlreadyCompleted;
+      END;
+      _Started := TRUE;
+
       _PoolDelegate.TimeoutSink := ADR( SELF );
 
       _LastReceiveTime := datetime.UptimeMS();
@@ -579,14 +621,17 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
+      IF NOT _Started THEN
+         RETURN;
+      END;
+      _Started := FALSE;
+
       _PoolDelegate.TimeoutSink := NIL;
    
       StopTimeout( REF _ConnectionTimeoutHandle );
 
       Connection.Close();
       Logger.LogS( log.ldMessage, 0, L"Integra", L"Stopped" );
-
-      LogConfig.DisposeAppenderList( REF _AppenderList );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -616,18 +661,41 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
-   BEGIN
-   (*
    VAR
-      Packet : TPacket;
+      area : TPArea := ItemToSend^.Data;
+      i, len : CARDINAL;
+      mask : BYTE;
+      Packet : TWirePacket;
+      shift : CARDINAL;
       Wrapper : CPacket;
    BEGIN
-      Packet.FIRST := 0C;
+      Packet.ArmSync1 := 0;
       Wrapper.EmptyPacket := ADR( Packet );
-      Wrapper.PacketType := ptDataRequest;
-      Wrapper.DeviceAddress := _DeviceAddress;
-      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 150, 500 );
-   *)
+      Wrapper.PacketType := area^.Operation;
+
+      Storage.Fill( ADR( Packet.ArmCode ), SIZE( Packet.ArmCode ), 0AAH );
+      len := MIN2( 16, area^.Password.Length );
+      shift := 4; mask := 0FH;
+      FOR i := 0 TO len-1 DO
+         IF ( area^.Password[i] < L'0' ) OR ( area^.Password[i] > L'9' ) THEN
+            Packet.ArmCode[i DIV 2] := Packet.ArmCode[i DIV 2] AND mask;
+         ELSE
+            Packet.ArmCode[i DIV 2] := ( Packet.ArmCode[i DIV 2] AND mask ) OR (( ORD( area^.Password[i] ) - ORD( L'0' )) << shift );
+         END;
+         IF shift = 4 THEN
+            shift := 0; mask := 0F0H;
+         ELSE
+            shift := 4; mask := 00FH;
+         END;
+      END; // FOR
+      IF area^.Operation = ptArm THEN
+         Packet.ArmMode := 1;
+         area^.Zones.ToOA( 0, OUT Packet.ArmZones, OUT len );
+      ELSE
+         area^.Zones.ToOA( 0, OUT Packet.DisarmZones, OUT len );
+      END;
+
+      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1 );
    END SendData;
 
 (*---------------------------------------------------------------------------*)
@@ -746,40 +814,169 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    CONST
+      keyAreas = L"areas";
       keyHost = L"host";
+      keyScanForAlarm = L"scan_for_alarm";
+      keyZones = L"zones";
    VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
 
       (*----------*)
 
-      PROCEDURE LogError( line : CARDINAL; errorText : CARDINAL; CONST addonText : StringsO.TPString );
+      PROCEDURE LogError( abort : BOOLEAN; line : CARDINAL; errorText : CARDINAL; CONST addonText : StringsO.TPString );
       VAR
+         level : log.TLevel := log.lcWarning;
          msg : StringsO.CString;
       BEGIN
-         Result := Sync.arAborted;
+         IF abort THEN
+            level := log.lcError;
+            Result := Sync.arAborted;
+         END;
 
          msg.FromOA( OAsz( R[errorText] ));
          IF addonText <> NIL THEN
             msg.Append( addonText^ );
          END;
-         Log^.LogFilePos( log.lcError, 0, L"Integra", L"", OA( msg.Length-1, msg.Data ), line, 0 );
+         Log^.LogFilePos( level, 0, L"Integra", OA( iniFileSection.Length-1, iniFileSection.Data ), OA( msg.Length-1, msg.Data ), line, 0 );
       END LogError;
 
       (*----------*)
 
+   CONST
+      ZONE_SPLITTER = StringsO.WCHARS{ L"," };
+      ZONE_INTERVAL = L"..";
    VAR
-      l : CARDINAL;
+      area : TPArea;
+      es : PTR;
+      i, j, l : CARDINAL;
+      key, value : StringsO.CString;
+      zoneFrom : CARDINAL;
+      zoneTo : CARDINAL;
+      zoneFromString : StringsO.CString;
+      zoneToString : StringsO.CString;
    BEGIN
+      Dispose();
+
       IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.Data )) THEN
+         // TODO: does ConfigureLog dispose _AppenderList ???
          LogConfig.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, REF _AppenderList, OUT l );
+
+         // load host to connect to
          IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _HostAddress ) THEN
-            LogError( l, Texts._HostKeyMissing, NIL );
+            LogError( TRUE, l, Texts._HostKeyMissing, NIL );
          END;
+
+         // load areas name
+         IF NOT iniFile.GetKeyStr( keyAreas, OUT l, OUT value ) THEN
+            LogError( TRUE, l, Texts._AreasKeyMissing, NIL );
+         END;
+
+         // load areas
+         IF NOT iniFile.SetSection( OA( value.Length-1, value.Data )) THEN
+            LogError( TRUE, 0, Texts._AreasSectionMissing, ADR( value ));
+         ELSE
+            es := NIL;
+            WHILE iniFile.EnumerateKeys( REF es, OUT l, OUT key, OUT value ) DO
+               IF AreaList.Contains( key ) THEN
+                  LogError( TRUE, l, Texts._AreaAlreadyKnown, ADR( key ));
+               ELSE // not known area found
+
+                  area := NEW( CArea );
+                  area^.Description := value;
+                  AreaList.Add( key, area );
+
+               END;
+            END;
+         END;
+
+         // load configuration of particular areas
+         AreaList.Reset();
+         WHILE AreaList.MoveNext() DO
+            IF NOT iniFile.SetSection( OA( AreaList.Current^.Length-1, AreaList.Current^.Data )) THEN
+               LogError( TRUE, l, Texts._AreaNotFound, AreaList.Current );
+               CONTINUE;
+            END;
+               
+            area := AreaList.CurrentData;
+            iniFile.GetKeyBool( keyScanForAlarm, OUT l, OUT area^.ScanForAlarm );
+
+            IF NOT iniFile.GetKeyStr( keyZones, OUT l, OUT value ) THEN
+               LogError( TRUE, l, Texts._ZonesKeyMissing, AreaList.Current );
+               CONTINUE;
+            END;
+
+            // parse zones -- a list separated by comas, containing either number or an interval (..), no zone can be greater than 128
+            i := 0;
+            LOOP
+               i := value.ItemS( ZONE_SPLITTER, i, 0, FALSE, OUT zoneFromString );
+               IF i = -1 THEN
+                  EXIT;
+               ELSIF zoneFromString.Empty THEN
+                  LogError( FALSE, i, Texts._ZoneUndefined, NIL );
+                  CONTINUE;
+               END;
+                  
+               // detect interval
+               j := zoneFromString.IndexOfOA( ZONE_INTERVAL, 0 );
+               IF j = -1 THEN
+                  zoneToString.Clear();
+               ELSE
+                  zoneFromString.Substring( j+2, -1, OUT zoneToString );
+                  IF zoneToString.Empty THEN
+                     LogError( TRUE, l, Texts._UpperBoundaryOfZoneIntervalIsMissing, ADR( zoneFromString ));
+                     CONTINUE;
+                  END;
+                  zoneToString.Trim();
+                  zoneFromString.Length := j; // trim
+               END;
+               zoneFromString.Trim();
+
+               IF NOT zoneFromString.ToCARD32( 10, OUT zoneFrom ) THEN
+                  LogError( TRUE, l, Texts._UnableToConvertZoneFrom, ADR( zoneFromString ));
+                  CONTINUE;
+               ELSIF ( zoneFrom < 1 ) OR ( zoneFrom > 128 ) THEN
+                  LogError( TRUE, l, Texts._ZoneFromOutOfScope, ADR( zoneFromString ));
+                  CONTINUE;
+               END;
+               IF zoneToString.Empty THEN
+                  zoneTo := zoneFrom;
+               ELSIF NOT zoneToString.ToCARD32( 10, OUT zoneTo ) THEN
+                  LogError( TRUE, l, Texts._UnableToConvertZoneTo, ADR( zoneToString ));
+                  CONTINUE;
+               ELSIF ( zoneTo < 1 ) OR ( zoneTo > 128 ) THEN
+                  LogError( TRUE, l, Texts._ZoneToOutOfScope, ADR( zoneToString ));
+                  CONTINUE;
+               END;
+
+               // include found zones to the element
+               FOR j := zoneFrom TO zoneTo DO
+                  area^.Zones.Incl( j-1 );
+               END;
+            END; // parsing loop
+               
+         END; // WHILE
+
       ELSE
-         LogError( 0, Texts._ConfigurationSectionMissing, ADR( iniFileSection ));
+         LogError( TRUE, 0, Texts._ConfigurationSectionMissing, ADR( iniFileSection ));
       END;
       RETURN Result;
    END Configure;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Dispose();
+   VAR
+      area : TPArea;
+   BEGIN
+      LogConfig.DisposeAppenderList( REF _AppenderList );
+
+      AreaList.Reset();
+      WHILE AreaList.MoveNext() DO
+         area := AreaList.CurrentData;
+         DISPOSE( area );
+      END; // WHILE
+      AreaList.Dispose();
+   END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
@@ -976,23 +1173,46 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
+      al : Sync.AutoLock;
+      area : TPArea;
+      item : nsitem.TPnsItem;
       Result : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN
       IF Direction = IOO.dirRead THEN // get data immediatelly
-         (*
-         GetValueFromPtr( nsitem.TPnsItem( Item )^.Data, OUT Value );
-         *)
+
+         item := nsitem.TPnsItem( Item );
+         IF ( item^.NameType <> ns.ntValue ) OR ( item^.ValueType = iovalue.vtString ) THEN
+            RETURN Sync.arCannotStart;
+         END;
+
+         al.TakeSafe( REF _Lock, L"Unable to lock data area" );
+
+         area := item^.Data;
+         Value.Boolean := area^.Alarm.Count > 0;
+
          Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
          
          RETURN Sync.arCompleted;
       ELSE
+         item := nsitem.TPnsItem( Item );
+         IF ( item^.NameType <> ns.ntValue ) OR ( item^.ValueType <> iovalue.vtString ) THEN
+            RETURN Sync.arCannotStart;
+         END;
+
          _Pending := Direction;
          _Item := Item;
          _Callback := Delegate;
 
-         (*
-         SetValueToPtr( REF nsitem.TPnsItem( Item )^.Data, Value );
-         *)
+         al.TakeSafe( REF _Lock, L"Unable to lock data area" );
+
+         area := item^.Data;
+         area^.Password := Value.String;
+         IF item^.Name^.EndsWithOA( L"disarm" ) THEN
+            area^.Operation := ptDisarm;
+         ELSE
+            area^.Operation := ptArm;
+         END;
+
          DeviceAutomaton.EventWrite( _Item );
 
          RETURN Sync.arPending;
@@ -1010,60 +1230,88 @@ CLASS IMPLEMENTATION CIO;
 
    LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
    VAR
+      al : Sync.AutoLock;
+      area : TPArea;
+      base : CARDINAL;
+      data : PBYTE;
       i : INTEGER;
    BEGIN
-      IF Result = Sync.arCompleted THEN
-         // prepare value
-         CASE PPacket^.PacketType OF
-         | ptInfo :
-         ELSE
-            ASSERTLOG( FALSE );
-            RETURN;
-         END;
-
-DeviceCommunicator.Logger.LogSCC( log.ldDebug, 0, L"Integra", L'Received info: ', CARDINAL( PPacket^.Packet^.InfoDataType ), PPacket^.Length );
-DeviceCommunicator.Logger.LogSC( log.ldDebug, 0, L"Integra", L'  shifted: ', CARDINAL( PPacket^.Shifted ));
-
-         
-         // lookup for item and set data to it
-         (*
-         FOR i := 0 TO DataRoot^.Count-1 DO
-            IF ( GetValueIndexFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueIndex ) AND
-               ( GetTypeFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueType ) THEN
-               CASE Wrapper.ValueType OF
-               | vtDigital :
-                  SetPtrValueDigital( REF DataRoot^[i]^.Data, Wrapper.Digital );
-               | vtInteger :
-                  SetPtrValueInteger( REF DataRoot^[i]^.Data, Wrapper.Integer );
-               | vtAnalog :
-                  SetPtrValueAnalog( REF DataRoot^[i]^.Data, Wrapper.Analog );
-               END; // CASE
-               EXIT;
-            END;
-         END;
-         *)
-         
+      IF Result <> Sync.arCompleted THEN
+         RETURN;
       END;
+
+      // prepare value
+      CASE PPacket^.PacketType OF
+      | ptInfo :
+      ELSE
+         ASSERTLOG( FALSE );
+         RETURN;
+      END;
+
+      // other useful can be itArmedPartitions
+      CASE PPacket^.Packet^.InfoDataType OF
+      | itAlarmMemory1:
+         IF PPacket^.Shifted THEN
+            base := 64;
+         ELSE
+            base := 0;
+         END;
+      | itAlarmMemory2:
+         IF PPacket^.Shifted THEN
+            base := 96;
+         ELSE
+            base := 32;
+         END;
+      ELSE
+         RETURN; // event ignored
+      END;
+      data := ADR( PPacket^.Packet^.InfoData );
+
+      al.TakeSafe( REF _Lock, L"Unable to lock data area" );
+
+      // lookup for item and set data to it
+      FOR i := 0 TO DataRoot^.Count-1 DO
+         area := DataRoot^[i]^.Data;
+         IF area^.ScanForAlarm THEN
+            area^.Alarm.FromOA( base, OA( 3, data ));
+            area^.Alarm.And( area^.Zones );
+         END;
+      END; // FOR
+
    END OnRx;
 
 (*---------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
+   VAR
+      // no lock needed, OnTxCON is called synchronously
+      // al : Sync.AutoLock;
+      area : TPArea;
    BEGIN
       IF _AbortFlag THEN
          _AbortFlag := FALSE;
          _Pending := IOO.dirUnknown;
-         RETURN;
       ELSIF _Pending <> IOO.dirWrite THEN
          RETURN;
-      END;
-      _Pending := IOO.dirUnknown;
-      IF Result = Sync.arCompleted THEN
-         _Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+
       ELSE
-         _Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
-         _Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
+         _Pending := IOO.dirUnknown;
+         IF Result = Sync.arCompleted THEN
+            _Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+         ELSE
+            _Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+            _Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
+         END;
       END;
+
+      // no lock needed, OnTxCON is called synchronously
+      // al.TakeSafe( REF _Lock, L"Unable to lock data area" );
+
+      area := _Item^.Data;
+      area^.Password.Clear();
+      area^.Operation := ptUnknown;
+
+      _Item := NIL;
    END OnTxCON;
 
 (*---------------------------------------------------------------------------*)
@@ -1138,22 +1386,58 @@ CLASS IMPLEMENTATION CIntegraDevice;
 
    PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
    BEGIN
-      _IO.DataRoot := _NS.DataRoot;
       RETURN ADR( _IO );
    END IO;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
       IF HIGH( Source ) < 0 THEN
          RETURN Sync.arCannotStart;
       ELSIF Source[0].Type <> device.citINIFileSection THEN
          RETURN Sync.arCannotStart;
       END;
-      RETURN _IO.DeviceCommunicator.Configure( Source[0]._iniFile^, Source[0].section^, Log );
+
+      Result := _IO.DeviceCommunicator.Configure( Source[0]._iniFile^, Source[0].section^, Log );
+      IF Result = Sync.arCompleted THEN
+         FillNsWithLoadedConfiguration();
+      END;
+
+      RETURN Result;
    END Configure;
    
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE FillNsWithLoadedConfiguration();
+   VAR
+      area : TPArea;
+      I : ns.TPnsItem;
+      list : lists.TPStringList := ADR( _IO.DeviceCommunicator.AreaList );
+      name, s : StringsO.CString;
+   BEGIN
+      // _NS.Dispose(); -- possible leak?
+      _NS.Initialize();
+      _IO.DataRoot := _NS.DataRoot;
+
+      list^.Reset();
+      WHILE list^.MoveNext() DO
+         area := list^.CurrentData;
+         name.Assign( list^.Current^ );
+
+         s := name; s.AppendOA( L" arm" );
+         I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtString, area ); _NS.DataRoot^.AddChild( I );
+
+         s := name; s.AppendOA( L" disarm" );
+         I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtString, area ); _NS.DataRoot^.AddChild( I );
+
+         s := name; s.AppendOA( L" alarm" );
+         I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtBoolean, area ); _NS.DataRoot^.AddChild( I );
+      END; // WHILE
+   END FillNsWithLoadedConfiguration;
+
 (*---------------------------------------------------------------------------*)
 
 BEGIN FINALLY

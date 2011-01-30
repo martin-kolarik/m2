@@ -5,7 +5,7 @@
         <comment>CFG errors</comment>
         <string name="_ConfigurationSectionMissing">
             <item xml:space="preserve" lang="en-US">Section to load configuration of Integra is missing: </item>
-            <item lang="cs-CZ">Sekce pro konfiguraci Integra chybí: </item>
+            <item xml:space="preserve" lang="cs-CZ">Sekce pro konfiguraci Integra chybí: </item>
         </string>
         <string name="_HostKeyMissing">
             <item lang="en-US">&quot;host&quot; key (remote RS-485 server) is missing</item>
@@ -15,6 +15,51 @@
             <item lang="en-US">&quot;address&quot; key (device communication address) is missing</item>
             <item lang="cs-CZ">Chybí parameter &quot;address&quot; (komunikační adresa zařízení)</item>
         </string>
+        <string name="_AreasKeyMissing">
+            <item lang="en-US">&quot;areas&quot; key (a key defining the section defining areas) is missing</item>
+            <item lang="cs-CZ">Chybí parameter &quot;areas&quot; (parametr definující sekci s definicí oblastí)</item>
+        </string>
+        <string name="_AreasSectionMissing">
+            <item xml:space="preserve" lang="en-US">The section defining areas is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Chybí sekce pro definici oblastí: </item>
+        </string>
 
+        <string name="_AreaAlreadyKnown">
+            <item xml:space="preserve" lang="en-US">Area is already known: </item>
+            <item xml:space="preserve" lang="cs-CZ">Oblast je již známá: </item>
+        </string>
+        <string name="_AreaNotFound">
+            <item xml:space="preserve" lang="en-US">A section with area definition was not found: </item>
+            <item xml:space="preserve" lang="cs-CZ">Sekce s definicí oblasti nebyla nalezena: </item>
+        </string>
+        <string name="_ZonesKeyMissing">
+            <item xml:space="preserve" lang="en-US">&quot;zones&quot; key is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Chybí klíč &quot;zones&quot;: </item>
+        </string>
+        <string name="_ZoneUndefined">
+            <item lang="en-US">A part of zones definition is empty</item>
+            <item lang="cs-CZ">Jedna z definovaných zón je prázdná</item>
+        </string>
+        <string name="_UpperBoundaryOfZoneIntervalIsMissing">
+            <item xml:space="preserve" lang="en-US">Upper bound of zone interval is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Chybí horní mez intervalu zón: </item>
+        </string>
+        <string name="_UnableToConvertZoneFrom">
+            <item xml:space="preserve" lang="en-US">The string is not a number: </item>
+            <item xml:space="preserve" lang="cs-CZ">Text nelze převést na číslo: </item>
+        </string>
+        <string name="_ZoneFromOutOfScope">
+            <item xml:space="preserve" lang="en-US">Zone number is out of the range (1..128): </item>
+            <item xml:space="preserve" lang="cs-CZ">Číslo zóny je mimo rozsah (1..128): </item>
+        </string>
+        <string name="_UnableToConvertZoneTo">
+            <item xml:space="preserve" lang="en-US">The string is not a number: </item>
+            <item xml:space="preserve" lang="cs-CZ">Text nelze převést na číslo: </item>
+        </string>
+        <string name="_ZoneToOutOfScope">
+            <item xml:space="preserve" lang="en-US">Zone number is out of the range (1..128): </item>
+            <item xml:space="preserve" lang="cs-CZ">Číslo zóny je mimo rozsah (1..128): </item>
+        </string>
+        
     </strings>
 </resources>

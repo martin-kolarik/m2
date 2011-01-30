@@ -98,6 +98,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 		RxBuffer : StorageO.CMemoryBuffer;
 		Logger : log.CLogger;
 		Automaton : POINTER TO CDeviceAutomaton;
+      AreaList : lists.CStringList;
 
    PRIVATE VAR
       _AppenderList : lists.CPtrList;
@@ -106,6 +107,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
       _LastReceiveTime : CARDINAL;
 		_ConnectionTimeoutHandle : threadpool.TPoolHandle;
 		_PoolDelegate : threadpool.CSinkDelegate;
+      _Started : BOOLEAN := FALSE;
 
    // ASocketNotifier
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
@@ -135,6 +137,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 	
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Dispose();
    PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL );
    PUBLIC PROCEDURE Abort();
    
@@ -159,6 +162,7 @@ CLASS CIO( io.AItemizedIO );
 		_Pending : IOO.TDirection;
 		_Item : nsitem.TPnsItem;
 		_Callback : io.TPDataInfo;
+      _Lock : Sync.LOCK;
 
 	PUBLIC PROCEDURE Dispose();
 
@@ -186,9 +190,6 @@ END CIO;
 (*---------------------------------------------------------------------------*)
 
 CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS device.IDevice;
-	PRIVATE VAR
-		_NS : CNS;
-		_IO : CIO;
 
    // IObject
    PUBLIC FINAL READONLY PROPERTY
@@ -206,6 +207,14 @@ CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 
 	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+
+   // self
+	PRIVATE VAR
+		_NS : CNS;
+		_IO : CIO;
+
+   PRIVATE PROCEDURE FillNsWithLoadedConfiguration();
+
 END CIntegraDevice;
 
 (*---------------------------------------------------------------------------*)
