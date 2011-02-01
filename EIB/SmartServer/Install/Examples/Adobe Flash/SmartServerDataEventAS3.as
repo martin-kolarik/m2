@@ -3,14 +3,14 @@
 	import flash.events.*;
 
 	// SmartServer data Event
-	public class SmartServerDataEvent extends Event
+	public class SmartServerDataEventAS3 extends Event
 	{
 		public static const SMARTSERVER_DATAEVENT : String = "SmartServerDataEvent"; // Event Name
 
 		private var _address : String;
 		private var _value : String;
 
-		public function SmartServerDataEvent( Address : String, Value : String )
+		public function SmartServerDataEventAS3( Address : String, Value : String )
 		{
 			super( SMARTSERVER_DATAEVENT );
 			_address = Address;

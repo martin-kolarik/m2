@@ -4,10 +4,10 @@
 	import flash.net.*;
 	import flash.xml.*;
 	import fl.events.*;
-	import SmartServerDataEvent;
+	import SmartServerDataEventAS3;
 
 	// the connection class
-	public class SmartServerConnector extends EventDispatcher
+	public class SmartServerConnectorAS3 extends EventDispatcher
 	{
 		// privates
 		private var socket:XMLSocket = new XMLSocket();
@@ -15,7 +15,7 @@
 		private var xmlroot:XMLNode;
 		private var connected:Boolean = false;
 
-		public function SmartServerConnector()
+		public function SmartServerConnectorAS3()
 		{
 			socket.addEventListener( Event.CONNECT, onConnect );
 			socket.addEventListener( Event.CLOSE, onClose );
@@ -145,7 +145,7 @@
 						}
 						N = N.nextSibling;
 
-						dispatchEvent( new SmartServerDataEvent( Name, Value ));
+						dispatchEvent( new SmartServerDataEventAS3( Name, Value ));
 					}
 				}
 				I = I.nextSibling;

@@ -1,6 +1,6 @@
-import mx.events.*;
+﻿import mx.events.*;
 
-class SmartServerConnector extends XMLSocket {
+class SmartServerConnectorAS2 extends XMLSocket {
 
     private var Container : XML;
     private var Root : XMLNode;
@@ -8,7 +8,7 @@ class SmartServerConnector extends XMLSocket {
     private var Dispatcher : EventDispatcher;
     private var Event : Object;
 
-    function SmartServerConnector() {
+    function SmartServerConnectorAS2() {
         Container = new XML( "" );
         Dispatcher = new EventDispatcher();
         Event = new Object();
