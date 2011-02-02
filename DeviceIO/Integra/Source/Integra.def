@@ -57,18 +57,10 @@ END IAutomatonRequest;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-   TAutomatonState = (
-      tasIdle,
-      tasWaitWrite
-   );
-
 CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl;
    PRIVATE VAR
       _Lock : Sync.LOCK;
-      _State : TAutomatonState;
       _Driven : POINTER TO IAutomatonRequest;
-		_ItemToWrite : nsitem.TPnsItem;
       _Running : BOOLEAN := FALSE;
 
    // IStartStopControl
@@ -84,9 +76,7 @@ CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl;
    PUBLIC PROCEDURE EventAbort();
    PUBLIC PROCEDURE EventInfo( Packet : TPPacket );
    PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
-   
-   PRIVATE PROPERTY
-      State : TAutomatonState;
+
 END CDeviceAutomaton;
 
 (*---------------------------------------------------------------------------*)
@@ -103,11 +93,10 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    PRIVATE VAR
       _AppenderList : lists.CPtrList;
 		_HostAddress : StringsO.CString;
-		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash
       _LastReceiveTime : CARDINAL;
 		_ConnectionTimeoutHandle : threadpool.TPoolHandle;
 		_PoolDelegate : threadpool.CSinkDelegate;
-      _Started : BOOLEAN := FALSE;
+      _Running : BOOLEAN := FALSE;
 
    // ASocketNotifier
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
@@ -138,7 +127,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE Dispose();
-   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL );
+   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE );
    PUBLIC PROCEDURE Abort();
    
    // private

@@ -499,7 +499,6 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 
       al.TakeSafe( REF _Lock, L"Unable to lock automaton (start)" );
       _Running := TRUE;
-      State := tasIdle;
 
       RETURN Sync.arCompleted;
    END Start;
@@ -528,8 +527,6 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
       al : Sync.AutoLock;
    BEGIN
       al.TakeSafe( REF _Lock, L"Unable to lock automaton (abort)" );
-      State := tasIdle;
-      _ItemToWrite := NIL;
    END EventAbort;
 
 (*---------------------------------------------------------------------------*)
@@ -549,40 +546,17 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
       al : Sync.AutoLock;
    BEGIN
       al.TakeSafe( REF _Lock, L"Unable to lock automaton (write)" );
-      IF _ItemToWrite <> NIL THEN
-         RETURN Sync.arAlreadyPending;
-      END;
 
-      _ItemToWrite := ItemToWrite;
-      State := tasWaitWrite;
-      _Driven^.SendData( _ItemToWrite );
-      State := tasIdle;
-      _Driven^.Sent( Sync.arCompleted, _ItemToWrite );
-      _ItemToWrite := NIL;
+      _Driven^.SendData( ItemToWrite );
+      _Driven^.Sent( Sync.arCompleted, ItemToWrite );
 
       RETURN Sync.arCompleted;
    END EventWrite;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROPERTY State GET : TAutomatonState;
-   BEGIN
-      RETURN _State;
-   END State;
-
-(*---------------------------------------------------------------------------*)
-
-   PRIVATE PROPERTY State SET( Value : TAutomatonState );
-   BEGIN
-      _State := Value;
-   END State;
-
-(*---------------------------------------------------------------------------*)
-
 BEGIN
-   _State := tasIdle;
    _Driven := NIL;
-   _ItemToWrite := NIL;
 FINALLY
    Stop();
 END CDeviceAutomaton;
@@ -595,17 +569,17 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
    BEGIN
-      RETURN _Started;
+      RETURN _Running;
    END Running;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      IF _Started THEN
+      IF _Running THEN
          RETURN Sync.arAlreadyCompleted;
       END;
-      _Started := TRUE;
+      _Running := TRUE;
 
       _PoolDelegate.TimeoutSink := ADR( SELF );
 
@@ -621,10 +595,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
-      IF NOT _Started THEN
+      IF NOT _Running THEN
          RETURN;
       END;
-      _Started := FALSE;
+      _Running := FALSE;
 
       _PoolDelegate.TimeoutSink := NIL;
    
@@ -678,6 +652,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       shift := 4; mask := 0FH;
       FOR i := 0 TO len-1 DO
          IF ( area^.Password[i] < L'0' ) OR ( area^.Password[i] > L'9' ) THEN
+            Logger.LogSS( log.ldDebug, 0, L"Integra", L"Unexpected character in the password, replacing with 0: ", OA( area^.Password.Length-1, area^.Password.Data ));
             Packet.ArmCode[i DIV 2] := Packet.ArmCode[i DIV 2] AND mask;
          ELSE
             Packet.ArmCode[i DIV 2] := ( Packet.ArmCode[i DIV 2] AND mask ) OR (( ORD( area^.Password[i] ) - ORD( L'0' )) << shift );
@@ -689,13 +664,17 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          END;
       END; // FOR
       IF area^.Operation = ptArm THEN
-         Packet.ArmMode := 1;
+         Packet.ArmMode := 0;
          area^.Zones.ToOA( 0, OUT Packet.ArmZones, OUT len );
+
+         Logger.LogSCB( log.ldTrace, 0, L"Integra", L"Armed zones: ", SIZE( Packet.ArmZones ), ADR( Packet.ArmZones ), SIZE( Packet.ArmZones ));
       ELSE
          area^.Zones.ToOA( 0, OUT Packet.DisarmZones, OUT len );
+
+         Logger.LogSCB( log.ldTrace, 0, L"Integra", L"Disarmed zones: ", SIZE( Packet.DisarmZones ), ADR( Packet.DisarmZones ), SIZE( Packet.DisarmZones ));
       END;
 
-      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1 );
+      Tx( OA( Wrapper.Length-1, Wrapper.Packet ));
    END SendData;
 
 (*---------------------------------------------------------------------------*)
@@ -980,7 +959,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; _SendAsIs : BOOLEAN; _RepeatCount : CARDINAL );
+   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE );
    VAR
       c : CARDINAL;
       Result : Sync.TAsyncResult;
@@ -991,12 +970,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
       END;
    
-      IF INTEGER( HIGH( Data )) >= 0 THEN // HACK
+      IF HIGH( Data ) >= 0 THEN // HACK
          TxBuffer.Size := 1024;
          TxBuffer.AppendOA( Data );
-         IF NOT _SendAsIs THEN
-            AddChkSum( REF TxBuffer );
-         END;
+         AddChkSum( REF TxBuffer );
       END;
       
       Logger.LogSCB( log.ldDebug, 0, L"Integra", L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
@@ -1189,6 +1166,7 @@ CLASS IMPLEMENTATION CIO;
 
          area := item^.Data;
          Value.Boolean := area^.Alarm.Count > 0;
+         DeviceCommunicator.Logger.LogSSC( log.ldTrace, 0, L"Integra", L"Item read: ", OA( item^.Name^.Length-1, item^.Name^.Data ), CARDINAL( Value.Boolean ));
 
          Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
          
@@ -1207,6 +1185,7 @@ CLASS IMPLEMENTATION CIO;
 
          area := item^.Data;
          area^.Password := Value.String;
+         DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, L"Integra", L"Item write: ", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( area^.Password.Length-1, area^.Password.Data ));
          IF item^.Name^.EndsWithOA( L"disarm" ) THEN
             area^.Operation := ptDisarm;
          ELSE
@@ -1266,6 +1245,7 @@ CLASS IMPLEMENTATION CIO;
          RETURN; // event ignored
       END;
       data := ADR( PPacket^.Packet^.InfoData );
+      DeviceCommunicator.Logger.LogSC( log.ldDebug, 0, L"Integra", L"Received info type: ", CARDINAL( PPacket^.Packet^.InfoDataType ));
 
       al.TakeSafe( REF _Lock, L"Unable to lock data area" );
 
@@ -1358,6 +1338,7 @@ CLASS IMPLEMENTATION CIntegraDevice;
 
    PUBLIC VIRTUAL PROCEDURE OnDispose();
    BEGIN
+      // _NS.Dispose();
       _IO.Dispose();
    END OnDispose;
 
