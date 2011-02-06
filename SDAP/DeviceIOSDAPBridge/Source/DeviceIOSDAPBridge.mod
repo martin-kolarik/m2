@@ -186,6 +186,7 @@ CLASS IMPLEMENTATION ABridge;
                   END;
 
                   cb.Reset();
+                  value.Dispose();
                   value.String := valueString;
                   Result := item^.Device^.IO()^.IOh( NIL, IOO.dirWrite, item^.Hash, REF value, ADR( cb ));
                   IF Result <> Sync.arPending THEN

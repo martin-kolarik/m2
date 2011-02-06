@@ -34,6 +34,16 @@ VAR
 (*================================================================================*)
 
 CONST
+   ARM_SUFFIX = L" arm";
+   DISARM_SUFFIX = L" disarm";
+   ARMED_SUFFIX = L" armed";
+   ALARM_SUFFIX = L" alarm";
+   OUTPUTS_SUFFIX = L" outputs";
+
+   PARTITIONS = 32;
+   OUTPUTS = 64;
+
+CONST
    DEFAULT_PORT = 10001;
    CONNECTION_CHECK_TIMEOUT = 10000; // 10 second
 
@@ -71,7 +81,7 @@ TYPE
       itNoViolation2       = 0FH,
       itLongViolation1     = 010H,
       itLongViolation2     = 011H,
-      itArmedPartitions    = 012H,
+      itPartArmed          = 012H,
       itPartEntry          = 013H,
       itPartExit1          = 014H,
       itPartExit2          = 015H,
@@ -96,7 +106,7 @@ TYPE
                     ArmSync2 : BYTE;
                     ArmDataType : TPacketType;
                     ArmCode : ARRAY [0..7] OF BYTE;
-                    ArmZones : ARRAY [0..3] OF BYTE;
+                    ArmPartitions : ARRAY [0..3] OF BYTE;
                     ArmMode : BYTE;
                     ArmCRC : BYTE;
                     ArmOuterCRC : BYTE;
@@ -108,7 +118,7 @@ TYPE
                     DisarmSync2 : BYTE;
                     DisarmDataType : TPacketType;
                     DisarmCode : ARRAY [0..7] OF BYTE;
-                    DisarmZones : ARRAY [0..3] OF BYTE;
+                    DisarmPartitions : ARRAY [0..3] OF BYTE;
                     DisarmCRC : BYTE;
                     DisarmOuterCRC : BYTE;
                     DisarmTrail1 : BYTE;
@@ -237,10 +247,12 @@ CLASS IMPLEMENTATION CPacket;
       chksumOffset : CARDINAL;
       i : CARDINAL;
    BEGIN
+      chksumFrom := 2;
       CASE _PacketType OF
-      | ptArm, ptDisarm :
-         chksumFrom := 2;
+      | ptArm :
          chksumOffset := FIELDOFS( TWirePacket.ArmCRC );
+      | ptDisarm :
+         chksumOffset := FIELDOFS( TWirePacket.DisarmCRC );
       ELSE
          ASSERTLOG( FALSE );
          RETURN;
@@ -369,7 +381,7 @@ CLASS IMPLEMENTATION CPacket;
             _Length := 3 + 9;
          // variable lengths
          | itViolation1, itViolation2, itTamper1, itTamper2, itAlarm1, itAlarm2, itTamperAlarm1, itTamperAlarm2, itAlarmMemory1, itAlarmMemory2, itTamperAlarmMemory1, itTamperAlarmMemory2,
-           itBypasses1, itBypasses2, itNoViolation1, itNoViolation2, itLongViolation1, itLongViolation2, itArmedPartitions, itPartEntry, itPartExit1, itPartExit2, itPartAlarm, itPartFire,
+           itBypasses1, itBypasses2, itNoViolation1, itNoViolation2, itLongViolation1, itLongViolation2, itPartArmed, itPartEntry, itPartExit1, itPartExit2, itPartAlarm, itPartFire,
            itPartAlarmMemory, itPartFireMemory, it27:
             xor := CARD8( _Packet^.InfoDataType );
             FOR i := 0 TO 3 DO
@@ -413,8 +425,10 @@ TYPE
 CLASS CArea;
    LOCAL VAR
       Description : StringsO.CString;
-      Zones : bitarray.CBitArray;
+      Partitions : bitarray.CBitArray;
+      Armed : bitarray.CBitArray;
       Alarm : bitarray.CBitArray;
+      Outputs : bitarray.CBitArray;
       ScanForAlarm : BOOLEAN;
 
       Operation : TPacketType; // temporary
@@ -425,8 +439,10 @@ END CArea; // CArea
 
 CLASS IMPLEMENTATION CArea;
 BEGIN
-   Zones.Size := 128;
-   Alarm.Size := 128;
+   Partitions.Size := PARTITIONS;
+   Armed.Size := PARTITIONS;
+   Alarm.Size := PARTITIONS;
+   Outputs.Size := OUTPUTS;
    ScanForAlarm := TRUE;
    Operation := ptUnknown;
 END CArea;
@@ -652,7 +668,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       shift := 4; mask := 0FH;
       FOR i := 0 TO len-1 DO
          IF ( area^.Password[i] < L'0' ) OR ( area^.Password[i] > L'9' ) THEN
-            Logger.LogSS( log.ldDebug, 0, L"Integra", L"Unexpected character in the password, replacing with 0: ", OA( area^.Password.Length-1, area^.Password.Data ));
+            Logger.LogSS( log.ldError, 0, L"Integra", L"Unexpected character in the password, replacing with 0: ", OA( area^.Password.Length-1, area^.Password.Data ));
             Packet.ArmCode[i DIV 2] := Packet.ArmCode[i DIV 2] AND mask;
          ELSE
             Packet.ArmCode[i DIV 2] := ( Packet.ArmCode[i DIV 2] AND mask ) OR (( ORD( area^.Password[i] ) - ORD( L'0' )) << shift );
@@ -665,13 +681,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       END; // FOR
       IF area^.Operation = ptArm THEN
          Packet.ArmMode := 0;
-         area^.Zones.ToOA( 0, OUT Packet.ArmZones, OUT len );
+         area^.Partitions.ToOA( 0, OUT Packet.ArmPartitions, OUT len );
 
-         Logger.LogSCB( log.ldTrace, 0, L"Integra", L"Armed zones: ", SIZE( Packet.ArmZones ), ADR( Packet.ArmZones ), SIZE( Packet.ArmZones ));
+         Logger.LogSCB( log.ldTrace, 0, L"Integra", L"Armed partitions: ", SIZE( Packet.ArmPartitions ), ADR( Packet.ArmPartitions ), SIZE( Packet.ArmPartitions ));
       ELSE
-         area^.Zones.ToOA( 0, OUT Packet.DisarmZones, OUT len );
+         area^.Partitions.ToOA( 0, OUT Packet.DisarmPartitions, OUT len );
 
-         Logger.LogSCB( log.ldTrace, 0, L"Integra", L"Disarmed zones: ", SIZE( Packet.DisarmZones ), ADR( Packet.DisarmZones ), SIZE( Packet.DisarmZones ));
+         Logger.LogSCB( log.ldTrace, 0, L"Integra", L"Disarmed partitions: ", SIZE( Packet.DisarmPartitions ), ADR( Packet.DisarmPartitions ), SIZE( Packet.DisarmPartitions ));
       END;
 
       Tx( OA( Wrapper.Length-1, Wrapper.Packet ));
@@ -796,7 +812,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       keyAreas = L"areas";
       keyHost = L"host";
       keyScanForAlarm = L"scan_for_alarm";
-      keyZones = L"zones";
+      keyPartitions = L"partitions";
    VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
 
@@ -822,17 +838,17 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       (*----------*)
 
    CONST
-      ZONE_SPLITTER = StringsO.WCHARS{ L"," };
-      ZONE_INTERVAL = L"..";
+      PARTITION_SPLITTER = StringsO.WCHARS{ L"," };
+      PARTITION_INTERVAL = L"..";
    VAR
       area : TPArea;
       es : PTR;
       i, j, l : CARDINAL;
       key, value : StringsO.CString;
-      zoneFrom : CARDINAL;
-      zoneTo : CARDINAL;
-      zoneFromString : StringsO.CString;
-      zoneToString : StringsO.CString;
+      partitionFrom : CARDINAL;
+      partitionTo : CARDINAL;
+      partitionFromString : StringsO.CString;
+      partitionToString : StringsO.CString;
    BEGIN
       Dispose();
 
@@ -879,57 +895,57 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
             area := AreaList.CurrentData;
             iniFile.GetKeyBool( keyScanForAlarm, OUT l, OUT area^.ScanForAlarm );
 
-            IF NOT iniFile.GetKeyStr( keyZones, OUT l, OUT value ) THEN
-               LogError( TRUE, l, Texts._ZonesKeyMissing, AreaList.Current );
+            IF NOT iniFile.GetKeyStr( keyPartitions, OUT l, OUT value ) THEN
+               LogError( TRUE, l, Texts._PartitionsKeyMissing, AreaList.Current );
                CONTINUE;
             END;
 
-            // parse zones -- a list separated by comas, containing either number or an interval (..), no zone can be greater than 128
+            // parse partitions -- a list separated by comas, containing either number or an interval (..), no partition can be greater than 32
             i := 0;
             LOOP
-               i := value.ItemS( ZONE_SPLITTER, i, 0, FALSE, OUT zoneFromString );
+               i := value.ItemS( PARTITION_SPLITTER, i, 0, FALSE, OUT partitionFromString );
                IF i = -1 THEN
                   EXIT;
-               ELSIF zoneFromString.Empty THEN
-                  LogError( FALSE, i, Texts._ZoneUndefined, NIL );
+               ELSIF partitionFromString.Empty THEN
+                  LogError( FALSE, i, Texts._PartitionUndefined, NIL );
                   CONTINUE;
                END;
                   
                // detect interval
-               j := zoneFromString.IndexOfOA( ZONE_INTERVAL, 0 );
+               j := partitionFromString.IndexOfOA( PARTITION_INTERVAL, 0 );
                IF j = -1 THEN
-                  zoneToString.Clear();
+                  partitionToString.Clear();
                ELSE
-                  zoneFromString.Substring( j+2, -1, OUT zoneToString );
-                  IF zoneToString.Empty THEN
-                     LogError( TRUE, l, Texts._UpperBoundaryOfZoneIntervalIsMissing, ADR( zoneFromString ));
+                  partitionFromString.Substring( j+2, -1, OUT partitionToString );
+                  IF partitionToString.Empty THEN
+                     LogError( TRUE, l, Texts._UpperBoundaryOfPartitionIntervalIsMissing, ADR( partitionFromString ));
                      CONTINUE;
                   END;
-                  zoneToString.Trim();
-                  zoneFromString.Length := j; // trim
+                  partitionToString.Trim();
+                  partitionFromString.Length := j; // trim
                END;
-               zoneFromString.Trim();
+               partitionFromString.Trim();
 
-               IF NOT zoneFromString.ToCARD32( 10, OUT zoneFrom ) THEN
-                  LogError( TRUE, l, Texts._UnableToConvertZoneFrom, ADR( zoneFromString ));
+               IF NOT partitionFromString.ToCARD32( 10, OUT partitionFrom ) THEN
+                  LogError( TRUE, l, Texts._UnableToConvertPartitionFrom, ADR( partitionFromString ));
                   CONTINUE;
-               ELSIF ( zoneFrom < 1 ) OR ( zoneFrom > 128 ) THEN
-                  LogError( TRUE, l, Texts._ZoneFromOutOfScope, ADR( zoneFromString ));
+               ELSIF ( partitionFrom < 1 ) OR ( partitionFrom > PARTITIONS ) THEN
+                  LogError( TRUE, l, Texts._PartitionFromOutOfScope, ADR( partitionFromString ));
                   CONTINUE;
                END;
-               IF zoneToString.Empty THEN
-                  zoneTo := zoneFrom;
-               ELSIF NOT zoneToString.ToCARD32( 10, OUT zoneTo ) THEN
-                  LogError( TRUE, l, Texts._UnableToConvertZoneTo, ADR( zoneToString ));
+               IF partitionToString.Empty THEN
+                  partitionTo := partitionFrom;
+               ELSIF NOT partitionToString.ToCARD32( 10, OUT partitionTo ) THEN
+                  LogError( TRUE, l, Texts._UnableToConvertPartitionTo, ADR( partitionToString ));
                   CONTINUE;
-               ELSIF ( zoneTo < 1 ) OR ( zoneTo > 128 ) THEN
-                  LogError( TRUE, l, Texts._ZoneToOutOfScope, ADR( zoneToString ));
+               ELSIF ( partitionTo < 1 ) OR ( partitionTo > PARTITIONS ) THEN
+                  LogError( TRUE, l, Texts._PartitionToOutOfScope, ADR( partitionToString ));
                   CONTINUE;
                END;
 
-               // include found zones to the element
-               FOR j := zoneFrom TO zoneTo DO
-                  area^.Zones.Incl( j-1 );
+               // include found partititions to the element
+               FOR j := partitionFrom TO partitionTo DO
+                  area^.Partitions.Incl( j-1 );
                END;
             END; // parsing loop
                
@@ -1165,7 +1181,13 @@ CLASS IMPLEMENTATION CIO;
          al.TakeSafe( REF _Lock, L"Unable to lock data area" );
 
          area := item^.Data;
-         Value.Boolean := area^.Alarm.Count > 0;
+         IF item^.Name^.EndsWithOA( ALARM_SUFFIX ) THEN
+            Value.Boolean := area^.Alarm.Count > 0;
+         ELSIF item^.Name^.EndsWithOA( ARMED_SUFFIX ) THEN
+            Value.Boolean := area^.Armed.Count > 0;
+         ELSE
+            Value.Boolean := area^.Outputs.Count > 0;
+         END;
          DeviceCommunicator.Logger.LogSSC( log.ldTrace, 0, L"Integra", L"Item read: ", OA( item^.Name^.Length-1, item^.Name^.Data ), CARDINAL( Value.Boolean ));
 
          Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
@@ -1186,7 +1208,7 @@ CLASS IMPLEMENTATION CIO;
          area := item^.Data;
          area^.Password := Value.String;
          DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, L"Integra", L"Item write: ", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( area^.Password.Length-1, area^.Password.Data ));
-         IF item^.Name^.EndsWithOA( L"disarm" ) THEN
+         IF item^.Name^.EndsWithOA( DISARM_SUFFIX ) THEN
             area^.Operation := ptDisarm;
          ELSE
             area^.Operation := ptArm;
@@ -1211,7 +1233,7 @@ CLASS IMPLEMENTATION CIO;
    VAR
       al : Sync.AutoLock;
       area : TPArea;
-      base : CARDINAL;
+      ba : bitarray.CBitArray;
       data : PBYTE;
       i : INTEGER;
    BEGIN
@@ -1229,34 +1251,44 @@ CLASS IMPLEMENTATION CIO;
 
       // other useful can be itArmedPartitions
       CASE PPacket^.Packet^.InfoDataType OF
-      | itAlarmMemory1:
-         IF PPacket^.Shifted THEN
-            base := 64;
-         ELSE
-            base := 0;
+      | itPartArmed :
+         IF NOT PPacket^.Shifted THEN // only really armed partitions are important
+            RETURN;
          END;
-      | itAlarmMemory2:
-         IF PPacket^.Shifted THEN
-            base := 96;
-         ELSE
-            base := 32;
-         END;
+      | itPartAlarm,
+        itPartAlarmMemory,
+        itOutputsState : // 8 bytes
       ELSE
          RETURN; // event ignored
       END;
       data := ADR( PPacket^.Packet^.InfoData );
-      DeviceCommunicator.Logger.LogSC( log.ldDebug, 0, L"Integra", L"Received info type: ", CARDINAL( PPacket^.Packet^.InfoDataType ));
+      DeviceCommunicator.Logger.LogSH( log.ldTrace, 0, L"Integra", L"Received info type: 0x", CARDINAL( PPacket^.Packet^.InfoDataType ));
 
       al.TakeSafe( REF _Lock, L"Unable to lock data area" );
 
-      // lookup for item and set data to it
-      FOR i := 0 TO DataRoot^.Count-1 DO
-         area := DataRoot^[i]^.Data;
-         IF area^.ScanForAlarm THEN
-            area^.Alarm.FromOA( base, OA( 3, data ));
-            area^.Alarm.And( area^.Zones );
-         END;
-      END; // FOR
+      CASE PPacket^.Packet^.InfoDataType OF
+      | itPartArmed :
+         FOR i := 0 TO DataRoot^.Count-1 DO
+            area := DataRoot^[i]^.Data;
+            area^.Armed.FromOA( 0, OA( 0, data ));
+            area^.Armed.And( area^.Partitions );
+         END; // FOR
+      | itPartAlarm, itPartAlarmMemory : // these two sources are ORed
+         FOR i := 0 TO DataRoot^.Count-1 DO
+            area := DataRoot^[i]^.Data;
+            IF area^.ScanForAlarm THEN
+               ba.FromOA( 0, OA( 0, data ));
+               area^.Alarm.Or( ba );
+               area^.Alarm.And( area^.Partitions );
+            END;
+         END; // FOR
+      | itOutputsState : // 8 bytes
+         FOR i := 0 TO DataRoot^.Count-1 DO
+            area := DataRoot^[i]^.Data;
+            area^.Outputs.FromOA( 0, OA( 7, data ));
+            area^.Outputs.And( area^.Partitions );
+         END; // FOR
+      END;
 
    END OnRx;
 
@@ -1408,13 +1440,19 @@ CLASS IMPLEMENTATION CIntegraDevice;
          area := list^.CurrentData;
          name.Assign( list^.Current^ );
 
-         s := name; s.AppendOA( L" arm" );
+         s := name; s.AppendOA( ARM_SUFFIX );
          I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtString, area ); _NS.DataRoot^.AddChild( I );
 
-         s := name; s.AppendOA( L" disarm" );
+         s := name; s.AppendOA( DISARM_SUFFIX );
          I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtString, area ); _NS.DataRoot^.AddChild( I );
 
-         s := name; s.AppendOA( L" alarm" );
+         s := name; s.AppendOA( ARMED_SUFFIX );
+         I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtBoolean, area ); _NS.DataRoot^.AddChild( I );
+
+         s := name; s.AppendOA( ALARM_SUFFIX );
+         I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtBoolean, area ); _NS.DataRoot^.AddChild( I );
+
+         s := name; s.AppendOA( OUTPUTS_SUFFIX );
          I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtBoolean, area ); _NS.DataRoot^.AddChild( I );
       END; // WHILE
    END FillNsWithLoadedConfiguration;

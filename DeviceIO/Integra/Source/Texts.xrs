@@ -32,33 +32,33 @@
             <item xml:space="preserve" lang="en-US">A section with area definition was not found: </item>
             <item xml:space="preserve" lang="cs-CZ">Sekce s definicí oblasti nebyla nalezena: </item>
         </string>
-        <string name="_ZonesKeyMissing">
-            <item xml:space="preserve" lang="en-US">&quot;zones&quot; key is missing: </item>
-            <item xml:space="preserve" lang="cs-CZ">Chybí klíč &quot;zones&quot;: </item>
+        <string name="_PartitionsKeyMissing">
+            <item xml:space="preserve" lang="en-US">&quot;partitions&quot; key is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Chybí klíč &quot;partitions&quot;: </item>
         </string>
-        <string name="_ZoneUndefined">
-            <item lang="en-US">A part of zones definition is empty</item>
-            <item lang="cs-CZ">Jedna z definovaných zón je prázdná</item>
+        <string name="_PartitionUndefined">
+            <item lang="en-US">A part of partitions definition is empty</item>
+            <item lang="cs-CZ">Jeden z definovaných bloků je prázdný</item>
         </string>
-        <string name="_UpperBoundaryOfZoneIntervalIsMissing">
-            <item xml:space="preserve" lang="en-US">Upper bound of zone interval is missing: </item>
-            <item xml:space="preserve" lang="cs-CZ">Chybí horní mez intervalu zón: </item>
+        <string name="_UpperBoundaryOfPartitionIntervalIsMissing">
+            <item xml:space="preserve" lang="en-US">Upper bound of partition interval is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Chybí horní mez intervalu bloků: </item>
         </string>
-        <string name="_UnableToConvertZoneFrom">
+        <string name="_UnableToConvertPartitionFrom">
             <item xml:space="preserve" lang="en-US">The string is not a number: </item>
             <item xml:space="preserve" lang="cs-CZ">Text nelze převést na číslo: </item>
         </string>
-        <string name="_ZoneFromOutOfScope">
-            <item xml:space="preserve" lang="en-US">Zone number is out of the range (1..128): </item>
-            <item xml:space="preserve" lang="cs-CZ">Číslo zóny je mimo rozsah (1..128): </item>
+        <string name="_PartitionFromOutOfScope">
+            <item xml:space="preserve" lang="en-US">Partition number is out of the range (1..32): </item>
+            <item xml:space="preserve" lang="cs-CZ">Číslo bloku je mimo rozsah (1..32): </item>
         </string>
-        <string name="_UnableToConvertZoneTo">
+        <string name="_UnableToConvertPartitionTo">
             <item xml:space="preserve" lang="en-US">The string is not a number: </item>
             <item xml:space="preserve" lang="cs-CZ">Text nelze převést na číslo: </item>
         </string>
-        <string name="_ZoneToOutOfScope">
-            <item xml:space="preserve" lang="en-US">Zone number is out of the range (1..128): </item>
-            <item xml:space="preserve" lang="cs-CZ">Číslo zóny je mimo rozsah (1..128): </item>
+        <string name="_PartitionToOutOfScope">
+            <item xml:space="preserve" lang="en-US">Partition number is out of the range (1..32): </item>
+            <item xml:space="preserve" lang="cs-CZ">Číslo bloku je mimo rozsah (1..32): </item>
         </string>
         
     </strings>
