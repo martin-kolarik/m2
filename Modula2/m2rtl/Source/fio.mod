@@ -2,7 +2,8 @@ IMPLEMENTATION MODULE FIO;
 
 IMPORT
   Strings,
-  windows;
+  windows,
+  winerror;
   
 PROCEDURE ChangeExtensionW( REF Path : ARRAY OF WCHAR; CONST Extension : ARRAY OF WCHAR ); // if Ext = '' removes it, if Path is without appends it
 VAR
@@ -519,6 +520,7 @@ PROCEDURE RdBin( F: File; VAR Buf: ARRAY OF BYTE; Count: CARDINAL ): CARDINAL;
 VAR 
   ReadCount : CARDINAL;
 BEGIN
+  windows.SetLastError( winerror.ERROR_SUCCESS );
   windows.ReadFile( F, ADR( Buf ), Count, ADR( ReadCount ), NIL );
   RETURN ReadCount;
 END RdBin;
