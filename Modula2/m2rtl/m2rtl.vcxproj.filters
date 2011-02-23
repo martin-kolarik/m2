@@ -107,9 +107,6 @@
     <None Include="Test\lrconvround.mod">
       <Filter>Test</Filter>
     </None>
-    <None Include="Test\lrconvspeed.mod">
-      <Filter>Test</Filter>
-    </None>
     <None Include="Test\Match.mod">
       <Filter>Test</Filter>
     </None>
@@ -170,6 +167,15 @@
     </None>
     <None Include="Source\tls.mod">
       <Filter>Source Files</Filter>
+    </None>
+    <None Include="Test\TDateTime.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TJulianDate.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TTimeSpan.mod">
+      <Filter>Test</Filter>
     </None>
   </ItemGroup>
 </Project>

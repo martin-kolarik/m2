@@ -49,8 +49,15 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
    PUBLIC PROPERTY Precision GET : CARD64; // hertz
    BEGIN
-      RETURN 10000000;
+      RETURN 1000 * 1000 * 10;
    END Precision;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Negative GET : BOOLEAN;
+   BEGIN
+      RETURN _Value < 0;
+   END Negative;
 
 (*------------------------------------------------------------------------------------------------*)
 

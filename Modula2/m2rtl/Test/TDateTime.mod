@@ -1,4 +1,4 @@
-MODULE TTls;
+MODULE TDateTime;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -96,7 +96,7 @@ CLASS IMPLEMENTATION CTest;
          Tlss[i] := NIL;
       END; // FOR
 
-      testimpl.tests()^.AddTest( L"TLS", ADR( Test ));
+      testimpl.tests()^.AddTest( L"DateTime", ADR( Test ));
    END CTest;
       
 (*---------------------------------------------------------------------------*)
@@ -105,4 +105,4 @@ END CTest;
 
 (*===========================================================================*)
 
-END TTls.
+END TDateTime.

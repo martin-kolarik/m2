@@ -38,6 +38,7 @@ CLASS TimeSpan; // unit is 100 ns
 
    PUBLIC READONLY PROPERTY
       Precision : CARD64; // hertz
+      Negative : BOOLEAN;
 
    PUBLIC PROPERTY
       Value : INT64; // raw value, e.g. for transport purposes

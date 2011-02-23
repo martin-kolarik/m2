@@ -122,7 +122,7 @@ VAR
    ts : datetime.TimeSpan;
 BEGIN
    ts.Days := 0.3;
-   RETURN datetime.JulianDateDMYfd( 2007, 10, i MOD 2, ts );
+   RETURN datetime.JulianDateYMDfd( 2007, 10, i MOD 2, ts );
 END NJD;
 
 (*===========================================================================*)
@@ -133,74 +133,61 @@ END NJD;
    CONST
       crlf = 13W + 10W;
    VAR
-      jd : datetime.TJD;
-      fd : CARDINAL;
+      jd : datetime.JulianDate;
+      fd : datetime.TimeSpan;
       r : LONGREAL;
       y, M, d : INTEGER;
-      h, m, s, ms : CARDINAL;
 
-      diff : LONGREAL;
+      diff : datetime.TimeSpan;
       S : ARRAY [0..255] OF WCHAR;
-      t : datetime.TTime64;
+      t : datetime.HighResolutionTime;
       i : CARDINAL;
    BEGIN
-      jd := datetime.GetCurrentJD();
-      datetime.JDCToDays( jd );
-      
-      datetime.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
-      datetime.fd2HMS( fd, OUT h, OUT m, OUT s, OUT ms );
-      
       // conversion to
-      t := datetime.time();
+      t.SetNow();
       FOR i := 0 TO 99999999 DO
          r := OJD( i );
       END;
-      diff := datetime.difftime( datetime.time(), t );
-      IF r = 0.0 THEN
-         t := datetime.time();
-      END;
+      diff := t - datetime.NowHR();
 
-      Strings.FromLONGREALW( diff, FALSE, OUT S );
+      Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
       windows.OutputDebugStringW( L"  OS  jd: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
-      t := datetime.time();
+      t.SetNow();
       FOR i := 0 TO 99999999 DO
          jd := NJD( i );
       END;
-      diff := datetime.difftime( datetime.time(), t );
-      IF jd = 0 THEN
-         t := datetime.time();
-      END;
+      diff := t - datetime.NowHR();
 
-      Strings.FromLONGREALW( diff, FALSE, OUT S );
+      Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
       windows.OutputDebugStringW( L"time  jd: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
       // conversion from
       r := JD( 2007, 10, 1, 0.3 );
-      jd := datetime.JD( 2007, 10, 1, 3*86400000 );
+      jd := datetime.JulianDateYMDfd( 2007, 10, 1, datetime.TimeSpanD( 0.3 ));
 
-      t := datetime.time();
+      t.SetNow();
       FOR i := 0 TO 99999999 DO
-         iJD( r, OUT y, OUT M, OUT d, OUT diff );
+         iJD( r, OUT y, OUT M, OUT d, OUT r );
       END;
-      diff := datetime.difftime( datetime.time(), t );
+      diff := t - datetime.NowHR();
 
-      Strings.FromLONGREALW( diff, FALSE, OUT S );
+      Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
       windows.OutputDebugStringW( L"  OS ijd: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
-      t := datetime.time();
+      t.SetNow();
       FOR i := 0 TO 99999999 DO
-         datetime.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
+         jd.ToYMD( OUT y, OUT M, OUT d, OUT fd );
       END;
-      diff := datetime.difftime( datetime.time(), t );
+      diff := t - datetime.NowHR();
 
-      Strings.FromLONGREALW( diff, FALSE, OUT S );
+      Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
       windows.OutputDebugStringW( L"time ijd: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));

@@ -1,4 +1,4 @@
-MODULE TTls;
+MODULE TJulianDate;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -105,4 +105,4 @@ END CTest;
 
 (*===========================================================================*)
 
-END TTls.
+END TJulianDate.
