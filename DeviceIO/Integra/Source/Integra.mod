@@ -1270,14 +1270,14 @@ CLASS IMPLEMENTATION CIO;
       | itPartArmed :
          FOR i := 0 TO DataRoot^.Count-1 DO
             area := DataRoot^[i]^.Data;
-            area^.Armed.FromOA( 0, OA( 0, data ));
+            area^.Armed.FromOA( 0, OA( 3, data ));
             area^.Armed.And( area^.Partitions );
          END; // FOR
       | itPartAlarm, itPartAlarmMemory : // these two sources are ORed
          FOR i := 0 TO DataRoot^.Count-1 DO
             area := DataRoot^[i]^.Data;
             IF area^.ScanForAlarm THEN
-               ba.FromOA( 0, OA( 0, data ));
+               ba.FromOA( 0, OA( 3, data ));
                area^.Alarm.Or( ba );
                area^.Alarm.And( area^.Partitions );
             END;
@@ -1286,7 +1286,6 @@ CLASS IMPLEMENTATION CIO;
          FOR i := 0 TO DataRoot^.Count-1 DO
             area := DataRoot^[i]^.Data;
             area^.Outputs.FromOA( 0, OA( 7, data ));
-            area^.Outputs.And( area^.Partitions );
          END; // FOR
       END;
 
