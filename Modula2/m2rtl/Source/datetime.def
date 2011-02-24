@@ -13,7 +13,8 @@ IMPORT
 
 TYPE
    TDayOfWeek = (
-      Monday = 0,
+      UnknownDay = 0,
+      Monday,
       Tuesday,
       Wednesday,
       Thursday,
@@ -50,7 +51,12 @@ CLASS TimeSpan; // unit is 100 ns
       Days : LONGREAL; // usable for a fraction of the day too, of course
 
    PUBLIC INLINE OPERATOR :=( CONST Source : TimeSpan );
-
+   PUBLIC OPERATOR =( CONST Comperand : TimeSpan ) : BOOLEAN;
+   PUBLIC OPERATOR <>( CONST Comperand : TimeSpan ) : BOOLEAN;
+   PUBLIC OPERATOR <( CONST Comperand : TimeSpan ) : BOOLEAN;
+   PUBLIC OPERATOR <=( CONST Comperand : TimeSpan ) : BOOLEAN;
+   PUBLIC OPERATOR >( CONST Comperand : TimeSpan ) : BOOLEAN;
+   PUBLIC OPERATOR >=( CONST Comperand : TimeSpan ) : BOOLEAN;
    PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : TimeSpan;
    PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : TimeSpan;
 
@@ -77,6 +83,7 @@ CLASS HighResolutionTime; // unit is 1/Frequency
    PUBLIC READONLY PROPERTY
       Precision : CARD64; // hertz
 
+   PUBLIC INLINE OPERATOR :=( CONST Source : HighResolutionTime );
    // PUBLIC OPERATOR =( CONST Comperand : HighResolutionTime ) : BOOLEAN;
    // PUBLIC OPERATOR <>( CONST Comperand : HighResolutionTime ) : BOOLEAN;
    // PUBLIC OPERATOR <( CONST Comperand : HighResolutionTime ) : BOOLEAN;

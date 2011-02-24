@@ -4,21 +4,17 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   datetime,
    log,
    test,
-   testimpl,
-   tls;
+   testimpl;
   
 (*===========================================================================*)
 
 CLASS CTest IMPLEMENTS test.ITest;
    PRIVATE VAR
       Host : test.TPHost := NIL;
-      Tlss : ARRAY [0..255] OF tls.TPIThreadLocalStorage;
-
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-
-   INITIALLY CTest;
 END CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -37,42 +33,86 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       Failure : BOOLEAN := FALSE;
-      i : CARDINAL;
+      jd : datetime.JulianDate;
+      jddst : datetime.JulianDate;
    BEGIN
       SELF.Host := Host;
 
-      Host^.StartPhase( L"Exhausting and releasing" );
+      Host^.StartPhase( L"Construction" );
 
-      // try to exhaust resources
-      i := 0;
-      WHILE ( i <= HIGH( Tlss )) AND tls.Create( OUT Tlss[i] ) DO
-         INC( i );
-      END;
-      Host^.Log^.LogSC( log.lcError, 0, L"", L"Created count: ", i );
-      // and release them
-      WHILE i > 0 DO
-         DEC( i );
-         tls.Dispose( REF Tlss[i] );
-      END;
+(*
+   PUBLIC PROPERTY
+      FractionOfTheDay : TimeSpan; // values greater than 1 D are trimmed (only the fraction is used)
+      Scientific : LONGREAL;
 
-      // now it must succeds
-      Failure := NOT tls.Create( OUT Tlss[0] );
+   PUBLIC INLINE OPERATOR :=( CONST Source : JulianDate );
 
+   PUBLIC OPERATOR =( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <>( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <=( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR >( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR >=( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : JulianDate;
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : JulianDate;
+
+   PUBLIC PROCEDURE SetNow();
+   
+   PUBLIC PROCEDURE Less( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC PROCEDURE Greater( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC PROCEDURE Equals( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
+   PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
+   PUBLIC PROCEDURE Difference( CONST Operand : JulianDate ) : TimeSpan; // SELF - Operand
+
+   PUBLIC PROCEDURE FromYMD( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan );
+   PUBLIC PROCEDURE ToYMD( OUT y : INTEGER; OUT m, d : CARDINAL; OUT fd : TimeSpan );
+*)
+
+      jd := datetime.JulianDateYMD( 2011, 2, 24 );
+      Failure := jd.Scientific <> 2455616.5;
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      Host^.StartPhase( L"Set/Get" );
+      jd := datetime.JulianDateYMDfd( 1973, 8, 7, datetime.TimeSpanD( 0.75 ));
+      Failure := jd.Scientific <> 2441902.25;
+      IF Failure THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
 
-      // set/get data
-      Tlss[0]^.Value := 14;
-      Failure := Tlss[0]^.Value <> 14;
+      Host^.StartPhase( L"Properties" );
 
-      Tlss[0]^.Value := 0;
-      Failure := ( Tlss[0]^.Value <> 0 ) OR Failure;
+      jd := datetime.JulianDateYMDfd( 1973, 8, 7, datetime.TimeSpanD( 0.75 ));
+      Failure := jd.DayOfWeek <> datetime.Tuesday;
+      IF Failure THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
 
+      jd := datetime.JulianDateYMDfd( 1999, 7, 14, datetime.TimeSpanD( 10.0/24.0 ));
+      Failure := jd.DayOfWeek <> datetime.Wednesday;
+      IF Failure THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      jd := datetime.JulianDateYMDfd( 1973, 8, 7, datetime.TimeSpanD( 0.75 ));
+      Failure := jd.FractionOfTheDay <> datetime.TimeSpanD( 0.75 );
+      IF Failure THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      jd.FractionOfTheDay := datetime.TimeSpanD( 0.25 );
+      Failure := jd.Scientific <> 2441901.75;
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -88,19 +128,8 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   INITIALLY CTest;
-   VAR
-      i : CARDINAL;
-   BEGIN
-      FOR i := 0 TO HIGH( Tlss ) DO
-         Tlss[i] := NIL;
-      END; // FOR
-
-      testimpl.tests()^.AddTest( L"TLS", ADR( Test ));
-   END CTest;
-      
-(*---------------------------------------------------------------------------*)
-
+BEGIN
+   testimpl.tests()^.AddTest( L"JulianDate", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)

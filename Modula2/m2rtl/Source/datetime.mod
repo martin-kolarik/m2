@@ -166,6 +166,48 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
 (*------------------------------------------------------------------------------------------------*)
 
+   PUBLIC OPERATOR =( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value = Comperand._Value;
+   END =;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <>( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <> Comperand._Value;
+   END <>;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value < Comperand._Value;
+   END <;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <=( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <= Comperand._Value;
+   END <=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value > Comperand._Value;
+   END >;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >=( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value >= Comperand._Value;
+   END >=;
+
+(*------------------------------------------------------------------------------------------------*)
+
    PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : TimeSpan;
    VAR
       ts : TimeSpan;
@@ -318,6 +360,13 @@ CLASS IMPLEMENTATION HighResolutionTime; // unit is 1/Frequency
 
 (*------------------------------------------------------------------------------------------------*)
 
+   PUBLIC INLINE OPERATOR :=( CONST Source : HighResolutionTime );
+   BEGIN
+      _Value := Source._Value;
+   END :=;
+
+(*------------------------------------------------------------------------------------------------*)
+
    PUBLIC OPERATOR -( CONST Addend : HighResolutionTime ) : TimeSpan;
    VAR
       ts : TimeSpan;
@@ -377,7 +426,7 @@ CLASS IMPLEMENTATION JulianDate;
 
    PUBLIC PROPERTY DayOfWeek GET : TDayOfWeek;
    BEGIN
-      RETURN TDayOfWeek((( _Value + scale DIV 2 ) DIV scale ) MOD 7 );
+      RETURN TDayOfWeek((( _Value + scale DIV 2 ) DIV scale ) MOD 7 + 1 );
    END DayOfWeek;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -399,16 +448,21 @@ CLASS IMPLEMENTATION JulianDate;
    PUBLIC PROPERTY FractionOfTheDay GET : TimeSpan; // values greater than 1 D are trimmed (only the fraction is used)
    VAR
       ts : TimeSpan;
+      valueReducedToMidnight : INT64;
    BEGIN
-      ts.Value := 1000 * ( _Value MOD scale );
+      valueReducedToMidnight := _Value - INT64( 432000000 );
+      ts.Value := 1000 * ( valueReducedToMidnight MOD scale ); // possible expected "-" is correct too, because 432... is a half of the interval and +/- has the same sense (here)
       RETURN ts;
    END FractionOfTheDay;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY FractionOfTheDay SET( CONST Value : TimeSpan ); // values greater than 1 D are trimmed (only the fraction is used)
+   VAR
+      valueReducedToMidnight : INT64;
    BEGIN
-      DEC( _Value, _Value MOD scale ); // remove existing fraction
+      valueReducedToMidnight := _Value - INT64( 432000000 );
+      DEC( _Value, valueReducedToMidnight MOD scale ); // remove existing fraction
       INC( _Value, ( Value.Value DIV 1000 ) MOD scale ); // add scale from the span
    END FractionOfTheDay;
 
@@ -1509,7 +1563,7 @@ CLASS IMPLEMENTATION DateTime;
       _Day         := CARDINAL( st.wDay );
       _Month       := CARDINAL( st.wMonth );
       _Year        := CARDINAL( st.wYear );
-      _DayOfWeek   := TDayOfWeek(( CARDINAL( st.wDayOfWeek ) + 6 ) MOD 7 );
+      _DayOfWeek   := TDayOfWeek(( CARDINAL( st.wDayOfWeek ) + 6 ) MOD 7 + 1 );
       _UTCBias     := 0;
       _DSTBias     := 0;
    END SetNowLocal;
@@ -1529,7 +1583,7 @@ CLASS IMPLEMENTATION DateTime;
       _Day         := CARDINAL( st.wDay );
       _Month       := CARDINAL( st.wMonth );
       _Year        := CARDINAL( st.wYear );
-      _DayOfWeek   := TDayOfWeek(( CARDINAL( st.wDayOfWeek ) + 6 ) MOD 7 );
+      _DayOfWeek   := TDayOfWeek(( CARDINAL( st.wDayOfWeek ) + 6 ) MOD 7 + 1 );
       _UTCBias     := 0;
       _DSTBias     := 0;
    END SetNowUTC;
@@ -2314,7 +2368,7 @@ BEGIN
    _Day := 0;
    _Month := 0;
    _Year := 0;
-   _DayOfWeek := Monday;
+   _DayOfWeek := UnknownDay;
    _DayOfWeekDirty := FALSE;
    _UTCBias := 0;
    _DSTBias := 0;
