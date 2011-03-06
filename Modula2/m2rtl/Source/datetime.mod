@@ -84,7 +84,13 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
    PUBLIC PROPERTY Microseconds SET( Value : LONGREAL );
    BEGIN
-      _Value := INT64( Value * 10.0 + 0.5 );
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 10.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 10.0 - 0.5 );
+      END;
    END Microseconds;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -98,7 +104,13 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
    PUBLIC PROPERTY Milliseconds SET( Value : LONGREAL );
    BEGIN
-      _Value := INT64( Value * 10000.0 + 0.5 );
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 10000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 10000.0 - 0.5 );
+      END;
    END Milliseconds;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -112,7 +124,13 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
    PUBLIC PROPERTY Seconds SET( Value : LONGREAL );
    BEGIN
-      _Value := CARD64( Value * 10000000.0 + 0.5 );
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 10000000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 10000000.0 - 0.5 );
+      END;
    END Seconds;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -126,7 +144,13 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
    PUBLIC PROPERTY Minutes SET( Value : LONGREAL );
    BEGIN
-      _Value := CARD64( Value * 600000000.0 + 0.5 );
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 600000000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 600000000.0 - 0.5 );
+      END;
    END Minutes;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -140,7 +164,13 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
    PUBLIC PROPERTY Hours SET( Value : LONGREAL );
    BEGIN
-      _Value := CARD64( Value * 36000000000.0 + 0.5 );
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 36000000000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 36000000000.0 - 0.5 );
+      END;
    END Hours;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -154,7 +184,13 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
    PUBLIC PROPERTY Days SET( Value : LONGREAL );
    BEGIN
-      _Value := CARD64( Value * 864000000000.0 + 0.5 );
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 864000000000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 864000000000.0 - 0.5 );
+      END;
    END Days;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -244,15 +280,20 @@ CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
 
    PUBLIC PROCEDURE FromDHMS( D, H, M, S, MS : CARDINAL );
    BEGIN
-      _Value := ( CARD64((( D * 24 + H ) * 60 + M ) * 60 + S ) * 1000000 + CARD64( MS )) * 10000;
+      _Value := ( INT64((( D * 24 + H ) * 60 + M ) * 60 + S ) * 1000 + INT64( MS )) * 10000;
    END FromDHMS;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE ToDHMS( OUT D, H, M, S, MS : CARDINAL );
    VAR
-      fd : CARD64 := _Value;
+      fd : INT64;
    BEGIN
+      IF _Value >= 0 THEN
+         fd := _Value;
+      ELSE
+         fd := -_Value;
+      END;
       fd := fd DIV 10000;
 
       MS := CARDINAL( fd MOD 1000 );
@@ -298,7 +339,7 @@ END TimeSpanZero;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE TimeSpanMS32( Milliseconds : CARD32 ) : TimeSpan;
+PROCEDURE TimeSpanMS32( Milliseconds : INT32 ) : TimeSpan;
 VAR
    ts : TimeSpan;
 BEGIN
@@ -498,28 +539,28 @@ CLASS IMPLEMENTATION JulianDate;
 
    PUBLIC OPERATOR <( CONST Comperand : JulianDate ) : BOOLEAN;
    BEGIN
-      RETURN _Value <> Comperand._Value;
+      RETURN _Value < Comperand._Value;
    END <;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR <=( CONST Comperand : JulianDate ) : BOOLEAN;
    BEGIN
-      RETURN _Value <> Comperand._Value;
+      RETURN _Value <= Comperand._Value;
    END <=;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR >( CONST Comperand : JulianDate ) : BOOLEAN;
    BEGIN
-      RETURN _Value <> Comperand._Value;
+      RETURN _Value > Comperand._Value;
    END >;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR >=( CONST Comperand : JulianDate ) : BOOLEAN;
    BEGIN
-      RETURN _Value <> Comperand._Value;
+      RETURN _Value >= Comperand._Value;
    END >=;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -556,27 +597,6 @@ CLASS IMPLEMENTATION JulianDate;
       _Value := NowJD()._Value;
    END SetNow;
    
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Less( CONST Comperand : JulianDate ) : BOOLEAN;
-   BEGIN
-      RETURN SELF < Comperand;
-   END Less;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Greater( CONST Comperand : JulianDate ) : BOOLEAN;
-   BEGIN
-      RETURN SELF > Comperand;
-   END Greater;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Equals( CONST Comperand : JulianDate ) : BOOLEAN;
-   BEGIN
-      RETURN SELF = Comperand;
-   END Equals;
-
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
@@ -1460,42 +1480,117 @@ CLASS IMPLEMENTATION DateTime;
 
    PUBLIC OPERATOR = ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN NOT Equals( Comperand );
+      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
+         RETURN Comperand.JulianDate = JulianDate;
+      ELSIF Comperand._Year <> _Year THEN
+         RETURN FALSE;
+      ELSIF Comperand._Month <> _Month THEN
+         RETURN FALSE;
+      ELSIF Comperand._Day <> _Day THEN
+         RETURN FALSE;
+      ELSIF Comperand._Hour <> _Hour THEN
+         RETURN FALSE;
+      ELSIF Comperand._Minute <> _Minute THEN
+         RETURN FALSE;
+      ELSIF Comperand._Second <> _Second THEN
+         RETURN FALSE;
+      ELSIF Comperand._Millisecond <> _Millisecond THEN
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
    END =;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR <> ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN NOT Equals( Comperand );
+      RETURN NOT( SELF = Comperand );
    END <>;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR < ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN Less( Comperand );
+      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
+         RETURN Comperand.JulianDate > JulianDate;
+      ELSIF Comperand._Year < _Year THEN
+         RETURN FALSE;
+      ELSIF Comperand._Year > _Year THEN
+         RETURN TRUE;
+      ELSIF Comperand._Month < _Month THEN
+         RETURN FALSE;
+      ELSIF Comperand._Month > _Month THEN
+         RETURN TRUE;
+      ELSIF Comperand._Day < _Day THEN
+         RETURN FALSE;
+      ELSIF Comperand._Day > _Day THEN
+         RETURN TRUE;
+      ELSIF Comperand._Hour < _Hour THEN
+         RETURN FALSE;
+      ELSIF Comperand._Hour > _Hour THEN
+         RETURN TRUE;
+      ELSIF Comperand._Minute < _Minute THEN
+         RETURN FALSE;
+      ELSIF Comperand._Minute > _Minute THEN
+         RETURN TRUE;
+      ELSIF Comperand._Second < _Second THEN
+         RETURN FALSE;
+      ELSIF Comperand._Second > _Second THEN
+         RETURN TRUE;
+      ELSIF Comperand._Millisecond <= _Millisecond THEN
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
    END <;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR <= ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN NOT Greater( Comperand );
+      RETURN NOT( SELF > Comperand );
    END <=;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR > ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN Greater( Comperand );
+      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
+         RETURN Comperand.JulianDate < JulianDate;
+      ELSIF Comperand._Year > _Year THEN
+         RETURN FALSE;
+      ELSIF Comperand._Year < _Year THEN
+         RETURN TRUE;
+      ELSIF Comperand._Month > _Month THEN
+         RETURN FALSE;
+      ELSIF Comperand._Month < _Month THEN
+         RETURN TRUE;
+      ELSIF Comperand._Day > _Day THEN
+         RETURN FALSE;
+      ELSIF Comperand._Day < _Day THEN
+         RETURN TRUE;
+      ELSIF Comperand._Hour > _Hour THEN
+         RETURN FALSE;
+      ELSIF Comperand._Hour < _Hour THEN
+         RETURN TRUE;
+      ELSIF Comperand._Minute > _Minute THEN
+         RETURN FALSE;
+      ELSIF Comperand._Minute < _Minute THEN
+         RETURN TRUE;
+      ELSIF Comperand._Second > _Second THEN
+         RETURN FALSE;
+      ELSIF Comperand._Second < _Second THEN
+         RETURN TRUE;
+      ELSIF Comperand._Millisecond >= _Millisecond THEN
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
    END >;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR >= ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN NOT Less( Comperand );
+      RETURN NOT( SELF < Comperand );
    END >=;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -1647,101 +1742,6 @@ CLASS IMPLEMENTATION DateTime;
    BEGIN
       FromJD( jd, GetZonalUTCBias(), GetZonalDSTBias());
    END FromJDToLocal;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Less( CONST Comperand : DateTime ) : BOOLEAN;
-   BEGIN
-      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate > JulianDate;
-      ELSIF Comperand._Year < _Year THEN
-         RETURN FALSE;
-      ELSIF Comperand._Year > _Year THEN
-         RETURN TRUE;
-      ELSIF Comperand._Month < _Month THEN
-         RETURN FALSE;
-      ELSIF Comperand._Month > _Month THEN
-         RETURN TRUE;
-      ELSIF Comperand._Day < _Day THEN
-         RETURN FALSE;
-      ELSIF Comperand._Day > _Day THEN
-         RETURN TRUE;
-      ELSIF Comperand._Hour < _Hour THEN
-         RETURN FALSE;
-      ELSIF Comperand._Hour > _Hour THEN
-         RETURN TRUE;
-      ELSIF Comperand._Minute < _Minute THEN
-         RETURN FALSE;
-      ELSIF Comperand._Minute > _Minute THEN
-         RETURN TRUE;
-      ELSIF Comperand._Second < _Second THEN
-         RETURN FALSE;
-      ELSIF Comperand._Second > _Second THEN
-         RETURN TRUE;
-      ELSIF Comperand._Millisecond <= _Millisecond THEN
-         RETURN FALSE;
-      END;
-      RETURN TRUE;
-   END Less;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Greater( CONST Comperand : DateTime ) : BOOLEAN;
-   BEGIN
-      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate < JulianDate;
-      ELSIF Comperand._Year > _Year THEN
-         RETURN FALSE;
-      ELSIF Comperand._Year < _Year THEN
-         RETURN TRUE;
-      ELSIF Comperand._Month > _Month THEN
-         RETURN FALSE;
-      ELSIF Comperand._Month < _Month THEN
-         RETURN TRUE;
-      ELSIF Comperand._Day > _Day THEN
-         RETURN FALSE;
-      ELSIF Comperand._Day < _Day THEN
-         RETURN TRUE;
-      ELSIF Comperand._Hour > _Hour THEN
-         RETURN FALSE;
-      ELSIF Comperand._Hour < _Hour THEN
-         RETURN TRUE;
-      ELSIF Comperand._Minute > _Minute THEN
-         RETURN FALSE;
-      ELSIF Comperand._Minute < _Minute THEN
-         RETURN TRUE;
-      ELSIF Comperand._Second > _Second THEN
-         RETURN FALSE;
-      ELSIF Comperand._Second < _Second THEN
-         RETURN TRUE;
-      ELSIF Comperand._Millisecond >= _Millisecond THEN
-         RETURN FALSE;
-      END;
-      RETURN TRUE;
-   END Greater;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Equals( CONST Comperand : DateTime ) : BOOLEAN;
-   BEGIN
-      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate = JulianDate;
-      ELSIF Comperand._Year <> _Year THEN
-         RETURN FALSE;
-      ELSIF Comperand._Month <> _Month THEN
-         RETURN FALSE;
-      ELSIF Comperand._Day <> _Day THEN
-         RETURN FALSE;
-      ELSIF Comperand._Hour <> _Hour THEN
-         RETURN FALSE;
-      ELSIF Comperand._Minute <> _Minute THEN
-         RETURN FALSE;
-      ELSIF Comperand._Second <> _Second THEN
-         RETURN FALSE;
-      ELSE
-         RETURN Comperand._Millisecond <> _Millisecond;
-      END;
-   END Equals;
 
 (*------------------------------------------------------------------------------------------------*)
 

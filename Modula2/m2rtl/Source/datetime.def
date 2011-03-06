@@ -71,7 +71,7 @@ CLASS TimeSpan; // unit is 100 ns
 END TimeSpan;
 
 PROCEDURE TimeSpanZero() : TimeSpan;
-PROCEDURE TimeSpanMS32( Milliseconds : CARD32 ) : TimeSpan;
+PROCEDURE TimeSpanMS32( Milliseconds : INT32 ) : TimeSpan;
 PROCEDURE TimeSpanS( Seconds : LONGREAL ) : TimeSpan;
 PROCEDURE TimeSpanD( Days : LONGREAL ) : TimeSpan;
 
@@ -129,9 +129,6 @@ CLASS JulianDate;
 
    PUBLIC PROCEDURE SetNow();
    
-   PUBLIC PROCEDURE Less( CONST Comperand : JulianDate ) : BOOLEAN;
-   PUBLIC PROCEDURE Greater( CONST Comperand : JulianDate ) : BOOLEAN;
-   PUBLIC PROCEDURE Equals( CONST Comperand : JulianDate ) : BOOLEAN;
    PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
    PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
    PUBLIC PROCEDURE Difference( CONST Operand : JulianDate ) : TimeSpan; // SELF - Operand
@@ -208,9 +205,6 @@ CLASS DateTime;
    PUBLIC PROCEDURE FromJDToLocal( CONST JD : datetime.JulianDate ); // JD is missing time zone information, local one will be set
    PUBLIC PROCEDURE FromJD( CONST JD : datetime.JulianDate; UTCBias, DSTBias : INTEGER ); // JD is missing time zone information
    
-   PUBLIC PROCEDURE Less( CONST Comperand : DateTime ) : BOOLEAN;
-   PUBLIC PROCEDURE Greater( CONST Comperand : DateTime ) : BOOLEAN;
-   PUBLIC PROCEDURE Equals( CONST Comperand : DateTime ) : BOOLEAN;
    PUBLIC PROCEDURE Add( Addend : TimeSpan );
    PUBLIC PROCEDURE Subtract( Addend : TimeSpan );
    PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TimeSpan;
