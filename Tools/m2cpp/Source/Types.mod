@@ -714,8 +714,6 @@ BEGIN
   NEW( TINT32 );    TINT32^.   Init3( L'INT32',       DOM.tkPrimitive,     DOM.ptINT32 );
   NEW( TINT64 );    TINT64^.   Init3( L'INT64',       DOM.tkPrimitive,     DOM.ptINT64 );
   // NEW( TPINTPTR( TINTPTR ));
-  NEW( TSHORTINT ); TSHORTINT^.Init3( L'SHORTINT',    DOM.tkLink, DOM.ptUnknown );
-       TSHORTINT^.T := TINT16;
   NEW( TINTEGER );  TINTEGER^. Init3( L'INTEGER',     DOM.tkLink, DOM.ptUnknown );
        TINTEGER^.T := TINT32;
   NEW( TLONGINT );  TLONGINT^. Init3( L'LONGINT',     DOM.tkLink, DOM.ptUnknown );
@@ -726,8 +724,6 @@ BEGIN
   NEW( TCARD32 );   TCARD32^.  Init3( L'CARD32',      DOM.tkPrimitive,     DOM.ptCARD32 );
   NEW( TCARD64 );   TCARD64^.  Init3( L'CARD64',      DOM.tkPrimitive,     DOM.ptCARD64 );
   // NEW( TPCARDPTR( TCARDPTR ));
-  NEW( TSHORTCARD ); TSHORTCARD^.Init3( L'SHORTCARD', DOM.tkLink, DOM.ptUnknown );
-       TSHORTCARD^.T := TCARD16;
   NEW( TCARDINAL ); TCARDINAL^.Init3( L'CARDINAL',    DOM.tkLink, DOM.ptUnknown );
        TCARDINAL^.T := TCARD32;
   NEW( TLONGCARD ); TLONGCARD^.Init3( L'LONGCARD',    DOM.tkLink, DOM.ptUnknown );
@@ -830,8 +826,6 @@ BEGIN
        TpINT64^.T := TINT64;
   // NEW( TpINTPTR );    TpINTPTR^.   Init3( L'PINTPTR',    DOM.tkReference, DOM.ptUnknown );
   //      TpINTPTR^.T := TINTPTR;
-  NEW( TpSHORTINT );  TpSHORTINT^. Init3( L'PSHORTINT',  DOM.tkReference, DOM.ptUnknown );
-       TpSHORTINT^.T := TSHORTINT;
   NEW( TpINTEGER );   TpINTEGER^.  Init3( L'PINTEGER',   DOM.tkReference, DOM.ptUnknown );
        TpINTEGER^.T := TINTEGER;
   NEW( TpLONGINT );   TpLONGINT^.  Init3( L'PLONGINT',   DOM.tkReference, DOM.ptUnknown );
@@ -847,8 +841,6 @@ BEGIN
        TpCARD64^.T := TCARD64;
   // NEW( TpCARDPTR );   TpCARDPTR^.  Init3( L'PCARDPTR',   DOM.tkReference, DOM.ptUnknown );
   //      TpCARDPTR^.T := TCARDPTR;
-  NEW( TpSHORTCARD ); TpSHORTCARD^.Init3( L'PSHORTCARD', DOM.tkReference, DOM.ptUnknown );
-       TpSHORTCARD^.T := TSHORTCARD;
   NEW( TpCARDINAL );  TpCARDINAL^. Init3( L'PCARDINAL',  DOM.tkReference, DOM.ptUnknown );
        TpCARDINAL^.T := TCARDINAL;
   NEW( TpLONGCARD );  TpLONGCARD^. Init3( L'PLONGCARD',  DOM.tkReference, DOM.ptUnknown );

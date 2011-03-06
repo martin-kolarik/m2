@@ -2,7 +2,7 @@ MODULE casttorecord;
 TYPE
   TA = ARRAY [0..7] OF BYTE;
   TR = RECORD
-         CASE : SHORTCARD OF
+         CASE : CARD16 OF
          | 0 : A : TA;
          END;
        END;

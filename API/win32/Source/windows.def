@@ -43,27 +43,27 @@ TYPE
   PBOOL   = POINTER TO BOOL;
 
   INT     = INTEGER;
-  PINT    = POINTER TO INTEGER;
+  PINT    = POINTER TO INT;
 
   LONG    = LONGINT;
   PLONG   = POINTER TO LONG;
 
-  SHORT   = SHORTINT;
-  PSHORT  = POINTER TO SHORTINT;
+  SHORT   = INT16;
+  PSHORT  = POINTER TO SHORT;
 
   UINT    = CARDINAL;
-  PUINT   = POINTER TO CARDINAL;
+  PUINT   = POINTER TO UINT;
 
   ULONG   = LONGCARD;
   PULONG  = POINTER TO ULONG;
 
-  USHORT  = SHORTCARD;
+  USHORT  = CARD16;
   PUSHORT = POINTER TO USHORT;
 
   UCHAR   = CHAR;
   PUCHAR  = POINTER TO UCHAR;
 
-  // WCHAR   = SHORTCARD;   // UNICODE two byte character -- defined in m2defs.h as wchar_t
+  // WCHAR   = USHORT;   // UNICODE two byte character -- defined in m2defs.h as wchar_t
   // PWCHAR  = POINTER TO WCHAR;
 
   DWORD   = LONGWORD;
@@ -8605,19 +8605,19 @@ TYPE
     dmSize : WORD;
     dmDriverExtra : WORD;
     dmFields : DWORD;
-    dmOrientation : SHORTINT;
-    dmPaperSize : SHORTINT;
-    dmPaperLength : SHORTINT;
-    dmPaperWidth : SHORTINT;
-    dmScale : SHORTINT;
-    dmCopies : SHORTINT;
-    dmDefaultSource : SHORTINT;
-    dmPrintQuality : SHORTINT;
-    dmColor : SHORTINT;
-    dmDuplex : SHORTINT;
-    dmYResolution : SHORTINT;
-    dmTTOption : SHORTINT;
-    dmCollate : SHORTINT;
+    dmOrientation : SHORT;
+    dmPaperSize : SHORT;
+    dmPaperLength : SHORT;
+    dmPaperWidth : SHORT;
+    dmScale : SHORT;
+    dmCopies : SHORT;
+    dmDefaultSource : SHORT;
+    dmPrintQuality : SHORT;
+    dmColor : SHORT;
+    dmDuplex : SHORT;
+    dmYResolution : SHORT;
+    dmTTOption : SHORT;
+    dmCollate : SHORT;
     dmFormName : ARRAY [ 0..CCHFORMNAME-1 ] OF BYTE;
     dmLogPixels : WORD;
     dmBitsPerPel : DWORD;
@@ -8918,7 +8918,7 @@ TYPE
 
   FIXED = RECORD
     fract : WORD;
-    value : SHORTINT;
+    value : SHORT;
   END;
 
   MAT2 = RECORD
@@ -8933,8 +8933,8 @@ TYPE
     gmBlackBoxX : UINT;
     gmBlackBoxY : UINT;
     gmptGlyphOrigin : POINT;
-    gmCellIncX : SHORTINT;
-    gmCellIncY : SHORTINT;
+    gmCellIncX : SHORT;
+    gmCellIncY : SHORT;
   END;
   PGLYPHMETRICS = POINTER TO GLYPHMETRICS;
 
@@ -9039,9 +9039,9 @@ TYPE
   PGCP_RESULTS = POINTER TO GCP_RESULTSA;
 
   RASTERIZER_STATUS = RECORD
-    nSize : SHORTINT;
-    wFlags : SHORTINT;
-    nLanguageID : SHORTINT;
+    nSize : SHORT;
+    wFlags : SHORT;
+    nLanguageID : SHORT;
   END;
   PRASTERIZER_STATUS = POINTER TO RASTERIZER_STATUS;
 
@@ -11450,7 +11450,7 @@ TYPE (* Window CLASS structure *)
         { (pt).x = (LONG)(SHORT)LOWORD(*(LONG*)&pts);   \
           (pt).y = (LONG)(SHORT)HIWORD(*(LONG*)&pts); }
 
-#define POINTTOPOINTS(pt)      (MAKELONG((SHORTINT)((pt).x), (SHORTINT)((pt).y)))
+#define POINTTOPOINTS(pt)      (MAKELONG((SHORT)((pt).x), (SHORT)((pt).y)))
 #define MAKEWPARAM(l, h)      (WPARAM)MAKELONG(l, h)
 #define MAKEPARAM(l, h)      (LPARAM)MAKELONG(l, h)
 #define MAKELRESULT(l, h)     (LRESULT)MAKELONG(l, h)
@@ -12989,10 +12989,10 @@ TYPE
     style : DWORD;
     dwExtendedStyle : DWORD;
     cdit : WORD;
-    x : SHORTINT;
-    y : SHORTINT;
-    cx : SHORTINT;
-    cy : SHORTINT;
+    x : SHORT;
+    y : SHORT;
+    cx : SHORT;
+    cy : SHORT;
   END;
   PDLGTEMPLATE = POINTER TO DLGTEMPLATE;
   PCDLGTEMPLATE = PDLGTEMPLATE;
@@ -13003,10 +13003,10 @@ TYPE
   DLGITEMTEMPLATE = RECORD
     style : DWORD;
     dwExtendedStyle : DWORD;
-    x : SHORTINT;
-    y : SHORTINT;
-    cx : SHORTINT;
-    cy : SHORTINT;
+    x : SHORT;
+    y : SHORT;
+    cx : SHORT;
+    cy : SHORT;
     id : WORD;
   END;
   PDLGITEMTEMPLATE = POINTER TO DLGITEMTEMPLATE;
