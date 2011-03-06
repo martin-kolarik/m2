@@ -8578,7 +8578,7 @@ CLASS IMPLEMENTATION CENode;
             G^.OutS( L'._, ' );
           END;
           G^.OutN( CARDINAL( UT^.T^.LastOrdinal()));
-          G^.OutS( L', (ORDINAL)' );
+          G^.OutS( L', (CARDINAL)' );
         ELSIF c > 4 THEN
           G^.OutS( L', 63, ' );
         ELSIF c > 2 THEN
@@ -9451,7 +9451,9 @@ CLASS IMPLEMENTATION CDesignator;
           END;
           G^.OutRP(); 
         ELSE
-          IF Types.TOrdinal^.Compatible( cmOperation, T ) THEN // number
+          IF Types.TPTR^.Compatible( cmOperation, T ) THEN // address
+            G^.OutS( L'DECFA_( ' );
+          ELSIF Types.TOrdinal^.Compatible( cmOperation, T ) THEN // number
             G^.OutS( L'DECFO_( ' );
           ELSE // address
             G^.OutS( L'DECFA_( ' );
@@ -9552,7 +9554,7 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutS( L'._, ' );
         END;
         G^.OutN( CARDINAL( LT^.T^.LastOrdinal()));
-        G^.OutS( L', (ORDINAL)(' );
+        G^.OutS( L', (CARDINAL)(' );
         r.U2^.Generate( G, Cn );
         G^.OutS( L') )' );
       | epFIELDOFS :
@@ -9628,9 +9630,11 @@ CLASS IMPLEMENTATION CDesignator;
           END;
           G^.OutRP(); 
         ELSE
-          IF Types.TOrdinal^.Compatible( cmOperation, T ) THEN // number
+          IF Types.TPTR^.Compatible( cmOperation, T ) THEN // address
+            G^.OutS( L'INCFA_( ' );
+          ELSIF Types.TOrdinal^.Compatible( cmOperation, T ) THEN // number
             G^.OutS( L'INCFO_( ' );
-          ELSE
+          ELSE // address
             G^.OutS( L'INCFA_( ' );
           END;
           TPExpression( r.U1 )^.T^.Generate( G, gcsName );
@@ -9670,7 +9674,7 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutS( L'._, ' );
         END;
         G^.OutN( CARDINAL( LT^.T^.LastOrdinal()));
-        G^.OutS( L', (ORDINAL)(' );
+        G^.OutS( L', (CARDINAL)(' );
         r.U2^.Generate( G, Cn );
         G^.OutS( L') )' );
       | epINSIDE :
@@ -9682,7 +9686,7 @@ CLASS IMPLEMENTATION CDesignator;
           TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
         END;
         r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-        G^.OutS( L', (ORDINAL)' );
+        G^.OutS( L', (INTEGER)' );
         r.U1^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
         G^.OutSPRP();
 

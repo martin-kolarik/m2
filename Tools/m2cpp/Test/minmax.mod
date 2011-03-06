@@ -5,7 +5,6 @@ CONST
   mi2 = MIN( CARD16 );
   mi3 = MIN( CARD32 );
   mi4 = MIN( CARD64 );
-  mi5 = MIN( SHORTCARD );
   mi6 = MIN( CARDINAL );
   mi7 = MIN( LONGCARD );
 
@@ -13,7 +12,6 @@ CONST
   mi9 = MIN( INT16 );
   mia = MIN( INT32 );
   mib = MIN( INT64 );
-  mic = MIN( SHORTINT );
   mid = MIN( INTEGER );
   mie = MIN( LONGINT );
 

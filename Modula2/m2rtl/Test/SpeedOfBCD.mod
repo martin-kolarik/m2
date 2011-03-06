@@ -11,7 +11,7 @@ TYPE
   PROCEDURE LongToBcd( A: LONGREAL ): PackedBcd;
   TYPE
     r = RECORD
-          CASE : SHORTCARD OF
+          CASE : CARD16 OF
           | 0: w0, w1, w2, w3 : CARD16;
           | 1: l0, l1 : CARD32;
 	        END;
@@ -24,7 +24,7 @@ TYPE
     rem : ARRAY [0..4] OF CARD16;
     buf2 : r;
     tmp : RECORD
-            CASE : SHORTCARD OF
+            CASE : CARD16 OF
             | 0: w0, w1 : CARD16;
             | 1: l0 : CARD32;
             END;

@@ -17,7 +17,6 @@
 # define True                  1
 # define TRUE                  1
 # define NIL                   0
-# define OA_MAX                2147483647
 
 # define OUT
 # define IN
@@ -32,17 +31,19 @@ typedef unsigned char          CARD8;
 typedef unsigned short         CARD16;
 typedef unsigned int           CARD32;
 typedef unsigned long long     CARD64;
-typedef CARD16                 SHORTCARD; // link to CARD16
-typedef CARD32                 CARDINAL;
-typedef unsigned long          LONGCARD; // explicitely long
+typedef unsigned long          LONGCARD;
 
 typedef signed char            INT8;
 typedef signed short           INT16;
 typedef signed int             INT32; // defined in basetsd.h as int
 typedef signed long long       INT64;
-typedef INT16                  SHORTINT; // link to INT16
-typedef INT32                  INTEGER;
-typedef signed long            LONGINT; // explicitely long
+typedef signed long            LONGINT; // the type exist to address windows headers, which use long extensively
+
+// ORDxx/ORDINAL used in for loop and for INC/DEC function
+typedef signed char            ORD8;
+typedef signed short           ORD16;
+typedef signed int             ORD32;
+typedef signed long long       ORD64;
 
 typedef unsigned char          BOOLEAN;
 typedef signed char            TRISTATE;
@@ -62,23 +63,26 @@ typedef unsigned char          BITSET8;
 typedef unsigned short         BITSET16;
 typedef unsigned long          BITSET32;
 typedef unsigned long long     BITSET64;
-typedef unsigned long          BITSET;
 
 typedef float                  REAL;
 typedef double                 LONGREAL;
-// typedef void *                 ADDRESS;
-#define M2ADDRESS              void*
+#define M2ADDRESS              void* // typedef void * ADDRESS;
 
 # ifdef _WIN64
+# define OA_MAX                9223372036854775807i64
 typedef __w64 CARD64           PTR;
+typedef __w64 ORD64            ORDINAL;
+typedef __w64 BITSET64         BITSET;
+typedef __w64 CARD64           CARDINAL;
+typedef __w64 INT64            INTEGER;
 # else
+# define      OA_MAX           2147483647
 typedef __w64 CARD32           PTR;
+typedef __w64 ORD32            ORDINAL;
+typedef __w64 BITSET32         BITSET;
+typedef __w64 CARD32           CARDINAL;
+typedef __w64 INT32            INTEGER;
 # endif
-
-typedef char                   ORD8;
-typedef short                  ORD16;
-typedef long                   ORD32;
-typedef ORD32                  ORDINAL;
 
 typedef CARD32                 SET;
 typedef CARD64                 LONGSET;
@@ -93,16 +97,16 @@ typedef CARD64                 LONGSET;
 # define EVEN_(n)              (((n)& 1) == 0)
 # define MIN2_(a,b)            ((a)<(b) ? (a) : (b))
 # define MAX2_(a,b)            ((a)>(b) ? (a) : (b))
-# define TRUNC_(n)             (((INTEGER)(n)))
-# define FRAC_(t,n)            (((t)(n)-(t)(INT64)(n))) // t stands for float, double or other number type
+# define TRUNC_(t,n)           ((INTEGER)(n))
+# define FRAC_(t,n)            ((t)(n)-(t)(INT64)(n)) // t stands for float, double or other number type
 # define VAL_(t,n)             ((t)(n))
 
 # define FIELDOFS_(r,f)        ((CARDINAL)&(((r*)0)->f))
 # define FIELDOFTYPE_(t,f)     (((t*)0)->f)
 
-# define DECFO_(t,a,b)         ((t)((ORDINAL)(a) - (ORDINAL)(b)))
+# define DECFO_(t,a,b)         ((t)(a) - (t)(b))
 # define DECFA_(t,a,b)         ((t)((PTR)(a) - (PTR)(b)))
-# define INCFO_(t,a,b)         ((t)((ORDINAL)(a) + (ORDINAL)(b)))
+# define INCFO_(t,a,b)         ((t)(a) + (t)(b))
 # define INCFA_(t,a,b)         ((t)((PTR)(a) + (PTR)(b)))
 
 __forceinline bool __fastcall DEBUGGED_() throw() {
@@ -185,19 +189,19 @@ inline QUADWORD REVERSEQWB_( QUADWORD w ) throw() {
 
 // sets -- inclusion
 # define INCLS_(s,l,b) { \
-  unsigned int __e = (b); \
+  CARDINAL __e = (b); \
   if (__e <= (l)) { \
     (s) |= 1 << __e; \
   } \
 }
 # define INCLL_(s,l,b) { \
-  unsigned int __e = (b); \
+  CARDINAL __e = (b); \
   if (__e <= (l)) { \
     (s) |= 1ull << __e; \
   } \
 }
 # define INCLA_(s,l,b) { \
-  unsigned int __e = (b); \
+  CARDINAL __e = (b); \
   if (__e <= (l)) { \
     (s)[b/8] |= 1 << (__e&7); \
   } \
@@ -205,26 +209,26 @@ inline QUADWORD REVERSEQWB_( QUADWORD w ) throw() {
 
 // sets -- exclusion
 # define EXCLS_(s,l,b) { \
-  unsigned int __e = (b); \
+  CARDINAL __e = (b); \
   if (__e <= (l)) { \
     (s) &= ~(1 << __e); \
   } \
 }
 # define EXCLL_(s,l,b) { \
-  unsigned int __e = (b); \
+  CARDINAL __e = (b); \
   if (__e <= (l)) { \
     (s) &= ~(1ull << __e); \
   } \
 }
 # define EXCLA_(s,l,b) { \
-  unsigned int __e = (b); \
+  CARDINAL __e = (b); \
   if (__e <= (l)) { \
     (s)[b/8] &= ~(1 << (__e&7)); \
   } \
 }
 
 // sets -- test
-inline BOOLEAN INS_( SET s, SET l, SET b ) throw()
+inline BOOLEAN INS_( SET s, CARDINAL l, CARDINAL b ) throw()
 {
   if (b<=l) {
     return (s & (1<<b)) != 0;
@@ -233,7 +237,7 @@ inline BOOLEAN INS_( SET s, SET l, SET b ) throw()
   }
 }
 
-inline BOOLEAN INL_( LONGSET s, SET l, SET b ) throw()
+inline BOOLEAN INL_( LONGSET s, CARDINAL l, CARDINAL b ) throw()
 {
   if (b<=l) {
     return (s & (1ull<<b)) != 0;
@@ -242,7 +246,7 @@ inline BOOLEAN INL_( LONGSET s, SET l, SET b ) throw()
   }
 }
 
-inline BOOLEAN INA_( BYTE* s, SET l, SET b ) throw()
+inline BOOLEAN INA_( BYTE* s, CARDINAL l, CARDINAL b ) throw()
 {
   if (b<=l) {
     return (s[b/8] & (1<<(b&7))) != 0;
@@ -251,7 +255,7 @@ inline BOOLEAN INA_( BYTE* s, SET l, SET b ) throw()
   }
 }
 //... a pair to simply solve CONST, the casting should be in m2cpp ???
-inline BOOLEAN INA_( const BYTE* s, SET l, SET b ) throw()
+inline BOOLEAN INA_( const BYTE* s, CARDINAL l, CARDINAL b ) throw()
 {
   return INA_( (BYTE*)s, l, b );
 }
@@ -305,12 +309,12 @@ inline BOOLEAN EQUALSM_(const BYTE* S1, const BYTE* S2, CARDINAL L) throw()
 }
 
 // strings -- INSIDE ANSI
-inline BOOLEAN INSIDEB_(INTEGER HIGH_, const CHAR* S, ORDINAL I) throw()
+inline BOOLEAN INSIDEB_(INTEGER HIGH_, const CHAR* S, INTEGER I) throw()
 {
   return I <= HIGH_ && S[I] != 0;
 }
 // strings -- INSIDE UNICODE
-inline BOOLEAN INSIDEW_(INTEGER HIGH_, const WCHAR* S, ORDINAL I) throw()
+inline BOOLEAN INSIDEW_(INTEGER HIGH_, const WCHAR* S, INTEGER I) throw()
 {
   return I <= HIGH_ && S[I] != 0;
 }

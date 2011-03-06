@@ -848,8 +848,8 @@ TYPE
   PMALLOC_FREE_STRUCT = POINTER TO MALLOC_FREE_STRUCT;
 
   COMM_FAULT_OFFSETS = RECORD
-    CommOffset : SHORTINT;
-    FaultOffset : SHORTINT;
+    CommOffset : SHORT;
+    FaultOffset : SHORT;
   END;
   PCOMM_FAULT_OFFSETS = POINTER TO COMM_FAULT_OFFSETS;
 
@@ -912,7 +912,7 @@ TYPE
 // MIDL Stub Format String.  This is a const in the stub.
 //
   MIDL_FORMAT_STRING = RECORD
-    Pad : SHORTINT;
+    Pad : SHORT;
     Format : PCHAR; // unsigned char Format[]
   END;
 

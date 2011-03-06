@@ -66,8 +66,8 @@ TYPE
 
   RPC_IF_ID = RECORD
     Uuid      : UUID;
-    VersMajor : SHORTCARD;
-    VersMinor : SHORTCARD;
+    VersMajor : USHORT;
+    VersMinor : USHORT;
   END;
   PRPC_IF_ID = POINTER TO RPC_IF_ID;
 
@@ -537,11 +537,11 @@ CONST
 TYPE
 
   SEC_WINNT_AUTH_IDENTITY_W = RECORD
-    User : POINTER TO SHORTCARD;
+    User : POINTER TO USHORT;
     UserLength : LONGCARD;
-    Domain : POINTER TO SHORTCARD;
+    Domain : POINTER TO USHORT;
     DomainLength : LONGCARD;
-    Password : POINTER TO SHORTCARD;
+    Password : POINTER TO USHORT;
     PasswordLength : LONGCARD;
     Flags : LONGCARD;
   END;
@@ -616,7 +616,7 @@ TYPE
   RPC_CLIENT_INFORMATION1 = RECORD
     UserName : PCHAR;
     ComputerName : PCHAR;
-    Privilege : SHORTCARD;
+    Privilege : USHORT;
     AuthFlags : LONGCARD;
   END;
   PRPC_CLIENT_INFORMATION1 = POINTER TO RPC_CLIENT_INFORMATION1;
@@ -695,7 +695,7 @@ PROCEDURE UuidEqual(
 PROCEDURE UuidHash (
      Uuid : PUUID;
      VAR Status : RPC_STATUS
-    ): SHORTCARD;
+    ): USHORT;
 
 PROCEDURE UuidIsNil (
      Uuid : PUUID;
