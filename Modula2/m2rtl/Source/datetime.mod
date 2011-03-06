@@ -1441,7 +1441,9 @@ CLASS IMPLEMENTATION DateTime;
 
    PUBLIC PROPERTY DayOfWeek GET : TDayOfWeek;
    BEGIN
-      IF _DayOfWeekDirty THEN
+      IF _Empty THEN
+         RETURN UnknownDay;
+      ELSIF _DayOfWeekDirty THEN
          _DayOfWeekDirty := FALSE;
          _DayOfWeek := JulianDate.DayOfWeek;
       END;
@@ -1616,8 +1618,10 @@ CLASS IMPLEMENTATION DateTime;
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Clear();
+   VAR
+      dt : DateTime;
    BEGIN
-      _Empty := TRUE;
+      SELF := dt;
    END Clear;
 
 (*------------------------------------------------------------------------------------------------*)

@@ -142,7 +142,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Operations" );
       jd.Scientific := 2440000.5;
       jddst := jd + datetime.TimeSpanD( 1.5 );
-      Failure := jddst.Scientific <> 2440001.0;
+      Failure := jddst.Scientific <> 2440002.0;
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -177,7 +177,7 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       jd.Scientific := 2440000.5;
-      jddst.Scientific := 245000.0;
+      jddst.Scientific := 2450000.0;
       ts := jddst.Difference( jd );
       Failure := ts.Days <> 9999.5;
       IF Failure THEN
