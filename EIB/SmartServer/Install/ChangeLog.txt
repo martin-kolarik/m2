@@ -1,3 +1,12 @@
+Version 1.2.1468/R 12.3.2011
+- NEW: #240, new section [control] containing parameters date, time and date_time_push_period
+       was added, the section defines group addresses to write actual date and time to
+       them.
+- CHG: #238+#239, function calls passed through URI parameters now returns a value,
+       not the redirected page. "set" function is an exception, as the function
+       is already used and the function must remain compatible. A new function
+       "setv" returning its result was thus introduced. 
+
 Version 1.2.1407/R 28.12.2010
 - BUG: #237, an addition to #233, messages emitted by internal code (login failures, status
        texts) did not respect the language set by user.
