@@ -444,9 +444,7 @@ CLASS IMPLEMENTATION CContainer;
       ELSE // mtUnknown or others
          // try boolean      
          IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
-            lvalue.Assign( value );
-            lvalue.Lowerize();
-            AddBooleanOA( OA( model.Length-1, model.rawData ), value.EqualsOA( TRUE_STRING ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
+            AddBooleanOA( OA( model.Length-1, model.rawData ), uriParameterValueToBoolean( value ));
 
          ELSE // fall to string
             AddStringOA( OA( model.Length-1, model.rawData ), value );
@@ -2055,6 +2053,17 @@ BEGIN
 END Cleanup;
 
 (*================================================================================*)
+
+PROCEDURE uriParameterValueToBoolean( CONST value : StringsO.IString ) : BOOLEAN;
+VAR
+   lvalue : StringsO.CString;
+BEGIN
+   lvalue.Assign( value );
+   lvalue.Lowerize();
+   RETURN lvalue.EqualsOA( TRUE_STRING ) OR lvalue.EqualsOA( L"1" ) OR lvalue.EqualsOA( L"y" ) OR lvalue.EqualsOA( L"yes" );
+END uriParameterValueToBoolean;
+
+//--------------------------------------------------------------------------------
 
 PROCEDURE httpStatusCodeSystemView( StatusCode : HttpCommon.THttpResponse ) : TPView;
 VAR

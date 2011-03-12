@@ -348,11 +348,8 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
    VAR
-      empty : StringsO.CString;
       version : StringsO.CString;
    BEGIN
-      Container.AddStringOA( LANGUAGE, empty );
-
       Container.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
@@ -402,7 +399,6 @@ CLASS IMPLEMENTATION CController;
       
       // process parameters not known to views' models
       IF uriParameters^.GetOA( LANGUAGE, OUT s ) THEN // override language
-         Request.ModelContainer^.AddStringOA( LANGUAGE, s ); // set empty, reset the value
          SetOverriddenLanguage( Request, s );
 
          uri := Request.ControllerURI;
@@ -661,16 +657,15 @@ CLASS IMPLEMENTATION CController;
       s : ARRAY [0..63] OF WCHAR;
       starttime : time.TJD;
       uptime : time.TJDC;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       // check actions to do
-      IF Request.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
+      IF uriParameters^.GetOA( STATUS_CONNECT, OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
          _Web^.ConnectEIB();
-         Request.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
-      ELSIF Request.ModelContainer^.GetBooleanOA( STATUS_DISCONNECT, OUT b ) AND b THEN
+      ELSIF uriParameters^.GetOA( STATUS_DISCONNECT, OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
          _Web^.DisconnectEIB();
-         Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
       END;
@@ -779,6 +774,7 @@ CLASS IMPLEMENTATION CController;
       listDevices : lists.TPStringStringList;
       listRunning : lists.TPStringStringList;
       listIndexes : lists.TPStringStringList;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       // check actions to do
       IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
@@ -787,9 +783,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         cs.FromOA( L"-1" );
-         Request.ModelContainer^.AddStringOA( CONTROL_START, cs );
+      ELSIF uriParameters^.GetOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
@@ -797,9 +791,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         cs.FromOA( L"-1" );
-         Request.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
+      ELSIF uriParameters^.GetOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
@@ -807,9 +799,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         cs.FromOA( L"-1" );
-         Request.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
+      ELSIF uriParameters^.GetOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.rawData ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          RETURN TRUE;
       END;
@@ -835,11 +825,6 @@ CLASS IMPLEMENTATION CController;
             listIndexes^.Add( cs, cs );
          END;
       END;
-
-      cs.FromOA( L"-1" );
-      Request.ModelContainer^.AddStringOA( CONTROL_START, cs );
-      Request.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
-      Request.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
 
       Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, _Web^.Configuration^ );
       
@@ -871,8 +856,9 @@ CLASS IMPLEMENTATION CController;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
       logS : StringsO.CString;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
-      downloadFlag := Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 );
+      downloadFlag := uriParameters^.GetOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 );
       count := _Web^.DataLogger^.BufferCount;
 
       IF downloadFlag THEN
@@ -904,9 +890,6 @@ CLASS IMPLEMENTATION CController;
          View := GetPageTemplateView( Request, DATA_LOG_VIEW );
       END;
 
-      cs.FromOA( L"-1" );
-      Request.ModelContainer^.AddStringOA( LOG_DOWNLOAD, cs );
-
       RETURN TRUE;
    END ProcessDataLog;
 
@@ -920,6 +903,7 @@ CLASS IMPLEMENTATION CController;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
       logS : StringsO.CString;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       count := Log.logger()^.BufferCount;
       IF count > 0 THEN
@@ -932,15 +916,12 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-      IF Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      IF uriParameters^.GetOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          View := mvc.rawTextView( OA( logS.Length-1, logS.rawData ), L"systemlog", empty, TRUE );
       ELSE
          Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
          View := GetPageTemplateView( Request, SYSTEM_LOG_VIEW );
       END;
-
-      cs.FromOA( L"-1" );
-      Request.ModelContainer^.AddStringOA( LOG_DOWNLOAD, cs );
 
       RETURN TRUE;
    END ProcessSystemLog;
