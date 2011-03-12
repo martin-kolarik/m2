@@ -1,8 +1,8 @@
-Version 1.2.1468/R 12.3.2011
+Version 1.2.1469/R 12.3.2011
 - NEW: #240, new section [control] containing parameters date, time and date_time_push_period
        was added, the section defines group addresses to write actual date and time to
        them.
-- CHG: #238+#239, function calls passed through URI parameters now returns a value,
+- CHG: #238+#239+#241, function calls passed through URI parameters now returns a value,
        not the redirected page. "set" function is an exception, as the function
        is already used and the function must remain compatible. A new function
        "setv" returning its result was thus introduced. 
