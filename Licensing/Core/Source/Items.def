@@ -120,6 +120,8 @@ TYPE
 	);
 	TLicenceType = SET OF TLicenceTypeItem; // the type is stored on 8 bits in serial number, there must not be more than 8 bit occupied !!
 
+PROCEDURE LicenceTypeToString( Type : TLicenceType; OUT String : StringsO.IString );
+
 CLASS CLicence( CLockedItem );
    PRIVATE VAR
       _Serial : StringsO.CString;
