@@ -16,7 +16,8 @@
         <XRSDEF>&quot;$(RootBuildPath)\Bin\xrsc&quot; -D -O$(SourceDir)</XRSDEF>
         <XRSBIN>&quot;$(RootBuildPath)\Bin\xrsc&quot; -B -O$(IntermediateDir) -P$(MSBuildProjectName).</XRSBIN>
 
-        <LICSRC>&quot;$(RootBuildPath)\Bin\licbuild&quot; -M</LICSRC>
+        <LICSRC Condition="$(ClientLicensingType)=='Host'">&quot;$(RootBuildPath)\Bin\licbuild&quot; -M</LICSRC>
+        <LICSRC Condition="$(ClientLicensingType)=='Plugin'">&quot;$(RootBuildPath)\Bin\licbuild&quot; -Mp</LICSRC>
         <LICSIGN>&quot;$(RootBuildPath)\Bin\licbuild&quot; -S</LICSIGN>
         <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
         <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
