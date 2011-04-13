@@ -66,6 +66,7 @@ CLASS IMPLEMENTATION CCreator;
    BEGIN
       cllvData.Length := cllv.length;
       cllvData.Data := ADR( cllv.data );
+      cllvData.Validator := cllv.validator();
       cllvPath := L"";
       RETURN TRUE;
    END GetLECData;

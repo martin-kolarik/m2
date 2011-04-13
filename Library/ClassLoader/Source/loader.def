@@ -13,6 +13,15 @@ IMPORT
 (*===========================================================================*)
 
 TYPE
+   TPLibraryLoadAuthorizer = POINTER TO ILibraryLoadAuthorizer;
+
+INTERFACE ILibraryLoadAuthorizer;
+   PROCEDURE AuthorizedToLoad( CONST Library : iobject.TPLibrary ) : BOOLEAN;
+END ILibraryLoadAuthorizer;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
    TStateItem = (
       lsEnabled
    );
@@ -27,11 +36,14 @@ CLASS CLoader;
    PRIVATE VAR
       Libraries : lists.CPtrList;
       Names : maps.CStringMap;
+      _LoadAuthorizer : TPLibraryLoadAuthorizer;
       _Host : StringsO.CString;
       _HostVersionString : StringsO.CString;
    PUBLIC READONLY PROPERTY
       Host : StringsO.TPString;
       HostVersionString : StringsO.TPString;
+   PUBLIC PROPERTY
+      LoadAuthorizer : TPLibraryLoadAuthorizer;
       
    PUBLIC PROCEDURE SetHostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR );
 

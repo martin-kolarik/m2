@@ -522,6 +522,12 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Library : iobject.TPLibrary ) : BOOLEAN;
+   BEGIN
+   END AuthorizedToLoad;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT deviceName : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
    VAR
       b : BOOLEAN;
@@ -590,6 +596,7 @@ BEGIN
    _PeriodCounter := 15;
    _TickCounter := 0;
    _WriteSignal.Init( Sync.stEventAutoreset, L"", FALSE );
+   _Loader.LoadAuthorizer := ADR( SELF );
 END ABridge;
 
 (*================================================================================*)
