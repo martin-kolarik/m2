@@ -17,7 +17,7 @@
     </PropertyGroup>
     
     <PropertyGroup>
-        <ProductM2Control></ProductM2Control>
+        <ProductM2Control Condition="$(ProductM2Control)==''">-DTarget:&quot;$(ProductVariant)&quot;</ProductM2Control>
         <ProductCLControl></ProductCLControl>
         <ProductRCControl></ProductRCControl>
         <ProductLNControl></ProductLNControl>
