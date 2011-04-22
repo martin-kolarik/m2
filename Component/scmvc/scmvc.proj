@@ -6,7 +6,7 @@
     <PropertyGroup>
         <ComponentType Condition="$(ComponentType)==''">Library</ComponentType>
 
-        <FileDescription>MVC Library</FileDescription>
+        <ProjectDescription>MVC Library</ProjectDescription>
         
         <Result>Dynamic</Result>
     </PropertyGroup>

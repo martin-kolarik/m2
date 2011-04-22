@@ -23,8 +23,8 @@
     VALUE &quot;ProductName&quot;, &quot;$(ProductDescription)\0&quot;
     VALUE &quot;ProductVersion&quot;, &quot;$(ProductVersionMajor).$(ProductVersionMinor).#(ProductVersionBuild).$(ProductVersionRevision)\0&quot;
 
-    VALUE &quot;FileDescription&quot;, &quot;$(FileDescription)\0&quot;
-    VALUE &quot;FileVersion&quot;, &quot;$(FileVersionMajor).$(FileVersionMinor).#(FileVersionBuild).$(FileVersionRevision) (#(FileRevisionId))\0&quot;
+    VALUE &quot;FileDescription&quot;, &quot;$(ProjectDescription)\0&quot;
+    VALUE &quot;FileVersion&quot;, &quot;$(ProjectVersionMajor).$(ProjectVersionMinor).#(ProjectVersionBuild).$(ProjectVersionRevision) (#(ProjectRevisionId))\0&quot;
     VALUE &quot;InternalName&quot;, &quot;$(InternalName)\0&quot;
     VALUE &quot;OriginalFilename&quot;, &quot;$(OriginalFilename)\0&quot;
         </RCStringFileInfo>
@@ -42,7 +42,7 @@
         
 VS_VERSION_INFO VERSIONINFO
   PRODUCTVERSION $(ProductVersionMajor),$(ProductVersionMinor),#(ProductVersionBuild),$(ProductVersionRevision)
-  FILEVERSION $(FileVersionMajor),$(FileVersionMinor),#(FileVersionBuild),$(FileVersionRevision)
+  FILEVERSION $(ProjectVersionMajor),$(ProjectVersionMinor),#(ProjectVersionBuild),$(ProjectVersionRevision)
   FILEFLAGSMASK VS_FF_DEBUG | VS_FF_SPECIALBUILD
   FILEFLAGS $(RCFileFlags)
   FILEOS VOS_NT
@@ -84,13 +84,13 @@ LANGUAGE $(LangName), $(SubLangName)
             Inputs="$(RCFileDependency)"
             Outputs="$(RCFile)">
         <!-- operate build numbers -->
-        <CreateProperty Condition="$(ProductVersionBuild)==''" Value="$(FileVersionBuild)">
+        <CreateProperty Condition="$(ProductVersionBuild)==''" Value="$(ProjectVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductVersionBuild"></Output>
         </CreateProperty>
-        <CreateProperty Value="@(FileRevisionIds)">
-            <Output TaskParameter="Value" PropertyName="FileRevisionId"/>
+        <CreateProperty Value="@(ProjectRevisionIds)">
+            <Output TaskParameter="Value" PropertyName="ProjectRevisionId"/>
         </CreateProperty>
-        <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;FileVersionBuild;FileRevisionId" Patches="$(ProductVersionBuild);$(FileVersionBuild);$(FileRevisionId)"><!-- patch property -->
+        <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;ProjectVersionBuild;ProjectRevisionId" Patches="$(ProductVersionBuild);$(ProjectVersionBuild);$(FileRevisionId)"><!-- patch property -->
             <Output TaskParameter="Value" PropertyName="RCFileContents"/>
         </Patch>
         <!-- create rc file itself -->

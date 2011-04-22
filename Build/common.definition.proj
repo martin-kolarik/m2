@@ -16,14 +16,15 @@
     <PropertyGroup>
         <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
-        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
+        <ProjectId Condition="$(ProjectId)==''">$(MSBuildProjectName)</ProjectId>
+        <ProductId Condition="$(ProductId)==''">$(ProjectId)</ProductId>
         <ProductVersion Condition="$(ProductVersion)==''">0.0.0</ProductVersion>
         <TestExec Condition="$(TestExec)==''">off</TestExec>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(ComponentType)=='Product'">
-        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
-        <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
+        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(ProjectDisplayName)</ProductDisplayName>
+        <ProductDescription Condition="$(ProductDescription)==''">$(ProjectDescription)</ProductDescription>
     </PropertyGroup>
 
     <!-- handle definitions file in separate file for clarity -->
