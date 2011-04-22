@@ -35,7 +35,7 @@
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build.$(Configuration)\</IntDir>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(Configuration)</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(Configuration) /p:ProductVariant=IBS</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(Configuration)</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(Configuration)</NMakeCleanCommandLine>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">DeviceIOSDAPBridge.exe</NMakeOutput>
@@ -70,7 +70,9 @@
     <None Include="Source\DeviceIOSDAPBridge.mod" />
     <None Include="Source\DeviceIOSDAPBridge.def" />
     <None Include="Test\TBridge.mod" />
-    <None Include="DeviceIOSDAPBridge.proj" />
+    <None Include="DeviceIOSDAPBridge.proj">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

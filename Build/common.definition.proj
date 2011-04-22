@@ -16,14 +16,15 @@
     <PropertyGroup>
         <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
-        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
+        <ProjectId Condition="$(ProjectId)==''">$(MSBuildProjectName)</ProjectId>
+        <ProductId Condition="$(ProductId)==''">$(ProjectId)</ProductId>
         <ProductVersion Condition="$(ProductVersion)==''">0.0.0</ProductVersion>
         <TestExec Condition="$(TestExec)==''">off</TestExec>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(ComponentType)=='Product'">
-        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
-        <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
+        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(ProjectDisplayName)</ProductDisplayName>
+        <ProductDescription Condition="$(ProductDescription)==''">$(ProjectDescription)</ProductDescription>
     </PropertyGroup>
 
     <!-- handle definitions file in separate file for clarity -->
@@ -92,7 +93,7 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName><!-- Release Debug -->
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle><!-- ANSI UNICODE -->
         <Language Condition="$(Language)==''">English</Language><!-- English Czech German Japanese -->
-        <CLib Condition="$(CLib)==''">Private</CLib><!-- Static Dynamic Privat --><!-- Static = LIBC, Dynamic = MSVCRT, Private = CRtl -->
+        <CLib Condition="$(CLib)==''">Private</CLib><!-- Static Dynamic Private --><!-- Static = LIBC, Dynamic = MSVCRT, Private = CRtl -->
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
         <ResultSubsystem Condition="$(ResultSubsystem)==''">Console</ResultSubsystem><!-- Console GUI -->
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
@@ -112,6 +113,7 @@
     <!-- (constructed properties, DO NOT MODIFY) -->
     <PropertyGroup>
         <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductId)==''">off</ClientLicensing>
+        <ClientLicensingType Condition="$(ClientLicensingType)==''">Host</ClientLicensingType><!-- Host, Plugin -->
         <SetupLicensing Condition="$(SetupLicensing)=='' Or $(ProductFlag)=='off'">off</SetupLicensing>
         <ClientLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</ClientLicensing>
         <SetupLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</SetupLicensing>

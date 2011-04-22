@@ -350,11 +350,8 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
    VAR
-      empty : StringsO.CString;
       version : StringsO.CString;
    BEGIN
-      Container.AddStringOA( LANGUAGE, empty );
-
       Container.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
       Container.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
@@ -404,7 +401,6 @@ CLASS IMPLEMENTATION CController;
       
       // process parameters not known to views' models
       IF uriParameters^.GetOA( LANGUAGE, OUT s ) THEN // override language
-         Request.ModelContainer^.AddStringOA( LANGUAGE, s ); // set empty, reset the value
          SetOverriddenLanguage( Request, s );
 
          uri := Request.ControllerURI;
@@ -663,16 +659,15 @@ CLASS IMPLEMENTATION CController;
       s : ARRAY [0..63] OF WCHAR;
       starttime : datetime.TJD;
       uptime : datetime.TJDC;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       // check actions to do
-      IF Request.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
+      IF uriParameters^.GetOA( STATUS_CONNECT, OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
          _Web^.ConnectEIB();
-         Request.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
-      ELSIF Request.ModelContainer^.GetBooleanOA( STATUS_DISCONNECT, OUT b ) AND b THEN
+      ELSIF uriParameters^.GetOA( STATUS_DISCONNECT, OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
          _Web^.DisconnectEIB();
-         Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
       END;
@@ -781,6 +776,7 @@ CLASS IMPLEMENTATION CController;
       listDevices : lists.TPStringStringList;
       listRunning : lists.TPStringStringList;
       listIndexes : lists.TPStringStringList;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       // check actions to do
       IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
@@ -789,9 +785,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         cs.FromOA( L"-1" );
-         Request.ModelContainer^.AddStringOA( CONTROL_START, cs );
+      ELSIF uriParameters^.GetOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
@@ -799,9 +793,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         cs.FromOA( L"-1" );
-         Request.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
+      ELSIF uriParameters^.GetOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
@@ -809,9 +801,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         cs.FromOA( L"-1" );
-         Request.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
+      ELSIF uriParameters^.GetOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.Data ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          RETURN TRUE;
       END;
@@ -837,11 +827,6 @@ CLASS IMPLEMENTATION CController;
             listIndexes^.Add( cs, cs );
          END;
       END;
-
-      cs.FromOA( L"-1" );
-      Request.ModelContainer^.AddStringOA( CONTROL_START, cs );
-      Request.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
-      Request.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
 
       Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, _Web^.Configuration^ );
       
@@ -873,8 +858,9 @@ CLASS IMPLEMENTATION CController;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
       logS : StringsO.CString;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
-      downloadFlag := Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 );
+      downloadFlag := uriParameters^.GetOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 );
       count := _Web^.DataLogger^.BufferCount;
 
       IF downloadFlag THEN
@@ -906,9 +892,6 @@ CLASS IMPLEMENTATION CController;
          View := GetPageTemplateView( Request, DATA_LOG_VIEW );
       END;
 
-      cs.FromOA( L"-1" );
-      Request.ModelContainer^.AddStringOA( LOG_DOWNLOAD, cs );
-
       RETURN TRUE;
    END ProcessDataLog;
 
@@ -922,6 +905,7 @@ CLASS IMPLEMENTATION CController;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
       logS : StringsO.CString;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       count := Log.logger()^.BufferCount;
       IF count > 0 THEN
@@ -934,15 +918,12 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-      IF Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      IF uriParameters^.GetOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          View := mvc.rawTextView( OA( logS.Length-1, logS.Data ), L"systemlog", empty, TRUE );
       ELSE
          Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
          View := GetPageTemplateView( Request, SYSTEM_LOG_VIEW );
       END;
-
-      cs.FromOA( L"-1" );
-      Request.ModelContainer^.AddStringOA( LOG_DOWNLOAD, cs );
 
       RETURN TRUE;
    END ProcessSystemLog;
@@ -1022,9 +1003,6 @@ CLASS IMPLEMENTATION CController;
       roleName : StringsO.CString;
       userName : StringsO.CString;
    BEGIN
-      Request.ModelContainer^.AddStringOA( USERS_ACTION, empty );
-      Request.ModelContainer^.AddStringOA( USERS_ID, empty );
-
       Request.ModelContainer^.AddListOA( USERS_ROLES, OUT listRoles ); listRoles^.Dispose();
       Request.ModelContainer^.AddListOA( USERS_ROLE_IDS, OUT listRoleIds ); listRoleIds^.Dispose();
       Request.ModelContainer^.AddListOA( USERS_USERS, OUT listUsers ); listUsers^.Dispose();
@@ -1066,23 +1044,33 @@ CLASS IMPLEMENTATION CController;
       i : CARDINAL;
       id : CARDINAL;
       ids : StringsO.CString;
+      idValid : BOOLEAN := FALSE;
       keyed : BOOLEAN;
       role : EibSrvWeb.TRole;
       roleName : StringsO.CString;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       Request.ModelContainer^.AddBooleanOA( USERS_ERROR, FALSE );
       Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, empty );
       Request.ModelContainer^.AddStringOA( MESSAGE, empty );
 
       // retrieve editation id      
-      Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+         Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      ELSIF uriParameters^.GetOA( USERS_ID, OUT ids ) THEN // OK, first opening the page transfers id using URI...
+         Request.ModelContainer^.AddStringOA( USERS_ID, ids );
+      ELSE // ...the second opening uses model's variable
+         Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      END;
       IF NOT ids.Empty THEN
          ids.ToINT32( 10, OUT id );
-         IF id = -1 THEN // role user is to be edited
-            // fall down
+         IF id = -1 THEN // new role is to be edited
+            idValid := TRUE; 
          ELSE
             DEC( id );
-            IF NOT _Web^.GetRole( id, OUT role, OUT currentName ) THEN
+            IF _Web^.GetRole( id, OUT role, OUT currentName ) THEN
+               idValid := TRUE;
+            ELSE
                Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
                Request.MessageSource^.GetMessageOA( Language( Request ), USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
                Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
@@ -1090,7 +1078,11 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-      IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+      IF NOT idValid THEN
+         Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, bad action
+         // fall down to display error
+      
+      ELSIF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
          // validate
          Request.ModelContainer^.GetStringOA( ROLE_EDIT_NAME, OUT roleName ); 
          Request.ModelContainer^.GetBooleanOA( ROLE_EDIT_KEYED, OUT keyed ); 
@@ -1117,9 +1109,8 @@ CLASS IMPLEMENTATION CController;
          Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
          currentName.Assign( roleName );
 
-      ELSIF Request.ModelContainer^.GetStringOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
-         Request.ModelContainer^.AddStringOA( USERS_ACTION, empty );
-         
+      ELSIF uriParameters^.GetOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
+
          IF Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids ) AND NOT ids.Empty THEN
             // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes
 
@@ -1165,25 +1156,36 @@ CLASS IMPLEMENTATION CController;
       i : CARDINAL;
       id : CARDINAL;
       ids : StringsO.CString;
+      idValid : BOOLEAN := FALSE;
       listRoles : lists.TPStringStringList;
       listRoleIds : lists.TPStringStringList;
       role : EibSrvWeb.TRole;
       roleName : StringsO.CString;
       userName : StringsO.CString;
+      uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       Request.ModelContainer^.AddBooleanOA( USERS_ERROR, FALSE );
       Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, empty );
       Request.ModelContainer^.AddStringOA( MESSAGE, empty );
 
       // retrieve editation id      
-      Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+         Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      ELSIF uriParameters^.GetOA( USERS_ID, OUT ids ) THEN // OK, first opening the page transfers id using URI...
+         Request.ModelContainer^.AddStringOA( USERS_ID, ids );
+      ELSE // ...the second opening uses model's variable
+         Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      END;
       IF NOT ids.Empty THEN
          ids.ToINT32( 10, OUT id );
          IF id = -1 THEN // new user is to be edited
+            idValid := TRUE; 
             role := EibSrvWeb.roleUserNamed;
          ELSE
             DEC( id );
-            IF NOT _Web^.GetUser( id, OUT role, OUT currentName, OUT roleName ) THEN
+            IF _Web^.GetUser( id, OUT role, OUT currentName, OUT roleName ) THEN
+               idValid := TRUE; 
+            ELSE
                Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
                Request.MessageSource^.GetMessageOA( Language( Request ), USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
                Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
@@ -1191,7 +1193,11 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-      IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+      IF NOT idValid THEN
+         Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, bad action
+         // fall down to display error
+      
+      ELSIF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
          // validate
          Request.ModelContainer^.GetStringOA( USER_EDIT_NAME, OUT userName ); 
          Request.ModelContainer^.GetStringOA( USER_EDIT_PASSWORD1, OUT cs1 ); 
@@ -1220,8 +1226,7 @@ CLASS IMPLEMENTATION CController;
          Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
          currentName.Assign( userName );
 
-      ELSIF Request.ModelContainer^.GetStringOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
-         Request.ModelContainer^.AddStringOA( USERS_ACTION, empty );
+      ELSIF uriParameters^.GetOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
          
          IF Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids ) AND NOT ids.Empty THEN
             // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes

@@ -141,9 +141,9 @@
 
     <!-- inner, invisible targets -->
     <Target Name="Environment">
-        <Error Condition="@(Objects)!='' And $(FileDescription)==''"
-               Text="Required 'FileDescription' property is not defined (project $(MSBuildProjectName))."
-               HelpKeyword ="FileDescription"/>
+        <Error Condition="@(Objects)!='' And $(ProjectDescription)==''"
+               Text="Required 'ProjectDescription' property is not defined (project $(MSBuildProjectName))."
+               HelpKeyword ="ProjectDescription"/>
         <Error Condition="@(ExportToInterface)!='' And $(OriginalExport)!=''"
                Text="Both 'ExportToInterface' and 'Export' keys are defined, this is not allowed. Select only one of them. (project $(MSBuildProjectName))."
                HelpKeyword ="ExportToInterface"/>
@@ -159,12 +159,12 @@
 
     <!-- default version info -->
     <PropertyGroup>
-        <FileVersionMajor Condition="$(FileVersionMajor)==''">1</FileVersionMajor>
-        <FileVersionMinor Condition="$(FileVersionMinor)==''">0</FileVersionMinor>
-        <FileVersionRevision Condition="$(FileVersionRevision)==''">0</FileVersionRevision>
-        <ProductVersionMajor Condition="$(ProductVersionMajor)==''">$(FileVersionMajor)</ProductVersionMajor>
-        <ProductVersionMinor Condition="$(ProductVersionMinor)==''">$(FileVersionMinor)</ProductVersionMinor>
-        <ProductVersionRevision Condition="$(ProductVersionRevision)==''">$(FileVersionRevision)</ProductVersionRevision>
+        <ProjectVersionMajor Condition="$(ProjectVersionMajor)==''">1</ProjectVersionMajor>
+        <ProjectVersionMinor Condition="$(ProjectVersionMinor)==''">0</ProjectVersionMinor>
+        <ProjectVersionRevision Condition="$(ProjectVersionRevision)==''">0</ProjectVersionRevision>
+        <ProductVersionMajor Condition="$(ProductVersionMajor)==''">$(ProjectVersionMajor)</ProductVersionMajor>
+        <ProductVersionMinor Condition="$(ProductVersionMinor)==''">$(ProjectVersionMinor)</ProductVersionMinor>
+        <ProductVersionRevision Condition="$(ProductVersionRevision)==''">$(ProjectVersionRevision)</ProductVersionRevision>
     </PropertyGroup>
 
     <!-- build number -->
@@ -216,8 +216,13 @@
     <Target Condition="$(ClientLicensing)=='on' And !Exists(@(LicensingSourceDef))"
             Name="LicensingSource"
             Outputs="@(LicensingSourceFiles)">
-        <Exec WorkingDirectory="$(LicensingSourceDir)"
-              Command="$(LICSRC) $(ProductId)"/>
+        <Message Importance="high" Text="$(ClientLicensingType)=='Host': $(ProductId) else: $(ProjectId)" />
+        <Exec Condition="$(ClientLicensingType)=='Host'"
+              WorkingDirectory="$(LicensingSourceDir)"
+              Command="$(LICSRC) $(ProductId"/>
+        <Exec Condition="$(ClientLicensingType)=='Plugin'"
+              WorkingDirectory="$(LicensingSourceDir)"
+              Command="$(LICSRC) $(ProjectId)"/>
     </Target>
 
 
@@ -274,23 +279,23 @@
 
     <Target Name="CheckRevision">
         <HgVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource)">
-            <Output TaskParameter="Revision" ItemName="FileVersionBuilds"/>
-            <Output TaskParameter="RevisionId" ItemName="FileRevisionIds"/>
+            <Output TaskParameter="Revision" ItemName="ProjectVersionBuilds"/>
+            <Output TaskParameter="RevisionId" ItemName="ProjectRevisionIds"/>
         </HgVersion>
-        <Message Text="@(FileRevisionIds)" Importance="high"/>
-        <Error Condition="@(FileRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
-        <MinMax Input="@(FileVersionBuilds)">
-            <Output TaskParameter="Maximum" PropertyName="FileVersionBuild"/>
+        <Message Text="@(ProjectRevisionIds)" Importance="high"/>
+        <Error Condition="@(ProjectRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
+        <MinMax Input="@(ProjectVersionBuilds)">
+            <Output TaskParameter="Maximum" PropertyName="ProjectVersionBuild"/>
         </MinMax>
         <ReadLinesFromFile File="$(RCFile).lastrev" ContinueOnError="true">
             <Output TaskParameter="Lines" PropertyName="LastRev"/>
         </ReadLinesFromFile>
-        <Delete Condition="$(FileVersionBuild)!=$(LastRev)"
+        <Delete Condition="$(ProjectVersionBuild)!=$(LastRev)"
                 Files="$(RCFile)"/>
-        <Delete Condition="$(FileVersionBuild)!=$(LastRev) And $(ClientLicensing)"
+        <Delete Condition="$(ProjectVersionBuild)!=$(LastRev) And $(ClientLicensing)"
                 Files="@(LicensingSourceFiles)"
                 ContinueOnError="true"/>
-        <Delete Condition="$(FileVersionBuild)!=$(LastRev) And $(SetupLicensing)"
+        <Delete Condition="$(ProjectVersionBuild)!=$(LastRev) And $(SetupLicensing)"
                 Files="$(ProductLicenceFile)"
                 ContinueOnError="true"/>
     </Target>
@@ -303,7 +308,7 @@
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="$(RC) $(RCDEF) /fo&quot;@(RESFile -> '%(Filename).res')&quot; ..\$(RCFile)"/>
         <WriteLinesToFile File="$(RCFile).lastrev"
-                          Lines="$(FileVersionBuild)"
+                          Lines="$(ProjectVersionBuild)"
                           Overwrite="true"/>
     </Target>
 
@@ -363,7 +368,8 @@
     </Target>
     
     <Target Name="ComponentSign"
-            Condition="$(SignCertificatePath)!='' And (
+            Condition="$(Sign)!='off' And
+                       $(SignCertificatePath)!='' And (
                          @(ExportToInterface)!='' Or @(Objects)!=''
                        )"
             DependsOnTargets="ComponentCode">

@@ -94,6 +94,8 @@ TYPE
          , opProductHash
          , opOwnerHash
          , opMachineHash
+         , opNumberInfoFromCmdLine
+         , opNumberInfoFromFile
       #endif
    );
 
@@ -129,6 +131,7 @@ VAR
 
    #if Builder #then
       di : FSO.CDirectoryInfo;
+      generateM2Library : BOOLEAN := FALSE;
       outdir, path, tail : FIO.PathStrW := L"";
       pid : StringsO.CString;
    #endif
@@ -183,7 +186,9 @@ VAR
       hMID : Defs.TMID;
       hOwner : Defs.TOwner;
       hPID : Defs.TPID;
+      s2 : ARRAY [0..63] OF WCHAR;
       showGOrds : BOOLEAN := FALSE;
+      st : StringsO.CString;
    #endif
 
    #if Client #or Licensor #or Activator #then
@@ -248,7 +253,7 @@ VAR
    #endif
    
    #if Builder #then
-   PROCEDURE WriteM2Source( CONST owner : StringsO.CString ) : CARDINAL;
+   PROCEDURE WriteM2Source( CONST owner : StringsO.CString; libraryFlag : BOOLEAN ) : CARDINAL;
    TYPE
       TK = ARRAY [0..31] OF BYTE;
    CONST
@@ -326,6 +331,10 @@ VAR
       tw.LineEnd();
       tw.WriteOA( L"   );", TRUE );
       tw.LineEnd();
+      IF libraryFlag THEN
+         tw.WriteOA( L"PROCEDURE validator() : ADDRESS;", TRUE );
+         tw.LineEnd();
+      END;
       tw.WriteOA( L"END cllv.", TRUE );
 
       fs.Close( FALSE );
@@ -344,8 +353,10 @@ VAR
       tw.WriteOA( L"FROM Storage IMPORT", TRUE );
       tw.WriteOA( L"   ALLOCATE, DEALLOCATE;", TRUE );
       tw.LineEnd();
-      tw.WriteOA( L"IMPORT", TRUE );
-      tw.WriteOA( L"   lec;", TRUE );
+      IF NOT libraryFlag THEN
+         tw.WriteOA( L"IMPORT", TRUE );
+         tw.WriteOA( L"   lec;", TRUE );
+      END;
       tw.LineEnd();
       tw.WriteOA( L"CLASS CValidator;", TRUE );
       tw.WriteOA( L"   VIRTUAL PROCEDURE query( bit : CARDINAL; OUT value : BOOLEAN );", TRUE );
@@ -384,11 +395,19 @@ VAR
       tw.LineEnd();
       tw.WriteOA( "END CValidator;", TRUE );
       tw.LineEnd();
-      tw.WriteOA( "BEGIN", TRUE );
-      tw.WriteOA( "   lec.RegisterValidator( ADR( data ), length, ADR( V ));", TRUE );
-      tw.WriteOA( "FINALLY", TRUE );
-      tw.WriteOA( "   lec.UnregisterValidator( ADR( data ));", TRUE );
-      tw.WriteOA( "END cllv.", TRUE );
+      IF libraryFlag THEN
+         tw.WriteOA( "PROCEDURE validator() : ADDRESS;", TRUE );
+         tw.WriteOA( "BEGIN", TRUE );
+         tw.WriteOA( "   RETURN ADR( V );", TRUE );
+         tw.WriteOA( "END validator;", TRUE );
+         tw.LineEnd();
+      ELSE
+         tw.WriteOA( "BEGIN", TRUE );
+         tw.WriteOA( "   lec.RegisterValidator( ADR( data ), length, ADR( V ));", TRUE );
+         tw.WriteOA( "FINALLY", TRUE );
+         tw.WriteOA( "   lec.UnregisterValidator( ADR( data ));", TRUE );
+      END;
+         tw.WriteOA( "END cllv.", TRUE );
 
       fs.Close( FALSE );
       err^.WriteOA( L'  the file "cllv.mod" was successfully generated', TRUE );
@@ -399,7 +418,7 @@ VAR
      
 BEGIN
    err^.WriteOA( L"Licence support tool", TRUE );
-   err^.WriteOA( L"(c) ", FALSE ); err^.WriteOA( Manufacturer, FALSE ); err^.WriteOA( L" 2009", TRUE );
+   err^.WriteOA( L"(c) ", FALSE ); err^.WriteOA( Manufacturer, FALSE ); err^.WriteOA( L" 2011", TRUE );
    err^.LineEnd();
 
    IF argc < 2 THEN
@@ -500,6 +519,7 @@ BEGIN
          #if Builder #then
          | 'M' :
             op := opGenerateM2Source;
+            generateM2Library := TPString( argp^[i] )^[2] = L'p';
             INC( i );
             IF i >= argc THEN
                err^.WriteOA( L'  "M" parameter requires product identifier', TRUE );
@@ -507,15 +527,31 @@ BEGIN
             END;
             pid.FromOA( OAsz( argp^[i] ));
          #endif
+         #if Supervisor #then
+         | 'N' :
+            op := opNumberInfoFromCmdLine;
+            INC( i );
+            IF i >= argc THEN
+               err^.WriteOA( L'  "N" parameter requires a number', TRUE );
+               RETURN 118;
+            END;
+            sns.AddOA( OAsz( argp^[i] ), 0 );
+         | 'n' :
+            op := opNumberInfoFromFile;
+            INC( i );
+            IF i >= argc THEN
+               err^.WriteOA( L'  "n" parameter requires path to file', TRUE );
+               RETURN 119;
+            END;
+            pathOrFilter.FromOA( OAsz( argp^[i] ));
+         #endif
          #if Client #or Activator #then
          | 'Q' :
             op := opQueryRegistration;
             INC( i );
-            IF i >= argc THEN
-               err^.WriteOA( L'  "Q" parameter requires product identifier', TRUE );
-               RETURN 103;
+            IF i < argc THEN
+               pathOrFilter.FromOA( OAsz( argp^[i] ));
             END;
-            pathOrFilter.FromOA( OAsz( argp^[i] ));
          | 'x' : // suboption of Q
             allFlag := TRUE;
          #endif
@@ -587,7 +623,7 @@ BEGIN
          #endif
          ELSE
             err^.WriteOA( L'  unknown option: ', FALSE ); err^.WriteOA( OAsz( argp^[i] ), TRUE );
-            RETURN 118;
+            RETURN 120;
          END;
       ELSE // paths
          args.AddOA( OAsz( argp^[i] ), 0 );
@@ -898,8 +934,7 @@ BEGIN
    #if Client #or Activator #then
    | opQueryRegistration :
       IF pathOrFilter.Empty THEN
-         err^.WriteOA( L'  the product name was not specified', TRUE );
-         RETURN 207;
+         pathOrFilter.FromOA( L"*" ); // allow output all
       END;
 
       LoadData( TRUE, TRUE, OUT data );
@@ -1132,12 +1167,110 @@ BEGIN
       hash.hashb( uid, OUT hMID );
       cphcommon.ToHex( hMID, OUT s );
       err^.WriteOA( L'  mhash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+   //-----
+   | opNumberInfoFromCmdLine, opNumberInfoFromFile :
+
+      // check file
+      IF op = opApplyLicenceFromFile THEN
+         i := LoadFile( pathOrFilter, OUT sns );
+         IF i <> 0 THEN
+            RETURN i;
+         END;
+      END; // IF read from file
+      IF sns.Empty THEN
+         err^.WriteOA( L'  no licence number was found', TRUE );
+         RETURN 207;
+      END;
+      
+      sns.Reset();
+      WHILE sns.MoveNext() DO
+         err^.LineEnd();
+
+         // get current licence
+         err^.WriteOA( L'  processing number "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF Number.Decode( sns.Current^, REF sn ) THEN
+            IF sn.Valid THEN
+               err^.WriteOA( L'  the number is a valid licence number', TRUE );
+            ELSE
+               err^.WriteOA( L'  the number is an invalid licence number', TRUE );
+               CONTINUE;
+            END;
+            Items.LicenceTypeToString( sn.Type, OUT st );
+            err^.WriteOA( L'  type "', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'"', TRUE );
+            cphcommon.ToHex( sn.PId, OUT s );
+            err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            IF Items.ltUnnamed NOT IN sn.Type THEN
+               err^.WriteOA( L'  ohash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            END;
+
+         ELSIF Number.Decode( sns.Current^, REF rn ) THEN
+            IF rn.Valid THEN
+               err^.WriteOA( L'  the number is a valid registration number', TRUE );
+            ELSE
+               err^.WriteOA( L'  the number is an invalid registration number', TRUE );
+               CONTINUE;
+            END;
+            cphcommon.ToHex( rn.PId, OUT s );
+            err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            cphcommon.ToHex( rn.MId, OUT s );
+            err^.WriteOA( L'  mhash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            err^.WriteOA( L'  version info', TRUE );
+            Strings.FromCARD32W( rn.OSVersion.Platform, 10, OUT s );
+            err^.WriteOA( L'    platform "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            Strings.FromCARD32W( rn.OSVersion.Major, 10, OUT s );
+            err^.WriteOA( L'    major "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            Strings.FromCARD32W( rn.OSVersion.Minor, 10, OUT s );
+            err^.WriteOA( L'    minor "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+
+         ELSIF Number.Decode( sns.Current^, REF an ) THEN
+            IF an.Valid THEN
+               err^.WriteOA( L'  the number is a valid activation number', TRUE );
+            ELSE
+               err^.WriteOA( L'  the number is an invalid activation number', TRUE );
+               CONTINUE;
+            END;
+            cphcommon.ToHex( an.PId, OUT s );
+            err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            cphcommon.ToHex( an.MId, OUT s );
+            err^.WriteOA( L'  mhash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+
+            IF an.Months = 0 THEN
+               dtb.Clear();
+               dte := an.Origin;
+            ELSIF an.Months = -1 THEN
+               dtb := an.Origin;
+               dte.Clear();
+            ELSE
+               dtb := an.Origin;
+               dte.FromJD( dtb.JulianDate + datetime.DaysToJDC( an.Months * 31 ), 0, 0 );
+            END;
+
+            IF ( dtb.Year = 0 ) AND ( dte.Year = 0 ) THEN
+               err^.WriteOA( L'  activates permanently', TRUE );
+            ELSIF dtb.Year = 0 THEN
+               dte.ToStringOA( dateFormat, TRUE, TRUE, OUT s );
+               err^.WriteOA( L'  activates to "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            ELSIF dte.Year = 0 THEN
+               dtb.ToStringOA( dateFormat, TRUE, TRUE, OUT s );
+               err^.WriteOA( L'  activates permanently from "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            ELSE
+               dtb.ToStringOA( dateFormat, TRUE, TRUE, OUT s );
+               dte.ToStringOA( dateFormat, TRUE, TRUE, OUT s2 );
+               err^.WriteOA( L'  activates from "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'" to "', FALSE ); err^.WriteOA( s2, FALSE ); err^.WriteOA( L'"', TRUE );
+            END;
+
+         ELSE
+            err^.WriteOA( L'    the number is of no known type', TRUE );
+         END;
+
+      END; // WHILE sns
+
    #endif
 
    #if Builder #then
    //-----
    | opGenerateM2Source :
-      WriteM2Source( pid );
+      WriteM2Source( pid, generateM2Library );
    #endif
 
    #if Client #or Activator #then
