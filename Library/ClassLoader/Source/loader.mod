@@ -31,10 +31,10 @@ CLASS CLibrary;
    LOCAL READONLY PROPERTY
       Name : StringsO.CString;
 
-   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; CONST Authorizer : TPLibraryLoadAuthorizer; OUT Object : iobject.TPObject ) : iobject.TResult;
    LOCAL PROCEDURE ReleaseObject( Object : iobject.TPObject );
    
-   PRIVATE PROCEDURE LoadLibrary() : iobject.TResult;
+   PRIVATE PROCEDURE LoadLibrary( CONST Authorizer : TPLibraryLoadAuthorizer ) : iobject.TResult;
    PRIVATE PROCEDURE UnloadLibrary();
 END CLibrary;
 
@@ -57,12 +57,12 @@ CLASS IMPLEMENTATION CLibrary;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; CONST Authorizer : TPLibraryLoadAuthorizer; OUT Object : iobject.TPObject ) : iobject.TResult;
    VAR
       Result : iobject.TResult;
    BEGIN
       IF LibraryHandle = NIL THEN
-         Result := LoadLibrary();
+         Result := LoadLibrary( Authorizer );
          IF Result <> iobject.lrSuccess THEN
             RETURN Result;
          END;
@@ -91,7 +91,7 @@ CLASS IMPLEMENTATION CLibrary;
    
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LoadLibrary() : iobject.TResult;
+   PRIVATE PROCEDURE LoadLibrary( CONST Authorizer : TPLibraryLoadAuthorizer ) : iobject.TResult;
    VAR
       ErrorMode : CARDINAL;
       Error : CARDINAL := 0;
@@ -128,7 +128,14 @@ CLASS IMPLEMENTATION CLibrary;
 
       LibraryInfo^.HostInfo( Loader, ADR( SELF ), OA( Loader^.Host^.Length-1, Loader^.Host^.Data ), OA( Loader^.HostVersionString^.Length-1, Loader^.HostVersionString^.Data ));
 
-      RETURN iobject.lrSuccess;
+      IF Authorizer = NIL THEN
+         RETURN iobject.lrSuccess; // loaded
+      ELSIF Authorizer^.AuthorizedToLoad( LibraryInfo ) THEN
+         RETURN iobject.lrSuccess; // loaded
+      ELSE
+         UnloadLibrary();
+         RETURN iobject.lrLibraryFoundButLoadUnauthorized; // unauthorized, unloaded
+      END;
    END LoadLibrary;
    
 (*---------------------------------------------------------------------------*)
@@ -177,6 +184,20 @@ CLASS IMPLEMENTATION CLoader;
    BEGIN
       RETURN ADR( _HostVersionString );
    END HostVersionString;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LoadAuthorizer GET : TPLibraryLoadAuthorizer;
+   BEGIN
+      RETURN _LoadAuthorizer;
+   END LoadAuthorizer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LoadAuthorizer SET( Value : TPLibraryLoadAuthorizer );
+   BEGIN
+      _LoadAuthorizer := Value;
+   END LoadAuthorizer;
 
 (*---------------------------------------------------------------------------*)
 
@@ -308,7 +329,7 @@ CLASS IMPLEMENTATION CLoader;
          RETURN iobject.lrLibraryNotFound;
       ELSE
          Strings.SubstringW( ClassPath, i, -1, OUT s );
-         RETURN Library^.CreateObject( s, OUT Object );
+         RETURN Library^.CreateObject( s, _LoadAuthorizer, OUT Object );
       END;
    END CreateObject;
 
@@ -383,6 +404,7 @@ CLASS IMPLEMENTATION CLoader;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   _LoadAuthorizer := NIL;
    _Host.FromOA( ProductId );
    _HostVersionString.FromOA( ProductVersion );
 FINALLY

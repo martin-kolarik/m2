@@ -86,6 +86,11 @@
     <None Include="Source\stacks.def" />
     <None Include="Source\syncmaps.def" />
     <None Include="ADT.proj" />
+    <None Include="Test\AbstractArray.mod" />
+    <None Include="Test\IntegerArray.mod" />
+    <None Include="Test\ListOp.mod" />
+    <None Include="Test\TBitArrayOAs.mod" />
+    <None Include="Test\TBitArrayOps.mod" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

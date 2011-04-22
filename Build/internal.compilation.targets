@@ -2,6 +2,11 @@
 
     <!-- TOOLS -->
     <PropertyGroup>
+        <CompileProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</CompileProductId>
+        <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
+        <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
+        <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
+
         <!-- VCD Condition="$(VCD)==''">$(MSD)\</VCD -->
         <CL>&quot;$(VCD)cl&quot; /nologo /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
         <LINK>&quot;$(VCD)link&quot; /nologo /map /nodefaultlib</LINK>
@@ -16,19 +21,15 @@
         <XRSDEF>&quot;$(RootBuildPath)\Bin\xrsc&quot; -D -O$(SourceDir)</XRSDEF>
         <XRSBIN>&quot;$(RootBuildPath)\Bin\xrsc&quot; -B -O$(IntermediateDir) -P$(MSBuildProjectName).</XRSBIN>
 
-        <LICSRC>&quot;$(RootBuildPath)\Bin\licbuild&quot; -M</LICSRC>
+        <LICSRC Condition="$(ClientLicensingType)=='Host'">&quot;$(RootBuildPath)\Bin\licbuild&quot; -M</LICSRC>
+        <LICSRC Condition="$(ClientLicensingType)=='Plugin'">&quot;$(RootBuildPath)\Bin\licbuild&quot; -Mp</LICSRC>
         <LICSIGN>&quot;$(RootBuildPath)\Bin\licbuild&quot; -S</LICSIGN>
         <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
         <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
         <RUNTEST>&quot;$(RootBuildPath)\Bin\runtest&quot; -F</RUNTEST>
         
-        <CompileProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</CompileProductId>
-        <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
-        <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
-        <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
-
         <!-- M2PROD takes here self initial value -->
-        <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion)</M2PROD>
+        <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion) -DProjectId:$(ProjectId)</M2PROD>
     </PropertyGroup>
 
     <!-- CONTROLS -->

@@ -17,6 +17,11 @@ IMPORT
    Sync,
    Texts;
 
+#if Target #contains L"IBS" #then
+IMPORT
+   validator;
+#endif
+
 (*================================================================================*)
 
 VAR
@@ -186,6 +191,7 @@ CLASS IMPLEMENTATION ABridge;
                   END;
 
                   cb.Reset();
+                  value.Dispose();
                   value.String := valueString;
                   Result := item^.Device^.IO()^.IOh( NIL, IOO.dirWrite, item^.Hash, REF value, ADR( cb ));
                   IF Result <> Sync.arPending THEN
@@ -292,6 +298,8 @@ CLASS IMPLEMENTATION ABridge;
 	   (*----------*)
 
 	BEGIN
+      ASSERT( FALSE );
+
 	   Dispose();
 	   
 	   IF Log = NIL THEN
@@ -521,6 +529,36 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Library : iobject.TPLibrary ) : BOOLEAN;
+   #if Target #contains L"IBS" #then
+      VAR
+         cllvData : iobject.TcllvData;
+         cllvPath : ARRAY [0..3] OF WCHAR;
+         pid : StringsO.CString;
+         result : BOOLEAN;
+   #endif
+   BEGIN
+      #if Target #contains L"Common" #then
+         RETURN TRUE;
+      #else
+         IF Library = NIL THEN
+            RETURN FALSE;
+         ELSIF NOT Library^.GetLECData( OUT cllvData, OUT cllvPath ) THEN
+            RETURN FALSE;
+         END;
+
+         // now check if data is valid
+         pid.FromOA( L"NeNo.DeviceIO.Integra" );
+         validator.Register( cllvData.Data, cllvData.Length, cllvData.Validator );
+         result := validator.Check( pid ) = 1;
+         validator.Unregister( cllvData.Data );
+
+         RETURN result;
+      #endif
+   END AuthorizedToLoad;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT deviceName : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
    VAR
       b : BOOLEAN;
@@ -589,6 +627,7 @@ BEGIN
    _PeriodCounter := 15;
    _TickCounter := 0;
    _WriteSignal.Init( Sync.stEventAutoreset, L"", FALSE );
+   _Loader.LoadAuthorizer := ADR( SELF );
 END ABridge;
 
 (*================================================================================*)

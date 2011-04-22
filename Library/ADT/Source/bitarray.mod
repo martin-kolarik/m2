@@ -53,21 +53,21 @@ CLASS IMPLEMENTATION CBitArray;
 
 //--------------------------------------------------------------
 
-  PUBLIC PROPERTY CBitArray.Count GET : CARDINAL;
+  PUBLIC PROPERTY CBitArray.Size GET : CARDINAL;
   BEGIN
     RETURN _Allocated;
-  END CBitArray.Count;
+  END CBitArray.Size;
   
 //--------------------------------------------------------------
 
-  PUBLIC PROPERTY CBitArray.Count SET( Value : CARDINAL );
+  PUBLIC PROPERTY CBitArray.Size SET( Value : CARDINAL );
   VAR
     L1, L2 : CARDINAL;
     LBA : CBitArray;
   BEGIN
     IF Value = 0 THEN
       _Allocated := 0;
-      Occupied := 0;
+      Count := 0;
       IF _Data <> NIL THEN
         DISPOSE( _Data );
       END;
@@ -82,9 +82,9 @@ CLASS IMPLEMENTATION CBitArray;
       IF L1 > L2 THEN
         LBA._Data := _Data@[L1];
         LBA._Allocated := L2-L1;
-        LBA.Occupied := -1;
+        LBA.Count := -1;
         LBA.CountBits := TRUE;
-        DEC( Occupied, LBA.AdjustBitsCount());
+        DEC( Count, LBA.AdjustBitsCount());
         LBA._Data := NIL; // deny deallocating mine data
         REALLOCATE( REF _Data, L2 );
       ELSE
@@ -93,7 +93,7 @@ CLASS IMPLEMENTATION CBitArray;
       END;
     END;
     AdjustBitsCount();
-  END CBitArray.Count;
+  END CBitArray.Size;
 
 //--------------------------------------------------------------
 
@@ -113,9 +113,17 @@ CLASS IMPLEMENTATION CBitArray;
 
 //--------------------------------------------------------------
 
+   PUBLIC OPERATOR CBitArray.:=( CONST source : CBitArray );
+   BEGIN
+      Size := source.Size;
+      FromOA( 0, OA( CountToBytes( source._Allocated )-1, source._Data ));
+   END CBitArray.:=;
+    
+//--------------------------------------------------------------
+
   PUBLIC INDEX CBitArray GET( Index : INTEGER ) : BOOLEAN;
   BEGIN
-    IF Index >= INTEGER( Occupied ) THEN
+    IF ( Index >= INTEGER( _Allocated )) OR ( Index < 0 ) THEN
       RETURN FALSE;
     ELSE
       RETURN ( Index AND 31 ) IN _Data^[ Index >> 5 ];
@@ -130,9 +138,11 @@ CLASS IMPLEMENTATION CBitArray;
     i : CARDINAL;
     b : BOOLEAN;
   BEGIN
-    IF Index >= INTEGER( Occupied ) THEN
-      IF ExpandOnSet THEN
-        Count := ( Index + 31 ) << 5 >> 5;
+    IF Index < 0 THEN
+      RETURN;
+    ELSIF Index >= INTEGER( _Allocated ) THEN
+      IF ResizeOnSet THEN
+        Size := ( Index + 31 ) << 5 >> 5;
       ELSE
         RETURN;
       END;
@@ -141,10 +151,10 @@ CLASS IMPLEMENTATION CBitArray;
     b := SELF[Index];
     IF Value AND NOT b THEN
       INCL( _Data^[ Index >> 5 ], Index AND 31 );
-      INC( Occupied );
+      INC( Count );
     ELSIF NOT Value AND b THEN
       EXCL( _Data^[ Index >> 5 ], Index AND 31 );
-      DEC( Occupied );
+      DEC( Count );
     ELSE
       RETURN;
     END;
@@ -156,7 +166,11 @@ CLASS IMPLEMENTATION CBitArray;
         IF i > hi THEN
           EXIT;
         END;
-        INC( _BitsCount^[i] );
+        IF Value THEN
+          INC( _BitsCount^[i] );
+        ELSE
+          DEC( _BitsCount^[i] );
+        END;
         INC( i );
       END; // LOOP
     END; // IF PBitsCount <> NIL
@@ -170,13 +184,32 @@ CLASS IMPLEMENTATION CBitArray;
 
 //--------------------------------------------------------------
 
+   PUBLIC PROCEDURE Clear(); // the same as ExclAll()
+   BEGIN
+      ExclAll();
+   END Clear;
+
+//--------------------------------------------------------------
+
+   PUBLIC PROCEDURE Dispose();
+   BEGIN
+      _Allocated := 0;
+      Count := 0;
+      IF _Data <> NIL THEN
+        DISPOSE( _Data );
+      END;
+      AdjustBitsCount();
+   END Dispose;
+
+//--------------------------------------------------------------
+
   PUBLIC PROCEDURE InclAll();
   VAR
     hi : CARDINAL;
     i  : CARDINAL;
   BEGIN
     Storage.Fill( _Data, CountToBytes( _Allocated ), 0FFH );
-    Occupied := _Allocated;
+    Count := _Allocated;
 
     IF _CountBits THEN
       i := 0;
@@ -185,7 +218,7 @@ CLASS IMPLEMENTATION CBitArray;
         IF i >= hi THEN
           EXIT;
         END;
-        _BitsCount^[i] := MIN2(( i + 1 ) * 32, Occupied );
+        _BitsCount^[i] := MIN2(( i + 1 ) * 32, Count );
         INC( i );
       END; // LOOP
     END;
@@ -210,7 +243,7 @@ CLASS IMPLEMENTATION CBitArray;
   PUBLIC PROCEDURE ExclAll();
   BEGIN
     Storage.Fill( _Data, CountToBytes( _Allocated ), 0 );
-    Occupied := 0;
+    Count := 0;
     IF _CountBits THEN
       Storage.Fill( _BitsCount, CountToBytes( _Allocated ), 0 );
     END;
@@ -225,9 +258,100 @@ CLASS IMPLEMENTATION CBitArray;
 
 //--------------------------------------------------------------
 
+   PUBLIC PROCEDURE Invert();
+   VAR
+      i : INTEGER;
+      pb : PBYTE;
+   BEGIN
+      pb := PBYTE( _Data );
+      FOR i := 0 TO CountToBytes( _Allocated )-1 DO
+         DEC( Count, bitsCount[ PCARD8( pb )^ ] );
+         pb^ := pb^ XOR 0FFH;
+         INC( Count, bitsCount[ PCARD8( pb )^ ] );
+         INC( pb );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
+      END;
+   END Invert;
+
+//--------------------------------------------------------------
+
+   PUBLIC PROCEDURE Or( CONST With : CBitArray );
+   VAR
+      i : INTEGER;
+      l1, l2 : CARDINAL;
+      pb1, pb2 : PBYTE;
+   BEGIN
+      l1 := CountToBytes( _Allocated );
+      l2 := CountToBytes( With._Allocated );
+      pb1 := PBYTE( _Data );
+      pb2 := PBYTE( With._Data );
+      FOR i := 0 TO MIN2( l1, l2 )-1 DO
+         DEC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         pb1^ := pb1^ OR pb2^;
+         INC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         INC( pb1 );
+         INC( pb2 );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
+      END;
+   END Or;
+
+//--------------------------------------------------------------
+
+   PUBLIC PROCEDURE And( CONST With : CBitArray );
+   VAR
+      i : INTEGER;
+      l1, l2 : CARDINAL;
+      pb1, pb2 : PBYTE;
+   BEGIN
+      l1 := CountToBytes( _Allocated );
+      l2 := CountToBytes( With._Allocated );
+      pb1 := PBYTE( _Data );
+      pb2 := PBYTE( With._Data );
+      FOR i := 0 TO MIN2( l1, l2 )-1 DO
+         DEC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         pb1^ := pb1^ AND pb2^;
+         INC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         INC( pb1 );
+         INC( pb2 );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
+      END;
+   END And;
+
+//--------------------------------------------------------------
+
+   PUBLIC PROCEDURE Xor( CONST With : CBitArray );
+   VAR
+      i : INTEGER;
+      l1, l2 : CARDINAL;
+      pb1, pb2 : PBYTE;
+   BEGIN
+      l1 := CountToBytes( _Allocated );
+      l2 := CountToBytes( With._Allocated );
+      pb1 := PBYTE( _Data );
+      pb2 := PBYTE( With._Data );
+      FOR i := 0 TO MIN2( l1, l2 )-1 DO
+         DEC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         pb1^ := pb1^ XOR pb2^;
+         INC( Count, bitsCount[ PCARD8( pb1 )^ ] );
+         INC( pb1 );
+         INC( pb2 );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
+      END;
+   END Xor;
+
+//--------------------------------------------------------------
+
   PUBLIC PROCEDURE GetFirst( OUT Bit : INTEGER ) : BOOLEAN;
   BEGIN
-    IF Occupied = 0 THEN
+    IF Count = 0 THEN
       Bit := -1;
       RETURN FALSE;
     ELSE
@@ -313,15 +437,59 @@ CLASS IMPLEMENTATION CBitArray;
 
 //--------------------------------------------------------------
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC PROCEDURE FromOA( ToByte : CARDINAL; CONST Source : ARRAY OF BYTE ); // adopts source bits starting with FirstBit
+   VAR
+      i : CARDINAL;
+      l1, l2 : CARDINAL;
+      pb : PBYTE;
    BEGIN
-      _Allocated := 0;
-      Occupied := 0;
-      IF _Data <> NIL THEN
-        DISPOSE( _Data );
+      ToByte := ToByte >> 3;
+      l1 := CountToBytes( _Allocated );
+      l2 := ToByte + HIGH( Source ) + 1;
+      IF ResizeOnSet AND ( l2 > l1 ) THEN
+         Size := 8 * l2;
+         l1 := CountToBytes( _Allocated );
+      ELSIF ToByte > l1 THEN
+         ExclAll();
+         RETURN;
       END;
-      AdjustBitsCount();
-   END Dispose;
+      pb := PBYTE( _Data@[ToByte] );
+      FOR i := 0 TO MIN2( l1, l2 )-ToByte-1 DO
+         DEC( Count, bitsCount[ PCARD8( pb )^ ] );
+         pb^ := Source[i];
+         INC( Count, bitsCount[ PCARD8( pb )^ ] );
+         INC( pb );
+      END;
+      IF _CountBits THEN
+         AdjustBitsCount();
+      END;
+   END FromOA;
+
+//--------------------------------------------------------------
+
+   PUBLIC PROCEDURE ToOA( FromByte : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Filled : CARDINAL );
+   VAR
+      count : CARDINAL;
+      i : CARDINAL;
+      l1, l2 : CARDINAL;
+      pb : PBYTE;
+   BEGIN
+      FromByte := FromByte >> 3;
+      count := CountToBytes( _Allocated );
+      IF FromByte >= count THEN
+         Filled := 0;
+         RETURN;
+      ELSE
+         l1 := count - FromByte;
+      END;
+      l2 := HIGH( Destination ) + 1;
+      Filled := MIN2( l1, l2 ) - FromByte;
+      pb := PBYTE( _Data@[FromByte] );
+      FOR i := 0 TO Filled-1 DO
+         Destination[i] := pb^;
+         INC( pb );
+      END;
+   END ToOA;
 
 //--------------------------------------------------------------
 
@@ -334,7 +502,7 @@ CLASS IMPLEMENTATION CBitArray;
 
   INTERNAL PROCEDURE AdjustBitsCount() : CARDINAL;
   VAR
-    Count : CARDINAL;
+    count : CARDINAL;
     i     : CARDINAL;
     Len   : CARDINAL;
     pb    : PBYTE;
@@ -350,7 +518,7 @@ CLASS IMPLEMENTATION CBitArray;
     REALLOCATE( REF _BitsCount, i );
     Storage.Fill( _BitsCount, i, 0 );
 
-    Count := 0;
+    count := 0;
     pb := PBYTE( ADR( _Data^[0] ));
     Len := CountToBytes( _Allocated ); // items converted to BYTES
     i := 0;
@@ -359,21 +527,21 @@ CLASS IMPLEMENTATION CBitArray;
         EXIT;
       END;
 
-      INC( Count, CARDINAL( bitsCount[ CARDINAL( pb^ ) ] ));
-      IF Count > Occupied THEN
-        Count := Occupied;
-        _BitsCount^[ i >> bcGb ] := Count;
+      INC( count, CARDINAL( bitsCount[ CARDINAL( pb^ ) ] ));
+      IF count > Count THEN
+        count := Count;
+        _BitsCount^[ i >> bcGb ] := count;
         EXIT;
       END;
 
       INC( pb );
       INC( i );
       IF i AND ( 1 << bcGb - 1 ) = 0 THEN
-        _BitsCount^[ i >> bcGb - 1 ] := Count;
+        _BitsCount^[ i >> bcGb - 1 ] := count;
       END;
     END;
     
-    RETURN Count;
+    RETURN count;
   END AdjustBitsCount;
 
 //--------------------------------------------------------------
@@ -382,7 +550,7 @@ BEGIN
   _Data := NIL;
   _Allocated := 0;
   _BitsCount := NIL;
-  Occupied := 0;
+  Count := 0;
 FINALLY
   Dispose();
 END CBitArray;

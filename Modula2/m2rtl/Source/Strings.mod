@@ -903,7 +903,9 @@ BEGIN
 	END;
 	LOOP
 		IF i >= SourceLen THEN
-			Substring[0] := 0W;
+         IF INSIDE( 0, Substring ) THEN
+            Substring[0] := 0W;
+         END;
 			IF pFilled <> NIL THEN
 			   pFilled^ := 0;
 			END;
@@ -948,7 +950,9 @@ BEGIN
 	END;
 	LOOP
 		IF i >= SourceLen THEN
-			Substring[0] := 0W;
+         IF INSIDE( 0, Substring ) THEN
+            Substring[0] := 0W;
+         END;
 			IF pFilled <> NIL THEN
 			   pFilled^ := 0;
 			END;

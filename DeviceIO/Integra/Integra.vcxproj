@@ -34,8 +34,8 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build\</IntDir>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(Configuration)</NMakeBuildCommandLine>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build.$(Configuration)\</IntDir>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(Configuration)  /p:ProductVariant=IBS</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(Configuration)</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(Configuration)</NMakeCleanCommandLine>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Integra.exe</NMakeOutput>
@@ -66,9 +66,13 @@
     <None Include="Source\iface.mod" />
     <None Include="Source\Integra.def" />
     <None Include="Source\iface.def" />
-    <None Include="Source\Texts.xrs" />
+    <None Include="Source\Texts.xrs">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Integra.definition.proj" />
-    <None Include="Integra.proj" />
+    <None Include="Integra.proj">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
