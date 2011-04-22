@@ -35,7 +35,9 @@ TYPE
       objtMultipleAddresses, // read helper
       objtESFStrict, // read helper
       objtESFAdapt, // read helper
-      objtESFIgnore // read helper
+      objtESFIgnore, // read helper
+      objtDate, // read helper
+      objtTime // read helper
    );
    TObjectType = SET OF TObjectTypeItem;
 
@@ -194,6 +196,8 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    Groups                   : ARRAY CARD16 OF CARD16; // maps group addresses to object indexes
    Objects                  : arrays.CPtrArray;
    prObjects                : ARRAY knx_def.TKNXType OF CObject; // promiscuous objects
+   DateAndTimeObjects       : arrays.CPtrArray;
+   _DateAndTimePushPeriod   : CARDINAL;
 
    InitReadItems            : CARDINAL;
    InitReadRepeat           : CARDINAL;
@@ -280,6 +284,7 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    // helpers
    PROCEDURE DoInitRead( RepeatFlag : BOOLEAN );
    PROCEDURE DoForceRead();
+   PRIVATE PROCEDURE DoPushDateAndTime();
    PROCEDURE InitToDefault();
    PROCEDURE InitReadFinished();
    

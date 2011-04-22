@@ -150,6 +150,7 @@ CONST
 
 CONST
    tiInitReadDelay = 67;
+   tiDateAndTime = 68;
    tiForceRead = 69;
    
 //-----
@@ -496,6 +497,8 @@ CLASS IMPLEMENTATION CKNXServer;
    BEGIN
       IF TimerId = tiInitReadDelay THEN
          DoInitRead( TRUE );
+      ELSIF TimerId = tiDateAndTime THEN
+         DoPushDateAndTime();
       ELSIF TimerId = tiForceRead THEN
          DoForceRead();
       END;
@@ -949,6 +952,10 @@ CLASS IMPLEMENTATION CKNXServer;
       knDateFormat           = L'date_format';
       knTimeAsString         = L'time_as_string';               
       knTimeFormat           = L'time_format';
+      snControl              = L'control';
+      knDate                 = L'date';
+      knTime                 = L'time';
+      knDateAndTimePeriod    = L'date_time_push_period';
 
    //----------
 
@@ -1839,7 +1846,34 @@ CLASS IMPLEMENTATION CKNXServer;
             TimeFormat := so;
          END;
       END; // IF snFormats
+      
+      // read control
+      IF TS.SetSection( snControl ) THEN
+         IF NOT FindBehaviour( bnSource, Priority, BFlags ) THEN
+            Priority := eib_def.priorityNormal;
+            BFlags := eib_def.TA_ObjectFlags{};
+         END;
+         IF TS.GetKeyStr( knDate, OUT ErrorLine, OUT so ) THEN
+            so.ToOA( OUT s );
+            IF NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, eib_def.eitDate, TObjectType{ objtDate } ) THEN
+               GOTO Fail;
+            END;
+         END;
+         IF TS.GetKeyStr( knTime, OUT ErrorLine, OUT so ) THEN
+            so.ToOA( OUT s );
+            IF NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, eib_def.eitTime, TObjectType{ objtTime } ) THEN
+               GOTO Fail;
+            END;
+         END;
 
+         IF NOT TS.GetKeyInt( knDateAndTimePeriod, OUT ErrorLine, OUT _DateAndTimePushPeriod ) THEN
+            _DateAndTimePushPeriod := 1800000;
+         ELSIF _DateAndTimePushPeriod < 600000 THEN // _ForceReadPeriod cannot be smaller than 10 minute
+            _DateAndTimePushPeriod := 600000;
+         END;
+      END;
+
+      // handle connection and promiscuous mode
       IF NOT _CacheOnlyMode THEN
          KNX^.SetStackAddress( Address );
 
@@ -1909,6 +1943,11 @@ CLASS IMPLEMENTATION CKNXServer;
          DoInitRead( FALSE );
       END;
       
+      IF NOT DateAndTimeObjects.Empty THEN
+         StartTimer( tiDateAndTime, _DateAndTimePushPeriod, TRUE );
+         DoPushDateAndTime();
+      END;
+      
       IF _AdviseListener <> NIL THEN
          hash := itemConnected;
          result := Sync.arCompleted;
@@ -1929,6 +1968,7 @@ CLASS IMPLEMENTATION CKNXServer;
          EventSink^.OnDisconnect();
       END;
 
+      StopTimer( tiDateAndTime );
       StopTimer( tiForceRead );
 
       IF _AdviseListener <> NIL THEN
@@ -1967,29 +2007,29 @@ CLASS IMPLEMENTATION CKNXServer;
       IF ObjectTypes.Get( ObjectTypeName, OUT ptr ) THEN
          ObjectType := TObjectType( LOPTRLONGWORD( ptr ));
       ELSIF ObjectTypeName.EqualsOA( otnObject ) THEN
-         ObjectType := TObjectType{ objtMultipleAddresses};
+         ObjectType := TObjectType{ objtMultipleAddresses };
       ELSIF ObjectTypeName.EqualsOA( otnObjects ) THEN
          ObjectType := TObjectType{};
       ELSIF ObjectTypeName.EqualsOA( otnLoggedObject ) THEN
-         ObjectType := TObjectType{ objtMultipleAddresses, objtLogNoChange};
+         ObjectType := TObjectType{ objtMultipleAddresses, objtLogNoChange };
       ELSIF ObjectTypeName.EqualsOA( otnLoggedObjects ) THEN
-         ObjectType := TObjectType{ objtLogNoChange};
+         ObjectType := TObjectType{ objtLogNoChange };
       ELSIF ObjectTypeName.EqualsOA( otnLoggedOnChangeObject ) THEN
-         ObjectType := TObjectType{ objtMultipleAddresses, objtLogOnChange};
+         ObjectType := TObjectType{ objtMultipleAddresses, objtLogOnChange };
       ELSIF ObjectTypeName.EqualsOA( otnLoggedOnChangeObjects ) THEN
-         ObjectType := TObjectType{ objtLogOnChange};
+         ObjectType := TObjectType{ objtLogOnChange };
       ELSIF ObjectTypeName.EqualsOA( otnESFStrict ) THEN
-         ObjectType := TObjectType{ objtESFStrict};
+         ObjectType := TObjectType{ objtESFStrict };
       ELSIF ObjectTypeName.EqualsOA( otnLoggedESFStrict ) THEN
-         ObjectType := TObjectType{ objtESFStrict, objtLogNoChange};
+         ObjectType := TObjectType{ objtESFStrict, objtLogNoChange };
       ELSIF ObjectTypeName.EqualsOA( otnESFAdapt ) THEN
-         ObjectType := TObjectType{ objtESFAdapt};
+         ObjectType := TObjectType{ objtESFAdapt };
       ELSIF ObjectTypeName.EqualsOA( otnLoggedESFAdapt ) THEN
-         ObjectType := TObjectType{ objtESFAdapt, objtLogNoChange};
+         ObjectType := TObjectType{ objtESFAdapt, objtLogNoChange };
       ELSIF ObjectTypeName.EqualsOA( otnESFIgnore ) THEN
-         ObjectType := TObjectType{ objtESFIgnore};
+         ObjectType := TObjectType{ objtESFIgnore };
       ELSIF ObjectTypeName.EqualsOA( otnLoggedESFIgnore ) THEN
-         ObjectType := TObjectType{ objtESFIgnore, objtLogNoChange};
+         ObjectType := TObjectType{ objtESFIgnore, objtLogNoChange };
       ELSE
          RETURN FALSE;
       END;
@@ -2063,6 +2103,10 @@ CLASS IMPLEMENTATION CKNXServer;
       PObject^.ObjectType := ObjectType;
       
       Objects.Add( PObject );
+      
+      IF ObjectType * TObjectType{ objtDate, objtTime } <> TObjectType{} THEN
+         DateAndTimeObjects.Add( PObject );
+      END;
 
       RETURN PObject;
    END AddObject;
@@ -2083,6 +2127,7 @@ CLASS IMPLEMENTATION CKNXServer;
          DISPOSE( PObject );
       END;
       Objects.Dispose();
+      DateAndTimeObjects.Dispose();
       IF NILExecutive THEN
          FOR EIT := knx_def.eitSwitch TO knx_def.eitString DO
            prObjects[EIT].PExecutive := NIL;
@@ -2385,6 +2430,7 @@ CLASS IMPLEMENTATION CKNXServer;
       Behaviours.Dispose();
       _ForceReadPeriod := 0;
       _ReadersCount := 0;
+      _DateAndTimePushPeriod := 1800000;
       IF KNX <> NIL THEN
          KNX^.Done();
          DISPOSE( KNX );
@@ -2457,6 +2503,37 @@ CLASS IMPLEMENTATION CKNXServer;
 
       END;
    END DoForceRead;
+
+//--------------------------------------------------------------------------------
+
+   PRIVATE PROCEDURE DoPushDateAndTime();
+   VAR
+      b : BOOLEAN;
+      Day : eib_def.TDay;
+      DT : Time.DateTime;
+      EVDate : eib_def.TValue;
+      EVTime : eib_def.TValue;
+      i : INTEGER;
+      PObject : TPObject;
+   BEGIN
+      IF DateAndTimeObjects.Empty THEN
+         RETURN;
+      END;
+
+      DT.SetNowLocal();
+      EVDate.SetDate( DT.Year, DT.Month, DT.Day );
+      Day := eib_def.TDay( 1 + ( CARDINAL( DT.DayOfWeek ) + 6 ) MOD 7 );
+      EVTime.SetTime( Day, DT.Hour, DT.Minute, DT.Second );
+
+      FOR i := 0 TO DateAndTimeObjects.Count -1 DO;
+         PObject := DateAndTimeObjects[i];
+         IF objtDate IN PObject^.ObjectType THEN
+            PObject^.SetValue( EVDate, OUT b );
+         ELSIF objtTime IN PObject^.ObjectType THEN
+            PObject^.SetValue( EVTime, OUT b );
+         END;
+      END; // WHILE
+   END DoPushDateAndTime;
 
 //--------------------------------------------------------------------------------
 
@@ -2767,6 +2844,7 @@ BEGIN
    
    _ForceReadPeriod := 0;
    _ReadersCount := 0;
+   _DateAndTimePushPeriod := 0;
 
    ObjectLock.Init( Sync.ltCS, L"", FALSE );
    QueueLock.Init( Sync.ltSpin, L"", FALSE );

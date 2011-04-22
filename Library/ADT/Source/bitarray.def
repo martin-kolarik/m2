@@ -12,40 +12,50 @@ TYPE
   TData;
   TBitsCount;
 
-CLASS CBitArray;
+CLASS CBitArray; // BITS ARE COUNTED FROM 0
+
   INTERNAL READONLY VAR
     _Data        : TData;
     _Allocated   : CARDINAL;
     _CountBits   : BOOLEAN := FALSE;
     _BitsCount   : TBitsCount; 
   PUBLIC PROPERTY
-    Count        : CARDINAL; // get, set initializes/reallocates space; !! SLOW on decreasing count
+    Size         : CARDINAL; // get, set initializes/reallocates space; !! SLOW on decreasing count
   PUBLIC READONLY VAR
-    Occupied     : CARDINAL;
+    Count        : CARDINAL;
   PUBLIC VAR
-    ExpandOnSet  : BOOLEAN := TRUE;
+    ResizeOnSet  : BOOLEAN := TRUE;
   PUBLIC PROPERTY
     CountBits    : BOOLEAN;
+  
+   PUBLIC OPERATOR :=( CONST source : CBitArray );
     
-  PUBLIC
-    INDEX( Index : INTEGER ) : BOOLEAN;
+  PUBLIC INDEX( Index : INTEGER ) : BOOLEAN;
 
   PRIVATE VIRTUAL PROCEDURE __VMT();
+  PUBLIC PROCEDURE Clear(); // the same as ExclAll()
+   PUBLIC PROCEDURE Dispose();
 
   PUBLIC PROCEDURE InclAll();
   PUBLIC PROCEDURE Incl( Bit : INTEGER ); // [Bit] := TRUE
   PUBLIC PROCEDURE In( Bit : INTEGER ) : BOOLEAN; // [Bit]
   PUBLIC PROCEDURE ExclAll();
   PUBLIC PROCEDURE Excl( Bit : INTEGER ); // [Bit] := FALSE
+   PUBLIC PROCEDURE Invert();
+   PUBLIC PROCEDURE Or( CONST With : CBitArray );
+   PUBLIC PROCEDURE And( CONST With : CBitArray );
+   PUBLIC PROCEDURE Xor( CONST With : CBitArray );
 
   PUBLIC PROCEDURE GetFirst( OUT Bit : INTEGER ) : BOOLEAN;
   PUBLIC PROCEDURE NextOf( FromBit : INTEGER; OUT Bit : INTEGER ) : BOOLEAN;
   PUBLIC PROCEDURE OrderOfSetBit( Bit : INTEGER; OUT Order : INTEGER ) : BOOLEAN;
 
-  PUBLIC PROCEDURE Dispose();
+   PUBLIC PROCEDURE FromOA( ToBit : CARDINAL; CONST Source : ARRAY OF BYTE ); // adopts source bits starting with ToBit rounded to 8 bits. Respects ResizeOnSet.
+   PUBLIC PROCEDURE ToOA( FromBit : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT FilledBytes : CARDINAL ); // FromBit is rounded to 8 bits.
 
   INTERNAL INLINE PROCEDURE CountToBytes( Count : CARDINAL ) : CARDINAL;
   INTERNAL PROCEDURE AdjustBitsCount() : CARDINAL;
+
 END CBitArray;
 
 #restore

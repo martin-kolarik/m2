@@ -559,6 +559,34 @@ END CLockedItem;
 
 (*================================================================================*)
 
+PROCEDURE LicenceTypeToString( Type : TLicenceType; OUT String : StringsO.IString );
+BEGIN
+   String.Size := 4;
+   String.Length := 4;
+   IF ltUnnamed IN Type THEN
+      String[0] := L'-';
+   ELSE
+      String[0] := L'N';
+   END;
+   IF ltUpgrade IN Type THEN
+      String[1] := L'U';
+   ELSE
+      String[1] := L'-';
+   END;
+   IF ltEducational IN Type THEN
+      String[2] := L'E';
+   ELSE
+      String[2] := L'-';
+   END;
+   IF ltTrial IN Type THEN
+      String[3] := L'T';
+   ELSE
+      String[3] := L'-';
+   END;
+END LicenceTypeToString;
+
+(*--------------------------------------------------------------------------------*)
+
 CLASS IMPLEMENTATION CLicence;
 
 (*--------------------------------------------------------------------------------*)
@@ -567,28 +595,7 @@ CLASS IMPLEMENTATION CLicence;
    VAR
       s : StringsO.CString;
    BEGIN
-      s.Size := 4;
-      s.Length := 4;
-      IF ltUnnamed IN Type THEN
-         s[0] := L'-';
-      ELSE
-         s[0] := L'N';
-      END;
-      IF ltUpgrade IN Type THEN
-         s[1] := L'U';
-      ELSE
-         s[1] := L'-';
-      END;
-      IF ltEducational IN Type THEN
-         s[2] := L'E';
-      ELSE
-         s[2] := L'-';
-      END;
-      IF ltTrial IN Type THEN
-         s[3] := L'T';
-      ELSE
-         s[3] := L'-';
-      END;
+      LicenceTypeToString( Type, OUT s );
       RETURN s;
    END TypeString;
 
