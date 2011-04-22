@@ -97,7 +97,8 @@
                             </Component>
                             <Component Id="DefaultConfiguration" Guid="A845DA49-44F1-40f9-BFAA-3110DC6FB7FF">
                                 <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes">
-                                    <Shortcut Id="StartMenuCFG" Directory="SmartServerDir" Name="CFG" LongName="Configuration" Advertise="yes" Icon="CFG.exe" />
+                                    <Shortcut Id="StartMenuCFG" Directory="SmartServerDir" Name="CFG" LongName="Configuration" Advertise="no" Icon="CFG.exe"
+                                              WorkingDirectory="INSTALLDIR" Target="[SystemFolder]notepad.exe" Arguments="[!default.cfg]" />
                                 </File>
                             </Component>
                         <?endif ?>
@@ -190,9 +191,12 @@
                             </Component>
                             <Directory Id="Adobe_Flash" LongName="Adobe Flash" Name="Flash">
                                 <Component Id="ExamplesFlash" Guid="61E9CC52-47B5-48f3-8EC6-99D1894F9C20">
-                                    <File Id="SmartServerConnector.as" LongName="SmartServerConnector.as" Name="SRVCONN.AS" Source="Examples\Adobe Flash\SmartServerConnector.as" DiskId="1" />
-                                    <File Id="Send.as" LongName="Send.as" Name="SEND.AS" Source="Examples\Adobe Flash\Send.as" DiskId="1" />
-                                    <File Id="SmartServer.fla" LongName="SmartServer.fla" Name="SMARTSRV.FLA" Source="Examples\Adobe Flash\SmartServer.fla" DiskId="1" />
+                                    <File Id="SmartServerConnectorAS2.as" LongName="SmartServerConnectorAS2.as" Name="SRVCONN2.AS" Source="Examples\Adobe Flash\SmartServerConnectorAS2.as" DiskId="1" />
+                                    <File Id="SendAS2.as" LongName="SendAS2.as" Name="SEND2.AS" Source="Examples\Adobe Flash\SendAS2.as" DiskId="1" />
+                                    <File Id="SmartServerAS2.fla" LongName="SmartServerAS2.fla" Name="SMARTSR2.FLA" Source="Examples\Adobe Flash\SmartServerAS2.fla" DiskId="1" />
+                                    <File Id="SmartServerConnectorAS3.as" LongName="SmartServerConnectorAS3.as" Name="SRVCONN3.AS" Source="Examples\Adobe Flash\SmartServerConnectorAS3.as" DiskId="1" />
+                                    <File Id="SmartServerDataEventAS3.as" LongName="SmartServerDataEventAS3.as" Name="SEND3.AS" Source="Examples\Adobe Flash\SmartServerDataEventAS3.as" DiskId="1" />
+                                    <File Id="SmartServerAS3.fla" LongName="SmartServerAS3.fla" Name="SMARTSR3.FLA" Source="Examples\Adobe Flash\SmartServerAS3.fla" DiskId="1" />
                                 </Component>
                             </Directory>
                             <Directory Id="Philips_Pronto" LongName="Philips Pronto" Name="Pronto">

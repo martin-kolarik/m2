@@ -4,9 +4,9 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>Text files and streams helpers</FileDescription>
-        <FileVersionMajor>1</FileVersionMajor>
-        <FileVersionMinor>0</FileVersionMinor>
+        <ProjectDescription>Text Projects and streams helpers</ProjectDescription>
+        <ProjectVersionMajor>1</ProjectVersionMajor>
+        <ProjectVersionMinor>0</ProjectVersionMinor>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -17,7 +17,7 @@
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT"/>
-        <Modules Include="TextReader;TextWriter;INIFile;Tokenizer"/>
+        <Modules Include="TextReader;TextWriter;INIProject;Tokenizer"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

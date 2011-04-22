@@ -26,7 +26,8 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    thread.IRunnable,
    device.IConfigurable,
    io.IStartStopControl,
-   sdapClient.ISDAPClientEvents;
+   sdapClient.ISDAPClientEvents,
+   loader.ILibraryLoadAuthorizer;
 
    // IRunnable
    INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
@@ -44,6 +45,9 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    PUBLIC VIRTUAL PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
+
+   // ILibraryLoadAuthorizer
+   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Library : iobject.TPLibrary ) : BOOLEAN;
 
    // SELF
    PRIVATE VAR
