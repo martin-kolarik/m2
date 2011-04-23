@@ -32,10 +32,10 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
+      dc : datetime.DayCount;
       dt : datetime.DateTime;
       dtdst : datetime.DateTime;
       Failure : BOOLEAN := FALSE;
-      jd : datetime.JulianDate;
       ts : datetime.TimeSpan;
    BEGIN
       SELF.Host := Host;
@@ -44,7 +44,7 @@ CLASS IMPLEMENTATION CTest;
 
       dt := datetime.NowUTC();
       dtdst := datetime.NowLocal();
-      Failure := dt.JulianDate.Difference( dtdst.JulianDate ) <> datetime.TimeSpanD( LONGREAL( datetime.GetCurrentUTCBias()) / 60.0 / 24.0 );
+      Failure := dt.DayCount.Difference( dtdst.DayCount ) <> datetime.TimeSpanD( LONGREAL( datetime.GetCurrentUTCBias()) / 60.0 / 24.0 );
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -53,12 +53,12 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StartPhase( L"Properties" );
       dt.Clear();
-      jd.Scientific := 2453193.5;
-      dt.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dt.DayCount := dc;
       Failure := ( dt.Millisecond <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Hour <> 0 ) OR
                  ( dt.Day <> 7 ) OR ( dt.Month <> 7 ) OR ( dt.Year <> 2004 ) OR
                  ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 ) OR
-                 ( dt.Empty ) OR NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Wednesday ) OR ( dt.JulianDate.Scientific <> 2453193.5 );
+                 ( dt.Empty ) OR NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Wednesday ) OR ( dt.DayCount.JulianDate <> 2453193.5 );
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -78,7 +78,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := ( dt.Millisecond <> 1 ) OR ( dt.Second <> 2 ) OR ( dt.Minute <> 3 ) OR ( dt.Hour <> 7 ) OR
                  ( dt.Day <> 7 ) OR ( dt.Month <> 7 ) OR ( dt.Year <> 2004 ) OR
                  ( dt.UTCBias <> -60 ) OR ( dt.DSTBias <> -120 ) OR
-                 ( dt.Empty ) OR NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Wednesday ) OR ( dt.JulianDate.Scientific <> 2453193.6687731599 ); // = 2453193.5 + 1.0 / 86400000.0 + 2.0 / 86400.0 + 3.0 / 1440.0 + 4.0 / 24.0 );
+                 ( dt.Empty ) OR NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Wednesday ) OR ( dt.DayCount.JulianDate <> 2453193.6687731599 ); // = 2453193.5 + 1.0 / 86400000.0 + 2.0 / 86400.0 + 3.0 / 1440.0 + 4.0 / 24.0 );
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -120,8 +120,8 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       dt.SetNowLocal();
-      jd.SetNow();
-      dt.JulianDate := jd;
+      dc.SetNow();
+      dt.DayCount := dc;
       Failure := ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 );
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -131,8 +131,8 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StartPhase( L"Operators" );
       dt.Clear();
-      jd.Scientific := 2453193.5;
-      dt.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dt.DayCount := dc;
       dt.Millisecond := 678;
       dt.Second := 13;
       dt.Minute := 14;
@@ -147,10 +147,10 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dt.JulianDate := jd;
-      jd.Scientific := 2463193.5;
-      dtdst.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dt.DayCount := dc;
+      dc.JulianDate := 2463193.5;
+      dtdst.DayCount := dc;
       Failure :=    ( dt = dtdst ) OR NOT( dt <> dtdst ) OR
                  NOT( dt < dtdst ) OR NOT( dt <= dtdst ) OR
                     ( dt > dtdst ) OR    ( dt >= dtdst );
@@ -160,10 +160,10 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2463193.5;
-      dt.JulianDate := jd;
-      jd.Scientific := 2453193.5;
-      dtdst.JulianDate := jd;
+      dc.JulianDate := 2463193.5;
+      dt.DayCount := dc;
+      dc.JulianDate := 2453193.5;
+      dtdst.DayCount := dc;
       Failure :=    ( dt = dtdst ) OR NOT( dt <> dtdst ) OR
                     ( dt < dtdst ) OR    ( dt <= dtdst ) OR
                  NOT( dt > dtdst ) OR NOT( dt >= dtdst );
@@ -173,10 +173,10 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dt.JulianDate := jd;
-      jd.Scientific := 2453193.5;
-      dtdst.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dt.DayCount := dc;
+      dc.JulianDate := 2453193.5;
+      dtdst.DayCount := dc;
       Failure := NOT( dt = dtdst ) OR    ( dt <> dtdst ) OR
                     ( dt < dtdst ) OR NOT( dt <= dtdst ) OR
                     ( dt > dtdst ) OR NOT( dt >= dtdst );
@@ -191,7 +191,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := ( dt.Millisecond <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Hour <> 0 ) OR
                  ( dt.Day <> 0 ) OR ( dt.Month <> 0 ) OR ( dt.Year <> 0 ) OR
                  ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 ) OR
-                 NOT( dt.Empty ) OR ( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.UnknownDay ) OR ( dt.JulianDate.Scientific <> 0.0 );
+                 NOT( dt.Empty ) OR ( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.UnknownDay ) OR ( dt.DayCount.JulianDate <> 0.0 );
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
@@ -205,15 +205,15 @@ CLASS IMPLEMENTATION CTest;
       Failure := ( dt.Millisecond <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Hour <> 0 ) OR
                  ( dt.Day <> 1 ) OR ( dt.Month <> 1 ) OR ( dt.Year <> 1 ) OR
                  ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 ) OR
-                 ( dt.Empty ) OR ( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Saturday ) OR ( dt.JulianDate.Scientific <> 1721423.5 );
+                 ( dt.Empty ) OR ( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Saturday ) OR ( dt.DayCount.JulianDate <> 1721423.5 );
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
       ELSE
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dt.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dt.DayCount := dc;
       dtdst := dt + datetime.TimeSpanD( 0.5 );
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 0 ) OR ( dtdst.Second <> 0 ) OR ( dtdst.Minute <> 0 ) OR ( dtdst.Hour <> 12 ) OR
                  ( dtdst.Day <> 7 ) OR ( dtdst.Month <> 7 ) OR ( dtdst.Year <> 2004 ) OR
@@ -224,8 +224,8 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dt.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dt.DayCount := dc;
       dtdst := dt - datetime.TimeSpanD( 7.5 );
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 0 ) OR ( dtdst.Second <> 0 ) OR ( dtdst.Minute <> 0 ) OR ( dtdst.Hour <> 12 ) OR
                  ( dtdst.Day <> 29 ) OR ( dtdst.Month <> 6 ) OR ( dtdst.Year <> 2004 ) OR
@@ -236,8 +236,8 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dtdst.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dtdst.DayCount := dc;
       dtdst.Add( datetime.TimeSpanD( 0.5 ));
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 0 ) OR ( dtdst.Second <> 0 ) OR ( dtdst.Minute <> 0 ) OR ( dtdst.Hour <> 12 ) OR
                  ( dtdst.Day <> 7 ) OR ( dtdst.Month <> 7 ) OR ( dtdst.Year <> 2004 ) OR
@@ -248,8 +248,8 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dtdst.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dtdst.DayCount := dc;
       dtdst.Subtract( datetime.TimeSpanD( 7.5 ));
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 0 ) OR ( dtdst.Second <> 0 ) OR ( dtdst.Minute <> 0 ) OR ( dtdst.Hour <> 12 ) OR
                  ( dtdst.Day <> 29 ) OR ( dtdst.Month <> 6 ) OR ( dtdst.Year <> 2004 ) OR
@@ -260,10 +260,10 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dt.JulianDate := jd;
-      jd.Scientific := 2453100.0;
-      dtdst.JulianDate := jd;
+      dc.JulianDate := 2453193.5;
+      dt.DayCount := dc;
+      dc.JulianDate := 2453100.0;
+      dtdst.DayCount := dc;
       ts := dt.Difference( dtdst );
       Failure := ts.Days <> 93.5;
       IF Failure THEN
@@ -272,8 +272,8 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453194.123456;
-      dt.JulianDate := jd;
+      dc.JulianDate := 2453194.123456;
+      dt.DayCount := dc;
       dt.TrimTime();
       Failure := ( dt.Hour <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Millisecond <> 0 );
       IF Failure THEN
@@ -282,8 +282,8 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453194.123456;
-      dt.JulianDate := jd;
+      dc.JulianDate := 2453194.123456;
+      dt.DayCount := dc;
       dt.TrimDate();
       Failure := ( dt.Year <> 0 ) OR ( dt.Month <> 0 ) OR ( dt.Day <> 0 );
       IF Failure THEN
@@ -292,9 +292,9 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.0;
-      dt.JulianDate := jd;
-      dtdst.JulianDate := jd;
+      dc.JulianDate := 2453193.0;
+      dt.DayCount := dc;
+      dtdst.DayCount := dc;
       dtdst.SetZoneToLocal();
       Failure := ( datetime.GetCurrentUTCBias() <> 0 ) AND (( INTEGER( dt.Hour - dtdst.Hour ) * 60 <> datetime.GetCurrentUTCBias()) OR ( dtdst.UTCBias = 0 ));
       IF Failure THEN
@@ -319,8 +319,8 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.0;
-      dt.FromJDToLocal( jd );
+      dc.JulianDate := 2453193.0;
+      dt.FromDCToLocal( dc );
       Failure := ( datetime.GetCurrentUTCBias() <> 0 ) AND ( dt.UTCBias = 0 );
       dt.SetZoneToUTC();
       Failure := Failure OR ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 );
@@ -330,8 +330,8 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dt.FromJD( jd, 0, 0 );
+      dc.JulianDate := 2453193.5;
+      dt.FromDC( dc, 0, 0 );
       Failure := ( dt.Empty ) OR ( dt.Millisecond <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Hour <> 0 ) OR
                  ( dt.Day <> 7 ) OR ( dt.Month <> 7 ) OR ( dt.Year <> 2004 ) OR
                  NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Wednesday );
@@ -341,8 +341,8 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      jd.Scientific := 2453193.5;
-      dt.FromJD( jd, 60, 60 );
+      dc.JulianDate := 2453193.5;
+      dt.FromDC( dc, 60, 60 );
       Failure := ( dt.Empty ) OR ( dt.Millisecond <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Hour <> 22 ) OR
                  ( dt.Day <> 6 ) OR ( dt.Month <> 7 ) OR ( dt.Year <> 2004 ) OR
                  NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Tuesday );

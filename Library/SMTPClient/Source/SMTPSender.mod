@@ -171,7 +171,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
       _Login : StringsO.CString; 
       _Password : StringsO.CString; 
       _LocalName : StringsO.CString;
-      _TimeToLive : datetime.TJDC := 2*86400*datetime.unitsInSecond; // two days
+      _TimeToLive : datetime.TimeSpan := datetime.TimeSpanD( 2.0 ); // two days
       _Dispatcher : threadcall.TPIThreadProcedureCallDispatcher := NIL;
       _Notifier : TPNotifier := NIL;
       _Logger : log.TPILogger;
@@ -957,18 +957,18 @@ END CWorker;
 (*================================================================================*)
 
 TYPE
-   TRepeatSpan = ARRAY [0..7] OF datetime.TJDC;
+   TRepeatSpan = ARRAY [0..7] OF CARDINAL; // seconds
 
 CONST
    REPEAT_SPAN = TRepeatSpan(
-         5 * 60 * 60 * datetime.unitsInSecond,
-        30 * 60 * 60 * datetime.unitsInSecond,
-       150 * 60 * 60 * datetime.unitsInSecond,
-       270 * 60 * 60 * datetime.unitsInSecond,
-       990 * 60 * 60 * datetime.unitsInSecond,
-      2430 * 60 * 60 * datetime.unitsInSecond,
-      3870 * 60 * 60 * datetime.unitsInSecond,
-      5310 * 60 * 60 * datetime.unitsInSecond
+         5 * 60 * 60,
+        30 * 60 * 60,
+       150 * 60 * 60,
+       270 * 60 * 60,
+       990 * 60 * 60,
+      2430 * 60 * 60,
+      3870 * 60 * 60,
+      5310 * 60 * 60
    );
 
 (*--------------------------------------------------------------------------------*)
@@ -1212,7 +1212,7 @@ CLASS IMPLEMENTATION CSender;
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _ApiLock, L"Unable to lock Sender" );
-      RETURN CARDINAL( _TimeToLive DIV datetime.unitsInSecond );
+      RETURN CARDINAL( _TimeToLive.Seconds );
    END TimeToLive;
 
 (*--------------------------------------------------------------------------------*)
@@ -1222,7 +1222,7 @@ CLASS IMPLEMENTATION CSender;
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeSafe( REF _ApiLock, L"Unable to lock Sender" );
-      _TimeToLive := datetime.TJDC( Value ) * datetime.unitsInSecond;
+      _TimeToLive := datetime.TimeSpanS( LONGREAL( Value ));
    END TimeToLive;
 
 (*--------------------------------------------------------------------------------*)
@@ -1386,7 +1386,7 @@ CLASS IMPLEMENTATION CSender;
    (*------*)
 
    VAR
-      difference : datetime.TJDC;
+      difference : datetime.TimeSpan;
       i : CARDINAL;
       newProcessingStatus : Sync.TAsyncResult;
       now : datetime.DateTime;
@@ -1416,14 +1416,14 @@ CLASS IMPLEMENTATION CSender;
          ELSE // leave the message in the queue, set its next sending time
             waitSpan := HIGH( REPEAT_SPAN );
             FOR i := 0 TO HIGH( REPEAT_SPAN ) DO
-               IF difference <= REPEAT_SPAN[i] THEN
+               IF difference <= datetime.TimeSpanS( REPEAT_SPAN[i] ) THEN
                   waitSpan := i;
                   EXIT;
                END;
             END;
             _Logger^.LogSCP( log.ldTrace, CAT_LIFECYCLE, LOG_PREFIX, L"Mail rescheduled with span index [index, userId]:", waitSpan, queueItem^.UserId );
 
-            queueItem^.NextSendTime := now + REPEAT_SPAN[ waitSpan ];
+            queueItem^.NextSendTime := now + datetime.TimeSpanS( REPEAT_SPAN[ waitSpan ] );
             newProcessingStatus := Sync.arInitial;
 
          END;

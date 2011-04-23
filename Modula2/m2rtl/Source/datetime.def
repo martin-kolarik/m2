@@ -104,9 +104,9 @@ END HighResolutionTime;
 PROCEDURE NowHR() : HighResolutionTime;
 
 (*================================================================================================*)
-// JulianDate routines
+// DayCount routines, continuous time base on Julian Date. Internally stored as 100-us fixed poing.
 
-CLASS JulianDate;
+CLASS DayCount;
 
    PUBLIC READONLY PROPERTY
       DayOfWeek : TDayOfWeek;
@@ -114,24 +114,24 @@ CLASS JulianDate;
    PUBLIC PROPERTY
       Value : INT64; // raw value, e.g. for transport purposes
       FractionOfTheDay : TimeSpan; // values greater than 1 D are trimmed (only the fraction is used)
-      Scientific : LONGREAL;
+      JulianDate : LONGREAL; // scientific value
 
-   PUBLIC INLINE OPERATOR :=( CONST Source : JulianDate );
+   PUBLIC INLINE OPERATOR :=( CONST Source : DayCount );
 
-   PUBLIC OPERATOR =( CONST Comperand : JulianDate ) : BOOLEAN;
-   PUBLIC OPERATOR <>( CONST Comperand : JulianDate ) : BOOLEAN;
-   PUBLIC OPERATOR <( CONST Comperand : JulianDate ) : BOOLEAN;
-   PUBLIC OPERATOR <=( CONST Comperand : JulianDate ) : BOOLEAN;
-   PUBLIC OPERATOR >( CONST Comperand : JulianDate ) : BOOLEAN;
-   PUBLIC OPERATOR >=( CONST Comperand : JulianDate ) : BOOLEAN;
-   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : JulianDate;
-   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : JulianDate;
+   PUBLIC OPERATOR =( CONST Comperand : DayCount ) : BOOLEAN;
+   PUBLIC OPERATOR <>( CONST Comperand : DayCount ) : BOOLEAN;
+   PUBLIC OPERATOR <( CONST Comperand : DayCount ) : BOOLEAN;
+   PUBLIC OPERATOR <=( CONST Comperand : DayCount ) : BOOLEAN;
+   PUBLIC OPERATOR >( CONST Comperand : DayCount ) : BOOLEAN;
+   PUBLIC OPERATOR >=( CONST Comperand : DayCount ) : BOOLEAN;
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : DayCount;
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : DayCount;
 
    PUBLIC PROCEDURE SetNow();
    
    PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
    PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
-   PUBLIC PROCEDURE Difference( CONST Operand : JulianDate ) : TimeSpan; // SELF - Operand
+   PUBLIC PROCEDURE Difference( CONST Operand : DayCount ) : TimeSpan; // SELF - Operand
 
    PUBLIC PROCEDURE FromYMD( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan );
    PUBLIC PROCEDURE ToYMD( OUT y : INTEGER; OUT m, d : CARDINAL; OUT fd : TimeSpan );
@@ -139,11 +139,12 @@ CLASS JulianDate;
    PRIVATE VAR
       _Value : INT64 := 0;
 
-END JulianDate;
+END DayCount;
 
-PROCEDURE NowJD() : JulianDate;
-PROCEDURE JulianDateYMD( y : INTEGER; m, d : CARDINAL ) : JulianDate;
-PROCEDURE JulianDateYMDfd( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan ) : JulianDate;
+PROCEDURE NowDC() : DayCount;
+PROCEDURE NowDCDayOnly() : DayCount;
+PROCEDURE DayCountYMD( y : INTEGER; m, d : CARDINAL ) : DayCount;
+PROCEDURE DayCountYMDfd( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan ) : DayCount;
 
 (*================================================================================================*)
 // UTCBias always represents zone time only, thus,
@@ -181,7 +182,7 @@ CLASS DateTime;
       DstActive : BOOLEAN;
       DayOfWeek : TDayOfWeek;
    PUBLIC PROPERTY
-      JulianDate : datetime.JulianDate; // set sets biases to UTC, for another biases use FromJD
+      DayCount : datetime.DayCount; // set sets biases to UTC, for another biases use FromDC
       
    PUBLIC OPERATOR :=( CONST Source : DateTime );
 
@@ -202,8 +203,8 @@ CLASS DateTime;
    PUBLIC PROCEDURE SetZoneToLocal();
    PUBLIC PROCEDURE SetZoneToUTC();
    PUBLIC PROCEDURE SetZone( UTCBias, DSTBias : INTEGER ); // sets both biases in single call
-   PUBLIC PROCEDURE FromJDToLocal( CONST JD : datetime.JulianDate ); // JD is missing time zone information, local one will be set
-   PUBLIC PROCEDURE FromJD( CONST JD : datetime.JulianDate; UTCBias, DSTBias : INTEGER ); // JD is missing time zone information
+   PUBLIC PROCEDURE FromDCToLocal( CONST DC : datetime.DayCount ); // JD is missing time zone information, local one will be set
+   PUBLIC PROCEDURE FromDC( CONST DC : datetime.DayCount; UTCBias, DSTBias : INTEGER ); // JD is missing time zone information
    
    PUBLIC PROCEDURE Add( Addend : TimeSpan );
    PUBLIC PROCEDURE Subtract( Addend : TimeSpan );

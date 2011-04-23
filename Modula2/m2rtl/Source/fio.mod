@@ -477,7 +477,7 @@ VAR
    ts : datetime.TimeSpan;
 BEGIN
    ts.Value := FileTime;
-   dt.JulianDate := datetime.JulianDateYMD( 1601, 1, 1 ) + ts;
+   dt.DayCount := datetime.DayCountYMD( 1601, 1, 1 ) + ts;
    RETURN dt;
 END FileTimeToDateTime;
 
@@ -485,7 +485,7 @@ PROCEDURE DateTimeToFileTime( DateTime : datetime.DateTime ) : CARD64;
 VAR
    ts : datetime.TimeSpan;
 BEGIN
-   ts := DateTime.JulianDate.Difference( datetime.JulianDateYMD( 1601, 1, 1 ));
+   ts := DateTime.DayCount.Difference( datetime.DayCountYMD( 1601, 1, 1 ));
    RETURN ts.Value;
 END DateTimeToFileTime;
 

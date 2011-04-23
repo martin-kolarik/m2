@@ -48,7 +48,7 @@ CLASS CProduct;
       _Name : StringsO.CString;
       _Licences : lists.CStringList; // Data contains TLicenceType
       _StateInfo : TStateInfo;
-      _Expires : datetime.TJD;
+      _Expires : datetime.DayCount;
       _Info : lists.CStringStringList;
 
    PUBLIC READONLY PROPERTY
@@ -63,7 +63,7 @@ CLASS CProduct;
    VIRTUAL PROCEDURE Dispose();
    
    // private
-   LOCAL PROCEDURE Construct( CONST Id, Name : StringsO.IString; stateInfo : TStateInfo; expires : datetime.TJD );
+   LOCAL PROCEDURE Construct( CONST Id, Name : StringsO.IString; stateInfo : TStateInfo; expires : datetime.DayCount );
 END CProduct;
 
 (*--------------------------------------------------------------------------------*)
@@ -72,8 +72,8 @@ CLASS CResult( Delegate.ADelegate );
    PRIVATE VAR
       _Lock : sync.LOCK;
       _Info : TStateInfo;
-      _Expires : datetime.TJD;
-      _Start : datetime.TJD;
+      _Expires : datetime.DayCount;
+      _Start : datetime.DayCount;
       _Counter : CARDINAL := 0;
       _Products : lists.CPtrList;
 

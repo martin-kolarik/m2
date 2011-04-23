@@ -461,7 +461,7 @@ CONST
 
 (*------------------------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION JulianDate;
+CLASS IMPLEMENTATION DayCount;
 
 (*------------------------------------------------------------------------------------------------*)
 
@@ -509,92 +509,92 @@ CLASS IMPLEMENTATION JulianDate;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Scientific GET : LONGREAL;
+   PUBLIC PROPERTY JulianDate GET : LONGREAL;
    BEGIN
       RETURN LONGREAL( _Value ) / LONGREAL( scale );
-   END Scientific;
+   END JulianDate;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Scientific SET( Value : LONGREAL );
+   PUBLIC PROPERTY JulianDate SET( Value : LONGREAL );
    BEGIN
       _Value := INT64(( Value + 0.5 / 864000000.0 ) * LONGREAL( scale ));
-   END Scientific;
+   END JulianDate;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR =( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR =( CONST Comperand : DayCount ) : BOOLEAN;
    BEGIN
       RETURN _Value = Comperand._Value;
    END =;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR <>( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <>( CONST Comperand : DayCount ) : BOOLEAN;
    BEGIN
       RETURN _Value <> Comperand._Value;
    END <>;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR <( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <( CONST Comperand : DayCount ) : BOOLEAN;
    BEGIN
       RETURN _Value < Comperand._Value;
    END <;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR <=( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR <=( CONST Comperand : DayCount ) : BOOLEAN;
    BEGIN
       RETURN _Value <= Comperand._Value;
    END <=;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR >( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR >( CONST Comperand : DayCount ) : BOOLEAN;
    BEGIN
       RETURN _Value > Comperand._Value;
    END >;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR >=( CONST Comperand : JulianDate ) : BOOLEAN;
+   PUBLIC OPERATOR >=( CONST Comperand : DayCount ) : BOOLEAN;
    BEGIN
       RETURN _Value >= Comperand._Value;
    END >=;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC INLINE OPERATOR :=( CONST Source : JulianDate );
+   PUBLIC INLINE OPERATOR :=( CONST Source : DayCount );
    BEGIN
       _Value := Source._Value;
    END :=;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : JulianDate;
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : DayCount;
    VAR
-      jd : JulianDate;
+      dc : DayCount;
    BEGIN
-      jd._Value := INC( _Value, Addend.Value DIV 1000 );
-      RETURN jd;
+      dc._Value := INC( _Value, Addend.Value DIV 1000 );
+      RETURN dc;
    END +;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : JulianDate;
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : DayCount;
    VAR
-      jd : JulianDate;
+      dc : DayCount;
    BEGIN
-      jd._Value := DEC( _Value, Addend.Value DIV 1000 );
-      RETURN jd;
+      dc._Value := DEC( _Value, Addend.Value DIV 1000 );
+      RETURN dc;
    END -;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetNow();
    BEGIN
-      _Value := NowJD()._Value;
+      _Value := NowDC()._Value;
    END SetNow;
    
 (*------------------------------------------------------------------------------------------------*)
@@ -613,7 +613,7 @@ CLASS IMPLEMENTATION JulianDate;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Difference( CONST Operand : JulianDate ) : TimeSpan; // SELF - Operand
+   PUBLIC PROCEDURE Difference( CONST Operand : DayCount ) : TimeSpan; // SELF - Operand
    VAR
       ts : TimeSpan;
    BEGIN
@@ -670,15 +670,15 @@ CLASS IMPLEMENTATION JulianDate;
       julianMonth = 306001; // scaled by 10000
    VAR
       a, b, alfa, z : INTEGER;
-      jdl, jdx : INT64;
+      dcl, dcx : INT64;
    BEGIN
       // works up to cca +/- 64000 years, see assert
-      jdl := _Value + INT64( 432000000 );
+      dcl := _Value + INT64( 432000000 );
 
       // separate fd, rescale to days
-      jdx := jdl DIV scale;
-      fd.Value := 1000 * ( jdl - scale * jdx );
-      z := INTEGER( jdx );
+      dcx := dcl DIV scale;
+      fd.Value := 1000 * ( dcl - scale * dcx );
+      z := INTEGER( dcx );
       IF z >= MAX( INTEGER ) DIV 100 THEN
          ASSERTLOG( FALSE );
          z := MAX( INTEGER ) DIV 100 - 1;
@@ -713,64 +713,79 @@ CLASS IMPLEMENTATION JulianDate;
 (*------------------------------------------------------------------------------------------------*)
 
 BEGIN
-END JulianDate;
+END DayCount;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE NowJD() : JulianDate;
+PROCEDURE NowDC() : DayCount;
 VAR
    dateTime : DateTime;
 BEGIN
    dateTime.SetNowUTC();
-   RETURN dateTime.JulianDate;
-END NowJD;
+   RETURN dateTime.DayCount;
+END NowDC;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE JulianDateYMD( y : INTEGER; m, d : CARDINAL ) : JulianDate;
+PROCEDURE NowDCDayOnly() : DayCount;
 VAR
-   jd : JulianDate;
+   dateTime : DateTime;
 BEGIN
-   jd.FromYMD( y, m, d, TimeSpanZero());
-   RETURN jd;
-END JulianDateYMD;
+   dateTime.SetNowUTC();
+   dateTime.TrimTime();
+   RETURN dateTime.DayCount;
+END NowDCDayOnly;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE JulianDateYMDfd( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan ) : JulianDate;
+PROCEDURE DayCountYMD( y : INTEGER; m, d : CARDINAL ) : DayCount;
 VAR
-   jd : JulianDate;
+   dc : DayCount;
 BEGIN
-   jd.FromYMD( y, m, d, fd );
-   RETURN jd;
-END JulianDateYMDfd;
+   dc.FromYMD( y, m, d, TimeSpanZero());
+   RETURN dc;
+END DayCountYMD;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE DayCountYMDfd( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan ) : DayCount;
+VAR
+   dc : DayCount;
+BEGIN
+   dc.FromYMD( y, m, d, fd );
+   RETURN dc;
+END DayCountYMDfd;
 
 (*================================================================================================*)
 
 TYPE
-  TCWZoneInfo = RECORD
+   TZoneInfo = RECORD
                   // Biases are always in MINUTES
                   SystemZoneInfo : windows.TIME_ZONE_INFORMATION;
 
                   DSTBias        : INTEGER; // DST bias respecting current DST state (if DST is off Current_DST_Bias = 0)
                   UTCDSTBias     : INTEGER; // SystemZoneInfo.Bias + CurrentDSTBias = both two biases in single element
-                END;
+               END;
 
 VAR
-  ZoneInfo : TCWZoneInfo;
-  ZoneInfoUpdated : CARDINAL;
+   ZoneInfo : TZoneInfo;
+   ZoneInfoUpdated : CARDINAL;
 
 (*------------------------------------------------------------------------------------------------*)
 
 PROCEDURE CheckUpdateZoneInfo();
+VAR
+   now : CARDINAL := UptimeMS();
 BEGIN
-   IF ( ZoneInfoUpdated <> 0 ) AND ( UptimeMS() - ZoneInfoUpdated < 15*60*1000 ) THEN
+   IF ( ZoneInfoUpdated <> 0 ) AND ( now - ZoneInfoUpdated < 15*60*1000 ) THEN
       RETURN;
+   ELSE
+      ZoneInfoUpdated := now;
    END;
    IF windows.GetTimeZoneInformation( ADR( ZoneInfo.SystemZoneInfo )) = windows.TIME_ZONE_ID_DAYLIGHT THEN
       ZoneInfo.DSTBias := INTEGER( ZoneInfo.SystemZoneInfo.DaylightBias );
    ELSE
-      ZoneInfo.DSTBias := 0; // if daylight time is not active the bias should (for CW) be 0
+      ZoneInfo.DSTBias := 0; // if daylight time is not active the bias should be 0
    END;
    ZoneInfo.UTCDSTBias := INTEGER( ZoneInfo.SystemZoneInfo.Bias ) + ZoneInfo.DSTBias;
 END CheckUpdateZoneInfo;
@@ -1284,7 +1299,7 @@ CLASS IMPLEMENTATION DateTime;
    BEGIN
       _Empty := FALSE;
       IF _UTCBias <> Value THEN
-         FromJD( JulianDate, Value, _DSTBias );
+         FromDC( DayCount, Value, _DSTBias );
       END;
    END UTCBias;
 
@@ -1305,7 +1320,7 @@ CLASS IMPLEMENTATION DateTime;
    BEGIN
       _Empty := FALSE;
       IF _DSTBias <> Value THEN
-         FromJD( JulianDate, _UTCBias, Value );
+         FromDC( DayCount, _UTCBias, Value );
       END;
    END DSTBias;
 
@@ -1385,7 +1400,7 @@ CLASS IMPLEMENTATION DateTime;
       );
    VAR
       Interval  : TDSTInterval;
-      JD_ : datetime.JulianDate;
+      dc_ : datetime.DayCount;
       PInterval : POINTER TO CONST TDSTInterval;
    BEGIN
       IF _Empty THEN
@@ -1400,13 +1415,13 @@ CLASS IMPLEMENTATION DateTime;
          PInterval := ADR( czBiasTable1[ _Year ] );
       ELSIF _Year > toYear3 THEN
          // get last march sunday
-         JD_ := JulianDateYMD( INTEGER( _Year ), 3, 31 );
-         Interval.FromDay := 31 - CARDINAL( JD_.DayOfWeek ) - 1;
+         dc_ := DayCountYMD( INTEGER( _Year ), 3, 31 );
+         Interval.FromDay := 31 - CARDINAL( dc_.DayOfWeek ) - 1;
          Interval.FromMonth := 3;
          Interval.FromHour := 2;
          // get last october sunday
-         JD_ := JulianDateYMD( INTEGER( _Year ), 10, 31 );
-         Interval.ToDay := 31 - CARDINAL( JD_.DayOfWeek ) - 1;
+         dc_ := DayCountYMD( INTEGER( _Year ), 10, 31 );
+         Interval.ToDay := 31 - CARDINAL( dc_.DayOfWeek ) - 1;
          Interval.ToMonth := 10;
          Interval.ToHour := 2;
          PInterval := ADR( Interval );
@@ -1445,31 +1460,31 @@ CLASS IMPLEMENTATION DateTime;
          RETURN UnknownDay;
       ELSIF _DayOfWeekDirty THEN
          _DayOfWeekDirty := FALSE;
-         _DayOfWeek := JulianDate.DayOfWeek;
+         _DayOfWeek := DayCount.DayOfWeek;
       END;
       RETURN _DayOfWeek;
    END DayOfWeek;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY JulianDate GET : datetime.JulianDate;
+   PUBLIC PROPERTY DayCount GET : datetime.DayCount;
    VAR
-      jd : datetime.JulianDate;
+      dc : datetime.DayCount;
       ts : TimeSpan;
    BEGIN
       IF NOT _Empty THEN
          ts.FromDHMS( 0, _Hour, _Minute + CARDINAL( _UTCBias + _DSTBias ), _Second, _Millisecond );
-         jd.FromYMD( INTEGER( _Year ), INTEGER( _Month ), INTEGER( _Day ), ts );
+         dc.FromYMD( INTEGER( _Year ), INTEGER( _Month ), INTEGER( _Day ), ts );
       END;
-      RETURN jd;
-   END JulianDate;
+      RETURN dc;
+   END DayCount;
       
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY JulianDate SET( CONST Value : datetime.JulianDate );
+   PUBLIC PROPERTY DayCount SET( CONST Value : datetime.DayCount );
    BEGIN
-      FromJD( Value, 0, 0 );
-   END JulianDate;
+      FromDC( Value, 0, 0 );
+   END DayCount;
       
 (*------------------------------------------------------------------------------------------------*)
 
@@ -1483,7 +1498,7 @@ CLASS IMPLEMENTATION DateTime;
    PUBLIC OPERATOR = ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
       IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate = JulianDate;
+         RETURN Comperand.DayCount = DayCount;
       ELSIF Comperand._Year <> _Year THEN
          RETURN FALSE;
       ELSIF Comperand._Month <> _Month THEN
@@ -1514,7 +1529,7 @@ CLASS IMPLEMENTATION DateTime;
    PUBLIC OPERATOR < ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
       IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate > JulianDate;
+         RETURN Comperand.DayCount > DayCount;
       ELSIF Comperand._Year < _Year THEN
          RETURN FALSE;
       ELSIF Comperand._Year > _Year THEN
@@ -1557,7 +1572,7 @@ CLASS IMPLEMENTATION DateTime;
    PUBLIC OPERATOR > ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
       IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate < JulianDate;
+         RETURN Comperand.DayCount < DayCount;
       ELSIF Comperand._Year > _Year THEN
          RETURN FALSE;
       ELSIF Comperand._Year < _Year THEN
@@ -1712,60 +1727,60 @@ CLASS IMPLEMENTATION DateTime;
       IF ( _UTCBias = utcBias ) AND ( _DSTBias = dstBias ) THEN
          RETURN;
       END;
-      FromJD( JulianDate, utcBias, dstBias );
+      FromDC( DayCount, utcBias, dstBias );
    END SetZone;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE FromJD( CONST jd : datetime.JulianDate; utcBias, dstBias : INTEGER );
+   PUBLIC PROCEDURE FromDC( CONST dc : datetime.DayCount; utcBias, dstBias : INTEGER );
    VAR
       FD : CARDINAL;
-      ljd : datetime.JulianDate := jd;
+      ldc : datetime.DayCount := dc;
       Y, M, D : INTEGER;
       ts : TimeSpan;
    BEGIN
       ts.Minutes := LONGREAL( dstBias + dstBias );
-      ljd.Subtract( ts );
-      ljd.ToYMD( OUT Y, OUT M, OUT D, OUT ts );
+      ldc.Subtract( ts );
+      ldc.ToYMD( OUT Y, OUT M, OUT D, OUT ts );
 
       _Empty := FALSE;
       _Year := CARDINAL( Y );
       _Month := CARDINAL( M );
       _Day := CARDINAL( D );
-      _DayOfWeek := ljd.DayOfWeek;
+      _DayOfWeek := ldc.DayOfWeek;
       _DayOfWeekDirty := FALSE;
       _UTCBias := utcBias;
       _DSTBias := dstBias;
 
       ts.ToDHMS( OUT D, OUT _Hour, OUT _Minute, OUT _Second, OUT _Millisecond );
-   END FromJD;
+   END FromDC;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE FromJDToLocal( CONST jd : datetime.JulianDate );
+   PUBLIC PROCEDURE FromDCToLocal( CONST dc : datetime.DayCount );
    BEGIN
-      FromJD( jd, GetZonalUTCBias(), GetZonalDSTBias());
-   END FromJDToLocal;
+      FromDC( dc, GetZonalUTCBias(), GetZonalDSTBias());
+   END FromDCToLocal;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Add( Addend : TimeSpan );
    BEGIN
-      JulianDate := JulianDate + Addend;
+      DayCount := DayCount + Addend;
    END Add;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Subtract( Addend : TimeSpan );
    BEGIN
-      JulianDate := JulianDate - Addend;
+      DayCount := DayCount - Addend;
    END Subtract;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TimeSpan;
    BEGIN
-      RETURN JulianDate.Difference( Operand.JulianDate );
+      RETURN DayCount.Difference( Operand.DayCount );
    END Difference;
 
 (*------------------------------------------------------------------------------------------------*)

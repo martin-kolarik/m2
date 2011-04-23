@@ -78,7 +78,7 @@ CLASS IMPLEMENTATION CProduct;
             TExpires.Year := 297;
          END;
       ELSE
-         TExpires.JulianDate := _Expires;
+         TExpires.DayCount := _Expires;
          // datetime.TrimTime( REF TExpires ); -- better is to not trim it, it allows use Expires as whole information
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
             TExpires.Month := TExpires.Year;
@@ -119,7 +119,7 @@ CLASS IMPLEMENTATION CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Construct( CONST Name, Id : StringsO.IString; stateInfo : TStateInfo; expires : datetime.TJD );
+   LOCAL PROCEDURE Construct( CONST Name, Id : StringsO.IString; stateInfo : TStateInfo; expires : datetime.DayCount );
    BEGIN
       _Name.Assign( Name );
       _Id.Assign( Id );
@@ -142,13 +142,13 @@ END CProduct;
 VAR
    Log : CLogger;
 
-PROCEDURE JDCToDate( date : datetime.TJDC; OUT dateString : ARRAY OF WCHAR );
+PROCEDURE DCToString( dc : datetime.DayCount; OUT dateString : ARRAY OF WCHAR );
 VAR
    dt : datetime.DateTime;
 BEGIN
-   dt.JulianDate := date;
+   dt.DayCount := dc;
    dt.ToStringOA( L"yy-MM-dd HH:mm", TRUE, TRUE, OUT dateString );
-END JDCToDate;
+END DCToString;
 
 #endif   
 
@@ -183,7 +183,7 @@ CLASS IMPLEMENTATION CResult;
 
    (*----------*)
    
-      PROCEDURE ComputeExpiration( behaviour : TBehaviour; current : datetime.TJD; _new : datetime.TJD ) : datetime.TJD;
+      PROCEDURE ComputeExpiration( behaviour : TBehaviour; current : datetime.DayCount; _new : datetime.DayCount ) : datetime.DayCount;
       BEGIN
          IF current = expNotSet THEN
             RETURN _new;
@@ -203,7 +203,7 @@ CLASS IMPLEMENTATION CResult;
    VAR
       aitem : Items.TPActivation;
       dt, now : datetime.DateTime;
-      expires, nowJulianDate : datetime.TJD;
+      expires, nowDayCount : datetime.DayCount;
       litems, aitems : lists.TPPtrList;
       linfo : Items.TPInfo;
       info : TStateInfo := siUnknown;
@@ -236,7 +236,7 @@ CLASS IMPLEMENTATION CResult;
          #endif
 
          now.SetNowUTC();
-         nowJulianDate := now.JulianDate;
+         nowDayCount := now.DayCount;
          expires := expNotSet;
 
       ELSE
@@ -297,7 +297,7 @@ CLASS IMPLEMENTATION CResult;
                   info := ComputeInfo( bhBestCase, info, siActivated );
                   dt := aitem^.Expires;
                   IF dt.Year > 0 THEN
-                     expires := ComputeExpiration( bhBestCase, expires, dt.JulianDate );
+                     expires := ComputeExpiration( bhBestCase, expires, dt.DayCount );
 
                      #if DEBUG #then      
                         Log.LogS( ldDebug, 0, L"LEC", L"    valid limitedly" );
@@ -315,19 +315,19 @@ CLASS IMPLEMENTATION CResult;
                ELSIF trialFlag THEN
                   info := ComputeInfo( bhBestCase, info, siDemo );
                   expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
-                  localExpired := localExpired OR ( expires < nowJulianDate );
+                  localExpired := localExpired OR ( expires < nowDayCount );
 
                   #if DEBUG #then      
-                     JDCToDate( expires, OUT logs );
+                     DCToString( expires, OUT logs );
                      Log.LogSS( ldDebug, 0, L"LEC", L"    not valid, trial, expires: ", logs );
                   #endif
                ELSE
                   info := ComputeInfo( bhBestCase, info, siNotActivated );
-                  expires := ComputeExpiration( bhBestCase, expires, litem^.Created.JulianDate + unactExp );
-                  localExpired := localExpired OR ( expires < nowJulianDate );
+                  expires := ComputeExpiration( bhBestCase, expires, litem^.Created.DayCount + unactExp );
+                  localExpired := localExpired OR ( expires < nowDayCount );
 
                   #if DEBUG #then      
-                     JDCToDate( expires, OUT logs );
+                     DCToString( expires, OUT logs );
                      Log.LogSS( ldDebug, 0, L"LEC", L"    not valid, not trial, expires: ", logs );
                   #endif
                END;
@@ -350,20 +350,20 @@ CLASS IMPLEMENTATION CResult;
          ELSIF trialFlag THEN
             info := ComputeInfo( bhBestCase, info, siDemo );
             expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
-            localExpired := localExpired OR ( expires < nowJulianDate );
+            localExpired := localExpired OR ( expires < nowDayCount );
 
             #if DEBUG #then      
-               JDCToDate( expires, OUT logs );
+               DCToString( expires, OUT logs );
                Log.LogSS( ldDebug, 0, L"LEC", L"    not activated, trial, expires: ", logs );
             #endif
 
          ELSE
             info := ComputeInfo( bhBestCase, info, siNotActivated );
-            expires := ComputeExpiration( bhBestCase, expires, litem^.Created.JulianDate + unactExp );
-            localExpired := localExpired OR ( expires < nowJulianDate );
+            expires := ComputeExpiration( bhBestCase, expires, litem^.Created.DayCount + unactExp );
+            localExpired := localExpired OR ( expires < nowDayCount );
 
             #if DEBUG #then      
-               JDCToDate( expires, OUT logs );
+               DCToString( expires, OUT logs );
                Log.LogSS( ldDebug, 0, L"LEC", L"    not activated, expires: ", logs );
             #endif
 
@@ -413,7 +413,7 @@ CLASS IMPLEMENTATION CResult;
          ELSE
             Log.LogS( ldDebug, 0, L"LEC", L"Computing worst hit" );
          END;
-         JDCToDate( _Expires, OUT logs );
+         DCToString( _Expires, OUT logs );
          CASE info OF
          | siUnknown :
             Log.LogSS( ldDebug, 0, L"LEC", L"Result: unknown, expires: ", logs );
@@ -459,7 +459,7 @@ CLASS IMPLEMENTATION CResult;
 
    PUBLIC PROPERTY Expires GET : datetime.DateTime;
    VAR
-      LExpires : datetime.TJD;
+      LExpires : datetime.DayCount;
       TExpires : datetime.DateTime;
    BEGIN
       _Lock.Lock();
@@ -470,7 +470,7 @@ CLASS IMPLEMENTATION CResult;
             TExpires.Year := 117;
          END;
       ELSE
-         TExpires.JulianDate := LExpires;
+         TExpires.DayCount := LExpires;
          // datetime.TrimTime( REF TExpires ); -- better is to not trim it, it allows use Expires as whole information
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
             TExpires.Month := TExpires.Year;
@@ -491,7 +491,7 @@ CLASS IMPLEMENTATION CResult;
 
    PUBLIC PROPERTY NextCheck GET : CARDINAL;
    VAR
-      expires : datetime.TJD;
+      expires : datetime.DayCount;
       LExpires : datetime.DateTime;
    BEGIN
       _Lock.Lock();

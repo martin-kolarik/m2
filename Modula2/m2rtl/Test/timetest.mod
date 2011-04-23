@@ -73,13 +73,13 @@ IMPORT
 
 (*---------------------------------------------------------------------------*)
 
-   PROCEDURE iJD( jd : LONGREAL; VAR y, m, d : INTEGER; VAR fd : LONGREAL );
+   PROCEDURE iJD( dc : LONGREAL; VAR y, m, d : INTEGER; VAR fd : LONGREAL );
    VAR
      A, Z, alfa : INTEGER;
      B, C, X, E : LONGREAL;
    BEGIN
-     Z  := INTEGER( jd + 0.5 );
-     fd := frac( jd + 0.5 );
+     Z  := INTEGER( dc + 0.5 );
+     fd := frac( dc + 0.5 );
      IF ( 1.0 - fd ) < 1.0 / 86400000.0 THEN // msec correction
        fd := 0.0;
        INC( Z );
@@ -117,12 +117,12 @@ BEGIN
    RETURN JD( 2007, 10, i MOD 2, 0.3 );
 END OJD;
 
-PROCEDURE NJD( i : CARDINAL ) : datetime.JulianDate;
+PROCEDURE NJD( i : CARDINAL ) : datetime.DayCount;
 VAR
    ts : datetime.TimeSpan;
 BEGIN
    ts.Days := 0.3;
-   RETURN datetime.JulianDateYMDfd( 2007, 10, i MOD 2, ts );
+   RETURN datetime.DayCountYMDfd( 2007, 10, i MOD 2, ts );
 END NJD;
 
 (*===========================================================================*)
@@ -133,7 +133,7 @@ END NJD;
    CONST
       crlf = 13W + 10W;
    VAR
-      jd : datetime.JulianDate;
+      dc : datetime.DayCount;
       fd : datetime.TimeSpan;
       r : LONGREAL;
       y, M, d : INTEGER;
@@ -151,24 +151,24 @@ END NJD;
       diff := t - datetime.NowHR();
 
       Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
-      windows.OutputDebugStringW( L"  OS  jd: " );
+      windows.OutputDebugStringW( L"  OS  dc: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
       t.SetNow();
       FOR i := 0 TO 99999999 DO
-         jd := NJD( i );
+         dc := NJD( i );
       END;
       diff := t - datetime.NowHR();
 
       Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
-      windows.OutputDebugStringW( L"time  jd: " );
+      windows.OutputDebugStringW( L"time  dc: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
       // conversion from
       r := JD( 2007, 10, 1, 0.3 );
-      jd := datetime.JulianDateYMDfd( 2007, 10, 1, datetime.TimeSpanD( 0.3 ));
+      dc := datetime.DayCountYMDfd( 2007, 10, 1, datetime.TimeSpanD( 0.3 ));
 
       t.SetNow();
       FOR i := 0 TO 99999999 DO
@@ -183,7 +183,7 @@ END NJD;
 
       t.SetNow();
       FOR i := 0 TO 99999999 DO
-         jd.ToYMD( OUT y, OUT M, OUT d, OUT fd );
+         dc.ToYMD( OUT y, OUT M, OUT d, OUT fd );
       END;
       diff := t - datetime.NowHR();
 

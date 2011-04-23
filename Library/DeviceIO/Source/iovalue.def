@@ -48,7 +48,7 @@ TYPE
                   | vtLong     : Long     : INT64;
                   | vtFloat    : Float    : LONGREAL;
                   | vtString   : String   : POINTER TO StringsO.CString;
-                  | vtDate     : Date     : datetime.TJD;
+                  | vtDate     : Date     : datetime.DayCount;
                   END;
                END; // RECORD
    TPStorage = POINTER TO TStorage;
@@ -77,7 +77,7 @@ CLASS Value;
       Long : INT64;
       Float : LONGREAL;
       String : StringsO.CString;
-      Date : datetime.TJD; // JD * 86400 * 10000 = count of 100 ns
+      Date : datetime.DayCount; // JD * 86400 * 10000 = count of 100 us
       // TODO
       // Data : StorageO.CMemoryBuffer;
    PUBLIC READONLY PROPERTY

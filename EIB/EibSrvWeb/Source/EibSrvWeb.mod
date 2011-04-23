@@ -219,7 +219,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY StartedTime GET : datetime.TJD;
+   PUBLIC PROPERTY StartedTime GET : datetime.DayCount;
    BEGIN
       // no need to lock, value written once
       RETURN _StartedTime;
@@ -227,9 +227,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ConnectedTime  GET : datetime.TJD;
+   PUBLIC PROPERTY ConnectedTime  GET : datetime.DayCount;
    VAR
-      connectedTime : datetime.TJD;
+      connectedTime : datetime.DayCount;
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -243,9 +243,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DisconnectedTime  GET : datetime.TJD;
+   PUBLIC PROPERTY DisconnectedTime  GET : datetime.DayCount;
    VAR
-      connectedTime : datetime.TJD;
+      connectedTime : datetime.DayCount;
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -1213,12 +1213,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE AdjustHours( CONST dt : datetime.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF datetime.TJD );
+   PRIVATE PROCEDURE AdjustHours( CONST dt : datetime.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF datetime.DayCount );
    CONST
       TWENTY_THREE_HOURS = datetime.unitsInDay DIV 24 * 23 - 1;
    VAR
+      dc : datetime.DayCount := dt.DayCount;
       i : CARDINAL;
-      jd : datetime.TJD := dt.JulianDate;
       locked : BOOLEAN := FALSE;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
@@ -1227,11 +1227,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       FOR i := 0 TO HIGH( hours ) DO
-         IF modified[i] + TWENTY_THREE_HOURS < jd THEN
+         IF modified[i] + TWENTY_THREE_HOURS < dc THEN
             hours[i] := 0;
          END;
       END;
-      modified[dt.Hour MOD 24] := jd;
+      modified[dt.Hour MOD 24] := dc;
 
       _Lock.UnlockWrite();
    END AdjustHours;

@@ -31,13 +31,13 @@ END FormatDate;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatDateJD( Date : datetime.TJD ) : StringsO.CString;
+PROCEDURE FormatDateDC( Date : datetime.DayCount ) : StringsO.CString;
 VAR
    dt : datetime.DateTime;
 BEGIN
-   dt.JulianDate := Date;
+   dt.DayCount := Date;
    RETURN FormatDate( dt );
-END FormatDateJD;
+END FormatDateDC;
 
 (*---------------------------------------------------------------------------*)
 
@@ -48,16 +48,16 @@ END DecodeDate;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE DecodeDateJD( CONST Encoded : StringsO.IString; OUT Decoded : datetime.TJD ) : BOOLEAN;
+PROCEDURE DecodeDateDC( CONST Encoded : StringsO.IString; OUT Decoded : datetime.DayCount ) : BOOLEAN;
 VAR
    dt : datetime.DateTime;
 BEGIN
    IF NOT DecodeDate( Encoded, OUT dt ) THEN
       RETURN FALSE;
    END;
-   Decoded := dt.JulianDate;
+   Decoded := dt.DayCount;
    RETURN TRUE;
-END DecodeDateJD;
+END DecodeDateDC;
 
 (*---------------------------------------------------------------------------*)
 

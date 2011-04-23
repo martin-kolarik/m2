@@ -144,10 +144,10 @@ VAR
    #endif
    
    #if Licensor #then
+      dc : datetime.DayCount;
       expBegin : StringsO.CString;
       expEnd : StringsO.CString;
       flags : ARRAY [0..7] OF WCHAR := L"";
-      jd : datetime.TJD;
       ps : StringsO.TPString;
       s : ARRAY [0..63] OF WCHAR;
    #endif
@@ -1015,9 +1015,13 @@ BEGIN
          an.Origin := dtb;
          an.Months := -1;
       ELSE
-         jd := MAX2( datetime.TJD( 2120500080000000 ), dtb.JulianDate ); // 2120500080000000 is minimal origin (see Number.mod)
-         i := datetime.JDCToDays( dte.JulianDate - jd ) DIV 31 + 1;
-         dte.FromJD( jd + datetime.DaysToJDC( i * 31 ), 0, 0 );
+         // get maximum (trim to the lowest possible value)
+         dc.Value := INT64( 2120500080000000 );
+         IF dc < dtb.DayCount THEN 
+            dc := dtb.DayCount;
+         END;
+         i := dte.DayCount.Difference( dc ).Days DIV 31 + 1;
+         dte.DayCount := dc + datetime.TimeSpanD( i * 31 );
          dte.ToStringOA( dateFormat, TRUE, FALSE, OUT s );
          err^.WriteOA( L'  expiration counted to ', FALSE ); err^.WriteOA( s, TRUE );
          an.Origin := dtb; // dtbs sooner than 2120500080000000 are trimmed inside an.Origin.set
@@ -1115,7 +1119,7 @@ BEGIN
                      activationItem^.Starts := dte;
                   ELSE
                      activationItem^.Starts := dte;
-                     dte.FromJD( dte.JulianDate + datetime.DaysToJDC( an.Months * 31 ), 0, 0 );
+                     dte.DayCount.Add( datetime.TimeSpanD( LONGREAL( an.Months * 31 )));
                      activationItem^.Expires := dte;
                   END;
 
@@ -1242,7 +1246,7 @@ BEGIN
                dte.Clear();
             ELSE
                dtb := an.Origin;
-               dte.FromJD( dtb.JulianDate + datetime.DaysToJDC( an.Months * 31 ), 0, 0 );
+               dte.DayCount := dtb.DayCount + datetime.TimeSpanD( LONGREAL( an.Months * 31 ));
             END;
 
             IF ( dtb.Year = 0 ) AND ( dte.Year = 0 ) THEN

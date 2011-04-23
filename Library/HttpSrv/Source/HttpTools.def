@@ -18,9 +18,9 @@ PROCEDURE DecodeLanguage( CONST AcceptLanguageHeader : StringsO.IString; OUT lan
 (*===========================================================================*)
 
 PROCEDURE FormatDate( CONST Date : datetime.DateTime ) : StringsO.CString;
-PROCEDURE FormatDateJD( Date : datetime.TJD ) : StringsO.CString;
+PROCEDURE FormatDateDC( Date : datetime.DayCount ) : StringsO.CString;
 PROCEDURE DecodeDate( CONST Encoded : StringsO.IString; OUT Date : datetime.DateTime ) : BOOLEAN;
-PROCEDURE DecodeDateJD( CONST Encoded : StringsO.IString; OUT Date : datetime.TJD ) : BOOLEAN;
+PROCEDURE DecodeDateDC( CONST Encoded : StringsO.IString; OUT Date : datetime.DayCount ) : BOOLEAN;
 
 (*---------------------------------------------------------------------------*)
 
