@@ -154,15 +154,15 @@ PROCEDURE GetZonalUTCBias() : INTEGER; // MINUTES!!
 PROCEDURE GetZonalDSTBias() : INTEGER; // MINUTES!!
   // returns bias according to current time zone ignoring current DST state
 PROCEDURE GetCurrentUTCBias() : INTEGER; // MINUTES!! 
-  // returns whole local bias
+  // returns whole local bias, including DST bias
 PROCEDURE GetCurrentDSTBias() : INTEGER; // MINUTES;
-  // returns bias in current zone according to current DST state
+  // returns only DST bias
 
 (*================================================================================================*)
 // date and time support
 
 TYPE
-   TPDateTime  = POINTER TO DateTime;
+   TPDateTime = POINTER TO DateTime;
 
 CLASS DateTime;
 
