@@ -281,7 +281,7 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtDate :
-         RETURN _Storage.Date.FractionOfTheDay.Milliseconds;
+         RETURN INT32( _Storage.Date.FractionOfTheDay.Milliseconds );
 
       ELSE
          ASSERT( FALSE );
@@ -477,7 +477,7 @@ CLASS IMPLEMENTATION Value;
             RETURN dc;
          ELSE
             dc.FractionOfTheDay := datetime.TimeSpanZero();
-            ts.Milliseconds := _Storage.Integer;
+            ts.Milliseconds := LONGREAL( _Storage.Integer );
             RETURN dc + ts;
          END;
 
@@ -824,7 +824,7 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Date SET( value : datetime.DayCount );
+   PUBLIC PROPERTY Date SET( CONST value : datetime.DayCount );
    VAR
       today, tomorrow : datetime.DayCount;
       dt : datetime.DateTime;
@@ -842,15 +842,15 @@ CLASS IMPLEMENTATION Value;
       | vtBoolean :
          today := datetime.NowDCDayOnly();
          tomorrow := today + datetime.TimeSpanD( 1.0 );
-         _Storage.Boolean := ( value >= today ) AND ( value < tomorrow );
+         _Storage.Boolean := ( today <= value ) AND ( tomorrow > value );
 
       | vtTristate :
          today := datetime.NowDCDayOnly();
          tomorrow := today + datetime.TimeSpanD( 1.0 );
-         _Storage.Boolean := ( value >= today ) AND ( value < tomorrow );
+         _Storage.Tristate := TRISTATE(( today <= value ) AND ( tomorrow > value ));
 
       | vtInteger :
-         _Storage.Integer := value.FractionOfTheDay.Milliseconds;
+         _Storage.Integer := INT32( value.FractionOfTheDay.Milliseconds );
 
       | vtLong :
          _Storage.Long := value.Value;
@@ -1088,7 +1088,7 @@ CLASS IMPLEMENTATION Value;
          LValue.Undefined := TRUE;
       ELSIF _Type = vtDate THEN
          LValue.Type := vtLong;
-         LValue.Long := ( Date - Source.Date ) DIV datetime.unitsInMillisecond;
+         LValue.Long := INT64( Date.Difference( Source.Date ).Milliseconds );
       ELSE
          CASE _Type OF
          | vtBoolean :

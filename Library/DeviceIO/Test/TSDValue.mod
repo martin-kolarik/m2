@@ -17,7 +17,7 @@ IMPORT
 	   v.Long := -257;
 	   v.Float := 14.0;
 	   v.String := S;
-	   v.Date := datetime.GetCurrentJD();
+	   v.Date := datetime.NowDC();
    END TryAll;
 
 	#save, call( convention => cdecl )

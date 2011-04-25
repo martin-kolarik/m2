@@ -836,14 +836,14 @@ CLASS IMPLEMENTATION CWorker;
 
    PRIVATE PROCEDURE CreateMessageId( OUT messageId : StringsO.IString );
    VAR
-      hashed : INT64;
-      unhashed : INT64;
+      hashed : CARD64;
+      unhashed : CARD64;
       sOA : ARRAY [0..31] OF WCHAR;
    BEGIN
       _Message^.Created.ToLanguageStringOA( languages.GetDefaultLanguage( languages.dlNeutral ), L"yyyyMMddHHmmss.fff", TRUE, TRUE, OUT sOA );
       messageId.FromOA( sOA );
 
-      unhashed := INT64( _Message ) * datetime.UptimeMS64();
+      unhashed := CARD64( _Message ) * datetime.UptimeMS64();
       hash.hashb( unhashed, OUT hashed );
       Strings.FromCARD64W( hashed, 16, OUT sOA );
       messageId.AppendOA( sOA );
@@ -1416,14 +1416,14 @@ CLASS IMPLEMENTATION CSender;
          ELSE // leave the message in the queue, set its next sending time
             waitSpan := HIGH( REPEAT_SPAN );
             FOR i := 0 TO HIGH( REPEAT_SPAN ) DO
-               IF difference <= datetime.TimeSpanS( REPEAT_SPAN[i] ) THEN
+               IF difference <= datetime.TimeSpanS( LONGREAL( REPEAT_SPAN[i] )) THEN
                   waitSpan := i;
                   EXIT;
                END;
             END;
             _Logger^.LogSCP( log.ldTrace, CAT_LIFECYCLE, LOG_PREFIX, L"Mail rescheduled with span index [index, userId]:", waitSpan, queueItem^.UserId );
 
-            queueItem^.NextSendTime := now + datetime.TimeSpanS( REPEAT_SPAN[ waitSpan ] );
+            queueItem^.NextSendTime := now + datetime.TimeSpanS( LONGREAL( REPEAT_SPAN[ waitSpan ] ));
             newProcessingStatus := Sync.arInitial;
 
          END;

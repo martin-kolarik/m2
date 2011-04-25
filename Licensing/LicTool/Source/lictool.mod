@@ -1001,8 +1001,7 @@ BEGIN
                err^.WriteOA( L'  the month count is not valid', TRUE );
                RETURN 210;
             END;
-            jd := datetime.GetCurrentJD() + datetime.DaysToJDC( i * 31 );
-            dte.FromJD( jd, 0, 0 );
+            dte.DayCount := datetime.NowDC() + datetime.TimeSpanD( LONGREAL( i * 31 ));
          ELSIF NOT dte.FromStringOA( OA( expEnd.Length-1, expEnd.Data ), dateFormat ) THEN
             err^.WriteOA( L'  the end date is not valid', TRUE );
             RETURN 211;
@@ -1020,8 +1019,8 @@ BEGIN
          IF dc < dtb.DayCount THEN 
             dc := dtb.DayCount;
          END;
-         i := dte.DayCount.Difference( dc ).Days DIV 31 + 1;
-         dte.DayCount := dc + datetime.TimeSpanD( i * 31 );
+         i := CARDINAL( dte.DayCount.Difference( dc ).Days / 31.0 ) + 1;
+         dte.DayCount := dc + datetime.TimeSpanD( LONGREAL( i * 31 ));
          dte.ToStringOA( dateFormat, TRUE, FALSE, OUT s );
          err^.WriteOA( L'  expiration counted to ', FALSE ); err^.WriteOA( s, TRUE );
          an.Origin := dtb; // dtbs sooner than 2120500080000000 are trimmed inside an.Origin.set

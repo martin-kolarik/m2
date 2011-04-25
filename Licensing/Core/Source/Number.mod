@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION CNumber;
       IF Value < 1 << 24 THEN
          _GOrd := Value;
       ELSE
-         _GOrd := CARDINAL( datetime.time()) AND 000FFFFFFH;
+         _GOrd := CARDINAL( datetime.NowHR().Value AND INT64( 0FFFFFFH ));
       END;
    END GOrd;
 
@@ -99,7 +99,7 @@ CLASS IMPLEMENTATION CNumber;
 
 BEGIN
 	_PId := Defs.zeroPID;
-	_GOrd := CARDINAL( datetime.time()) AND 000FFFFFFH;
+   _GOrd := CARDINAL( datetime.NowHR().Value AND INT64( 0FFFFFFH ));
 END CNumber;
 
 (*================================================================================*)

@@ -53,7 +53,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       Connected : BOOLEAN;
       CacheOnlyMode : BOOLEAN;
       StartedTime : datetime.DayCount;
-      ConnectedTime : datetime.TimeSpan;
+      ConnectedTime : datetime.DayCount;
       DisconnectedTime : datetime.DayCount;
       LicenceExpires : datetime.DateTime;
       LicenceType : lec.TLicenceType;

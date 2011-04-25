@@ -22,8 +22,8 @@ IMPORT
 
 TYPE
    TStatistics = RECORD
-      DelayMinimum : datetime.TTime64;
-      DelayMaximum : datetime.TTime64;
+      DelayMinimum : datetime.TimeSpan;
+      DelayMaximum : datetime.TimeSpan;
       DelayAverage : LONGREAL;
       AverageCount : CARDINAL;
       Sent : CARDINAL;
@@ -34,7 +34,7 @@ TYPE
    END; // TStatistics
 
    TMailData = RECORD
-      Created : datetime.TTime64;
+      Created : datetime.HighResolutionTime;
    END; // TMailData
    TPMailData = POINTER TO TMailData;
 
@@ -72,7 +72,7 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpSender.TSmtpPhase; CONST message : MailMessage.TPMailMessage; UserId : PTR; CONST failedRecipientsList : MailPerson.TPPersons );
    VAR
-      delay : datetime.TTime64;
+      delay : datetime.TimeSpan;
       delayMS : LONGREAL;
       lock : Sync.AutoLock;
       mailData : TPMailData;
@@ -80,8 +80,8 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       IF _Mails.Get( message, OUT mailData ) THEN
          _Mails.Remove( message );
-         delay := datetime.GetHiResTicks() - mailData^.Created;
-         delayMS := datetime.HiResTicksToLRMS( delay );
+         delay := datetime.NowHR() - mailData^.Created;
+         delayMS := delay.Milliseconds;
          DISPOSE( mailData );
       ELSE
          _Host^.Log^.LogS( log.lcError, 0, L"", L"Completed mail has not been found." );
@@ -93,10 +93,18 @@ CLASS IMPLEMENTATION CTest;
       INC( Overall.Received );
       INC( Current.Received );
 
-      Overall.DelayMinimum := MIN2( delay, Overall.DelayMinimum );
-      Current.DelayMinimum := MIN2( delay, Current.DelayMinimum );
-      Overall.DelayMaximum := MAX2( delay, Overall.DelayMaximum );
-      Current.DelayMaximum := MAX2( delay, Current.DelayMaximum );
+      IF Overall.DelayMinimum > delay THEN
+         Overall.DelayMinimum := delay;
+      END;
+      IF Current.DelayMinimum > delay THEN
+         Current.DelayMinimum := delay;
+      END;
+      IF Overall.DelayMaximum < delay THEN
+         Overall.DelayMaximum := delay;
+      END;
+      IF Current.DelayMaximum < delay THEN
+         Current.DelayMaximum := delay;
+      END;
 
       r := LONGREAL( Overall.AverageCount ) * Overall.DelayAverage;
       r := r + delayMS;
@@ -152,13 +160,13 @@ CLASS IMPLEMENTATION CTest;
          person.Name := StringsO.FromOA( L"Martin Kolaøík" );
          person.Address := StringsO.FromOA( L"martin@smartcontrol.cz" );
 
-         Storage.Zero( ADR( Overall ), SIZE( Overall )); Overall.DelayMinimum := MAX( INT64 );
-         Storage.Zero( ADR( Current ), SIZE( Overall )); Current.DelayMinimum := MAX( INT64 );
+         Storage.Zero( ADR( Overall ), SIZE( Overall )); Overall.DelayMinimum.Value := MAX( INT64 );
+         Storage.Zero( ADR( Current ), SIZE( Overall )); Current.DelayMinimum.Value := MAX( INT64 );
 
          LOOP
             MailMessage.New( OUT message );
             NEW( mailData );
-            mailData^.Created := datetime.GetHiResTicks();
+            mailData^.Created := datetime.NowHR();
             _Mails.Add( message, mailData );
 
             message^.Sender := person;
@@ -208,11 +216,11 @@ CLASS IMPLEMENTATION CTest;
                s.Append( n );
 
                s.AppendOA( L", min: " );
-               n.FromLONGREALExt( datetime.HiResTicksToLRMS( Current.DelayMinimum ), 3, -1, FALSE, L"." );
+               n.FromLONGREALExt( Current.DelayMinimum.Milliseconds, 3, -1, FALSE, L"." );
                s.Append( n );
 
                s.AppendOA( L", max: " );
-               n.FromLONGREALExt( datetime.HiResTicksToLRMS( Current.DelayMaximum ), 3, -1, FALSE, L"." );
+               n.FromLONGREALExt( Current.DelayMaximum.Milliseconds, 3, -1, FALSE, L"." );
                s.Append( n );
 
                s.AppendOA( L", avg: " );
@@ -221,7 +229,7 @@ CLASS IMPLEMENTATION CTest;
 
                Host^.Log^.LogS( log.lcInfo, 0, L"", OA( s.Length-1, s.Data ));
 
-               Storage.Zero( ADR( Current ), SIZE( Current )); Current.DelayMinimum := MAX( INT64 );
+               Storage.Zero( ADR( Current ), SIZE( Current )); Current.DelayMinimum.Value := MAX( INT64 );
             END;
          END; // LOOP
 

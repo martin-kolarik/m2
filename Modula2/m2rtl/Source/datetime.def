@@ -82,6 +82,7 @@ CLASS HighResolutionTime; // unit is 1/Frequency
    
    PUBLIC READONLY PROPERTY
       Precision : CARD64; // hertz
+      Value : CARD64; // raw value, e.g. for transport purposes
 
    PUBLIC INLINE OPERATOR :=( CONST Source : HighResolutionTime );
    // PUBLIC OPERATOR =( CONST Comperand : HighResolutionTime ) : BOOLEAN;
@@ -107,9 +108,12 @@ PROCEDURE NowHR() : HighResolutionTime;
 // DayCount routines, continuous time base on Julian Date. Internally stored as 100-us fixed poing.
 
 CLASS DayCount;
-
+   
    PUBLIC READONLY PROPERTY
+      Precision : CARD64; // hertz
       DayOfWeek : TDayOfWeek;
+      IsLowBound : BOOLEAN; // pair to SetLowBound
+      IsHighBound : BOOLEAN; // pair to SetHighBound
 
    PUBLIC PROPERTY
       Value : INT64; // raw value, e.g. for transport purposes
@@ -128,6 +132,8 @@ CLASS DayCount;
    PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : DayCount;
 
    PUBLIC PROCEDURE SetNow();
+   PUBLIC PROCEDURE SetLowBound(); // pair to IsLowBound
+   PUBLIC PROCEDURE SetHighBound(); // pair to IsHighBound
    
    PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
    PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
@@ -166,6 +172,9 @@ TYPE
    TPDateTime = POINTER TO DateTime;
 
 CLASS DateTime;
+
+   PUBLIC READONLY PROPERTY
+      Precision : CARD64; // hertz
 
    PUBLIC PROPERTY
       Millisecond : CARDINAL;

@@ -401,6 +401,13 @@ CLASS IMPLEMENTATION HighResolutionTime; // unit is 1/Frequency
 
 (*------------------------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Value GET : CARD64; // hertz
+   BEGIN
+      RETURN _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
    PUBLIC INLINE OPERATOR :=( CONST Source : HighResolutionTime );
    BEGIN
       _Value := Source._Value;
@@ -465,10 +472,31 @@ CLASS IMPLEMENTATION DayCount;
 
 (*------------------------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Precision GET : CARD64;
+   BEGIN
+      RETURN 1000 * 10;
+   END Precision;
+
+(*------------------------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY DayOfWeek GET : TDayOfWeek;
    BEGIN
       RETURN TDayOfWeek((( _Value + scale DIV 2 ) DIV scale ) MOD 7 + 1 );
    END DayOfWeek;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY IsLowBound GET : BOOLEAN;
+   BEGIN
+      RETURN _Value = MIN( INT64 );
+   END IsLowBound;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY IsHighBound GET : BOOLEAN;
+   BEGIN
+      RETURN _Value = MAX( INT64 );
+   END IsHighBound;
 
 (*------------------------------------------------------------------------------------------------*)
 
@@ -597,6 +625,20 @@ CLASS IMPLEMENTATION DayCount;
       _Value := NowDC()._Value;
    END SetNow;
    
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetLowBound(); // pair to IsLowBound
+   BEGIN
+      _Value := MIN( INT64 );
+   END SetLowBound;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetHighBound(); // pair to IsHighBound
+   BEGIN
+      _Value := MAX( INT64 );
+   END SetHighBound;
+
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
@@ -1142,6 +1184,13 @@ END UnwrapDateProtection;
 
 CLASS IMPLEMENTATION DateTime;
         
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Precision GET : CARD64;
+   BEGIN
+      RETURN 1000;
+   END Precision;
+
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Millisecond GET : CARDINAL;
