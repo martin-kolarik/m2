@@ -219,7 +219,7 @@
         <Message Importance="high" Text="$(ClientLicensingType)=='Host': $(ProductId) else: $(ProjectId)" />
         <Exec Condition="$(ClientLicensingType)=='Host'"
               WorkingDirectory="$(LicensingSourceDir)"
-              Command="$(LICSRC) $(ProductId"/>
+              Command="$(LICSRC) $(ProductId)"/>
         <Exec Condition="$(ClientLicensingType)=='Plugin'"
               WorkingDirectory="$(LicensingSourceDir)"
               Command="$(LICSRC) $(ProjectId)"/>

@@ -5,7 +5,7 @@ FROM Debug IMPORT
 
 #if DEBUG #then
 FROM log IMPORT
-   CLogger, ldDebug;
+   CLogger, ldDebug, ldMessage;
 #endif
    
 IMPORT
@@ -646,7 +646,7 @@ BEGIN
 
    #if DEBUG #then
       IF data.Count = 0 THEN      
-         Log.LogSSSS( ldDebug, 0, L"LEC", L"No products found in: ", Path1, Path2, ProductId );
+         Log.LogSSSS( ldMessage, 0, L"LEC", L"No products found in: ", Path1, Path2, ProductId );
       END;
    #endif
 

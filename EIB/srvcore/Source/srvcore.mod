@@ -699,7 +699,7 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          INCL( RStatus, rsRunning );
       END;
-   
+
       Result.Reset( lec.bhBestCase );
       IF rsEXEFlag IN RStatus THEN
          FIO.GetModuleDirW( L"", OUT s );
@@ -2571,6 +2571,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
+      dc : DateTime.DayCount;
       DT : DateTime.DateTime;
       fd : DateTime.TimeSpan;
       H, M, S, WD : CARDINAL;
@@ -2650,7 +2651,8 @@ CLASS IMPLEMENTATION CEIBServer;
             MM := DT.Month;
             D := DT.Day;
          ELSE
-            Value.Date.ToYMD( OUT Y, OUT MM, OUT D, OUT fd );
+            dc.JulianDate := Value.Float;
+            dc.ToYMD( OUT Y, OUT MM, OUT D, OUT fd );
          END;
          EV.SetDate( Y, MM, D );
 
@@ -2698,6 +2700,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
+      dc : DateTime.DayCount;
       dt : DateTime.DateTime;
       s : ARRAY [0..255] OF WCHAR;
       Y, M, D, H, S : CARDINAL;
@@ -2760,7 +2763,8 @@ CLASS IMPLEMENTATION CEIBServer;
                Value.FromStringOA( L"", FALSE );
             END;
          ELSE
-            Value.Date.FromYMD( Y, M, D, DateTime.TimeSpanZero());
+            dc.FromYMD( Y, M, D, DateTime.TimeSpanZero());
+            Value.Float := dc.JulianDate;
          END;
 
       | eib_def.eitValue, eib_def.eitValueRange :
