@@ -474,14 +474,19 @@ END SetFileTime;
 PROCEDURE FileTimeToDateTime( FileTime : CARD64 ) : datetime.DateTime;
 VAR
    dt : datetime.DateTime;
+   ts : datetime.TimeSpan;
 BEGIN
-   dt.JulianDate := datetime.TJD( FileTime DIV 1000 ) + datetime.JD( 1601, 1, 1, 0 );  // 1000 converts 100 ns to 100 us
+   ts.Value := FileTime;
+   dt.DayCount := datetime.DayCountYMD( 1601, 1, 1 ) + ts;
    RETURN dt;
 END FileTimeToDateTime;
 
 PROCEDURE DateTimeToFileTime( DateTime : datetime.DateTime ) : CARD64;
+VAR
+   ts : datetime.TimeSpan;
 BEGIN
-   RETURN 1000 * CARD64( DateTime.JulianDate - datetime.JD( 1601, 1, 1, 0 )); // 1000 converts 100 us to 100 ns
+   ts := DateTime.DayCount.Difference( datetime.DayCountYMD( 1601, 1, 1 ));
+   RETURN ts.Value;
 END DateTimeToFileTime;
 
 PROCEDURE WrBin( F : File; Buf : ARRAY OF BYTE; Count : CARDINAL ) : CARDINAL;

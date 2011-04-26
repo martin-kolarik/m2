@@ -699,7 +699,7 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          INCL( RStatus, rsRunning );
       END;
-   
+
       Result.Reset( lec.bhBestCase );
       IF rsEXEFlag IN RStatus THEN
          FIO.GetModuleDirW( L"", OUT s );
@@ -1843,19 +1843,18 @@ CLASS IMPLEMENTATION CEIBServer;
       
       // read control
       IF TS.SetSection( snControl ) THEN
-         IF NOT FindBehaviour( bnSource, Priority, BFlags ) THEN
+         so.FromOA( bnSource );
+         IF NOT FindBehaviour( so, Priority, BFlags ) THEN
             Priority := eib_def.priorityNormal;
             BFlags := eib_def.TA_ObjectFlags{};
          END;
          IF TS.GetKeyStr( knDate, OUT ErrorLine, OUT so ) THEN
-            so.ToOA( OUT s );
-            IF NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, eib_def.eitDate, TObjectType{ objtDate } ) THEN
+            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, eib_def.eitDate, TObjectType{ objtDate } ) THEN
                GOTO Fail;
             END;
          END;
          IF TS.GetKeyStr( knTime, OUT ErrorLine, OUT so ) THEN
-            so.ToOA( OUT s );
-            IF NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, eib_def.eitTime, TObjectType{ objtTime } ) THEN
+            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, eib_def.eitTime, TObjectType{ objtTime } ) THEN
                GOTO Fail;
             END;
          END;
@@ -2504,7 +2503,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       b : BOOLEAN;
       Day : eib_def.TDay;
-      DT : Time.DateTime;
+      DT : DateTime.DateTime;
       EVDate : eib_def.TValue;
       EVTime : eib_def.TValue;
       i : INTEGER;
@@ -2572,8 +2571,9 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
+      dc : DateTime.DayCount;
       DT : DateTime.DateTime;
-      fd : CARDINAL;
+      fd : DateTime.TimeSpan;
       H, M, S, WD : CARDINAL;
       i : INTEGER;
       s : eib_def.TEISStringW;
@@ -2651,7 +2651,8 @@ CLASS IMPLEMENTATION CEIBServer;
             MM := DT.Month;
             D := DT.Day;
          ELSE
-            DateTime.iJD( Value.Date, OUT Y, OUT MM, OUT D, OUT fd );
+            dc.JulianDate := Value.Float;
+            dc.ToYMD( OUT Y, OUT MM, OUT D, OUT fd );
          END;
          EV.SetDate( Y, MM, D );
 
@@ -2699,6 +2700,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
+      dc : DateTime.DayCount;
       dt : DateTime.DateTime;
       s : ARRAY [0..255] OF WCHAR;
       Y, M, D, H, S : CARDINAL;
@@ -2761,7 +2763,8 @@ CLASS IMPLEMENTATION CEIBServer;
                Value.FromStringOA( L"", FALSE );
             END;
          ELSE
-            Value.Date := DateTime.JD( Y, M, D, 0 );
+            dc.FromYMD( Y, M, D, DateTime.TimeSpanZero());
+            Value.Float := dc.JulianDate;
          END;
 
       | eib_def.eitValue, eib_def.eitValueRange :

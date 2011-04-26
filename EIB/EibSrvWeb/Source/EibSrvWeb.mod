@@ -63,7 +63,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       _Connected := TRUE;
-      _ConnectedTime := datetime.GetCurrentJD();
+      _ConnectedTime := datetime.NowDC();
       
       _Lock.UnlockWrite();
    END OnConnect;
@@ -78,7 +78,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       _Connected := FALSE;
-      _DisconnectedTime := datetime.GetCurrentJD();
+      _DisconnectedTime := datetime.NowDC();
       
       _Lock.UnlockWrite();
    END OnDisconnect;
@@ -219,7 +219,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY StartedTime GET : datetime.TJD;
+   PUBLIC PROPERTY StartedTime GET : datetime.DayCount;
    BEGIN
       // no need to lock, value written once
       RETURN _StartedTime;
@@ -227,9 +227,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ConnectedTime  GET : datetime.TJD;
+   PUBLIC PROPERTY ConnectedTime  GET : datetime.DayCount;
    VAR
-      connectedTime : datetime.TJD;
+      connectedTime : datetime.DayCount;
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -243,18 +243,18 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DisconnectedTime  GET : datetime.TJD;
+   PUBLIC PROPERTY DisconnectedTime  GET : datetime.DayCount;
    VAR
-      connectedTime : datetime.TJD;
+      disconnectedTime : datetime.DayCount;
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
          RETURN _StartedTime;
       END;
-      connectedTime := _DisconnectedTime;
+      disconnectedTime := _DisconnectedTime;
       _Lock.UnlockRead();
       
-      RETURN connectedTime;
+      RETURN disconnectedTime;
    END DisconnectedTime;
 
 (*--------------------------------------------------------------------------------*)
@@ -265,7 +265,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    BEGIN
       // no need to sync
       IF _EIB^.PResult^.Suspended THEN
-         startTime.FromJD( _StartedTime, 0, 0 );
+         startTime.DayCount := _StartedTime;
          RETURN startTime;
       ELSE
          RETURN _EIB^.PResult^.Expires;
@@ -1006,12 +1006,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       AddControllers();
 
       FOR i := 0 TO HIGH( _WrittenByHour ) DO
-         _WrittenByHourModified[i] := 0;
+         _WrittenByHourModified[i].SetLowBound();
          _WrittenByHour[i] := 0;
-         _GotByHourModified[i] := 0;
+         _GotByHourModified[i].SetLowBound();
          _GotByHour[i] := 0;
       END; // FOR
-      _StartedTime := datetime.GetCurrentJD();      
+      _StartedTime := datetime.NowDC();      
 
       // hook EIB
       _EIB^.EventSink := ADR( SELF );
@@ -1213,25 +1213,26 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE AdjustHours( CONST dt : datetime.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF datetime.TJD );
-   CONST
-      TWENTY_THREE_HOURS = datetime.unitsInDay DIV 24 * 23 - 1;
+   PRIVATE PROCEDURE AdjustHours( CONST dt : datetime.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF datetime.DayCount );
    VAR
+      dc : datetime.DayCount := dt.DayCount;
       i : CARDINAL;
-      jd : datetime.TJD := dt.JulianDate;
-      locked : BOOLEAN := FALSE;
+      ts23hours : datetime.TimeSpan;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
          RETURN;
       END;
 
+      ts23hours := datetime.TimeSpanD( 23.0 / 24.0 );
+      DEC( ts23hours.Value ); // just one unit below exact 23 hours
+
       FOR i := 0 TO HIGH( hours ) DO
-         IF modified[i] + TWENTY_THREE_HOURS < jd THEN
+         IF modified[i] + ts23hours < dc THEN
             hours[i] := 0;
          END;
       END;
-      modified[dt.Hour MOD 24] := jd;
+      modified[dt.Hour MOD 24] := dc;
 
       _Lock.UnlockWrite();
    END AdjustHours;
@@ -1248,14 +1249,9 @@ BEGIN
    _SessionValidity := 30 * 60; // 30 minutes
    _Running := FALSE;
    _Controller := NIL;
-   _StartedTime := 0;
    _Connected := FALSE;
-   _ConnectedTime := 0;
-   _DisconnectedTime := 0;
    _WrittenByHour[0] := 0;
-   _WrittenByHourModified[0] := 0;
    _GotByHour[0] := 0;
-   _GotByHourModified[0] := 0;
    _ConfigLogger := NIL;
    _DataLogger := NIL;
    _HttpLogger := NIL;

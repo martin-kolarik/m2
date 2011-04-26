@@ -1,37 +1,63 @@
 MODULE TSDValue;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    datetime,
    iovalue,
-   StringsO;
-   
-   PROCEDURE TryAll( REF v : iovalue.Value );
-   VAR
-      S : StringsO.CString;
-   BEGIN
-      S.FromOA( L"2007.02.02 17.13.00" );
-   
-	   v.Boolean := TRUE;
-	   v.Tristate := 1;
-	   v.Integer := 1034;
-	   v.Long := -257;
-	   v.Float := 14.0;
-	   v.String := S;
-	   v.Date := datetime.GetCurrentJD();
-   END TryAll;
+   log,
+   StringsO,
+   test,
+   testimpl;
+  
+(*===========================================================================*)
 
-	#save, call( convention => cdecl )
-	PROCEDURE wmain() : INTEGER;
-	#restore
-	VAR
+CLASS CTest IMPLEMENTS test.ITest;
+   PRIVATE VAR
+      Host : test.TPHost := NIL;
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+
+END CTest;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPTest = POINTER TO CTest;
+VAR
+   Test : CTest;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CTest;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   VAR
+      Failure : BOOLEAN := FALSE;
+	   s : StringsO.CString;
 	   t : iovalue.TValueType;
 	   v1, v2, v3 : iovalue.Value;
-	   s : StringsO.CString;
-	BEGIN
+   BEGIN
+      SELF.Host := Host;
+
+      Host^.StartPhase( L"Construction & getters" );
+
 	   FOR t := iovalue.vtVoid TO iovalue.vtDate DO
 	      IF t <> iovalue.vtObject THEN
 	         v1.Type := t;
-	         TryAll( REF v1 );
+
+            s.FromOA( L"2007.02.02 17.13.00" );
+	         v1.Boolean := TRUE;
+	         v1.Tristate := 1;
+	         v1.Integer := 1034;
+	         v1.Long := -257;
+	         v1.Float := 14.0;
+	         v1.String := s;
+	         v1.Date := datetime.NowDC();
+
 	         v1.Undefined := FALSE;
 	      END;
 	   END; // FOR
@@ -92,7 +118,25 @@ IMPORT
 	   v1.Long := 300;
 	   v1.Limit( 8, TRUE, FALSE );
 
-	   RETURN 0;
-	END wmain;
+      IF Failure THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      IF Failure THEN
+         RETURN test.trFailure;
+      ELSE
+         RETURN test.trSuccess;
+      END;
+   END Run;
+   
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   testimpl.tests()^.AddTest( L"IOValue", ADR( Test ));
+END CTest;
+
+(*===========================================================================*)
 
 END TSDValue.

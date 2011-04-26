@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION CNumber;
       IF Value < 1 << 24 THEN
          _GOrd := Value;
       ELSE
-         _GOrd := CARDINAL( datetime.time()) AND 000FFFFFFH;
+         _GOrd := CARDINAL( datetime.NowHR().Value AND INT64( 0FFFFFFH ));
       END;
    END GOrd;
 
@@ -99,7 +99,7 @@ CLASS IMPLEMENTATION CNumber;
 
 BEGIN
 	_PId := Defs.zeroPID;
-	_GOrd := CARDINAL( datetime.time()) AND 000FFFFFFH;
+   _GOrd := CARDINAL( datetime.NowHR().Value AND INT64( 0FFFFFFH ));
 END CNumber;
 
 (*================================================================================*)
@@ -492,14 +492,16 @@ CLASS IMPLEMENTATION CActivation;
 
 	PUBLIC PROPERTY Origin GET : datetime.DateTime;
 	CONST
-	   sjd = datetime.TJD( 2120500080000000 );
+	   sdc = INT64( 2120500080000000 );
 	VAR
+      dc : datetime.DayCount;
 	   dt : datetime.DateTime;
 	BEGIN
 	   IF ( _Origin = -1 ) OR ( _Origin = 0 ) AND ( _Months = 0 ) THEN // months = 0 solves boundary case, when From is set exactly to SJD
 	      // fall down
 	   ELSE
-	      dt.JulianDate := sjd + datetime.DaysToJDC( _Origin );
+         dc.Value := sdc;
+	      dt.DayCount := dc + datetime.TimeSpanD( LONGREAL( _Origin ));
 	   END;
 	   RETURN dt;
 	END Origin;
@@ -508,11 +510,15 @@ CLASS IMPLEMENTATION CActivation;
 
 	PUBLIC PROPERTY Origin SET( CONST Value : datetime.DateTime );
 	CONST
-	   sjd = datetime.TJD( 2120500080000000 );
+	   sdc = INT64( 2120500080000000 );
 	VAR
 	   d : INTEGER;
+      dc : datetime.DayCount;
+      ts : datetime.TimeSpan;
 	BEGIN
-	   d := datetime.JDCToDays( Value.JulianDate - sjd );
+      dc.Value := sdc;
+      ts := Value.DayCount.Difference( dc );
+	   d := INTEGER( ts.Days );
 	   IF d <= 0 THEN
 	      _Origin := 0;
 	   ELSIF d > MAX( CARD16 ) THEN

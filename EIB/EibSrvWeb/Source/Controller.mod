@@ -651,14 +651,13 @@ CLASS IMPLEMENTATION CController;
       c : CARDINAL;
       cs : StringsO.CString;
       currentDT : datetime.DateTime;
-      currentTime : datetime.TJD;
       dt : datetime.DateTime;
       language : Languages.TLanguage;
       LangName : ARRAY[0..15] OF WCHAR;
       lt : lec.TLicenceType;
       s : ARRAY [0..63] OF WCHAR;
-      starttime : datetime.TJD;
-      uptime : datetime.TJDC;
+      starttime : datetime.DayCount;
+      uptime : datetime.TimeSpan;
       uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       // check actions to do
@@ -681,12 +680,12 @@ CLASS IMPLEMENTATION CController;
 
       starttime := _Web^.StartedTime;
       IF b THEN
-         dt.JulianDate := _Web^.ConnectedTime;
+         dt.DayCount := _Web^.ConnectedTime;
       ELSE
-         dt.JulianDate := _Web^.DisconnectedTime;
+         dt.DayCount := _Web^.DisconnectedTime;
       END;
       IF dt.Empty THEN
-         dt.JulianDate := starttime;
+         dt.DayCount := starttime;
       END;
       dt.SetZoneToLocal();
       IF Languages.LanguageToRFC1766( language, OUT LangName ) AND Strings.StartsWithW( LangName, L"cs" ) THEN
@@ -706,10 +705,8 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
       
       currentDT.SetNowUTC();
-      currentTime := currentDT.JulianDate;
-      uptime := currentTime - starttime;
-      dt.Day := datetime.JDCToDays( uptime );
-      datetime.fd2HMS( datetime.fd( uptime ), OUT dt.Hour, OUT dt.Minute, OUT dt.Second, OUT dt.Millisecond );
+      uptime := currentDT.DayCount.Difference( starttime );
+      uptime.ToDHMS( OUT dt.Day, OUT dt.Hour, OUT dt.Minute, OUT dt.Second, OUT dt.Millisecond );
 
       Strings.FromCARD32W( dt.Day, 10, OUT s );
       cs.FromOA( s );

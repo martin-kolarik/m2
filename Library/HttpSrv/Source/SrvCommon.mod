@@ -938,7 +938,7 @@ CLASS CSession IMPLEMENTS HttpSrv.ISession;
    PRIVATE VAR
       _Valid : BOOLEAN := TRUE;
       _RootPath : StringsO.CString;
-      _Created : datetime.TJD;
+      _Created : datetime.DayCount;
       _New : BOOLEAN := TRUE;
       _SID : StringsO.CString;
       _Data : syncmaps.CStringSyncMap;
@@ -968,7 +968,7 @@ CLASS IMPLEMENTATION CSession;
    PUBLIC VIRTUAL PROCEDURE Invalidate();
    BEGIN
       _Valid := FALSE;
-      _Created := 0; // force sweep
+      _Created.SetLowBound(); // force sweep
       _SID.Clear();
    END Invalidate;
    
@@ -1039,7 +1039,7 @@ CLASS IMPLEMENTATION CSession;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _Created := datetime.GetCurrentJD();
+   _Created := datetime.NowDC();
 END CSession;
 
 (*================================================================================*)
@@ -1204,7 +1204,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       session : TPSrvSession;
       sessionid : sha256.TDigest;
       shorttime : CARDINAL;
-      time : datetime.TTime64;
+      time : INT64;
    BEGIN
       // sweepout old sessions
       shorttime := datetime.UptimeMS();
@@ -1228,7 +1228,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       END;
 
       // cookie not set or cookie not found, create new empty session
-      time := datetime.time();
+      time := datetime.NowHR().Value;
       digest.DigestOA( digest.sha256, time, OUT iv );
       digest.DigestOA( digest.sha256, OA( 31, addr.Data ), OUT data );
       rijndael.Encrypt( rijndael.cphmBlockEncrypt, rijndael.rkl256, Seed, iv, data, OUT sessionid, OUT c );
@@ -1554,9 +1554,9 @@ CLASS IMPLEMENTATION ASrvCommon;
    BEGIN
       _RootPath.FromOA( L"/" );
       
-      _Seed := datetime.time();
+      _Seed := datetime.NowHR().Value;
       Sync.Sleep( 17 );
-      _Seed := _Seed * ( MAX( INT64 ) - datetime.time() );
+      _Seed := _Seed * ( MAX( INT64 ) - datetime.NowHR().Value );
       
       _Pool.MinThreads := 2;
       _Pool.MaxThreads := 32;

@@ -17,9 +17,6 @@
     <None Include="Source\datetime.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\datetimeWin32.mod">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="Source\debug.mod">
       <Filter>Source Files</Filter>
     </None>
@@ -65,9 +62,6 @@
     <None Include="Source\datetime.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\datetimeWin32.def">
-      <Filter>Header Files</Filter>
-    </None>
     <None Include="Source\debug.def">
       <Filter>Header Files</Filter>
     </None>
@@ -111,9 +105,6 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="Test\lrconvround.mod">
-      <Filter>Test</Filter>
-    </None>
-    <None Include="Test\lrconvspeed.mod">
       <Filter>Test</Filter>
     </None>
     <None Include="Test\Match.mod">
@@ -176,6 +167,15 @@
     </None>
     <None Include="Source\tls.mod">
       <Filter>Source Files</Filter>
+    </None>
+    <None Include="Test\TDateTime.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TTimeSpan.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TDayCount.mod">
+      <Filter>Test</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -64,7 +64,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="Source\datetime.mod" />
-    <None Include="Source\datetimeWin32.mod" />
     <None Include="Source\debug.mod" />
     <None Include="Source\delegate.mod" />
     <None Include="Source\Exceptions.mod" />
@@ -80,7 +79,6 @@
     <None Include="Source\sync.mod" />
     <None Include="Source\syncqueue.mod" />
     <None Include="Source\datetime.def" />
-    <None Include="Source\datetimeWin32.def" />
     <None Include="Source\debug.def" />
     <None Include="Source\delegate.def" />
     <None Include="Source\Exceptions.def" />
@@ -98,7 +96,6 @@
     <None Include="Source\tls.def" />
     <None Include="Source\tls.mod" />
     <None Include="Test\lrconvround.mod" />
-    <None Include="Test\lrconvspeed.mod" />
     <None Include="Test\Match.mod" />
     <None Include="Test\RingBuffer.mod" />
     <None Include="Test\RingBufferPeek.mod" />
@@ -106,6 +103,8 @@
     <None Include="Test\StringsProc.mod" />
     <None Include="Test\TASSERT.mod" />
     <None Include="Test\TDatagramQueue.mod" />
+    <None Include="Test\TDateTime.mod" />
+    <None Include="Test\TDayCount.mod" />
     <None Include="Test\TExceptionToString.mod" />
     <None Include="Test\timetest.mod" />
     <None Include="Test\TIntegerQueue.mod" />
@@ -118,6 +117,7 @@
     <None Include="Test\TSEH.mod" />
     <None Include="Test\TStringReplaceCharacters.mod" />
     <None Include="m2rtl.proj" />
+    <None Include="Test\TTimeSpan.mod" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
