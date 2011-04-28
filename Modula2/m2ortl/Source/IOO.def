@@ -181,9 +181,6 @@ ABSTRACT CLASS AStream;
   PUBLIC ABSTRACT PROPERTY
     Length     : CARD64;
     Position   : CARD64;
-  PUBLIC PROPERTY
-    Length32   : CARD32;
-    Position32 : CARD32;
   PUBLIC READONLY PROPERTY
     AtEnd      : BOOLEAN;
     Reading    : BOOLEAN;

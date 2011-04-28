@@ -340,13 +340,15 @@ TYPE
 
   LARGE_INTEGER = RECORD
     CASE : CARDINAL OF
-    | 0: d0, d1 : DWORD;
-    | 1: w0, w1, w2, w3 : WORD;
-    | 2: b0, b1, b2, b3, b4, b5, b6, b7 : BYTE;
+    | 0: QuadPart : INT64;
+    | 1: d0, d1 : DWORD;
+    | 2: w0, w1, w2, w3 : WORD;
+    | 3: b0, b1, b2, b3, b4, b5, b6, b7 : BYTE;
     END;
   END;
-  LUID          = LARGE_INTEGER;
-  PLUID         = POINTER TO LUID;
+  LUID = LARGE_INTEGER;
+  PLARGE_INTEGER = POINTER TO LARGE_INTEGER;
+  PLUID = POINTER TO LUID;
 
 CONST
 
@@ -1427,7 +1429,7 @@ CONST
 // Use #999 here (0x3E7 = 999)
 *)
 
-  SYSTEM_LUID = LUID_AND_ATTRIBUTES( LUID( 0, 03E7H, 0 ), DWORD( 0 ));
+  SYSTEM_LUID = LUID_AND_ATTRIBUTES( LUID( 0, 03E7H ), DWORD( 0 ));
 
 (*
 // end_ntifs
@@ -4247,6 +4249,11 @@ PROCEDURE GetFileSize(
     lpFileSizeHigh : PDWORD
     ): DWORD;
 
+PROCEDURE GetFileSizeEx(
+    hFile : HANDLE;
+    lpFileSize : PLARGE_INTEGER
+    ): BOOL;
+
 PROCEDURE GetStdHandle(
     nStdHandle : DWORD
     ): HANDLE;
@@ -4297,6 +4304,13 @@ PROCEDURE SetFilePointer(
     lpDistanceToMoveHigh : PLONG;
     dwMoveMethod : DWORD
     ): DWORD;
+
+PROCEDURE SetFilePointerEx(
+    hFile : HANDLE;
+    lDistanceToMove : LARGE_INTEGER;
+    lpNewPointer : PLARGE_INTEGER;
+    dwMoveMethod : DWORD
+    ): BOOL;
 
 PROCEDURE FindClose(
     hFindFile : HANDLE

@@ -361,34 +361,6 @@ CLASS IMPLEMENTATION AStream;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY Length32 GET : CARD32;
-  BEGIN
-    RETURN CARD32( Length );
-  END Length32;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY Length32 SET( Value : CARD32 );
-  BEGIN
-    Length := CARD64( Value );
-  END Length32;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY Position32 GET : CARD32;
-  BEGIN
-    RETURN CARD32( Position );
-  END Position32;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY Position32 SET( Value : CARD32 );
-  BEGIN
-    Position := CARD64( Value );
-  END Position32;
-
-(*--------------------------------------------------------------------------------*)
-
   PUBLIC PROPERTY AtEnd GET : BOOLEAN;
   BEGIN
     RETURN Position = Length;
@@ -623,7 +595,7 @@ CLASS IMPLEMENTATION CStreamProxy;
 
   PUBLIC VIRTUAL PROPERTY Processed GET : CARDINAL; // count of read/written data
   BEGIN
-    RETURN Stream^.Position32;
+    RETURN CARDINAL( Stream^.Position );
   END Processed;
 
 (*--------------------------------------------------------------------------------*)

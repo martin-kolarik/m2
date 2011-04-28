@@ -423,19 +423,36 @@ BEGIN
   windows.CloseHandle( F );
 END Close;
 
-PROCEDURE Size( F: File ): CARDINAL;
+PROCEDURE Size( F: File ): CARD64;
+VAR
+   li : windows.LARGE_INTEGER;
 BEGIN
-  RETURN CARDINAL( windows.GetFileSize( F, NIL ));
+   IF windows.GetFileSizeEx( F, ADR( li )) = windows.False THEN
+      RETURN 0;
+   ELSE
+      RETURN CARD64( li );
+   END;
 END Size;
 
-PROCEDURE GetPos( F: File ): CARDINAL;
+PROCEDURE GetPos( F: File ): CARD64;
+VAR
+   lizero : windows.LARGE_INTEGER;
+   li : windows.LARGE_INTEGER;
 BEGIN
-  RETURN CARDINAL( windows.SetFilePointer( F, 0, NIL, windows.FILE_CURRENT ));
+   lizero.QuadPart := 0;
+   IF windows.SetFilePointerEx( F, lizero, ADR( li ), windows.FILE_CURRENT ) = windows.False THEN
+      RETURN 0;
+   ELSE
+      RETURN CARD64( li );
+   END;
 END GetPos;
 
-PROCEDURE Seek( F: File; Pos: CARDINAL );
+PROCEDURE Seek( F: File; Pos: CARD64 );
+VAR
+   li : windows.LARGE_INTEGER;
 BEGIN
-  windows.SetFilePointer( F, Pos, NIL, windows.FILE_BEGIN );
+   li.QuadPart := Pos;
+   windows.SetFilePointerEx( F, li, NIL, windows.FILE_BEGIN );
 END Seek;
 
 PROCEDURE Truncate( F: File );
@@ -465,8 +482,10 @@ PROCEDURE SetFileTime( F : File; Time : datetime.DateTime );
 VAR
    ct : windows.FILETIME;
    ft : CARD64;
+   ts : datetime.TimeSpan;
 BEGIN
-   ft := DateTimeToFileTime( Time );
+   ts := Time.DayCount.Difference( datetime.DayCountYMD( 1601, 1, 1 ));
+   ft := ts.Value;
    ct := windows.FILETIME( ft );
    windows.SetFileTime( F, ADR( ct ), ADR( ct ), ADR( ct ));
 END SetFileTime;
@@ -480,14 +499,6 @@ BEGIN
    dt.DayCount := datetime.DayCountYMD( 1601, 1, 1 ) + ts;
    RETURN dt;
 END FileTimeToDateTime;
-
-PROCEDURE DateTimeToFileTime( DateTime : datetime.DateTime ) : CARD64;
-VAR
-   ts : datetime.TimeSpan;
-BEGIN
-   ts := DateTime.DayCount.Difference( datetime.DayCountYMD( 1601, 1, 1 ));
-   RETURN ts.Value;
-END DateTimeToFileTime;
 
 PROCEDURE WrBin( F : File; Buf : ARRAY OF BYTE; Count : CARDINAL ) : CARDINAL;
 VAR
