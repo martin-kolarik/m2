@@ -63,6 +63,8 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="Source\baseobject.def" />
+    <None Include="Source\baseobject.mod" />
     <None Include="Source\datetime.mod" />
     <None Include="Source\debug.mod" />
     <None Include="Source\delegate.mod" />
@@ -70,7 +72,8 @@
     <None Include="Source\FIO.mod" />
     <None Include="Source\folders.mod" />
     <None Include="Source\ilog.mod" />
-    <None Include="Source\iobject.mod" />
+    <None Include="Source\iplugin.def" />
+    <None Include="Source\iplugin.mod" />
     <None Include="Source\languages.mod" />
     <None Include="Source\log.mod" />
     <None Include="Source\lrconv.mod" />
@@ -85,7 +88,6 @@
     <None Include="Source\FIO.def" />
     <None Include="Source\folders.def" />
     <None Include="Source\ilog.def" />
-    <None Include="Source\iobject.def" />
     <None Include="Source\languages.def" />
     <None Include="Source\log.def" />
     <None Include="Source\lrconv.def" />

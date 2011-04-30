@@ -1,0 +1,87 @@
+DEFINITION MODULE iplugin;
+
+// Classes prepared to simplify implementation are in: ClassLoader\Helper.def
+
+(*===========================================================================*)
+
+TYPE
+   TPPluginObject = POINTER TO IPluginObject;
+   TPPlugin = POINTER TO IPlugin;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TLoadResult = (
+      lrSuccess,
+      lrPluginNotFound,
+      lrPluginFoundButIsUnloadable,
+      lrPluginFoundButLoadUnauthorized,
+      lrPluginDisabled,
+      lrClassNotFound
+   );
+   
+TYPE
+   #save, call( convention => cdecl )
+   TFactory = PROCEDURE( CONST ARRAY OF WCHAR, OUT TPPluginObject ) : TLoadResult;
+   #restore
+
+(*===========================================================================*)
+
+TYPE
+   TObjectType = (
+      otSingleton,
+      otEphemeral
+   );
+   
+#save, option( dll_export => on )
+
+INTERFACE IPluginObject( baseobject.IDestroyable );
+
+   // IDestroyable
+   // PROCEDURE Destroy(); // Cleans internal dynamic data, deallocates implementor memory (of course it depends on implementation. A pair to Factory method of the DLL.
+
+   // SELF
+   READONLY PROPERTY
+      Type : TObjectType;
+   PROPERTY
+      Plugin : TPPlugin;
+
+END IPluginObject;
+
+(*---------------------------------------------------------------------------*)
+
+CONST
+   cidPlugin = L"Plugin";
+
+TYPE
+   TcllvData = RECORD
+      Length    : CARDINAL;
+      Data      : ADDRESS;
+      Validator : ADDRESS;
+   END; // RECORD
+
+INTERFACE IPlugin( IPluginObject );
+   
+   // host -> Plugin interaction
+   READONLY PROPERTY
+      HostHandle : PTR;
+      PluginHandle : PTR;
+
+   PROCEDURE HostInfo( CONST HostHandle, PluginHandle : PTR; CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
+
+   // Plugin -> host interaction
+   PROCEDURE PluginInfo( OUT Plugin, PluginVersionString : ARRAY OF WCHAR ); // usually product id/product version
+   PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE GetLECData( OUT cllvData : TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+
+   // client interaction, the factory
+   PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : TPPluginObject ) : TLoadResult;
+   PROCEDURE DestroyObject( Object : TPPluginObject ) : TLoadResult;
+
+END IPlugin;
+
+#restore   
+
+(*===========================================================================*)
+
+END iplugin.

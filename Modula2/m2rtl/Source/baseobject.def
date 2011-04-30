@@ -1,0 +1,49 @@
+DEFINITION MODULE baseobject;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+// Ancestors having specialized some common behavior
+
+(*===========================================================================*)
+
+TYPE
+   TPIDestroyable = POINTER TO IDestroyable;
+   TPIDisposable = POINTER TO IDisposable;
+   TPDisposable = POINTER TO CDisposable;
+
+(*---------------------------------------------------------------------------*)
+
+#save, option( dll_export => on )
+
+INTERFACE IDestroyable; // interface with Destroy, the method disposing implementor's data as well as the implementor itself
+
+   PROCEDURE Destroy();
+
+END IDestroyable;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IDisposable; // interface with Dispose, the method disposing all implementor's data
+
+   PROCEDURE Dispose();
+
+END IDisposable;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CDisposable IMPLEMENTS IDisposable; // class with Dispose and destructor linked to it. The class should be seen as base of reference types.
+
+   // IDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // CDisposable
+   PUBLIC VIRTUAL FINALLY CDisposable();
+
+END CDisposable;
+
+#restore   
+
+(*===========================================================================*)
+
+END baseobject.

@@ -35,9 +35,6 @@
     <None Include="Source\ilog.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\iobject.mod">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="Source\languages.mod">
       <Filter>Source Files</Filter>
     </None>
@@ -78,9 +75,6 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\ilog.def">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="Source\iobject.def">
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\languages.def">
@@ -176,6 +170,18 @@
     </None>
     <None Include="Test\TDayCount.mod">
       <Filter>Test</Filter>
+    </None>
+    <None Include="Source\iplugin.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\iplugin.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\baseobject.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\baseobject.def">
+      <Filter>Header Files</Filter>
     </None>
   </ItemGroup>
 </Project>
