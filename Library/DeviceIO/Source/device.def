@@ -2,9 +2,9 @@ DEFINITION MODULE device;
 
 IMPORT
    INIFile,
-   iobject,
 	io,
 	IOO,
+   iplugin,
 	log,
 	ns,
 	StringsO,
@@ -59,7 +59,8 @@ TYPE
 TYPE
    TPDevice = POINTER TO IDevice;
 
-INTERFACE IDevice( iobject.IObject ); // aka device driver
+INTERFACE IDevice( iplugin.IPluginObject ); // aka device driver
+
    PUBLIC READONLY PROPERTY
       DeviceCapabilities : TCapabilities;
 
@@ -69,6 +70,7 @@ INTERFACE IDevice( iobject.IObject ); // aka device driver
 	PROCEDURE NS() : ns.TPns; // optional
 
 	PROCEDURE IO() : io.TPIO; // required
+
 END IDevice;
 
 (*---------------------------------------------------------------------------*)

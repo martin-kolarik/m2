@@ -31,6 +31,30 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   VAR
+      Advised : lists.TPPtrList;
+      ClientData : TPClientData;
+   BEGIN
+      Device := NIL;
+
+      _Clients.Dispose();
+      WHILE _Clients.MoveNext() DO
+         ClientData := _Clients.Current;
+         DISPOSE( ClientData );
+      END; // WHILE      
+      _Clients.Dispose();
+
+      _Advised.Reset();
+      WHILE _Advised.MoveNext() DO
+         Advised := _Advised.CurrentData;
+         DISPOSE( Advised );
+      END; // WHILE      
+      _Advised.Dispose();
+   END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC FINAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
    VAR
       ClientData : TPClientData;
@@ -215,30 +239,6 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
-   VAR
-      Advised : lists.TPPtrList;
-      ClientData : TPClientData;
-   BEGIN
-      Device := NIL;
-
-      _Clients.Dispose();
-      WHILE _Clients.MoveNext() DO
-         ClientData := _Clients.Current;
-         DISPOSE( ClientData );
-      END; // WHILE      
-      _Clients.Dispose();
-
-      _Advised.Reset();
-      WHILE _Advised.MoveNext() DO
-         Advised := _Advised.CurrentData;
-         DISPOSE( Advised );
-      END; // WHILE      
-      _Advised.Dispose();
-   END Dispose;
-
-(*---------------------------------------------------------------------------*)
-
    PRIVATE PROCEDURE DoAdvise( _ClientData : ADDRESS; CONST Name : StringsO.TPString ) : BOOLEAN;
    VAR
       Clients : lists.TPPtrList;
@@ -307,11 +307,11 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC VIRTUAL PROPERTY Type GET : iplugin.TObjectType;
    BEGIN
       IF _Device = NIL THEN
          ASSERT( FALSE );
-         RETURN iobject.otSingleton;
+         RETURN iplugin.otSingleton;
       ELSE
          RETURN _Device^.Type;
       END;
@@ -319,35 +319,27 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
       IF _Device = NIL THEN
          ASSERT( FALSE );
          RETURN NIL;
       ELSE
-         RETURN _Device^.Library;
+         RETURN _Device^.OfPlugin;
       END;
-   END Library;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC VIRTUAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
       IF _Device = NIL THEN
          ASSERT( FALSE );
+         RETURN NIL;
       ELSE
-         _Device^.Library := Value;
+         RETURN _Device^.OwnerHandle;
       END;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
-   BEGIN
-      IF _Device <> NIL THEN
-         _Device^.OnDispose();
-      END;
-   END OnDispose;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 

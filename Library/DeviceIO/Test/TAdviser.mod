@@ -7,9 +7,9 @@ IMPORT
    adviser,
    device,
    io,
-   iobject,
    IOO,
    iovalue,
+   iplugin,
    log,
    ns,
    Strings,
@@ -31,12 +31,11 @@ CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
    PRIVATE VAR
       _AdviseListener : io.TPIAdviseInfo := NIL;
 
-   // IObject
+   // IPluginObject
    PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC VIRTUAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -101,29 +100,24 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC VIRTUAL PROPERTY Type GET : iplugin.TObjectType;
    BEGIN
-      RETURN iobject.otSingleton;
+      RETURN iplugin.otSingleton;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
       RETURN NIL;
-   END Library;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC VIRTUAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
-   BEGIN
-   END OnDispose;
+      RETURN NIL;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 

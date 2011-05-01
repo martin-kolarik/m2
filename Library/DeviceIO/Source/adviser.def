@@ -6,9 +6,9 @@ FROM Storage IMPORT
 IMPORT
    device,
    io,
-   iobject,
    IOO,
    iovalue,
+   iplugin,
    log,
    maps,
    ns,
@@ -23,7 +23,7 @@ TYPE
    
 (*---------------------------------------------------------------------------*)
 
-CLASS CAdviser IMPLEMENTS io.IAdviseInfo;
+CLASS CAdviser( baseobject.CDisposable ) IMPLEMENTS io.IAdviseInfo;
 
    PRIVATE VAR
       _Advising : Sync.SIGNAL;
@@ -32,6 +32,9 @@ CLASS CAdviser IMPLEMENTS io.IAdviseInfo;
       _Advised : maps.CPtrMap; // map of item/PtrArray of clients/client data
    INTERNAL VAR
       _Device : device.TPDevice;
+
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    
    // IAdviseInfo
    PUBLIC FINAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
@@ -53,8 +56,6 @@ CLASS CAdviser IMPLEMENTS io.IAdviseInfo;
    PUBLIC PROCEDURE Start();
    PUBLIC PROCEDURE Stop();
 
-   PUBLIC PROCEDURE Dispose();
-
    // helpers
    PRIVATE PROCEDURE DoAdvise( ClientData : ADDRESS; CONST Name : StringsO.TPString ) : BOOLEAN;
    PRIVATE PROCEDURE DoUnadvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; UnadviseCompletely : BOOLEAN ) : BOOLEAN;
@@ -64,12 +65,11 @@ END CAdviser;
 
 CLASS CAdvisedDevice( CAdviser ) IMPLEMENTS device.IDevice; // wrapper around device with CAdviser functionality
 
-   // IObject
+   // IDevice/IObject
    PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC VIRTUAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
