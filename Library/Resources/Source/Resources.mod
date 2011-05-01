@@ -217,16 +217,19 @@ CLASS IMPLEMENTATION CResources;
   VAR
     Bin : TResource;
     f : FIO.File;
-    l : CARDINAL;
+    l : CARD64;
   BEGIN
     f := FIO.OpenReadW( Path, FIO.TFileShare{FIO.fsRead} );
     IF f = NIL THEN
       RETURN FALSE;
     END;
     l := FIO.Size( f );
-    ALLOCATE( OUT Bin, l );
-    IF FIO.RdBin( f, Bin^, l ) <> l THEN
-       FIO.Close( f );
+    ALLOCATE( OUT Bin, CARD32( l ));
+    IF Bin = NIL THEN
+      FIO.Close( f );
+      RETURN FALSE;
+    ELSIF FIO.RdBin( f, Bin^, CARD32( l )) <> CARD32( l ) THEN
+      FIO.Close( f );
       RETURN FALSE;
     END;
     FIO.Close( f );

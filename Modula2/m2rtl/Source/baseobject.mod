@@ -2,6 +2,11 @@ IMPLEMENTATION MODULE baseobject; // dummy, for CONST cidPlugin and interfaces/R
 
 (*===========================================================================*)
 
+CLASS IMPLEMENTATION BASE;
+END BASE;
+
+(*===========================================================================*)
+
 CLASS IMPLEMENTATION CDisposable;
 
 (*---------------------------------------------------------------------------*)

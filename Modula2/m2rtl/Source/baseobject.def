@@ -7,22 +7,19 @@ FROM Storage IMPORT
 
 (*===========================================================================*)
 
-TYPE
-   TPIDestroyable = POINTER TO IDestroyable;
-   TPIDisposable = POINTER TO IDisposable;
-   TPDisposable = POINTER TO CDisposable;
-
-(*---------------------------------------------------------------------------*)
-
 #save, option( dll_export => on )
 
-INTERFACE IDestroyable; // interface with Destroy, the method disposing implementor's data as well as the implementor itself
+TYPE
+   PBASE = POINTER TO BASE;
 
-   PROCEDURE Destroy();
-
-END IDestroyable;
+CLASS BASE;
+   // intentionally empty
+END BASE;
 
 (*---------------------------------------------------------------------------*)
+
+TYPE
+   TPIDisposable = POINTER TO IDisposable;
 
 INTERFACE IDisposable; // interface with Dispose, the method disposing all implementor's data
 
@@ -32,7 +29,10 @@ END IDisposable;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDisposable IMPLEMENTS IDisposable; // class with Dispose and destructor linked to it. The class should be seen as base of reference types.
+TYPE
+   TPDisposable = POINTER TO CDisposable;
+
+CLASS CDisposable( BASE ) IMPLEMENTS IDisposable; // class with Dispose and destructor linked to it. The class should be seen as base of reference types.
 
    // IDisposable
    PUBLIC VIRTUAL PROCEDURE Dispose();
