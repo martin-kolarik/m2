@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
   maps,
   OSALmsg,
   Sync;
@@ -58,7 +59,7 @@ END SCMessage;
 
 (*===============================================================================*)
 
-CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
+CLASS SCMessageHandler( baseobject.CDisposable ) IMPLEMENTS OSALmsg.IMessageHandler;
   INTERNAL VAR
     joinedTo : OSALmsg.TPMessageQueueThread;
   PUBLIC VIRTUAL READONLY PROPERTY
