@@ -12,8 +12,8 @@ IMPORT
    inetaddr,
    IOO,
    io,
-   iobject,
    iovalue,
+   iplugin,
    log,
    netsocket,
    ns,
@@ -60,12 +60,11 @@ CLASS CTest IMPLEMENTS test.ITest, device.IDevice, io.IIO, ns.IMapper;
    // ITest
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 
-   // IDevice.IObject
+   // IDevice/IObject
    PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC VIRTUAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
    
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -213,30 +212,25 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC VIRTUAL PROPERTY Type GET : iplugin.TObjectType;
    BEGIN
-      RETURN iobject.otSingleton;
+      RETURN iplugin.otSingleton;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
       RETURN NIL;
-   END Library;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC VIRTUAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-   END Library;
+      RETURN NIL;
+   END OwnerHandle;
 
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
-   BEGIN
-   END OnDispose;
-   
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;

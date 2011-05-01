@@ -506,30 +506,24 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL READONLY PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC VIRTUAL READONLY PROPERTY Type GET : iplugin.TObjectType;
    BEGIN
-      RETURN iobject.otEphemeral
+      RETURN iplugin.otEphemeral;
    END Type;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
       RETURN NIL;
-   END Library;
+   END OfPlugin;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC VIRTUAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-   END Library;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // here meant also as a Command
-   BEGIN
-      Dispose();
-   END OnDispose;
+      RETURN NIL;
+   END OwnerHandle;
 
 //--------------------------------------------------------------------------------
 

@@ -11,8 +11,8 @@ IMPORT
    eib_status,
    eib_user,
    io,
-   iobject,
    iovalue,
+   iplugin,
    lec,
    list,
    lists,
@@ -217,15 +217,17 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
      EXEFlag                : BOOLEAN;
      DataLogger             : log.TPLogger;
 
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
 
-   // IObject
+   // IDevice/IObject
    PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC VIRTUAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // here meant also as a Command
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -261,7 +263,6 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
       Connection : StringsO.CString; // information about device connection, read from configuration
       CacheOnlyMode : BOOLEAN;
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    PUBLIC PROCEDURE OnDeviceConnect();
    PUBLIC PROCEDURE OnDeviceDisconnect();

@@ -120,6 +120,7 @@ CLASS IMPLEMENTATION CFileView;
       buffer : StorageO.CMemoryBuffer;
       Content : StringsO.CString;
       empty : StringsO.CString;
+      fileLen : CARD64;
       fileName : ARRAY [0..299] OF WCHAR;
       filePath : StringsO.CString;
       fs : FIOO.CFileStream;
@@ -162,7 +163,12 @@ CLASS IMPLEMENTATION CFileView;
       END;
       Response.Length := fs.Length;
 
-      buffer.Size := MIN2( 2*65536, fs.Length32 );
+      fileLen := fs.Length;
+      IF fileLen < 2*65536 THEN
+         buffer.Size := CARD32( fileLen );
+      ELSE
+         buffer.Size := 2*65536;
+      END;
       LOOP
          buffer.Clear();
          Result := fs.ReadBuffer( buffer.Size, REF buffer, Sync.FORSAFETY );
