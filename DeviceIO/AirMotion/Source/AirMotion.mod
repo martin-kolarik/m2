@@ -10,7 +10,6 @@ FROM Exceptions IMPORT
 
 IMPORT
    FIO,
-   iobject,
    IOO,
    LogConfig,
    resources,
@@ -1597,31 +1596,32 @@ CLASS IMPLEMENTATION CAirMotionDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      RETURN iobject.otEphemeral;
+      _IO.Stop();
+      _IO.Dispose();
+   END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Type GET : iplugin.TObjectType;
+   BEGIN
+      RETURN iplugin.otEphemeral;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC FINAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
-      RETURN SUPER.Library;
-   END Library;
+      RETURN SUPER.OfPlugin;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC FINAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-      SUPER.Library := Value;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
-   BEGIN
-      _IO.Dispose();
-   END OnDispose;
+      RETURN SUPER.OwnerHandle;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1666,9 +1666,6 @@ CLASS IMPLEMENTATION CAirMotionDevice;
    
 (*---------------------------------------------------------------------------*)
 
-BEGIN FINALLY
-   _IO.Stop();
-   OnDispose();
 END CAirMotionDevice;
 
 (*===========================================================================*)

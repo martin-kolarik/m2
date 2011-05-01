@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ADT", "..\..\Library\ADT\AD
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Plugin", "..\..\Library\Plugin\Plugin.vcxproj", "{0AD95195-886F-46AE-88B3-76634C3B2E82}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Midea", "..\..\DeviceIO\Midea\Midea.vcxproj", "{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -85,6 +87,10 @@ Global
 		{0AD95195-886F-46AE-88B3-76634C3B2E82}.Debug|Win32.Build.0 = Debug|Win32
 		{0AD95195-886F-46AE-88B3-76634C3B2E82}.Release|Win32.ActiveCfg = Release|Win32
 		{0AD95195-886F-46AE-88B3-76634C3B2E82}.Release|Win32.Build.0 = Release|Win32
+		{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}.Debug|Win32.Build.0 = Debug|Win32
+		{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}.Release|Win32.ActiveCfg = Release|Win32
+		{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -7,7 +7,6 @@ IMPORT
    cllv,
    FIO,
    INIFile,
-   iobject,
    IOO,
    iovalue,
    log,
@@ -355,11 +354,11 @@ CLASS IMPLEMENTATION ABridge;
          END;   
          
          FIO.MakePathW( exePath, OA( value.Length-1, value.Data ), OUT devPath );
-         _Loader.AddLibrary( devPath, ADR( value )); // value contains LibraryName
+         _Loader.AddPlugin( devPath, ADR( value )); // value contains LibraryName
          value.AppendOA( DEVICE_CLASS_NAME_SUFFIX );
          CASE _Loader.CreateObject( OA( value.Length-1, value.Data ), OUT dev ) OF
          //----
-         | iobject.lrSuccess :
+         | iplugin.lrSuccess :
             src.Type := device.citINIFileSection;
             src._iniFile := iniFile;
             src.section := ADR( deviceId );
@@ -371,19 +370,19 @@ CLASS IMPLEMENTATION ABridge;
                Result := Sync.arAborted;
             END;
          //----
-         | iobject.lrLibraryNotFound :
+         | iplugin.lrPluginNotFound :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryNotFound, ADR( s ));
          //----
-         | iobject.lrLibraryFoundButIsUnloadable :
+         | iplugin.lrPluginFoundButIsUnloadable :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryUnloadable, ADR( s ));
          //----
-         | iobject.lrLibraryDisabled :
+         | iplugin.lrPluginDisabled :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryDisable, ADR( s ));
          //----
-         | iobject.lrClassNotFound :
+         | iplugin.lrClassNotFound :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryClassNotFound, ADR( s ));
          END; // CASE
@@ -529,10 +528,10 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Library : iobject.TPLibrary ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Library : iplugin.TPPlugin ) : BOOLEAN;
    #if Target #contains L"IBS" #then
       VAR
-         cllvData : iobject.TcllvData;
+         cllvData : iplugin.TcllvData;
          cllvPath : ARRAY [0..3] OF WCHAR;
          pid : StringsO.CString;
          result : BOOLEAN;

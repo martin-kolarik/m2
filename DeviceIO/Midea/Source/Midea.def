@@ -14,8 +14,8 @@ IMPORT
    device,
    helper,
    io,
-   iobject,
    iovalue,
+   iplugin,
    ns,
    nsitem,
    serial;
@@ -91,7 +91,7 @@ CLASS CIO( io.AItemizedIO );
    PUBLIC VIRTUAL PROPERTY
       Advise : io.TAdvise;
       AdviseListener : io.TPIAdviseInfo;
-   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Abort();
    PUBLIC VIRTUAL PROCEDURE AbortAll();
 
@@ -133,19 +133,21 @@ TYPE
    END; // TData
    TPData = POINTER TO TData;
 
-CLASS CMideaDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CMideaDevice( helper.APluginObject ) IMPLEMENTS device.IDevice;
    PRIVATE VAR
       _NS : CNS;
       _IO : CIO;
    LOCAL VAR
       _ACS : ARRAY [0..16], [0..64] OF TData;
 
+   // CDisposable
+   PUBLIC FINAL PROCEDURE Dispose();
+
    // IObject
    PUBLIC FINAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC FINAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC FINAL PROCEDURE OnDispose();
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -161,7 +163,6 @@ CLASS CMideaDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 	LOCAL PROCEDURE TargetToData( Target : CARD16 ) : TPData;
 
    INITIALLY CMideaDevice();
-   FINALLY CMideaDevice();
 END CMideaDevice;
 
 (*---------------------------------------------------------------------------*)

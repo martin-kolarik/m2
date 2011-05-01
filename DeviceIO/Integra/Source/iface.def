@@ -1,12 +1,12 @@
 DEFINITION MODULE iface;
 
 IMPORT
-   iobject;
+   iplugin;
 
 (*===========================================================================*)
 
 #save, call( convention => cdecl ), option( dll_export => on )
-PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
 #restore
 
 (*===========================================================================*)

@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
    device,
    io,
+   iplugin,
    lec,
    lists,
    loader,
@@ -27,7 +28,7 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    device.IConfigurable,
    io.IStartStopControl,
    sdapClient.ISDAPClientEvents,
-   loader.ILibraryLoadAuthorizer;
+   loader.IPluginLoadAuthorizer;
 
    // IRunnable
    INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
@@ -47,7 +48,7 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
 
    // ILibraryLoadAuthorizer
-   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Library : iobject.TPLibrary ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Plugin : iplugin.TPPlugin ) : BOOLEAN;
 
    // SELF
    PRIVATE VAR

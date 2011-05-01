@@ -10,6 +10,7 @@ IMPORT
 	io,
 	IOO,
 	iovalue,
+   iplugin,
    lists,
 	log,
 	netsocket,
@@ -178,14 +179,16 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CIntegraDevice( helper.APluginObject ) IMPLEMENTS device.IDevice;
 
-   // IObject
+   // AObject
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // IDevice/IObject
    PUBLIC FINAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC FINAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY

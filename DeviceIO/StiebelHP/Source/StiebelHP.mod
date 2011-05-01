@@ -8,7 +8,6 @@ FROM Debug IMPORT
 IMPORT
     datetime,
 	FIO,
-	iobject,
 	IOO,
 	LogConfig,
 	resources,
@@ -1081,31 +1080,32 @@ CLASS IMPLEMENTATION CStiebelHPDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
+	PUBLIC FINAL PROCEDURE Dispose();
+	BEGIN
+      _IO.Stop();
+		_IO.Dispose();
+	END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Type GET : iplugin.TObjectType;
    BEGIN
-      RETURN iobject.otEphemeral;
+      RETURN iplugin.otEphemeral;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC FINAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
-      RETURN SUPER.Library;
-   END Library;
+      RETURN SUPER.OfPlugin;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC FINAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-      SUPER.Library := Value;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC FINAL PROCEDURE OnDispose();
-	BEGIN
-		_IO.Dispose();
-	END OnDispose;
+      RETURN SUPER.OwnerHandle;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1159,9 +1159,6 @@ CLASS IMPLEMENTATION CStiebelHPDevice;
    
 (*---------------------------------------------------------------------------*)
 
-BEGIN FINALLY
-   _IO.Stop();
-	OnDispose();
 END CStiebelHPDevice;
 
 (*===========================================================================*)
