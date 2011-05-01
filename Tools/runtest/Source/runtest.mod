@@ -6,7 +6,7 @@ FROM Storage IMPORT
 IMPORT
    datetime,
    FIO,
-   iobject,
+   iplugin,
    lists,
    loader,
    log,
@@ -288,7 +288,7 @@ VAR
    Found : BOOLEAN;
    i : INTEGER;
    LibraryState : loader.TState;
-   LoadResult : iobject.TResult;
+   LoadResult : iplugin.TLoadResult;
    Name : ARRAY [0..127] OF WCHAR;
    Path : FIO.PathStrW;
    RepeatCount, rc : CARDINAL := 1;
@@ -333,7 +333,7 @@ BEGIN
          END;
 
       ELSE // file
-         loader.ldr()^.AddLibrary( OAsz( argp^[i] ), NIL );
+         loader.ldr()^.AddPlugin( OAsz( argp^[i] ), NIL );
       END;
       
       INC( i );
@@ -344,13 +344,13 @@ BEGIN
    FOR rc := 1 TO RepeatCount DO
    
       ESl := 0;
-      WHILE loader.ldr()^.EnumerateLibraries( REF ESl, OUT Name, OUT Path, OUT LibraryState ) DO
+      WHILE loader.ldr()^.EnumeratePlugins( REF ESl, OUT Name, OUT Path, OUT LibraryState ) DO
          Strings.ConcatW( OUT ClassPath, Name, L"/Development.Tests" );
          LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Tests );
-         IF LoadResult <> iobject.lrSuccess THEN
+         IF LoadResult <> iplugin.lrSuccess THEN
             Host.Log^.LogSS( log.lcSysError, 0, L"", L"Error loading library: ", Name );
             Host.Log^.LogSC( log.lcSysError, 0, L"", L"          load result: ", CARDINAL( LoadResult ));
-            IF LoadResult = iobject.lrLibraryNotFound THEN
+            IF LoadResult = iplugin.lrPluginNotFound THEN
                CONTINUE;
             ELSE
                TotalResult := 1;
