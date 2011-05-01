@@ -68,11 +68,11 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="Plugin.proj" />
     <None Include="Source\helper.mod" />
     <None Include="Source\loader.mod" />
     <None Include="Source\helper.def" />
     <None Include="Source\loader.def" />
-    <None Include="ClassLoader.proj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

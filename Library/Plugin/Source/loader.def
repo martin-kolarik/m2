@@ -4,7 +4,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   iobject,
+   baseobject,
+   iplugin,
    lists,
    maps;
 
@@ -13,11 +14,11 @@ IMPORT
 (*===========================================================================*)
 
 TYPE
-   TPLibraryLoadAuthorizer = POINTER TO ILibraryLoadAuthorizer;
+   TPPluginLoadAuthorizer = POINTER TO IPluginLoadAuthorizer;
 
-INTERFACE ILibraryLoadAuthorizer;
-   PROCEDURE AuthorizedToLoad( CONST Library : iobject.TPLibrary ) : BOOLEAN;
-END ILibraryLoadAuthorizer;
+INTERFACE IPluginLoadAuthorizer;
+   PROCEDURE AuthorizedToLoad( CONST Plugin : iplugin.TPPlugin ) : BOOLEAN;
+END IPluginLoadAuthorizer;
 
 (*---------------------------------------------------------------------------*)
 
@@ -32,39 +33,42 @@ TYPE
    
 (*---------------------------------------------------------------------------*)
 
-CLASS CLoader;
-   PRIVATE VAR
-      Libraries : lists.CPtrList;
-      Names : maps.CStringMap;
-      _LoadAuthorizer : TPLibraryLoadAuthorizer;
-      _Host : StringsO.CString;
-      _HostVersionString : StringsO.CString;
+CLASS CLoader( baseobject.CDisposable );
+
    PUBLIC READONLY PROPERTY
       Host : StringsO.TPString;
       HostVersionString : StringsO.TPString;
    PUBLIC PROPERTY
-      LoadAuthorizer : TPLibraryLoadAuthorizer;
+      LoadAuthorizer : TPPluginLoadAuthorizer;
       
    PUBLIC PROCEDURE SetHostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR );
 
-   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR; LibraryName : StringsO.TPString ) : iobject.TResult; // LibraryName is optional and will be filled with computed library identifier (usable in CreateObject)
-   PUBLIC PROCEDURE RemoveLibrary( CONST LibraryPath : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : iobject.TResult;
+   PUBLIC PROCEDURE AddPlugin( CONST PluginPath : ARRAY OF WCHAR; PluginName : StringsO.TPString ) : iplugin.TLoadResult; // PluginName is optional and will be filled with computed library identifier (usable in CreateObject)
+   PUBLIC PROCEDURE RemovePlugin( CONST PluginPath : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE ScanPath( CONST Path, PluginNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : iplugin.TLoadResult;
 
-   PUBLIC PROCEDURE DisableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE EnableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE DisablePlugin( CONST PluginPath : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE EnablePlugin( CONST PluginPath : ARRAY OF WCHAR );
 
-   PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryName, LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
-   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumeratePlugins( REF EnumerateState : PTR; OUT PluginName, PluginPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST PluginName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
    
-   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
-   PUBLIC PROCEDURE ReleaseObject( REF Object : iobject.TPObject );
+   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+   PUBLIC PROCEDURE ReleaseObject( REF Object : iplugin.TPPluginObject );
    
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    
-   // helpers
-   PRIVATE PROCEDURE LookupLibrary( CONST LibraryPath : ARRAY OF WCHAR; OUT Library : ADDRESS ) : BOOLEAN;
+   // privates, helpers
+   PRIVATE PROCEDURE LookupPlugin( CONST PluginPath : ARRAY OF WCHAR; OUT Plugin : ADDRESS ) : BOOLEAN;
    PRIVATE PROCEDURE BuildNames();
+
+   PRIVATE VAR
+      _Plugins : lists.CPtrList;
+      _Names : maps.CStringMap;
+      _LoadAuthorizer : TPPluginLoadAuthorizer;
+      _Host : StringsO.CString;
+      _HostVersionString : StringsO.CString;
+
 END CLoader;
 
 (*===========================================================================*)

@@ -4,6 +4,11 @@ DEFINITION MODULE iplugin;
 
 (*===========================================================================*)
 
+IMPORT
+   baseobject;
+
+(*===========================================================================*)
+
 TYPE
    TPPluginObject = POINTER TO IPluginObject;
    TPPlugin = POINTER TO IPlugin;
@@ -25,6 +30,9 @@ TYPE
    TFactory = PROCEDURE( CONST ARRAY OF WCHAR, OUT TPPluginObject ) : TLoadResult;
    #restore
 
+CONST
+   FACTORY_PROC_NAME = C"Factory";
+
 (*===========================================================================*)
 
 TYPE
@@ -35,16 +43,16 @@ TYPE
    
 #save, option( dll_export => on )
 
-INTERFACE IPluginObject( baseobject.IDestroyable );
-
-   // IDestroyable
-   // PROCEDURE Destroy(); // Cleans internal dynamic data, deallocates implementor memory (of course it depends on implementation. A pair to Factory method of the DLL.
+INTERFACE IPluginObject;
 
    // SELF
    READONLY PROPERTY
       Type : TObjectType;
-   PROPERTY
-      Plugin : TPPlugin;
+      OfPlugin : TPPlugin;
+
+   // for internal purposes, implementor is free to store/use anything he wants
+   READONLY PROPERTY
+      OwnerHandle : PTR;
 
 END IPluginObject;
 
@@ -63,11 +71,7 @@ TYPE
 INTERFACE IPlugin( IPluginObject );
    
    // host -> Plugin interaction
-   READONLY PROPERTY
-      HostHandle : PTR;
-      PluginHandle : PTR;
-
-   PROCEDURE HostInfo( CONST HostHandle, PluginHandle : PTR; CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
+   PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
 
    // Plugin -> host interaction
    PROCEDURE PluginInfo( OUT Plugin, PluginVersionString : ARRAY OF WCHAR ); // usually product id/product version
@@ -76,7 +80,11 @@ INTERFACE IPlugin( IPluginObject );
 
    // client interaction, the factory
    PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : TPPluginObject ) : TLoadResult;
-   PROCEDURE DestroyObject( Object : TPPluginObject ) : TLoadResult;
+   PROCEDURE DestroyObject( REF Object : TPPluginObject ) : TLoadResult;
+
+   // for internal purposes, implementor is free to store/use anything he wants
+   PROPERTY
+      HostHandle : PTR;
 
 END IPlugin;
 

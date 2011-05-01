@@ -16,31 +16,31 @@ IMPORT
 (*===========================================================================*)
 
 TYPE
-   TPLibrary = POINTER TO CLibrary;
+   TPPlugin = POINTER TO CPlugin;
 
-CLASS CLibrary;
+CLASS CPlugin( baseobject.BASE );
    LOCAL VAR
       Path : StringsO.CString;
       State : TState;
       Loader : TPLoader;
-      RefCount : CARDINAL;
+      RefCount : INTEGER;
    PRIVATE VAR
-      LibraryHandle : windows.HANDLE;
-      LibraryInfo : iobject.TPLibrary;
-      Factory : iobject.TFactory;
+      DllHandle : windows.HANDLE;
+      Plugin : iplugin.TPPlugin;
+      Factory : iplugin.TFactory;
    LOCAL READONLY PROPERTY
       Name : StringsO.CString;
 
-   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; CONST Authorizer : TPLibraryLoadAuthorizer; OUT Object : iobject.TPObject ) : iobject.TResult;
-   LOCAL PROCEDURE ReleaseObject( Object : iobject.TPObject );
+   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+   LOCAL PROCEDURE ReleaseObject( REF Object : iplugin.TPPluginObject );
    
-   PRIVATE PROCEDURE LoadLibrary( CONST Authorizer : TPLibraryLoadAuthorizer ) : iobject.TResult;
-   PRIVATE PROCEDURE UnloadLibrary();
-END CLibrary;
+   PRIVATE PROCEDURE LoadDll() : iplugin.TLoadResult;
+   PRIVATE PROCEDURE UnloadDll();
+END CPlugin;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CLibrary;
+CLASS IMPLEMENTATION CPlugin;
 
 (*---------------------------------------------------------------------------*)
 
@@ -57,18 +57,18 @@ CLASS IMPLEMENTATION CLibrary;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; CONST Authorizer : TPLibraryLoadAuthorizer; OUT Object : iobject.TPObject ) : iobject.TResult;
+   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
    VAR
-      Result : iobject.TResult;
+      Result : iplugin.TLoadResult;
    BEGIN
-      IF LibraryHandle = NIL THEN
-         Result := LoadLibrary( Authorizer );
-         IF Result <> iobject.lrSuccess THEN
+      IF DllHandle = NIL THEN
+         Result := LoadDll();
+         IF Result <> iplugin.lrSuccess THEN
             RETURN Result;
          END;
       END;
-      Result := Factory( ClassName, OUT Object );
-      IF Result = iobject.lrSuccess THEN
+      Result := Plugin^.CreateObject( ClassName, OUT Object );
+      IF Result = iplugin.lrSuccess THEN
          INC( RefCount );
       END;
       RETURN Result;
@@ -76,83 +76,85 @@ CLASS IMPLEMENTATION CLibrary;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE ReleaseObject( Object : iobject.TPObject );
+   LOCAL PROCEDURE ReleaseObject( REF Object : iplugin.TPPluginObject );
    BEGIN
-      IF ( LibraryHandle = NIL ) OR ( INTEGER( RefCount ) <= 0 ) THEN
+      IF ( DllHandle = NIL ) OR ( RefCount <= 0 ) THEN
          ASSERT( FALSE );
          RETURN;
       END;   
-      Object^.OnDispose();
+      Plugin^.DestroyObject( REF Object );
       DEC( RefCount );
-      IF RefCount = 1 THEN // the last one is LibraryInfo
-         UnloadLibrary();
+      IF RefCount = 1 THEN // the last one is IPlugin
+         UnloadDll();
       END;
    END ReleaseObject;
    
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LoadLibrary( CONST Authorizer : TPLibraryLoadAuthorizer ) : iobject.TResult;
+   PRIVATE PROCEDURE LoadDll() : iplugin.TLoadResult;
    VAR
       ErrorMode : CARDINAL;
       Error : CARDINAL := 0;
-      Result : iobject.TResult;
+      Result : iplugin.TLoadResult;
    BEGIN
-      ASSERT( LibraryHandle = NIL );
+      ASSERT( DllHandle = NIL );
       ErrorMode := windows.SetErrorMode( windows.SEM_FAILCRITICALERRORS );
-      LibraryHandle := windows.LoadLibrary( Path.Data );
-
-      IF LibraryHandle = NIL THEN
+      DllHandle := windows.LoadLibrary( Path.Data );
+      IF DllHandle = NIL THEN
          Error := windows.GetLastError();
       END;
       windows.SetErrorMode( ErrorMode );
-      IF LibraryHandle = NIL THEN
+      IF DllHandle = NIL THEN
          IF Error = winerror.ERROR_MOD_NOT_FOUND THEN
-            RETURN iobject.lrLibraryNotFound;
+            RETURN iplugin.lrPluginNotFound;
          ELSE
-            RETURN iobject.lrLibraryFoundButIsUnloadable;
+            RETURN iplugin.lrPluginFoundButIsUnloadable;
          END;
       END;
 
-      Factory := windows.GetProcAddress( LibraryHandle, C"Factory" );
+      Factory := windows.GetProcAddress( DllHandle, iplugin.FACTORY_PROC_NAME );
       IF Factory = NIL THEN
-         UnloadLibrary();
-         RETURN iobject.lrLibraryFoundButIsUnloadable;
+         UnloadDll();
+         RETURN iplugin.lrPluginFoundButIsUnloadable;
       END;
-      Result := Factory( iobject.cidLibrary, OUT LibraryInfo );
-      IF Result = iobject.lrSuccess THEN
+      Result := Factory( iplugin.cidPlugin, OUT Plugin );
+      IF Result = iplugin.lrSuccess THEN
          INC( RefCount );
       ELSE
-         UnloadLibrary();
-         RETURN iobject.lrLibraryFoundButIsUnloadable;
+         UnloadDll();
+         RETURN iplugin.lrPluginFoundButIsUnloadable;
       END;
 
-      LibraryInfo^.HostInfo( Loader, ADR( SELF ), OA( Loader^.Host^.Length-1, Loader^.Host^.Data ), OA( Loader^.HostVersionString^.Length-1, Loader^.HostVersionString^.Data ));
+      // internal info
+      Plugin^.HostHandle := ADR( SELF ); // I will use it later to deallocate the object
+      // public info
+      Plugin^.HostInfo( OA( Loader^.Host^.Length-1, Loader^.Host^.Data ), OA( Loader^.HostVersionString^.Length-1, Loader^.HostVersionString^.Data ));
 
-      IF Authorizer = NIL THEN
-         RETURN iobject.lrSuccess; // loaded
-      ELSIF Authorizer^.AuthorizedToLoad( LibraryInfo ) THEN
-         RETURN iobject.lrSuccess; // loaded
+      IF Loader^.LoadAuthorizer = NIL THEN
+         RETURN iplugin.lrSuccess; // loaded
+      ELSIF Loader^.LoadAuthorizer^.AuthorizedToLoad( Plugin ) THEN
+         RETURN iplugin.lrSuccess; // loaded
       ELSE
-         UnloadLibrary();
-         RETURN iobject.lrLibraryFoundButLoadUnauthorized; // unauthorized, unloaded
+         UnloadDll();
+         RETURN iplugin.lrPluginFoundButLoadUnauthorized; // unauthorized, unloaded
       END;
-   END LoadLibrary;
+   END LoadDll;
    
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE UnloadLibrary();
+   PRIVATE PROCEDURE UnloadDll();
    BEGIN
-      IF LibraryHandle <> NIL THEN
-         ASSERT(( RefCount = 1 ) OR ( LibraryInfo = NIL )); // the last one is LibraryInfo, LibraryInfo = NIL in case of unloadability of library
+      IF DllHandle <> NIL THEN
+         ASSERT(( RefCount = 1 ) OR ( DllHandle = NIL )); // the last one is Plugin, Plugin = NIL is for the case of unloadability of library
 
-         IF LibraryInfo <> NIL THEN
-            ReleaseObject( LibraryInfo );
+         IF Plugin <> NIL THEN
+            ReleaseObject( REF Plugin );
          END;
-         windows.FreeLibrary( LibraryHandle );
-         LibraryHandle := NIL;
+         windows.FreeLibrary( DllHandle );
+         DllHandle := NIL;
          Factory := NIL;
       END;
-   END UnloadLibrary;
+   END UnloadDll;
 
 (*---------------------------------------------------------------------------*)
 
@@ -160,12 +162,12 @@ BEGIN
    State := TState{lsEnabled};
    Loader := NIL;
    RefCount := 0;
-   LibraryHandle := NIL;
-   LibraryInfo := NIL;
+   DllHandle := NIL;
+   Plugin := NIL;
    Factory := NIL;
 FINALLY
-   UnloadLibrary();
-END CLibrary;
+   UnloadDll();
+END CPlugin;
 
 (*===========================================================================*)
 
@@ -187,14 +189,14 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LoadAuthorizer GET : TPLibraryLoadAuthorizer;
+   PUBLIC PROPERTY LoadAuthorizer GET : TPPluginLoadAuthorizer;
    BEGIN
       RETURN _LoadAuthorizer;
    END LoadAuthorizer;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LoadAuthorizer SET( Value : TPLibraryLoadAuthorizer );
+   PUBLIC PROPERTY LoadAuthorizer SET( Value : TPPluginLoadAuthorizer );
    BEGIN
       _LoadAuthorizer := Value;
    END LoadAuthorizer;
@@ -209,193 +211,189 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR; LibraryName : StringsO.TPString ) : iobject.TResult;
+   PUBLIC PROCEDURE AddPlugin( CONST PluginPath : ARRAY OF WCHAR; PluginName : StringsO.TPString ) : iplugin.TLoadResult;
    VAR
-      Library : TPLibrary;
+      Plugin : TPPlugin;
       LPath : FIO.PathStrW;
    BEGIN
-      FIO.ExpandPathW( LibraryPath, OUT LPath );
-      IF NOT LookupLibrary( LPath, OUT Library ) THEN
-         NEW( Library );
-         Library^.Path.FromOA( LPath );
-         Library^.Loader := ADR( SELF );
-         Libraries.Add( Library, 0 );
+      FIO.ExpandPathW( PluginPath, OUT LPath );
+      IF NOT LookupPlugin( LPath, OUT Plugin ) THEN
+         NEW( Plugin );
+         Plugin^.Path.FromOA( LPath );
+         Plugin^.Loader := ADR( SELF );
+         _Plugins.Add( Plugin, 0 );
       END;
       BuildNames();
-      IF LibraryName <> NIL THEN
-         LibraryName^.Assign( Library^.Name );
+      IF PluginName <> NIL THEN
+         PluginName^.Assign( Plugin^.Name );
       END;
-      RETURN iobject.lrSuccess;
-   END AddLibrary;
+      RETURN iplugin.lrSuccess;
+   END AddPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE RemoveLibrary( CONST LibraryPath : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE RemovePlugin( CONST PluginPath : ARRAY OF WCHAR );
    VAR
       LPath : FIO.PathStrW;
       NL : lists.CPtrList;
    BEGIN
-      FIO.ExpandPathW( LibraryPath, OUT LPath );
-      Libraries.Reset();
-      WHILE Libraries.MoveNext() DO
-         IF NOT TPLibrary( Libraries.Current )^.Path.EqualsOA( LPath ) THEN
-           NL.Add( Libraries.Current, 0 );
+      FIO.ExpandPathW( PluginPath, OUT LPath );
+      _Plugins.Reset();
+      WHILE _Plugins.MoveNext() DO
+         IF NOT TPPlugin( _Plugins.Current )^.Path.EqualsOA( LPath ) THEN
+           NL.Add( _Plugins.Current, 0 );
          END;
       END; // WHILE
-      Libraries.Dispose();
-      Libraries.AppendList( REF NL );
+      _Plugins.Dispose();
+      _Plugins.AppendList( REF NL );
       BuildNames();
-   END RemoveLibrary;
+   END RemovePlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : iobject.TResult;
+   PUBLIC PROCEDURE ScanPath( CONST Path, PluginNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : iplugin.TLoadResult;
    BEGIN
-      RETURN iobject.lrSuccess;
+      RETURN iplugin.lrSuccess;
    END ScanPath;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DisableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE DisablePlugin( CONST PluginPath : ARRAY OF WCHAR );
    VAR
-      Library : TPLibrary;
+      Plugin : TPPlugin;
       LPath : FIO.PathStrW;
    BEGIN
-      FIO.ExpandPathW( LibraryPath, OUT LPath );
-      IF LookupLibrary( LPath, OUT Library ) THEN
-         EXCL( Library^.State, lsEnabled );
+      FIO.ExpandPathW( PluginPath, OUT LPath );
+      IF LookupPlugin( LPath, OUT Plugin ) THEN
+         EXCL( Plugin^.State, lsEnabled );
          BuildNames();
       END;
-   END DisableLibrary;
+   END DisablePlugin;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE EnablePlugin( CONST PluginPath : ARRAY OF WCHAR );
    VAR
-      Library : TPLibrary;
+      Plugin : TPPlugin;
       LPath : FIO.PathStrW;
    BEGIN
-      FIO.ExpandPathW( LibraryPath, OUT LPath );
-      IF LookupLibrary( LPath, OUT Library ) THEN
-         INCL( Library^.State, lsEnabled );
+      FIO.ExpandPathW( PluginPath, OUT LPath );
+      IF LookupPlugin( LPath, OUT Plugin ) THEN
+         INCL( Plugin^.State, lsEnabled );
          BuildNames();
       END;
-   END EnableLibrary;
+   END EnablePlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryName, LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumeratePlugins( REF EnumerateState : PTR; OUT PluginName, PluginPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       Data : PTR;
-      Library : TPLibrary;
+      Plugin : TPPlugin;
    BEGIN
       IF EnumerateState = 0 THEN
-         b := Libraries.GetFirst( OUT Library, OUT Data );
+         b := _Plugins.GetFirst( OUT Plugin, OUT Data );
       ELSE
-         b := Libraries.NextOf( EnumerateState, OUT Library, OUT Data );
+         b := _Plugins.NextOf( EnumerateState, OUT Plugin, OUT Data );
       END;
       IF NOT b THEN
          RETURN FALSE;
       END;
       
-      Library^.Name.ToOA( OUT LibraryName );
-      Library^.Path.ToOA( OUT LibraryPath );
+      Plugin^.Name.ToOA( OUT PluginName );
+      Plugin^.Path.ToOA( OUT PluginPath );
       
-      EnumerateState := Library;
+      EnumerateState := Plugin;
       RETURN TRUE;
-   END EnumerateLibraries;
+   END EnumeratePlugins;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST PluginName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END EnumerateClasses;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
    VAR
       i : INTEGER;
-      Library : TPLibrary;
+      plugin : TPPlugin;
       s : FIO.PathStrW;
    BEGIN
       i := Strings.ItemSW( ClassPath, Strings.WCHARS{L"/"}, 0, 0, FALSE, OUT s );
       LOW( s );
       IF s[0] = 0W THEN
-         RETURN iobject.lrLibraryNotFound;
-      ELSIF NOT Names.GetOA( s, OUT Library ) THEN
-         RETURN iobject.lrLibraryNotFound;
+         RETURN iplugin.lrPluginNotFound;
+      ELSIF NOT _Names.GetOA( s, OUT plugin ) THEN
+         RETURN iplugin.lrPluginNotFound;
       ELSE
          Strings.SubstringW( ClassPath, i, -1, OUT s );
-         RETURN Library^.CreateObject( s, _LoadAuthorizer, OUT Object );
+         RETURN plugin^.CreateObject( s, OUT Object );
       END;
    END CreateObject;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ReleaseObject( REF Object : iobject.TPObject );
+   PUBLIC PROCEDURE ReleaseObject( REF Object : iplugin.TPPluginObject );
    BEGIN
-      IF ( Object = NIL ) OR ( Object^.Library = NIL ) THEN
-         ASSERT( FALSE );
-         RETURN;
-      ELSIF Object^.Library^.Loader <> ADR( SELF ) THEN
-         ASSERT( FALSE );
+      IF ( Object = NIL ) OR ( Object^.OfPlugin = NIL ) OR ( Object^.OfPlugin^.HostHandle = NIL ) THEN
+         ASSERTLOG( FALSE, L"Trial to release nonexisting or damaged object" );
          RETURN;
       END;
-      TPLibrary( Object^.Library^.LoaderLibraryHandle )^.ReleaseObject( Object );
-      Object := NIL;
+      TPPlugin( Object^.OfPlugin^.HostHandle )^.ReleaseObject( REF Object );
    END ReleaseObject;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
-      Library : TPLibrary;
+      Plugin : TPPlugin;
    BEGIN
-      Libraries.Reset();
-      WHILE Libraries.MoveNext() DO
-         Library := TPLibrary( Libraries.Current );
-         ASSERT( Library^.RefCount = 0 );
-         DISPOSE( Library );
+      _Plugins.Reset();
+      WHILE _Plugins.MoveNext() DO
+         Plugin := TPPlugin( _Plugins.Current );
+         ASSERT( Plugin^.RefCount = 0 );
+         DISPOSE( Plugin );
       END; // WHILE
-      Libraries.Dispose();
-      Names.Dispose();
+      _Plugins.Dispose();
+      _Names.Dispose();
    END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LookupLibrary( CONST LibraryPath : ARRAY OF WCHAR; OUT Library : ADDRESS ) : BOOLEAN;
+   PRIVATE PROCEDURE LookupPlugin( CONST PluginPath : ARRAY OF WCHAR; OUT Plugin : ADDRESS ) : BOOLEAN;
    BEGIN
-      Libraries.Reset();
-      WHILE Libraries.MoveNext() DO
-         IF TPLibrary( Libraries.Current )^.Path.EqualsOA( LibraryPath ) THEN
-            Library := Libraries.Current;
+      _Plugins.Reset();
+      WHILE _Plugins.MoveNext() DO
+         IF TPPlugin( _Plugins.Current )^.Path.EqualsOA( PluginPath ) THEN
+            Plugin := _Plugins.Current;
             RETURN TRUE;
          END;
       END; // WHILE
       RETURN FALSE;
-   END LookupLibrary;
+   END LookupPlugin;
    
 (*---------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE BuildNames();
    VAR
-      Library : TPLibrary;
+      Plugin : TPPlugin;
       Name : StringsO.CString;
    BEGIN
-      Names.Dispose();
-      Libraries.Reset();
-      WHILE Libraries.MoveNext() DO
-         Library := TPLibrary( Libraries.Current );
-         Name := Library^.Name;
+      _Names.Dispose();
+      _Plugins.Reset();
+      WHILE _Plugins.MoveNext() DO
+         Plugin := TPPlugin( _Plugins.Current );
+         Name := Plugin^.Name;
          Name.Lowerize();
-         IF lsEnabled IN Library^.State THEN
-            IF Names.Contains( Name ) THEN
+         IF lsEnabled IN Plugin^.State THEN
+            IF _Names.Contains( Name ) THEN
                ASSERTLOG( FALSE );
             ELSE
-               Names.Add( Name, Library );
+               _Names.Add( Name, Plugin );
             END;
          END;
       END; // WHILE

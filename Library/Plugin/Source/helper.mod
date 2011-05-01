@@ -1,105 +1,100 @@
 IMPLEMENTATION MODULE helper;
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
+IMPORT
+   baseobject;
+
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION AObject;
+CLASS IMPLEMENTATION APluginObject;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
-      RETURN _Library;
-   END Library;
+      RETURN _OfPlugin;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC VIRTUAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-      _Library := Value;
-   END Library;
+      RETURN ADR( SELF );
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
+   LOCAL PROCEDURE SetOfPlugin( CONST _OfPlugin : iplugin.TPPlugin );
    BEGIN
-   END OnDispose;
+      SELF._OfPlugin := _OfPlugin;
+   END SetOfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   _Library := NIL;
-END AObject;
+   _OfPlugin := NIL;
+END APluginObject;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION ACreator;
+CLASS IMPLEMENTATION APlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC VIRTUAL PROPERTY Type GET : iplugin.TObjectType;
    BEGIN
-      RETURN iobject.otSingleton;
+      RETURN iplugin.otSingleton;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC FINAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
-      RETURN SUPER.Library;
-   END Library;
+      RETURN SUPER.OfPlugin;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC FINAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-      SUPER.Library := Value;
-   END Library;
+      RETURN SUPER.OwnerHandle;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
+   PUBLIC FINAL PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
    BEGIN
-      SUPER.OnDispose();
-   END OnDispose;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROPERTY Loader GET : ADDRESS;
-   BEGIN
-      RETURN _Loader;
-   END Loader;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROPERTY LoaderLibraryHandle GET : PTR;
-   BEGIN
-      RETURN _LoaderLibraryHandle;
-   END LoaderLibraryHandle;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE HostInfo( Loader : ADDRESS; LoaderLibraryHandle : PTR; CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
-   BEGIN
-      _Loader := Loader;
-      _LoaderLibraryHandle := LoaderLibraryHandle;
       _Host.FromOA( Host );
       _HostVersion.FromOA( HostVersionString );
    END HostInfo;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
-   VAR
-      Result : iobject.TResult;
+   PUBLIC FINAL PROPERTY HostHandle GET : PTR;
    BEGIN
-      IF EQUALS( QName, iobject.cidLibrary ) THEN
-         Object := ADR( ILibrary );
-         Result := iobject.lrSuccess;
+      RETURN _HostHandle;
+   END HostHandle;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY HostHandle SET( Value : PTR );
+   BEGIN
+      _HostHandle := Value;
+   END HostHandle;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+   VAR
+      Result : iplugin.TLoadResult;
+   BEGIN
+      IF EQUALS( QName, iplugin.cidPlugin ) THEN
+         Object := OfPlugin; // return SELF
+         Result := iplugin.lrSuccess;
       ELSE
-         Result := OnFactory( QName, OUT Object );
-      END;
-      IF Result = iobject.lrSuccess THEN
-         Object^.Library := ADR( ILibrary );
+         Result := CreateObject( QName, OUT Object );
       END;
       RETURN Result;
    END Factory;
@@ -107,9 +102,9 @@ CLASS IMPLEMENTATION ACreator;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   _Loader := NIL;
-   _LoaderLibraryHandle := NIL;
-END ACreator;
+   SetOfPlugin( ADR( IPlugin ));
+   _HostHandle := NIL;
+END APlugin;
 
 (*===========================================================================*)
 
