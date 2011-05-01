@@ -1,7 +1,7 @@
 DEFINITION MODULE test;
 
 IMPORT
-   iobject,
+   iplugin,
    log;
 
 (*================================================================================*)
@@ -38,9 +38,9 @@ INTERFACE ITest;
    PROCEDURE Run( CONST Host : TPHost; CONST Parameters : ARRAY OF PWCHAR ) : TTestResult;
 END ITest;
 
-INTERFACE ITests( iobject.IObject ); // CID in : Development.Tests
+INTERFACE ITests( iplugin.IPluginObject ); // CID in : Development.Tests
    // for test run
-   PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : CARDINAL; // ClassPath can be empty, in the case default ITests class is created; return is objlib.TResult
+   PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : CARDINAL; // ClassPath can be empty, in the case default ITests class is created; return is objlib.TResult
    PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : TPTest ) : BOOLEAN;
    // for test creation
    PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : TPTest );

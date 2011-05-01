@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
-   iobject,
+   iplugin,
    lists,
    helper,
    StringsO;
@@ -18,30 +18,41 @@ CONST
 // abstract helper implementations -- implementor can directly use the class, the only thing he
 // must do it to export Factory procedure and instantiate the class
 
-CLASS CTests( helper.ACreator ) IMPLEMENTS test.ITests;
-   PRIVATE VAR
-      Tests : lists.CPtrList;
+CLASS CTests( helper.APlugin ) IMPLEMENTS test.ITests;
 
-   // ITests/IObject
+   // IPluginObject
    PUBLIC FINAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC FINAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC FINAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
-   // part of ILibrary
+   // IPlugin
    PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iplugin.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
 
    // ITests
-   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : CARDINAL;
    PUBLIC VIRTUAL PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : test.TPTest ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest );
 
-   // ACreator
-   PUBLIC VIRTUAL PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR );
-   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+   // APluginObject
+   PUBLIC FINAL PROCEDURE Dispose();
+
+   // APlugin
+   PUBLIC VIRTUAL PROCEDURE PluginInfo( OUT Plugin, PluginVersionString : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE CreateObject( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+   PUBLIC VIRTUAL PROCEDURE DestroyObject( REF Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+
+   // SELF
+   PRIVATE VAR
+      _Tests : lists.CPtrList;
+
 END CTests;
+
+(*---------------------------------------------------------------------------*)
+
+VAR
+   Tests : POINTER TO CTests := NIL;
 
 (*================================================================================*)
 
@@ -49,24 +60,24 @@ CLASS IMPLEMENTATION CTests;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC FINAL PROPERTY Type GET : iplugin.TObjectType;
    BEGIN
-      RETURN iobject.otSingleton;
+      RETURN iplugin.otSingleton;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC FINAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
-      RETURN SUPER.Library;
-   END Library;
+      RETURN SUPER.OfPlugin;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC FINAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-      SUPER.Library := Value;
-   END Library;
+      RETURN SUPER.OwnerHandle;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 
@@ -81,14 +92,14 @@ CLASS IMPLEMENTATION CTests;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iplugin.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetLECData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : CARDINAL;
    BEGIN
       IF ClassPath = L"" THEN
          RETURN CARDINAL( Factory( ctestClass, OUT Object ));
@@ -106,9 +117,9 @@ CLASS IMPLEMENTATION CTests;
       b : BOOLEAN;
    BEGIN
       IF ES = 0 THEN
-         b := Tests.GetFirst( OUT _Test, OUT _S );
+         b := _Tests.GetFirst( OUT _Test, OUT _S );
       ELSE
-         b := Tests.NextOf( ES, OUT _Test, OUT _S );
+         b := _Tests.NextOf( ES, OUT _Test, OUT _S );
       END;
       IF b THEN
          ES := _Test;
@@ -124,59 +135,65 @@ CLASS IMPLEMENTATION CTests;
    VAR
       S : StringsO.TPString;
    BEGIN
-      IF Tests.Contains( Test ) THEN
+      IF _Tests.Contains( Test ) THEN
          RETURN;
       END;
       S := NEW( StringsO.CString );
       S^.FromOA( Name );
-      Tests.Add( Test, S );
+      _Tests.Add( Test, S );
    END AddTest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE OnDispose();
+   PUBLIC FINAL PROCEDURE Dispose();
    VAR
       _S : POINTER TO StringsO.CString;
    BEGIN
-      Tests.Reset();
-      WHILE Tests.MoveNext() DO
-         _S := Tests.CurrentData;
+      _Tests.Reset();
+      WHILE _Tests.MoveNext() DO
+         _S := _Tests.CurrentData;
          DISPOSE( _S );
       END; // WHILE
-      Tests.Dispose();
-      SUPER.OnDispose();
-   END OnDispose;
+      _Tests.Dispose();
+   END Dispose;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE PluginInfo( OUT Plugin, PluginVersionString : ARRAY OF WCHAR );
    BEGIN
-      Library := ProductId;
-      LibraryVersionString := ProductVersion;
-   END LibraryInfo;
+      Plugin := ProductId;
+      PluginVersionString := ProductVersion;
+   END PluginInfo;
 
 (*---------------------------------------------------------------------------*)
 
-   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+   PUBLIC VIRTUAL PROCEDURE CreateObject( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
    BEGIN
       IF EQUALS( QName, ctestClass ) THEN
          Object := ADR( ITests );
-         RETURN iobject.lrSuccess;
+         RETURN iplugin.lrSuccess;
       ELSE
-         RETURN iobject.lrClassNotFound;
+         RETURN iplugin.lrClassNotFound;
       END;
-   END OnFactory;
+   END CreateObject;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DestroyObject( REF Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+   BEGIN
+      IF Object = ADR( ITests ) THEN // self
+         DISPOSE( Tests ); // global variable
+         RETURN iplugin.lrSuccess;
+      ELSE
+         RETURN iplugin.lrClassNotFound;
+      END;
+   END DestroyObject;
 
 (*--------------------------------------------------------------------------------*)
 
 END CTests;
 
 (*================================================================================*)
-
-VAR
-   Tests : POINTER TO CTests := NIL;
-
-(*---------------------------------------------------------------------------*)
 
 PROCEDURE tests() : test.TPTests;
 BEGIN
