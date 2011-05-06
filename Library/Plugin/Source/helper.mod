@@ -86,24 +86,41 @@ CLASS IMPLEMENTATION APlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
-   VAR
-      Result : iplugin.TLoadResult;
+   PUBLIC FINAL PROCEDURE OnFirstAddRef( CONST Source : baseobject.TPIRefcounter );
    BEGIN
-      IF EQUALS( QName, iplugin.cidPlugin ) THEN
-         Object := OfPlugin; // return SELF
-         Result := iplugin.lrSuccess;
-      ELSE
-         Result := CreateObject( QName, OUT Object );
-      END;
-      RETURN Result;
+      // intentionally left empty
+   END OnFirstAddRef;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE OnLastRelease( CONST Source : baseobject.TPIRefcounter );
+   VAR
+      a : POINTER TO APlugin := ADR( SELF );
+   BEGIN
+      a^.Dispose();
+      DISPOSE( a );
+   END OnLastRelease;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+   BEGIN
+      RETURN CreateObject( QName, OUT Object );
    END Factory;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL PROPERTY Refcounter GET : baseobject.TPRefcounter;
+   BEGIN
+      RETURN ADR( _Refcounter );
+   END Refcounter;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
    SetOfPlugin( ADR( IPlugin ));
    _HostHandle := NIL;
+   _Refcounter.Client := ADR( SELF );
 END APlugin;
 
 (*===========================================================================*)

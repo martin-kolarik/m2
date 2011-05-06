@@ -5,9 +5,10 @@ FROM Storage IMPORT
 
 // Ancestors having specialized some common behavior
 
-(*===========================================================================*)
-
 #save, option( dll_export => on )
+
+(*===========================================================================*)
+// primary base, head of all hereditary tree
 
 TYPE
    PBASE = POINTER TO BASE;
@@ -16,7 +17,8 @@ CLASS BASE;
    // intentionally empty
 END BASE;
 
-(*---------------------------------------------------------------------------*)
+(*===========================================================================*)
+// class having unified resources cleaning
 
 TYPE
    TPIDisposable = POINTER TO IDisposable;
@@ -41,6 +43,94 @@ CLASS CDisposable( BASE ) IMPLEMENTS IDisposable; // class with Dispose and dest
    PUBLIC VIRTUAL FINALLY CDisposable();
 
 END CDisposable;
+
+(*===========================================================================*)
+// classes supporting refcounting
+
+TYPE
+   TPIRefcounter = POINTER TO IRefcounter;
+
+INTERFACE IRefcounter;
+
+   READONLY PROPERTY
+      References : CARDINAL;
+
+   PROCEDURE AddRef() : CARDINAL;
+   #save, option( leak_info => on )
+   PROCEDURE Release() : CARDINAL;
+   #restore
+
+END IRefcounter;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPIRefcounterClient = POINTER TO IRefcounterClient;
+
+INTERFACE IRefcounterClient;
+
+   PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
+   PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
+
+END IRefcounterClient;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPRefcounter = POINTER TO CRefcounter;
+
+CLASS CRefcounter( BASE ) IMPLEMENTS IRefcounter; // functional, synchronized counter, no deallocation is made in the class
+
+   // IRefcounter
+   PUBLIC FINAL READONLY PROPERTY
+      References : CARDINAL;
+
+   PUBLIC FINAL PROCEDURE AddRef() : CARDINAL;
+   PUBLIC FINAL PROCEDURE Release() : CARDINAL;
+
+   // SELF
+   PUBLIC PROPERTY
+      Client : TPIRefcounterClient; // optional driven client
+
+   PRIVATE VAR
+      _References : CARDINAL := 0;
+      _Client : TPIRefcounterClient := NIL;
+
+END CRefcounter;
+
+(*===========================================================================*)
+// classes with counted references, the classes release self with the last Release
+
+TYPE
+   TPRefcounted = POINTER TO CRefcounted;
+
+CLASS CRefcounted( CDisposable ) IMPLEMENTS IRefcounter, IRefcounterClient;
+// the class starts with References = 1, which simplifies usage, no AddRef needs to be called everywhere
+// ancestors of the class need not having Dispose call in their dtors as this class calls Dispose inside OnLastRelease
+
+   // IRefcounter
+   PUBLIC FINAL READONLY PROPERTY
+      References : CARDINAL;
+
+   PUBLIC FINAL PROCEDURE AddRef() : CARDINAL;
+   #save, option( leak_info => on )
+   PUBLIC FINAL PROCEDURE Release() : CARDINAL; // calls Dispose through destructor, then is DISPOSEs self
+   #restore
+
+   // IRefcounterClient
+   PUBLIC FINAL PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
+   #save, option( leak_info => on )
+   PUBLIC FINAL PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
+   #restore
+
+   // SELF
+   PRIVATE VAR
+      _Refcounter : CRefcounter;
+
+   // deny DISPOSE
+   PRIVATE OPERATOR DISPOSE( a : ADDRESS );
+
+END CRefcounted;
 
 #restore   
 

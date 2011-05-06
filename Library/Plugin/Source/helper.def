@@ -36,7 +36,8 @@ END APluginObject;
 
 (*---------------------------------------------------------------------------*)
 
-ABSTRACT CLASS APlugin( APluginObject ) IMPLEMENTS iplugin.IPlugin;
+ABSTRACT CLASS APlugin( APluginObject ) IMPLEMENTS iplugin.IPlugin, baseobject.IRefcounterClient;
+// ancestors of the class need not having Dispose call in their dtors as this class calls Dispose inside OnLastRelease
    
    // IPluginObject
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -53,14 +54,22 @@ ABSTRACT CLASS APlugin( APluginObject ) IMPLEMENTS iplugin.IPlugin;
    PUBLIC VIRTUAL PROPERTY
       HostHandle : PTR;
 
-   // APlugin = SELF
+   // IRefcounterClient
+   PUBLIC FINAL PROCEDURE OnFirstAddRef( CONST Source : baseobject.TPIRefcounter );
+   PUBLIC FINAL PROCEDURE OnLastRelease( CONST Source : baseobject.TPIRefcounter );
+
+   // SELF = APlugin
    // Main creation entry point called from DLL procedure Factory. The procedure calls CreateObject, which then should contain all user class creations.
    PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+
+   INTERNAL READONLY PROPERTY
+      Refcounter : baseobject.TPRefcounter;
 
    LOCAL VAR
       _Host : StringsO.CString;
       _HostVersion : StringsO.CString;
       _HostHandle : PTR;
+      _Refcounter : baseobject.CRefcounter; // to handle singleton behavior of APlugin
 
 END APlugin;
 
