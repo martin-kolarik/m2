@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
    device,
    io,
    iplugin,
@@ -23,7 +24,7 @@ IMPORT
 TYPE
    TPBridge = POINTER TO ABridge;
 
-ABSTRACT CLASS ABridge IMPLEMENTS
+ABSTRACT CLASS ABridge( baseobject.CDisposable ) IMPLEMENTS
    thread.IRunnable,
    device.IConfigurable,
    io.IStartStopControl,

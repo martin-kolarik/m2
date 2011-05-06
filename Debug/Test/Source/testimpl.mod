@@ -155,6 +155,9 @@ CLASS IMPLEMENTATION CTests;
          DISPOSE( _S );
       END; // WHILE
       _Tests.Dispose();
+
+      // global variable
+      Tests := NIL; // Dispose can be here called ONLY from Release, so deallocation follows and global pointer must be cleared
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -169,24 +172,31 @@ CLASS IMPLEMENTATION CTests;
 
    PUBLIC VIRTUAL PROCEDURE CreateObject( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
    BEGIN
-      IF EQUALS( QName, ctestClass ) THEN
+      IF EQUALS( QName, iplugin.cidPlugin ) THEN
+         Object := OfPlugin; // return SELF
+      ELSIF EQUALS( QName, ctestClass ) THEN
          Object := ADR( ITests );
-         RETURN iplugin.lrSuccess;
       ELSE
          RETURN iplugin.lrClassNotFound;
       END;
+      Refcounter^.AddRef();
+      RETURN iplugin.lrSuccess;
    END CreateObject;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE DestroyObject( REF Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
    BEGIN
-      IF Object = ADR( ITests ) THEN // self
-         DISPOSE( Tests ); // global variable
-         RETURN iplugin.lrSuccess;
+      IF Object = OfPlugin THEN
+         // fall down
+      ELSIF Object = ADR( ITests ) THEN
+         // fall down
       ELSE
          RETURN iplugin.lrClassNotFound;
       END;
+      Object := NIL;
+      Refcounter^.Release(); // inside Release the Dispose is called
+      RETURN iplugin.lrSuccess;
    END DestroyObject;
 
 (*--------------------------------------------------------------------------------*)

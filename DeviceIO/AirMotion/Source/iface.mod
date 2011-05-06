@@ -64,10 +64,13 @@ CLASS IMPLEMENTATION CPlugin;
 
    PUBLIC VIRTUAL PROCEDURE CreateObject( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
    BEGIN
-      IF NOT EQUALS( QName, nDeviceIO ) THEN
+      IF EQUALS( QName, iplugin.cidPlugin ) THEN
+         Object := OfPlugin; // return SELF
+      ELSIF EQUALS( QName, nDeviceIO ) THEN
+         Object := ADR( NEW( AirMotion.CAirMotionDevice )^.IDevice );
+      ELSE
          RETURN iplugin.lrClassNotFound;
       END;
-      Object := ADR( NEW( AirMotion.CAirMotionDevice )^.IDevice );
       RETURN iplugin.lrSuccess;
    END CreateObject;
 
@@ -77,12 +80,15 @@ CLASS IMPLEMENTATION CPlugin;
    VAR
       implementor : helper.TPAPluginObject := Object^.OwnerHandle;
    BEGIN
-      IF implementor^ IS AirMotion.CAirMotionDevice THEN // ok
+      IF Object = OfPlugin THEN
+         // fall down, do nothing, cannot deallocate static global class
+      ELSIF implementor^ IS AirMotion.CAirMotionDevice THEN // ok
          DISPOSE( implementor );
-         RETURN iplugin.lrSuccess;
       ELSE
          RETURN iplugin.lrClassNotFound;
       END;
+      Object := NIL;
+      RETURN iplugin.lrSuccess;
    END DestroyObject;
 
 (*---------------------------------------------------------------------------*)

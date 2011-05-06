@@ -627,6 +627,8 @@ BEGIN
    _TickCounter := 0;
    _WriteSignal.Init( Sync.stEventAutoreset, L"", FALSE );
    _Loader.LoadAuthorizer := ADR( SELF );
+FINALLY
+   Dispose();
 END ABridge;
 
 (*================================================================================*)
