@@ -96,5 +96,11 @@
     <None Include="Test\TBitArrayOps.mod">
       <Filter>Test</Filter>
     </None>
+    <None Include="Source\collection.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\collection.mod">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
