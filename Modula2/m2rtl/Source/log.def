@@ -22,7 +22,8 @@ TYPE
       rsLocalTime,
       rsLevelInfo,
       rsNameInfo,
-      rsInject
+      rsInject,
+      rsSeparateTimeBrackets
    );
    TRStatus = SET OF TRStatusItem;
 
@@ -97,6 +98,7 @@ ABSTRACT CLASS ALogger IMPLEMENTS iLog.ILogger;
       Levels : BOOLEAN; // prints debug level of message, default TRUE
       Names : BOOLEAN; // prints names/prefixes of message, default TRUE
       LocalTime : BOOLEAN; // uses local time instead of UTC
+      SeparateTimeBrackets : BOOLEAN; // uses [ xxx ] format instead of [xxx] one
 
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;

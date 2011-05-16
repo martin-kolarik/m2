@@ -163,6 +163,24 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY SeparateTimeBrackets GET : BOOLEAN;
+   BEGIN
+      RETURN rsSeparateTimeBrackets IN RStatus;
+   END SeparateTimeBrackets;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY SeparateTimeBrackets SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         INCL( RStatus, rsSeparateTimeBrackets );
+      ELSE
+         EXCL( RStatus, rsSeparateTimeBrackets );
+      END;
+   END SeparateTimeBrackets;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    BEGIN
       ASSIGN( SELF.Name, Name );
@@ -597,7 +615,11 @@ CLASS IMPLEMENTATION ALogger;
       ELSE
          dt.SetNowUTC();
       END;
-      dt.ToStringOA( L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT SW );
+      IF rsSeparateTimeBrackets IN RStatus THEN
+         dt.ToStringOA( L"[ yyyy-MM-dd HH:mm:ss.fff ] ", TRUE, TRUE, OUT SW );
+      ELSE
+         dt.ToStringOA( L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT SW );
+      END;
     END;
     IF rsLevelInfo IN RStatus THEN
       leading := TRUE;

@@ -211,11 +211,13 @@ CLASS IMPLEMENTATION CEibSvc;
       
       INIfile.ConfigureBufferedLog( cfg, L"", REF Log.logger()^, OUT line );
       Log.logger()^.LocalTime := TRUE;
+      Log.logger()^.SeparateTimeBrackets := TRUE;
       INIfile.ConfigureLoggerFilter( cfg, L"", REF CommonFilter, OUT line );
       Log.logger()^.Filter := ADR( CommonFilter );
 
       INIfile.ConfigureBufferedLog( cfg, L"datalog", REF DataLogger, OUT line );
       DataLogger.LocalTime := TRUE;
+      DataLogger.SeparateTimeBrackets := TRUE;
       
       HttpLogger.SetUpByLogger( Log.logger()^ );
       INIfile.ConfigureLog( cfg, L"httplog", REF HttpLogger, OUT line );
@@ -226,6 +228,7 @@ CLASS IMPLEMENTATION CEibSvc;
       NetworkLogger.SetUpByLogger( Log.logger()^ );
       INIfile.ConfigureLog( cfg, L"networklog", REF NetworkLogger, OUT line );
       NetworkLogger.LocalTime := TRUE;
+      NetworkLogger.SeparateTimeBrackets := TRUE;
       INIfile.ConfigureLoggerFilter( cfg, L"", REF NetworkFilter, OUT line );
       NetworkLogger.Filter := ADR( NetworkFilter );
       
