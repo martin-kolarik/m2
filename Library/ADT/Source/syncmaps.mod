@@ -1,224 +1,253 @@
 IMPLEMENTATION MODULE syncmaps;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+FROM Debug IMPORT
+   Assertion;
+
+(*--------------------------------------------------------------------------------*)
+
+CONST
+   MESSAGE = L"Unable to lock map";
+
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CPtrSyncMap;
+CLASS CPtrBaseSyncMapIterator( maps.CPtrBaseMapIterator );
+
+   LOCAL PROCEDURE Init( map : TPPtrBaseSyncMap );
+
+   PRIVATE VAR
+      _Map : TPPtrBaseSyncMap := NIL;
+
+END CPtrBaseSyncMapIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CPtrBaseSyncMapIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Init( map : TPPtrBaseSyncMap );
+   BEGIN
+      SUPER.Init( map );
+      _Map := map;
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN FINALLY
+   _Map^.Lock^.UnlockRead();
+END CPtrBaseSyncMapIterator;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CPtrBaseSyncMap;
       
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC READONLY PROPERTY Lock GET : Sync.PRWLOCK;
+   PUBLIC READONLY PROPERTY Lock GET : Sync.TPILockR;
    BEGIN
-      RETURN ADR( LOCK );
+      RETURN ADR( _Lock );
    END Lock;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC INDEX CPtrSyncMap GET ( Index : CARDINAL ) : PTR;
+   PUBLIC INDEX CPtrBaseSyncMap GET ( Index : CARDINAL ) : PTR;
    VAR
-      ptr : PTR;
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      ptr := SUPER[Index];
-      LOCK.UnlockRead();
-      RETURN ptr;
-   END CPtrSyncMap;
+      lock.TakeReadSafe( REF _Lock, MESSAGE );
+      RETURN SUPER[Index];
+   END CPtrBaseSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockWrite( Sync.FORSAFETY );
+      lock.TakeSafe( REF _Lock, MESSAGE );
       SUPER.Add( Key, Data );
-      LOCK.UnlockWrite();
    END Add;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Remove( Key : PTR );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockWrite( Sync.FORSAFETY );
+      lock.TakeSafe( REF _Lock, MESSAGE );
       SUPER.Remove( Key );
-      LOCK.UnlockWrite();
    END Remove;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
    VAR
-      b : BOOLEAN;
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.Contains( Key );
-      LOCK.UnlockRead();
-      RETURN b;
+      lock.TakeReadSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.Contains( Key );
    END Contains;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
-      b : BOOLEAN;
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.Get( Key, OUT Data );
-      LOCK.UnlockRead();
-      RETURN b;
+      lock.TakeReadSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.Get( Key, OUT Data );
    END Get;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
-      b : BOOLEAN;
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.ElementAt( Index, OUT Key, OUT Data );
-      LOCK.UnlockRead();
-      RETURN b;
+      lock.TakeReadSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.ElementAt( Index, OUT Key, OUT Data );
    END ElementAt;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE GetIterator() : maps.TPPtrBaseMapIterator;
+   VAR
+      iterator : POINTER TO CPtrBaseSyncMapIterator := NEW( CPtrBaseSyncMapIterator );
+   BEGIN
+      IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
+         ASSERT( FALSE );
+      END;
+      iterator^.Init( ADR( SELF ));
+      RETURN iterator;
+   END GetIterator;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
-   LOCK.Init( Sync.ltSpin, L"" );
-END CPtrSyncMap;
+   _Lock.Init( Sync.ltSpin, L"" );
+END CPtrBaseSyncMap;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CStringSyncMap;
+CLASS CStringBaseSyncMapIterator( maps.CStringBaseMapIterator );
+
+   LOCAL PROCEDURE Init( map : TPStringBaseSyncMap );
+
+   PRIVATE VAR
+      _Map : TPStringBaseSyncMap := NIL;
+
+END CStringBaseSyncMapIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CStringBaseSyncMapIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Init( map : TPStringBaseSyncMap );
+   BEGIN
+      SUPER.Init( map );
+      _Map := map;
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN FINALLY
+   _Map^.Lock^.UnlockRead();
+END CStringBaseSyncMapIterator;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CStringBaseSyncMap;
       
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC READONLY PROPERTY Lock GET : Sync.PRWLOCK;
+   PUBLIC READONLY PROPERTY Lock GET : Sync.TPILockR;
    BEGIN
-      RETURN ADR( LOCK );
+      RETURN ADR( _Lock );
    END Lock;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC INDEX CStringSyncMap GET ( Index : CARDINAL ) : PTR;
+   PUBLIC INDEX CStringBaseSyncMap GET ( Index : CARDINAL ) : PTR;
    VAR
-      ptr : PTR;
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      ptr := SUPER[Index];
-      LOCK.UnlockRead();
-      RETURN ptr;
-   END CStringSyncMap;
+      lock.TakeReadSafe( REF _Lock, MESSAGE );
+      RETURN SUPER[Index];
+   END CStringBaseSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Add( CONST Key : IString; Data : PTR );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockWrite( Sync.FORSAFETY );
+      lock.TakeSafe( REF _Lock, MESSAGE );
       SUPER.Add( Key, Data );
-      LOCK.UnlockWrite();
    END Add;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Remove( CONST Key : IString );
+   VAR
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockWrite( Sync.FORSAFETY );
+      lock.TakeSafe( REF _Lock, MESSAGE );
       SUPER.Remove( Key );
-      LOCK.UnlockWrite();
    END Remove;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
    VAR
-      b : BOOLEAN;
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.Contains( Key );
-      LOCK.UnlockRead();
-      RETURN b;
+      lock.TakeReadSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.Contains( Key );
    END Contains;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
    VAR
-      b : BOOLEAN;
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.Get( Key, OUT Data );
-      LOCK.UnlockRead();
-      RETURN b;
+      lock.TakeReadSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.Get( Key, OUT Data );
    END Get;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN;
    VAR
-      b : BOOLEAN;
+      lock : Sync.AutoLock;
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.ElementAt( Index, OUT Key, OUT Data );
-      LOCK.UnlockRead();
-      RETURN b;
+      lock.TakeReadSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.ElementAt( Index, OUT Key, OUT Data );
    END ElementAt;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; Data : PTR );
-   BEGIN
-      LOCK.LockWrite( Sync.FORSAFETY );
-      SUPER.AddOA( Key, Data );
-      LOCK.UnlockWrite();
-   END AddOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
-   BEGIN
-      LOCK.LockWrite( Sync.FORSAFETY );
-      SUPER.RemoveOA( Key );
-      LOCK.UnlockWrite();
-   END RemoveOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE GetIterator() : maps.TPStringBaseMapIterator;
    VAR
-      b : BOOLEAN;
+      iterator : POINTER TO CStringBaseSyncMapIterator := NEW( CStringBaseSyncMapIterator );
    BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.ContainsOA( Key );
-      LOCK.UnlockRead();
-      RETURN b;
-   END ContainsOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN;
-   VAR
-      b : BOOLEAN;
-   BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.GetOA( Key, OUT Data );
-      LOCK.UnlockRead();
-      RETURN b;
-   END GetOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN; // similar as []
-   VAR
-      b : BOOLEAN;
-   BEGIN
-      LOCK.LockRead( Sync.FORSAFETY );
-      b := SUPER.ElementAtOA( Index, OUT Key, OUT Data );
-      LOCK.UnlockRead();
-      RETURN b;
-   END ElementAtOA;
+      IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
+         ASSERT( FALSE );
+      END;
+      iterator^.Init( ADR( SELF ));
+      RETURN iterator;
+   END GetIterator;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   LOCK.Init( Sync.ltSpin, L"" );
-END CStringSyncMap;
+   _Lock.Init( Sync.ltSpin, L"" );
+END CStringBaseSyncMap;
 
 (*================================================================================*)
 

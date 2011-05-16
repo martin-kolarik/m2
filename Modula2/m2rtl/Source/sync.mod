@@ -735,7 +735,7 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
       IF _OwnedLock = NIL THEN
          ASSERTLOG( FALSE );
          RETURN arCannotStart;
-      ELSIF _OwnedLock^ INHERITS IRLock THEN
+      ELSIF _OwnedLock^ INHERITS ILockR THEN
          _Read := TRUE;
          RETURN PRWLOCK( _OwnedLock )^.LockRead( Timeout );
       ELSE
@@ -823,9 +823,9 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Detach() : PILock;
+   PUBLIC PROCEDURE Detach() : TPILock;
    VAR
-      lock : PILock := _OwnedLock;
+      lock : TPILock := _OwnedLock;
    BEGIN
       _OwnedLock := NIL;
       RETURN lock;

@@ -64,7 +64,7 @@ PROCEDURE SpinLockLeave( REF Data : PTR );
 // generic interfaces
 
 TYPE
-   PILock = POINTER TO ILock;
+   TPILock = POINTER TO ILock;
 
 INTERFACE ILock; // for any two way lock, ILock means stronger locking
    PROCEDURE Lock() : TAsyncResult;
@@ -75,12 +75,12 @@ END ILock;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
-   PIRLock = POINTER TO IRLock;
+   TPILockR = POINTER TO ILockR;
 
-INTERFACE IRLock;
+INTERFACE ILockR( ILock ); // enhances ILock for weaker locking
    PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
    PROCEDURE UnlockRead();
-END IRLock;
+END ILockR;
 
 (*================================================================================*)
 // locking
@@ -209,14 +209,14 @@ PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
 TYPE
    PRWLOCK = POINTER TO RWLOCK;
 
-CLASS RWLOCK IMPLEMENTS ILock, IRLock; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
+CLASS RWLOCK IMPLEMENTS ILockR; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
 
    // ILock, locks for writing
    PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    PUBLIC VIRTUAL PROCEDURE Unlock();
 
-   // IRLock, locks for reading
+   // ILockR, locks for reading
    PUBLIC VIRTUAL PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    PUBLIC VIRTUAL PROCEDURE UnlockRead();
 
@@ -243,14 +243,14 @@ END RWLOCK;
 // continuation of locking
 // automatic lock
 
-CLASS AutoLock IMPLEMENTS ILock, IRLock; // gets outer ILock, locks it inside Take, unlocks it inside FINALLY
+CLASS AutoLock IMPLEMENTS ILockR; // gets outer ILock, locks it inside Take, unlocks it inside FINALLY
 
    // ILock, locks for writing
    PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    PUBLIC VIRTUAL PROCEDURE Unlock();
 
-   // IRLock, locks for reading
+   // ILockR, locks for reading
    PUBLIC VIRTUAL PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    PUBLIC VIRTUAL PROCEDURE UnlockRead();
 
@@ -262,12 +262,12 @@ CLASS AutoLock IMPLEMENTS ILock, IRLock; // gets outer ILock, locks it inside Ta
    PUBLIC PROCEDURE TakeReadSafe( REF LockToOwn : ILock; CONST FailureDescription : ARRAY OF WCHAR ) : Sync.TAsyncResult; // effective for RWLOCK, locks for READ, uses FORSAFETY
 
    PUBLIC PROCEDURE Attach( REF LockToOwn : ILock ); // does not lock
-   PUBLIC PROCEDURE Detach() : PILock; // does not unlock
+   PUBLIC PROCEDURE Detach() : TPILock; // does not unlock
 
    PUBLIC FINALLY AutoLock();
 
    PRIVATE VAR
-      _OwnedLock : PILock;
+      _OwnedLock : TPILock;
       _Read : BOOLEAN;
 
    PRIVATE OPERATOR NEW( size : CARDINAL ) : ADDRESS; // the class cannot exist on the heap
