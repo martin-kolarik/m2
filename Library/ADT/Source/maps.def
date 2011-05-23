@@ -162,6 +162,37 @@ END CStringBaseMapIterator;
 //---------------------------------------------------------------------------
 
 TYPE
+   TPStringPtrMap = POINTER TO CStringPtrMap;
+   TPStringPtrMapIterator = POINTER TO CStringPtrMapIterator;
+
+CLASS CStringPtrMap( avltree.CAVLTree );
+
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+
+   PUBLIC PROCEDURE Add( CONST Key : IString; Data : PTR );
+   PUBLIC PROCEDURE Remove( CONST Key : IString );
+   PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPStringPtrMapIterator;
+   #restore
+
+END CStringPtrMap;
+
+CLASS CStringPtrMapIterator( avltree.CAVLTreeIterator );
+
+   PUBLIC READONLY PROPERTY
+      Key : TPString;
+   PUBLIC PROPERTY
+      Data : PTR;
+
+END CStringPtrMapIterator;
+
+//---------------------------------------------------------------------------
+
+TYPE
    TPStringStringMap = POINTER TO CStringStringMap;
    TPStringStringMapIterator = POINTER TO CStringStringMapIterator;
 

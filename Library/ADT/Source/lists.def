@@ -1,5 +1,7 @@
 DEFINITION MODULE lists;
 
+(*---------------------------------------------------------------------------*)
+
 IMPORT
    list;
   
@@ -11,90 +13,92 @@ FROM StorageO IMPORT
 
 #save, option( dll_export => on )
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
 
 TYPE
-  TPIntegerList = POINTER TO CIntegerList;
+   TPIntegerBaseList = POINTER TO CIntegerBaseList;
+   TPIntegerBaseListIterator = POINTER TO CIntegerBaseListIterator;
 
-CLASS CIntegerList( list.CListWState );
-  PUBLIC READONLY PROPERTY
-    Current : INTEGER;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
-  PUBLIC READONLY
-    INDEX( Index : INTEGER ) : INTEGER; // SLOW, O(n)!!
+CLASS CIntegerList( list.CList );
 
-  // map interface
-  #save, option( leak_info => on )
-  PUBLIC PROCEDURE Add( Value : INTEGER; Data : PTR );
-  #restore
-  PUBLIC PROCEDURE Contains( Value : INTEGER ): BOOLEAN;
-  PUBLIC PROCEDURE Get( Value : INTEGER; OUT Data : PTR ): BOOLEAN;
-  PUBLIC PROCEDURE Remove( Value : INTEGER ); // removes all occurences
-  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC READONLY INDEX( Index : INTEGER ) : INTEGER; // SLOW, O(n)!!
 
-  // list interface
-  PUBLIC PROCEDURE InsertFirst( Value : INTEGER; Data : PTR );
-  PUBLIC PROCEDURE InsertBefore( Before, Value : INTEGER; Data : PTR );
-  PUBLIC PROCEDURE Append( Value : INTEGER; Data : PTR );
+   // list interface
+   PUBLIC PROCEDURE Contains( Value : INTEGER ): BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Add( Value : INTEGER; Data : PTR );
+   #restore
+   PUBLIC PROCEDURE Get( Value : INTEGER; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE Remove( Value : INTEGER ); // removes all occurences
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
 
-  PUBLIC PROCEDURE GetFirst( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE GetLast( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE InsertFirst( Value : INTEGER; Data : PTR );
+   PUBLIC PROCEDURE InsertBefore( Before, Value : INTEGER; Data : PTR );
+   #restore
 
-  PUBLIC PROCEDURE PrevOf( Value : INTEGER; OUT Previous : INTEGER; OUT Data : PTR ) : BOOLEAN; // SLOW
-  PUBLIC PROCEDURE NextOf( Value : INTEGER; OUT Next : INTEGER; OUT Data : PTR ) : BOOLEAN; // SLOW
-  PUBLIC PROCEDURE IndexOf( Value : INTEGER ) : INTEGER; // SLOW
-  
-  PRIVATE PROCEDURE Lookup( Value : INTEGER; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPIntegerBaseListIterator;
+   #restore
 
-  // queue interface
-  #save, option( leak_info => on )
-  PUBLIC PROCEDURE Enqueue( Value : INTEGER; Data : PTR );
-  #restore
-  PUBLIC PROCEDURE Dequeue( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; 
+   // queue interface
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Enqueue( Value : INTEGER; Data : PTR );
+   #restore
+   PUBLIC PROCEDURE Dequeue( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; 
+
+   // SELF
+   PRIVATE PROCEDURE Lookup( Value : INTEGER; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+
 END CIntegerList;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+CLASS CIntegerBaseListIterator( list.CListIterator );
+
+   PUBLIC READONLY PROPERTY
+      Key : INTEGER;
+   PUBLIC PROPERTY
+      Data : baseobject.PIBASE;
+
+END CIntegerBaseListIterator;
+
+(*==========================================================================*)
 
 TYPE
   TPPtrList = POINTER TO CPtrList;
 
-CLASS CPtrList( list.CListWState );
-  PUBLIC READONLY PROPERTY
-    Current : PTR;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
-  PUBLIC READONLY
-    INDEX( Index : INTEGER ) : PTR; // SLOW, O(n)!!
+CLASS CPtrList( list.CList );
 
-  // map interface
-  #save, option( leak_info => on )
-  PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
-  #restore
-  PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
-  PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ): BOOLEAN;
-  PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
-  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC READONLY INDEX( Index : INTEGER ) : PTR; // SLOW, O(n)!!
 
-  // list interface
-  PUBLIC PROCEDURE InsertFirst( Value : PTR; Data : PTR );
-  PUBLIC PROCEDURE InsertBefore( Before, Value : PTR; Data : PTR );
-  PUBLIC PROCEDURE Append( Value : PTR; Data : PTR );
+   // list interface
+   PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
+   #restore
+   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
-  PUBLIC PROCEDURE GetFirst( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE GetLast( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE InsertFirst( Value : PTR; Data : PTR );
+   PUBLIC PROCEDURE InsertBefore( Before, Value : PTR; Data : PTR );
+   #restore
 
-  PUBLIC PROCEDURE PrevOf( Value : PTR; OUT Previous : PTR; OUT Data : PTR ) : BOOLEAN; // SLOW
-  PUBLIC PROCEDURE NextOf( Value : PTR; OUT Next : PTR; OUT Data : PTR ) : BOOLEAN; // SLOW
-  PUBLIC PROCEDURE IndexOf( Value : PTR ) : INTEGER; // SLOW
-  
-  PRIVATE PROCEDURE Lookup( Value : PTR; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPPtrBaseListIterator;
+   #restore
 
-  // queue interface
-  #save, option( leak_info => on )
-  PUBLIC PROCEDURE Enqueue( Value : PTR; Data : PTR );
-  #restore
-  PUBLIC PROCEDURE Dequeue( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; 
+   // queue interface
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Enqueue( Value : PTR; Data : PTR );
+   #restore
+   PUBLIC PROCEDURE Dequeue( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; 
+
+   // SELF
+   PRIVATE PROCEDURE Lookup( Value : PTR; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+
 END CPtrList;
 
 //---------------------------------------------------------------------------
@@ -102,11 +106,8 @@ END CPtrList;
 TYPE
   TPStringList = POINTER TO CStringList;
 
-CLASS CStringList( list.CListWState );
-  PUBLIC READONLY PROPERTY
-    Current : POINTER TO IString;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
+CLASS CStringList( list.CList );
+
   PUBLIC READONLY
     INDEX( Index : INTEGER ) : POINTER TO IString; // SLOW, O(n)!!
 
@@ -155,11 +156,8 @@ END CStringList;
 TYPE
   TPStringStringList = POINTER TO CStringStringList;
 
-CLASS CStringStringList( list.CListWState );
-  PUBLIC READONLY PROPERTY
-    Current : POINTER TO IString;
-  PUBLIC PROPERTY
-    CurrentData : POINTER TO IString;
+CLASS CStringStringList( list.CList );
+
   PUBLIC READONLY
     INDEX( Index : INTEGER ) : POINTER TO IString; // SLOW, O(n)!!
 
@@ -216,13 +214,11 @@ TYPE
 TYPE
   TPBufferList = POINTER TO CBufferList;
 
-CLASS CBufferList( list.CListWState );
+CLASS CBufferList( list.CList );
+
    PUBLIC VAR
       ItemType : TBufferListItemType := blitDynamic;
-   PUBLIC READONLY PROPERTY
-      Current : POINTER TO AMemoryBuffer;
-   PUBLIC PROPERTY
-      CurrentData : PTR;
+
    PUBLIC READONLY
       INDEX( Index : INTEGER ) : POINTER TO AMemoryBuffer; // SLOW, O(n)!!
 

@@ -7,27 +7,34 @@ DEFINITION MODULE collection;
 // list interface MUST have:
 
 // INDEX
+// p Count
+// p Empty
 // InsertFirst
 // InsertBefore
-// Append
+// Add
 // Contains
 // Remove
-// Delete
-// GetFirst
-// GetLast
-// PrevOf
-// NextOf
-// IndexOf
+// ElementAt
 
 (*---------------------------------------------------------------------------*)
 // map interface MUST have:
 
 // INDEX
+// p Count
+// p Empty
 // Add
-// Remove
 // Contains
 // Get
+// Remove
 // ElementAt
+
+(*---------------------------------------------------------------------------*)
+// queue interface MUST have:
+
+// p Count
+// p Empty
+// Enqueue
+// Dequeue
 
 (*===========================================================================*)
 
@@ -41,6 +48,11 @@ IMPORT
 TYPE
    TPIterator = POINTER TO IIterator;
    TPCollection = POINTER TO ICollection;
+
+   TDirection = (
+      dirForward,
+      dirBackward
+   );
 
 (*---------------------------------------------------------------------------*)
 
@@ -68,7 +80,7 @@ INTERFACE ICollection;
       Sequence : CARDINAL; // the key for detecting iterator invalidity
 
    #save, option( leak_info => on )
-   PROCEDURE colGetIterator() : TPIterator;
+   PUBLIC PROCEDURE colGetIterator( Direction : TDirection ) : TPIterator;
    #restore
 
    // required for manipulating content of the collection
@@ -80,8 +92,11 @@ INTERFACE ICollection;
    // PROCEDURE colElementAt( index : CARDINAL; OUT object : baseobject.PBASE ) : baseobject.PBASE;
 
    // required for iterating
-   PROCEDURE colGetFirst( OUT object : baseobject.PBASE ) : BOOLEAN;
-   PROCEDURE colNextOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE colGetFirst( OUT object : baseobject.PBASE ) : BOOLEAN; // meant to be called by iterator implementation, which is usually in the same module (as the collection returns it as a typed pointer)
+   PUBLIC PROCEDURE colNextOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+
+   PUBLIC PROCEDURE colGetLast( OUT object : baseobject.PBASE ) : BOOLEAN; // meant to be called by iterator implementation, which is usually in the same module (as the collection returns it as a typed pointer)
+   PUBLIC PROCEDURE colPrevOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
 
 END ICollection;
 
@@ -102,10 +117,11 @@ CLASS CIterator( baseobject.CDisposable ) IMPLEMENTS IIterator;
       OfCollection : TPCollection;
 
    // SELF
-   PUBLIC PROCEDURE Init( OfCollection : TPCollection ); // the collection must initialize the iterator with self
+   PUBLIC PROCEDURE Init( OfCollection : TPCollection; Direction : TDirection ); // the collection must initialize the iterator with self
 
    PRIVATE VAR
       _OfCollection : TPCollection := NIL;
+      _Direction : TDirection := dirForward;
       _StartSequence : CARDINAL := 0;
       _Current : baseobject.PBASE := NIL;
       _Exhausted : BOOLEAN := FALSE;

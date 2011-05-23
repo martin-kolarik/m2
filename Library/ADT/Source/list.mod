@@ -1,35 +1,35 @@
 IMPLEMENTATION MODULE list;
 
-FROM Storage IMPORT
-  ALLOCATE, DEALLOCATE;
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
+IMPORT
+   Sync;
 
 (*===========================================================================*)
 // Bidirectional list
 
 CLASS IMPLEMENTATION CListElem;
 
-  PUBLIC PROPERTY InList GET : BOOLEAN;
-  BEGIN
-    RETURN PNext <> NIL;
-  END InList;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY PrevOf GET : TPListElem;
-  BEGIN
-    RETURN PPrev;
-  END PrevOf;
+   PUBLIC PROPERTY PrevOf GET : TPListElem;
+   BEGIN
+      RETURN PPrev;
+   END PrevOf;
 
-  PUBLIC PROPERTY NextOf GET : TPListElem;
-  BEGIN
-    RETURN PNext;
-  END NextOf;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL FINALLY CListElem();
-  BEGIN
-  END CListElem;
+   PUBLIC PROPERTY NextOf GET : TPListElem;
+   BEGIN
+      RETURN PNext;
+   END NextOf;
+
+(*---------------------------------------------------------------------------*)
 
 BEGIN
-  PPrev := NIL;
-  PNext := NIL;
+   PPrev := NIL;
+   PNext := NIL;
 END CListElem;
 
 (*===========================================================================*)
@@ -38,209 +38,215 @@ CLASS IMPLEMENTATION CList;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY CList.Count GET : CARDINAL;
-  BEGIN
-    RETURN _Count;
-  END CList.Count;
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   VAR
+      PE : TPListElem;
+   BEGIN
+      WHILE PFirst <> NIL DO
+         PE := PFirst;
+         PFirst := PFirst^.PNext;
+         DISPOSE( PE );
+      END; // WHILE
+      Clear();
+   END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY CList.Empty GET : BOOLEAN;
-  BEGIN
-    RETURN PFirst = NIL;
-  END CList.Empty;
+   PUBLIC PROPERTY CList.Count GET : CARDINAL;
+   BEGIN
+      RETURN _Count;
+   END CList.Count;
 
 (*---------------------------------------------------------------------------*)
 
-  INDEX CList GET( Index : INTEGER ) : TPListElem;
-  VAR
-    PE : TPListElem;
-  BEGIN
-    IF ( Index < 0 ) OR ( Index >= INTEGER( _Count )) THEN
-      RETURN NIL;
-    END;
-    PE := PFirst;
-    WHILE Index > 0 DO
-      PE := PE^.PNext;
-      DEC( Index );
-    END;
-    RETURN PE;
-  END CList;
+   PUBLIC PROPERTY CList.Empty GET : BOOLEAN;
+   BEGIN
+      RETURN PFirst = NIL;
+   END CList.Empty;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE InsertFirst( PElem : TPListElem );
-  BEGIN
-    PElem^.PPrev := NIL;
-    IF PFirst = NIL THEN
-      PLast := PElem;
-    ELSE
-      PFirst^.PPrev := PElem;
-    END;
-    PElem^.PNext := PFirst;
-    PFirst := PElem;
-    INC( _Count );
-  END InsertFirst;
+   PUBLIC PROPERTY CList.Sequence GET : CARDINAL;
+   BEGIN
+      RETURN Sync.IGet( REF _Sequence );
+   END CList.Sequence;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE InsertBefore( PBefore, PElem : TPListElem );
-  BEGIN
-    IF CheckOwning AND NOT Contains( PBefore ) THEN
-      RETURN;
-    ELSIF PBefore = NIL THEN
-      InsertFirst( PElem );
-    ELSE
-      PElem^.PPrev := PBefore^.PPrev;
-      IF PElem^.PPrev = NIL THEN
-        PFirst := PElem;
+   PUBLIC VIRTUAL PROCEDURE colGetIterator( direction : collection.TDirection ) : collection.TPIterator;
+   BEGIN
+      RETURN GetIterator( direction );
+   END colGetIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE colGetFirst( OUT object : baseobject.PBASE ) : BOOLEAN;
+   BEGIN
+      IF PFirst = NIL THEN
+         RETURN FALSE;
       ELSE
-        PElem^.PPrev^.PNext := PElem;
+         object := PFirst;
+         RETURN TRUE;
       END;
-      PElem^.PNext := PBefore;
-      PBefore^.PPrev := PElem;
+   END colGetFirst;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE colNextOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+   BEGIN
+      ASSERTLOG( of^ IS LOOSE CListElem, L"Unexpected class used" );
+      IF TPListElem( of )^.PNext = NIL THEN
+         RETURN FALSE;
+      ELSE
+         object := TPListElem( of )^.PNext;
+         RETURN TRUE;
+      END;
+   END colNextOf;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE colGetLast( OUT object : baseobject.PBASE ) : BOOLEAN;
+   BEGIN
+      IF PLast = NIL THEN
+         RETURN FALSE;
+      ELSE
+         object := PLast;
+         RETURN TRUE;
+      END;
+   END colGetLast;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE colPrevOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+   BEGIN
+      ASSERTLOG( of^ IS LOOSE CListElem, L"Unexpected class used" );
+      IF TPListElem( of )^.PPrev = NIL THEN
+         RETURN FALSE;
+      ELSE
+         object := TPListElem( of )^.PPrev;
+         RETURN TRUE;
+      END;
+   END colPrevOf;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Contains( CONST PElem : TPListElem ): BOOLEAN;
+   VAR
+      PE : TPListElem;
+   BEGIN
+      PE := PFirst;
+      WHILE ( PE <> PElem ) AND ( PE <> NIL ) DO
+         PE := PE^.PNext;
+      END;
+      RETURN PE <> NIL;
+   END Contains;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Add( PElem : TPListElem );
+   BEGIN
+      Sync.IInc( REF _Sequence );
+      PElem^.PNext := NIL;
+      IF PFirst = NIL THEN
+         PFirst := PElem;
+         PElem^.PPrev := NIL;
+      ELSE
+         PLast^.PNext := PElem;
+         PElem^.PPrev := PLast;
+      END;
+      PLast := PElem;
       INC( _Count );
-    END;
-  END InsertBefore;
+   END Add;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Append( PElem : TPListElem );
-  BEGIN
-    PElem^.PNext := NIL;
-    IF PFirst = NIL THEN
-      PFirst := PElem;
-      PElem^.PPrev := NIL;
-    ELSE
-      PLast^.PNext := PElem;
-      PElem^.PPrev := PLast;
-    END;
-    PLast := PElem;
-    INC( _Count );
-  END Append;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE Contains( CONST PElem : TPListElem ): BOOLEAN;
-  VAR
-    PE : TPListElem;
-  BEGIN
-    PE := PFirst;
-    WHILE ( PE <> PElem ) AND ( PE <> NIL ) DO
-      PE := PE^.PNext;
-    END;
-    RETURN PE <> NIL;
-  END Contains;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE Remove( PElem : TPListElem );
-  BEGIN
-    IF CheckOwning AND NOT Contains( PElem ) THEN
-      RETURN;
-    END;
-    IF PElem^.PPrev = NIL THEN
-      PFirst := PElem^.PNext;
-      IF PFirst <> NIL THEN
-        PFirst^.PPrev := NIL;
+   PUBLIC PROCEDURE Remove( PElem : TPListElem );
+   BEGIN
+      Sync.IInc( REF _Sequence );
+      IF PElem^.PPrev = NIL THEN
+         PFirst := PElem^.PNext;
+         IF PFirst <> NIL THEN
+            PFirst^.PPrev := NIL;
+         END;
+      ELSE
+         PElem^.PPrev^.PNext := PElem^.PNext;
       END;
-    ELSE
-      PElem^.PPrev^.PNext := PElem^.PNext;
-    END;
-    IF PElem^.PNext = NIL THEN
-      PLast := PElem^.PPrev;
-      IF PLast <> NIL THEN
-        PLast^.PNext := NIL;
+      IF PElem^.PNext = NIL THEN
+         PLast := PElem^.PPrev;
+         IF PLast <> NIL THEN
+            PLast^.PNext := NIL;
+         END;
+      ELSE
+         PElem^.PNext^.PPrev := PElem^.PPrev;
       END;
-    ELSE
-      PElem^.PNext^.PPrev := PElem^.PPrev;
-    END;
-    DEC( _Count );
-  END Remove;
+      DEC( _Count );
+   END Remove;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Delete( PElem : TPListElem );
-  BEGIN
-    Remove( PElem );
-    DISPOSE( PElem );
-  END Delete;
+   PUBLIC PROCEDURE Delete( PElem : TPListElem );
+   BEGIN
+      Remove( PElem );
+      DISPOSE( PElem );
+   END Delete;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetFirst( OUT PElem : TPListElem ) : BOOLEAN;
-  BEGIN
-    IF PFirst = NIL THEN
-      RETURN FALSE;
-    ELSE
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT PElem : TPListElem ) : BOOLEAN;
+   BEGIN
+      IF Index >= _Count THEN
+         RETURN FALSE;
+      END;
       PElem := PFirst;
-      RETURN TRUE;
-    END;
-  END GetFirst;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE GetLast( OUT PElem : TPListElem ) : BOOLEAN;
-  BEGIN
-    IF PLast = NIL THEN
-      RETURN FALSE;
-    ELSE
-      PElem := PLast;
-      RETURN TRUE;
-    END;
-  END GetLast;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE PrevOf( CONST Element : TPListElem; OUT Previous : TPListElem ) : BOOLEAN;
-  BEGIN
-    IF CheckOwning AND NOT Contains( Element ) THEN
-      RETURN FALSE;
-    ELSIF Element^.PPrev = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Previous := Element^.PPrev;
-      RETURN TRUE;
-    END;
-  END PrevOf;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE NextOf( CONST Element : TPListElem; OUT Next : TPListElem ): BOOLEAN;
-  BEGIN
-    IF CheckOwning AND NOT Contains( Element ) THEN
-      RETURN FALSE;
-    ELSIF Element^.PNext = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Next := Element^.PNext;
-      RETURN TRUE;
-    END;
-  END NextOf;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE IndexOf( CONST Element : TPListElem ): INTEGER;
-  VAR
-    I : INTEGER := 0;
-    PE : TPListElem;
-  BEGIN
-    PE := PFirst;
-    WHILE PE <> NIL DO
-      IF PE = Element THEN
-        RETURN I;
+      WHILE Index > 0 DO
+         PElem := PElem^.PNext;
+         DEC( Index );
       END;
-      PE := PE^.PNext;
-      INC( I );
-    END;
-    RETURN -1;
-  END IndexOf;
+      RETURN TRUE;
+   END ElementAt;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE InsertFirst( PElem : TPListElem );
+   BEGIN
+      Sync.IInc( REF _Sequence );
+      PElem^.PPrev := NIL;
+      IF PFirst = NIL THEN
+         PLast := PElem;
+      ELSE
+         PFirst^.PPrev := PElem;
+      END;
+      PElem^.PNext := PFirst;
+      PFirst := PElem;
+      INC( _Count );
+   END InsertFirst;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE InsertBefore( PBefore, PElem : TPListElem );
+   BEGIN
+      IF PBefore = NIL THEN
+         InsertFirst( PElem );
+      ELSE
+         Sync.IInc( REF _Sequence );
+         PElem^.PPrev := PBefore^.PPrev;
+         IF PElem^.PPrev = NIL THEN
+            PFirst := PElem;
+         ELSE
+            PElem^.PPrev^.PNext := PElem;
+         END;
+         PElem^.PNext := PBefore;
+         PBefore^.PPrev := PElem;
+         INC( _Count );
+      END;
+   END InsertBefore;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE AppendList( REF List : CList );
    BEGIN
       IF List.PFirst <> NIL THEN
+         Sync.IInc( REF _Sequence );
          IF PFirst = NIL THEN
             PFirst := List.PFirst;
          ELSE
@@ -255,112 +261,79 @@ CLASS IMPLEMENTATION CList;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Clear();
-  BEGIN
-    PFirst := NIL;
-    PLast := NIL;
-    _Count := 0;
-  END Clear;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC VIRTUAL PROCEDURE Dispose();
-  VAR
-    PE : TPListElem;
-  BEGIN
-    WHILE PFirst <> NIL DO
+   PUBLIC PROCEDURE IndexOf( CONST Element : TPListElem ): INTEGER;
+   VAR
+      I : CARDINAL := 0;
+      PE : TPListElem;
+   BEGIN
       PE := PFirst;
-      PFirst := PFirst^.PNext;
-      DISPOSE( PE );
-    END; // WHILE
-    Clear();
-  END Dispose;
+      WHILE PE <> NIL DO
+         IF PE = Element THEN
+            RETURN I;
+         END;
+         PE := PE^.PNext;
+         INC( I );
+      END;
+      RETURN -1;
+   END IndexOf;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Enqueue( PElem : TPListElem );
-  BEGIN
-    Append( PElem );
-  END Enqueue;
+   PUBLIC PROCEDURE Clear();
+   BEGIN
+      PFirst := NIL;
+      PLast := NIL;
+      _Count := 0;
+   END Clear;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Dequeue( OUT PElem : TPListElem ) : BOOLEAN; 
-  BEGIN
-    IF NOT GetFirst( OUT PElem ) THEN
-      RETURN FALSE;
-    END;
-    Remove( PElem );
-    RETURN TRUE;
-  END Dequeue;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPListIterator;
+   VAR
+      iterator : TPListIterator := NEW( CListIterator );
+   BEGIN
+      iterator^.Init( ADR( SELF ), Direction );
+      RETURN iterator;
+   END GetIterator;
 
 (*---------------------------------------------------------------------------*)
 
-BEGIN
-  PFirst := NIL;
-  PLast := NIL;
-  _Count := 0;
-  CheckOwning := FALSE;
-FINALLY
-  Dispose();
+   PUBLIC PROCEDURE Enqueue( PElem : TPListElem );
+   BEGIN
+      Add( PElem );
+   END Enqueue;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Dequeue( OUT PElem : TPListElem ) : BOOLEAN; 
+   BEGIN
+      IF NOT colGetFirst( OUT PElem ) THEN
+         RETURN FALSE;
+      END;
+      Remove( PElem );
+      RETURN TRUE;
+   END Dequeue;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN FINALLY
+   Dispose();
 END CList;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CListWState;
+CLASS IMPLEMENTATION CListIterator;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC READONLY PROPERTY CListWState.Current GET : TPListElem;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN TPListElem( _Current );
-    END;
-  END CListWState.Current;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE Reset();
-  BEGIN
-    _Current := NIL;
-  END Reset;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE MoveNext() : BOOLEAN;
-  BEGIN
-    IF _Current = NIL THEN
-      IF GetFirst( OUT _Current ) THEN
-        RETURN TRUE;
-      END;
-    ELSIF _Current <> -1 THEN
-      IF NextOf( _Current, OUT _Current ) THEN
-        RETURN TRUE;
-      END;
-    END;
-    _Current := -1;
-    RETURN FALSE;
-  END MoveNext;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE SetNextOf( CONST Element : TPListElem ) : BOOLEAN;
+   PUBLIC PROPERTY Current GET : TPListElem;
    BEGIN
-      IF NextOf( Element, OUT _Current ) THEN
-         RETURN TRUE;
-      ELSE
-         _Current := -1;
-         RETURN FALSE;
-      END;
-   END SetNextOf;
+      RETURN TPListElem( colCurrent );
+   END Current;
 
 (*---------------------------------------------------------------------------*)
 
-BEGIN
-  _Current := NIL;
-END CListWState;
+END CListIterator;
 
 (*===========================================================================*)
 

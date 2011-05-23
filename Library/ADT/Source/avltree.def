@@ -107,10 +107,12 @@ CLASS CAVLTree( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
       Sequence : CARDINAL;
 
    #save, option( leak_info => on )
-   PUBLIC VIRTUAL PROCEDURE colGetIterator() : collection.TPIterator;
+   PUBLIC VIRTUAL PROCEDURE colGetIterator( Direction : collection.TDirection ) : collection.TPIterator;
    #restore
    PUBLIC VIRTUAL PROCEDURE colGetFirst( OUT object : baseobject.PBASE ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE colNextOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE colGetLast( OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE colPrevOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
 
    // SELF
    PUBLIC FINAL PROPERTY
@@ -123,15 +125,15 @@ CLASS CAVLTree( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
    PUBLIC PROCEDURE Delete( keyIndex : CARDINAL; CONST Key : TPAVLTreeKey ) : BOOLEAN;
    PUBLIC PROCEDURE ElementAt( keyIndex : CARDINAL; Index : CARDINAL; OUT Element : TPAVLTreeElem ) : BOOLEAN;
 
-   PUBLIC PROCEDURE GetFirst( keyIndex : CARDINAL; OUT First : TPAVLTreeElem ) : BOOLEAN;
-   PUBLIC PROCEDURE GetLast( keyIndex : CARDINAL; OUT Last : TPAVLTreeElem ) : BOOLEAN;
+   PUBLIC PROCEDURE GetFirst( keyIndex : CARDINAL; OUT First : TPAVLTreeElem ) : BOOLEAN; // for keyIndex = 0 rather use iterator
+   PUBLIC PROCEDURE GetLast( keyIndex : CARDINAL; OUT Last : TPAVLTreeElem ) : BOOLEAN; // for keyIndex = 0 rather use iterator
 
-   PUBLIC PROCEDURE PrevOf( keyIndex : CARDINAL; CONST Element : TPAVLTreeElem; OUT Previous : TPAVLTreeElem ) : BOOLEAN;
-   PUBLIC PROCEDURE NextOf( keyIndex : CARDINAL; CONST Element : TPAVLTreeElem; OUT Next : TPAVLTreeElem ) : BOOLEAN;
+   PUBLIC PROCEDURE PrevOf( keyIndex : CARDINAL; CONST Element : TPAVLTreeElem; OUT Previous : TPAVLTreeElem ) : BOOLEAN; // for keyIndex = 0 rather use iterator
+   PUBLIC PROCEDURE NextOf( keyIndex : CARDINAL; CONST Element : TPAVLTreeElem; OUT Next : TPAVLTreeElem ) : BOOLEAN; // for keyIndex = 0 rather use iterator
    PUBLIC PROCEDURE IndexOf( keyIndex : CARDINAL; CONST Key : TPAVLTreeKey ) : CARDINAL;
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator() : TPAVLTreeIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPAVLTreeIterator;
    #restore
 
    // private

@@ -6,6 +6,9 @@ FROM Storage IMPORT
 FROM Debug IMPORT
    Assertion;
 
+IMPORT
+   collection;
+
 (*--------------------------------------------------------------------------------*)
 
 CONST
@@ -15,7 +18,7 @@ CONST
 
 CLASS CPtrBaseSyncMapIterator( maps.CPtrBaseMapIterator );
 
-   LOCAL PROCEDURE Init( map : TPPtrBaseSyncMap );
+   LOCAL PROCEDURE Init( map : TPPtrBaseSyncMap; direction : collection.TDirection );
 
    PRIVATE VAR
       _Map : TPPtrBaseSyncMap := NIL;
@@ -28,9 +31,9 @@ CLASS IMPLEMENTATION CPtrBaseSyncMapIterator;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( map : TPPtrBaseSyncMap );
+   LOCAL PROCEDURE Init( map : TPPtrBaseSyncMap; direction : collection.TDirection );
    BEGIN
-      SUPER.Init( map );
+      SUPER.Init( map, direction );
       _Map := map;
    END Init;
 
@@ -120,7 +123,7 @@ CLASS IMPLEMENTATION CPtrBaseSyncMap;
       IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
          ASSERT( FALSE );
       END;
-      iterator^.Init( ADR( SELF ));
+      iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END GetIterator;
 
@@ -134,7 +137,7 @@ END CPtrBaseSyncMap;
 
 CLASS CStringBaseSyncMapIterator( maps.CStringBaseMapIterator );
 
-   LOCAL PROCEDURE Init( map : TPStringBaseSyncMap );
+   LOCAL PROCEDURE Init( map : TPStringBaseSyncMap; direction : collection.TDirection );
 
    PRIVATE VAR
       _Map : TPStringBaseSyncMap := NIL;
@@ -147,9 +150,9 @@ CLASS IMPLEMENTATION CStringBaseSyncMapIterator;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( map : TPStringBaseSyncMap );
+   LOCAL PROCEDURE Init( map : TPStringBaseSyncMap; direction : collection.TDirection );
    BEGIN
-      SUPER.Init( map );
+      SUPER.Init( map, direction );
       _Map := map;
    END Init;
 
@@ -239,7 +242,7 @@ CLASS IMPLEMENTATION CStringBaseSyncMap;
       IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
          ASSERT( FALSE );
       END;
-      iterator^.Init( ADR( SELF ));
+      iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END GetIterator;
 

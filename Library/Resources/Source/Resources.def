@@ -30,7 +30,7 @@ CLASS CResources;
     _Stub          : TResource;
     _Mode          : TResourceMode;
     _HResource     : ADDRESS;
-    _Strings       : maps.CStringMap;
+    _Strings       : maps.CStringPtrMap;
   PRIVATE VAR
     _Lang          : Languages.TLanguage;
     _RFC1766       : Languages.TRFC1766;

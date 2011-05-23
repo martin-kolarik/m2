@@ -8,6 +8,9 @@ FROM Debug IMPORT
 FROM StringsO IMPORT
    CString;
 
+IMPORT
+   collection;
+
 (*==========================================================================*)
 
 CLASS IMPLEMENTATION CDataOwnershipControlMap;
@@ -200,7 +203,7 @@ CLASS IMPLEMENTATION CIntegerBaseMap;
    VAR
       iterator : TPIntegerBaseMapIterator := NEW( CIntegerBaseMapIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ));
+      iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END CIntegerBaseMap.GetIterator;
 
@@ -370,7 +373,7 @@ CLASS IMPLEMENTATION CIntegerStringMap;
    VAR
       iterator : TPIntegerStringMapIterator := NEW( CIntegerStringMapIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ));
+      iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END CIntegerStringMap.GetIterator;
 
@@ -530,7 +533,7 @@ CLASS IMPLEMENTATION CPtrBaseMap;
    VAR
       iterator : TPPtrBaseMapIterator := NEW( CPtrBaseMapIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ));
+      iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END CPtrBaseMap.GetIterator;
 
@@ -691,7 +694,7 @@ CLASS IMPLEMENTATION CStringBaseMap;
    VAR
       iterator : TPStringBaseMapIterator := NEW( CStringBaseMapIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ));
+      iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END CStringBaseMap.GetIterator;
 
@@ -737,6 +740,169 @@ CLASS IMPLEMENTATION CStringBaseMapIterator;
 (*---------------------------------------------------------------------------*)
 
 END CStringBaseMapIterator;
+
+(*==========================================================================*)
+
+TYPE
+   TPStringPtrItem = POINTER TO CStringPtrItem;
+
+CLASS CStringPtrItem( avltree.CAVLTreeElem );
+
+   PUBLIC VAR
+      Key : CString;
+      Data : PTR := 0;
+
+  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+
+END CStringPtrItem;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CStringPtrItem;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+  BEGIN
+    RETURN Key.Compare( TPStringPtrItem( pelem )^.Key );
+  END Compare;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+END CStringPtrItem;
+
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CStringPtrMap;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC READONLY INDEX CStringPtrMap GET( Index : CARDINAL ) : PTR;
+   VAR
+      PI : TPStringPtrItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         RETURN PI^.Data;
+      ELSE
+         RETURN NIL;
+      END;
+   END CStringPtrMap;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.Add( CONST Key : IString; Data : PTR );
+   VAR
+      PI : TPStringPtrItem;
+   BEGIN
+      NEW( PI );
+      PI^.Key.Assign( Key );
+      PI^.Data := Data;
+      SUPER.Add( PI );
+   END CStringPtrMap.Add;
+  
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.Remove( CONST Key : IString );
+   VAR
+      I : CStringPtrItem;
+   BEGIN
+      I.Key.Assign( Key );
+      Delete( 0, ADR( I ));
+   END CStringPtrMap.Remove;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.Contains( CONST Key : IString ) : BOOLEAN;
+   VAR
+      I : CStringPtrItem;
+   BEGIN
+      I.Key.Assign( Key );
+      RETURN SUPER.Contains( 0, ADR( I ));
+   END CStringPtrMap.Contains;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      I : CStringPtrItem;
+      PI : TPStringPtrItem;
+   BEGIN
+      I.Key.Assign( Key );
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      Data := PI^.Data;
+      RETURN TRUE;  
+   END CStringPtrMap.Get;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      PI : TPStringPtrItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         Key.Assign( PI^.Key );
+         Data := PI^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CStringPtrMap.ElementAt;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.GetIterator() : TPStringPtrMapIterator;
+   VAR
+      iterator : TPStringPtrMapIterator := NEW( CStringPtrMapIterator );
+   BEGIN
+      iterator^.Init( ADR( SELF ), collection.dirForward );
+      RETURN iterator;
+   END CStringPtrMap.GetIterator;
+
+(*---------------------------------------------------------------------------*)
+
+END CStringPtrMap;
+
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CStringPtrMapIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Key GET : TPString;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPStringPtrItem( Current )^.Key );
+      END;
+   END Key;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPStringPtrItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPStringPtrItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CStringPtrMapIterator;
 
 (*==========================================================================*)
 
@@ -853,7 +1019,7 @@ CLASS IMPLEMENTATION CStringStringMap;
    VAR
       iterator : TPStringStringMapIterator := NEW( CStringStringMapIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ));
+      iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END CStringStringMap.GetIterator;
 

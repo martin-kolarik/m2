@@ -6,7 +6,7 @@ CLASS IMPLEMENTATION CIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY colCurrent GET : baseobject.PBASE;
+   INTERNAL FINAL PROPERTY colCurrent GET : baseobject.PBASE;
    BEGIN
       IF _Exhausted THEN
          RETURN NIL;
@@ -36,9 +36,17 @@ CLASS IMPLEMENTATION CIterator;
       ELSIF _StartSequence <> _OfCollection^.Sequence THEN // owning collection has changed
          _Exhausted := FALSE;
       ELSIF _Current = NIL THEN
-         _Exhausted := NOT _OfCollection^.colGetFirst( OUT _Current );
+         IF _Direction = dirForward THEN
+            _Exhausted := NOT _OfCollection^.colGetFirst( OUT _Current );
+         ELSE
+            _Exhausted := NOT _OfCollection^.colGetLast( OUT _Current );
+         END;
       ELSE
-         _Exhausted := NOT _OfCollection^.colNextOf( _Current, OUT _Current );
+         IF _Direction = dirForward THEN
+            _Exhausted := NOT _OfCollection^.colNextOf( _Current, OUT _Current );
+         ELSE
+            _Exhausted := NOT _OfCollection^.colPrevOf( _Current, OUT _Current );
+         END;
       END;
       RETURN _Exhausted;
    END MoveNext;
@@ -59,9 +67,10 @@ CLASS IMPLEMENTATION CIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( ofCollection : TPCollection ); // the collection must initialize the iterator with self
+   PUBLIC PROCEDURE Init( ofCollection : TPCollection; direction : TDirection ); // the collection must initialize the iterator with self
    BEGIN
       _OfCollection := ofCollection;
+      _Direction := direction;
       _StartSequence := ofCollection^.Sequence;
    END Init;
 

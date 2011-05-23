@@ -8,11 +8,11 @@ IMPLEMENTATION MODULE avltree;
 //
 (*===========================================================================*)
 
+FROM Storage IMPORT
+   REALLOCATE, Fill;
+
 FROM Debug IMPORT
    Assertion, LogAssertionW;
-
-FROM Storage IMPORT
-   REALLOCATE, DEALLOCATE, Fill;
 
 IMPORT
    Sync;
@@ -111,9 +111,9 @@ CLASS IMPLEMENTATION CAVLTree;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE colGetIterator() : collection.TPIterator;
+   PUBLIC VIRTUAL PROCEDURE colGetIterator( direction : collection.TDirection ) : collection.TPIterator;
    BEGIN
-      RETURN GetIterator();
+      RETURN GetIterator( direction );
    END colGetIterator;
 
 (*---------------------------------------------------------------------------*)
@@ -136,7 +136,7 @@ CLASS IMPLEMENTATION CAVLTree;
    VAR
       element : TPAVLTreeElem;
    BEGIN
-      ASSERTLOG( of^ IS AAVLTreeElem, L"Unexpected class used" );
+      ASSERTLOG( of^ IS LOOSE AAVLTreeElem, L"Unexpected class used" );
       IF NextOf( 0, TPAVLTreeElem( of ), OUT element ) THEN
          object := element;
          RETURN TRUE;
@@ -144,6 +144,35 @@ CLASS IMPLEMENTATION CAVLTree;
          RETURN FALSE;
       END;
    END colNextOf;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE colGetLast( OUT object : baseobject.PBASE ) : BOOLEAN;
+   VAR
+      element : TPAVLTreeElem;
+   BEGIN
+      IF GetLast( 0, OUT element ) THEN
+         object := element;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END colGetLast;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE colPrevOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+   VAR
+      element : TPAVLTreeElem;
+   BEGIN
+      ASSERTLOG( of^ IS LOOSE AAVLTreeElem, L"Unexpected class used" );
+      IF PrevOf( 0, TPAVLTreeElem( of ), OUT element ) THEN
+         object := element;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END colPrevOf;
 
 (*---------------------------------------------------------------------------*)
 
@@ -564,11 +593,11 @@ CLASS IMPLEMENTATION CAVLTree;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetIterator() : TPAVLTreeIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPAVLTreeIterator;
    VAR
       iterator : TPAVLTreeIterator := NEW( CAVLTreeIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ));
+      iterator^.Init( ADR( SELF ), Direction );
       RETURN iterator;
    END GetIterator;
 

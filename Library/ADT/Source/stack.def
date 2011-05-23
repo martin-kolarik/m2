@@ -11,7 +11,7 @@ IMPORT
 TYPE
   TPStack = POINTER TO CStack;
 
-CLASS CStack( list.CListWState );
+CLASS CStack( list.CList );
   PROCEDURE Push( Object : list.TPListElem );
   PROCEDURE Peek( OUT Object : list.TPListElem ) : BOOLEAN; 
   PROCEDURE Pop( OUT Object : list.TPListElem ) : BOOLEAN; 

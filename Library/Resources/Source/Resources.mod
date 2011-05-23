@@ -619,15 +619,16 @@ CLASS IMPLEMENTATION CPlainResources;
 
     PROCEDURE AddString( CONST String : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
     VAR
+      cs : StringsO.CString := StringsO.FromOA( String );
       L : CARDINAL;
       ptr : PTR;
     BEGIN
-      IF _Strings.GetOA( String, OUT ptr ) THEN
+      IF _Strings.Get( cs, OUT ptr ) THEN
         Strings.ConcatW( OUT ErrorString, L"String ", String );
         Strings.AppendW( REF ErrorString, L" is already known." );
         RETURN FALSE;
       END;
-      _Strings.AddOA( String, _Strings.Count );
+      _Strings.Add( cs, _Strings.Count );
       IF _Strings.Count > _TextsAllocated THEN
         L := MAX2( _TextsAllocated << 1, 256 );
         _Langs.Reset();
