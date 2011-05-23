@@ -858,7 +858,7 @@ CLASS IMPLEMENTATION CSymbols;
     STE : CSTE;
   BEGIN
     STE.PS := Symbol;
-    RETURN Search( ADR( STE ), OUT PSTE );
+    RETURN SUPER.Get( 0, ADR( STE ), OUT PSTE );
   END Knows;
 
   PROCEDURE Add( Symbol : TPSymbol );
@@ -868,7 +868,7 @@ CLASS IMPLEMENTATION CSymbols;
     Symbol^.OfSymbol := OfSymbol;
     NEW( PSTE );
     PSTE^.PS := Symbol;
-    Insert( PSTE );
+    SUPER.Add( PSTE );
   END Add;
 
   PROCEDURE Forget( Symbol : TPSymbol ) : BOOLEAN;
@@ -877,7 +877,7 @@ CLASS IMPLEMENTATION CSymbols;
     PSTE : TPSTE;
   BEGIN
     STE.PS := Symbol;
-    IF NOT Remove( ADR( STE ), OUT PSTE ) THEN
+    IF NOT Remove( 0, ADR( STE ), OUT PSTE ) THEN
       RETURN FALSE;
     END;
     DISPOSE( PSTE );
@@ -892,7 +892,7 @@ CLASS IMPLEMENTATION CSymbols;
   BEGIN
     STE.PS := ADR( SSymbol );
     SSymbol.N := Name;
-    IF Search( ADR( STE ), OUT PSTE ) THEN
+    IF SUPER.Get( 0, ADR( STE ), OUT PSTE ) THEN
       Symbol := PSTE^.PS;
       RETURN TRUE;
     ELSE
@@ -912,9 +912,9 @@ CLASS IMPLEMENTATION CSymbols;
     END;
     STE.PS := ADR( SSymbol );
     SSymbol.N := Name;
-    b := GetFirst( OUT PSTE );
+    b := GetFirst( 0, OUT PSTE );
     WHILE b AND NOT Name.EqualsIgnoreCase( PSTE^.PS^.N ) DO
-      b := NextOf( PSTE, OUT PSTE );
+      b := NextOf( 0, PSTE, OUT PSTE );
     END;
     IF b THEN
       Symbol := PSTE^.PS;
@@ -946,14 +946,14 @@ CLASS IMPLEMENTATION CSymbols;
     PSTE : TPSTE;
   BEGIN
     IF CurrentSTE = NIL THEN
-      IF GetFirst( OUT PSTE ) THEN
+      IF GetFirst( 0, OUT PSTE ) THEN
         CurrentSTE := PSTE;
         Current := PSTE^.PS;
         RETURN TRUE;
       END;
     ELSE
       PSTE := TPSTE( CurrentSTE );
-      IF NextOf( PSTE, OUT PSTE ) THEN
+      IF NextOf( 0, PSTE, OUT PSTE ) THEN
         CurrentSTE := PSTE;
         Current := PSTE^.PS;
         RETURN TRUE;
@@ -1452,6 +1452,25 @@ CLASS IMPLEMENTATION CType;
       ELSE
         RETURN T^.Compatible( CM, PWith^.T );
       END;
+
+      | tkClass : // OBJECT, INTERFACE
+         IF ADR( SELF ) = PWith THEN
+            RETURN TRUE;
+         ELSIF PWith^.TypeKind <> tkClass THEN
+            RETURN FALSE;
+         ELSIF PrimitiveType = ptINTERFACE THEN
+            RETURN TRUE;
+         ELSIF PrimitiveType = ptOBJECT THEN
+            CASE CM OF
+            | cmExact:
+               RETURN FALSE;
+            | cmAssign :
+               RETURN PWith^.PrimitiveType <> ptINTERFACE; // cannot assign INTERFACE to OBJECT
+            ELSE // cmOperation
+               RETURN TRUE;
+            END; // CASE
+         END;
+
     END;
     RETURN FALSE;
   END Compatible;
@@ -2164,7 +2183,7 @@ CLASS IMPLEMENTATION COrdinalPresence;
   BEGIN
     OPTE.O1 := Ordinal1;
     OPTE.O2 := Ordinal2;
-    RETURN Search( ADR( OPTE ), OUT FOPTE );
+    RETURN Get( 0, ADR( OPTE ), OUT FOPTE );
   END Knows;
 
   PROCEDURE Add( Ordinal1, Ordinal2 : INT64 );
@@ -2174,7 +2193,7 @@ CLASS IMPLEMENTATION COrdinalPresence;
     NEW( OPTE );
     OPTE^.O1 := Ordinal1;
     OPTE^.O2 := Ordinal2;
-    Insert( OPTE );
+    SUPER.Add( OPTE );
   END Add; 
 
 BEGIN

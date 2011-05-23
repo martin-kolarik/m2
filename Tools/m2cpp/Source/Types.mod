@@ -184,7 +184,7 @@ CLASS IMPLEMENTATION CFloat;
     ELSE
       PT := PWith^.PrimitiveType;
       RETURN ( PWith^.TypeKind = DOM.tkPrimitive ) AND
-             (( PT = DOM.ptREAL ) OR ( PT = DOM.ptLONGREAL ) OR ( PT = DOM.ptTEMPREAL ));
+             (( PT = DOM.ptREAL ) OR ( PT = DOM.ptLONGREAL ));
     END;
   END Compatible;
 
@@ -809,11 +809,13 @@ BEGIN
   NEW( TFormalSIZE );
     TFormalSIZE^.T := TSIZE;
 
-  NEW( TREAL );     TREAL^.        Init3( L'REAL',        DOM.tkPrimitive,     DOM.ptREAL );
-  NEW( TLONGREAL ); TLONGREAL^.    Init3( L'LONGREAL',    DOM.tkPrimitive,     DOM.ptLONGREAL );
-  NEW( TPROC );     TPROC^.        Init3( L'PROC',        DOM.tkProcedure,     DOM.ptPROC );
-  NEW( TOBJECT );   TOBJECT^.      Init3( L'OBJECT',      DOM.tkClass,         DOM.ptOBJECT );
-  NEW( TException );TException^.   Init3( L'Exceptions::Exception', DOM.tkClass, DOM.ptUnknown );
+  NEW( TREAL );      TREAL^.       Init3( L'REAL',       DOM.tkPrimitive, DOM.ptREAL );
+  NEW( TLONGREAL );  TLONGREAL^.   Init3( L'LONGREAL',   DOM.tkPrimitive, DOM.ptLONGREAL );
+  NEW( TPROC );      TPROC^.       Init3( L'PROC',       DOM.tkProcedure, DOM.ptPROC );
+  NEW( TINTERFACE ); TINTERFACE^.  Init3( L'INTERFACE',  DOM.tkClass,     DOM.ptINTERFACE );
+  NEW( TOBJECT );    TOBJECT^.     Init3( L'OBJECT',     DOM.tkClass,     DOM.ptOBJECT );
+  NEW( TException ); TException^.  Init3( L'Exceptions::Exception',
+                                                         DOM.tkClass,     DOM.ptUnknown );
 
   // language pointer types
   NEW( TpINT8 );      TpINT8^.     Init3( L'PINT8',      DOM.tkReference, DOM.ptUnknown );
@@ -897,9 +899,12 @@ BEGIN
        TpPROC^.T := TPROC;
   NEW( TpOBJECT );    TpOBJECT^.   Init3( L'POBJECT',    DOM.tkReference, DOM.ptUnknown );
        TpOBJECT^.T := TOBJECT;
+  NEW( TpINTERFACE ); TpINTERFACE^.Init3( L'PINTERFACE', DOM.tkReference, DOM.ptUnknown );
+       TpINTERFACE^.T := TINTERFACE;
        
   NEW( TpException ); TpException^.Init3( L'Exceptions::Exception*', DOM.tkReference, DOM.ptUnknown );
        TpException^.T := TException;
+
 END __I;
 
 END Types.

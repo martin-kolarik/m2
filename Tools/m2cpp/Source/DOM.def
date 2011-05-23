@@ -685,16 +685,16 @@ TYPE
     ptUnknown,
     ptStructure,
 
-    ptINT8,    ptINT16,    ptINT32,    ptINT64,
-    ptCARD8,   ptCARD16,   ptCARD32,   ptCARD64,
-    ptBCHAR,   ptWCHAR,    ptBOOLEAN,
+    ptINT8,    ptINT16,     ptINT32,    ptINT64,
+    ptCARD8,   ptCARD16,    ptCARD32,   ptCARD64,
+    ptBCHAR,   ptWCHAR,     ptBOOLEAN,
 
-    ptBITSET8, ptBITSET16, ptBITSET32, ptBITSET64,
-    ptBYTE,    ptWORD,     ptLONGWORD, ptQUADWORD,
-    ptREAL,    ptLONGREAL, ptTEMPREAL,
+    ptBITSET8, ptBITSET16,  ptBITSET32, ptBITSET64,
+    ptBYTE,    ptWORD,      ptLONGWORD, ptQUADWORD,
+    ptREAL,    ptLONGREAL,
     
-    ptADDRESS, ptPTR,      ptSIZE,
-    ptPROC,    ptOBJECT
+    ptADDRESS, ptPTR,       ptSIZE,
+    ptPROC,    ptINTERFACE, ptOBJECT
   );
 
   TTypeModifier = (

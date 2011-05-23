@@ -40,7 +40,7 @@ CLASS CProject;
   Inputs     : lists.CStringList;
   OutputPath : ARRAY TOutputPath OF FIO.PathStrW;
   
-  Warnings   : maps.CCardinalMap;
+  Warnings   : maps.CIntegerBaseMap;
 
   PROCEDURE EnterSymbols( c : DOM.TPModule );
   PROCEDURE LeaveSymbols( c : DOM.TPModule );
@@ -100,7 +100,7 @@ CLASS IMPLEMENTATION CProject;
   PROCEDURE SuppressWarning( Warning : CARDINAL );
   BEGIN
     IF NOT Warnings.Contains( Warning ) THEN
-      Warnings.Add( Warning, 0 );
+      Warnings.Add( Warning, NIL );
     END;
   END SuppressWarning;
   

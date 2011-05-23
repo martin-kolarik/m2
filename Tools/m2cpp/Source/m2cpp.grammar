@@ -460,7 +460,17 @@ ntImplementsClause<Class : DOM.TPClass>
 .
   
 ntAncestor<ClassInterface : BOOLEAN; Class : DOM.TPClass; OUT Ancestor : DOM.TPClass>
-  = ntQualifiedId<iaCheck, Ancestor, TRUE, FALSE>          (. Ancestor := c^.IdToClass( Ancestor );
+  = "INTERFACE"                                            (. IF ClassInterface THEN
+                                                                SemErr( err._CannotInheritINTERFACEItIsImplicit );
+                                                              ELSE
+                                                                SemErr( err._ClassCannotInheritINTERFACE );
+                                                              END; .)
+  | "OBJECT"                                               (. IF ClassInterface THEN
+                                                                SemErr( err._CannotInheritOBJECT );
+                                                              ELSE
+                                                                SemErr( err._ClassCannotInheritObjectItIsImplicit );
+                                                              END; .)
+  | ntQualifiedId<iaCheck, Ancestor, TRUE, FALSE>          (. Ancestor := c^.IdToClass( Ancestor );
                                                               IF Ancestor = Class THEN
                                                                 SemErr( err._CannotInheritSelf );
                                                               ELSIF Ancestor <> NIL THEN
