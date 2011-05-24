@@ -211,7 +211,7 @@ CLASS IMPLEMENTATION CIntegerBaseMap;
 
 END CIntegerBaseMap;
 
-(*==========================================================================*)
+(*===========================================================================*)
 
 CLASS IMPLEMENTATION CIntegerBaseMapIterator;
 
@@ -250,7 +250,7 @@ CLASS IMPLEMENTATION CIntegerBaseMapIterator;
 
 END CIntegerBaseMapIterator;
 
-(*==========================================================================*)
+(*===========================================================================*)
 
 TYPE
    TPIntegerStringItem = POINTER TO CIntegerStringItem;

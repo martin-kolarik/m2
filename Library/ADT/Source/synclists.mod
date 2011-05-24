@@ -9,7 +9,7 @@ IMPORT
 CONST
    MESSAGE = L"Unable to lock list";
 
-CLASS IMPLEMENTATION CPtrSyncList;
+CLASS IMPLEMENTATION CBaseBaseSyncList;
 
 (*---------------------------------------------------------------------------*)
 
@@ -33,63 +33,13 @@ CLASS IMPLEMENTATION CPtrSyncList;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Reset();
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeSafe( REF _Lock, MESSAGE );
-      SUPER.Reset();
-   END Reset;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE MoveNext() : BOOLEAN;
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.MoveNext();
-   END MoveNext;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Current GET : PTR;
+   PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.Current;
-   END Current;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY CurrentData GET : PTR;
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.CurrentData;
-   END CurrentData;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY CurrentData SET( Value : PTR );
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeSafe( REF _Lock, MESSAGE );
-      SUPER.CurrentData := Value;
-   END CurrentData;
-
-(*---------------------------------------------------------------------------*)
-
-   INDEX CPtrSyncList GET( Index : INTEGER ) : PTR; // SLOW, O(n)!!
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER[ Index ];
-   END CPtrSyncList;
+      RETURN SUPER.Contains( Value );
+   END Contains;
 
 (*---------------------------------------------------------------------------*)
 
@@ -100,16 +50,6 @@ CLASS IMPLEMENTATION CPtrSyncList;
       lock.TakeSafe( REF _Lock, MESSAGE );
       SUPER.Add( Value, Data );
    END Add;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.Contains( Value );
-   END Contains;
 
 (*---------------------------------------------------------------------------*)
 
@@ -163,66 +103,6 @@ CLASS IMPLEMENTATION CPtrSyncList;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Append( Value : PTR; Data : PTR );
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeSafe( REF _Lock, MESSAGE );
-      SUPER.Append( Value, Data );
-   END Append;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE GetFirst( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.GetFirst( OUT Value, OUT Data );
-   END GetFirst;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE GetLast( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.GetLast( OUT Value, OUT Data );
-   END GetLast;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE PrevOf( Value : PTR; OUT Previous : PTR; OUT Data : PTR ) : BOOLEAN; // SLOW
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.PrevOf( Value, OUT Previous, OUT Data );
-   END PrevOf;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE NextOf( Value : PTR; OUT Next : PTR; OUT Data : PTR ) : BOOLEAN; // SLOW
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.NextOf( Value, OUT Next, OUT Data );
-   END NextOf;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE IndexOf( Value : PTR ) : INTEGER; // SLOW
-   VAR
-      lock : Sync.AutoLock;
-   BEGIN
-      lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.IndexOf( Value );
-   END IndexOf;
-  
-(*---------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE Enqueue( Value : PTR; Data : PTR );
    VAR
       lock : Sync.AutoLock;
@@ -250,7 +130,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
 
 (*---------------------------------------------------------------------------*)
 
-END CPtrSyncList;
+END CBaseBaseSyncList;
 
 (*================================================================================*)
 

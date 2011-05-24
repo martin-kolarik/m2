@@ -39,7 +39,7 @@ CLASS CList( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // ICollection
-   PUBLIC FINAL READONLY PROPERTY
+   PUBLIC VIRTUAL READONLY PROPERTY
       Empty : BOOLEAN;
       Count : CARDINAL;
       Sequence : CARDINAL;
