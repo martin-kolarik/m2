@@ -46,23 +46,6 @@ END CPtrArray;
 
 //---------------------------------------------------------------------------
 
-(*
-CLASS CStringArray( array.CArray );
-  PUBLIC INDEX( Index : INTEGER ) : PTR; // returns 0 if index is out of range
-
-  PROCEDURE Add( Value : PTR ) : INTEGER; // returns index
-  PROCEDURE Contains( Value : PTR ) : BOOLEAN;
-  PROCEDURE Insert( Index : INTEGER; Value : PTR );
-  PROCEDURE Remove( Value : PTR );
-
-  PROCEDURE IndexOf( Value : PTR ) : INTEGER; // if not found returns LowBound-1
-
-  PRIVATE PROCEDURE Init(); // deny usage
-END CStringArray;
-*)
-
-//---------------------------------------------------------------------------
-
 #restore
 
 END arrays.

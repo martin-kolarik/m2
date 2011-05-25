@@ -4,14 +4,15 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-  Exceptions;
+   baseobject,
+   collection;
 
 #save, option( dll_export => on )
 
 (*=============================================================================*)
 
 TYPE
-  TPArray = POINTER TO CArray;
+   TPArray = POINTER TO CArray;
   
 TYPE
   TStrategy = (
@@ -20,7 +21,8 @@ TYPE
     astrgSparseArray // removed index stays in place (and is unused forever), so another indexes remain valid
   );
 
-CLASS CArray;
+CLASS CArray( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
+
   INTERNAL VAR
     _ItemSize : CARDINAL;
     _Size : CARDINAL;
@@ -29,7 +31,7 @@ CLASS CArray;
   PUBLIC VAR
     LowBound : INTEGER;
     Strategy : TStrategy := astrgSparseArray;
-  PUBLIC PROPERTY
+  PUBLIC VIRTUAL PROPERTY
     Size : CARDINAL; // get, set initializes (to 0)/reallocates space
     Count : CARDINAL;
   PUBLIC READONLY PROPERTY
@@ -57,7 +59,6 @@ CLASS CArray;
   PUBLIC PROCEDURE Clear();
   PUBLIC PROCEDURE Dispose();
 
-  VIRTUAL FINALLY CArray;
 END CArray;
 
 (*=============================================================================*)

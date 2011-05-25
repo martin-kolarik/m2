@@ -166,8 +166,9 @@ END CStringBaseList;
 CLASS CStringBaseListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
-      Value : PTR;
-      Data : TPString;
+      Value : TPString;
+   PUBLIC PROPERTY
+      Data : baseobject.PIBASE;
 
 END CStringBaseListIterator;
 
@@ -194,7 +195,7 @@ CLASS CStringStringList( list.CList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPStringBaseListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPStringStringListIterator;
    #restore
   
    // queue interface
@@ -257,6 +258,7 @@ CLASS CBufferBaseList( CDataOwnershipControlList );
    // queue interface
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Enqueue( CONST Value : AMemoryBuffer; Data : PTR );
+   PUBLIC PROCEDURE EnqueueOA( CONST Value : ARRAY OF BYTE; Data : PTR );
    #restore
    PUBLIC PROCEDURE Dequeue( OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; 
    #restore
@@ -280,7 +282,7 @@ CLASS CBufferBaseListIterator( list.CListIterator );
    PUBLIC READONLY PROPERTY
       Value : POINTER TO AMemoryBuffer;
    PUBLIC PROPERTY
-      Data : PTR;
+      Data : baseobject.PIBASE;
 
 END CBufferBaseListIterator;
 

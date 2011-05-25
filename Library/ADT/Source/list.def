@@ -8,8 +8,6 @@ IMPORT
    baseobject,
    collection;
 
-#save, option( dll_export => on )
-
 (*---------------------------------------------------------------------------*)
 
 TYPE
@@ -32,6 +30,8 @@ CLASS CListElem( baseobject.CDisposable );
 END CListElem;
 
 (*---------------------------------------------------------------------------*)
+
+#save, option( dll_export => on )
 
 CLASS CList( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
 
@@ -95,8 +95,8 @@ CLASS CListIterator( collection.CIterator );
 
 END CListIterator;
 
-(*===========================================================================*)
-
 #restore
+
+(*===========================================================================*)
 
 END list.

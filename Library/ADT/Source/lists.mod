@@ -10,7 +10,7 @@ IMPORT
    StorageO,
    StringsO;
 
-(*==========================================================================*)
+(*===========================================================================*)
 
 CLASS IMPLEMENTATION CDataOwnershipControlList;
 
@@ -33,7 +33,7 @@ CLASS IMPLEMENTATION CDataOwnershipControlList;
 BEGIN
 END CDataOwnershipControlList;
 
-(*==========================================================================*)
+(*===========================================================================*)
 // common ancestor
 
 ABSTRACT CLASS CBaseItem( list.CListElem );
@@ -225,7 +225,7 @@ CLASS IMPLEMENTATION CIntegerBaseList;
       IF colGetFirst( OUT PE ) THEN
          Value := PE^.Value;
          Data := PE^.Data;
-         SUPER.Delete( PE );
+         Delete( PE );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -442,7 +442,7 @@ CLASS IMPLEMENTATION CBaseBaseList;
       IF colGetFirst( OUT PE ) THEN
          Value := PE^.Value;
          Data := PE^.Data;
-         SUPER.Delete( PE );
+         Delete( PE );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -518,7 +518,7 @@ END CBaseBaseListIterator;
 TYPE
    TPStringBaseItem = POINTER TO CStringBaseItem;
 
-CLASS CStringBaseItem( list.CListElem );
+CLASS CStringBaseItem( CBaseItem );
       
    LOCAL VAR
       Value : StringsO.CString;
@@ -535,104 +535,139 @@ END CStringBaseItem;
 
 CLASS IMPLEMENTATION CStringBaseList;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringBaseList.Add( CONST Value : IString; Data : PTR );
-  VAR
-    PE : TPStringBaseItem;
-  BEGIN
-    NEW( PE );
-    PE^.Value.Assign( Value );
-    PE^.Data := Data;
-    SUPER.Append( PE );
-  END CStringBaseList.Add;
+   PUBLIC PROCEDURE CStringBaseList.Add( CONST Value : IString; Data : PTR );
+   VAR
+      PE : TPStringBaseItem;
+   BEGIN
+      NEW( PE );
+      PE^.Value.Assign( Value );
+      PE^.Data := Data;
+      SUPER.Add( PE );
+   END CStringBaseList.Add;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringBaseList.Contains( CONST Value : IString ): BOOLEAN;
-  VAR
-    i : INTEGER;
-    PE : TPStringBaseItem;
-  BEGIN
-    RETURN Lookup( Value, OUT PE, OUT i );
-  END CStringBaseList.Contains;
+   PUBLIC PROCEDURE CStringBaseList.Contains( CONST Value : IString ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPStringBaseItem;
+   BEGIN
+      RETURN Lookup( Value, OUT PE, OUT i );
+   END CStringBaseList.Contains;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringBaseList.Get( CONST Value : IString; OUT Data : PTR ): BOOLEAN;
-  VAR
-    i : INTEGER;
-    PE : TPStringBaseItem;
-  BEGIN
-    IF NOT Lookup( Value, OUT PE, OUT i ) THEN
-      RETURN FALSE;
-    END;
-    Data := PE^.Data;
-    RETURN TRUE;
-  END CStringBaseList.Get;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE CStringBaseList.Remove( CONST Value : IString ); // removes all occurences
-  VAR
-    PE, PN : TPStringBaseItem;
-    b : BOOLEAN;
-  BEGIN
-    b := colGetFirst( OUT PE );
-    WHILE b DO
-      b := colNextOf( PE, OUT PN );
-      IF PE^.Value = Value THEN 
-        Delete( PE );
+   PUBLIC PROCEDURE CStringBaseList.Get( CONST Value : IString; OUT Data : PTR ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPStringBaseItem;
+   BEGIN
+      IF Lookup( Value, OUT PE, OUT i ) THEN
+         Value.Assign( PE^.Value );
+          Data := PE^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
-      PE := PN;
-    END; // WHILE
-  END CStringBaseList.Remove;
+   END CStringBaseList.Get;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
-  VAR
-    PE : TPStringBaseItem;
-  BEGIN
-    PE := TPStringBaseItem( SUPER[Index] );
-    IF PE = NIL THEN
-      RETURN FALSE;
-    END;
-    Value.Assign( TPStringBaseItem( PE )^.Value );
-    Data := TPStringBaseItem( PE )^.Data;
-    RETURN TRUE;
-  END ElementAt;
+   PUBLIC PROCEDURE CStringBaseList.Remove( CONST Value : IString ); // removes all occurences
+   VAR
+      PE, PN : TPStringBaseItem;
+      b : BOOLEAN;
+   BEGIN
+      b := colGetFirst( OUT PE );
+      WHILE b DO
+         b := colNextOf( PE, OUT PN );
+         IF PE^.Value = Value THEN 
+            Delete( PE );
+         END;
+         PE := PN;
+      END; // WHILE
+   END CStringBaseList.Remove;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringBaseList.InsertFirst( CONST Value : IString; Data : PTR );
-  VAR
-    PE : TPStringBaseItem;
-  BEGIN
-    NEW( PE );
-    PE^.Value.Assign( Value );
-    PE^.Data := Data;
-    SUPER.InsertFirst( PE );
-  END CStringBaseList.InsertFirst;
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
+   VAR
+      PE : TPStringBaseItem;
+   BEGIN
+      IF SUPER.ElementAt( Index, OUT PE ) THEN
+         Value.Assign( PE^.Value );
+         Data := PE^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END ElementAt;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringBaseList.InsertBefore( CONST Before, Value : IString; Data : PTR );
-  VAR
-    i : INTEGER;
-    PB, PE : TPStringBaseItem;
-  BEGIN
-    NEW( PE );
-    PE^.Value.Assign( Value );
-    PE^.Data := Data;
-    IF Lookup( Before, OUT PB, OUT i ) THEN
-      SUPER.InsertBefore( PB, PE );
-    ELSE
+   PUBLIC PROCEDURE CStringBaseList.InsertFirst( CONST Value : IString; Data : PTR );
+   VAR
+      PE : TPStringBaseItem;
+   BEGIN
+      NEW( PE );
+      PE^.Value.Assign( Value );
+      PE^.Data := Data;
       SUPER.InsertFirst( PE );
-    END;
-  END CStringBaseList.InsertBefore;
+   END CStringBaseList.InsertFirst;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringBaseList.InsertBefore( CONST Before, Value : IString; Data : PTR );
+   VAR
+      i : INTEGER;
+      PB, PE : TPStringBaseItem;
+   BEGIN
+      NEW( PE );
+      PE^.Value.Assign( Value );
+      PE^.Data := Data;
+      IF Lookup( Before, OUT PB, OUT i ) THEN
+         SUPER.InsertBefore( PB, PE );
+      ELSE
+         SUPER.InsertFirst( PE );
+      END;
+   END CStringBaseList.InsertBefore;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringBaseList.GetIterator( Direction : collection.TDirection ) : TPStringBaseListIterator;
+   VAR
+      iterator : TPStringBaseListIterator := NEW( CStringBaseListIterator );
+   BEGIN
+      iterator^.Init( ADR( SELF ), Direction );
+      RETURN iterator;
+   END CStringBaseList.GetIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Enqueue( CONST Value : IString; Data : PTR );
+   BEGIN
+      Add( Value, Data );
+   END Enqueue;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Dequeue( OUT Value : IString; OUT Data : PTR ) : BOOLEAN; 
+   VAR
+      PE : TPStringBaseItem;
+   BEGIN
+      IF colGetFirst( OUT PE ) THEN
+         Value.Assign( PE^.Value );
+         Data := PE^.Data;
+         Delete( PE );
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END Dequeue;
+
+(*---------------------------------------------------------------------------*)
 
   PRIVATE PROCEDURE CStringBaseList.Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
   VAR
@@ -653,295 +688,375 @@ CLASS IMPLEMENTATION CStringBaseList;
     RETURN FALSE;
   END CStringBaseList.Lookup;
 
-//---------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE Enqueue( CONST Value : IString; Data : PTR );
-   BEGIN
-      Add( Value, Data );
-   END Enqueue;
-
-//---------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE Dequeue( OUT Value : IString; OUT Data : PTR ) : BOOLEAN; 
-   VAR
-      PE : TPStringBaseItem;
-   BEGIN
-      IF NOT SUPER.GetFirst( OUT PE ) THEN
-         RETURN FALSE;
-      END;
-      Value.Assign( PE^.Value );
-      Data := PE^.Data;
-      SUPER.Delete( PE );
-      RETURN TRUE;
-   END Dequeue;
-
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
 END CStringBaseList;
 
-//===========================================================================
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CStringBaseListIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : TPString;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPStringBaseItem( Current )^.Value );
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : baseobject.PIBASE;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPStringBaseItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : baseobject.PIBASE );
+   BEGIN
+      IF Current <> NIL THEN
+         TPStringBaseItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CStringBaseListIterator;
+
+(*===========================================================================*)
 
 TYPE
-  TPStringStringItem = POINTER TO CStringStringItem;
+   TPStringStringItem = POINTER TO CStringStringItem;
 
 CLASS CStringStringItem( list.CListElem );
-  Value : StringsO.CString;
-  Data  : StringsO.CString;
+
+   LOCAL VAR
+      Value : StringsO.CString;
+      Data  : StringsO.CString;
+
 END CStringStringItem;
+
+(*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CStringStringItem;
 END CStringStringItem;
 
-//---------------------------------------------------------------------------
+(*===========================================================================*)
 
 CLASS IMPLEMENTATION CStringStringList;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringList.Add( CONST Value : IString; CONST Data : IString );
-  VAR
-    PE : TPStringStringItem;
-  BEGIN
-    NEW( PE );
-    PE^.Value.Assign( Value );
-    PE^.Data.Assign( Data );
-    SUPER.Append( PE );
-  END CStringStringList.Add;
+   PUBLIC PROCEDURE CStringStringList.Add( CONST Value : IString; CONST Data : IString );
+   VAR
+      PE : TPStringStringItem;
+   BEGIN
+      NEW( PE );
+      PE^.Value.Assign( Value );
+      PE^.Data.Assign( Data );
+      SUPER.Add( PE );
+   END CStringStringList.Add;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringList.Contains( CONST Value : IString ): BOOLEAN;
-  VAR
-    i : INTEGER;
-    PE : TPStringStringItem;
-  BEGIN
-    RETURN Lookup( Value, OUT PE, OUT i );
-  END CStringStringList.Contains;
+   PUBLIC PROCEDURE CStringStringList.Contains( CONST Value : IString ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPStringStringItem;
+   BEGIN
+      RETURN Lookup( Value, OUT PE, OUT i );
+   END CStringStringList.Contains;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringList.Get( CONST Value : IString; OUT Data : IString ): BOOLEAN;
-  VAR
-    i : INTEGER;
-    PE : TPStringStringItem;
-  BEGIN
-    IF NOT Lookup( Value, OUT PE, OUT i ) THEN
-      RETURN FALSE;
-    END;
-    Data.Assign( PE^.Data );
-    RETURN TRUE;
-  END CStringStringList.Get;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE CStringStringList.Remove( CONST Value : IString ); // removes all occurences
-  VAR
-    PE, PN : TPStringStringItem;
-    b : BOOLEAN;
-  BEGIN
-    b := SUPER.GetFirst( OUT PE );
-    WHILE b DO
-      b := colNextOf( PE, OUT PN );
-      IF PE^.Value.Equals( Value ) THEN 
-        Delete( PE );
+   PUBLIC PROCEDURE CStringStringList.Get( CONST Value : IString; OUT Data : IString ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPStringStringItem;
+   BEGIN
+      IF NOT Lookup( Value, OUT PE, OUT i ) THEN
+         RETURN FALSE;
       END;
-      PE := PN;
-    END; // WHILE
-  END CStringStringList.Remove;
+      Data.Assign( PE^.Data );
+      RETURN TRUE;
+   END CStringStringList.Get;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : IString ) : BOOLEAN; // similar as []
-  VAR
-    PE : TPStringStringItem;
-  BEGIN
-    PE := TPStringStringItem( SUPER[Index] );
-    IF PE = NIL THEN
-      RETURN FALSE;
-    END;
-    Value.Assign( TPStringStringItem( PE )^.Value );
-    Data.Assign( TPStringStringItem( PE )^.Data );
-    RETURN TRUE;
-  END ElementAt;
+   PUBLIC PROCEDURE CStringStringList.Remove( CONST Value : IString ); // removes all occurences
+   VAR
+      PE, PN : TPStringStringItem;
+      b : BOOLEAN;
+   BEGIN
+      b := colGetFirst( OUT PE );
+      WHILE b DO
+         b := colNextOf( PE, OUT PN );
+         IF PE^.Value.Equals( Value ) THEN 
+            Delete( PE );
+         END;
+         PE := PN;
+      END; // WHILE
+   END CStringStringList.Remove;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringList.InsertFirst( CONST Value : IString; CONST Data : IString );
-  VAR
-    PE : TPStringStringItem;
-  BEGIN
-    NEW( PE );
-    PE^.Value.Assign( Value );
-    PE^.Data.Assign( Data );
-    SUPER.InsertFirst( PE );
-  END CStringStringList.InsertFirst;
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : IString ) : BOOLEAN; // similar as []
+   VAR
+      PE : TPStringStringItem;
+   BEGIN
+      IF SUPER.ElementAt( Index, OUT PE ) THEN
+         Value.Assign( TPStringStringItem( PE )^.Value );
+         Data.Assign( TPStringStringItem( PE )^.Data );
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END ElementAt;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringList.InsertBefore( CONST Before, Value : IString; CONST Data : IString );
-  VAR
-    i : INTEGER;
-    PB, PE : TPStringStringItem;
-  BEGIN
-    NEW( PE );
-    PE^.Value.Assign( Value );
-    PE^.Data.Assign( Data );
-    IF Lookup( Before, OUT PB, OUT i ) THEN
-      SUPER.InsertBefore( PB, PE );
-    ELSE
+   PUBLIC PROCEDURE CStringStringList.InsertFirst( CONST Value : IString; CONST Data : IString );
+   VAR
+      PE : TPStringStringItem;
+   BEGIN
+      NEW( PE );
+      PE^.Value.Assign( Value );
+      PE^.Data.Assign( Data );
       SUPER.InsertFirst( PE );
-    END;
-  END CStringStringList.InsertBefore;
+   END CStringStringList.InsertFirst;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringList.Append( CONST Value : IString; CONST Data : IString );
-  BEGIN
-    Add( Value, Data );
-  END CStringStringList.Append;
-
-//---------------------------------------------------------------------------
-
-  PRIVATE PROCEDURE CStringStringList.Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
-  VAR
-    i : INTEGER := 0;
-    PE : TPStringStringItem;
-    b : BOOLEAN;
-  BEGIN
-    b := colGetFirst( OUT PE );
-    WHILE b DO
-      IF PE^.Value = Value THEN
-        Item := PE;
-        Index := i;
-        RETURN TRUE;
+   PUBLIC PROCEDURE CStringStringList.InsertBefore( CONST Before, Value : IString; CONST Data : IString );
+   VAR
+      i : INTEGER;
+      PB, PE : TPStringStringItem;
+   BEGIN
+      NEW( PE );
+      PE^.Value.Assign( Value );
+      PE^.Data.Assign( Data );
+      IF Lookup( Before, OUT PB, OUT i ) THEN
+         SUPER.InsertBefore( PB, PE );
+      ELSE
+         SUPER.InsertFirst( PE );
       END;
-      b := colNextOf( PE, OUT PE );
-      INC( i );
-    END; // WHILE
-    RETURN FALSE;
-  END CStringStringList.Lookup;
+   END CStringStringList.InsertBefore;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringStringList.GetIterator( Direction : collection.TDirection ) : TPStringStringListIterator;
+   VAR
+      iterator : TPStringStringListIterator := NEW( CStringStringListIterator );
+   BEGIN
+      iterator^.Init( ADR( SELF ), Direction );
+      RETURN iterator;
+   END CStringStringList.GetIterator;
+
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Enqueue( CONST Value : IString; CONST Data : IString );
    BEGIN
       Add( Value, Data );
    END Enqueue;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Dequeue( OUT Value : IString; OUT Data : IString ) : BOOLEAN; 
    VAR
       PE : TPStringStringItem;
    BEGIN
-      IF NOT SUPER.GetFirst( OUT PE ) THEN
+      IF colGetFirst( OUT PE ) THEN
+         Value.Assign( PE^.Value );
+         Data.Assign( PE^.Data );
+         Delete( PE );
+         RETURN TRUE;
+      ELSE
          RETURN FALSE;
       END;
-      Value.Assign( PE^.Value );
-      Data.Assign( PE^.Data );
-      SUPER.Delete( PE );
-      RETURN TRUE;
    END Dequeue;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE CStringStringList.Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+   VAR
+      i : INTEGER := 0;
+      PE : TPStringStringItem;
+      b : BOOLEAN;
+   BEGIN
+      b := colGetFirst( OUT PE );
+      WHILE b DO
+         IF PE^.Value = Value THEN
+            Item := PE;
+            Index := i;
+            RETURN TRUE;
+         END;
+         b := colNextOf( PE, OUT PE );
+         INC( i );
+      END; // WHILE
+      RETURN FALSE;
+   END CStringStringList.Lookup;
+
+(*---------------------------------------------------------------------------*)
 
 END CStringStringList;
 
-//===========================================================================
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CStringStringListIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : TPString;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPStringStringItem( Current )^.Value );
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : TPString;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPStringStringItem( Current )^.Data );
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CStringStringListIterator;
+
+(*===========================================================================*)
 
 TYPE
-  TPBufferItem = POINTER TO ABufferItem;
-  TPDynamicItem = POINTER TO CDynamicItem;
-  TPSlotItem32 = POINTER TO CSlotItem32;
-  TPSlotItem64 = POINTER TO CSlotItem64;
-  TPSlotItem256 = POINTER TO CSlotItem256;
+  TPBufferBaseItem = POINTER TO ABufferBaseItem;
   
-ABSTRACT CLASS ABufferItem( list.CListElem );
-   LOCAL VAR
-      Data : PTR;
+ABSTRACT CLASS ABufferBaseItem( CBaseItem );
+
    LOCAL ABSTRACT READONLY PROPERTY
       Value : POINTER TO AMemoryBuffer;
-END ABufferItem;
 
-CLASS IMPLEMENTATION ABufferItem;
-BEGIN
-   Data := 0;
-END ABufferItem;
+END ABufferBaseItem;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-CLASS CDynamicItem( ABufferItem );
+CLASS IMPLEMENTATION ABufferBaseItem;
+END ABufferBaseItem;
+
+(*==========================================================================*)
+
+CLASS CDynamicItem( ABufferBaseItem );
+
    PRIVATE VAR
-      _Value : CMemoryBuffer;
+      _Value : StorageO.CMemoryBuffer;
+
    LOCAL VIRTUAL READONLY PROPERTY
       Value : POINTER TO AMemoryBuffer;
+
 END CDynamicItem;
+
+(*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CDynamicItem;
+
    LOCAL PROPERTY Value GET : POINTER TO AMemoryBuffer;
    BEGIN
       RETURN ADR( _Value );
    END Value;
+
 END CDynamicItem;
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
 
-CLASS CSlotItem32( ABufferItem );
+CLASS CSlotItem32( ABufferBaseItem );
+
    PRIVATE VAR
-      _Value : CMemorySlot32;
+      _Value : StorageO.CMemorySlot32;
+
    LOCAL VIRTUAL READONLY PROPERTY
       Value : POINTER TO AMemoryBuffer;
+
 END CSlotItem32;
+
+(*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CSlotItem32;
+
    LOCAL PROPERTY Value GET : POINTER TO AMemoryBuffer;
    BEGIN
       RETURN ADR( _Value );
    END Value;
+
 END CSlotItem32;
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
 
-CLASS CSlotItem64( ABufferItem );
+CLASS CSlotItem64( ABufferBaseItem );
+
    PRIVATE VAR
-      _Value : CMemorySlot64;
+      _Value : StorageO.CMemorySlot64;
+
    LOCAL VIRTUAL READONLY PROPERTY
       Value : POINTER TO AMemoryBuffer;
+
 END CSlotItem64;
+
+(*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CSlotItem64;
+
    LOCAL PROPERTY Value GET : POINTER TO AMemoryBuffer;
    BEGIN
       RETURN ADR( _Value );
    END Value;
+
 END CSlotItem64;
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
 
-CLASS CSlotItem256( ABufferItem );
+CLASS CSlotItem256( ABufferBaseItem );
+
    PRIVATE VAR
-      _Value : CMemorySlot256;
+      _Value : StorageO.CMemorySlot256;
+
    LOCAL VIRTUAL READONLY PROPERTY
       Value : POINTER TO AMemoryBuffer;
+
 END CSlotItem256;
 
+(*---------------------------------------------------------------------------*)
+
 CLASS IMPLEMENTATION CSlotItem256;
+
    LOCAL PROPERTY Value GET : POINTER TO AMemoryBuffer;
    BEGIN
       RETURN ADR( _Value );
    END Value;
+
 END CSlotItem256;
 
-//===========================================================================
+(*==========================================================================*)
 
 CLASS IMPLEMENTATION CBufferBaseList;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CBufferBaseList.Add( CONST Value : AMemoryBuffer; Data : PTR );
-  VAR
-    PE : TPBufferItem;
-  BEGIN
+   PUBLIC PROCEDURE CBufferBaseList.Add( CONST Value : AMemoryBuffer; Data : PTR );
+   VAR
+      PE : TPBufferBaseItem;
+   BEGIN
       CASE ItemType OF
       | blitDynamic :
          PE := NEW( CDynamicItem );
@@ -952,141 +1067,74 @@ CLASS IMPLEMENTATION CBufferBaseList;
       | blitSlot256 :
          PE := NEW( CSlotItem256 );
       END; // CASE
-    PE^.Value^.Assign( Value );
-    PE^.Data := Data;
-    SUPER.Append( PE );
-  END CBufferBaseList.Add;
+      PE^.Value^.Assign( Value );
+      PE^.Data := Data;
+      SUPER.Add( PE );
+   END CBufferBaseList.Add;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CBufferBaseList.Contains( CONST Value : AMemoryBuffer ): BOOLEAN;
-  VAR
-    i : INTEGER;
-    PE : TPBufferItem;
-  BEGIN
-    RETURN Lookup( Value, OUT PE, OUT i );
-  END CBufferBaseList.Contains;
+   PUBLIC PROCEDURE CBufferBaseList.Contains( CONST Value : AMemoryBuffer ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPBufferBaseItem;
+   BEGIN
+      RETURN Lookup( Value, OUT PE, OUT i );
+   END CBufferBaseList.Contains;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CBufferBaseList.Get( CONST Value : AMemoryBuffer; OUT Data : PTR ): BOOLEAN;
-  VAR
-    i : INTEGER;
-    PE : TPBufferItem;
-  BEGIN
-    IF NOT Lookup( Value, OUT PE, OUT i ) THEN
-      RETURN FALSE;
-    END;
-    Data := PE^.Data;
-    RETURN TRUE;
-  END CBufferBaseList.Get;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE CBufferBaseList.Remove( CONST Value : AMemoryBuffer ); // removes all occurences
-  VAR
-    PE, PN : TPBufferItem;
-    b : BOOLEAN;
-  BEGIN
-    b := colGetFirst( OUT PE );
-    WHILE b DO
-      b := colNextOf( PE, OUT PN );
-      IF PE^.Value^ = Value THEN 
-        Delete( PE );
+   PUBLIC PROCEDURE CBufferBaseList.Get( CONST Value : AMemoryBuffer; OUT Data : PTR ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPBufferBaseItem;
+   BEGIN
+      IF Lookup( Value, OUT PE, OUT i ) THEN
+         Data := PE^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
-      PE := PN;
-    END; // WHILE
-  END CBufferBaseList.Remove;
+   END CBufferBaseList.Get;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; // similar as []
-  VAR
-    PE : TPBufferItem;
-  BEGIN
-    PE := TPBufferItem( SUPER[Index] );
-    IF PE = NIL THEN
-      RETURN FALSE;
-    END;
-    Value.Assign( TPBufferItem( PE )^.Value^ );
-    Data := TPBufferItem( PE )^.Data;
-    RETURN TRUE;
-  END ElementAt;
+   PUBLIC PROCEDURE CBufferBaseList.Remove( CONST Value : AMemoryBuffer ); // removes all occurences
+   VAR
+      PE, PN : TPBufferBaseItem;
+      b : BOOLEAN;
+   BEGIN
+      b := colGetFirst( OUT PE );
+      WHILE b DO
+         b := colNextOf( PE, OUT PN );
+         IF PE^.Value^ = Value THEN 
+            Delete( PE );
+         END;
+         PE := PN;
+      END; // WHILE
+   END CBufferBaseList.Remove;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CBufferBaseList.AddOA( CONST Value : ARRAY OF BYTE; Data : PTR );
-  VAR
-    PE : TPBufferItem;
-  BEGIN
-      CASE ItemType OF
-      | blitDynamic :
-         PE := NEW( CDynamicItem );
-      | blitSlot32 :
-         PE := NEW( CSlotItem32 );
-      | blitSlot64 :
-         PE := NEW( CSlotItem64 );
-      | blitSlot256 :
-         PE := NEW( CSlotItem256 );
-      END; // CASE
-    PE^.Value^.FromOA( Value, TRUE );
-    PE^.Data := Data;
-    SUPER.Append( PE );
-  END CBufferBaseList.AddOA;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE CBufferBaseList.ContainsOA( CONST Value : ARRAY OF BYTE ): BOOLEAN;
-  VAR
-    i : INTEGER;
-    PE : TPBufferItem;
-    S : CMemoryBuffer;
-  BEGIN
-    S.FromOA( Value, TRUE );
-    RETURN Lookup( S, OUT PE, OUT i );
-  END CBufferBaseList.ContainsOA;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE CBufferBaseList.GetOA( CONST Value : ARRAY OF BYTE; OUT Data : PTR ): BOOLEAN;
-  VAR
-    i : INTEGER;
-    PE : TPBufferItem;
-    S : CMemoryBuffer;
-  BEGIN
-    S.FromOA( Value, TRUE );
-    IF NOT Lookup( S, OUT PE, OUT i ) THEN
-      RETURN FALSE;
-    END;
-    Data := PE^.Data;
-    RETURN TRUE;
-  END CBufferBaseList.GetOA;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE CBufferBaseList.RemoveOA( CONST Value : ARRAY OF BYTE ); // removes all occurences
-  VAR
-    PE, PN : TPBufferItem;
-    S : CMemoryBuffer;
-    b : BOOLEAN;
-  BEGIN
-    S.FromOA( Value, TRUE );
-    b := colGetFirst( OUT PE );
-    WHILE b DO
-      b := colNextOf( PE, OUT PN );
-      IF PE^.Value^ = S THEN 
-        Delete( PE );
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; // similar as []
+   VAR
+      PE : TPBufferBaseItem;
+   BEGIN
+      IF SUPER.ElementAt( Index, OUT PE ) THEN
+         Value.Assign( TPBufferBaseItem( PE )^.Value^ );
+         Data := TPBufferBaseItem( PE )^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
-      PE := PN;
-    END; // WHILE
-  END CBufferBaseList.RemoveOA;
+   END ElementAt;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CBufferBaseList.InsertFirst( CONST Value : AMemoryBuffer; Data : PTR );
-  VAR
-    PE : TPBufferItem;
-  BEGIN
+   PUBLIC PROCEDURE CBufferBaseList.AddOA( CONST Value : ARRAY OF BYTE; Data : PTR );
+   VAR
+      PE : TPBufferBaseItem;
+   BEGIN
       CASE ItemType OF
       | blitDynamic :
          PE := NEW( CDynamicItem );
@@ -1097,18 +1145,64 @@ CLASS IMPLEMENTATION CBufferBaseList;
       | blitSlot256 :
          PE := NEW( CSlotItem256 );
       END; // CASE
-    PE^.Value^.Assign( Value );
-    PE^.Data := Data;
-    SUPER.InsertFirst( PE );
-  END CBufferBaseList.InsertFirst;
+      PE^.Value^.FromOA( Value, TRUE );
+      PE^.Data := Data;
+      SUPER.Add( PE );
+   END CBufferBaseList.AddOA;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CBufferBaseList.InsertBefore( CONST Before, Value : AMemoryBuffer; Data : PTR );
-  VAR
-    i : INTEGER;
-    PB, PE : TPBufferItem;
-  BEGIN
+   PUBLIC PROCEDURE CBufferBaseList.ContainsOA( CONST Value : ARRAY OF BYTE ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPBufferBaseItem;
+      S : StorageO.CMemoryBuffer;
+   BEGIN
+      S.FromOA( Value, TRUE );
+      RETURN Lookup( S, OUT PE, OUT i );
+   END CBufferBaseList.ContainsOA;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CBufferBaseList.GetOA( CONST Value : ARRAY OF BYTE; OUT Data : PTR ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPBufferBaseItem;
+      S : StorageO.CMemoryBuffer;
+   BEGIN
+      S.FromOA( Value, TRUE );
+      IF NOT Lookup( S, OUT PE, OUT i ) THEN
+         RETURN FALSE;
+      END;
+      Data := PE^.Data;
+      RETURN TRUE;
+   END CBufferBaseList.GetOA;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CBufferBaseList.RemoveOA( CONST Value : ARRAY OF BYTE ); // removes all occurences
+   VAR
+      PE, PN : TPBufferBaseItem;
+      S : StorageO.CMemoryBuffer;
+      b : BOOLEAN;
+   BEGIN
+      S.FromOA( Value, TRUE );
+      b := colGetFirst( OUT PE );
+      WHILE b DO
+         b := colNextOf( PE, OUT PN );
+         IF PE^.Value^ = S THEN 
+            Delete( PE );
+         END;
+         PE := PN;
+      END; // WHILE
+   END CBufferBaseList.RemoveOA;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CBufferBaseList.InsertFirst( CONST Value : AMemoryBuffer; Data : PTR );
+   VAR
+      PE : TPBufferBaseItem;
+   BEGIN
       CASE ItemType OF
       | blitDynamic :
          PE := NEW( CDynamicItem );
@@ -1119,85 +1213,142 @@ CLASS IMPLEMENTATION CBufferBaseList;
       | blitSlot256 :
          PE := NEW( CSlotItem256 );
       END; // CASE
-    PE^.Value^.Assign( Value );
-    PE^.Data := Data;
-    IF Lookup( Before, OUT PB, OUT i ) THEN
-      SUPER.InsertBefore( PB, PE );
-    ELSE
+      PE^.Value^.Assign( Value );
+      PE^.Data := Data;
       SUPER.InsertFirst( PE );
-    END;
-  END CBufferBaseList.InsertBefore;
+   END CBufferBaseList.InsertFirst;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE CBufferBaseList.Lookup( CONST Value : AMemoryBuffer; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
-  VAR
-    i : INTEGER := 0;
-    PE : TPBufferItem;
-    b : BOOLEAN;
-  BEGIN
-    b := colGetFirst( OUT PE );
-    WHILE b DO
-      IF PE^.Value^ = Value THEN
-        Item := PE;
-        Index := i;
-        RETURN TRUE;
+   PUBLIC PROCEDURE CBufferBaseList.InsertBefore( CONST Before, Value : AMemoryBuffer; Data : PTR );
+   VAR
+      i : INTEGER;
+      PB, PE : TPBufferBaseItem;
+   BEGIN
+      CASE ItemType OF
+      | blitDynamic :
+         PE := NEW( CDynamicItem );
+      | blitSlot32 :
+         PE := NEW( CSlotItem32 );
+      | blitSlot64 :
+         PE := NEW( CSlotItem64 );
+      | blitSlot256 :
+         PE := NEW( CSlotItem256 );
+      END; // CASE
+      PE^.Value^.Assign( Value );
+      PE^.Data := Data;
+      IF Lookup( Before, OUT PB, OUT i ) THEN
+         SUPER.InsertBefore( PB, PE );
+      ELSE
+         SUPER.InsertFirst( PE );
       END;
-      b := colNextOf( PE, OUT PE );
-      INC( i );
-    END; // WHILE
-    RETURN FALSE;
-  END CBufferBaseList.Lookup;
+   END CBufferBaseList.InsertBefore;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CBufferBaseList.GetIterator( Direction : collection.TDirection ) : TPBufferBaseListIterator;
+   VAR
+      iterator : TPBufferBaseListIterator := NEW( CBufferBaseListIterator );
+   BEGIN
+      iterator^.Init( ADR( SELF ), Direction );
+      RETURN iterator;
+   END CBufferBaseList.GetIterator;
+
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Enqueue( CONST Value : AMemoryBuffer; Data : PTR );
    BEGIN
       Add( Value, Data );
    END Enqueue;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE EnqueueOA( CONST Value : ARRAY OF BYTE; Data : PTR );
    BEGIN
       AddOA( Value, Data );
    END EnqueueOA;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Dequeue( OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; 
    VAR
-      PE : TPBufferItem;
+      PE : TPBufferBaseItem;
    BEGIN
-      IF NOT SUPER.GetFirst( OUT PE ) THEN
+      IF colGetFirst( OUT PE ) THEN
+         Value.Assign( PE^.Value^ );
+         Data := PE^.Data;
+         Delete( PE );
+         RETURN TRUE;
+      ELSE
          RETURN FALSE;
       END;
-      Value.Assign( PE^.Value^ );
-      Data := PE^.Data;
-      SUPER.Delete( PE );
-      RETURN TRUE;
    END Dequeue;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DequeueOA( OUT Value : ARRAY OF BYTE; OUT Filled : CARDINAL; OUT Data : PTR ) : BOOLEAN; 
+   PRIVATE PROCEDURE CBufferBaseList.Lookup( CONST Value : AMemoryBuffer; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
    VAR
-      PE : TPBufferItem;
+      i : INTEGER := 0;
+      PE : TPBufferBaseItem;
+      b : BOOLEAN;
    BEGIN
-      IF NOT SUPER.GetFirst( OUT PE ) THEN
-         RETURN FALSE;
-      END;
-      PE^.Value^.ToOA( OUT Value, OUT Filled );
-      Data := PE^.Data;
-      SUPER.Delete( PE );
-      RETURN TRUE;
-   END DequeueOA;
+      b := colGetFirst( OUT PE );
+      WHILE b DO
+         IF PE^.Value^ = Value THEN
+            Item := PE;
+            Index := i;
+            RETURN TRUE;
+         END;
+         b := colNextOf( PE, OUT PE );
+         INC( i );
+      END; // WHILE
+      RETURN FALSE;
+   END CBufferBaseList.Lookup;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
 BEGIN
 END CBufferBaseList;
 
-//===========================================================================
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CBufferBaseListIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : POINTER TO AMemoryBuffer;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPBufferBaseItem( Current )^.Value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : baseobject.PIBASE;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPBufferBaseItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : baseobject.PIBASE );
+   BEGIN
+      IF Current <> NIL THEN
+         TPBufferBaseItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CBufferBaseListIterator;
+
+(*===========================================================================*)
 
 END lists.

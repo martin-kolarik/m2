@@ -71,7 +71,7 @@ CLASS IMPLEMENTATION CIterator;
    BEGIN
       _OfCollection := ofCollection;
       _Direction := direction;
-      _StartSequence := ofCollection^.Sequence;
+      Reset();
    END Init;
 
 (*---------------------------------------------------------------------------*)
