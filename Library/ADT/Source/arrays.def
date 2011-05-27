@@ -1,48 +1,83 @@
 DEFINITION MODULE arrays;
 
 IMPORT
-  array;
+   array,
+   baseobject,
+   collection;
   
-FROM StringsO IMPORT
-  CString;
-
 #save, option( dll_export => on )
 
 //---------------------------------------------------------------------------
 
 TYPE
-  TPIntegerArray = POINTER TO CIntegerArray;
+   TPIntegerArray = POINTER TO CIntegerArray;
+   TPIntegerArrayIterator = POINTER TO CIntegerArrayIterator;
 
 CLASS CIntegerArray( array.CArray );
-  PUBLIC INDEX( Index : INTEGER ) : INTEGER; // returns 0 if index is out of range
 
-  PUBLIC PROCEDURE Add( Value : INTEGER ) : INTEGER; // returns index
-  PUBLIC PROCEDURE Contains( Value : INTEGER ) : BOOLEAN;
-  PUBLIC PROCEDURE Insert( Index : INTEGER; Value : INTEGER );
-  PUBLIC PROCEDURE Remove( Value : INTEGER );
+   // array/list interface
+   PUBLIC INDEX( Index : INTEGER ) : INTEGER; // returns 0 if index is out of range
 
-  PUBLIC PROCEDURE IndexOf( Value : INTEGER ) : INTEGER; // if not found returns LowBound-1
+   PUBLIC PROCEDURE Contains( Value : INTEGER ) : BOOLEAN;
+   PUBLIC PROCEDURE Add( Value : INTEGER ) : INTEGER; // returns index
+   PUBLIC PROCEDURE Insert( ToIndex : INTEGER; Value : INTEGER );
+   PUBLIC PROCEDURE Remove( Value : INTEGER );
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : INTEGER ) : BOOLEAN;
 
-  PRIVATE PROCEDURE Init(); // deny usage
+   PUBLIC PROCEDURE IndexOf( Value : INTEGER ) : INTEGER; // if not found returns LowBound-1
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPIntegerArrayIterator;
+   #restore
+
+   // queue interface
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Enqueue( Value : INTEGER );
+   #restore
+   PUBLIC PROCEDURE Dequeue( OUT Value : INTEGER ) : BOOLEAN; 
+
+   PRIVATE PROCEDURE Init(); // deny usage
+
 END CIntegerArray;
 
 //---------------------------------------------------------------------------
 
 TYPE
-  TPPtrArray = POINTER TO CPtrArray;
+   TPBaseArray = POINTER TO CBaseArray;
+   TPBaseArrayIterator = POINTER TO CBaseArrayIterator;
 
-CLASS CPtrArray( array.CArray );
-  PUBLIC INDEX( Index : INTEGER ) : PTR; // returns 0 if index is out of range
+CLASS CBaseArray( array.CArray );
 
-  PUBLIC PROCEDURE Add( Value : PTR ) : INTEGER; // returns index
-  PUBLIC PROCEDURE Contains( Value : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE Insert( Index : INTEGER; Value : PTR );
-  PUBLIC PROCEDURE Remove( Value : PTR );
+   PUBLIC INDEX( Index : INTEGER ) : baseobject.PIBASE; // returns 0 if index is out of range
 
-  PUBLIC PROCEDURE IndexOf( Value : PTR ) : INTEGER; // if not found returns LowBound-1
+   PUBLIC PROCEDURE Contains( Value : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Add( Value : baseobject.PIBASE ) : INTEGER; // returns index
+   PUBLIC PROCEDURE Insert( ToIndex : INTEGER; Value : baseobject.PIBASE );
+   PUBLIC PROCEDURE Remove( Value : baseobject.PIBASE );
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : baseobject.PIBASE ) : BOOLEAN;
 
-  PRIVATE PROCEDURE Init(); // deny usage
-END CPtrArray;
+   PUBLIC PROCEDURE IndexOf( Value : baseobject.PIBASE ) : INTEGER; // if not found returns LowBound-1
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPBaseArrayIterator;
+   #restore
+
+   // queue interface
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Enqueue( Value : baseobject.PIBASE );
+   #restore
+   PUBLIC PROCEDURE Dequeue( OUT Value : baseobject.PIBASE ) : BOOLEAN; 
+
+   // SELF
+   PUBLIC PROPERTY
+      DataOwnership : BOOLEAN;
+
+   PRIVATE VAR
+      _DataOwnership : BOOLEAN := FALSE;
+
+   PRIVATE PROCEDURE Init(); // deny usage
+
+END CBaseArray;
 
 //---------------------------------------------------------------------------
 
