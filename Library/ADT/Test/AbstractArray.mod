@@ -10,7 +10,7 @@ PROCEDURE ArrayTest();
 VAR
   I : CARDINAL;
 BEGIN
-  AR.Init( array.astrgListInArray, 4 );
+  AR.Init( array.astrgListInArray, 0, 4 );
   FOR I := 0 TO 1499 DO
     AR.Add( ADR( I ), 4 );
   END;

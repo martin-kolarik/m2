@@ -6,8 +6,10 @@ FROM Storage IMPORT
 FROM Debug IMPORT
    Assertion, LogAssertionW;
 
+FROM Exceptions IMPORT
+   StoreException;
+
 IMPORT
-   Exceptions,
    Storage,
    Sync;
 
@@ -70,7 +72,7 @@ CLASS IMPLEMENTATION CArray;
    VAR
       lastItem : PTR := _Data@[ _Count * _ItemSize ];
    BEGIN
-      ASSERTLOG(( PTR( of ) >= _Data ) AND ( PTR( of ) <= lastItem ), L"Unexpected array item" );
+      ASSERTLOG(( PTR( of ) >= PTR( _Data )) AND ( PTR( of ) <= lastItem ), L"Unexpected array item" );
       object := baseobject.PBASE( of@[_ItemSize] );
       RETURN PTR( object ) <= lastItem;
    END colNextOf;
@@ -93,9 +95,9 @@ CLASS IMPLEMENTATION CArray;
    VAR
       lastItem : PTR := _Data@[ _Count * _ItemSize ];
    BEGIN
-      ASSERTLOG(( PTR( of ) >= _Data ) AND ( PTR( of ) <= lastItem ), L"Unexpected array item" );
+      ASSERTLOG(( PTR( of ) >= PTR( _Data )) AND ( PTR( of ) <= lastItem ), L"Unexpected array item" );
       object := baseobject.PBASE( of@[-_ItemSize] );
-      RETURN PTR( object ) >= _Data;
+      RETURN PTR( object ) >= PTR( _Data );
    END colPrevOf;
 
 (*---------------------------------------------------------------------------*)
@@ -313,13 +315,19 @@ CLASS IMPLEMENTATION CArray;
   
 (*-----------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY ItemSize GET : CARDINAL;
+   BEGIN
+      RETURN _ItemSize;
+   END ItemSize;
+
+(*-----------------------------------------------------------------------------*)
+
    PUBLIC INDEX CArray GET( Index : INTEGER ) : ADDRESS;
    VAR
       i : CARDINAL := DEC( Index, _LowBound );
    BEGIN
       IF ( i < 0 ) OR ( i >= _Count ) THEN
-         Exceptions.Modula2Exception( NIL, L"", L"", Exceptions.mexOutOfArrayIndex );
-         RETURN NIL;
+         THROW Exceptions.Modula2Exception( NIL, L"", L"", Exceptions.mexOutOfArrayIndex );
       ELSE
          RETURN _Data@[ i * _ItemSize ];
       END;
@@ -332,7 +340,7 @@ CLASS IMPLEMENTATION CArray;
       i : CARDINAL := DEC( Index, _LowBound );
    BEGIN
       IF ( i < 0 ) OR ( i >= _Count ) THEN
-         Exceptions.Modula2Exception( NIL, L"", L"", Exceptions.mexOutOfArrayIndex );
+         THROW Exceptions.Modula2Exception( NIL, L"", L"", Exceptions.mexOutOfArrayIndex );
       ELSE
          Sync.IInc( REF _Sequence );
          Storage.Move( Value, _Data@[ i * _ItemSize ], _ItemSize );

@@ -15,7 +15,7 @@ FROM StringsO IMPORT
 (*================================================================================*)
 
 TYPE
-  TPPtrBaseSyncMap = POINTER TO CPtrBaseSyncMap;
+   TPPtrBaseSyncMap = POINTER TO CPtrBaseSyncMap;
 
 CLASS CPtrBaseSyncMap( maps.CPtrBaseMap ); // for enumerating (GetFirst/Last/Next/Prev) it must be locked explicitely
 

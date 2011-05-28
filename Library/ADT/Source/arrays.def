@@ -7,7 +7,7 @@ IMPORT
   
 #save, option( dll_export => on )
 
-//---------------------------------------------------------------------------
+(*=============================================================================*)
 
 TYPE
    TPIntegerArray = POINTER TO CIntegerArray;
@@ -40,7 +40,16 @@ CLASS CIntegerArray( array.CArray );
 
 END CIntegerArray;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+CLASS CIntegerArrayIterator( array.CArrayIterator );
+
+   PUBLIC READONLY PROPERTY
+      Value : INTEGER;
+
+END CIntegerArrayIterator;
+
+(*=============================================================================*)
 
 TYPE
    TPBaseArray = POINTER TO CBaseArray;
@@ -76,10 +85,20 @@ CLASS CBaseArray( array.CArray );
       _DataOwnership : BOOLEAN := FALSE;
 
    PRIVATE PROCEDURE Init(); // deny usage
+   PRIVATE PROCEDURE DisposeOwned( Data : baseobject.PIBASE );
 
 END CBaseArray;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+CLASS CBaseArrayIterator( array.CArrayIterator );
+
+   PUBLIC READONLY PROPERTY
+      Value : baseobject.PIBASE;
+
+END CBaseArrayIterator;
+
+(*=============================================================================*)
 
 #restore
 

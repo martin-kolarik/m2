@@ -5,7 +5,8 @@ FROM Storage IMPORT
 
 IMPORT
    baseobject,
-   collection;
+   collection,
+   Exceptions;
 
 #save, option( dll_export => on )
 
@@ -67,12 +68,14 @@ CLASS CArray( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
    // SELF -- itself
    PUBLIC PROCEDURE Init( Strategy : TStrategy; LowBound : INTEGER; ItemSize : CARDINAL );
 
-   PUBLIC VIRTUAL PROPERTY
+   PUBLIC PROPERTY
       Size : CARDINAL; // get, set initializes (to 0)/reallocates space
-   PUBLIC VIRTUAL WRITEONLY PROPERTY
+   PUBLIC WRITEONLY PROPERTY
       setCount : CARDINAL; // getter is inherited as readonly
+   PUBLIC READONLY PROPERTY
+      ItemSize : CARDINAL;
 
-   PUBLIC INDEX( Index : INTEGER ) : ADDRESS; // on set, data of at least ItemSize is expected
+   PUBLIC INDEX( Index : INTEGER ) : ADDRESS THROWS Exceptions.CModula2Exception; // on set, data of at least ItemSize is expected
   
    PRIVATE VAR
       _Sequence : CARDINAL := 0;
