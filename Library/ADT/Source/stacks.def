@@ -9,48 +9,48 @@ IMPORT
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIntegerBaseStack( lists.CIntegerBaseList );
+CLASS CIntegerPtrStack( lists.CIntegerPtrList );
 
    PUBLIC READONLY PROPERTY
       Top : INTEGER;
    PUBLIC PROPERTY
-      TopData : baseobject.PIBASE;
+      TopData : PTR;
 
-  PUBLIC PROCEDURE Push( Value : INTEGER; Data : baseobject.PIBASE );
-  PUBLIC PROCEDURE Pop( OUT Value : INTEGER; OUT Data : baseobject.PIBASE ) : BOOLEAN;
-  PUBLIC PROCEDURE Peek( OUT Value : INTEGER; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+  PUBLIC PROCEDURE Push( Value : INTEGER; Data : PTR );
+  PUBLIC PROCEDURE Pop( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE Peek( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
 
-END CIntegerBaseStack;
+END CIntegerPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CBaseBaseStack( lists.CBaseBaseList );
+CLASS CPtrPtrStack( lists.CPtrPtrList );
 
    PUBLIC READONLY PROPERTY
-      Top : baseobject.PIBASE;
+      Top : PTR;
    PUBLIC PROPERTY
-      TopData : baseobject.PIBASE;
+      TopData : PTR;
 
-  PUBLIC PROCEDURE Push( Value : baseobject.PIBASE; Data : baseobject.PIBASE );
-  PUBLIC PROCEDURE Pop( OUT Value : baseobject.PIBASE; OUT Data : baseobject.PIBASE ) : BOOLEAN;
-  PUBLIC PROCEDURE Peek( OUT Value : baseobject.PIBASE; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+  PUBLIC PROCEDURE Push( Value : PTR; Data : PTR );
+  PUBLIC PROCEDURE Pop( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE Peek( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
 
-END CBaseBaseStack;
+END CPtrPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStringBaseStack( lists.CStringBaseList );
+CLASS CStringPtrStack( lists.CStringPtrList );
 
    PUBLIC READONLY PROPERTY
       Top : StringsO.TPString;
    PUBLIC PROPERTY
-      TopData : baseobject.PIBASE;
+      TopData : PTR;
 
-  PUBLIC PROCEDURE Push( CONST Value : StringsO.IString; Data : baseobject.PIBASE );
-  PUBLIC PROCEDURE Pop( OUT Value : StringsO.IString; OUT Data : baseobject.PIBASE ) : BOOLEAN;
-  PUBLIC PROCEDURE Peek( OUT Value : StringsO.IString; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+  PUBLIC PROCEDURE Push( CONST Value : StringsO.IString; Data : PTR );
+  PUBLIC PROCEDURE Pop( OUT Value : StringsO.IString; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE Peek( OUT Value : StringsO.IString; OUT Data : PTR ) : BOOLEAN;
 
-END CStringBaseStack;
+END CStringPtrStack;
 
 (*---------------------------------------------------------------------------*)
 

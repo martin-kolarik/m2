@@ -68,7 +68,7 @@ CLASS IMPLEMENTATION CINIFile;
                      Line.Substring( 1, c-1, OUT KeyStr );
                      KeyStr.Trim();
                   END;
-                  _DataList.Append( PDataElem );
+                  _DataList.Add( PDataElem );
                END;
             ELSE
                NEW( PDataElem );
@@ -83,7 +83,7 @@ CLASS IMPLEMENTATION CINIFile;
                   END;
                   KeyStr.Trim();
                END;
-               _DataList.Append( PDataElem );
+               _DataList.Add( PDataElem );
             END;
          END;
       END;
@@ -132,7 +132,7 @@ CLASS IMPLEMENTATION CINIFile;
       END;
 
       LineEnd := FALSE;
-      b := _DataList.GetFirst( OUT PElem );
+      b := _DataList.colGetFirst( OUT PElem );
       WHILE b DO
          IF PElem^.IsSection THEN
             IF LineEnd THEN
@@ -148,7 +148,7 @@ CLASS IMPLEMENTATION CINIFile;
             Writer.Write( PElem^.DataStr, TRUE );
          END;
 
-         b := _DataList.NextOf( PElem, OUT PElem );
+         b := _DataList.colNextOf( PElem, OUT PElem );
          LineEnd := TRUE;
       END;
 
@@ -188,13 +188,13 @@ CLASS IMPLEMENTATION CINIFile;
          _PSection := NIL;
          RETURN TRUE;
       END;
-      b := _DataList.GetFirst( OUT PElem );
+      b := _DataList.colGetFirst( OUT PElem );
       WHILE b DO
          IF ( PElem^.IsSection ) AND PElem^.KeyStr.EqualsOA( Section ) THEN
             _PSection := PElem;
             RETURN TRUE;
          END;
-         b := _DataList.NextOf( PElem, OUT PElem );
+         b := _DataList.colNextOf( PElem, OUT PElem );
       END;
       _PSection := NIL;
       RETURN FALSE;
@@ -212,7 +212,7 @@ CLASS IMPLEMENTATION CINIFile;
             IsSection := TRUE;
             KeyStr.FromOA( Section );
          END;
-         _DataList.Append( PElem );
+         _DataList.Add( PElem );
          _PSection := PElem;
          Modified := TRUE;
       END;
@@ -228,12 +228,12 @@ CLASS IMPLEMENTATION CINIFile;
       IF NOT SetSection( Section ) THEN
          RETURN FALSE;
       ELSIF _PSection = NIL THEN
-         b := _DataList.GetFirst( OUT PElem );
+         b := _DataList.colGetFirst( OUT PElem );
       ELSE
-         b := _DataList.NextOf( _PSection, OUT PElem );
+         b := _DataList.colNextOf( _PSection, OUT PElem );
       END;
       WHILE b AND NOT PElem^.IsSection DO
-         b := _DataList.NextOf( PElem, OUT PNext );
+         b := _DataList.colNextOf( PElem, OUT PNext );
          _DataList.Delete( PElem );
          PElem := PNext;
       END;
@@ -264,9 +264,9 @@ CLASS IMPLEMENTATION CINIFile;
       b : BOOLEAN;
    BEGIN
       IF _PSection = NIL THEN
-         b := _DataList.GetFirst( OUT PElem );
+         b := _DataList.colGetFirst( OUT PElem );
       ELSE
-         b := _DataList.NextOf( _PSection, OUT PElem );
+         b := _DataList.colNextOf( _PSection, OUT PElem );
       END;
       WHILE b DO
          IF PElem^.IsSection THEN
@@ -276,7 +276,7 @@ CLASS IMPLEMENTATION CINIFile;
             V.Assign( PElem^.DataStr );
             RETURN TRUE;
          END;
-         b := _DataList.NextOf( PElem, OUT PElem );
+         b := _DataList.colNextOf( PElem, OUT PElem );
       END;
       RETURN FALSE;
    END GetKeyStr;
@@ -338,9 +338,9 @@ CLASS IMPLEMENTATION CINIFile;
          b : BOOLEAN;
       BEGIN
          IF _PSection = NIL THEN
-            b := _DataList.GetFirst( OUT PElem );
+            b := _DataList.colGetFirst( OUT PElem );
          ELSE
-            b := _DataList.NextOf( _PSection, OUT PElem );
+            b := _DataList.colNextOf( _PSection, OUT PElem );
          END;
          WHILE b DO
             IF PElem^.IsSection THEN
@@ -350,7 +350,7 @@ CLASS IMPLEMENTATION CINIFile;
                Modified := TRUE;
                RETURN TRUE;
             END;
-            b := _DataList.NextOf( PElem, OUT PElem );
+            b := _DataList.colNextOf( PElem, OUT PElem );
          END;
          RETURN FALSE;
       END SetKeyStrLocal;
@@ -364,7 +364,7 @@ CLASS IMPLEMENTATION CINIFile;
    BEGIN
       IF Multiple OR NOT SetKeyStrLocal() THEN
          IF _PSection <> NIL THEN
-            b := _DataList.NextOf( _PSection, OUT PElem );
+            b := _DataList.colNextOf( _PSection, OUT PElem );
             LOOP
                IF NOT b THEN
                   EXIT;
@@ -372,7 +372,7 @@ CLASS IMPLEMENTATION CINIFile;
                   PBefore := PElem;
                   EXIT;
                END;
-               b := _DataList.NextOf( PElem, OUT PElem );
+               b := _DataList.colNextOf( PElem, OUT PElem );
             END; // LOOP
          END;
          NEW( PElem );
@@ -384,7 +384,7 @@ CLASS IMPLEMENTATION CINIFile;
          IF ( _PSection <> NIL ) AND ( PBefore <> NIL ) THEN
             _DataList.InsertBefore( PBefore, PElem );
          ELSE
-            _DataList.Append( PElem );
+            _DataList.Add( PElem );
          END;
          Modified := TRUE;
       END;
@@ -433,9 +433,9 @@ CLASS IMPLEMENTATION CINIFile;
       b : BOOLEAN;
    BEGIN
       IF EnumerateState <> NIL THEN
-         b := _DataList.NextOf( TPDataListElem( EnumerateState ), OUT PElem );
+         b := _DataList.colNextOf( TPDataListElem( EnumerateState ), OUT PElem );
       ELSE
-         b := _DataList.GetFirst( OUT PElem );
+         b := _DataList.colGetFirst( OUT PElem );
       END;
       WHILE b DO
          IF PElem^.IsSection THEN
@@ -447,7 +447,7 @@ CLASS IMPLEMENTATION CINIFile;
             END;
             RETURN TRUE;
          ELSE
-            b := _DataList.NextOf( PElem, OUT PElem );
+            b := _DataList.colNextOf( PElem, OUT PElem );
          END;
       END; // WHILE
       RETURN FALSE;
@@ -461,11 +461,11 @@ CLASS IMPLEMENTATION CINIFile;
       b : BOOLEAN;
    BEGIN
       IF EnumerateState <> NIL THEN
-         b := _DataList.NextOf( TPDataListElem( EnumerateState ), OUT PElem );
+         b := _DataList.colNextOf( TPDataListElem( EnumerateState ), OUT PElem );
       ELSIF _PSection = NIL THEN
-         b := _DataList.GetFirst( OUT PElem );
+         b := _DataList.colGetFirst( OUT PElem );
       ELSE
-         b := _DataList.NextOf( _PSection, OUT PElem );
+         b := _DataList.colNextOf( _PSection, OUT PElem );
       END;
       WHILE b DO
          IF NOT PElem^.IsSection THEN
@@ -477,7 +477,7 @@ CLASS IMPLEMENTATION CINIFile;
          ELSIF PElem^.IsSection THEN
             RETURN FALSE;
          ELSE
-            b := _DataList.NextOf( PElem, OUT PElem );
+            b := _DataList.colNextOf( PElem, OUT PElem );
          END;
       END; // WHILE
       RETURN FALSE;

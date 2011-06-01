@@ -88,7 +88,7 @@ CLASS IMPLEMENTATION CIntegerArray;
    VAR
       iterator : TPIntegerArrayIterator := NEW( CIntegerArrayIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ), Direction );
+      iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;
 
@@ -136,11 +136,11 @@ END CIntegerArrayIterator;
 
 (*=============================================================================*)
 
-CLASS IMPLEMENTATION CBaseArray;
+CLASS IMPLEMENTATION CPtrArray;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC INDEX CBaseArray GET( Index : INTEGER ) : baseobject.PIBASE;
+   PUBLIC INDEX CPtrArray GET( Index : INTEGER ) : PTR;
    VAR
       self : array.TPArray := ADR( SELF );
    BEGIN
@@ -150,46 +150,46 @@ CLASS IMPLEMENTATION CBaseArray;
          // do nothing
       END;
       RETURN NIL;
-   END CBaseArray;
+   END CPtrArray;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC INDEX CBaseArray SET( Index : INTEGER; Value : baseobject.PIBASE );
+   PUBLIC INDEX CPtrArray SET( Index : INTEGER; Value : PTR );
    VAR
       self : array.TPArray := ADR( SELF ); // #246 shall allow RETURN SUPER[Index] and omit "self";
    BEGIN
       TRY
-         DisposeOwned( baseobject.PIBASE( self^[Index] )); // #246 shall allow RETURN SUPER[Index] and omit "self";
+         DisposeOwned( PTR( self^[Index] )); // #246 shall allow RETURN SUPER[Index] and omit "self";
          self^[Index] := ADR( Value ); // #246 shall allow RETURN SUPER[Index] and omit "self";
       CATCH : CModula2Exception DO
          // do nothing
       END;
-   END CBaseArray;
+   END CPtrArray;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Add( Value : baseobject.PIBASE ) : INTEGER; // returns index
+   PUBLIC PROCEDURE Add( Value : PTR ) : INTEGER; // returns index
    BEGIN
       RETURN SUPER.Add( Value );
    END Add;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Contains( Value : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Contains( Value : PTR ) : BOOLEAN;
    BEGIN
       RETURN SUPER.Contains( Value );
    END Contains;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Insert( ToIndex : INTEGER; Value : baseobject.PIBASE );
+   PUBLIC PROCEDURE Insert( ToIndex : INTEGER; Value : PTR );
    BEGIN
       SUPER.Insert( ToIndex, Value );
    END Insert;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Remove( Value : baseobject.PIBASE );
+   PUBLIC PROCEDURE Remove( Value : PTR );
    BEGIN
       DisposeOwned( Value );
       SUPER.Remove( Value );
@@ -197,38 +197,38 @@ CLASS IMPLEMENTATION CBaseArray;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR ) : BOOLEAN;
    BEGIN
       RETURN SUPER.ElementAt( Index, OUT Value );
    END ElementAt;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE IndexOf( Value : baseobject.PIBASE ) : INTEGER;
+   PUBLIC PROCEDURE IndexOf( Value : PTR ) : INTEGER;
    BEGIN
       RETURN SUPER.IndexOf( Value );
    END IndexOf;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPBaseArrayIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPPtrArrayIterator;
    VAR
-      iterator : TPBaseArrayIterator := NEW( CBaseArrayIterator );
+      iterator : TPPtrArrayIterator := NEW( CPtrArrayIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ), Direction );
+      iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Enqueue( Value : baseobject.PIBASE );
+   PUBLIC PROCEDURE Enqueue( Value : PTR );
    BEGIN
       SUPER.Enqueue( Value );
    END Enqueue;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dequeue( OUT Value : baseobject.PIBASE ) : BOOLEAN; 
+   PUBLIC PROCEDURE Dequeue( OUT Value : PTR ) : BOOLEAN; 
    BEGIN
       RETURN SUPER.Dequeue( OUT Value );
    END Dequeue;
@@ -251,20 +251,20 @@ CLASS IMPLEMENTATION CBaseArray;
 
    PRIVATE PROCEDURE Init();
    BEGIN
-      SUPER.Init( array.astrgSparseArray, 0, SIZE( baseobject.PIBASE ));
+      SUPER.Init( array.astrgSparseArray, 0, SIZE( PTR ));
    END Init;
 
 (*-----------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DisposeOwned( Data : baseobject.PIBASE );
+   PRIVATE PROCEDURE DisposeOwned( Data : PTR );
    BEGIN
       IF ( Data <> NIL ) AND _DataOwnership THEN
-         IF Data^ INHERITS baseobject.CRefcounted THEN
+         IF baseobject.PBASE( Data )^ INHERITS baseobject.CRefcounted THEN // dangerous, m2cpp has to define OBJECT
             baseobject.TPRefcounted( Data )^.Release();
-         ELSIF Data^ INHERITS baseobject.CDisposable THEN 
+         ELSIF baseobject.PBASE( Data )^ INHERITS baseobject.CDisposable THEN 
             baseobject.TPDisposable( Data )^.Dispose();
             DISPOSE( baseobject.TPDisposable( Data ));
-         ELSIF Data^ INHERITS baseobject.BASE THEN
+         ELSIF baseobject.PBASE( Data )^ INHERITS baseobject.BASE THEN
             DISPOSE( baseobject.PBASE( Data ));
          ELSE
             ASSERTLOG( FALSE, L"Unable to deallocate array item -- unknown class" );
@@ -276,22 +276,22 @@ CLASS IMPLEMENTATION CBaseArray;
 
 BEGIN
    Init();
-END CBaseArray;
+END CPtrArray;
 
 (*=============================================================================*)
 
-CLASS IMPLEMENTATION CBaseArrayIterator;
+CLASS IMPLEMENTATION CPtrArrayIterator;
 
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Value GET : baseobject.PIBASE;
+   PUBLIC PROPERTY Value GET : PTR;
    BEGIN
       RETURN colCurrent;
    END Value;
 
 (*-----------------------------------------------------------------------------*)
 
-END CBaseArrayIterator;
+END CPtrArrayIterator;
 
 (*=============================================================================*)
 

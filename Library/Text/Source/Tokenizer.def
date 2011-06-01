@@ -295,7 +295,7 @@ CLASS CTokenizer IMPLEMENTS ITokenizer;
       _Position : CARD64;
       _Line : CARD64;
       _Column : CARDINAL;
-      _Marks : lists.CBufferList;
+      _Marks : lists.CBufferPtrList;
 
       // reading      
       _Reader : TextReader.TPTextReader := NIL;

@@ -25,7 +25,7 @@ FROM StringsO IMPORT
 
 #save, option( dll_export => on )
 
-CLASS CDataOwnershipControlMap( avltree.CAVLTree );
+CLASS CDataOwnershipControlMap( avltree.CAVLTree ); // ancestors with DataOwnership = TRUE will examine Data : PTR as being PBASE and deallocate it
 
    // SELF
    PUBLIC PROPERTY
@@ -39,33 +39,33 @@ END CDataOwnershipControlMap;
 //---------------------------------------------------------------------------
 
 TYPE
-   TPIntegerBaseMap = POINTER TO CIntegerBaseMap;
-   TPIntegerBaseMapIterator = POINTER TO CIntegerBaseMapIterator;
+   TPIntegerPtrMap = POINTER TO CIntegerPtrMap;
+   TPIntegerPtrMapIterator = POINTER TO CIntegerPtrMapIterator;
 
-CLASS CIntegerBaseMap( CDataOwnershipControlMap );
+CLASS CIntegerPtrMap( CDataOwnershipControlMap );
 
-   PUBLIC READONLY INDEX( Index : CARDINAL ) : baseobject.PIBASE;
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-   PUBLIC PROCEDURE Add( Key : INTEGER; Data : baseobject.PIBASE );
+   PUBLIC PROCEDURE Add( Key : INTEGER; Data : PTR );
    PUBLIC PROCEDURE Remove( Key : INTEGER );
    PUBLIC PROCEDURE Contains( Key : INTEGER ) : BOOLEAN;
-   PUBLIC PROCEDURE Get( Key : INTEGER; OUT Data : baseobject.PIBASE ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : baseobject.PIBASE ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Get( Key : INTEGER; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator() : TPIntegerBaseMapIterator;
+   PUBLIC PROCEDURE GetIterator() : TPIntegerPtrMapIterator;
    #restore
 
-END CIntegerBaseMap;
+END CIntegerPtrMap;
 
-CLASS CIntegerBaseMapIterator( avltree.CAVLTreeIterator );
+CLASS CIntegerPtrMapIterator( avltree.CAVLTreeIterator );
 
    PUBLIC READONLY PROPERTY
       Key : INTEGER;
    PUBLIC PROPERTY
-      Data : baseobject.PIBASE;
+      Data : PTR;
 
-END CIntegerBaseMapIterator;
+END CIntegerPtrMapIterator;
 
 //---------------------------------------------------------------------------
 
@@ -100,64 +100,33 @@ END CIntegerStringMapIterator;
 //---------------------------------------------------------------------------
 
 TYPE
-   TPPtrBaseMap = POINTER TO CPtrBaseMap;
-   TPPtrBaseMapIterator = POINTER TO CPtrBaseMapIterator;
+   TPPtrPtrMap = POINTER TO CPtrPtrMap;
+   TPPtrPtrMapIterator = POINTER TO CPtrPtrMapIterator;
 
-CLASS CPtrBaseMap( CDataOwnershipControlMap );
+CLASS CPtrPtrMap( CDataOwnershipControlMap );
 
-   PUBLIC READONLY INDEX( Index : CARDINAL ) : baseobject.PIBASE;
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-   PUBLIC PROCEDURE Add( Key : PTR; Data : baseobject.PIBASE );
+   PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
    PUBLIC PROCEDURE Remove( Key : PTR );
    PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE Get( Key : PTR; OUT Data : baseobject.PIBASE ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : baseobject.PIBASE ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator() : TPPtrBaseMapIterator;
+   PUBLIC PROCEDURE GetIterator() : TPPtrPtrMapIterator;
    #restore
 
-END CPtrBaseMap;
+END CPtrPtrMap;
 
-CLASS CPtrBaseMapIterator( avltree.CAVLTreeIterator );
+CLASS CPtrPtrMapIterator( avltree.CAVLTreeIterator );
 
    PUBLIC READONLY PROPERTY
       Key : PTR;
    PUBLIC PROPERTY
-      Data : baseobject.PIBASE;
+      Data : PTR;
 
-END CPtrBaseMapIterator;
-
-//---------------------------------------------------------------------------
-
-TYPE
-   TPStringBaseMap = POINTER TO CStringBaseMap;
-   TPStringBaseMapIterator = POINTER TO CStringBaseMapIterator;
-
-CLASS CStringBaseMap( CDataOwnershipControlMap );
-
-   PUBLIC READONLY INDEX( Index : CARDINAL ) : baseobject.PIBASE;
-
-   PUBLIC PROCEDURE Add( CONST Key : IString; Data : baseobject.PIBASE );
-   PUBLIC PROCEDURE Remove( CONST Key : IString );
-   PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
-   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : baseobject.PIBASE ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : baseobject.PIBASE ) : BOOLEAN; // similar as []
-
-   #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator() : TPStringBaseMapIterator;
-   #restore
-
-END CStringBaseMap;
-
-CLASS CStringBaseMapIterator( avltree.CAVLTreeIterator );
-
-   PUBLIC READONLY PROPERTY
-      Key : TPString;
-   PUBLIC PROPERTY
-      Data : baseobject.PIBASE;
-
-END CStringBaseMapIterator;
+END CPtrPtrMapIterator;
 
 //---------------------------------------------------------------------------
 
@@ -165,7 +134,7 @@ TYPE
    TPStringPtrMap = POINTER TO CStringPtrMap;
    TPStringPtrMapIterator = POINTER TO CStringPtrMapIterator;
 
-CLASS CStringPtrMap( avltree.CAVLTree );
+CLASS CStringPtrMap( CDataOwnershipControlMap );
 
    PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 

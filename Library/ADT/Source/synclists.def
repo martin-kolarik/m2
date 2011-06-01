@@ -9,16 +9,16 @@ IMPORT
 (*================================================================================*)
 
 TYPE
-  TPBaseBaseSyncList = POINTER TO CBaseBaseSyncList;
+  TPPtrPtrSyncList = POINTER TO CPtrPtrSyncList;
 
-CLASS CBaseBaseSyncList( lists.CBaseBaseList );
+CLASS CPtrPtrSyncList( lists.CPtrPtrList );
 
    // CList
    PUBLIC VIRTUAL READONLY PROPERTY
       Count : CARDINAL;
       Empty : BOOLEAN;
 
-   // CBaseBaseList interface
+   // CPtrPtrList interface
    PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
@@ -43,7 +43,7 @@ CLASS CBaseBaseSyncList( lists.CBaseBaseList );
    PRIVATE VAR
       _Lock : Sync.RWLOCK;
 
-END CBaseBaseSyncList;
+END CPtrPtrSyncList;
 
 (*================================================================================*)
 
