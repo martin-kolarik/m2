@@ -98,13 +98,11 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
       FastEvaluation : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Progress : CARDINAL; // percent
-   PUBLIC VIRTUAL READONLY PROPERTY
-      TestResult : test.TTestResult;
-      SuiteResult : test.TTestResult;
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE StartParticle();
    PUBLIC VIRTUAL PROCEDURE StopParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
    PUBLIC VIRTUAL PROCEDURE StopParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
+   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
    PUBLIC VIRTUAL PROCEDURE StopPhase();
    
    // IRunnable
@@ -172,20 +170,6 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY TestResult GET : test.TTestResult;
-   BEGIN
-      RETURN _TestResult;
-   END TestResult;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY SuiteResult GET : test.TTestResult;
-   BEGIN
-      RETURN _SuiteResult;
-   END SuiteResult;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    BEGIN
       _Logger.LogSS( log.lcInfo, 0, L"", "    Phase: ", Name );
@@ -237,6 +221,18 @@ CLASS IMPLEMENTATION CHost;
          _TestResult := _PhaseResult;
       END;
    END StopPhase;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( result : BOOLEAN ); // expression = TRUE
+   BEGIN
+      IF result THEN
+         _PhaseResult := test.trSuccess;
+      ELSE
+         _PhaseResult := test.trFailure;
+      END;
+      StopPhase();
+   END StopPhaseWithResult;
 
 (*--------------------------------------------------------------------------------*)
 

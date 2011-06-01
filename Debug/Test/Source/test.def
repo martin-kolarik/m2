@@ -33,10 +33,6 @@ INTERFACE IHost;
       Progress : CARDINAL; // percent
 
    // phasing
-   READONLY PROPERTY
-      TestResult : TTestResult;
-      SuiteResult : TTestResult;
-
    PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
 
    // particles allow more detailed test tracking, although they are unnecessary, phases are sufficient

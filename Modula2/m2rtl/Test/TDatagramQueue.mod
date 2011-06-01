@@ -31,7 +31,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Threads : ARRAY [0..255] OF Sync.WAITABLE;
       Last : ARRAY [0..255] OF CARDINAL; // should be as long as maximal threads number be
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    INTERNAL PROCEDURE Round( Mode : TMode; ThreadCount : CARDINAL; RingSize : CARDINAL ) : BOOLEAN;
    
    LOCAL PROCEDURE Produce();
@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    TYPE
       TSizes = ARRAY [0..3] OF CARDINAL;
    CONST
