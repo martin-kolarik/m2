@@ -14,7 +14,7 @@ IMPORT
 (*===========================================================================*)
 
 CLASS CTest IMPLEMENTS test.ITest;
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
 END CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -30,9 +30,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   VAR
-      Failure : BOOLEAN := FALSE;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    BEGIN
       Host^.StartPhase( L"Do ASSERT" );
 
@@ -41,12 +39,6 @@ CLASS IMPLEMENTATION CTest;
       // ASSERTLOG( FALSE, L"Je to blbe" );
    
       Host^.StopPhase();
-
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
    END Run;
    
 (*---------------------------------------------------------------------------*)

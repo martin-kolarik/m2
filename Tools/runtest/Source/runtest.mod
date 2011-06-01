@@ -90,13 +90,6 @@ END CTestOutput;
 (*================================================================================*)
    
 CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
-   PRIVATE VAR
-      _Progress : CARDINAL := 0;
-      _Logger : log.CBaseLogger;
-      _Output : CTestOutput;
-      _FastEvaluation : BOOLEAN := FALSE;
-      _Test : test.TPTest := NIL;
-      _TestResult : test.TTestResult := test.trFailure;
 
    // IHost
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -105,10 +98,14 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
       FastEvaluation : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Progress : CARDINAL; // percent
-   // optional
+   PUBLIC VIRTUAL READONLY PROPERTY
+      TestResult : test.TTestResult;
+      SuiteResult : test.TTestResult;
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE StartParticle();
+   PUBLIC VIRTUAL PROCEDURE StopParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+   PUBLIC VIRTUAL PROCEDURE StopParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
    PUBLIC VIRTUAL PROCEDURE StopPhase();
-   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
    
    // IRunnable
    INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
@@ -118,6 +115,20 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
       TestOutput : TPTestOutput;
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    LOCAL PROCEDURE RunTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest ) : Sync.TAsyncResult;
+
+   // SELF
+   PRIVATE VAR
+      _Progress : CARDINAL := 0;
+      _Logger : log.CBaseLogger;
+      _Output : CTestOutput;
+      _FastEvaluation : BOOLEAN := FALSE;
+      _Test : test.TPTest := NIL;
+      _ParticleAssert : BOOLEAN;
+      _ParticleAssertText : StringsO.CString;
+      _PhaseResult : test.TTestResult := test.trFailure;
+      _TestResult : test.TTestResult := test.trFailure;
+      _SuiteResult : test.TTestResult := test.trFailure;
+
 END CHost;   
 
 (*--------------------------------------------------------------------------------*)
@@ -161,35 +172,80 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY TestResult GET : test.TTestResult;
+   BEGIN
+      RETURN _TestResult;
+   END TestResult;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY SuiteResult GET : test.TTestResult;
+   BEGIN
+      RETURN _SuiteResult;
+   END SuiteResult;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    BEGIN
       _Logger.LogSS( log.lcInfo, 0, L"", "    Phase: ", Name );
       _Output.Inside := insidePhase;
+      _PhaseResult := test.trUnknown;
    END StartPhase;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE StartParticle();
+   BEGIN
+      _ParticleAssert := FALSE;
+      _ParticleAssertText.Clear();
+   END StartParticle;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE StopParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+   BEGIN
+      IF NOT result THEN // TRUE expected
+         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
+         _PhaseResult := test.trFailure;
+      ELSIF _PhaseResult = test.trUnknown THEN
+         _PhaseResult := test.trSuccess; 
+      END;
+   END StopParticleWithResult;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE StopParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
+   BEGIN
+      IF NOT _ParticleAssert THEN // assert expected, but did not occur
+         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
+         _PhaseResult := test.trFailure;
+      ELSIF _PhaseResult = test.trUnknown THEN
+         _PhaseResult := test.trSuccess; 
+      END;
+   END StopParticleWithAssert;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE StopPhase();
    BEGIN
-      StopPhaseWithResult( test.trUnknown );
-   END StopPhase;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
-   BEGIN
       _Output.Inside := insideTest;
-      IF Result = test.trFailure THEN
+      IF _PhaseResult = test.trFailure THEN
          _Logger.LogS( log.lcInfo, 0, L"", L"      Result: Failure" );
+         _TestResult := test.trFailure;
+      ELSIF _TestResult = test.trUnknown THEN
+         _TestResult := _PhaseResult;
       END;
-   END StopPhaseWithResult;
+   END StopPhase;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    BEGIN
-      _FastEvaluation := FastEvaluation;
       _Logger.LogSS( log.lcInfo, 0, L"", "Suite: ", Name );
+      _FastEvaluation := FastEvaluation;
+      _SuiteResult := test.trUnknown;
+      _TestResult := test.trUnknown;
    END StartSuite;
 
 (*--------------------------------------------------------------------------------*)
@@ -198,7 +254,7 @@ CLASS IMPLEMENTATION CHost;
    TYPE
       PPWCHAR = POINTER TO PWCHAR;
    BEGIN
-      _TestResult := _Test^.Run( ADR( SELF ), OA( -1, PPWCHAR( NIL )));
+      _Test^.Run( ADR( SELF ), OA( -1, PPWCHAR( NIL )));
       RETURN 0;
    END OnRun;
 
@@ -218,8 +274,7 @@ CLASS IMPLEMENTATION CHost;
       Time : CARDINAL;
    BEGIN
       _Test := Test;
-      _TestResult := test.trFailure;
-
+      _TestResult := test.trUnknown;
       _Output.Inside := insideTest;
       _Logger.LogSS( log.lcInfo, 0, L"", "Test: ", Name );
       
@@ -250,8 +305,14 @@ CLASS IMPLEMENTATION CHost;
       _Output.Inside := insideTest;
       IF _TestResult = test.trSuccess THEN
          _Logger.LogS( log.lcInfo, 0, L"", L"  Result: Success" );
-      ELSE
+         IF _SuiteResult = test.trUnknown THEN
+            _SuiteResult := test.trSuccess;
+         END;
+      ELSIF _TestResult = test.trFailure THEN
          _Logger.LogSR( log.lcInfo, 0, L"", L"  Result: Failure", asyncResult );
+         _SuiteResult := test.trFailure;
+      ELSE
+         _Logger.LogS( log.lcInfo, 0, L"", L"  Result: unknown" );
       END;
       _Output.Inside := insideSuite;
 

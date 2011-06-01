@@ -16,7 +16,7 @@ IMPORT
 (*===========================================================================*)
 
 CLASS CTest IMPLEMENTS test.ITest;
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
 END CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -32,7 +32,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    TYPE
       TestA = ARRAY [0..42] OF LONGREAL;
    CONST
@@ -82,7 +82,6 @@ CLASS IMPLEMENTATION CTest;
                   -0.0009998765432E-20
                );
    VAR
-      Failure : BOOLEAN := FALSE;
       i, j : CARDINAL;
       S : ARRAY [0..255] OF WCHAR;
 
@@ -110,12 +109,6 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       Host^.StopPhase();
-
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
    END Run;
    
 (*---------------------------------------------------------------------------*)

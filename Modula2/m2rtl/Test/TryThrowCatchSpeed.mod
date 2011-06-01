@@ -40,7 +40,7 @@ CLASS CTest IMPLEMENTS test.ITest;
    PRIVATE VAR
       Host : test.TPHost := NIL;
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
 
    PRIVATE PROCEDURE Try() THROWS Exc1, Exc2;
 END CTest;
@@ -58,7 +58,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    VAR
       i, t : CARDINAL;
    BEGIN
@@ -81,8 +81,6 @@ CLASS IMPLEMENTATION CTest;
       
       t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed: ", t );
-
-      RETURN test.trSuccess;
    END Run;
    
 (*---------------------------------------------------------------------------*)

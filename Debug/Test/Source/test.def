@@ -22,28 +22,48 @@ TYPE
 #save, option( dll_export => on )
 
 INTERFACE IHost;
+
+   // overall data
    READONLY PROPERTY
       Log : log.TPILogger;
       Output : log.TPIOutput;
       FastEvaluation : BOOLEAN;
+
    PROPERTY
       Progress : CARDINAL; // percent
-   // optional
+
+   // phasing
+   READONLY PROPERTY
+      TestResult : TTestResult;
+      SuiteResult : TTestResult;
+
    PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
+
+   // particles allow more detailed test tracking, although they are unnecessary, phases are sufficient
+   PROCEDURE StartParticle();
+   PROCEDURE StopParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+   PROCEDURE StopParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
+
    PROCEDURE StopPhase();
-   PROCEDURE StopPhaseWithResult( Result : TTestResult );
+   PROCEDURE StopPhaseWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+
 END IHost;
 
 INTERFACE ITest;
-   PROCEDURE Run( CONST Host : TPHost; CONST Parameters : ARRAY OF PWCHAR ) : TTestResult;
+
+   PROCEDURE Run( CONST Host : TPHost; CONST Parameters : ARRAY OF PWCHAR );
+
 END ITest;
 
 INTERFACE ITests( iplugin.IPluginObject ); // CID in : Development.Tests
+
    // for test run
    PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : CARDINAL; // ClassPath can be empty, in the case default ITests class is created; return is objlib.TResult
    PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : TPTest ) : BOOLEAN;
+
    // for test creation
    PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : TPTest );
+
 END ITests;
 
 #restore   

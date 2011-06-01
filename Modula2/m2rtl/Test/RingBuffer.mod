@@ -25,7 +25,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Exit : CARDINAL := 0;
       Limit : CARD64 := 0;
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    INTERNAL PROCEDURE Round( Mode : TMode; RingSize : CARDINAL ) : BOOLEAN;
    
    LOCAL PROCEDURE Produce();
@@ -61,13 +61,12 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    TYPE
       TSizes = ARRAY [0..10] OF CARDINAL;
    CONST
       sizes = TSizes( 1, 2, 7, 8, 11, 24, 113, 256, 8191, 8192, 8193 );
    VAR
-      Failure : BOOLEAN := FALSE;
       Mode : TMode;
       Size : CARDINAL;
    BEGIN
@@ -81,14 +80,9 @@ CLASS IMPLEMENTATION CTest;
    
       FOR Mode := NN TO PC DO
          FOR Size := 0 TO HIGH( sizes ) DO
-            Failure := NOT Round( Mode, sizes[Size] ) OR Failure;
+            Host^.StartParticle();
+            Host^.StopParticleWithResult( Round( Mode, sizes[Size] ), L"Round failed." );
          END;
-      END;
-
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
       END;
    END Run;
    
