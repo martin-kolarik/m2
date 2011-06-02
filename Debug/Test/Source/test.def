@@ -34,14 +34,13 @@ INTERFACE IHost;
 
    // phasing
    PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
+      // particles inbetween, see below
+   PROCEDURE StopPhase();
+   PROCEDURE StopPhaseWithResult( result : BOOLEAN ); // expression = TRUE and no ASSERT means success
 
    // particles allow more detailed test tracking, although they are unnecessary, phases are sufficient
-   PROCEDURE StartParticle();
-   PROCEDURE StopParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
-   PROCEDURE StopParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
-
-   PROCEDURE StopPhase();
-   PROCEDURE StopPhaseWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+   PROCEDURE ParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+   PROCEDURE ParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
 
 END IHost;
 

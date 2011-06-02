@@ -99,11 +99,10 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    PUBLIC VIRTUAL PROPERTY
       Progress : CARDINAL; // percent
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE StartParticle();
-   PUBLIC VIRTUAL PROCEDURE StopParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
-   PUBLIC VIRTUAL PROCEDURE StopParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
-   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
    PUBLIC VIRTUAL PROCEDURE StopPhase();
+   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( result : BOOLEAN ); // expression = TRUE and no ASSERT means success
+   PUBLIC VIRTUAL PROCEDURE ParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+   PUBLIC VIRTUAL PROCEDURE ParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
    
    // IRunnable
    INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
@@ -175,39 +174,9 @@ CLASS IMPLEMENTATION CHost;
       _Logger.LogSS( log.lcInfo, 0, L"", "    Phase: ", Name );
       _Output.Inside := insidePhase;
       _PhaseResult := test.trUnknown;
-   END StartPhase;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE StartParticle();
-   BEGIN
       _ParticleAssert := FALSE;
       _ParticleAssertText.Clear();
-   END StartParticle;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE StopParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
-   BEGIN
-      IF NOT result THEN // TRUE expected
-         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
-         _PhaseResult := test.trFailure;
-      ELSIF _PhaseResult = test.trUnknown THEN
-         _PhaseResult := test.trSuccess; 
-      END;
-   END StopParticleWithResult;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE StopParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
-   BEGIN
-      IF NOT _ParticleAssert THEN // assert expected, but did not occur
-         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
-         _PhaseResult := test.trFailure;
-      ELSIF _PhaseResult = test.trUnknown THEN
-         _PhaseResult := test.trSuccess; 
-      END;
-   END StopParticleWithAssert;
+   END StartPhase;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -233,6 +202,34 @@ CLASS IMPLEMENTATION CHost;
       END;
       StopPhase();
    END StopPhaseWithResult;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+   BEGIN
+      IF NOT result THEN // TRUE expected
+         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
+         _PhaseResult := test.trFailure;
+      ELSIF _PhaseResult = test.trUnknown THEN
+         _PhaseResult := test.trSuccess; 
+      END;
+      _ParticleAssert := FALSE;
+      _ParticleAssertText.Clear();
+   END ParticleWithResult;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
+   BEGIN
+      IF NOT _ParticleAssert THEN // assert expected, but did not occur
+         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
+         _PhaseResult := test.trFailure;
+      ELSIF _PhaseResult = test.trUnknown THEN
+         _PhaseResult := test.trSuccess; 
+      END;
+      _ParticleAssert := FALSE;
+      _ParticleAssertText.Clear();
+   END ParticleWithAssert;
 
 (*--------------------------------------------------------------------------------*)
 
