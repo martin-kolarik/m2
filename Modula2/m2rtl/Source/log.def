@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
    Exceptions,
    iLog,
    Sync;
@@ -63,7 +64,7 @@ PROCEDURE logger() : TPBufferedLogger;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CLevelAndBitsFilter IMPLEMENTS iLog.IFilter;
+CLASS CLevelAndBitsFilter( baseobject.BASE ) IMPLEMENTS iLog.IFilter;
 
    // IFilter
    PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN;
@@ -163,7 +164,7 @@ END CBufferOutput;
 TYPE
    TPOutputs = POINTER TO CSimplePtrArray;
 
-CLASS CGenericAppender IMPLEMENTS iLog.IAppender;
+CLASS CGenericAppender( baseobject.BASE ) IMPLEMENTS iLog.IAppender;
 
    // IAppender -- method should check filter thoroughly
    PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );

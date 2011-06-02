@@ -97,7 +97,7 @@ TYPE
 // CThreadPool must be allocated dynamically -- it must not be created as static or inside startup code
 CLASS CThreadPool( msghandler.MessageHandler );
   PRIVATE VAR
-    Threads : lists.CPtrList;
+    Threads : lists.CPtrPtrList;
     MQueue : msgqueue.CMessageQueue;
     _MinThreads : CARDINAL := 1;
     _Lock : Sync.LOCK; // enumeration is locked (due to multihtreaded access)

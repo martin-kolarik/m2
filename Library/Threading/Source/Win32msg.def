@@ -55,7 +55,7 @@ END Win32Message;
 
 CLASS Win32MessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   PRIVATE VAR
-    Timers : lists.CPtrList;
+    Timers : lists.CPtrPtrList;
   INTERNAL VAR
     HWND : PTR;
     joinedTo : OSALmsg.TPMessageQueueThread;

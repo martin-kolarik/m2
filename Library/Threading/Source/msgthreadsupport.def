@@ -22,7 +22,7 @@ TYPE
 CLASS CSupport IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    PRIVATE VAR
       OfThread : OSALmsg.TPMessageQueueThread;
-      Joined : maps.CPtrMap;
+      Joined : maps.CPtrPtrMap;
       JoinedLock : Sync.LOCK;
       Timers : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMap;
       TimersLock : Sync.LOCK;

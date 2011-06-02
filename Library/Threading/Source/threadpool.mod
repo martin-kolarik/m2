@@ -156,9 +156,9 @@ CLASS CPoolThread( SCmsgqueuethread.SCMessageQueueThread );
   PRIVATE VAR
     Pool : TPThreadPool;
     HTasks : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMapSimplified; // CTask.Handle/PTask
-    Handles : maps.CPtrMap; // CTask.Data/PPtrList
-    Messages : maps.CPtrMap; // CTask.Data/PTask
-    Workers : lists.CPtrList; // CTask.Data/PTask
+    Handles : maps.CPtrPtrMap; // CTask.Data/PPtrList
+    Messages : maps.CPtrPtrMap; // CTask.Data/PTask
+    Workers : lists.CPtrPtrList; // CTask.Data/PTask
     WaitArray : arrays.CPtrArray;
   LOCAL READONLY VAR
     ReqQueue : msgqueue.CMessageQueue; // MessageQueue is used instead of simple DatagramQueue, because it simplifies concurrent usage of messages (administrative and WaitMessage). If one creates WaitMessage and immediatelly send the message, message queue assures correct ordering without any add-on handling.
@@ -361,7 +361,7 @@ CLASS IMPLEMENTATION CPoolThread;
          b : BOOLEAN;
          D : PTR;
          disposable : BOOLEAN;
-         HandleList : lists.TPPtrList;
+         HandleList : lists.TPPtrPtrList;
          removeTask : BOOLEAN;
          Task, NextTask : TPTask;
       BEGIN

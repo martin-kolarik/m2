@@ -80,8 +80,7 @@ CLASS IMPLEMENTATION CTest;
    
       FOR Mode := NN TO PC DO
          FOR Size := 0 TO HIGH( sizes ) DO
-            Host^.StartParticle();
-            Host^.StopParticleWithResult( Round( Mode, sizes[Size] ), L"Round failed." );
+            Host^.ParticleWithResult( Round( Mode, sizes[Size] ), L"Round failed." );
          END;
       END;
    END Run;
