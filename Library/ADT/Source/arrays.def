@@ -52,30 +52,30 @@ END CIntegerArrayIterator;
 (*=============================================================================*)
 
 TYPE
-   TPBaseArray = POINTER TO CBaseArray;
-   TPBaseArrayIterator = POINTER TO CBaseArrayIterator;
+   TPPtrArray = POINTER TO CPtrArray;
+   TPPtrArrayIterator = POINTER TO CPtrArrayIterator;
 
-CLASS CBaseArray( array.CArray );
+CLASS CPtrArray( array.CArray );
 
-   PUBLIC INDEX( Index : INTEGER ) : baseobject.PIBASE; // returns 0 if index is out of range
+   PUBLIC INDEX( Index : INTEGER ) : PTR; // returns 0 if index is out of range
 
-   PUBLIC PROCEDURE Contains( Value : baseobject.PIBASE ) : BOOLEAN;
-   PUBLIC PROCEDURE Add( Value : baseobject.PIBASE ) : INTEGER; // returns index
-   PUBLIC PROCEDURE Insert( ToIndex : INTEGER; Value : baseobject.PIBASE );
-   PUBLIC PROCEDURE Remove( Value : baseobject.PIBASE );
-   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Contains( Value : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Add( Value : PTR ) : INTEGER; // returns index
+   PUBLIC PROCEDURE Insert( ToIndex : INTEGER; Value : PTR );
+   PUBLIC PROCEDURE Remove( Value : PTR );
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR ) : BOOLEAN;
 
-   PUBLIC PROCEDURE IndexOf( Value : baseobject.PIBASE ) : INTEGER; // if not found returns LowBound-1
+   PUBLIC PROCEDURE IndexOf( Value : PTR ) : INTEGER; // if not found returns LowBound-1
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPBaseArrayIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPPtrArrayIterator;
    #restore
 
    // queue interface
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE Enqueue( Value : baseobject.PIBASE );
+   PUBLIC PROCEDURE Enqueue( Value : PTR );
    #restore
-   PUBLIC PROCEDURE Dequeue( OUT Value : baseobject.PIBASE ) : BOOLEAN; 
+   PUBLIC PROCEDURE Dequeue( OUT Value : PTR ) : BOOLEAN; 
 
    // SELF
    PUBLIC PROPERTY
@@ -85,18 +85,18 @@ CLASS CBaseArray( array.CArray );
       _DataOwnership : BOOLEAN := FALSE;
 
    PRIVATE PROCEDURE Init(); // deny usage
-   PRIVATE PROCEDURE DisposeOwned( Data : baseobject.PIBASE );
+   PRIVATE PROCEDURE DisposeOwned( Data : PTR );
 
-END CBaseArray;
+END CPtrArray;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CBaseArrayIterator( array.CArrayIterator );
+CLASS CPtrArrayIterator( array.CArrayIterator );
 
    PUBLIC READONLY PROPERTY
-      Value : baseobject.PIBASE;
+      Value : PTR;
 
-END CBaseArrayIterator;
+END CPtrArrayIterator;
 
 (*=============================================================================*)
 

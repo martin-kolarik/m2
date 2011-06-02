@@ -242,7 +242,7 @@ CLASS IMPLEMENTATION CArray;
    VAR
       iterator : TPArrayIterator := NEW( CArrayIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ), Direction );
+      iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;
 

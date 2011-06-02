@@ -9,52 +9,52 @@ IMPORT
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CIntegerBaseStack;
+CLASS IMPLEMENTATION CIntegerPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC READONLY PROPERTY Top GET : INTEGER;
    VAR
-      it : lists.CIntegerBaseListIterator;
+      it : lists.CIntegerPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       RETURN it.Value;
    END Top;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY TopData GET : baseobject.PIBASE;
+   PUBLIC PROPERTY TopData GET : PTR;
    VAR
-      it : lists.CIntegerBaseListIterator;
+      it : lists.CIntegerPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       RETURN it.Data;
    END TopData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY TopData SET( Value : baseobject.PIBASE );
+   PUBLIC PROPERTY TopData SET( Value : PTR );
    VAR
-      it : lists.CIntegerBaseListIterator;
+      it : lists.CIntegerPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       it.Data := Value;
    END TopData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Push( Value : INTEGER; Data : baseobject.PIBASE );
+   PUBLIC PROCEDURE Push( Value : INTEGER; Data : PTR );
    BEGIN
       InsertFirst( Value, Data );
    END Push;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Pop( OUT Value : INTEGER; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Pop( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CIntegerBaseListIterator;
+      it : lists.CIntegerPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
          RETURN FALSE;
       ELSE
@@ -67,11 +67,11 @@ CLASS IMPLEMENTATION CIntegerBaseStack;
   
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Peek( OUT Value : INTEGER; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Peek( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CIntegerBaseListIterator;
+      it : lists.CIntegerPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
          RETURN FALSE;
       ELSE
@@ -83,56 +83,56 @@ CLASS IMPLEMENTATION CIntegerBaseStack;
 
 (*---------------------------------------------------------------------------*)
 
-END CIntegerBaseStack;
+END CIntegerPtrStack;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CBaseBaseStack;
+CLASS IMPLEMENTATION CPtrPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC READONLY PROPERTY Top GET : baseobject.PIBASE;
+   PUBLIC READONLY PROPERTY Top GET : PTR;
    VAR
-      it : lists.CBaseBaseListIterator;
+      it : lists.CPtrPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       RETURN it.Value;
    END Top;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY TopData GET : baseobject.PIBASE;
+   PUBLIC PROPERTY TopData GET : PTR;
    VAR
-      it : lists.CBaseBaseListIterator;
+      it : lists.CPtrPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       RETURN it.Data;
    END TopData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY TopData SET( Value : baseobject.PIBASE );
+   PUBLIC PROPERTY TopData SET( Value : PTR );
    VAR
-      it : lists.CBaseBaseListIterator;
+      it : lists.CPtrPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       it.Data := Value;
    END TopData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Push( Value : baseobject.PIBASE; Data : baseobject.PIBASE );
+   PUBLIC PROCEDURE Push( Value : PTR; Data : PTR );
    BEGIN
       InsertFirst( Value, Data );
    END Push;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Pop( OUT Value : baseobject.PIBASE; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Pop( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CBaseBaseListIterator;
+      it : lists.CPtrPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
          RETURN FALSE;
       ELSE
@@ -145,11 +145,11 @@ CLASS IMPLEMENTATION CBaseBaseStack;
   
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Peek( OUT Value : baseobject.PIBASE; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Peek( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CBaseBaseListIterator;
+      it : lists.CPtrPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
          RETURN FALSE;
       ELSE
@@ -161,56 +161,56 @@ CLASS IMPLEMENTATION CBaseBaseStack;
 
 (*---------------------------------------------------------------------------*)
 
-END CBaseBaseStack;
+END CPtrPtrStack;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CStringBaseStack;
+CLASS IMPLEMENTATION CStringPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC READONLY PROPERTY Top GET : StringsO.TPString;
    VAR
-      it : lists.CStringBaseListIterator;
+      it : lists.CStringPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       RETURN it.Value;
    END Top;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY TopData GET : baseobject.PIBASE;
+   PUBLIC PROPERTY TopData GET : PTR;
    VAR
-      it : lists.CStringBaseListIterator;
+      it : lists.CStringPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       RETURN it.Data;
    END TopData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY TopData SET( Value : baseobject.PIBASE );
+   PUBLIC PROPERTY TopData SET( Value : PTR );
    VAR
-      it : lists.CStringBaseListIterator;
+      it : lists.CStringPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       it.Data := Value;
    END TopData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Push( CONST Value : StringsO.IString; Data : baseobject.PIBASE );
+   PUBLIC PROCEDURE Push( CONST Value : StringsO.IString; Data : PTR );
    BEGIN
       InsertFirst( Value, Data );
    END Push;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Pop( OUT Value : StringsO.IString; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Pop( OUT Value : StringsO.IString; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CStringBaseListIterator;
+      it : lists.CStringPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
          RETURN FALSE;
       ELSE
@@ -223,11 +223,11 @@ CLASS IMPLEMENTATION CStringBaseStack;
   
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Peek( OUT Value : StringsO.IString; OUT Data : baseobject.PIBASE ) : BOOLEAN;
+   PUBLIC PROCEDURE Peek( OUT Value : StringsO.IString; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CStringBaseListIterator;
+      it : lists.CStringPtrListIterator;
    BEGIN
-      it.Init( ADR( SELF ), collection.dirForward );
+      it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
          RETURN FALSE;
       ELSE
@@ -239,7 +239,7 @@ CLASS IMPLEMENTATION CStringBaseStack;
 
 (*---------------------------------------------------------------------------*)
 
-END CStringBaseStack;
+END CStringPtrStack;
 
 (*===========================================================================*)
 

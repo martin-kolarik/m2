@@ -16,24 +16,24 @@ CONST
 
 (*================================================================================*)
 
-CLASS CPtrBaseSyncMapIterator( maps.CPtrBaseMapIterator );
+CLASS CPtrPtrSyncMapIterator( maps.CPtrPtrMapIterator );
 
-   LOCAL PROCEDURE Init( map : TPPtrBaseSyncMap; direction : collection.TDirection );
+   LOCAL PROCEDURE Init( map : TPPtrPtrSyncMap; direction : collection.TDirection );
 
    PRIVATE VAR
-      _Map : TPPtrBaseSyncMap := NIL;
+      _Map : TPPtrPtrSyncMap := NIL;
 
-END CPtrBaseSyncMapIterator;
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS IMPLEMENTATION CPtrBaseSyncMapIterator;
+END CPtrPtrSyncMapIterator;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( map : TPPtrBaseSyncMap; direction : collection.TDirection );
+CLASS IMPLEMENTATION CPtrPtrSyncMapIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Init( map : TPPtrPtrSyncMap; direction : collection.TDirection );
    BEGIN
-      SUPER.Init( map, direction );
+      SUPER.Init( map^, direction );
       _Map := map;
    END Init;
 
@@ -41,11 +41,11 @@ CLASS IMPLEMENTATION CPtrBaseSyncMapIterator;
 
 BEGIN FINALLY
    _Map^.Lock^.UnlockRead();
-END CPtrBaseSyncMapIterator;
+END CPtrPtrSyncMapIterator;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CPtrBaseSyncMap;
+CLASS IMPLEMENTATION CPtrPtrSyncMap;
       
 (*--------------------------------------------------------------------------------*)
 
@@ -56,13 +56,13 @@ CLASS IMPLEMENTATION CPtrBaseSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC INDEX CPtrBaseSyncMap GET ( Index : CARDINAL ) : PTR;
+   PUBLIC INDEX CPtrPtrSyncMap GET ( Index : CARDINAL ) : PTR;
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, MESSAGE );
       RETURN SUPER[Index];
-   END CPtrBaseSyncMap;
+   END CPtrPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -116,9 +116,9 @@ CLASS IMPLEMENTATION CPtrBaseSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetIterator() : maps.TPPtrBaseMapIterator;
+   PUBLIC PROCEDURE GetIterator() : maps.TPPtrPtrMapIterator;
    VAR
-      iterator : POINTER TO CPtrBaseSyncMapIterator := NEW( CPtrBaseSyncMapIterator );
+      iterator : POINTER TO CPtrPtrSyncMapIterator := NEW( CPtrPtrSyncMapIterator );
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
          ASSERT( FALSE );
@@ -131,28 +131,28 @@ CLASS IMPLEMENTATION CPtrBaseSyncMap;
 
 BEGIN
    _Lock.Init( Sync.ltSpin, L"" );
-END CPtrBaseSyncMap;
+END CPtrPtrSyncMap;
 
 (*================================================================================*)
 
-CLASS CStringBaseSyncMapIterator( maps.CStringBaseMapIterator );
+CLASS CStringPtrSyncMapIterator( maps.CStringPtrMapIterator );
 
-   LOCAL PROCEDURE Init( map : TPStringBaseSyncMap; direction : collection.TDirection );
+   LOCAL PROCEDURE Init( map : TPStringPtrSyncMap; direction : collection.TDirection );
 
    PRIVATE VAR
-      _Map : TPStringBaseSyncMap := NIL;
+      _Map : TPStringPtrSyncMap := NIL;
 
-END CStringBaseSyncMapIterator;
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS IMPLEMENTATION CStringBaseSyncMapIterator;
+END CStringPtrSyncMapIterator;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( map : TPStringBaseSyncMap; direction : collection.TDirection );
+CLASS IMPLEMENTATION CStringPtrSyncMapIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Init( map : TPStringPtrSyncMap; direction : collection.TDirection );
    BEGIN
-      SUPER.Init( map, direction );
+      SUPER.Init( map^, direction );
       _Map := map;
    END Init;
 
@@ -160,11 +160,11 @@ CLASS IMPLEMENTATION CStringBaseSyncMapIterator;
 
 BEGIN FINALLY
    _Map^.Lock^.UnlockRead();
-END CStringBaseSyncMapIterator;
+END CStringPtrSyncMapIterator;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CStringBaseSyncMap;
+CLASS IMPLEMENTATION CStringPtrSyncMap;
       
 (*--------------------------------------------------------------------------------*)
 
@@ -175,13 +175,13 @@ CLASS IMPLEMENTATION CStringBaseSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC INDEX CStringBaseSyncMap GET ( Index : CARDINAL ) : PTR;
+   PUBLIC INDEX CStringPtrSyncMap GET ( Index : CARDINAL ) : PTR;
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, MESSAGE );
       RETURN SUPER[Index];
-   END CStringBaseSyncMap;
+   END CStringPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -235,9 +235,9 @@ CLASS IMPLEMENTATION CStringBaseSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetIterator() : maps.TPStringBaseMapIterator;
+   PUBLIC PROCEDURE GetIterator() : maps.TPStringPtrMapIterator;
    VAR
-      iterator : POINTER TO CStringBaseSyncMapIterator := NEW( CStringBaseSyncMapIterator );
+      iterator : POINTER TO CStringPtrSyncMapIterator := NEW( CStringPtrSyncMapIterator );
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
          ASSERT( FALSE );
@@ -250,7 +250,7 @@ CLASS IMPLEMENTATION CStringBaseSyncMap;
 
 BEGIN
    _Lock.Init( Sync.ltSpin, L"" );
-END CStringBaseSyncMap;
+END CStringPtrSyncMap;
 
 (*================================================================================*)
 

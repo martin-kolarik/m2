@@ -597,7 +597,7 @@ CLASS IMPLEMENTATION CAVLTree;
    VAR
       iterator : TPAVLTreeIterator := NEW( CAVLTreeIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ), Direction );
+      iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;
 

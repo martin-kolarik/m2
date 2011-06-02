@@ -117,7 +117,7 @@ CLASS CIterator( baseobject.CDisposable ) IMPLEMENTS IIterator;
       OfCollection : TPCollection;
 
    // SELF
-   PUBLIC PROCEDURE Init( OfCollection : TPCollection; Direction : TDirection ); // the collection must initialize the iterator with self
+   PUBLIC PROCEDURE Init( CONST OfCollection : ICollection; Direction : TDirection ); // the collection must initialize the iterator with self
 
    PRIVATE VAR
       _OfCollection : TPCollection := NIL;

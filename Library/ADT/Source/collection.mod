@@ -67,9 +67,9 @@ CLASS IMPLEMENTATION CIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( ofCollection : TPCollection; direction : TDirection ); // the collection must initialize the iterator with self
+   PUBLIC PROCEDURE Init( CONST ofCollection : ICollection; direction : TDirection ); // the collection must initialize the iterator with self
    BEGIN
-      _OfCollection := ofCollection;
+      _OfCollection := TPCollection( ADR( ofCollection ));
       _Direction := direction;
       Reset();
    END Init;

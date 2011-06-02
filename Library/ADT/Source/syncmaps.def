@@ -15,9 +15,9 @@ FROM StringsO IMPORT
 (*================================================================================*)
 
 TYPE
-   TPPtrBaseSyncMap = POINTER TO CPtrBaseSyncMap;
+   TPPtrPtrSyncMap = POINTER TO CPtrPtrSyncMap;
 
-CLASS CPtrBaseSyncMap( maps.CPtrBaseMap ); // for enumerating (GetFirst/Last/Next/Prev) it must be locked explicitely
+CLASS CPtrPtrSyncMap( maps.CPtrPtrMap ); // for enumerating (GetFirst/Last/Next/Prev) it must be locked explicitely
 
    PRIVATE VAR
       _Lock : Sync.RWLOCK;
@@ -36,17 +36,17 @@ CLASS CPtrBaseSyncMap( maps.CPtrBaseMap ); // for enumerating (GetFirst/Last/Nex
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator() : maps.TPPtrBaseMapIterator;
+   PUBLIC PROCEDURE GetIterator() : maps.TPPtrPtrMapIterator;
    #restore
 
-END CPtrBaseSyncMap;
+END CPtrPtrSyncMap;
 
 (*================================================================================*)
 
 TYPE
-   TPStringBaseSyncMap = POINTER TO CStringBaseSyncMap;
+   TPStringPtrSyncMap = POINTER TO CStringPtrSyncMap;
 
-CLASS CStringBaseSyncMap( maps.CStringBaseMap ); // for enumerating (GetFirst/Last/Next/Prev) it must be locked explicitely
+CLASS CStringPtrSyncMap( maps.CStringPtrMap ); // for enumerating (GetFirst/Last/Next/Prev) it must be locked explicitely
 
    PRIVATE VAR
       _Lock : Sync.RWLOCK;
@@ -65,10 +65,10 @@ CLASS CStringBaseSyncMap( maps.CStringBaseMap ); // for enumerating (GetFirst/La
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN;
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator() : maps.TPStringBaseMapIterator;
+   PUBLIC PROCEDURE GetIterator() : maps.TPStringPtrMapIterator;
    #restore
 
-END CStringBaseSyncMap;
+END CStringPtrSyncMap;
 
 (*================================================================================*)
 

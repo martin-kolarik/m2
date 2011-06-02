@@ -91,6 +91,7 @@
     <None Include="Test\ListOp.mod" />
     <None Include="Test\TBitArrayOAs.mod" />
     <None Include="Test\TBitArrayOps.mod" />
+    <None Include="Test\TSynclists.mod" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

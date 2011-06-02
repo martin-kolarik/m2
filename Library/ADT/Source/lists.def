@@ -17,7 +17,7 @@ FROM StorageO IMPORT
 
 (*==========================================================================*)
 
-CLASS CDataOwnershipControlList( list.CList );
+CLASS CDataOwnershipControlList( list.CList ); // ancestors with DataOwnership = TRUE will examine Data : PTR as being PBASE and deallocate it
 
    // SELF
    PUBLIC PROPERTY
@@ -31,10 +31,10 @@ END CDataOwnershipControlList;
 (*==========================================================================*)
 
 TYPE
-   TPIntegerBaseList = POINTER TO CIntegerBaseList;
-   TPIntegerBaseListIterator = POINTER TO CIntegerBaseListIterator;
+   TPIntegerPtrList = POINTER TO CIntegerPtrList;
+   TPIntegerPtrListIterator = POINTER TO CIntegerPtrListIterator;
 
-CLASS CIntegerBaseList( CDataOwnershipControlList );
+CLASS CIntegerPtrList( CDataOwnershipControlList );
 
    // list interface
    PUBLIC PROCEDURE Contains( Value : INTEGER ): BOOLEAN;
@@ -51,7 +51,7 @@ CLASS CIntegerBaseList( CDataOwnershipControlList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPIntegerBaseListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPIntegerPtrListIterator;
    #restore
 
    // queue interface
@@ -63,26 +63,26 @@ CLASS CIntegerBaseList( CDataOwnershipControlList );
    // SELF
    PRIVATE PROCEDURE Lookup( Value : INTEGER; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
-END CIntegerBaseList;
+END CIntegerPtrList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIntegerBaseListIterator( list.CListIterator );
+CLASS CIntegerPtrListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
       Value : INTEGER;
    PUBLIC PROPERTY
-      Data : baseobject.PIBASE;
+      Data : PTR;
 
-END CIntegerBaseListIterator;
+END CIntegerPtrListIterator;
 
 (*==========================================================================*)
 
 TYPE
-   TPBaseBaseList = POINTER TO CBaseBaseList;
-   TPBaseBaseListIterator = POINTER TO CBaseBaseListIterator;
+   TPPtrPtrList = POINTER TO CPtrPtrList;
+   TPPtrPtrListIterator = POINTER TO CPtrPtrListIterator;
 
-CLASS CBaseBaseList( CDataOwnershipControlList );
+CLASS CPtrPtrList( CDataOwnershipControlList );
 
    // list interface
    PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
@@ -99,7 +99,7 @@ CLASS CBaseBaseList( CDataOwnershipControlList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPBaseBaseListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPPtrPtrListIterator;
    #restore
 
    // queue interface
@@ -111,26 +111,26 @@ CLASS CBaseBaseList( CDataOwnershipControlList );
    // SELF
    PRIVATE PROCEDURE Lookup( Value : PTR; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
-END CBaseBaseList;
+END CPtrPtrList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CBaseBaseListIterator( list.CListIterator );
+CLASS CPtrPtrListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
-      Value : baseobject.PIBASE;
+      Value : PTR;
    PUBLIC PROPERTY
-      Data : baseobject.PIBASE;
+      Data : PTR;
 
-END CBaseBaseListIterator;
+END CPtrPtrListIterator;
 
 (*==========================================================================*)
 
 TYPE
-   TPStringBaseList = POINTER TO CStringBaseList;
-   TPStringBaseListIterator = POINTER TO CStringBaseListIterator;
+   TPStringPtrList = POINTER TO CStringPtrList;
+   TPStringPtrListIterator = POINTER TO CStringPtrListIterator;
 
-CLASS CStringBaseList( CDataOwnershipControlList );
+CLASS CStringPtrList( CDataOwnershipControlList );
 
    // list interface
    PUBLIC PROCEDURE Contains( CONST Value : IString ): BOOLEAN;
@@ -147,7 +147,7 @@ CLASS CStringBaseList( CDataOwnershipControlList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPStringBaseListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPStringPtrListIterator;
    #restore
 
    // queue interface
@@ -159,18 +159,18 @@ CLASS CStringBaseList( CDataOwnershipControlList );
    // SELF
    PRIVATE PROCEDURE Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
-END CStringBaseList;
+END CStringPtrList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStringBaseListIterator( list.CListIterator );
+CLASS CStringPtrListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
       Value : TPString;
    PUBLIC PROPERTY
-      Data : baseobject.PIBASE;
+      Data : PTR;
 
-END CStringBaseListIterator;
+END CStringPtrListIterator;
 
 (*==========================================================================*)
 
@@ -231,9 +231,9 @@ TYPE
 
 TYPE
    TPBufferList = POINTER TO CBufferList;
-   TPBufferBaseListIterator = POINTER TO CBufferBaseListIterator;
+   TPBufferPtrListIterator = POINTER TO CBufferPtrListIterator;
 
-CLASS CBufferBaseList( CDataOwnershipControlList );
+CLASS CBufferPtrList( CDataOwnershipControlList );
 
    // list interface
    PUBLIC PROCEDURE Contains( CONST Value : AMemoryBuffer ): BOOLEAN;
@@ -264,7 +264,7 @@ CLASS CBufferBaseList( CDataOwnershipControlList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPBufferBaseListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPBufferPtrListIterator;
    #restore
 
    // SELF
@@ -273,18 +273,18 @@ CLASS CBufferBaseList( CDataOwnershipControlList );
 
    PRIVATE PROCEDURE Lookup( CONST Value : AMemoryBuffer; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
-END CBufferBaseList;
+END CBufferPtrList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CBufferBaseListIterator( list.CListIterator );
+CLASS CBufferPtrListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
       Value : POINTER TO AMemoryBuffer;
    PUBLIC PROPERTY
-      Data : baseobject.PIBASE;
+      Data : PTR;
 
-END CBufferBaseListIterator;
+END CBufferPtrListIterator;
 
 (*==========================================================================*)
 
