@@ -267,19 +267,18 @@ CLASS IMPLEMENTATION CArray;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Strategy : TStrategy; LowBound : INTEGER; ItemSize : CARDINAL );
-   VAR
-      actualSize : CARDINAL := _Size;
+   PUBLIC PROPERTY Strategy GET : TStrategy;
    BEGIN
-      Dispose();
-      _LowBound := LowBound;
-      _Strategy := Strategy;
-      _ItemSize := ItemSize;
-      IF actualSize > 0 THEN // allocate space
-         Size := actualSize;
-      END;
-   END Init;
-  
+      RETURN _Strategy;
+   END Strategy;
+
+(*-----------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Strategy SET( Value : TStrategy );
+   BEGIN
+      _Strategy := Value;
+   END Strategy;
+
 (*-----------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Size GET : CARDINAL;
@@ -291,7 +290,9 @@ CLASS IMPLEMENTATION CArray;
 
    PUBLIC PROPERTY Size SET( Value : CARDINAL );
    BEGIN
-      IF _ItemSize = 0 THEN
+      IF Value = _Size THEN
+         RETURN;
+      ELSIF _ItemSize = 0 THEN
          _Size := Value;
          RETURN;
       ELSE
@@ -307,6 +308,43 @@ CLASS IMPLEMENTATION CArray;
 
 (*-----------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY ItemSize GET : CARDINAL;
+   BEGIN
+      RETURN _ItemSize;
+   END ItemSize;
+
+(*-----------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ItemSize SET( Value : CARDINAL ); // initializes whole array, looses data
+   VAR
+      actualSize : CARDINAL := _Size;
+   BEGIN
+      IF _ItemSize = Value THEN
+         RETURN;
+      END;
+      Dispose();
+      _ItemSize := ItemSize;
+      IF actualSize > 0 THEN // allocate space
+         Size := actualSize;
+      END;
+   END ItemSize;
+
+(*-----------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LowBound GET : INTEGER;
+   BEGIN
+      RETURN _LowBound;
+   END LowBound;
+
+(*-----------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LowBound SET( Value : INTEGER );
+   BEGIN
+      _LowBound := Value;
+   END LowBound;
+
+(*-----------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY setCount SET( Value : CARDINAL );
    BEGIN
       Sync.IInc( REF _Sequence );
@@ -315,10 +353,14 @@ CLASS IMPLEMENTATION CArray;
   
 (*-----------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ItemSize GET : CARDINAL;
+   PUBLIC PROPERTY Data GET : ADDRESS;
    BEGIN
-      RETURN _ItemSize;
-   END ItemSize;
+      IF _Count = 0 THEN
+         RETURN NIL;
+      ELSE
+         RETURN _Data;
+      END;
+   END Data;
 
 (*-----------------------------------------------------------------------------*)
 

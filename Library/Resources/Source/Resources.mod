@@ -496,7 +496,7 @@ CLASS IMPLEMENTATION CResources;
 
   PRIVATE PROCEDURE Notify( Lang, Texts : BOOLEAN );
    VAR
-      iterator : lists.CPtrPtrListIterator;
+      iterator : lists.CPtrListIterator;
   BEGIN
     IF Lang OR Texts = FALSE THEN
       RETURN;
@@ -611,7 +611,7 @@ CLASS IMPLEMENTATION CPlainResources;
   PUBLIC PROCEDURE LoadXML( CONST Path : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
   VAR
     _DefaultLanguage : Languages.TLanguage := 0;
-    _Langs : lists.CIntegerPtrList;
+    _Langs : lists.CIntegerList;
     _Pool : ADDRESS := NIL;
     _PoolAllocated : CARDINAL := 0;
     _PoolBytes : CARDINAL := 0;
@@ -623,16 +623,16 @@ CLASS IMPLEMENTATION CPlainResources;
     PROCEDURE AddString( CONST String : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
     VAR
       cs : StringsO.CString := StringsO.FromOA( String );
-      iterator : lists.CIntegerPtrListIterator;
+      iterator : lists.CIntegerListIterator;
       L : CARDINAL;
       ptr : PTR;
     BEGIN
-      IF _Strings.Get( cs, OUT ptr ) THEN
+      IF _Strings.Get( cs, OUT ptr, OUT ptr ) THEN
         Strings.ConcatW( OUT ErrorString, L"String ", String );
         Strings.AppendW( REF ErrorString, L" is already known." );
         RETURN FALSE;
       END;
-      _Strings.Add( cs, _Strings.Count );
+      _Strings.Add( cs, _Strings.Count, 0 );
       IF _Strings.Count > _TextsAllocated THEN
         L := MAX2( _TextsAllocated << 1, 256 );
         iterator.Init( _Langs, collection.dirForward );
@@ -682,7 +682,7 @@ CLASS IMPLEMENTATION CPlainResources;
       al, c, cl, l : CARDINAL;
       diff : PTR;
       i, j : INTEGER;
-      iterator : lists.CIntegerPtrListIterator;
+      iterator : lists.CIntegerListIterator;
       lang : Languages.TLanguage;
       RFC1766 : ARRAY [0..31] OF WCHAR;
     BEGIN
@@ -960,7 +960,7 @@ CLASS IMPLEMENTATION CPlainResources;
    VAR
       ptr : PTR;
    BEGIN
-      IF _Strings.Get( Key, OUT ptr ) THEN
+      IF _Strings.Get( Key, OUT ptr, OUT ptr ) THEN
          Id := LOPTRLONGWORD( ptr );
          RETURN TRUE;
       ELSE

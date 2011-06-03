@@ -9,13 +9,13 @@ IMPORT
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CIntegerPtrStack;
+CLASS IMPLEMENTATION CIntegerStack;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC READONLY PROPERTY Top GET : INTEGER;
    VAR
-      it : lists.CIntegerPtrListIterator;
+      it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       RETURN it.Value;
@@ -25,7 +25,7 @@ CLASS IMPLEMENTATION CIntegerPtrStack;
 
    PUBLIC PROPERTY TopData GET : PTR;
    VAR
-      it : lists.CIntegerPtrListIterator;
+      it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       RETURN it.Data;
@@ -35,7 +35,7 @@ CLASS IMPLEMENTATION CIntegerPtrStack;
 
    PUBLIC PROPERTY TopData SET( Value : PTR );
    VAR
-      it : lists.CIntegerPtrListIterator;
+      it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       it.Data := Value;
@@ -52,7 +52,7 @@ CLASS IMPLEMENTATION CIntegerPtrStack;
 
    PUBLIC PROCEDURE Pop( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CIntegerPtrListIterator;
+      it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CIntegerPtrStack;
 
    PUBLIC PROCEDURE Peek( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CIntegerPtrListIterator;
+      it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
@@ -83,17 +83,17 @@ CLASS IMPLEMENTATION CIntegerPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
-END CIntegerPtrStack;
+END CIntegerStack;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CPtrPtrStack;
+CLASS IMPLEMENTATION CPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC READONLY PROPERTY Top GET : PTR;
    VAR
-      it : lists.CPtrPtrListIterator;
+      it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       RETURN it.Value;
@@ -103,7 +103,7 @@ CLASS IMPLEMENTATION CPtrPtrStack;
 
    PUBLIC PROPERTY TopData GET : PTR;
    VAR
-      it : lists.CPtrPtrListIterator;
+      it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       RETURN it.Data;
@@ -113,7 +113,7 @@ CLASS IMPLEMENTATION CPtrPtrStack;
 
    PUBLIC PROPERTY TopData SET( Value : PTR );
    VAR
-      it : lists.CPtrPtrListIterator;
+      it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       it.Data := Value;
@@ -130,7 +130,7 @@ CLASS IMPLEMENTATION CPtrPtrStack;
 
    PUBLIC PROCEDURE Pop( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CPtrPtrListIterator;
+      it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
@@ -147,7 +147,7 @@ CLASS IMPLEMENTATION CPtrPtrStack;
 
    PUBLIC PROCEDURE Peek( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CPtrPtrListIterator;
+      it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
@@ -161,17 +161,17 @@ CLASS IMPLEMENTATION CPtrPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
-END CPtrPtrStack;
+END CPtrStack;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CStringPtrStack;
+CLASS IMPLEMENTATION CStringStack;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC READONLY PROPERTY Top GET : StringsO.TPString;
    VAR
-      it : lists.CStringPtrListIterator;
+      it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       RETURN it.Value;
@@ -181,7 +181,7 @@ CLASS IMPLEMENTATION CStringPtrStack;
 
    PUBLIC PROPERTY TopData GET : PTR;
    VAR
-      it : lists.CStringPtrListIterator;
+      it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       RETURN it.Data;
@@ -191,7 +191,7 @@ CLASS IMPLEMENTATION CStringPtrStack;
 
    PUBLIC PROPERTY TopData SET( Value : PTR );
    VAR
-      it : lists.CStringPtrListIterator;
+      it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       it.Data := Value;
@@ -208,7 +208,7 @@ CLASS IMPLEMENTATION CStringPtrStack;
 
    PUBLIC PROCEDURE Pop( OUT Value : StringsO.IString; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CStringPtrListIterator;
+      it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
@@ -225,7 +225,7 @@ CLASS IMPLEMENTATION CStringPtrStack;
 
    PUBLIC PROCEDURE Peek( OUT Value : StringsO.IString; OUT Data : PTR ) : BOOLEAN;
    VAR
-      it : lists.CStringPtrListIterator;
+      it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
       IF it.colCurrent = NIL THEN
@@ -239,7 +239,7 @@ CLASS IMPLEMENTATION CStringPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
-END CStringPtrStack;
+END CStringStack;
 
 (*===========================================================================*)
 

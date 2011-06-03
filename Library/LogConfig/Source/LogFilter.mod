@@ -19,7 +19,7 @@ CLASS IMPLEMENTATION CLogFilter;
    PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : iLog.TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
    VAR
       filter : BOOLEAN := FALSE;
-      iterator : lists.CStringPtrListIterator;
+      iterator : lists.CStringListIterator;
    BEGIN
       IF SUPER.FilteredFullCheck( Level, FilterData, Logger, Prefix, Message ) THEN
          RETURN TRUE;

@@ -31,10 +31,10 @@ END CDataOwnershipControlList;
 (*==========================================================================*)
 
 TYPE
-   TPIntegerPtrList = POINTER TO CIntegerPtrList;
-   TPIntegerPtrListIterator = POINTER TO CIntegerPtrListIterator;
+   TPIntegerList = POINTER TO CIntegerList;
+   TPIntegerListIterator = POINTER TO CIntegerListIterator;
 
-CLASS CIntegerPtrList( CDataOwnershipControlList );
+CLASS CIntegerList( CDataOwnershipControlList );
 
    // list interface
    PUBLIC PROCEDURE Contains( Value : INTEGER ): BOOLEAN;
@@ -51,7 +51,7 @@ CLASS CIntegerPtrList( CDataOwnershipControlList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPIntegerPtrListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPIntegerListIterator;
    #restore
 
    // queue interface
@@ -63,26 +63,26 @@ CLASS CIntegerPtrList( CDataOwnershipControlList );
    // SELF
    PRIVATE PROCEDURE Lookup( Value : INTEGER; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
-END CIntegerPtrList;
+END CIntegerList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIntegerPtrListIterator( list.CListIterator );
+CLASS CIntegerListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
       Value : INTEGER;
    PUBLIC PROPERTY
       Data : PTR;
 
-END CIntegerPtrListIterator;
+END CIntegerListIterator;
 
 (*==========================================================================*)
 
 TYPE
-   TPPtrPtrList = POINTER TO CPtrPtrList;
-   TPPtrPtrListIterator = POINTER TO CPtrPtrListIterator;
+   TPPtrList = POINTER TO CPtrList;
+   TPPtrListIterator = POINTER TO CPtrListIterator;
 
-CLASS CPtrPtrList( CDataOwnershipControlList );
+CLASS CPtrList( CDataOwnershipControlList );
 
    // list interface
    PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
@@ -99,7 +99,7 @@ CLASS CPtrPtrList( CDataOwnershipControlList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPPtrPtrListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPPtrListIterator;
    #restore
 
    // queue interface
@@ -111,26 +111,26 @@ CLASS CPtrPtrList( CDataOwnershipControlList );
    // SELF
    PRIVATE PROCEDURE Lookup( Value : PTR; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
-END CPtrPtrList;
+END CPtrList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CPtrPtrListIterator( list.CListIterator );
+CLASS CPtrListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
       Value : PTR;
    PUBLIC PROPERTY
       Data : PTR;
 
-END CPtrPtrListIterator;
+END CPtrListIterator;
 
 (*==========================================================================*)
 
 TYPE
-   TPStringPtrList = POINTER TO CStringPtrList;
-   TPStringPtrListIterator = POINTER TO CStringPtrListIterator;
+   TPStringList = POINTER TO CStringList;
+   TPStringListIterator = POINTER TO CStringListIterator;
 
-CLASS CStringPtrList( CDataOwnershipControlList );
+CLASS CStringList( CDataOwnershipControlList );
 
    // list interface
    PUBLIC PROCEDURE Contains( CONST Value : IString ): BOOLEAN;
@@ -147,7 +147,7 @@ CLASS CStringPtrList( CDataOwnershipControlList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPStringPtrListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPStringListIterator;
    #restore
 
    // queue interface
@@ -159,18 +159,18 @@ CLASS CStringPtrList( CDataOwnershipControlList );
    // SELF
    PRIVATE PROCEDURE Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
-END CStringPtrList;
+END CStringList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStringPtrListIterator( list.CListIterator );
+CLASS CStringListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
       Value : TPString;
    PUBLIC PROPERTY
       Data : PTR;
 
-END CStringPtrListIterator;
+END CStringListIterator;
 
 (*==========================================================================*)
 
@@ -231,9 +231,9 @@ TYPE
 
 TYPE
    TPBufferList = POINTER TO CBufferList;
-   TPBufferPtrListIterator = POINTER TO CBufferPtrListIterator;
+   TPBufferListIterator = POINTER TO CBufferListIterator;
 
-CLASS CBufferPtrList( CDataOwnershipControlList );
+CLASS CBufferList( CDataOwnershipControlList );
 
    // list interface
    PUBLIC PROCEDURE Contains( CONST Value : AMemoryBuffer ): BOOLEAN;
@@ -264,7 +264,7 @@ CLASS CBufferPtrList( CDataOwnershipControlList );
    #restore
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPBufferPtrListIterator;
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPBufferListIterator;
    #restore
 
    // SELF
@@ -273,18 +273,18 @@ CLASS CBufferPtrList( CDataOwnershipControlList );
 
    PRIVATE PROCEDURE Lookup( CONST Value : AMemoryBuffer; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
-END CBufferPtrList;
+END CBufferList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CBufferPtrListIterator( list.CListIterator );
+CLASS CBufferListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
       Value : POINTER TO AMemoryBuffer;
    PUBLIC PROPERTY
       Data : PTR;
 
-END CBufferPtrListIterator;
+END CBufferListIterator;
 
 (*==========================================================================*)
 

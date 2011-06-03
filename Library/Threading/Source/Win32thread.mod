@@ -49,7 +49,7 @@ CLASS IMPLEMENTATION CThreadManager;
       IF Result = Sync.arTimeout THEN
          ASSERTLOG( FALSE, L"Unable to obtain ThreadManager lock" );
       ELSE
-         Threads.Append( Thread, 0 );
+         Threads.Add( Thread, 0 );
       END;
       Lock.UnlockWrite();
    END Register;

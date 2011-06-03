@@ -12,6 +12,7 @@ IMPORT
 TYPE
    TPIntegerArray = POINTER TO CIntegerArray;
    TPIntegerArrayIterator = POINTER TO CIntegerArrayIterator;
+   TPRawIntegerArray = POINTER TO ARRAY [0..0] OF INTEGER;
 
 CLASS CIntegerArray( array.CArray );
 
@@ -36,6 +37,10 @@ CLASS CIntegerArray( array.CArray );
    #restore
    PUBLIC PROCEDURE Dequeue( OUT Value : INTEGER ) : BOOLEAN; 
 
+   // SELF
+   PUBLIC READONLY PROPERTY
+      Data : TPRawIntegerArray;
+
    PRIVATE PROCEDURE Init(); // deny usage
 
 END CIntegerArray;
@@ -54,6 +59,7 @@ END CIntegerArrayIterator;
 TYPE
    TPPtrArray = POINTER TO CPtrArray;
    TPPtrArrayIterator = POINTER TO CPtrArrayIterator;
+   TPRawPtrArray = POINTER TO ARRAY [0..0] OF PTR;
 
 CLASS CPtrArray( array.CArray );
 
@@ -78,6 +84,8 @@ CLASS CPtrArray( array.CArray );
    PUBLIC PROCEDURE Dequeue( OUT Value : PTR ) : BOOLEAN; 
 
    // SELF
+   PUBLIC READONLY PROPERTY
+      Data : TPRawPtrArray;
    PUBLIC PROPERTY
       DataOwnership : BOOLEAN;
 

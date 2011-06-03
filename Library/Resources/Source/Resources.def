@@ -38,7 +38,7 @@ CLASS CResources;
     _FallbackLang  : Languages.TLanguage;
     _Texts         : ADDRESS; // shortcut
     _FallbackTexts : ADDRESS; // shortcut
-    _Notifiers     : lists.CPtrPtrList;
+    _Notifiers     : lists.CPtrList;
   PUBLIC PROPERTY
     Lang           : Languages.TLanguage; // falls back to 0 if Lang does not exist in Resource
     RFC1766        : Languages.TRFC1766;

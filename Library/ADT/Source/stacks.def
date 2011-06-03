@@ -9,7 +9,7 @@ IMPORT
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIntegerPtrStack( lists.CIntegerPtrList );
+CLASS CIntegerStack( lists.CIntegerList );
 
    PUBLIC READONLY PROPERTY
       Top : INTEGER;
@@ -20,11 +20,11 @@ CLASS CIntegerPtrStack( lists.CIntegerPtrList );
   PUBLIC PROCEDURE Pop( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
   PUBLIC PROCEDURE Peek( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
 
-END CIntegerPtrStack;
+END CIntegerStack;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CPtrPtrStack( lists.CPtrPtrList );
+CLASS CPtrStack( lists.CPtrList );
 
    PUBLIC READONLY PROPERTY
       Top : PTR;
@@ -35,11 +35,11 @@ CLASS CPtrPtrStack( lists.CPtrPtrList );
   PUBLIC PROCEDURE Pop( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
   PUBLIC PROCEDURE Peek( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
 
-END CPtrPtrStack;
+END CPtrStack;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStringPtrStack( lists.CStringPtrList );
+CLASS CStringStack( lists.CStringList );
 
    PUBLIC READONLY PROPERTY
       Top : StringsO.TPString;
@@ -50,7 +50,7 @@ CLASS CStringPtrStack( lists.CStringPtrList );
   PUBLIC PROCEDURE Pop( OUT Value : StringsO.IString; OUT Data : PTR ) : BOOLEAN;
   PUBLIC PROCEDURE Peek( OUT Value : StringsO.IString; OUT Data : PTR ) : BOOLEAN;
 
-END CStringPtrStack;
+END CStringStack;
 
 (*---------------------------------------------------------------------------*)
 

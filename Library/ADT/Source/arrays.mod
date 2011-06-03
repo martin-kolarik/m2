@@ -108,9 +108,18 @@ CLASS IMPLEMENTATION CIntegerArray;
 
 (*-----------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Data GET : TPRawIntegerArray; 
+   BEGIN
+      RETURN SUPER.Data;
+   END Data;
+
+(*-----------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE Init();
    BEGIN
-      SUPER.Init( array.astrgSparseArray, 0, SIZE( INTEGER ));
+      Strategy := array.astrgSparseArray;
+      LowBound := 0;
+      ItemSize := SIZE( INTEGER );
    END Init;
 
 (*-----------------------------------------------------------------------------*)
@@ -235,6 +244,13 @@ CLASS IMPLEMENTATION CPtrArray;
 
 (*-----------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Data GET : TPRawPtrArray; 
+   BEGIN
+      RETURN SUPER.Data;
+   END Data;
+
+(*-----------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY DataOwnership GET : BOOLEAN;
    BEGIN
       RETURN _DataOwnership;
@@ -251,7 +267,9 @@ CLASS IMPLEMENTATION CPtrArray;
 
    PRIVATE PROCEDURE Init();
    BEGIN
-      SUPER.Init( array.astrgSparseArray, 0, SIZE( PTR ));
+      Strategy := array.astrgSparseArray;
+      LowBound := 0;
+      ItemSize := SIZE( PTR );
    END Init;
 
 (*-----------------------------------------------------------------------------*)

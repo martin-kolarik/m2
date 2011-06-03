@@ -66,23 +66,24 @@ CLASS CArray( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
    PUBLIC PROCEDURE Dequeue( OUT Item : ARRAY OF BYTE ) : BOOLEAN; 
 
    // SELF -- itself
-   PUBLIC PROCEDURE Init( Strategy : TStrategy; LowBound : INTEGER; ItemSize : CARDINAL );
-
    PUBLIC PROPERTY
+      Strategy : TStrategy;
       Size : CARDINAL; // get, set initializes (to 0)/reallocates space
+      ItemSize : CARDINAL; // initializes whole array, looses data
+      LowBound : INTEGER;
    PUBLIC WRITEONLY PROPERTY
       setCount : CARDINAL; // getter is inherited as readonly
    PUBLIC READONLY PROPERTY
-      ItemSize : CARDINAL;
+      Data : ADDRESS;
 
    PUBLIC INDEX( Index : INTEGER ) : ADDRESS THROWS Exceptions.CModula2Exception; // on set, data of at least ItemSize is expected
   
    PRIVATE VAR
       _Sequence : CARDINAL := 0;
-      _LowBound : INTEGER := 0;
       _Strategy : TStrategy := astrgSparseArray;
-      _ItemSize : CARDINAL := 8;
       _Size : CARDINAL := 0;
+      _ItemSize : CARDINAL := 8;
+      _LowBound : INTEGER := 0;
       _Count : CARDINAL := 0;
       _Data : ADDRESS := NIL;
 

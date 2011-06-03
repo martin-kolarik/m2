@@ -11,7 +11,7 @@ IMPORT
 TYPE
   TPPtrPtrSyncList = POINTER TO CPtrPtrSyncList;
 
-CLASS CPtrPtrSyncList( lists.CPtrPtrList );
+CLASS CPtrSyncList( lists.CPtrList );
 
    // CList
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -43,7 +43,7 @@ CLASS CPtrPtrSyncList( lists.CPtrPtrList );
    PRIVATE VAR
       _Lock : Sync.RWLOCK;
 
-END CPtrPtrSyncList;
+END CPtrSyncList;
 
 (*================================================================================*)
 

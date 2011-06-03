@@ -21,7 +21,7 @@ CLASS CChecker;
 END CChecker;
 
 VAR
-   Handlers : lists.CPtrPtrList;
+   Handlers : lists.CPtrList;
    Checked : CChecker;
 
 CLASS IMPLEMENTATION CChecker;

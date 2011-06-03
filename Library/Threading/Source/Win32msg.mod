@@ -7,10 +7,11 @@ FROM Storage IMPORT
   ALLOCATE;
 
 IMPORT
-  Storage,
-  Strings,
-  Win32msgqueuethread,
-  windows;
+   collection,
+   Storage,
+   Strings,
+   Win32msgqueuethread,
+   windows;
 
 (*================================================================================*)
 
@@ -446,11 +447,13 @@ CLASS IMPLEMENTATION Win32MessageHandler;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE OnLeave();
+   VAR
+      iterator : lists.CPtrListIterator;   
   BEGIN
     IF HWND <> NIL THEN
-      Timers.Reset();
-      WHILE Timers.MoveNext() DO
-        windows.KillTimer( HWND, Timers.Current ); // IA64PTR
+      iterator.Init( Timers, collection.dirForward );
+      WHILE iterator.MoveNext() DO
+        windows.KillTimer( HWND, iterator.Value ); // IA64PTR
       END;
       Timers.Dispose();
       #if DEBUG #then

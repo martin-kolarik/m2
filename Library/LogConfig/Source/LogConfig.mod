@@ -21,7 +21,7 @@ END ReadFilterLine;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE ConfigureLogBySection( CONST ini : INIFile.CINIFile; CONST SectionName : ARRAY OF WCHAR; REF _configured : iLog.IAppender; REF createdAppenderList : lists.CPtrPtrList; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+PROCEDURE ConfigureLogBySection( CONST ini : INIFile.CINIFile; CONST SectionName : ARRAY OF WCHAR; REF _configured : iLog.IAppender; REF createdAppenderList : lists.CPtrList; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 VAR
    AllowedBits : CARD64 := -1;
    Cached : CARDINAL;
@@ -228,7 +228,7 @@ END ConfigureLogBySection;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; CONST SectionName : ARRAY OF WCHAR; REF _appender : iLog.IAppender; REF createdAppenderList : lists.CPtrPtrList; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; CONST SectionName : ARRAY OF WCHAR; REF _appender : iLog.IAppender; REF createdAppenderList : lists.CPtrList; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 VAR
    Result : TConfigureLogResult;
 BEGIN
@@ -248,11 +248,11 @@ END ConfigureLog;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE DisposeAppenderList( REF appenderList : lists.CPtrPtrList ); // to clear list returned by ConfigureLog
+PROCEDURE DisposeAppenderList( REF appenderList : lists.CPtrList ); // to clear list returned by ConfigureLog
 VAR
    appender : Log.TPBaseAppender;
    filter : iLog.TPIFilter;
-   iterator : lists.CPtrPtrListIterator;
+   iterator : lists.CPtrListIterator;
 BEGIN
    iterator.Init( appenderList, collection.dirForward );
    WHILE iterator.MoveNext() DO

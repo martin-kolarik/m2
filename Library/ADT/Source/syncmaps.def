@@ -29,11 +29,11 @@ CLASS CPtrPtrSyncMap( maps.CPtrPtrMap ); // for enumerating (GetFirst/Last/Next/
 
    PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-   PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
+   PUBLIC PROCEDURE Add( Key : PTR; Value, Data : PTR );
    PUBLIC PROCEDURE Remove( Key : PTR );
    PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
 
    #save, option( leak_info => on )
    PUBLIC PROCEDURE GetIterator() : maps.TPPtrPtrMapIterator;
@@ -58,11 +58,11 @@ CLASS CStringPtrSyncMap( maps.CStringPtrMap ); // for enumerating (GetFirst/Last
 
    PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-   PUBLIC PROCEDURE Add( CONST Key : IString; Data : PTR );
+   PUBLIC PROCEDURE Add( CONST Key : IString; Value, Data : PTR );
    PUBLIC PROCEDURE Remove( CONST Key : IString );
    PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
-   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
 
    #save, option( leak_info => on )
    PUBLIC PROCEDURE GetIterator() : maps.TPStringPtrMapIterator;

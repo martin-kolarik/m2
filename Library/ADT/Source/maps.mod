@@ -13,63 +13,80 @@ IMPORT
 
 (*==========================================================================*)
 
-CLASS IMPLEMENTATION CDataOwnershipControlMap;
+CLASS IMPLEMENTATION CValueOwnershipControlMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DataOwnership GET : BOOLEAN;
+   PUBLIC PROPERTY ValueOwnership GET : BOOLEAN;
    BEGIN
-      RETURN _DataOwnership;
-   END DataOwnership;
+      RETURN _ValueOwnership;
+   END ValueOwnership;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DataOwnership SET( Value : BOOLEAN );
+   PUBLIC PROPERTY ValueOwnership SET( Value : BOOLEAN );
    BEGIN
-      _DataOwnership := Value;
-   END DataOwnership;
+      _ValueOwnership := Value;
+   END ValueOwnership;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-END CDataOwnershipControlMap;
+END CValueOwnershipControlMap;
 
 (*==========================================================================*)
 // common ancestor
 
-ABSTRACT CLASS CPtrItem( avltree.CAVLTreeElem );
+ABSTRACT CLASS CDataItem( avltree.CAVLTreeElem );
+
+   // SELF   
+   LOCAL VAR
+      Data : PTR := NIL;
+
+END CDataItem;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CDataItem;
+BEGIN
+END CDataItem;
+
+(*==========================================================================*)
+// common ancestor
+
+ABSTRACT CLASS CValueItem( CDataItem );
 
    // CDisposable
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // SELF   
    LOCAL VAR
-      Data : PTR := NIL;
-      OfDataOwnershipControlMap : POINTER TO CDataOwnershipControlMap := NIL;
+      Value : PTR := NIL;
+      OfValueOwnershipControlMap : POINTER TO CValueOwnershipControlMap := NIL;
 
-END CPtrItem;
+END CValueItem;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CPtrItem;
+CLASS IMPLEMENTATION CValueItem;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      ASSERT( OfDataOwnershipControlMap <> NIL );
-      IF ( Data <> NIL ) AND ( OfDataOwnershipControlMap^.DataOwnership ) THEN
-         IF baseobject.PBASE( Data )^ INHERITS baseobject.CRefcounted THEN
-            baseobject.TPRefcounted( Data )^.Release();
-         ELSIF baseobject.PBASE( Data )^ INHERITS baseobject.CDisposable THEN 
-            baseobject.TPDisposable( Data )^.Dispose();
-            DISPOSE( baseobject.TPDisposable( Data ));
-         ELSIF baseobject.PBASE( Data )^ INHERITS baseobject.BASE THEN
-            DISPOSE( baseobject.PBASE( Data ));
+      ASSERT( OfValueOwnershipControlMap <> NIL );
+      IF ( Value <> NIL ) AND ( OfValueOwnershipControlMap^.ValueOwnership ) THEN
+         IF baseobject.PBASE( Value )^ INHERITS baseobject.CRefcounted THEN
+            baseobject.TPRefcounted( Value )^.Release();
+         ELSIF baseobject.PBASE( Value )^ INHERITS baseobject.CDisposable THEN 
+            baseobject.TPDisposable( Value )^.Dispose();
+            DISPOSE( baseobject.TPDisposable( Value ));
+         ELSIF baseobject.PBASE( Value )^ INHERITS baseobject.BASE THEN
+            DISPOSE( baseobject.PBASE( Value ));
          ELSE
             ASSERTLOG( FALSE, L"Unable to deallocate map item -- unknown class" );
          END;
-         Data := NIL;
+         Value := NIL;
       END;
       SUPER.Dispose();
    END Dispose;
@@ -78,14 +95,14 @@ CLASS IMPLEMENTATION CPtrItem;
 
 BEGIN FINALLY
    Dispose();
-END CPtrItem;
+END CValueItem;
 
 (*==========================================================================*)
 
 TYPE
    TPIntegerPtrItem = POINTER TO CIntegerPtrItem;
 
-CLASS CIntegerPtrItem( CPtrItem );
+CLASS CIntegerPtrItem( CValueItem );
 
    LOCAL VAR
       Key : INTEGER;
@@ -128,7 +145,7 @@ CLASS IMPLEMENTATION CIntegerPtrMap;
       PI : TPIntegerPtrItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
-         RETURN PI^.Data;
+         RETURN PI^.Value;
       ELSE
          RETURN NIL;
       END;
@@ -136,13 +153,14 @@ CLASS IMPLEMENTATION CIntegerPtrMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CIntegerPtrMap.Add( Key : INTEGER; Data : PTR );
+   PUBLIC PROCEDURE CIntegerPtrMap.Add( Key : INTEGER; Value, Data : PTR );
    VAR
       PI : TPIntegerPtrItem;
    BEGIN
       NEW( PI );
-      PI^.OfDataOwnershipControlMap := ADR( SELF );
+      PI^.OfValueOwnershipControlMap := ADR( SELF );
       PI^.Key := Key;
+      PI^.Value := Value;
       PI^.Data := Data;
       SUPER.Add( PI );
    END CIntegerPtrMap.Add;
@@ -169,7 +187,7 @@ CLASS IMPLEMENTATION CIntegerPtrMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CIntegerPtrMap.Get( Key : INTEGER; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE CIntegerPtrMap.Get( Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       I : CIntegerPtrItem;
       PI : TPIntegerPtrItem;
@@ -178,18 +196,20 @@ CLASS IMPLEMENTATION CIntegerPtrMap;
       IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;
+      Value := PI^.Value;
       Data := PI^.Data;
       RETURN TRUE;  
    END CIntegerPtrMap.Get;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CIntegerPtrMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE CIntegerPtrMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       PI : TPIntegerPtrItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
          Key := PI^.Key;
+         Value := PI^.Value;
          Data := PI^.Data;
          RETURN TRUE;
       ELSE
@@ -228,6 +248,26 @@ CLASS IMPLEMENTATION CIntegerPtrMapIterator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Value GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPIntegerPtrItem( Current )^.Value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPIntegerPtrItem( Current )^.Value := value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Data GET : PTR;
    BEGIN
       IF Current = NIL THEN
@@ -255,11 +295,11 @@ END CIntegerPtrMapIterator;
 TYPE
    TPIntegerStringItem = POINTER TO CIntegerStringItem;
 
-CLASS CIntegerStringItem( avltree.CAVLTreeElem );
+CLASS CIntegerStringItem( CDataItem );
 
    LOCAL VAR
       Key  : INTEGER;
-      Data : CString;
+      Value : CString;
 
    PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
@@ -299,7 +339,7 @@ CLASS IMPLEMENTATION CIntegerStringMap;
       PI : TPIntegerStringItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
-         RETURN ADR( PI^.Data );
+         RETURN ADR( PI^.Value );
       ELSE
          RETURN NIL;
       END;
@@ -307,13 +347,14 @@ CLASS IMPLEMENTATION CIntegerStringMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CIntegerStringMap.Add( Key : INTEGER; CONST Data : IString );
+   PUBLIC PROCEDURE CIntegerStringMap.Add( Key : INTEGER; CONST Value : IString; Data : PTR );
    VAR
       PI : TPIntegerStringItem;
    BEGIN
       NEW( PI );
       PI^.Key := Key;
-      PI^.Data.Assign( Data );
+      PI^.Value.Assign( Value );
+      PI^.Data := Data;
       SUPER.Add( PI );
    END CIntegerStringMap.Add;
   
@@ -339,7 +380,7 @@ CLASS IMPLEMENTATION CIntegerStringMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CIntegerStringMap.Get( Key : INTEGER; OUT Data : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE CIntegerStringMap.Get( Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
    VAR
       I : CIntegerStringItem;
       PI : TPIntegerStringItem;
@@ -348,19 +389,21 @@ CLASS IMPLEMENTATION CIntegerStringMap;
       IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;
-      Data.Assign( PI^.Data );
+      Value.Assign( PI^.Value );
+      Data := PI^.Data;
       RETURN TRUE;  
    END CIntegerStringMap.Get;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CIntegerStringMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE CIntegerStringMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
    VAR
       PI : TPIntegerStringItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
          Key := PI^.Key;
-         Data.Assign( PI^.Data );
+         Value.Assign( PI^.Value );
+         Data := PI^.Data;
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -398,12 +441,32 @@ CLASS IMPLEMENTATION CIntegerStringMapIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Data GET : TPString;
+   PUBLIC PROPERTY Value GET : TPString;
    BEGIN
       IF Current = NIL THEN
          RETURN NIL;
       ELSE
-         RETURN ADR( TPIntegerStringItem( Current )^.Data );
+         RETURN ADR( TPIntegerStringItem( Current )^.Value );
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPIntegerStringItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPIntegerStringItem( Current )^.Data := Value;
       END;
    END Data;
 
@@ -416,7 +479,7 @@ END CIntegerStringMapIterator;
 TYPE
    TPPtrPtrItem = POINTER TO CPtrPtrItem;
 
-CLASS CPtrPtrItem( CPtrItem );
+CLASS CPtrPtrItem( CValueItem );
 
    PUBLIC VAR
       Key : PTR;
@@ -459,7 +522,7 @@ CLASS IMPLEMENTATION CPtrPtrMap;
       PI : TPPtrPtrItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
-         RETURN PI^.Data;
+         RETURN PI^.Value;
       ELSE
          RETURN NIL;
       END;
@@ -467,12 +530,13 @@ CLASS IMPLEMENTATION CPtrPtrMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CPtrPtrMap.Add( Key : PTR; Data : PTR );
+   PUBLIC PROCEDURE CPtrPtrMap.Add( Key : PTR; Value, Data : PTR );
    VAR
       PI : TPPtrPtrItem;
    BEGIN
       NEW( PI );
       PI^.Key := Key;
+      PI^.Value := Value;
       PI^.Data := Data;
       SUPER.Add( PI );
    END CPtrPtrMap.Add;
@@ -499,7 +563,7 @@ CLASS IMPLEMENTATION CPtrPtrMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CPtrPtrMap.Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE CPtrPtrMap.Get( Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       I : CPtrPtrItem;
       PI : TPPtrPtrItem;
@@ -508,18 +572,20 @@ CLASS IMPLEMENTATION CPtrPtrMap;
       IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;
+      Value := PI^.Value;
       Data := PI^.Data;
       RETURN TRUE;  
    END CPtrPtrMap.Get;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CPtrPtrMap.ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE CPtrPtrMap.ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       PI : TPPtrPtrItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
          Key := PI^.Key;
+         Value := PI^.Value;
          Data := PI^.Data;
          RETURN TRUE;
       ELSE
@@ -558,6 +624,26 @@ CLASS IMPLEMENTATION CPtrPtrMapIterator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Value GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPPtrPtrItem( Current )^.Value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPPtrPtrItem( Current )^.Value := value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Data GET : PTR;
    BEGIN
       IF Current = NIL THEN
@@ -585,7 +671,7 @@ END CPtrPtrMapIterator;
 TYPE
    TPStringPtrItem = POINTER TO CStringPtrItem;
 
-CLASS CStringPtrItem( CPtrItem );
+CLASS CStringPtrItem( CValueItem );
 
    PUBLIC VAR
       Key : CString;
@@ -620,7 +706,7 @@ CLASS IMPLEMENTATION CStringPtrMap;
       PI : TPStringPtrItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
-         RETURN PI^.Data;
+         RETURN PI^.Value;
       ELSE
          RETURN NIL;
       END;
@@ -628,12 +714,13 @@ CLASS IMPLEMENTATION CStringPtrMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CStringPtrMap.Add( CONST Key : IString; Data : PTR );
+   PUBLIC PROCEDURE CStringPtrMap.Add( CONST Key : IString; Value, Data : PTR );
    VAR
       PI : TPStringPtrItem;
    BEGIN
       NEW( PI );
       PI^.Key.Assign( Key );
+      PI^.Value := Value;
       PI^.Data := Data;
       SUPER.Add( PI );
    END CStringPtrMap.Add;
@@ -660,7 +747,7 @@ CLASS IMPLEMENTATION CStringPtrMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CStringPtrMap.Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE CStringPtrMap.Get( CONST Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       I : CStringPtrItem;
       PI : TPStringPtrItem;
@@ -669,18 +756,20 @@ CLASS IMPLEMENTATION CStringPtrMap;
       IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;
+      Value := PI^.Value;
       Data := PI^.Data;
       RETURN TRUE;  
    END CStringPtrMap.Get;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CStringPtrMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE CStringPtrMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       PI : TPStringPtrItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
          Key := PI^.Key;
+         Value := PI^.Value;
          Data := PI^.Data;
          RETURN TRUE;
       ELSE
@@ -719,6 +808,26 @@ CLASS IMPLEMENTATION CStringPtrMapIterator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Value GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPStringPtrItem( Current )^.Value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPStringPtrItem( Current )^.Value := value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Data GET : PTR;
    BEGIN
       IF Current = NIL THEN
@@ -746,11 +855,11 @@ END CStringPtrMapIterator;
 TYPE
    TPStringStringItem = POINTER TO CStringStringItem;
 
-CLASS CStringStringItem( avltree.CAVLTreeElem );
+CLASS CStringStringItem( CDataItem );
 
    PUBLIC VAR
       Key : CString;
-      Data : CString;
+      Value : CString;
 
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
@@ -782,7 +891,7 @@ CLASS IMPLEMENTATION CStringStringMap;
       PI : TPStringStringItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
-         RETURN ADR( PI^.Data );
+         RETURN ADR( PI^.Value );
       ELSE
          RETURN NIL;
       END;
@@ -790,13 +899,14 @@ CLASS IMPLEMENTATION CStringStringMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CStringStringMap.Add( CONST Key : IString; CONST Data : IString );
+   PUBLIC PROCEDURE CStringStringMap.Add( CONST Key : IString; CONST Value : IString; Data : PTR );
    VAR
       PI : TPStringStringItem;
    BEGIN
       NEW( PI );
       PI^.Key.Assign( Key );
-      PI^.Data.Assign( Data );
+      PI^.Value.Assign( Value );
+      PI^.Data := Data;
       SUPER.Add( PI );
    END CStringStringMap.Add;
   
@@ -822,7 +932,7 @@ CLASS IMPLEMENTATION CStringStringMap;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CStringStringMap.Get( CONST Key : IString; OUT Data : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE CStringStringMap.Get( CONST Key : IString; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
    VAR
       I : CStringStringItem;
       PI : TPStringStringItem;
@@ -831,19 +941,21 @@ CLASS IMPLEMENTATION CStringStringMap;
       IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;
-      Data.Assign( PI^.Data );
+      Value.Assign( PI^.Value );
+      Data := PI^.Data;
       RETURN TRUE;  
    END CStringStringMap.Get;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CStringStringMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE CStringStringMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
    VAR
       PI : TPStringStringItem;
    BEGIN
       IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
          Key.Assign( PI^.Key );
-         Data.Assign( PI^.Data );
+         Value.Assign( PI^.Value );
+         Data := PI^.Data;
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -881,12 +993,32 @@ CLASS IMPLEMENTATION CStringStringMapIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Data GET : TPString;
+   PUBLIC PROPERTY Value GET : TPString;
    BEGIN
       IF Current = NIL THEN
          RETURN NIL;
       ELSE
-         RETURN ADR( TPStringStringItem( Current )^.Data );
+         RETURN ADR( TPStringStringItem( Current )^.Value );
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPStringStringItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPStringStringItem( Current )^.Data := Value;
       END;
    END Data;
 

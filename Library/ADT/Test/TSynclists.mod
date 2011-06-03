@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
    log,
    sync,
    synclists,
@@ -21,7 +22,7 @@ CLASS CTest IMPLEMENTS test.ITest;
    PUBLIC VAR
       Host : test.TPHost := NIL;
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
 END CTest;
 
 (*===========================================================================*)
@@ -35,12 +36,12 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    VAR
       ba : ARRAY [0..9] OF baseobject.BASE;
       Failure : BOOLEAN := FALSE;
       c : CARDINAL;
-      list : synclists.CBaseBaseSyncList;
+      list : synclists.CPtrSyncList;
    BEGIN
       SELF.Host := Host;
 
@@ -51,19 +52,9 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StartPhase( L"Various operations with read locked list" );
 
-      list.Lock^.LockRead();
+      list.Lock^.LockRead( sync.FORSAFETY );
       
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
    END Run;
    
 (*---------------------------------------------------------------------------*)

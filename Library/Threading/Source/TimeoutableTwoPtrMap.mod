@@ -266,25 +266,25 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMapIterator;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMapIterator.CurrentData GET : PTR;
+   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMapIterator.Value GET : PTR;
    BEGIN
       IF Current = NIL THEN
          RETURN NIL;
       ELSE
          RETURN TPTimeoutableItem( Current )^.Data;
       END;
-   END CTimeoutableTwoPtrMapIterator.CurrentData;
+   END CTimeoutableTwoPtrMapIterator.Value;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC PROPERTY CTimeoutableTwoPtrMapIterator.CurrentData SET( Data : PTR );
+   PUBLIC PROPERTY CTimeoutableTwoPtrMapIterator.Value SET( Data : PTR );
    BEGIN
-      IF _Current = NIL THEN
+      IF Current = NIL THEN
          RETURN;
       ELSE
          TPTimeoutableItem( Current )^.Data := Data;
       END;
-   END CTimeoutableTwoPtrMapIterator.CurrentData;
+   END CTimeoutableTwoPtrMapIterator.Value;
 
 //---------------------------------------------------------------------------
 

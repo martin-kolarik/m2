@@ -9,6 +9,7 @@ FROM Storage IMPORT
 IMPORT
   array,
   arrays,
+  collection,
   datetime,
   lists,
   maps,
@@ -158,7 +159,7 @@ CLASS CPoolThread( SCmsgqueuethread.SCMessageQueueThread );
     HTasks : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMapSimplified; // CTask.Handle/PTask
     Handles : maps.CPtrPtrMap; // CTask.Data/PPtrList
     Messages : maps.CPtrPtrMap; // CTask.Data/PTask
-    Workers : lists.CPtrPtrList; // CTask.Data/PTask
+    Workers : lists.CPtrList; // CTask.Data/PTask
     WaitArray : arrays.CPtrArray;
   LOCAL READONLY VAR
     ReqQueue : msgqueue.CMessageQueue; // MessageQueue is used instead of simple DatagramQueue, because it simplifies concurrent usage of messages (administrative and WaitMessage). If one creates WaitMessage and immediatelly send the message, message queue assures correct ordering without any add-on handling.
@@ -334,9 +335,10 @@ CLASS IMPLEMENTATION CPoolThread;
       PROCEDURE CheckAndHandleKnownMessage( CONST Message : msghandler.Message ) : BOOLEAN;
       VAR
          disposable : BOOLEAN;
+         ptr : PTR;
          Task : TPTask;
       BEGIN
-         IF NOT Messages.Get( Message.Message, OUT Task ) THEN // known waited message
+         IF NOT Messages.Get( Message.Message, OUT Task, OUT ptr ) THEN // known waited message
             RETURN FALSE; // check empty
          END;
 
@@ -361,11 +363,12 @@ CLASS IMPLEMENTATION CPoolThread;
          b : BOOLEAN;
          D : PTR;
          disposable : BOOLEAN;
-         HandleList : lists.TPPtrPtrList;
+         HandleList : lists.TPPtrList;
+         ptr : PTR;
          removeTask : BOOLEAN;
          Task, NextTask : TPTask;
       BEGIN
-         IF NOT Handles.Get( Handle, OUT HandleList ) THEN
+         IF NOT Handles.Get( Handle, OUT HandleList, OUT ptr ) THEN
             RETURN FALSE; // check empty
          END;
 
@@ -491,19 +494,20 @@ CLASS IMPLEMENTATION CPoolThread;
   PRIVATE PROCEDURE AddTask( CurrentTime : CARDINAL; Task : TPTask );
   VAR
     HandleList : lists.TPPtrList;
+    ptr : PTR;
   BEGIN
     HTasks.Add( CurrentTime, Task^.Handle, Task, Task^.Timeout );
     CASE Task^.Task OF
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
     | tskMessageOnce, tskMessageRepeated :
-      Messages.Add( Task^.Data, Task );
+      Messages.Add( Task^.Data, Task, 0 );
     | tskHandleOnce, tskHandleRepeated :
-      IF Handles.Get( Task^.Data, OUT HandleList ) THEN
+      IF Handles.Get( Task^.Data, OUT HandleList, OUT ptr ) THEN
          Sync.IDec( REF HandlesCount ); // no resource was consumed, decrease count
       ELSE
          NEW( HandleList );
-         Handles.Add( Task^.Data, HandleList );
+         Handles.Add( Task^.Data, HandleList, 0 );
          WaitArray.Add( Task^.Data );
       END;
       HandleList^.Add( Task, 0 );
@@ -520,6 +524,7 @@ CLASS IMPLEMENTATION CPoolThread;
   VAR
     disposable : BOOLEAN;
     HandleList : lists.TPPtrList;
+    ptr : PTR;
   BEGIN
     CASE Task^.Task OF
     | tskTimeoutOnce, tskTimeoutRepeated :
@@ -528,7 +533,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Messages.Remove( Task^.Data );
       Sync.IDec( REF MessagesCount );
     | tskHandleOnce, tskHandleRepeated :
-      IF Handles.Get( Task^.Data, OUT HandleList ) THEN
+      IF Handles.Get( Task^.Data, OUT HandleList, OUT ptr ) THEN
         HandleList^.Remove( Task );
         IF HandleList^.Empty THEN
           DISPOSE( HandleList );
@@ -960,16 +965,17 @@ CLASS IMPLEMENTATION CThreadPool;
 //--------------------------------------------------------------------------------
 
   PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
-  VAR
-    PoolThread : TPPoolThread;
+   VAR
+      iterator : lists.CPtrListIterator;
+      PoolThread : TPPoolThread;
   BEGIN
     IF NOT ForceSelfThread THEN
        // lookup
-       Threads.Reset();
-       WHILE Threads.MoveNext() DO
-         IF     WorkerFlag AND TPPoolThread( Threads.Current )^.AbleRunWorkers OR
-            NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWaitHandles THEN
-           _PoolThread := TPPoolThread( Threads.Current );
+       iterator.Init( Threads, collection.dirForward );
+       WHILE iterator.MoveNext() DO
+         IF     WorkerFlag AND TPPoolThread( iterator.Value )^.AbleRunWorkers OR
+            NOT WorkerFlag AND TPPoolThread( iterator.Value )^.AbleWaitHandles THEN
+           _PoolThread := TPPoolThread( iterator.Value );
            RETURN TRUE;
          END; // IF
        END; // WHILE
@@ -994,15 +1000,16 @@ CLASS IMPLEMENTATION CThreadPool;
 //--------------------------------------------------------------------------------
 
   PRIVATE PROCEDURE DisposeThreads( RespectMinThreads : BOOLEAN );
-  VAR
-    PoolThread : TPPoolThread;
-    ThreadsToLeave : lists.CPtrList;
-    ThreadsToRemove : lists.CPtrList;
+   VAR
+      iterator : lists.CPtrListIterator;
+      PoolThread : TPPoolThread;
+      ThreadsToLeave : lists.CPtrList;
+      ThreadsToRemove : lists.CPtrList;
   BEGIN
     _Lock.Lock();
-    Threads.Reset();
-    WHILE Threads.MoveNext() DO
-      PoolThread := TPPoolThread( Threads.Current );
+    iterator.Init( Threads, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      PoolThread := TPPoolThread( iterator.Value );
       IF NOT RespectMinThreads OR ( ThreadsToLeave.Count > _MinThreads ) AND PoolThread^.Empty THEN
         ThreadsToRemove.Add( PoolThread, 0 );
       ELSE
@@ -1014,9 +1021,9 @@ CLASS IMPLEMENTATION CThreadPool;
     Threads.AppendList( REF ThreadsToLeave );
     _Lock.Unlock();
 
-    ThreadsToRemove.Reset();
-    WHILE ThreadsToRemove.MoveNext() DO
-      PoolThread := TPPoolThread( ThreadsToRemove.Current );
+    iterator.Init( ThreadsToRemove, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      PoolThread := TPPoolThread( iterator.Value );
       PoolThread^.Stop( TRUE );
       DISPOSE( PoolThread );
     END; // WHILE

@@ -45,7 +45,7 @@ TYPE
 CLASS CPtrQueue;
    PRIVATE VAR
       Lock : Sync.LOCK;
-      _Queue : lists.CPtrPtrList;
+      _Queue : lists.CPtrList;
       Msg : msghandler.TPIMessage;
 
    PUBLIC READONLY PROPERTY

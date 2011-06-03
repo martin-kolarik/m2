@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    collection;
@@ -32,15 +32,25 @@ CLASS IMPLEMENTATION CPtrPtrSyncMapIterator;
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE Init( map : TPPtrPtrSyncMap; direction : collection.TDirection );
+   VAR
+      result : Sync.TAsyncResult;
    BEGIN
+      IF _Map <> NIL THEN
+         _Map^.Lock^.UnlockRead();
+      END;
       SUPER.Init( map^, direction );
       _Map := map;
+      result := _Map^.Lock^.LockRead( Sync.FORSAFETY );
+      ASSERTLOG( result <> Sync.arTimeout, L"Unable to lock map for reading" );
    END Init;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN FINALLY
-   _Map^.Lock^.UnlockRead();
+   IF _Map <> NIL THEN
+      _Map^.Lock^.UnlockRead();
+      _Map := NIL;
+   END;
 END CPtrPtrSyncMapIterator;
 
 (*================================================================================*)
@@ -66,12 +76,12 @@ CLASS IMPLEMENTATION CPtrPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
+   PUBLIC PROCEDURE Add( Key : PTR; Value, Data : PTR );
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeSafe( REF _Lock, MESSAGE );
-      SUPER.Add( Key, Data );
+      SUPER.Add( Key, Value, Data );
    END Add;
 
 (*--------------------------------------------------------------------------------*)
@@ -96,22 +106,22 @@ CLASS IMPLEMENTATION CPtrPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.Get( Key, OUT Data );
+      RETURN SUPER.Get( Key, OUT Value, OUT Data );
    END Get;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.ElementAt( Index, OUT Key, OUT Data );
+      RETURN SUPER.ElementAt( Index, OUT Key, OUT Value, OUT Data );
    END ElementAt;
 
 (*--------------------------------------------------------------------------------*)
@@ -151,15 +161,25 @@ CLASS IMPLEMENTATION CStringPtrSyncMapIterator;
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE Init( map : TPStringPtrSyncMap; direction : collection.TDirection );
+   VAR
+      result : Sync.TAsyncResult;
    BEGIN
+      IF _Map <> NIL THEN
+         _Map^.Lock^.UnlockRead();
+      END;
       SUPER.Init( map^, direction );
       _Map := map;
+      result := _Map^.Lock^.LockRead( Sync.FORSAFETY );
+      ASSERTLOG( result <> Sync.arTimeout, L"Unable to lock map for reading" );
    END Init;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN FINALLY
-   _Map^.Lock^.UnlockRead();
+   IF _Map <> NIL THEN
+      _Map^.Lock^.UnlockRead();
+      _Map := NIL;
+   END;
 END CStringPtrSyncMapIterator;
 
 (*================================================================================*)
@@ -185,12 +205,12 @@ CLASS IMPLEMENTATION CStringPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Add( CONST Key : IString; Data : PTR );
+   PUBLIC PROCEDURE Add( CONST Key : IString; Value, Data : PTR );
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeSafe( REF _Lock, MESSAGE );
-      SUPER.Add( Key, Data );
+      SUPER.Add( Key, Value, Data );
    END Add;
 
 (*--------------------------------------------------------------------------------*)
@@ -215,22 +235,22 @@ CLASS IMPLEMENTATION CStringPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.Get( Key, OUT Data );
+      RETURN SUPER.Get( Key, OUT Value, OUT Data );
    END Get;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       lock : Sync.AutoLock;
    BEGIN
       lock.TakeReadSafe( REF _Lock, MESSAGE );
-      RETURN SUPER.ElementAt( Index, OUT Key, OUT Data );
+      RETURN SUPER.ElementAt( Index, OUT Key, OUT Value, OUT Data );
    END ElementAt;
 
 (*--------------------------------------------------------------------------------*)

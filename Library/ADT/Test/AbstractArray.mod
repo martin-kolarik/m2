@@ -10,7 +10,8 @@ PROCEDURE ArrayTest();
 VAR
   I : CARDINAL;
 BEGIN
-  AR.Init( array.astrgListInArray, 0, 4 );
+  AR.Strategy := array.astrgListInArray;
+  AR.ItemSize := 4;
   FOR I := 0 TO 1499 DO
     AR.Add( I );
   END;

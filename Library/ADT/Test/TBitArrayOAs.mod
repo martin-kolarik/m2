@@ -12,7 +12,7 @@ IMPORT
 (*===========================================================================*)
 
 CLASS CTest IMPLEMENTS test.ITest;
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
 END CTest;
 
 (*===========================================================================*)
@@ -26,7 +26,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
    TYPE
       TCardinalArray = ARRAY [0..11] OF CARDINAL;
    CONST
@@ -44,9 +44,9 @@ CLASS IMPLEMENTATION CTest;
       IF     ba.In( 00 ) AND NOT ba.In( 01 ) AND
          NOT ba.In( 32 ) AND     ba.In( 33 ) AND
            ( ba.Count = 128 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -59,9 +59,9 @@ CLASS IMPLEMENTATION CTest;
              ba.In( 16 ) AND NOT ba.In( 17 ) AND
          NOT ba.In( 48 ) AND     ba.In( 49 ) AND
            ( ba.Count = 128 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -75,9 +75,9 @@ CLASS IMPLEMENTATION CTest;
              ba.In( 128 ) AND NOT ba.In( 129 ) AND
          NOT ba.In( 382 ) AND     ba.In( 383 ) AND
            ( ba.Count = 104 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -91,9 +91,9 @@ CLASS IMPLEMENTATION CTest;
          NOT ba.In( 128 ) AND NOT ba.In( 129 ) AND
          NOT ba.In( 382 ) AND NOT ba.In( 383 ) AND
            ( ba.Count = 0 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -107,9 +107,9 @@ CLASS IMPLEMENTATION CTest;
       ba.ToOA( 0, OUT va, OUT filled );
 
       IF ( filled = 4*12 ) AND ( va[0] = 020H ) AND ( va[4] = 01H ) AND ( va[11] = 0C0000000H ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -123,9 +123,9 @@ CLASS IMPLEMENTATION CTest;
       ba.ToOA( 16, OUT va, OUT filled );
 
       IF ( filled = 46 ) AND ( va[0] = 0H ) AND ( va[3] = 010000H ) AND ( va[11] = 0C000H ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -139,12 +139,10 @@ CLASS IMPLEMENTATION CTest;
       ba.ToOA( 1024, OUT va, OUT filled );
 
       IF ( filled = 0 ) AND ( va[0] = 0H ) AND ( va[3] = 0H ) AND ( va[11] = 0H ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
-
-      RETURN test.trSuccess;
    END Run;
 
 (*---------------------------------------------------------------------------*)

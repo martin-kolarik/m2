@@ -29,7 +29,7 @@ CLASS CLogFilter( log.CLevelAndBitsFilter );
    
    // privates
    PRIVATE VAR
-      _Filter : lists.CStringPtrList;
+      _Filter : lists.CStringList;
 
 END CLogFilter;
 

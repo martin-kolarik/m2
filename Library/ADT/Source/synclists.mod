@@ -9,7 +9,7 @@ IMPORT
 CONST
    MESSAGE = L"Unable to lock list";
 
-CLASS IMPLEMENTATION CPtrPtrSyncList;
+CLASS IMPLEMENTATION CPtrSyncList;
 
 (*---------------------------------------------------------------------------*)
 
@@ -130,7 +130,7 @@ CLASS IMPLEMENTATION CPtrPtrSyncList;
 
 (*---------------------------------------------------------------------------*)
 
-END CPtrPtrSyncList;
+END CPtrSyncList;
 
 (*================================================================================*)
 
