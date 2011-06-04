@@ -63,7 +63,7 @@ CLASS CList( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
 
    PUBLIC PROCEDURE InsertFirst( PElem : TPListElem );
    PUBLIC PROCEDURE InsertBefore( PBefore, PElem : TPListElem );
-   PUBLIC PROCEDURE AppendList( REF List : CList ); // clears PList
+   PUBLIC PROCEDURE AppendList( REF List : CList ); // clears List
 
    PUBLIC PROCEDURE IndexOf( CONST Element : TPListElem ): INTEGER;
    PUBLIC PROCEDURE Clear();

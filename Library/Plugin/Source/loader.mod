@@ -7,6 +7,7 @@ FROM Strings IMPORT
    LowerizeW;
 
 IMPORT
+   collection,
    FIO,
    Strings,
    StringsO,
@@ -171,6 +172,47 @@ END CPlugin;
 
 (*===========================================================================*)
 
+CLASS IMPLEMENTATION CLoaderPluginIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY State GET : TState;
+   BEGIN
+      IF Value = NIL THEN
+         RETURN TState{};
+      ELSE
+         RETURN TPPlugin( Value )^.State;
+      END;
+   END State;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Name GET : StringsO.CString;
+   BEGIN
+      IF Value = NIL THEN
+         RETURN StringsO.Empty();
+      ELSE
+         RETURN TPPlugin( Value )^.Name;
+      END;
+   END Name;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Path GET : StringsO.CString;
+   BEGIN
+      IF Value = NIL THEN
+         RETURN StringsO.Empty();
+      ELSE
+         RETURN TPPlugin( Value )^.Path;
+      END;
+   END Path;
+
+(*---------------------------------------------------------------------------*)
+
+END CLoaderPluginIterator;
+
+(*===========================================================================*)
+
 CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
@@ -234,14 +276,15 @@ CLASS IMPLEMENTATION CLoader;
 
    PUBLIC PROCEDURE RemovePlugin( CONST PluginPath : ARRAY OF WCHAR );
    VAR
+      iterator : lists.CPtrListIterator;
       LPath : FIO.PathStrW;
       NL : lists.CPtrList;
    BEGIN
       FIO.ExpandPathW( PluginPath, OUT LPath );
-      _Plugins.Reset();
-      WHILE _Plugins.MoveNext() DO
-         IF NOT TPPlugin( _Plugins.Current )^.Path.EqualsOA( LPath ) THEN
-           NL.Add( _Plugins.Current, 0 );
+      iterator.Init( _Plugins, collection.dirForward );
+      WHILE iterator.MoveNext() DO
+         IF NOT TPPlugin( iterator.Value )^.Path.EqualsOA( LPath ) THEN
+           NL.Add( iterator.Value, 0 );
          END;
       END; // WHILE
       _Plugins.Dispose();
@@ -286,34 +329,10 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumeratePlugins( REF EnumerateState : PTR; OUT PluginName, PluginPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
-   VAR
-      b : BOOLEAN;
-      Data : PTR;
-      Plugin : TPPlugin;
+   PUBLIC PROCEDURE InitializePluginIterator( REF Iterator : CLoaderPluginIterator );
    BEGIN
-      IF EnumerateState = 0 THEN
-         b := _Plugins.GetFirst( OUT Plugin, OUT Data );
-      ELSE
-         b := _Plugins.NextOf( EnumerateState, OUT Plugin, OUT Data );
-      END;
-      IF NOT b THEN
-         RETURN FALSE;
-      END;
-      
-      Plugin^.Name.ToOA( OUT PluginName );
-      Plugin^.Path.ToOA( OUT PluginPath );
-      
-      EnumerateState := Plugin;
-      RETURN TRUE;
-   END EnumeratePlugins;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST PluginName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
-   BEGIN
-      RETURN FALSE;
-   END EnumerateClasses;
+      Iterator.Init( _Plugins, collection.dirForward );
+   END InitializePluginIterator;
 
 (*---------------------------------------------------------------------------*)
 
@@ -321,13 +340,14 @@ CLASS IMPLEMENTATION CLoader;
    VAR
       i : INTEGER;
       plugin : TPPlugin;
+      ptr : PTR;
       s : FIO.PathStrW;
    BEGIN
       i := Strings.ItemSW( ClassPath, Strings.WCHARS{L"/"}, 0, 0, FALSE, OUT s );
       LOW( s );
       IF s[0] = 0W THEN
          RETURN iplugin.lrPluginNotFound;
-      ELSIF NOT _Names.GetOA( s, OUT plugin ) THEN
+      ELSIF NOT _Names.Get( StringsO.FromOA( s ), OUT plugin, OUT ptr ) THEN
          RETURN iplugin.lrPluginNotFound;
       ELSE
          Strings.SubstringW( ClassPath, i, -1, OUT s );
@@ -350,11 +370,12 @@ CLASS IMPLEMENTATION CLoader;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      iterator : lists.CPtrListIterator;
       Plugin : TPPlugin;
    BEGIN
-      _Plugins.Reset();
-      WHILE _Plugins.MoveNext() DO
-         Plugin := TPPlugin( _Plugins.Current );
+      iterator.Init( _Plugins, collection.dirForward );
+      WHILE iterator.MoveNext() DO
+         Plugin := iterator.Value;
          ASSERT( Plugin^.RefCount = 0 );
          DISPOSE( Plugin );
       END; // WHILE
@@ -365,11 +386,13 @@ CLASS IMPLEMENTATION CLoader;
 (*---------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE LookupPlugin( CONST PluginPath : ARRAY OF WCHAR; OUT Plugin : ADDRESS ) : BOOLEAN;
+   VAR
+      iterator : lists.CPtrListIterator;
    BEGIN
-      _Plugins.Reset();
-      WHILE _Plugins.MoveNext() DO
-         IF TPPlugin( _Plugins.Current )^.Path.EqualsOA( PluginPath ) THEN
-            Plugin := _Plugins.Current;
+      iterator.Init( _Plugins, collection.dirForward );
+      WHILE iterator.MoveNext() DO
+         IF TPPlugin( iterator.Value )^.Path.EqualsOA( PluginPath ) THEN
+            Plugin := iterator.Value;
             RETURN TRUE;
          END;
       END; // WHILE
@@ -380,20 +403,21 @@ CLASS IMPLEMENTATION CLoader;
 
    PRIVATE PROCEDURE BuildNames();
    VAR
-      Plugin : TPPlugin;
+      iterator : lists.CPtrListIterator;
       Name : StringsO.CString;
+      Plugin : TPPlugin;
    BEGIN
       _Names.Dispose();
-      _Plugins.Reset();
-      WHILE _Plugins.MoveNext() DO
-         Plugin := TPPlugin( _Plugins.Current );
+      iterator.Init( _Plugins, collection.dirForward );
+      WHILE iterator.MoveNext() DO
+         Plugin := TPPlugin( iterator.Value );
          Name := Plugin^.Name;
          Name.Lowerize();
          IF lsEnabled IN Plugin^.State THEN
             IF _Names.Contains( Name ) THEN
                ASSERTLOG( FALSE );
             ELSE
-               _Names.Add( Name, Plugin );
+               _Names.Add( Name, Plugin, 0 );
             END;
          END;
       END; // WHILE

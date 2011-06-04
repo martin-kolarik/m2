@@ -4,6 +4,8 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
+   collection,
    datetime,
    FIO,
    iplugin,
@@ -120,7 +122,7 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
       _Output : CTestOutput;
       _FastEvaluation : BOOLEAN := FALSE;
       _Test : test.TPTest := NIL;
-      _ParticleAssert : BOOLEAN;
+      _ParticleAssert : BOOLEAN := FALSE;
       _ParticleAssertText : StringsO.CString;
       _PhaseResult : test.TTestResult := test.trFailure;
       _TestResult : test.TTestResult := test.trFailure;
@@ -333,21 +335,22 @@ LABEL
    Error;
 VAR
    ClassPath : ARRAY [0..255] OF WCHAR;
-   ESl : PTR;
-   ESt : PTR;
-   Host : CHost;
+   disposable : baseobject.TPDisposable;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    Filters : lists.CStringList;
+   filtersIterator : lists.CStringListIterator;
    FastEvaluation : BOOLEAN := FALSE;
    Found : BOOLEAN;
+   Host : CHost;
    i : INTEGER;
-   LibraryState : loader.TState;
    LoadResult : iplugin.TLoadResult;
    Name : ARRAY [0..127] OF WCHAR;
-   Path : FIO.PathStrW;
+   pluginIterator : loader.CLoaderPluginIterator;
    RepeatCount, rc : CARDINAL := 1;
+   s : StringsO.CString;
    StdOutFlag : BOOLEAN := FALSE;
    Test : test.TPTest;
+   testIterator : POINTER TO test.ITestIterator;
    Tests : test.TPTests;
    TimeStamps : BOOLEAN := FALSE;
    TotalResult : CARDINAL := 0;
@@ -365,7 +368,7 @@ BEGIN
                errout^.WriteOA( L"runtest: missing filter string for -f option ", TRUE );
                GOTO Error;
             END;
-            Filters.AddOA( OAsz( argp^[i] ), 0 );
+            Filters.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | L'h' :
             GOTO Error;
          | L'o' :
@@ -397,8 +400,10 @@ BEGIN
    
    FOR rc := 1 TO RepeatCount DO
    
-      ESl := 0;
-      WHILE loader.ldr()^.EnumeratePlugins( REF ESl, OUT Name, OUT Path, OUT LibraryState ) DO
+      loader.ldr()^.InitializePluginIterator( REF pluginIterator );
+      WHILE pluginIterator.MoveNext() DO
+         pluginIterator.Name.ToOA( OUT Name );
+
          Strings.ConcatW( OUT ClassPath, Name, L"/Development.Tests" );
          LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Tests );
          IF LoadResult <> iplugin.lrSuccess THEN
@@ -414,8 +419,11 @@ BEGIN
 
          Host.StartSuite( Name, FastEvaluation );
 
-         ESt := 0;
-         WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
+         testIterator := Tests^.GetIterator();
+         WHILE testIterator^.MoveNext() DO
+            testIterator^.Name( OUT Name );
+            Test := testIterator^.Test;
+
             IF Test = NIL THEN
                Host.Log^.LogSS( log.lcSysError, 0, L"", L"Error getting test: ", Name );
                CONTINUE;
@@ -423,9 +431,10 @@ BEGIN
          
             IF NOT Filters.Empty THEN
                Found := FALSE;
-               Filters.Reset();
-               WHILE Filters.MoveNext() DO
-                  IF Strings.MatchW( Name, OA( Filters.Current^.Length-1, Filters.Current^.Data ), FALSE ) THEN
+               filtersIterator.Init( Filters, collection.dirForward );
+               WHILE filtersIterator.MoveNext() DO
+                  s.FromOA( Name );
+                  IF s.Match( filtersIterator.Value^, FALSE ) THEN
                      Found := TRUE;
                      EXIT;
                   END;
@@ -445,6 +454,8 @@ BEGIN
                TotalResult := 3;
             END;
          END; // WHITE Tests
+         disposable := testIterator^.Implementor;
+         DISPOSE( disposable );
          
          loader.ldr()^.ReleaseObject( REF Tests );
       END; // WHILE Libraries

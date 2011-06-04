@@ -37,36 +37,12 @@ END CValueOwnershipControlMap;
 (*==========================================================================*)
 // common ancestor
 
-ABSTRACT CLASS CDataItem( avltree.CAVLTreeElem );
-
-   // SELF   
-   LOCAL VAR
-      Data : PTR := NIL;
-
-END CDataItem;
-
-(*---------------------------------------------------------------------------*)
-
 CLASS IMPLEMENTATION CDataItem;
 BEGIN
 END CDataItem;
 
 (*==========================================================================*)
 // common ancestor
-
-ABSTRACT CLASS CValueItem( CDataItem );
-
-   // CDisposable
-   PUBLIC VIRTUAL PROCEDURE Dispose();
-
-   // SELF   
-   LOCAL VAR
-      Value : PTR := NIL;
-      OfValueOwnershipControlMap : POINTER TO CValueOwnershipControlMap := NIL;
-
-END CValueItem;
-
-(*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CValueItem;
 

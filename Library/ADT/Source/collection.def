@@ -106,13 +106,13 @@ END ICollection;
 CLASS CIterator( baseobject.CDisposable ) IMPLEMENTS IIterator;
 
    // IIterator
-   PUBLIC FINAL READONLY PROPERTY
+   PUBLIC VIRTUAL READONLY PROPERTY
       colCurrent : baseobject.PBASE;
 
-   PUBLIC FINAL PROCEDURE Reset();
-   PUBLIC FINAL PROCEDURE MoveNext() : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
 
-   PUBLIC FINAL READONLY PROPERTY
+   PUBLIC VIRTUAL READONLY PROPERTY
       Implementor : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
       OfCollection : TPCollection;
 

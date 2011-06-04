@@ -21,9 +21,9 @@ IMPORT
 FROM StringsO IMPORT
    IString, TPString;
 
-//---------------------------------------------------------------------------
-
 #save, option( dll_export => on )
+
+(*==========================================================================*)
 
 CLASS CValueOwnershipControlMap( avltree.CAVLTree ); // ancestors with ValueOwnership = TRUE will examine Value : PTR as being PBASE and deallocate it
 
@@ -36,7 +36,32 @@ CLASS CValueOwnershipControlMap( avltree.CAVLTree ); // ancestors with ValueOwne
 
 END CValueOwnershipControlMap;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CDataItem( avltree.CAVLTreeElem );
+
+   // SELF   
+   PUBLIC VAR
+      Data : PTR := NIL;
+
+END CDataItem;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CValueItem( CDataItem ); // The item disposes Value if owning map wants. Distinguished are: BASE, CDisposable, CRefcounted.
+
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // SELF   
+   PUBLIC VAR
+      Value : PTR := NIL;
+   LOCAL VAR
+      OfValueOwnershipControlMap : POINTER TO CValueOwnershipControlMap := NIL;
+
+END CValueItem;
+
+(*==========================================================================*)
 
 TYPE
    TPIntegerPtrMap = POINTER TO CIntegerPtrMap;

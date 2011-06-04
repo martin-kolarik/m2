@@ -33,6 +33,17 @@ TYPE
    
 (*---------------------------------------------------------------------------*)
 
+CLASS CLoaderPluginIterator( lists.CPtrListIterator );
+
+   PUBLIC READONLY PROPERTY
+      State : TState;
+      Name : StringsO.CString;
+      Path : StringsO.CString;
+
+END CLoaderPluginIterator;
+
+(*---------------------------------------------------------------------------*)
+
 CLASS CLoader( baseobject.CDisposable );
 
    PUBLIC READONLY PROPERTY
@@ -50,8 +61,7 @@ CLASS CLoader( baseobject.CDisposable );
    PUBLIC PROCEDURE DisablePlugin( CONST PluginPath : ARRAY OF WCHAR );
    PUBLIC PROCEDURE EnablePlugin( CONST PluginPath : ARRAY OF WCHAR );
 
-   PUBLIC PROCEDURE EnumeratePlugins( REF EnumerateState : PTR; OUT PluginName, PluginPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
-   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST PluginName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE InitializePluginIterator( REF Iterator : CLoaderPluginIterator );
    
    PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
    PUBLIC PROCEDURE ReleaseObject( REF Object : iplugin.TPPluginObject );
@@ -64,7 +74,7 @@ CLASS CLoader( baseobject.CDisposable );
 
    PRIVATE VAR
       _Plugins : lists.CPtrList;
-      _Names : maps.CStringMap;
+      _Names : maps.CStringPtrMap;
       _LoadAuthorizer : TPPluginLoadAuthorizer;
       _Host : StringsO.CString;
       _HostVersionString : StringsO.CString;

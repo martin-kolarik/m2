@@ -108,8 +108,8 @@ CLASS IMPLEMENTATION CXMLWriter;
       END;
       WriteOA( Element );
 
-      _Stack.PushOA( NSPrefix );
-      _Stack.PushOA( Element );
+      _Stack.Push( StringsO.FromOA( NSPrefix ), 0 );
+      _Stack.Push( StringsO.FromOA( Element ), 0 );
 
       INCL( _State, xwsInAttributes );
    END WriteElementStartOA;
@@ -121,14 +121,15 @@ CLASS IMPLEMENTATION CXMLWriter;
       Element : StringsO.CString;
       HaveText : BOOLEAN;
       NSPrefix : StringsO.CString;
+      ptr : PTR;
    BEGIN
       IF _Stack.Empty OR ( xwsInAttribute IN _State ) THEN
          RETURN;
       END;
-      HaveText := _Stack.PeekData() = 1;
+      HaveText := _Stack.TopData = 1;
 
-      _Stack.Pop( OUT Element );
-      _Stack.Pop( OUT NSPrefix );
+      _Stack.Pop( OUT Element, OUT ptr );
+      _Stack.Pop( OUT NSPrefix, OUT ptr );
 
       IF xwsInAttributes IN _State THEN
          EXCL( _State, xwsInAttributes );
@@ -204,7 +205,7 @@ CLASS IMPLEMENTATION CXMLWriter;
       ELSIF xwsInAttribute NOT IN _State THEN
          EXCL( _State, xwsInAttributes );
          WriteOAA( C'>' ); // close leading of current element, continue in the line
-         _Stack.StoreData( 1 ); // signalize we are in text
+         _Stack.TopData := 1; // signalize we are in text
       END;
 
       // escape reserved characters
@@ -227,7 +228,7 @@ CLASS IMPLEMENTATION CXMLWriter;
       ELSIF xwsInAttribute NOT IN _State THEN
          EXCL( _State, xwsInAttributes );
          WriteOAA( C'>' ); // close leading of current element, continue in the line
-         _Stack.StoreData( 1 ); // signalize we are in text
+         _Stack.TopData := 1; // signalize we are in text
       END;
       Write( String );
    END WriteUnescapedString;
@@ -245,7 +246,7 @@ CLASS IMPLEMENTATION CXMLWriter;
       ELSIF xwsInAttribute NOT IN _State THEN
          EXCL( _State, xwsInAttributes );
          WriteOAA( C'>' ); // close leading of current element, continue in the line
-         _Stack.StoreData( 1 ); // signalize we are in text
+         _Stack.TopData := 1; // signalize we are in text
       END;
 
       S.FromOA( String );

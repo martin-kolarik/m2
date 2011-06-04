@@ -6,7 +6,7 @@ CLASS IMPLEMENTATION CIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL FINAL PROPERTY colCurrent GET : baseobject.PBASE;
+   PUBLIC VIRTUAL PROPERTY colCurrent GET : baseobject.PBASE;
    BEGIN
       IF _Exhausted THEN
          RETURN NIL;
@@ -20,7 +20,7 @@ CLASS IMPLEMENTATION CIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE Reset();
    BEGIN
       _Current := NIL;
       _Exhausted := FALSE;
@@ -29,7 +29,7 @@ CLASS IMPLEMENTATION CIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE MoveNext() : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
    BEGIN
       IF _Exhausted THEN
          // fall down
@@ -53,14 +53,14 @@ CLASS IMPLEMENTATION CIterator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Implementor GET : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
+   PUBLIC VIRTUAL PROPERTY Implementor GET : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
    BEGIN
       RETURN ADR( SELF );
    END Implementor;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY OfCollection GET : TPCollection; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
+   PUBLIC VIRTUAL PROPERTY OfCollection GET : TPCollection; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
    BEGIN
       RETURN _OfCollection;
    END OfCollection;

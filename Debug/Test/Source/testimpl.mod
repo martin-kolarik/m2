@@ -4,6 +4,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
+   baseobject,
+   collection,
    iplugin,
    lists,
    helper,
@@ -13,6 +15,90 @@ IMPORT
 
 CONST
    ctestClass = L"Development.Tests";
+
+(*================================================================================*)
+
+CLASS CTestIterator( lists.CPtrListIterator ) IMPLEMENTS test.ITestIterator;
+
+   // collection.IIterator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      colCurrent : baseobject.PBASE;
+
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Implementor : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
+      OfCollection : collection.TPCollection;
+
+   // ITestIterator
+   PUBLIC VIRTUAL PROCEDURE
+      Name( OUT name : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Test : test.TPTest;
+
+END CTestIterator;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CTestIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY colCurrent GET : baseobject.PBASE;
+   BEGIN
+      RETURN SUPER.colCurrent;
+   END colCurrent;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   BEGIN
+      SUPER.Reset();
+   END Reset;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
+   BEGIN
+      RETURN SUPER.MoveNext();
+   END MoveNext;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Implementor GET : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
+   BEGIN
+      RETURN SUPER.Implementor;
+   END Implementor;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY OfCollection GET : collection.TPCollection;
+   BEGIN
+      RETURN SUPER.OfCollection;
+   END OfCollection;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Name( OUT name : ARRAY OF WCHAR );
+   BEGIN
+      IF Value = NIL THEN
+         name := L"";
+      ELSE
+         StringsO.TPString( Data )^.ToOA( OUT name );
+      END;
+   END Name;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Test GET : test.TPTest;
+   BEGIN
+      RETURN Value;
+   END Test;
+
+(*---------------------------------------------------------------------------*)
+
+END CTestIterator;
 
 (*================================================================================*)
 // abstract helper implementations -- implementor can directly use the class, the only thing he
@@ -32,7 +118,7 @@ CLASS CTests( helper.APlugin ) IMPLEMENTS test.ITests;
 
    // ITests
    PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : CARDINAL;
-   PUBLIC VIRTUAL PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : test.TPTest ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetIterator() : POINTER TO test.ITestIterator;
    PUBLIC VIRTUAL PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest );
 
    // APluginObject
@@ -108,26 +194,16 @@ CLASS IMPLEMENTATION CTests;
       END;
    END TestFactory;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : test.TPTest ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetIterator() : POINTER TO test.ITestIterator;
    VAR
-      _S : StringsO.TPString;
-      _Test : test.TPTest;
-      b : BOOLEAN;
+      iterator : POINTER TO CTestIterator;
    BEGIN
-      IF ES = 0 THEN
-         b := _Tests.GetFirst( OUT _Test, OUT _S );
-      ELSE
-         b := _Tests.NextOf( ES, OUT _Test, OUT _S );
-      END;
-      IF b THEN
-         ES := _Test;
-         Test := _Test;
-         _S^.ToOA( OUT Name );
-      END;
-      RETURN b;
-   END EnumerateTests;
+      NEW( iterator );
+      iterator^.Init( _Tests, collection.dirForward );
+      RETURN iterator;
+   END GetIterator;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -147,11 +223,12 @@ CLASS IMPLEMENTATION CTests;
 
    PUBLIC FINAL PROCEDURE Dispose();
    VAR
+      iterator : lists.CPtrListIterator;
       _S : POINTER TO StringsO.CString;
    BEGIN
-      _Tests.Reset();
-      WHILE _Tests.MoveNext() DO
-         _S := _Tests.CurrentData;
+      iterator.Init( _Tests, collection.dirForward );
+      WHILE iterator.MoveNext() DO
+         _S := iterator.Data;
          DISPOSE( _S );
       END; // WHILE
       _Tests.Dispose();
