@@ -12,7 +12,7 @@ IMPORT
 (*===========================================================================*)
 
 CLASS CTest IMPLEMENTS test.ITest;
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 END CTest;
 
 (*===========================================================================*)
@@ -26,7 +26,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    TYPE
       TCardinalArray = ARRAY [0..11] OF CARDINAL;
    CONST
@@ -95,6 +95,8 @@ CLASS IMPLEMENTATION CTest;
       ELSE
          Host^.StopPhaseWithResult( FALSE );
       END;
+
+      RETURN test.trUnknown;
    END Run;
 
 (*---------------------------------------------------------------------------*)

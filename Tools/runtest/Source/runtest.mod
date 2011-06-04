@@ -7,6 +7,7 @@ IMPORT
    baseobject,
    collection,
    datetime,
+   debug,
    FIO,
    iplugin,
    lists,
@@ -103,8 +104,8 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE StopPhase();
    PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( result : BOOLEAN ); // expression = TRUE and no ASSERT means success
-   PUBLIC VIRTUAL PROCEDURE ParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
-   PUBLIC VIRTUAL PROCEDURE ParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
+   PUBLIC VIRTUAL PROCEDURE ParticleWithResult( CONST Description : ARRAY OF WCHAR; result : BOOLEAN ); // expression = TRUE and no ASSERT means success
+   PUBLIC VIRTUAL PROCEDURE ParticleWithAssert( CONST Description : ARRAY OF WCHAR ); // found means success
    
    // IRunnable
    INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
@@ -114,6 +115,8 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
       TestOutput : TPTestOutput;
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    LOCAL PROCEDURE RunTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest ) : Sync.TAsyncResult;
+
+   LOCAL PROCEDURE AssertHook( CONST AssertText : StringsO.CString );
 
    // SELF
    PRIVATE VAR
@@ -207,13 +210,17 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
+   PUBLIC VIRTUAL PROCEDURE ParticleWithResult( CONST FailureText : ARRAY OF WCHAR; result : BOOLEAN ); // expression = TRUE and no ASSERT means success
    BEGIN
       IF NOT result THEN // TRUE expected
          _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
          _PhaseResult := test.trFailure;
+         _TestResult := test.trFailure;
       ELSIF _PhaseResult = test.trUnknown THEN
-         _PhaseResult := test.trSuccess; 
+         _PhaseResult := test.trSuccess;
+         IF _TestResult = test.trUnknown THEN
+            _TestResult := test.trSuccess;
+         END;
       END;
       _ParticleAssert := FALSE;
       _ParticleAssertText.Clear();
@@ -228,6 +235,9 @@ CLASS IMPLEMENTATION CHost;
          _PhaseResult := test.trFailure;
       ELSIF _PhaseResult = test.trUnknown THEN
          _PhaseResult := test.trSuccess; 
+         IF _TestResult = test.trUnknown THEN
+            _TestResult := test.trSuccess;
+         END;
       END;
       _ParticleAssert := FALSE;
       _ParticleAssertText.Clear();
@@ -248,8 +258,15 @@ CLASS IMPLEMENTATION CHost;
    INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    TYPE
       PPWCHAR = POINTER TO PWCHAR;
+   VAR
+      result : test.TTestResult;
    BEGIN
-      _Test^.Run( ADR( SELF ), OA( -1, PPWCHAR( NIL )));
+      result := _Test^.Run( ADR( SELF ), OA( -1, PPWCHAR( NIL )));
+      IF result = test.trFailure THEN
+         _TestResult := test.trFailure;
+      ELSIF _TestResult = test.trUnknown THEN
+         _TestResult := result;
+      END;
       RETURN 0;
    END OnRun;
 
@@ -316,11 +333,28 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
+   LOCAL PROCEDURE AssertHook( CONST AssertText : StringsO.CString );
+   BEGIN
+      _ParticleAssert := TRUE;
+      _ParticleAssertText := AssertText;
+   END AssertHook;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _Logger.Level := log.ldDebug;
    _Logger.Output := log.outsNone;
    _Logger.AddOutput( ADR( _Output ));
 END CHost;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE AssertHook( UserData : PTR; AssertMessage : ARRAY OF WCHAR );
+TYPE
+   TPHost = POINTER TO CHost;
+BEGIN
+   TPHost( UserData )^.AssertHook( StringsO.FromOA( AssertMessage ));
+END AssertHook;
 
 (*================================================================================*)
    
@@ -355,6 +389,8 @@ VAR
    TimeStamps : BOOLEAN := FALSE;
    TotalResult : CARDINAL := 0;
 BEGIN
+
+   // analyze parameters
    i := 1;
    WHILE i < argc DO
       IF ( argp^[i]^[0] = L'/' ) OR ( argp^[i]^[0] = L'-' ) THEN // option
@@ -397,7 +433,9 @@ BEGIN
    END; // WHILE
    
    Host.TestOutput^.TimeStamps := TimeStamps;
+   debug.SetAssertHook( debug.TAssertHook( AssertHook ), ADR( Host ));
    
+   // run tests
    FOR rc := 1 TO RepeatCount DO
    
       loader.ldr()^.InitializePluginIterator( REF pluginIterator );

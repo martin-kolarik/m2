@@ -20,10 +20,12 @@ IMPORT
 
 VAR 
    AssertHook : TAssertHook := NIL;
+   AssertHookUserData : PTR := 0;
 
-PROCEDURE SetAssertHook( hook : TAssertHook );
+PROCEDURE SetAssertHook( hook : TAssertHook; userData : PTR );
 BEGIN
    AssertHook := hook;
+   AssertHookUserData := userData;
 END SetAssertHook;
 
 //--------------------------------------------------------------------------------
@@ -66,7 +68,7 @@ BEGIN
       // ELSE fall down
       END;
    ELSE
-      CASE AssertHook( text ) OF
+      CASE AssertHook( AssertHookUserData, text ) OF
       | -1 :
          RETURN TRUE; // debug
       | 1 :

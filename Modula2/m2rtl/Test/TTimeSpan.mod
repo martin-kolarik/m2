@@ -68,11 +68,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 0.0 ) OR
                  NOT epseq( ts.Hours, 0.0 ) OR
                  NOT epseq( ts.Days, 0.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"TimeSpanZero", NOT Failure );
 
       ts := datetime.TimeSpanMS32( 333 );
       Failure := ( ts.Negative ) OR
@@ -83,11 +79,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 0.333 / 60.0 ) OR
                  NOT epseq( ts.Hours, 0.333 / 60.0 / 60.0 ) OR
                  NOT epseq( ts.Days, 0.333 / 60.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"TimeSpanMS32+", NOT Failure );
 
       ts := datetime.TimeSpanMS32( -333 );
       Failure := ( NOT ts.Negative ) OR
@@ -98,11 +90,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, -0.333 / 60.0 ) OR
                  NOT epseq( ts.Hours, -0.333 / 60.0 / 60.0 ) OR
                  NOT epseq( ts.Days, -0.333 / 60.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"TimeSpanMS32-", NOT Failure );
 
       ts := datetime.TimeSpanS( 7200.0 );
       Failure := ( ts.Value <> INT64( 72000000000 )) OR
@@ -112,11 +100,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 7200.0 / 60.0 ) OR
                  NOT epseq( ts.Hours, 7200.0 / 60.0 / 60.0 ) OR
                  NOT epseq( ts.Days, 7200.0 / 60.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"TimeSpanS+", NOT Failure );
 
       ts := datetime.TimeSpanS( -7200.0 );
       Failure := ( ts.Value <> INT64( -72000000000 )) OR
@@ -126,11 +110,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, -7200.0 / 60.0 ) OR
                  NOT epseq( ts.Hours, -7200.0 / 60.0 / 60.0 ) OR
                  NOT epseq( ts.Days, -7200.0 / 60.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"TimeSpanS-", NOT Failure );
 
       ts := datetime.TimeSpanD( 0.8 );
       Failure := ( ts.Value <> INT64( 691200000000 )) OR
@@ -140,11 +120,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 1152.0 ) OR
                  NOT epseq( ts.Hours, 19.2 ) OR
                  NOT epseq( ts.Days, 0.8 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"TimeSpanD+", NOT Failure );
 
       ts := datetime.TimeSpanD( -0.8 );
       Failure := ( ts.Value <> INT64( -691200000000 )) OR
@@ -154,19 +130,9 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, -1152.0 ) OR
                  NOT epseq( ts.Hours, -19.2 ) OR
                  NOT epseq( ts.Days, -0.8 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"TimeSpanD-", NOT Failure );
 
       Host^.StartPhase( L"Raw & setters" );
-
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
 
       ts.Value := 123;
       Failure := ( ts.Value <> 123 ) OR
@@ -176,11 +142,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 0.0000123 / 60.0 ) OR
                  NOT epseq( ts.Hours, 0.0000123 / 60.0 / 60.0 ) OR
                  NOT epseq( ts.Days, 0.0000123 / 60.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"set Value", NOT Failure );
 
       ts.Microseconds := -587.0;
       Failure := ( ts.Value <> -5870 ) OR
@@ -190,11 +152,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, -0.000587 / 60.0 ) OR
                  NOT epseq( ts.Hours, -0.000587 / 60.0 / 60.0 ) OR
                  NOT epseq( ts.Days, -0.000587 / 60.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"set us", NOT Failure );
 
       ts.Milliseconds := 55.0;
       Failure := ( ts.Value <> 550000 ) OR
@@ -204,11 +162,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 0.055 / 60.0 ) OR
                  NOT epseq( ts.Hours, 0.055 / 60.0 / 60.0 ) OR
                  NOT epseq( ts.Days, 0.055 / 60.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"set ms", NOT Failure );
 
       ts.Seconds := 55.0;
       Failure := ( ts.Value <> 550000000 ) OR
@@ -218,11 +172,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 55.0 / 60.0 ) OR
                  NOT epseq( ts.Hours, 55.0 / 60.0 / 60.0 ) OR
                  NOT epseq( ts.Days, 55.0 / 60.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"set s", NOT Failure );
 
       ts.Minutes := 55.0;
       Failure := ( ts.Value <> 55 * 60 * ts.Precision ) OR
@@ -232,11 +182,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 55.0 ) OR
                  NOT epseq( ts.Hours, 55.0 / 60.0 ) OR
                  NOT epseq( ts.Days, 55.0 / 60.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"set min", NOT Failure );
 
       ts.Hours := 17.0;
       Failure := ( ts.Value <> 17 * 60 * 60 * ts.Precision ) OR
@@ -246,11 +192,7 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 17.0 * 60.0 ) OR
                  NOT epseq( ts.Hours, 55.0 ) OR
                  NOT epseq( ts.Days, 55.0 / 24.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"set h", NOT Failure );
 
       ts.Days := 17.0;
       Failure := ( ts.Value <> 17 * 24 * 60 * 60 * ts.Precision ) OR
@@ -260,60 +202,36 @@ CLASS IMPLEMENTATION CTest;
                  NOT epseq( ts.Minutes, 17.0 * 24.0 * 60.0 ) OR
                  NOT epseq( ts.Hours, 55.0 * 24.0 ) OR
                  NOT epseq( ts.Days, 55.0 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"set d", NOT Failure );
 
       Host^.StartPhase( L"Operations" );
 
       ts.Days := 17.0;
       tsdst := ts;
       Failure := tsdst.Value <> 17 * 24 * 60 * 60 * tsdst.Precision;
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"assignment", NOT Failure );
 
       ts.Days := 17.0;
       tsdst := ts + ts;
       Failure := tsdst.Value <> 2 * 17 * 24 * 60 * 60 * tsdst.Precision;
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"+", NOT Failure );
 
       ts.Days := 17.0;
       tsdst := tsdst - ts;
       Failure := tsdst.Value <> 17 * 24 * 60 * 60 * tsdst.Precision;
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"-", NOT Failure );
 
       ts.Days := 17.0;
       tsdst.Days := 17.0;
       ts.Add( tsdst );
       Failure := ts.Value <> 2 * 17 * 24 * 60 * 60 * tsdst.Precision;
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"Add", NOT Failure );
 
       ts.Days := 33.0;
       tsdst.Days := 17.0;
       ts.Subtract( tsdst );
       Failure := ts.Value <> 16 * 24 * 60 * 60 * tsdst.Precision;
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"Subtract", NOT Failure );
 
       Host^.StartPhase( L"Relations" );
 
@@ -322,11 +240,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := NOT( ts = tsdst ) OR    ( ts <> tsdst ) OR
                     ( ts < tsdst ) OR NOT( ts <= tsdst ) OR
                     ( ts > tsdst ) OR NOT( ts >= tsdst );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"comparison of equal", NOT Failure );
 
       ts.Days := 10.0;
       tsdst := ts;
@@ -334,11 +248,7 @@ CLASS IMPLEMENTATION CTest;
       Failure :=    ( ts = tsdst ) OR NOT( ts <> tsdst ) OR
                  NOT( ts < tsdst ) OR NOT( ts <= tsdst ) OR
                     ( ts > tsdst ) OR    ( ts >= tsdst );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"comparison of lower", NOT Failure );
 
       tsdst.Days := 10.0;
       ts := tsdst;
@@ -346,36 +256,20 @@ CLASS IMPLEMENTATION CTest;
       Failure :=    ( ts = tsdst ) OR NOT( ts <> tsdst ) OR
                     ( ts < tsdst ) OR    ( ts <= tsdst ) OR
                  NOT( ts > tsdst ) OR NOT( ts >= tsdst );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"comparison of greater", NOT Failure );
 
       Host^.StartPhase( L"Conversions" );
 
       ts.FromDHMS( 1, 1, 1, 1, 234 );
       Failure := ts.Value <> INT64(((( 1 * 24 + 1 ) * 60 + 1 ) * 60 + 1 ) * 1000 + 234 ) * 10000;
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"FromDHMS", NOT Failure );
 
       ts.Subtract( datetime.TimeSpanD( 0.5 ));
       ts.ToDHMS( OUT D, OUT H, OUT M, OUT S, OUT MS ); // returns always positive values, even if the span is negative
       Failure := ( D <> 0 ) OR ( H <> 13 ) OR ( M <> 1 ) OR ( S <> 1 ) OR ( MS <> 234 );
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.ParticleWithResult( L"ToDHMS", NOT Failure );
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

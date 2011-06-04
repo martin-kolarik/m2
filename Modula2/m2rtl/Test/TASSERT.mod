@@ -14,7 +14,7 @@ IMPORT
 (*===========================================================================*)
 
 CLASS CTest IMPLEMENTS test.ITest;
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 END CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -30,15 +30,22 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    BEGIN
       Host^.StartPhase( L"Do ASSERT" );
 
       // ASSERT( FALSE );
+      // Host^.ParticleWithAssert( L"Simple assert" );
+
       // ASSERTLOG( FALSE );
+      // Host^.ParticleWithAssert( L"Assert with log and no text" );
+
       // ASSERTLOG( FALSE, L"Je to blbe" );
+      // Host^.ParticleWithAssert( L"Assert with log and text" );
    
       Host^.StopPhase();
+
+      RETURN test.trSuccess;
    END Run;
    
 (*---------------------------------------------------------------------------*)

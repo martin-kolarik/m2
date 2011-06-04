@@ -16,7 +16,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       Tlss : ARRAY [0..255] OF tls.TPIThreadLocalStorage;
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 
    INITIALLY CTest;
 END CTest;
@@ -34,7 +34,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       i : CARDINAL;
    BEGIN
@@ -60,15 +60,15 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Set/Get" );
 
       // set/get data
-      Host^.StartParticle();
       Tlss[0]^.Value := 14;
-      Host^.StopParticleWithResult( Tlss[0]^.Value = 14 );
+      Host^.ParticleWithResult( L"set a value", Tlss[0]^.Value = 14 );
 
-      Host^.StartParticle();
       Tlss[0]^.Value := 0;
-      Host^.StopParticleWithResult( Tlss[0]^.Value = 0 );
+      Host^.ParticleWithResult( L"reset a value", Tlss[0]^.Value = 0 );
 
       Host^.StopPhase();
+
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

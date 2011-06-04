@@ -56,8 +56,7 @@ CLASS IMPLEMENTATION CDataItem;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      ASSERT( OfDataOwnershipControlList <> NIL );
-      IF ( Data <> NIL ) AND ( OfDataOwnershipControlList^.DataOwnership ) THEN
+      IF ( OfDataOwnershipControlList <> NIL ) AND ( Data <> NIL ) AND ( OfDataOwnershipControlList^.DataOwnership ) THEN
          IF baseobject.PBASE( Data )^ INHERITS baseobject.CRefcounted THEN // dangerous, m2cpp has to define OBJECT
             baseobject.TPRefcounted( Data )^.Release();
          ELSIF baseobject.PBASE( Data )^ INHERITS baseobject.CDisposable THEN 
@@ -118,6 +117,7 @@ CLASS IMPLEMENTATION CIntegerList;
       PE : TPIntegerItem;
    BEGIN
       NEW( PE );
+      PE^.OfDataOwnershipControlList := ADR( SELF );
       PE^.Value := Value;
       PE^.Data := Data;
       SUPER.Add( PE );
@@ -335,6 +335,7 @@ CLASS IMPLEMENTATION CPtrList;
       PE : TPPtrItem;
    BEGIN
       NEW( PE );
+      PE^.OfDataOwnershipControlList := ADR( SELF );
       PE^.Value := Value;
       PE^.Data := Data;
       SUPER.Add( PE );
@@ -542,6 +543,7 @@ CLASS IMPLEMENTATION CStringList;
       PE : TPStringItem;
    BEGIN
       NEW( PE );
+      PE^.OfDataOwnershipControlList := ADR( SELF );
       PE^.Value.Assign( Value );
       PE^.Data := Data;
       SUPER.Add( PE );
@@ -1067,6 +1069,7 @@ CLASS IMPLEMENTATION CBufferList;
       | blitSlot256 :
          PE := NEW( CSlotItem256 );
       END; // CASE
+      PE^.OfDataOwnershipControlList := ADR( SELF );
       PE^.Value^.Assign( Value );
       PE^.Data := Data;
       SUPER.Add( PE );

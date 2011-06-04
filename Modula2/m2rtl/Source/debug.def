@@ -12,9 +12,9 @@ PROCEDURE LogAssertW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL
 
 // Mainly for test purposes, but for others it works too. When hooked LogAssert outputs nothing.
 TYPE
-   TAssertHook = PROCEDURE( ARRAY OF WCHAR ) : TRISTATE; // 0 = ignore, 1 = abort, -1 = debug
+   TAssertHook = PROCEDURE( PTR, ARRAY OF WCHAR ) : TRISTATE; // 0 = ignore, 1 = abort, -1 = debug
 
-PROCEDURE SetAssertHook( hook : TAssertHook );
+PROCEDURE SetAssertHook( hook : TAssertHook; userData : PTR ); // userData is passed to the first parameter TAssertHook
 PROCEDURE GetAssertHook() : TAssertHook;
 
 //--------------------------------------------------------------------------------

@@ -16,7 +16,7 @@ IMPORT
 (*===========================================================================*)
 
 CLASS CTest IMPLEMENTS test.ITest;
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 END CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -32,7 +32,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    TYPE
       TestA = ARRAY [0..42] OF LONGREAL;
    CONST
@@ -109,6 +109,8 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       Host^.StopPhase();
+
+      RETURN test.trSuccess;
    END Run;
    
 (*---------------------------------------------------------------------------*)

@@ -22,7 +22,7 @@ CLASS CTest IMPLEMENTS test.ITest;
    PUBLIC VAR
       Host : test.TPHost := NIL;
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 END CTest;
 
 (*===========================================================================*)
@@ -36,7 +36,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       ba : ARRAY [0..9] OF baseobject.BASE;
       Failure : BOOLEAN := FALSE;
@@ -55,6 +55,8 @@ CLASS IMPLEMENTATION CTest;
       list.Lock^.LockRead( sync.FORSAFETY );
       
       Host^.StopPhaseWithResult( NOT Failure );
+
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

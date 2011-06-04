@@ -50,8 +50,7 @@ CLASS IMPLEMENTATION CValueItem;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      ASSERT( OfValueOwnershipControlMap <> NIL );
-      IF ( Value <> NIL ) AND ( OfValueOwnershipControlMap^.ValueOwnership ) THEN
+      IF ( OfValueOwnershipControlMap <> NIL ) AND ( Value <> NIL ) AND ( OfValueOwnershipControlMap^.ValueOwnership ) THEN
          IF baseobject.PBASE( Value )^ INHERITS baseobject.CRefcounted THEN
             baseobject.TPRefcounted( Value )^.Release();
          ELSIF baseobject.PBASE( Value )^ INHERITS baseobject.CDisposable THEN 
@@ -511,6 +510,7 @@ CLASS IMPLEMENTATION CPtrPtrMap;
       PI : TPPtrPtrItem;
    BEGIN
       NEW( PI );
+      PI^.OfValueOwnershipControlMap := ADR( SELF );
       PI^.Key := Key;
       PI^.Value := Value;
       PI^.Data := Data;
@@ -695,6 +695,7 @@ CLASS IMPLEMENTATION CStringPtrMap;
       PI : TPStringPtrItem;
    BEGIN
       NEW( PI );
+      PI^.OfValueOwnershipControlMap := ADR( SELF );
       PI^.Key.Assign( Key );
       PI^.Value := Value;
       PI^.Data := Data;

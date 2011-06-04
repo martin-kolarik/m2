@@ -34,7 +34,7 @@ CLASS IMPLEMENTATION CIterator;
       IF _Exhausted THEN
          // fall down
       ELSIF _StartSequence <> _OfCollection^.Sequence THEN // owning collection has changed
-         _Exhausted := FALSE;
+         _Exhausted := TRUE;
       ELSIF _Current = NIL THEN
          IF _Direction = dirForward THEN
             _Exhausted := NOT _OfCollection^.colGetFirst( OUT _Current );
@@ -48,7 +48,7 @@ CLASS IMPLEMENTATION CIterator;
             _Exhausted := NOT _OfCollection^.colPrevOf( _Current, OUT _Current );
          END;
       END;
-      RETURN _Exhausted;
+      RETURN NOT _Exhausted;
    END MoveNext;
 
 (*---------------------------------------------------------------------------*)

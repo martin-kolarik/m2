@@ -14,7 +14,7 @@ IMPORT
 CLASS CTest IMPLEMENTS test.ITest;
    PRIVATE VAR
       Host : test.TPHost := NIL;
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 END CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -30,7 +30,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       dc : datetime.DayCount;
       dt : datetime.DateTime;
@@ -54,7 +54,7 @@ CLASS IMPLEMENTATION CTest;
                  ( dt.Day <> 7 ) OR ( dt.Month <> 7 ) OR ( dt.Year <> 2004 ) OR
                  ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 ) OR
                  ( dt.Empty ) OR NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Wednesday ) OR ( dt.DayCount.JulianDate <> 2453193.5 );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"day count", NOT Failure );
 
       dt.Clear();
       dt.Millisecond := 1;
@@ -70,29 +70,29 @@ CLASS IMPLEMENTATION CTest;
                  ( dt.Day <> 7 ) OR ( dt.Month <> 7 ) OR ( dt.Year <> 2004 ) OR
                  ( dt.UTCBias <> -60 ) OR ( dt.DSTBias <> -120 ) OR
                  ( dt.Empty ) OR NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Wednesday ) OR ( dt.DayCount.JulianDate <> 2453193.6687731599 ); // = 2453193.5 + 1.0 / 86400000.0 + 2.0 / 86400.0 + 3.0 / 1440.0 + 4.0 / 24.0 );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"discrete items", NOT Failure );
 
       dt.Clear();
       Failure := NOT( dt.Empty );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"Clear()", NOT Failure );
 
       dt.Millisecond := 0;
       Failure := dt.Empty;
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"clear using Millisecond", NOT Failure );
 
       dt.SetNowUTC();
       dt.Month := 1;
       Failure := dt.DstActive;
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"inactive DST check", NOT Failure );
 
       dt.SetNowUTC();
       dt.Month := 7;
-      Host^.ParticleWithResult( dt.DstActive );
+      Host^.ParticleWithResult( L"active DST check", dt.DstActive );
 
       dt.SetNowLocal();
       dc.SetNow();
       dt.DayCount := dc;
-      Host^.ParticleWithResult(( dt.UTCBias = 0 ) AND ( dt.DSTBias = 0 );
+      Host^.ParticleWithResult( L"full initialize with day count", ( dt.UTCBias = 0 ) AND ( dt.DSTBias = 0 ));
 
       Host^.StartPhase( L"Operators" );
       dt.Clear();
@@ -106,7 +106,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 678 ) OR ( dtdst.Second <> 13 ) OR ( dtdst.Minute <> 14 ) OR ( dtdst.Hour <> 17 ) OR
                  ( dtdst.Day <> 7 ) OR ( dtdst.Month <> 7 ) OR ( dtdst.Year <> 2004 ) OR
                  NOT( dtdst.DstActive ) OR ( dtdst.DayOfWeek <> datetime.Wednesday );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"assignment", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dt.DayCount := dc;
@@ -115,16 +115,7 @@ CLASS IMPLEMENTATION CTest;
       Failure :=    ( dt = dtdst ) OR NOT( dt <> dtdst ) OR
                  NOT( dt < dtdst ) OR NOT( dt <= dtdst ) OR
                     ( dt > dtdst ) OR    ( dt >= dtdst );
-      Host^.ParticleWithResult( NOT Failure );
-
-      dc.JulianDate := 2463193.5;
-      dt.DayCount := dc;
-      dc.JulianDate := 2453193.5;
-      dtdst.DayCount := dc;
-      Failure :=    ( dt = dtdst ) OR NOT( dt <> dtdst ) OR
-                    ( dt < dtdst ) OR    ( dt <= dtdst ) OR
-                 NOT( dt > dtdst ) OR NOT( dt >= dtdst );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"comparison of equal values", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dt.DayCount := dc;
@@ -133,7 +124,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := NOT( dt = dtdst ) OR    ( dt <> dtdst ) OR
                     ( dt < dtdst ) OR NOT( dt <= dtdst ) OR
                     ( dt > dtdst ) OR NOT( dt >= dtdst );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"comparison of inequal values", NOT Failure );
 
       Host^.StartPhase( L"Operations" );
       dt.Clear();
@@ -141,7 +132,7 @@ CLASS IMPLEMENTATION CTest;
                  ( dt.Day <> 0 ) OR ( dt.Month <> 0 ) OR ( dt.Year <> 0 ) OR
                  ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 ) OR
                  NOT( dt.Empty ) OR ( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.UnknownDay ) OR ( dt.DayCount.JulianDate <> 0.0 );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"Clear()", NOT Failure );
 
       dt.Clear();
       dt.Day := 1;
@@ -151,7 +142,7 @@ CLASS IMPLEMENTATION CTest;
                  ( dt.Day <> 1 ) OR ( dt.Month <> 1 ) OR ( dt.Year <> 1 ) OR
                  ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 ) OR
                  ( dt.Empty ) OR ( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Saturday ) OR ( dt.DayCount.JulianDate <> 1721423.5 );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"setting of date", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dt.DayCount := dc;
@@ -159,7 +150,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 0 ) OR ( dtdst.Second <> 0 ) OR ( dtdst.Minute <> 0 ) OR ( dtdst.Hour <> 12 ) OR
                  ( dtdst.Day <> 7 ) OR ( dtdst.Month <> 7 ) OR ( dtdst.Year <> 2004 ) OR
                  NOT( dtdst.DstActive ) OR ( dtdst.DayOfWeek <> datetime.Wednesday );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"addition of timespan", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dt.DayCount := dc;
@@ -167,7 +158,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 0 ) OR ( dtdst.Second <> 0 ) OR ( dtdst.Minute <> 0 ) OR ( dtdst.Hour <> 12 ) OR
                  ( dtdst.Day <> 29 ) OR ( dtdst.Month <> 6 ) OR ( dtdst.Year <> 2004 ) OR
                  NOT( dtdst.DstActive ) OR ( dtdst.DayOfWeek <> datetime.Tuesday );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"subtraction of timespan", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dtdst.DayCount := dc;
@@ -175,7 +166,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 0 ) OR ( dtdst.Second <> 0 ) OR ( dtdst.Minute <> 0 ) OR ( dtdst.Hour <> 12 ) OR
                  ( dtdst.Day <> 7 ) OR ( dtdst.Month <> 7 ) OR ( dtdst.Year <> 2004 ) OR
                  NOT( dtdst.DstActive ) OR ( dtdst.DayOfWeek <> datetime.Wednesday );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"Add method", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dtdst.DayCount := dc;
@@ -183,7 +174,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := ( dtdst.Empty ) OR ( dtdst.Millisecond <> 0 ) OR ( dtdst.Second <> 0 ) OR ( dtdst.Minute <> 0 ) OR ( dtdst.Hour <> 12 ) OR
                  ( dtdst.Day <> 29 ) OR ( dtdst.Month <> 6 ) OR ( dtdst.Year <> 2004 ) OR
                  NOT( dtdst.DstActive ) OR ( dtdst.DayOfWeek <> datetime.Tuesday );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"Subtract method", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dt.DayCount := dc;
@@ -191,55 +182,55 @@ CLASS IMPLEMENTATION CTest;
       dtdst.DayCount := dc;
       ts := dt.Difference( dtdst );
       Failure := ts.Days <> 93.5;
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"Difference method", NOT Failure );
 
       dc.JulianDate := 2453194.123456;
       dt.DayCount := dc;
       dt.TrimTime();
       Failure := ( dt.Hour <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Millisecond <> 0 );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"TrimTime", NOT Failure );
 
       dc.JulianDate := 2453194.123456;
       dt.DayCount := dc;
       dt.TrimDate();
       Failure := ( dt.Year <> 0 ) OR ( dt.Month <> 0 ) OR ( dt.Day <> 0 );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"TrimDate", NOT Failure );
 
       dc.JulianDate := 2453193.0;
       dt.DayCount := dc;
       dtdst.DayCount := dc;
       dtdst.SetZoneToLocal();
       Failure := ( datetime.GetCurrentUTCBias() <> 0 ) AND (( INTEGER( dt.Hour - dtdst.Hour ) * 60 <> datetime.GetCurrentUTCBias()) OR ( dtdst.UTCBias = 0 ));
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"set local zone", NOT Failure );
 
       dtdst.SetZoneToUTC();
       Failure := dt.Hour <> dtdst.Hour;
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"set UTC zone", NOT Failure );
 
       dtdst.SetZone( 60, 60 );
       Failure := ( dt.Hour - dtdst.Hour ) <> 2;
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"set custom zone", NOT Failure );
 
       dc.JulianDate := 2453193.0;
       dt.FromDCToLocal( dc );
       Failure := ( datetime.GetCurrentUTCBias() <> 0 ) AND ( dt.UTCBias = 0 );
       dt.SetZoneToUTC();
       Failure := Failure OR ( dt.UTCBias <> 0 ) OR ( dt.DSTBias <> 0 );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"set UTC zone after local one", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dt.FromDC( dc, 0, 0 );
       Failure := ( dt.Empty ) OR ( dt.Millisecond <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Hour <> 0 ) OR
                  ( dt.Day <> 7 ) OR ( dt.Month <> 7 ) OR ( dt.Year <> 2004 ) OR
                  NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Wednesday );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"from UTC day count", NOT Failure );
 
       dc.JulianDate := 2453193.5;
       dt.FromDC( dc, 60, 60 );
       Failure := ( dt.Empty ) OR ( dt.Millisecond <> 0 ) OR ( dt.Second <> 0 ) OR ( dt.Minute <> 0 ) OR ( dt.Hour <> 22 ) OR
                  ( dt.Day <> 6 ) OR ( dt.Month <> 7 ) OR ( dt.Year <> 2004 ) OR
                  NOT( dt.DstActive ) OR ( dt.DayOfWeek <> datetime.Tuesday );
-      Host^.ParticleWithResult( NOT Failure );
+      Host^.ParticleWithResult( L"from local day count", NOT Failure );
 
 (*
    PUBLIC PROCEDURE FromStringOA( CONST String, Format : ARRAY OF WCHAR ) : BOOLEAN;
@@ -254,11 +245,7 @@ CLASS IMPLEMENTATION CTest;
       END;
 *)
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

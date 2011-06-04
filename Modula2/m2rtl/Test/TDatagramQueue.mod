@@ -31,7 +31,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Threads : ARRAY [0..255] OF Sync.WAITABLE;
       Last : ARRAY [0..255] OF CARDINAL; // should be as long as maximal threads number be
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    INTERNAL PROCEDURE Round( Mode : TMode; ThreadCount : CARDINAL; RingSize : CARDINAL ) : BOOLEAN;
    
    LOCAL PROCEDURE Produce();
@@ -67,20 +67,19 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    TYPE
       TSizes = ARRAY [0..3] OF CARDINAL;
    CONST
       sizes = TSizes( 1, 23, 255, 8192 );
       producentThreads = TSizes( 1, 5, 25, 125 );
    VAR
-      Failure : BOOLEAN := FALSE;
       Mode : TMode;
       Size : CARDINAL;
       Thread : CARDINAL;
    BEGIN
       SELF.Host := Host;
-   
+
       FOR Mode := NN TO PC DO
          FOR Thread := 0 TO HIGH( producentThreads ) DO
             FOR Size := 0 TO HIGH( sizes ) DO
@@ -88,16 +87,12 @@ CLASS IMPLEMENTATION CTest;
                IF producentThreads[Thread] > sizes[Size] THEN
                   CONTINUE;
                END;
-               Failure := NOT Round( Mode, producentThreads[Thread], sizes[Size] ) OR Failure;
+               Round( Mode, producentThreads[Thread], sizes[Size] );
             END;
          END;
       END;
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

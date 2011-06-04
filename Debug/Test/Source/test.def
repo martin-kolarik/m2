@@ -42,8 +42,8 @@ INTERFACE IHost;
    PROCEDURE StopPhaseWithResult( result : BOOLEAN ); // expression = TRUE and no ASSERT means success
 
    // particles allow more detailed test tracking, although they are unnecessary, phases are sufficient
-   PROCEDURE ParticleWithResult( result : BOOLEAN; CONST FailureText : ARRAY OF WCHAR ); // expression = TRUE and no ASSERT means success
-   PROCEDURE ParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
+   PROCEDURE ParticleWithResult( CONST Description : ARRAY OF WCHAR; result : BOOLEAN ); // expression = TRUE and no ASSERT means success
+   PROCEDURE ParticleWithAssert( CONST Description : ARRAY OF WCHAR ); // found means success
 
 END IHost;
 
@@ -51,7 +51,7 @@ END IHost;
 
 INTERFACE ITest;
 
-   PROCEDURE Run( CONST Host : TPHost; CONST Parameters : ARRAY OF PWCHAR );
+   PROCEDURE Run( CONST Host : TPHost; CONST Parameters : ARRAY OF PWCHAR ) : TTestResult;
 
 END ITest;
 
