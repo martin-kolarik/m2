@@ -88,21 +88,13 @@ CLASS IMPLEMENTATION CTest;
          Failure := TRUE;
       END;
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
 
       netinit.Cleanup();
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

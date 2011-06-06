@@ -46,7 +46,6 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       c : CARDINAL;
-      Failure : BOOLEAN;
       filter : cphfilter.CRijndaelFilter;
       filterStream : IOO.CFilterStream;
       mb : StorageO.CMemoryBuffer;
@@ -70,13 +69,8 @@ CLASS IMPLEMENTATION CTest;
       filterStream.Position := 0;
       filterStream.ReadOA( REF output, OUT c, sync.FOREVER );
       filterStream.ReadOA( REF output, OUT c, sync.FOREVER );
-      Failure := NOT EQUALS( input, output );
-      
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+
+      Host^.StopPhaseWithResult( EQUALS( input, output ));
 
       Host^.StartPhase( L"Write and read with bad password" );
       
@@ -84,22 +78,13 @@ CLASS IMPLEMENTATION CTest;
       filterStream.Position := 0;
       result := filterStream.ReadOA( REF output, OUT c, sync.FOREVER );
       result := filterStream.ReadOA( REF output, OUT c, sync.FOREVER );
-      Failure := result <> sync.arAborted;
-      
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+
+      Host^.StopPhaseWithResult( result = sync.arAborted );
       
       filterStream.Close( FALSE );
       filterStream.Stream := NIL;
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

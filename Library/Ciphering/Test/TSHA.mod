@@ -74,12 +74,8 @@ CLASS IMPLEMENTATION CTest;
             EXIT;
          END;
       END;
-      
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+
+      Host^.StopPhaseWithResult( NOT Failure );
 
       Host^.StartPhase( L"SHA1 salted with null salt" );
       
@@ -101,11 +97,7 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
       
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
 
       Host^.StartPhase( L"SHA1 salted with some salt" );
       
@@ -127,11 +119,7 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
       
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
 
       Host^.StartPhase( L"SHA1 salted with some long salt" );
       sha1.DigestSaltOA( C"The", salt, OUT dsha1 );
@@ -152,17 +140,9 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
       
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

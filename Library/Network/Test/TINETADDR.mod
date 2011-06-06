@@ -44,7 +44,7 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Expect : ARRAY [0..511] OF WCHAR;
       ia : inetaddr.INETADDR;
-      Failure1, Failure2 : BOOLEAN := FALSE;
+      Failure1 : BOOLEAN := FALSE;
       String : ARRAY [0..511] OF WCHAR;
    BEGIN
       SELF.Host := Host;
@@ -73,11 +73,7 @@ CLASS IMPLEMENTATION CTest;
       ia.ToOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.lcInfo, 0, L"", Expect, L": ", String );
 
-      IF Failure1 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 );
 
       Host^.StartPhase( L"Special addresses V6" );
       
@@ -106,11 +102,7 @@ CLASS IMPLEMENTATION CTest;
       ia.ToOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.lcInfo, 0, L"", Expect, L": ", String );
 
-      IF Failure1 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 );
 
       Host^.StartPhase( L"Some other addresses" );
       
@@ -130,21 +122,13 @@ CLASS IMPLEMENTATION CTest;
       Host^.Log^.LogSSS( log.lcInfo, 0, L"", Expect, L": ", String );
       Host^.Log^.LogSC( log.lcInfo, 0, L"", L"  port: ", ia.Port );
 
-      IF Failure1 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 );
 
       netinit.Cleanup();
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
 
-      IF Failure1 OR Failure2 THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)
