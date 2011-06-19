@@ -10,7 +10,7 @@
   </adjustment>
 
   <text>
-    <section level="1" selfnumbered="no" incontent="hidden">
+    <section incontent="hidden" level="1" selfnumbered="no">
       <title>SmartServer</title>
 
       <text>
@@ -34,7 +34,7 @@
           <li><p>on the KNX/EIB devices EIBNet/IP (it is part of a KNX standard).</p></li>
         </il>
 
-        <p>Version of the documentation: 1.2.1469</p>
+        <p>Version of the documentation: 1.2.1509</p>
 
         <content>
           <caption>Content</caption>
@@ -65,7 +65,7 @@
             which is installed together with the SmartServer. If the SmartServer is not activated during the above shown 35
             days, it will run as the demo version after lapse of this time.</p>
 
-            <section level="3">
+            <section incontent="hidden" level="3">
               <title>Licence activation</title>
 
               <text>
@@ -272,6 +272,28 @@ Licence support tool
                   requested objects were not read out successfully. The starting value of this parameter is
                   <number>5000</number> (milliseconds), for details<c.special what="dash" />see chapter <in
                   label="secReadStart"></in>. Example:</p><p.type>read_on_start_delay = 8000</p.type></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section label="secClientInterface" level="3">
+              <title><type>[client_interface]</type></title>
+
+              <text>
+                <dl class="dlParameter">
+                  <caption><type>[client_interface]</type> defines the following parameters:</caption>
+
+                  <dt><type>xml_socket_port</type></dt>
+
+                  <dd><p>TCP port on which XML Socket server will listen (see the chapter <in label="secXMLSocket"></in> too).
+                  The parameter is optional, its default value is <number>6006</number>.</p><p>Example of port
+                  definition:</p><p.type>port = 10000</p.type></dd>
+
+                  <dt><type>sdap_port</type></dt>
+
+                  <dd><p>TCP port on which XML Socket server will listen (see the chapter <in label="secSDAP"></in> too). The
+                  parameter is optional, its default value is <number>6007</number>.</p><p>Example of port
+                  definition:</p><p.type>port = 10001</p.type></dd>
                 </dl>
               </text>
             </section>
@@ -896,6 +918,11 @@ filter = allow, EibNet.Connection</p.type></dd>
                 <dl class="dlParameter">
                   <caption>This section defines following parameters:</caption>
 
+                  <dt><type>port</type></dt>
+
+                  <dd><p>TCP port on which web (http) server will listen. The parameter is optional, its default value is
+                  <number>6005</number>.</p><p>Example of defining standard IANA http port:</p><p.type>port = 80</p.type></dd>
+
                   <dt><type>web_root</type></dt>
 
                   <dd><p>A root of the structure of data files of web interface. Files in this root are available on the address
@@ -1469,7 +1496,8 @@ allow = 127.0.0.1</p.type>
               <text>
                 <p>For administration and for user’s web pages connected with data from KNX, the SmartServer provides an
                 embedded web server. Administrative part is protected by name and password, user’s web pages are free available.
-                The server runs on IP port <number>6005</number>.</p>
+                The server runs on IP port <number>6005</number> (the port can be changed in configuration, see the chapter<in
+                label="secWeb"></in>).</p>
 
                 <p>Administrative part of the server is available on the address <uri>http://[server]:6005/SmartServer</uri>,
                 user’s part of the server is available on the address <uri>http://[server]:6005/SmartServer/User</uri>
@@ -2015,14 +2043,15 @@ allow = 127.0.0.1</p.type>
           <title>Interface for clients</title>
 
           <text>
-            <section level="3">
+            <section label="secSDAP" level="3">
               <title>SDAP, line oriented text interface</title>
 
               <text>
                 <p>SDAP (Simple Data Access Protocol) allows a remote access to the server data items and concurrently also
                 allows to perform some administrative tasks. SDAP is a text line protocol transferred with help of TCP from the
-                SmartServer on port <number>6007</number>. After connection to the server, no control data are transferred by
-                the protocol. After its establishing, the connection is permanent till its termination by the client. In case of
+                SmartServer on port <number>6007</number> (the port can be changed in configuration, see the chapter<in
+                label="secClientInterface"></in>). After connection to the server, no control data are transferred by the
+                protocol. After its establishing, the connection is permanent till its termination by the client. In case of
                 unrecognised outage of the network, the server will complete the connection to 2 minutes, approximately.</p>
 
                 <p>SDAP confirms (response) all orders/requirements for server (request). If the confirmation will not come
@@ -2188,15 +2217,15 @@ Control.Connected true</p.type>
               </text>
             </section>
 
-            <section level="3">
+            <section label="secXMLSocket" level="3">
               <title>XMLSocket</title>
 
               <text>
-                <p>XMLSocket interface allows the data exchange with the server. XMLSocket is a line text protocol, which is
-                transferred TCP from the server on port 6006 with help of TCP. Each line of the protocol contains well formed
-                XML with data details. After its establishing, the connection is permanent till its termination by the client.
-                In case of unrecognised outage of the network, the server will complete the connection to 2 minutes,
-                approximately.</p>
+                <p>XMLSocket interface allows the data exchange with the server. XMLSocket is a block text protocol, which
+                transfers data using TCP on port 6006 (the port can be changed in configuration, see the chapter<in
+                label="secClientInterface"></in>). Each line of the protocol contains well formed XML with data details. After
+                its establishing, the connection is permanent till its termination by the client. In case of unrecognised outage
+                of the network, the server will complete the connection to 2 minutes, approximately.</p>
 
                 <p>XML in the protocol has following format (example of real XML):</p>
 

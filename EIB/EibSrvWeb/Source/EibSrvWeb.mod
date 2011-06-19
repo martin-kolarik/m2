@@ -877,7 +877,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
       snProject = L"project";
          knName = L"name";
@@ -888,6 +888,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          knDeny = L"deny";
       knWebRoot = L"web_root";
       knMessageFile = L"message_file";
+      knPort = L"port";
       knSessionValidity = L"session_validity";
    VAR
       authinfo : StringsO.CString;
@@ -895,13 +896,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       line : CARDINAL;
       ok : BOOLEAN := TRUE;
       Path : ARRAY [0..260] OF WCHAR;
+      port : CARDINAL;
       sOA : ARRAY [0..63] OF WCHAR;
       s : StringsO.CString;
       sessionValidity : CARDINAL;
    BEGIN
       Stop();
 
-      _Port := Port;
       _Context.FromOA( ContextName );
       _EIB := EIB;
       _DeviceCount := MIN2( HIGH( DeviceNames ), HIGH( Devices )) + 1;
@@ -924,6 +925,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          END;
          IF cfg.GetKeyStr( knMessageFile, OUT line, OUT _MessageFile ) THEN
             _MessageFile.ReplaceOA( L"%exedir%", Path );
+         END;
+         IF cfg.GetKeyInt( knPort, OUT line, OUT port ) THEN
+            _Port := port;
          END;
          IF cfg.GetKeyInt( knSessionValidity, OUT line, OUT sessionValidity ) THEN
             _SessionValidity := sessionValidity;
@@ -1246,7 +1250,7 @@ BEGIN
    _DeviceCount := 0;
    _DeviceNames := NIL;
    _Devices := NIL;
-   _Port := 8080;
+   _Port := 6005;
    _SessionValidity := 30 * 60; // 30 minutes
    _Running := FALSE;
    _Controller := NIL;

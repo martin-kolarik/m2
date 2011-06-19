@@ -1,3 +1,7 @@
+Version 1.2.1509/R 19.6.2011
+- CHG: #247, new configuration parameters [web]port, [client_interface]sdap_port and
+       [client_interface]xml_socket_port to allow change of default TCP listen ports added.
+
 Version 1.2.1508/R 16.5.2011
 - CHG: #244, timestamps in log files are now separated from enclosing brackets with spaces
 
