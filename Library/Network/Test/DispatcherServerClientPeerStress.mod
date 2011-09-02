@@ -73,7 +73,6 @@ CLASS IMPLEMENTATION CTest;
    CONST
       count = 1000000;
    VAR
-      a : ADDRESS := NIL;
       ca : inetaddr.INETADDR;
       ci : CCI;
       Failure : BOOLEAN := FALSE;
@@ -99,10 +98,7 @@ CLASS IMPLEMENTATION CTest;
          ca.SetAddressOA( L"127.0.0.1", 6586 );
          sa.SetAddressOA( L"127.0.0.1", 6587 );
          netsrv.StartListen( netsocket.stStream, sa, NIL, Dispatcher^.Listener, 0, NIL );
-         NEW( a );
       END;
-      
-      a^ := 0;
       
       // start
       Host^.StartPhase( L"Repeated client join/connect and disconnect/leave" );

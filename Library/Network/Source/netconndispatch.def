@@ -64,6 +64,8 @@ CLASS CDispatcher( msghandler.MessageHandler );
   PRIVATE VAR
     MQueue      : msgqueue.CMessageQueue; // all except send
     SQueue      : msgqueue.CMessageQueue; // send only
+    // MQueue      : msgqueue.CBufferQueue; // all except send //!! workaround, adoption from r727
+    // SQueue      : msgqueue.CBufferQueue; // send only //!! workaround, adoption from r727
     Connections : inetaddr.CINETADDRMap;
     Defered     : arrays.CPtrArray; // Connections which were not able to put data into queue and were delayed. They must be restarted after queue is flushed.
     DeferLock   : sync.LOCK;
