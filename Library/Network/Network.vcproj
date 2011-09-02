@@ -24,7 +24,7 @@
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj"
+				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:LeakChecking=on"
 				ReBuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild"
 				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean"
 				Output="Network.exe"
@@ -160,7 +160,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Test\DispatcherServerClientPeerStress.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Test\DNSStress.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\FastDispatcherJoinLeave.mod"
 				>
 			</File>
 			<File

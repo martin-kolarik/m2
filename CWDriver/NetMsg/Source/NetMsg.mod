@@ -1863,7 +1863,7 @@ CLASS IMPLEMENTATION CDriver;
       ClientsLock.Lock();
 
       IF NOT SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE ) THEN
-        Logger.LogS( dldError, logPrefix, L"Connection for group data not found, leaving receiving" );
+        Logger.LogS( dldDebug, logPrefix, L"Connection for group data not found, leaving receiving" );
         ClientsLock.Unlock();
         RETURN;
       
@@ -1930,7 +1930,7 @@ CLASS IMPLEMENTATION CDriver;
       b := SearchNet( REF Clients, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
       ClientsLock.Unlock();
       IF NOT b THEN
-        Logger.LogS( dldError, logPrefix, L"Connection for string/struct data not found, leaving receiving" );
+        Logger.LogS( dldDebug, logPrefix, L"Connection for string/struct data not found, leaving receiving" );
         RETURN;
       END;
 
