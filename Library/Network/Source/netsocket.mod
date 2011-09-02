@@ -1552,6 +1552,8 @@ CLASS IMPLEMENTATION DSocket;
          SELF.Result := Sync.arAborted;
          _HSignal.Signal();
       END;
+      StopTimeout( poConnect );
+
       LNotifier := GetSafeNotifier();
       IF LNotifier <> NIL THEN
          LNotifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opDisconnect );

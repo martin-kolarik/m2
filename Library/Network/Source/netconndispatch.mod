@@ -188,6 +188,7 @@ TYPE
 
                 | cmNetworkConnect,
                   cmNetworkDisconnect :
+                  NCRemoteAddress : inetaddr.INETADDR;
                   NCSocket : netsocket.TPDSocket;
                   NCError : CARDINAL;
                   NCLocal : BOOLEAN;
@@ -543,14 +544,12 @@ END CSocketNotifier;
 CONST
    logPrefix = L"Net.Dispatcher";
   
-PROCEDURE Log( Severity : TDebugLevel; Connection : TPConnection; Text : ARRAY OF WCHAR );
+PROCEDURE Log( Severity : TDebugLevel; CONST remoteAddress : inetaddr.INETADDR; Text : ARRAY OF WCHAR );
 VAR
    address : ARRAY [0..63] OF WCHAR;
 BEGIN
-   logger()^.LogS( Severity, logPrefix, Text );
-
-   Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
-   logger()^.LogSS( Severity, logPrefix, "  address ", address );
+   remoteAddress.GetAddressOA( TRUE, OUT address );
+   logger()^.LogSSSS( Severity, logPrefix, Text, L", address: ", address, L"" );
 END Log;
   
 //--------------------------------------------------------------------------------
@@ -644,10 +643,10 @@ CLASS IMPLEMENTATION CDispatcher;
      | cmNetworkAccept :
        NEW( Connection ); Connection^.Init( ADR( SELF ), PNotifier );
        IF Connection^.Accept( Message^.NServerSocket, OUT Error ) = Sync.arCompleted THEN
-         Log( dldTrace, Connection, "Accept.Net" );
+         Log( dldTrace, Connection^.RemoteAddress, "Accept.Net" );
 
          IF Connections.Get( Connection^.RemoteAddress, OUT CurrentConnection ) THEN
-           Log( dldError, Connection, "Accept connection already exists" );
+           Log( dldError, Connection^.RemoteAddress, "Accept connection already exists" );
 
            // this should not occur -- two same connections are impossible, but it can be state after undetected failure
            Connection^.Notifier := NIL; // not to notify about disconnect, it will continue using CurrentConnection
@@ -659,7 +658,7 @@ CLASS IMPLEMENTATION CDispatcher;
          END;
          
          IF Connections.Get( Connection^.LocalAddress, OUT Peer ) THEN // connection is self to self in single process
-            Log( dldTrace, Peer, "Accept.Net.InProcessPeer" );
+            Log( dldTrace, Peer^.RemoteAddress, "Accept.Net.InProcessPeer" );
 
             Connection^.Peer := Peer;
             Connection^.PeerSignal.Init( Sync.stEventAutoreset, L"", TRUE );
@@ -668,32 +667,34 @@ CLASS IMPLEMENTATION CDispatcher;
          END;
          
        ELSE
-         Log( dldTrace, Connection, "Accept.Net unsuccessfull" );
+         Log( dldTrace, Connection^.RemoteAddress, "Accept.Net unsuccessfull" );
 
          Connection^.Notifier := NIL; // not to notify about disconnect, the connection is not known and still will not be known
          Connection^.Disconnect( FALSE );
+         Sync.Sleep( 0 ); // !!dirty workaround: give a chance to finish possibly pending foreign-thread socket call
          Connection^.Release();
        END;
 
      //-----
      | cmNetworkConnect :
-       Connection := TPConnection( Message^.NCSocket );
-       IF Connections.Contains( Connection^.RemoteAddress ) THEN
-         Log( dldTrace, Connection, L"Connect.Net" );
-       ELSE
-         Log( dldError, Connection, L"Connect on unknown connection" );
-       END;
 
-       Connection^.OnConnect( Message^.NCLocal, Message^.NCError );
-       OnConnect( Connection, Message^.NCLocal, Message^.NCError );
+       IF Connections.Contains( Message^.NCRemoteAddress ) THEN
+         Log( dldTrace, Message^.NCRemoteAddress, L"Connect.Net" );
+
+         Connection := TPConnection( Message^.NCSocket );
+         Connection^.OnConnect( Message^.NCLocal, Message^.NCError );
+         OnConnect( Connection, Message^.NCLocal, Message^.NCError );
+
+       ELSE
+         Log( dldError, Message^.NCRemoteAddress, L"Connect.Net on unknown connection" );
+       END;
 
      //-----
      | cmNetworkDisconnect :
-       Connection := TPConnection( Message^.NCSocket );
-
-       IF Connections.Contains( Connection^.RemoteAddress ) THEN
-         Log( dldTrace, Connection, L"Disconnect.Net" );
+       IF Connections.Contains( Message^.NCRemoteAddress ) THEN
+         Log( dldTrace, Message^.NCRemoteAddress, L"Disconnect.Net" );
          
+         Connection := TPConnection( Message^.NCSocket );
          Connection^.OnDisconnect( Message^.NCLocal, Message^.NCError ); // dispatch event to the clients
          OnDisconnect( Connection, Message^.NCLocal, Message^.NCError );
          IF Connection^.Empty THEN
@@ -701,13 +702,14 @@ CLASS IMPLEMENTATION CDispatcher;
 
            Connection^.Notifier := NIL; // now I do not want next notifications
            Connection^.Disconnect( FALSE );
+           Sync.Sleep( 0 ); // !!dirty workaround: give a chance to finish possibly pending foreign-thread socket call
            Connection^.Release();
          ELSE
            Connection^.Disconnect( TRUE ); // flushing of buffers, redundant underlying stream close
          END;
 
        ELSE
-         Log( dldDebug, Connection, L"Disconnect on unknown connection" );
+         Log( dldDebug, Message^.NCRemoteAddress, L"Disconnect.Net on unknown connection" );
        END;
 
      //-----
@@ -715,7 +717,7 @@ CLASS IMPLEMENTATION CDispatcher;
        Connection := TPConnection( Message^.NRSocket );
 
        logger()^.LogSC( dldDebug, logPrefix, L"Receive bytes ", Message^.NRLength );
-       Log( dldDebug, Connection, L"  from known connection " );
+       Log( dldDebug, Connection^.RemoteAddress, L"  from known connection " );
 
        ASSERTLOG( Connections.Contains( Connection^.RemoteAddress )); // there only an error could cause that connection is not known
 
@@ -726,17 +728,17 @@ CLASS IMPLEMENTATION CDispatcher;
 
      //-----
      | cmClientJoin :
-       logger()^.LogSP( dldTrace, logPrefix, L"Join ", Message^.CPClient );
+       logger()^.LogSP( dldTrace, logPrefix, L"Join.Client ", Message^.CPClient );
 
        IF Connections.Get( Message^.JRemoteAddress, OUT Connection ) THEN
-         Log( dldDebug, Connection, L"  to existing connection" );
+         Log( dldDebug, Connection^.RemoteAddress, L"  existing connection" );
 
        ELSE
          NEW( Connection ); Connection^.Init( ADR( SELF ), PNotifier );
          Connection^.RemoteAddress := Message^.JRemoteAddress;
          Connections.Add( Message^.JRemoteAddress, Connection );
 
-         Log( dldDebug, Connection, L"  to new connection" );
+         Log( dldDebug, Connection^.RemoteAddress, L"  new connection" );
        END;
        IF Connection^.AddClient( Message^.JPClient ) THEN // OnJoin/OnConnected called inside
          OnClientJoin( Connection, Message^.JPClient );
@@ -747,21 +749,23 @@ CLASS IMPLEMENTATION CDispatcher;
      | cmClientLeave :
        Known := Message^.CPConnection <> NIL;
        IF Known THEN // unknown/promiscuous client close
-         logger()^.LogSP( dldTrace, logPrefix, L"Leave from single connection ", Message^.CPClient );
+         logger()^.LogSP( dldTrace, logPrefix, L"Leave.Client from single connection ", Message^.CPClient );
          IF Connections.Contains( Message^.CPConnection^.RemoteAddress ) THEN
-            Log( dldDebug, TPConnection( Message^.CPConnection ), L"  from known connection" );
+            Log( dldDebug, TPConnection( Message^.CPConnection )^.RemoteAddress, L"  known connection" );
          ELSE
-            Log( dldError, TPConnection( Message^.CPConnection ), L"  from unknown connection" );
+            Log( dldError, TPConnection( Message^.CPConnection )^.RemoteAddress, L"  unknown connection" );
          END;
 
          b := TRUE;
          Connection := TPConnection( Message^.CPConnection );
        ELSE
-         logger()^.LogSP( dldDebug, logPrefix, L"Leave from all connections ", Message^.CPClient );
+         logger()^.LogSP( dldDebug, logPrefix, L"Leave.Client from all connections ", Message^.CPClient );
 
          Connections.Reset();
          b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         IF b THEN
+           Connection := Connections.CurrentData;
+         END;
        END;
        WHILE b DO
          IF Connection^.RemoveClient( Message^.CPClient ) THEN // OnDisconnect/OnLeave called inside
@@ -777,6 +781,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
            Connection^.Notifier := NIL; // we do not want next notifications
            Connection^.Disconnect( FALSE );
+           Sync.Sleep( 0 ); // !!dirty workaround: give a chance to finish possibly pending foreign-thread socket call
            Connection^.Release();
 
            b := FALSE; // Connection was deleted
@@ -787,7 +792,9 @@ CLASS IMPLEMENTATION CDispatcher;
            Connections.Reset();
          END;
          b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         IF b THEN
+           Connection := Connections.CurrentData;
+         END;
        END; // WHILE
        Message^.CPClient^.Release(); // temporary
 
@@ -795,21 +802,23 @@ CLASS IMPLEMENTATION CDispatcher;
      | cmClientConnect :
        Known := Message^.CPConnection <> NIL;
        IF Known THEN // unknown/promiscuous client close
-         logger()^.LogSP( dldTrace, logPrefix, L"Connect ", Message^.CPClient );
+         logger()^.LogSP( dldTrace, logPrefix, L"Connect.Client ", Message^.CPClient );
          IF Connections.Contains( Message^.CPConnection^.RemoteAddress ) THEN
-            Log( dldDebug, TPConnection( Message^.CPConnection ), L"  to known connection" );
+            Log( dldDebug, TPConnection( Message^.CPConnection )^.RemoteAddress, L"  of known connection" );
          ELSE
-            Log( dldError, TPConnection( Message^.CPConnection ), L"  to unknown connection" );
+            Log( dldError, TPConnection( Message^.CPConnection )^.RemoteAddress, L"  of unknown connection" );
          END;
 
          b := TRUE;
          Connection := TPConnection( Message^.CPConnection );
        ELSE
-         logger()^.LogSP( dldDebug, logPrefix, L"Connect to all connections ", Message^.CPClient );
+         logger()^.LogSP( dldDebug, logPrefix, L"Connect.Client to all connections ", Message^.CPClient );
 
          Connections.Reset();
          b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         IF b THEN
+           Connection := Connections.CurrentData;
+         END;
        END;
        WHILE b DO
          IF NOT Connection^.Connected THEN
@@ -823,7 +832,9 @@ CLASS IMPLEMENTATION CDispatcher;
            EXIT;
          ELSE
            b := Connections.MoveNext();
-           Connection := Connections.CurrentData;
+           IF b THEN
+             Connection := Connections.CurrentData;
+           END;
          END;
        END; // WHILE
 
@@ -831,21 +842,23 @@ CLASS IMPLEMENTATION CDispatcher;
      | cmClientDisconnect :
        Known := Message^.CPConnection <> NIL;
        IF Known THEN // unknown/promiscuous client close
-         logger()^.LogSP( dldTrace, logPrefix, L"Disconnect ", Message^.CPClient );
+         logger()^.LogSP( dldTrace, logPrefix, L"Disconnect.Client ", Message^.CPClient );
          IF Connections.Contains( Message^.CPConnection^.RemoteAddress ) THEN
-            Log( dldDebug, TPConnection( Message^.CPConnection ), L"  from known connection" );
+            Log( dldDebug, TPConnection( Message^.CPConnection )^.RemoteAddress, L"  of known connection" );
          ELSE
-            Log( dldError, TPConnection( Message^.CPConnection ), L"  from unknown connection" );
+            Log( dldError, TPConnection( Message^.CPConnection )^.RemoteAddress, L"  of unknown connection" );
          END;
 
          b := TRUE;
          Connection := TPConnection( Message^.CPConnection );
        ELSE
-         logger()^.LogSP( dldDebug, logPrefix, L"Disconnect from all connections ", Message^.CPClient );
+         logger()^.LogSP( dldDebug, logPrefix, L"Disconnect.Client from all connections ", Message^.CPClient );
 
          Connections.Reset();
          b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         IF b THEN
+           Connection := Connections.CurrentData;
+         END;
        END;
        WHILE b DO
          Connection^.Disconnect( TRUE );
@@ -853,7 +866,9 @@ CLASS IMPLEMENTATION CDispatcher;
            EXIT;
          ELSE
            b := Connections.MoveNext();
-           Connection := Connections.CurrentData;
+           IF b THEN
+             Connection := Connections.CurrentData;
+           END;
          END;
        END; // WHILE
 
@@ -863,11 +878,11 @@ CLASS IMPLEMENTATION CDispatcher;
        IF Known THEN // unknown/promiscuous client close
          logger()^.LogSCP( dldDebug, logPrefix, L"Send bytes ", Message^.SLen, Message^.CPClient );
          IF Connections.Contains( Message^.SPConnection^.RemoteAddress ) THEN
-            Log( dldDebug, TPConnection( Message^.SPConnection ), L"  to known connection" );
+            Log( dldDebug, TPConnection( Message^.SPConnection )^.RemoteAddress, L"  to known connection" );
             b := TRUE;
             Connection := TPConnection( Message^.SPConnection );
          ELSE
-            Log( dldDebug, TPConnection( Message^.SPConnection ), L"  to unknown (disconnected) connection" );
+            Log( dldDebug, TPConnection( Message^.SPConnection )^.RemoteAddress, L"  to unknown (disconnected) connection" );
             // the only possibility is, that connection is server, closed now, and notified to client. So, simply ignore everything.
             b := FALSE;
          END;
@@ -877,7 +892,9 @@ CLASS IMPLEMENTATION CDispatcher;
 
          Connections.Reset();
          b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         IF b THEN
+           Connection := Connections.CurrentData;
+         END;
        END;
 
        WHILE b DO
@@ -917,7 +934,9 @@ CLASS IMPLEMENTATION CDispatcher;
            EXIT;
          ELSE
            b := Connections.MoveNext();
-           Connection := Connections.CurrentData;
+           IF b THEN
+             Connection := Connections.CurrentData;
+           END;
          END;
 
        END; // WHILE
@@ -949,10 +968,10 @@ CLASS IMPLEMENTATION CDispatcher;
 
             // here, connections could be already removed
             IF Connections.Contains( Connection^.RemoteAddress ) THEN
-               Log( dldTrace, Connection, L"Receive continue" );
+               Log( dldTrace, Connection^.RemoteAddress, L"Receive continue" );
                Connection^.StartReading();
             ELSE
-               Log( dldTrace, Connection, L"Receive should continue, but it cannot, as it is already disconnected" );
+               Log( dldTrace, Connection^.RemoteAddress, L"Receive should continue, but it cannot, as it is already disconnected" );
             END;
 
             Connection^.Release(); // clean up, AddRef is done before queueing
@@ -983,6 +1002,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmNetworkConnect;
+    Message.NCRemoteAddress := Socket^.RemoteAddress;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
@@ -1008,6 +1028,7 @@ CLASS IMPLEMENTATION CDispatcher;
     END;
 
     Message.Command := cmNetworkDisconnect;
+    Message.NCRemoteAddress := Socket^.RemoteAddress;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
@@ -1061,7 +1082,7 @@ CLASS IMPLEMENTATION CDispatcher;
          
          ELSE // if data cannot be queued, leave loop, and store connection in Defered, which will be restarted after Queue flush
             DISPOSE( Message.NRData );
-            Log( dldTrace, Connection, "Receive.Queue Timeout" );
+            Log( dldTrace, Connection^.RemoteAddress, "Receive.Queue Timeout" );
        
             DeferLock.Lock();
             IF NOT Defered.Contains( Connection ) THEN
