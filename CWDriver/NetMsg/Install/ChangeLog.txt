@@ -1,3 +1,10 @@
+Version 1.1.1532 R 4.9.2011
+- BUG: #248.1, disconnect notification could be processed after client deallocation
+       (client leave). Code was changed to use different client-alive detection.
+       #248.2, when disconnected, new connection was sometimes impossible. The
+       connection did not clean up owned resources completely, so new connect
+       thought that something is still pending. Not tested in original environment.
+
 Version 1.1.752.N/R 5.3.2009
 - BUG: #50, driver's OnReceive was called sonner than OnConnect. Driver had not
        built client structures and it crashed during received data processing.
