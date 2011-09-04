@@ -1,0 +1,471 @@
+DEFINITION MODULE eib_def;
+
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
+(*# call( o_a_copy => off ) *)
+(*# warn( 4251 => off,
+          4275 => off ) *)
+
+(*================================================================================*)
+// packet and addresses
+
+(*# save, option( pack => 1 ) *)
+
+TYPE
+  TLinkControl = BITSET8;
+
+  TPriority = (
+    priorityNormal,
+    priorityHigh,
+    priorityAlarm,
+    prioritySystem
+  );
+  TPPriority = POINTER TO TPriority;
+CONST
+  priorityLowest ::= priorityNormal;
+  priorityHighest ::= prioritySystem;
+
+TYPE
+  TNetworkControl = BITSET8;
+
+  TAddressType = (
+    addressUnknown,
+    addressPhysical,
+    addressGroup2,
+    addressGroup3
+  );
+CONST
+  addressGroup ::= addressGroup3;
+
+TYPE
+  TPacketAddress = RECORD
+                     CASE : CARDINAL OF
+                     | 1 : dw    : CARD16; //
+                     | 2 : APILo : CARD8;  // Little Endian in API,
+                           APIHi : CARD8;
+                     | 3 : EIBHi : CARD8;  // Big Endian inside packet
+                           EIBLo : CARD8;
+                     END; // CASE
+                   END; // RECORD
+
+  TTransportControl = BITSET16;
+
+  TPacketType = (
+    packetDatagramData,
+    packetReliableControl,
+    packetReliableDataReq,
+    packetReliableDataACK
+  );
+
+  TValueDirection = (
+    directionRead,
+    directionResponse,
+    directionWrite
+  );
+
+  TDay = (
+    dayNo,
+    dayMonday,
+    dayTuesday,
+    dayWednesday,
+    dayThursday,
+    dayFriday,
+    daySaturday,
+    daySunday
+  );
+
+  TAccessFlag = (
+    accessEncrypted,
+    accessDirection,
+    accessPermission,
+    accessError
+  );
+  TAccessFlagSet = SET OF TAccessFlag;
+
+  TEISString = ARRAY [0..13] OF CHAR;
+  TEISStringW = ARRAY [0..13] OF WCHAR;
+
+TYPE
+  Tle2be = ARRAY [0..15] OF CARD16;
+CONST
+  le2be = Tle2be(
+    8,  9, 10, 11, 12, 13, 14, 15,
+    0,  1,  2,  3,  4,  5,  6,  7
+  );
+
+CONST
+  // link control
+  lcError               = 0;
+  // lc1                // always unset
+  lcPriority0           = 2;
+  lcPriority1           = 3;
+  // lc4                // always set
+  lcNotRepeated         = 5;
+  // lc6                // always unset
+  lcStandardFrame       = 7;
+
+  lcsPrioritySystem     = BITSET8{};
+  lcsPriorityAlarm      = BITSET8{ lcPriority0 };
+  lcsPriorityHigh       = BITSET8{ lcPriority1 };
+  lcsPriorityNormal     = BITSET8{ lcPriority0, lcPriority1 };
+
+  lcmPriority           = BITSET8{ lcPriority0, lcPriority1 };
+  lcsDefault            = BITSET8{ 4, lcStandardFrame, lcNotRepeated } + lcsPriorityNormal;
+
+  // network control
+  // nc0..nc3           // user data length
+  // nc4..nc6           // routing counter
+  ncLogicalAddress      = 7;
+
+  ncmDataLength         = BITSET8{0,1,2,3};
+  ncmRoutingCounter     = BITSET8{4,5,6};
+  ncsRoutePassOn        = ncmRoutingCounter;
+  ncsRouteDefault       = BITSET8{5,6};
+  ncRouteDiscard        = 0; // numerical form of routing counter
+  ncRouteDefault        = 6; // numerical form of routing counter
+  ncRoutePassOn         = 7; // numerical form of routing counter
+
+  ncShiftDataLength     = 0;
+  ncShiftRoutingCounter = 4;
+  ncsDataLength1        = BITSET8{0};
+  ncsDataLength2        = BITSET8{1};
+  ncsDataLength3        = BITSET8{0,1};
+  ncsDataLength4        = BITSET8{2};
+  ncsDataLength5        = BITSET8{0,2};
+  ncsDataLength15       = ncmDataLength;
+
+  // octets number to Data[] index
+  do8                   = 0;
+  do9                   = 1;
+  do10                  = 2;
+  do11                  = 3;
+  do12                  = 4;
+  do13                  = 5;
+  do14                  = 6;
+  do15                  = 7;
+  do16                  = 8;
+  do17                  = 9;
+  do18                  = 10;
+  do19                  = 11;
+  do20                  = 12;
+  do21                  = 13;
+
+  ncsDefault            = ncsRouteDefault;
+
+  // transport control !! BIG ENDIAN EMULATING !!
+  // tc0=ac0..tc5=ac5   // EIS data
+  tc5                   = le2be[5];
+  tc6                   = le2be[6];
+  tc7                   = le2be[7];
+  tc8                   = le2be[8];
+  tc9                   = le2be[9];
+  // tc10..tc13         // packet number
+  tc10                  = le2be[10];
+  tcNumberedPacket      = le2be[14];
+  tcControlPacket       = le2be[15];
+  tcDisconnect          = tc8; // for T_Connect/T_Disconnect
+  tcNAK                 = tc8; // for T_Data
+
+  // LE tcmPacketNumber = BITSET16{10, 11, 12, 13};
+  tcmPacketNumber       = BITSET16{2, 3, 4, 5};
+  tcmPacketType         = BITSET16{tcNumberedPacket, tcControlPacket};
+
+  tcShiftPacketNumber   = 10;
+
+  // application control, slightly merged with network control !! BIG ENDIAN EMULATING !!
+  // LE acmEISData      = BITSET16{0, 1, 2, 3, 4, 5};
+  acmEISData            = BITSET16{8, 9, 10, 11, 12, 13};
+  acmValueDirection     = BITSET16{tc6, tc7, tc8, tc9};
+  acmMemory             = BITSET16{tc5, tc6, tc7, tc8, tc9, tc10};
+  acmACPI               = acmEISData + acmValueDirection;
+
+  acsValueRead          = BITSET16{};
+  acsValueResponse      = BITSET16{tc6};
+  acsValueWrite         = BITSET16{tc7};
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TA_ObjectFlags_Item = (
+    aofCommunicated, // EIB
+    aofReadable,     // EIB
+    aofTransmit,     // EIB
+    aofWritable,     // EIB
+    aofUpdate,       // EIB
+
+    aofForceRead,    // extension, the object will always be communicated from EIB
+    aofAdvise,       // extension, the object notify back itself value notwithstanding fact it cannot notify (is e.g. only aofTransmit)
+    aofInitRead,     // extension, the object after creating read self first value from EIB
+    aofEIBValue,     // extension, user, the object has sent/received the value to/from EIB, so it is synchronized
+    
+    aofPromiscuous   // extension, user, the object listens to all data of the proper length
+  );
+  TA_ObjectFlags = SET OF TA_ObjectFlags_Item;
+
+(*--------------------------------------------------------------------------------*)
+
+// FORWARD
+TYPE
+  TPAddress = POINTER TO CAddress;
+  TPPacket  = POINTER TO EMIPacket;
+  TPcEMI    = POINTER TO cEMIPacket;
+  TPValue   = POINTER TO CValue;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CAddress;
+  LOCAL VAR
+    Type    : TAddressType;
+    Address : TPacketAddress;
+
+  PUBLIC PROCEDURE SetAddressType( AddressType : TAddressType );
+  PUBLIC PROCEDURE GetAddressType() : TAddressType;
+  PUBLIC PROCEDURE SetBroadcast();
+  PUBLIC PROCEDURE IsBroadcast() : BOOLEAN;
+
+  PUBLIC PROCEDURE SetPacketAddress( CONST PacketAddress : TPacketAddress );
+  PUBLIC PROCEDURE GetPacketAddress() : TPacketAddress;
+
+  PUBLIC PROCEDURE SetPhysicalAddress1( dw : CARDINAL );
+  PUBLIC PROCEDURE GetPhysicalAddress1() : CARDINAL;
+  PUBLIC PROCEDURE SetPhysicalAddress2( Area, Line, Device : CARDINAL );
+  PUBLIC PROCEDURE GetPhysicalAddress2( VAR Area, Line, Device : CARDINAL );
+  PUBLIC PROCEDURE SetPhysicalAddress3( CONST s : ARRAY OF WCHAR ) : BOOLEAN; // *.*.* form is detected
+  PUBLIC PROCEDURE GetPhysicalAddress3( VAR s : ARRAY OF WCHAR );
+
+  PUBLIC PROCEDURE SetGroupAddress1( dw : CARDINAL );
+  PUBLIC PROCEDURE GetGroupAddress1() : CARDINAL;
+  PUBLIC PROCEDURE SetGroupAddress2( MainGroup, MiddleGroup, Subgroup : CARDINAL );
+  PUBLIC PROCEDURE GetGroupAddress2( VAR MainGroup, MiddleGroup, SubGroup : CARDINAL );
+  PUBLIC PROCEDURE SetGroupAddress3( CONST s : ARRAY OF WCHAR ) : BOOLEAN; // */*/* and */* forms are detected
+  PUBLIC PROCEDURE GetGroupAddress3( MiddleGroupForm : BOOLEAN; VAR s : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE SetGroupAddress4( MainGroup, Subgroup : CARDINAL );
+  PUBLIC PROCEDURE GetGroupAddress4( VAR MainGroup, SubGroup : CARDINAL );
+
+  PUBLIC PROCEDURE Equals( CONST Address : CAddress ) : BOOLEAN;
+  PUBLIC PROCEDURE InLine( Line : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE InArea( Area : CARDINAL ) : BOOLEAN;
+
+  PUBLIC PROCEDURE ToCrId() : CARDINAL;
+END CAddress;
+
+CONST
+  TAddress ::= CAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TEIBType = (
+    eitUnknown,
+    eitSwitch,       // EIS 1
+    eitIncrease,     // EIS 2 Control
+    eitTime,         // EIS 3
+    eitDate,         // EIS 4
+    eitValue,        // EIS 5
+    eitValueRange,   // EIS 5
+    eitScaling,      // EIS 6 typed internally as percent
+      eitScaling255, // EIS 6 typed internally as CARD8
+    eitMove,         // EIS 7, it has negative logic to eitSwitch
+    eitPriority,     // EIS 8, 2bit priority
+    eitFloat,        // EIS 9, 4byte IEEE float
+    eit16bit,        // EIS 10
+    eit32bit,        // EIS 11
+    eitAccess,       // EIS 12
+    eitChar,         // EIS 13
+    eit8bit,         // EIS 14
+    eitString        // EIS 15
+  );
+
+PROCEDURE TypeToString( type : TEIBType; VAR string : ARRAY OF WCHAR ); // returns symbolic names
+PROCEDURE NumberToType( number : INTEGER; VAR type : TEIBType ) : BOOLEAN;
+PROCEDURE StringToType( String : ARRAY OF WCHAR; VAR EIT : TEIBType ) : BOOLEAN;
+
+CONST
+  eis1         ::= eitSwitch;
+  eis2Switch   ::= eitSwitch;
+  eis2Increase ::= eitIncrease;
+  eis2Value    ::= eitScaling;
+  eis3         ::= eitTime;
+  eis4         ::= eitDate;
+  eis5         ::= eitValue;
+  eis6         ::= eitScaling;
+  eis7Move     ::= eitMove;
+  eis7Step     ::= eitMove;
+  eis8         ::= eitPriority;
+  eis9         ::= eitFloat;
+  eis10        ::= eit16bit;
+  eis11        ::= eit32bit;
+  eis12        ::= eitAccess;
+  eis13        ::= eitChar;
+  eis14        ::= eit8bit;
+  eis15        ::= eitString;
+
+TYPE
+  TEIBValueData = ARRAY [0..31] OF BYTE;
+  TPEIBValueData = POINTER TO TEIBValueData;
+
+CLASS CValue;
+  LOCAL VAR
+    Type : TEIBType;
+  PUBLIC VAR
+    Data : TEIBValueData;
+    
+  PUBLIC PROCEDURE SetType( Type : TEIBType );
+  PUBLIC PROCEDURE GetType() : TEIBType;
+
+  PUBLIC PROCEDURE CopyFrom( CONST Value : CValue );
+  PUBLIC PROCEDURE Equals( CONST Value : CValue ) : BOOLEAN;
+
+  PUBLIC PROCEDURE SetSwitch    ( State : BOOLEAN );
+  PUBLIC PROCEDURE SetIncrease  ( Up, Down : BOOLEAN; LevelPercent : CARDINAL );
+  PUBLIC PROCEDURE SetTime      ( Day : TDay; H, M, S : CARDINAL );
+  PUBLIC PROCEDURE SetDate      ( Y, M, D : CARDINAL );
+  PUBLIC PROCEDURE SetValue     ( Value : LONGREAL );
+  PUBLIC PROCEDURE SetValueRange( Value : LONGREAL; LoRange, HiRange : LONGREAL );
+  PUBLIC PROCEDURE SetScaling   ( ValuePercent : CARDINAL );
+  PUBLIC PROCEDURE SetScaling255( Value : CARD8 );
+  PUBLIC PROCEDURE SetMove      ( Open : BOOLEAN );
+  PUBLIC PROCEDURE SetStep      ( Up : BOOLEAN );
+  PUBLIC PROCEDURE SetPriority  ( Priority : CARDINAL );
+  PUBLIC PROCEDURE SetFloat     ( Value : LONGREAL );
+  PUBLIC PROCEDURE Set16bit     ( Value : CARDINAL );
+  PUBLIC PROCEDURE Set32bit     ( Value : CARDINAL );
+  PUBLIC PROCEDURE SetAccess    ( AccessCode : CARDINAL; Flags : TAccessFlagSet; Index : CARDINAL );
+  PUBLIC PROCEDURE SetChar      ( Char : WCHAR );
+  PUBLIC PROCEDURE Set8bit      ( Value : CARDINAL );
+  PUBLIC PROCEDURE SetString    ( String : ARRAY OF WCHAR );
+
+  PUBLIC PROCEDURE GetSwitch    () : BOOLEAN;
+  PUBLIC PROCEDURE GetIncrease  ( VAR Up, Down : BOOLEAN ) : CARDINAL;
+  PUBLIC PROCEDURE GetTime      ( VAR Day : TDay; VAR H, M, S : CARDINAL );
+  PUBLIC PROCEDURE GetDate      ( VAR Y, M, D : CARDINAL );
+  PUBLIC PROCEDURE GetValue     () : LONGREAL;
+  PUBLIC PROCEDURE GetValueRange( VAR LoRange, HiRange : LONGREAL ) : LONGREAL;
+  PUBLIC PROCEDURE GetScaling   () : CARDINAL;
+  PUBLIC PROCEDURE GetScaling255() : CARDINAL;
+  PUBLIC PROCEDURE GetMove      () : BOOLEAN;
+  PUBLIC PROCEDURE GetStep      () : BOOLEAN;
+  PUBLIC PROCEDURE GetPriority  () : CARDINAL;
+  PUBLIC PROCEDURE GetFloat     () : LONGREAL;
+  PUBLIC PROCEDURE Get16bit     () : CARDINAL;
+  PUBLIC PROCEDURE Get32bit     () : CARDINAL;
+  PUBLIC PROCEDURE GetAccess    ( VAR AccessCode : CARDINAL; VAR Flags : TAccessFlagSet; VAR Index : CARDINAL );
+  PUBLIC PROCEDURE GetChar      () : WCHAR;
+  PUBLIC PROCEDURE Get8bit      () : CARDINAL;
+  PUBLIC PROCEDURE GetString    ( VAR String : ARRAY OF WCHAR );
+END CValue;
+
+CONST
+  TValue ::= CValue;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TEMICode = CARD8(
+      emiUnknown      = 000H,
+      L_Data_REQ      = 011H,
+      L_Data_IND      = 029H,
+      L_Data_CON      = 02EH,
+      L_Data_IND_EMI2 = 049H,
+      L_Data_CON_EMI2 = 04EH
+   );
+
+TYPE
+  TData = ARRAY [0..13] OF BYTE;
+
+CLASS EMIPacket;
+  PUBLIC VAR
+    Code             : TEMICode;
+  LOCAL VAR
+    LinkControl      : TLinkControl;      // link layer
+    Source           : TPacketAddress;    // network layer
+    Destination      : TPacketAddress;    // network layer
+    NetworkControl   : TNetworkControl;   // network layer
+  PUBLIC VAR // it is public due to omissions in the interface
+    TransportControl : TTransportControl; // transport layer
+  LOCAL VAR
+    Data             : TData;
+    CheckSum         : BYTE;
+
+  PUBLIC PROCEDURE Clear();
+  PUBLIC PROCEDURE CopyFrom( CONST Packet : EMIPacket );
+
+  // physical layer
+  PUBLIC PROCEDURE ValidCheckSum() : BOOLEAN;
+  PUBLIC PROCEDURE CountCheckSum();
+  
+  // link layer
+  PUBLIC PROCEDURE SetError( State : BOOLEAN );
+  PUBLIC PROCEDURE GetError() : BOOLEAN;
+
+  PUBLIC PROCEDURE SetRepeated( State : BOOLEAN );
+  PUBLIC PROCEDURE GetRepeated() : BOOLEAN;
+
+  PUBLIC PROCEDURE SetPriority( Priority : TPriority );
+  PUBLIC PROCEDURE GetPriority() : TPriority;
+
+  // network layer
+  PUBLIC PROCEDURE SetSourceAddress( CONST Address : CAddress ); // must be physical
+  PUBLIC PROCEDURE GetSourceAddress() : CAddress;
+
+  PUBLIC PROCEDURE SetDestinationAddressType( Type : TAddressType );
+  PUBLIC PROCEDURE GetDestinationAddressType() : TAddressType;
+
+  PUBLIC PROCEDURE SetDestinationAddress( CONST Address : CAddress );
+  PUBLIC PROCEDURE GetDestinationAddress() : CAddress;
+
+  PUBLIC PROCEDURE SetDataLength( Length : CARDINAL );
+  PUBLIC PROCEDURE GetDataLength() : CARDINAL;
+
+  PUBLIC PROCEDURE SetRoutingCounter( Counter : CARDINAL );
+  PUBLIC PROCEDURE GetRoutingCounter() : CARDINAL;
+
+  // transport layer
+  PUBLIC PROCEDURE SetPacketNumber( Number : CARDINAL );
+  PUBLIC PROCEDURE GetPacketNumber() : CARDINAL;
+
+  PUBLIC PROCEDURE SetPacketType( Type : TPacketType );
+  PUBLIC PROCEDURE GetPacketType() : TPacketType;
+
+  // application layer
+  PUBLIC PROCEDURE SetValueDirection( Direction : TValueDirection );
+  PUBLIC PROCEDURE GetValueDirection() : TValueDirection;
+
+  PUBLIC PROCEDURE FromValue( CONST Value : CValue );
+  PUBLIC PROCEDURE ToValue( OUT Value : CValue );
+
+  PUBLIC PROCEDURE FromDataArray( Data : ARRAY OF BYTE; Len : CARDINAL );
+  PUBLIC PROCEDURE ToDataArray( VAR Data : ARRAY OF BYTE; VAR Len : CARDINAL );
+END EMIPacket;
+
+CONST
+  TPacket ::= EMIPacket;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS cEMIPacket;
+   PUBLIC VAR
+     Code             : TEMICode;
+   PRIVATE VAR
+     AdditionalLength : CARD8;
+     LinkControl      : TLinkControl;
+     DAFAndRouting    : CARD8;
+     Source           : TPacketAddress;
+     Destination      : TPacketAddress;
+     ACPILength       : CARD8;
+     TransportControl : TTransportControl;
+     Data             : TData;
+   
+   PUBLIC READONLY PROPERTY
+      Length : CARDINAL;
+   
+   PUBLIC PROCEDURE FromEMI( CONST EMI : EMIPacket );
+   PUBLIC PROCEDURE ToEMI( OUT EMI : EMIPacket );
+END cEMIPacket;
+
+(*================================================================================*)
+
+(*# restore *)
+
+END eib_def.
