@@ -1,3 +1,10 @@
+Version 1.2.1509/R 19.6.2011
+- CHG: #247, new configuration parameters [web]port, [client_interface]sdap_port and
+       [client_interface]xml_socket_port to allow change of default TCP listen ports added.
+
+Version 1.2.1508/R 16.5.2011
+- CHG: #244, timestamps in log files are now separated from enclosing brackets with spaces
+
 Version 1.2.1469/R 12.3.2011
 - NEW: #240, new section [control] containing parameters date, time and date_time_push_period
        was added, the section defines group addresses to write actual date and time to

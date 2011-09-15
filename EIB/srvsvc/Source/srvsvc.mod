@@ -174,6 +174,10 @@ CLASS IMPLEMENTATION CEibSvc;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE _OnStart();
+   CONST
+      snClientInterface = L"client_interface";
+      knSdapPort = L"sdap_port";
+      knXmlsPort = L"xml_socket_port";
    VAR
       cfg : INIfile.CINIFile;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
@@ -181,9 +185,12 @@ CLASS IMPLEMENTATION CEibSvc;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
       Path : ARRAY [0..260] OF WCHAR;
+      port : CARDINAL;
       Result : Sync.TAsyncResult := Sync.arCannotStart;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
+      sdapPort : CARDINAL := 6007;
+      xmlsPort : CARDINAL := 6006;
    BEGIN
       // ASSERT( FALSE );
    
@@ -209,11 +216,23 @@ CLASS IMPLEMENTATION CEibSvc;
       FIOO.PathAdd( REF s1, s2 );
       cfg.LoadPath( OA( s1.Length-1, s1.Data ));
       
+      // load listening ports
+      IF cfg.SetSection( snClientInterface ) THEN
+         IF cfg.GetKeyInt( knSdapPort, OUT line, OUT port ) THEN
+            sdapPort := port;
+         END;
+         IF cfg.GetKeyInt( knXmlsPort, OUT line, OUT port ) THEN
+            xmlsPort := port;
+         END;
+      END; // client interface configuration
+
       LogConfig.ConfigureLog( cfg, L"", REF Log.logger()^, REF LogAppenders, OUT line );
       Log.logger()^.LocalTime := TRUE;
+      Log.logger()^.SeparateTimeBrackets := TRUE;
 
       LogConfig.ConfigureLog( cfg, L"datalog", REF DataLogger, REF LogAppenders, OUT line );
       DataLogger.LocalTime := TRUE;
+      DataLogger.SeparateTimeBrackets := TRUE;
       
       Log.ConfigureByAppender( REF HttpLogger, Log.logger()^ );
       LogConfig.ConfigureLog( cfg, L"httplog", REF HttpLogger, REF LogAppenders, OUT line );
@@ -224,6 +243,7 @@ CLASS IMPLEMENTATION CEibSvc;
       Log.ConfigureByAppender( REF NetworkLogger, Log.logger()^ );
       LogConfig.ConfigureLog( cfg, L"networklog", REF NetworkLogger, REF LogAppenders, OUT line );
       NetworkLogger.LocalTime := TRUE;
+      NetworkLogger.SeparateTimeBrackets := TRUE;
       
       ASSERT( EIB = NIL );
       NEW( EIB );
@@ -245,7 +265,7 @@ CLASS IMPLEMENTATION CEibSvc;
       ASSERT( SDAP = NIL );
       NEW( SDAP );
       SDAP^.Device := Adviser;
-      IA.Port := 6007;
+      IA.Port := sdapPort;
       SDAP^.ListenAddress := IA;
       SDAP^.Init( TRUE );
       SDAP^.CommonLogger := Log.logger();
@@ -256,7 +276,7 @@ CLASS IMPLEMENTATION CEibSvc;
       ASSERT( XMLS = NIL );
       NEW( XMLS );
       XMLS^.Device := Adviser;
-      IA.Port := 6006;
+      IA.Port := xmlsPort;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
       XMLS^.CommonLogger := Log.logger();
@@ -268,7 +288,7 @@ CLASS IMPLEMENTATION CEibSvc;
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       
-      IF Web.Init( 6005, L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
+      IF Web.Init( L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
       END;
       IF Result = Sync.arCompleted THEN

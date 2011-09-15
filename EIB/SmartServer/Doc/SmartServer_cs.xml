@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <document file="SmartServer" xml:lang="cs" xmlns="http://www.mii.cz/2004/XML/Document/Common">
-  <header creator="martin" doc_type="generic" last_modified="2011-03-12" last_modifier="martin" version="1.2.1469.0"
+  <header creator="martin" doc_type="generic" last_modified="2011-06-19" last_modifier="martin" version="1.2.1469.0"
           xml:lang="cs"></header>
 
   <adjustment>
@@ -34,7 +34,7 @@
           <li><p>na straně KNX/EIB zařízení s protokolem EIBNet/IP (součást standardu KNX).</p></li>
         </il>
 
-        <p>Verze dokumentace: 1.2.1469</p>
+        <p>Verze dokumentace: 1.2.1509</p>
 
         <content>
           <caption>Obsah</caption>
@@ -65,7 +65,7 @@
             pomocí nástroje (<type>activate</type>), který se nainstaluje spolu se SmartServerem. Pokud se během 35 dnů od
             instalace SmartServer neaktivuje, poběží dále jako demoverze.</p>
 
-            <section level="3">
+            <section incontent="hidden" level="3">
               <title>Aktivace licence</title>
 
               <text>
@@ -271,6 +271,27 @@ Licence support tool
               </text>
             </section>
 
+            <section label="secClientInterface" level="3">
+              <title><type>[client_interface]</type></title>
+
+              <text>
+                <dl class="dlParameter">
+                  <caption>Sekce <type>[client_interface]</type> definuje následující parametry:</caption>
+
+                  <dt><type>xml_socket_port</type></dt>
+
+                  <dd><p>TCP port, na kterém bude poslouchat XML Socket server (vizte kapitolu <in label="secXMLSocket"></in>).
+                  Parametr je nepovinný, jeho výchozí hodnota je <number>6006</number>.</p><p>Příklad definice
+                  portu:</p><p.type>port = 10000</p.type></dd>
+
+                  <dt><type>sdap_port</type></dt>
+
+                  <dd><p>TCP port, na kterém bude poslouchat SDAP server (vizte kapitolu <in label="secSDAP"></in>). Parametr je
+                  nepovinný, jeho výchozí hodnota je <number>6007</number>.</p><p>Příklad definice portu:</p><p.type>port = 10001</p.type></dd>
+                </dl>
+              </text>
+            </section>
+
             <section label="secInterface" level="3">
               <title><type>[behaviours]</type></title>
 
@@ -304,11 +325,11 @@ Licence support tool
 
                 <p>V obou sekcích lze datové objekty definovat pomocí parametrů <type>objects</type>, <type>object</type>,
                 <type>logged_objects</type>, <type>logged_object</type>, <type>logged_on_change_objects</type> a <type>logged_on_change_object</type>.
-                Jejich odlišení je jednoduché: <type>objects</type>, <type>logged_objects</type> a <type>logged_on_change_objects</type>
-                dovolují najednou definovat více datových objektů (každý s jednou skupinovou adresou); <type>object</type>,
-                <type>logged_object</type> a <type>logged_on_change_object</type> definuje jediný datový objekt spojený případně
-                s více skupinovými adresami (model je stejný jako při spojování komunikačních objektů se skupinovými adresami
-                při běžném programování KNX v ETS).</p>
+                Jejich odlišení je jednoduché: <type>objects</type>, <type>logged_ob<c.special what="breakhint" />jects</type> a
+                <type>logged_on_change_objects</type> dovolují najednou definovat více datových objektů (každý s jednou
+                skupinovou adresou); <type>object</type>, <type>logged_object</type> a <type>logged_on_change_object</type>
+                definuje jediný datový objekt spojený případně s více skupinovými adresami (model je stejný jako při spojování
+                komunikačních objektů se skupinovými adresami při běžném programování KNX v ETS).</p>
 
                 <p>Parametry <type>logged_on_change_objects</type>, <type>logged_objects</type> a <type>logged_object</type>
                 slouží k definici datových objektů, jejichž změny v čase budou zaznamenány v administrační části webového
@@ -888,6 +909,11 @@ filter = allow, EibNet.Connection</p.type></dd>
                 <dl class="dlParameter">
                   <caption>Sekce definuje následující parametry:</caption>
 
+                  <dt><type>port</type></dt>
+
+                  <dd><p>TCP port, na kterém bude webový (http) server poslouchat. Parametr je nepovinný, jeho výchozí hodnota
+                  je <number>6005</number>.</p><p>Příklad definice portu vyhrazeného pro http IANA:</p><p.type>port = 80</p.type></dd>
+
                   <dt><type>web_root</type></dt>
 
                   <dd><p>Kořen struktury datových souborů webového rozhraní. Soubory v tomto kořeni jsou dostupné na adrese
@@ -1444,7 +1470,8 @@ allow = 127.0.0.1</p.type>
               <text>
                 <p>SmartServer poskytuje pro administraci i pro uživatelské webové stránky spojené s daty z KNX zabudovaný
                 webový server. Administrační část je chráněná jménem a heslem, uživatelské webové stránky jsou volně dostupné.
-                Server běží na IP portu <number>6005</number>.</p>
+                Server běží na IP portu <number>6005</number> (případně na jiném portu nastaveném v konfiguraci, viz kapitolu
+                <in label="secWeb"></in>).</p>
 
                 <p>Administrační část serveru je dostupná na adrese (po vložení do adresového řádku prohlížeče)
                 <uri>http://[server]:6005/SmartServer</uri>, uživatelská část serveru je dostupná na adrese
@@ -1991,15 +2018,16 @@ allow = 127.0.0.1</p.type>
           <title>Rozhraní pro klienty</title>
 
           <text>
-            <section level="3">
+            <section label="secSDAP" level="3">
               <title>SDAP, řádkově orientované textové rozhraní</title>
 
               <text>
                 <p>SDAP (Simple Data Access Protocol) dovoluje vzdálený přístup k datovým bodům serveru a současně umožňuje také
-                provádět některé administrační úkoly. SDAP je textový řádkový protokol, který se přenáší pomocí TCP ze serveru
-                na portu <number>6007</number>. Po připojení k serveru se protokolem nepřenášejí žádná řídicí data. Spojení je
-                po navázání trvalé až do ukončení klientem. V případě nerozpoznaného výpadku sítě server spojení ukončí cca do
-                2 minut.</p>
+                provádět některé administrační úkoly. SDAP je textový řádkový protokol, který přenáší data pomocí TCP ze serveru
+                na portu <number>6007</number> (případně na jiném portu nastaveném v konfiguraci, viz kapitolu <in
+                label="secClientInterface"></in>). Po připojení k serveru se protokolem nepřenášejí žádná řídicí data. Spojení
+                je po navázání trvalé až do ukončení klientem. V případě nerozpoznaného výpadku sítě server spojení ukončí cca
+                do 2 minut.</p>
 
                 <p>SDAP všechny příkazy/požadavky pro server (request) potvrzuje (response). Pokud po odeslání příkazu potvrzení
                 nepřijde, nebyl příkaz přijat ani zpracován. Všechny příkazy i odpovědi jsou ukončeny znaky CR a LF.</p>
@@ -2161,14 +2189,15 @@ Control.Connected true</p.type>
               </text>
             </section>
 
-            <section level="3">
+            <section label="secXMLSocket" level="3">
               <title>XMLSocket</title>
 
               <text>
-                <p>Rozhraní XMLSocket dovoluje výměnu dat ze serverem. XMLSocket je řádkový textový protokol, který se přenáší
-                pomocí TCP ze serveru na portu <number>6006</number>. Každý řádek protokolu obsahuje well formed XML s údaji
-                o datech. Spojení je po navázání trvalé až do ukončení klientem. V případě nerozpoznaného výpadku sítě server
-                spojení ukončí cca do 2 minut.</p>
+                <p>Rozhraní XMLSocket dovoluje výměnu dat ze serverem. XMLSocket je blokový textový protokol, který přenáší data
+                pomocí TCP ze serveru na portu <number>6006</number> (případně na jiném portu nastaveném v konfiguraci, viz
+                kapitolu <in label="secClientInterface"></in>). Každý blok protokolu ukončený znakem s kódem <type>0</type>
+                obsahuje well formed XML s údaji o datech. Spojení je po navázání trvalé až do ukončení klientem. V případě
+                nerozpoznaného výpadku sítě server spojení ukončí cca do 2 minut.</p>
 
                 <p>XML v protokolu má následující formát (ukázka skutečného XML):</p>
 

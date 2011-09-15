@@ -130,7 +130,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _GotByHour : ARRAY [0..23] OF CARDINAL;
 
    PUBLIC PROCEDURE Init(
-      Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR;
+      CONST ContextName : ARRAY OF WCHAR;
       CONST cfg : INIfile.CINIFile;
       EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl;
       ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
