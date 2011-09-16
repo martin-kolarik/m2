@@ -1,4 +1,4 @@
-DEFINITION MODULE KNXStack_KNXNet;
+DEFINITION MODULE KNXStack_KNXnet;
 
 (*================================================================================*)
 
@@ -8,12 +8,12 @@ IMPORT
   log;
 
 (*================================================================================*)
-// KNXNet/IP connection
+// KNXnet/IP connection
 
 TYPE
-   TPKNXNetStack = POINTER TO CKNXNetStack;
+   TPKNXnetStack = POINTER TO CKNXnetStack;
 
-CLASS CKNXNetStack( knx_stack.CKNXStack );
+CLASS CKNXnetStack( knx_stack.CKNXStack );
 
    PUBLIC PROCEDURE SetLogger( Logger : log.TPLogger );
 
@@ -30,8 +30,8 @@ CLASS CKNXNetStack( knx_stack.CKNXStack );
 
    PUBLIC VIRTUAL PROCEDURE DeviceConnected() : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE KNXConnected() : BOOLEAN;
-END CKNXNetStack;
+END CKNXnetStack;
 
 (*================================================================================*)
 
-END KNXStack_KNXNet.
+END KNXStack_KNXnet.

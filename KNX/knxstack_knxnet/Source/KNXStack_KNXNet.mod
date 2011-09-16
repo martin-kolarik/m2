@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE KNXStack_KNXNet;
+IMPLEMENTATION MODULE KNXStack_KNXnet;
 
 (*================================================================================*)
 (*/* UPDATES
@@ -21,11 +21,11 @@ IMPORT
 (*================================================================================*)
 
 TYPE
-   TPKNXNetPhysicalLayer = POINTER TO KNXNetPhysicalLayer;
+   TPKNXnetPhysicalLayer = POINTER TO KNXnetPhysicalLayer;
 
 CLASS CStackConnection( protocol.CConnection );
    LOCAL VAR
-      Stack : TPKNXNetPhysicalLayer := NIL;
+      Stack : TPKNXnetPhysicalLayer := NIL;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
@@ -39,7 +39,7 @@ END CStackConnection;
 
 (*================================================================================*)
 
-CLASS KNXNetPhysicalLayer( knx_stack.CKNXStackPhysicalLayer );
+CLASS KNXnetPhysicalLayer( knx_stack.CKNXStackPhysicalLayer );
    PRIVATE VAR
       Connection : CStackConnection;
    PUBLIC PROPERTY
@@ -56,7 +56,7 @@ CLASS KNXNetPhysicalLayer( knx_stack.CKNXStackPhysicalLayer );
 
    PUBLIC VIRTUAL PROCEDURE Ph_Reset_Req();
    PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( VAR EMI : knx_def.TPacket );
-END KNXNetPhysicalLayer;
+END KNXnetPhysicalLayer;
 
 (*================================================================================*)
 
@@ -111,7 +111,7 @@ END CStackConnection;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION KNXNetPhysicalLayer;
+CLASS IMPLEMENTATION KNXnetPhysicalLayer;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -216,17 +216,17 @@ CLASS IMPLEMENTATION KNXNetPhysicalLayer;
 
 BEGIN
    Connection.Stack := ADR( SELF );
-END KNXNetPhysicalLayer;
+END KNXnetPhysicalLayer;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CKNXNetStack;
+CLASS IMPLEMENTATION CKNXnetStack;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetLogger( Logger : log.TPLogger );
    BEGIN
-      TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Logger := Logger;
+      TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Logger := Logger;
    END SetLogger;
 
 (*--------------------------------------------------------------------------------*)
@@ -264,7 +264,7 @@ CLASS IMPLEMENTATION CKNXNetStack;
 
    INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TKNXStackStatus;
    BEGIN
-      IF TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Connect() IN Sync.arsStarts THEN
+      IF TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Connect() IN Sync.arsStarts THEN
          RETURN knx_status.essOK;
       ELSE
          RETURN knx_status.essConnectError;
@@ -275,7 +275,7 @@ CLASS IMPLEMENTATION CKNXNetStack;
 
    INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TKNXStackStatus;
    BEGIN
-      IF TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Disconnect() IN Sync.arsStarts THEN
+      IF TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Disconnect() IN Sync.arsStarts THEN
          RETURN knx_status.essOK;
       ELSE
          RETURN knx_status.essConnectError;
@@ -287,7 +287,7 @@ CLASS IMPLEMENTATION CKNXNetStack;
   INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : knx_stack.TKNXStackLayerType; VAR PLayer : knx_stack.TPKNXStackLayer ) : BOOLEAN;
   BEGIN
     IF Layer = knx_stack.kltPhysical THEN
-      NEW( TPKNXNetPhysicalLayer( PLayer ));
+      NEW( TPKNXnetPhysicalLayer( PLayer ));
       RETURN TRUE;
     ELSE
       RETURN FALSE;
@@ -306,11 +306,11 @@ CLASS IMPLEMENTATION CKNXNetStack;
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
          IF EQUALS( Value, kvRouting ) THEN
-            TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode := protocol.cmRouting;
+            TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode := protocol.cmRouting;
          ELSIF EQUALS( Value, kvTunneling ) THEN
-            TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode := protocol.cmTunnelingHPAI;
+            TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode := protocol.cmTunnelingHPAI;
          ELSIF EQUALS( Value, kvTunnelingNAT ) THEN
-            TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode := protocol.cmTunnelingBlind;
+            TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode := protocol.cmTunnelingBlind;
          ELSE
             ErrorText := L"Expected routing | tunneling | tunneling-NAT ";
             RETURN 0;
@@ -321,7 +321,7 @@ CLASS IMPLEMENTATION CKNXNetStack;
          IF NOT dns.NameToAddressWait( Value, transport.KNXNET_IPPORT, 2000, OUT OA( 0, ADR( Addr ))) THEN
             RETURN 0;
          END;
-         TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.RemoteAddress := Addr;
+         TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.RemoteAddress := Addr;
          
       ELSE
          RETURN -1;
@@ -338,7 +338,7 @@ CLASS IMPLEMENTATION CKNXNetStack;
       kvTunnelingNAT = L"tunneling-NAT";
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
-         CASE TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode OF
+         CASE TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode OF
          | protocol.cmRouting :
             Value := kvRouting;
          | protocol.cmTunnelingHPAI :
@@ -348,7 +348,7 @@ CLASS IMPLEMENTATION CKNXNetStack;
          END;
 
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
-         TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.RemoteAddress.ToOA( TRUE, OUT Value );
+         TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.RemoteAddress.ToOA( TRUE, OUT Value );
          
       ELSE
          RETURN FALSE;
@@ -360,7 +360,7 @@ CLASS IMPLEMENTATION CKNXNetStack;
 
   PUBLIC VIRTUAL PROCEDURE DeviceConnected() : BOOLEAN;
   BEGIN
-    RETURN TPKNXNetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Connected();
+    RETURN TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Connected();
   END DeviceConnected;
 
 (*--------------------------------------------------------------------------------*)
@@ -373,8 +373,8 @@ CLASS IMPLEMENTATION CKNXNetStack;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-END CKNXNetStack;
+END CKNXnetStack;
 
 (*================================================================================*)
 
-END KNXStack_KNXNet.
+END KNXStack_KNXnet.

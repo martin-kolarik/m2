@@ -27,12 +27,12 @@ TYPE
 
 (*================================================================================*)
 
-CLASS KNXNetListener( netsrv.AListener ); // netsrv produces in thread callbacks
+CLASS KNXnetListener( netsrv.AListener ); // netsrv produces in thread callbacks
    LOCAL VAR
       Connection : TPConnection := NIL;
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
    LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket ); // both types
-END KNXNetListener;
+END KNXnetListener;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -73,7 +73,7 @@ CLASS CConnection( msghandler.MessageHandler );
       _Logger : log.TPLogger := NIL;
       _Mode : TConnectionMode := cmTunnelingHPAI;
       _Socket : netsocket.TPSSocket := NIL;
-      _Listener : POINTER TO KNXNetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
+      _Listener : POINTER TO KNXnetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
       _AutoReconnectDelay : CARDINAL := 0;
       _TunnelingMode : TTunnelingMode := tmEMI;
       // data control

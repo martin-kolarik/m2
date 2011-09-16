@@ -904,8 +904,8 @@ CLASS IMPLEMENTATION CKNXServer;
       // .PAR key names
       knId                   = L'id';
          kvFalcon            = L'falcon';
-         kvEIBNet            = L'eibnet';
-         kvKNXNet            = L'knxnet';
+         kvEIBnet            = L'eibnet';
+         kvKNXnet            = L'knxnet';
       knKey                  = L'key';
       knCacheOnlyMode        = L'cache_only';
       knMode                 = L'mode';
@@ -1465,14 +1465,14 @@ CLASS IMPLEMENTATION CKNXServer;
                c := so.IndexOfOA( kvFalcon, 0 );
                so.SubstringOA( c+LENGTH( kvFalcon )+1, MAX( CARDINAL ), OUT Connection );
                Strings.TrimW( REF Connection );
-            ELSIF so.StartsWithOA( kvEIBNet ) THEN
-               c := so.IndexOfOA( kvEIBNet, 0 );
-               so.SubstringOA( c+LENGTH( kvEIBNet )+1, MAX( CARDINAL ), OUT Connection );
+            ELSIF so.StartsWithOA( kvEIBnet ) THEN
+               c := so.IndexOfOA( kvEIBnet, 0 );
+               so.SubstringOA( c+LENGTH( kvEIBnet )+1, MAX( CARDINAL ), OUT Connection );
                Strings.TrimW( REF Connection );
                DeviceId := LONGWORD( -2 );
-            ELSIF so.StartsWithOA( kvKNXNet ) THEN
-               c := so.IndexOfOA( kvKNXNet, 0 );
-               so.SubstringOA( c+LENGTH( kvKNXNet )+1, MAX( CARDINAL ), OUT Connection );
+            ELSIF so.StartsWithOA( kvKNXnet ) THEN
+               c := so.IndexOfOA( kvKNXnet, 0 );
+               so.SubstringOA( c+LENGTH( kvKNXnet )+1, MAX( CARDINAL ), OUT Connection );
                Strings.TrimW( REF Connection );
                DeviceId := LONGWORD( -2 );
             END;
@@ -1485,7 +1485,7 @@ CLASS IMPLEMENTATION CKNXServer;
          END;
       END; // IF snDevice
       IF _CacheOnlyMode THEN
-         NEW( knxstack_knxnet.TPKNXNetStack( KNX ));
+         NEW( knxstack_knxnet.TPKNXnetStack( KNX ));
       ELSIF DeviceId = LONGWORD( -1 ) THEN
          // Stack := stackFalcon;
          // NEW( falconStack.TPFalconStack( KNX ));
@@ -1494,8 +1494,8 @@ CLASS IMPLEMENTATION CKNXServer;
          ErrorMessage.FromOA( OAsz( R[ Texts._UnsupportedStack ] ));
          GOTO Fail;
       ELSIF DeviceId = LONGWORD( -2 ) THEN
-         Stack := stackKNXNet;
-         NEW( knxstack_knxnet.TPKNXNetStack( KNX ));
+         Stack := stackKNXnet;
+         NEW( knxstack_knxnet.TPKNXnetStack( KNX ));
       ELSE
          // Stack := stackUSB;
          // NEW( eibusb.TPTPUARTStack( KNX ));
@@ -1504,7 +1504,7 @@ CLASS IMPLEMENTATION CKNXServer;
       END;
 
       KNX^.Init( FALSE, knx_stack.kltUndefined, knx_stack.kltUndefined, ADR( Sink ));
-      knxstack_knxnet.TPKNXNetStack( KNX )^.SetLogger( ADR( Logger ));
+      knxstack_knxnet.TPKNXnetStack( KNX )^.SetLogger( ADR( Logger ));
 
       IF NOT KNX^.SetParameter( L"link.connection", Connection, OUT ErrorMessageOA ) THEN
          CreateParameterError( Texts._BadConnection, ErrorMessageOA, REF ErrorMessage );
