@@ -87,10 +87,7 @@ LANGUAGE $(LangName), $(SubLangName)
         <CreateProperty Condition="$(ProductVersionBuild)==''" Value="$(ProjectVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductVersionBuild"></Output>
         </CreateProperty>
-        <CreateProperty Value="@(ProjectRevisionIds)">
-            <Output TaskParameter="Value" PropertyName="ProjectRevisionId"/>
-        </CreateProperty>
-        <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;ProjectVersionBuild;ProjectRevisionId" Patches="$(ProductVersionBuild);$(ProjectVersionBuild);$(FileRevisionId)"><!-- patch property -->
+        <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;ProjectVersionBuild;ProjectRevisionId" Patches="$(ProductVersionBuild);$(ProjectVersionBuild);$(ProjectRevisionId)"><!-- patch property -->
             <Output TaskParameter="Value" PropertyName="RCFileContents"/>
         </Patch>
         <!-- create rc file itself -->

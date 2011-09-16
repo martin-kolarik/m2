@@ -1849,19 +1849,17 @@ CLASS IMPLEMENTATION CKNXServer;
       
       // read control
       IF TS.SetSection( snControl ) THEN
-         IF NOT FindBehaviour( bnSource, Priority, BFlags ) THEN
+         IF NOT FindBehaviour( StringsO.FromOA( bnSource ), Priority, BFlags ) THEN
             Priority := eib_def.priorityNormal;
             BFlags := eib_def.TA_ObjectFlags{};
          END;
          IF TS.GetKeyStr( knDate, OUT ErrorLine, OUT so ) THEN
-            so.ToOA( OUT s );
-            IF NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, eib_def.eitDate, TObjectType{ objtDate } ) THEN
+            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, eib_def.eitDate, TObjectType{ objtDate } ) THEN
                GOTO Fail;
             END;
          END;
          IF TS.GetKeyStr( knTime, OUT ErrorLine, OUT so ) THEN
-            so.ToOA( OUT s );
-            IF NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, eib_def.eitTime, TObjectType{ objtTime } ) THEN
+            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, eib_def.eitTime, TObjectType{ objtTime } ) THEN
                GOTO Fail;
             END;
          END;
@@ -2510,7 +2508,7 @@ CLASS IMPLEMENTATION CKNXServer;
    VAR
       b : BOOLEAN;
       Day : eib_def.TDay;
-      DT : Time.DateTime;
+      DT : DateTime.DateTime;
       EVDate : eib_def.TValue;
       EVTime : eib_def.TValue;
       i : INTEGER;
