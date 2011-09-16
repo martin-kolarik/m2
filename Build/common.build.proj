@@ -199,6 +199,7 @@
     <UsingTask TaskName="SvnVersion" AssemblyFile="BuildTasks.dll"/>
     <UsingTask TaskName="HgVersion" AssemblyFile="BuildTasks.dll"/>
     <UsingTask TaskName="MinMax" AssemblyFile="BuildTasks.dll"/>
+    <UsingTask TaskName="Item" AssemblyFile="BuildTasks.dll"/>
     <Import Project="internal.resource.targets"/>
 
 
@@ -282,11 +283,14 @@
             <Output TaskParameter="Revision" ItemName="ProjectVersionBuilds"/>
             <Output TaskParameter="RevisionId" ItemName="ProjectRevisionIds"/>
         </HgVersion>
-        <Message Text="@(ProjectRevisionIds)" Importance="high"/>
         <Error Condition="@(ProjectRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
         <MinMax Input="@(ProjectVersionBuilds)">
             <Output TaskParameter="Maximum" PropertyName="ProjectVersionBuild"/>
+            <Output TaskParameter="MaximumIndex" PropertyName="ProductVersionBuildIndex"/>
         </MinMax>
+        <Item Input="@(ProjectRevisionIds)" Index="$(ProductVersionBuildIndex)">
+            <Output TaskParameter="Output" PropertyName="ProjectRevisionId"/>
+        </Item>
         <ReadLinesFromFile File="$(RCFile).lastrev" ContinueOnError="true">
             <Output TaskParameter="Lines" PropertyName="LastRev"/>
         </ReadLinesFromFile>

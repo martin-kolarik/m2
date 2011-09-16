@@ -11,7 +11,9 @@ namespace Tasks {
     private:
       array<ITaskItem^>^ input;
       long minimum;
+      long minimumIndex;
       long maximum;
+      long maximumIndex;
 
     public:
         [Output]
@@ -20,8 +22,13 @@ namespace Tasks {
             long get() {
                 return minimum;
             }
-            void set( long value ) {
-                minimum = value;
+        }
+
+        [Output]
+        property long MinimumIndex
+        {
+            long get() {
+                return minimumIndex;
             }
         }
 
@@ -31,8 +38,13 @@ namespace Tasks {
             long get() {
                 return maximum;
             }
-            void set( long value ) {
-                maximum = value;
+        }
+
+        [Output]
+        property long MaximumIndex
+        {
+            long get() {
+                return maximumIndex;
             }
         }
 
@@ -47,18 +59,23 @@ namespace Tasks {
             }
         }
 
-        virtual bool Execute() override {
+        virtual bool Execute() override
+        {
             long min = Int32::MaxValue;
+            minimumIndex = -1;
             long max = Int32::MinValue;
+            maximumIndex = -1;
 
             for (int i = 0; i < input->Length; i++ ) {
                 try {
                     long current = Int32::Parse( input->GetValue( i )->ToString());
                     if( current > max ) {
                         max = current;
+                        maximumIndex = i;
                     }
                     if( current < min ) {
                         min = current;
+                        minimumIndex = i;
                     }
                 } catch( Exception^ ) {
                     // ignore
