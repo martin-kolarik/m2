@@ -129,8 +129,8 @@ CLASS IMPLEMENTATION CAddress;
     n : ARRAY [0..3] OF WCHAR;
   BEGIN
     GetPhysicalAddress2( A, L, D );
-    Strings.FromCARD32W( A, 10, OUT s ); Strings.AppendW( REF s, L'/' );
-    Strings.FromCARD32W( L, 10, OUT n ); Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L'/' );
+    Strings.FromCARD32W( A, 10, OUT s ); Strings.AppendW( REF s, L'.' );
+    Strings.FromCARD32W( L, 10, OUT n ); Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L'.' );
     Strings.FromCARD32W( D, 10, OUT n ); Strings.AppendW( REF s, n );
   END GetPhysicalAddress3;
 
@@ -809,6 +809,13 @@ CLASS IMPLEMENTATION EMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Length GET : CARDINAL;
+   BEGIN
+      RETURN 7 + CARDINAL( NetworkControl * ncmDataLength );
+   END Length;
+
+(*---------------------------------------------------------------------------*)
+
   PUBLIC PROCEDURE Clear();
   BEGIN
     TransportControl := TransportControl - acmEISData;
@@ -833,12 +840,6 @@ CLASS IMPLEMENTATION EMIPacket;
   BEGIN
     RETURN FALSE;
   END ValidCheckSum;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE CountCheckSum();
-  BEGIN
-  END CountCheckSum;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1399,29 +1400,32 @@ CLASS IMPLEMENTATION EMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE FromDataArray( LData : ARRAY OF BYTE; Len : CARDINAL );
+  PUBLIC PROCEDURE FromDataArray( LData : ARRAY OF BYTE; Len : CARDINAL ); // rough, handling of length is not intuitive
   BEGIN
+    IF Len = 0 THEN
+      RETURN;
+    END;
     NetworkControl := NetworkControl - ncmDataLength + BITSET8( Len ) * ncmDataLength;
     IF Len = 1 THEN
       TransportControl := TransportControl + BITSET16( LData[0] << 8 ) * acmEISData; // for ACPI encoded values
-      Data[0] := LData[0]; // for 1st byte out of ACPI
-      RETURN;
     ELSE
       TransportControl := TransportControl - acmEISData;
+      DEC( Len );
       Storage.Move( ADR( LData ), ADR( Data ), Len );
     END;
   END FromDataArray;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ToDataArray( VAR LData : ARRAY OF BYTE; VAR Len : CARDINAL );
+  PUBLIC PROCEDURE ToDataArray( VAR LData : ARRAY OF BYTE; VAR Len : CARDINAL ); // rough, handling of length is not intuitive
   BEGIN
     Len := CARDINAL( NetworkControl * ncmDataLength );
-    IF Len = 1 THEN
-      LData[0] := CARD8( CARD16( TransportControl * acmEISData ) >> 8 );
+    IF Len = 0 THEN
       RETURN;
+    ELSIF Len = 1 THEN
+      LData[0] := CARD8( CARD16( TransportControl * acmEISData ) >> 8 );
     ELSE
-      Storage.Move( ADR( Data ), ADR( LData ), Len );
+      Storage.Move( ADR( Data ), ADR( LData ), Len-1 );
     END;
   END ToDataArray;
 
@@ -1434,8 +1438,7 @@ BEGIN
   Destination.dw := 0;
   NetworkControl := ncsDefault;
   TransportControl := BITSET16{};
-  Storage.Fill( ADR( Data ), SIZE( Data ), 0 );
-  CheckSum := 0;
+  Data[0] := 0;
 END EMIPacket;
 
 (*===========================================================================*)
@@ -1451,7 +1454,73 @@ CLASS IMPLEMENTATION cEMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY DataLength GET : CARDINAL;
+   BEGIN
+      RETURN CARDINAL( ACPILength );
+   END DataLength;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DataLength SET( Value : CARDINAL );
+   BEGIN
+      ACPILength := CARD8( MIN2( 255, Value ));
+   END DataLength;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Long GET : BOOLEAN;
+   BEGIN
+      RETURN lcStandardFrame NOT IN LinkControl;
+   END Long;
+   
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Long SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         EXCL( LinkControl, lcStandardFrame );
+      ELSE
+         INCL( LinkControl, lcStandardFrame );
+      END;
+   END Long;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY FrameType GET : TFrameType;
+   VAR
+      EFF : CARD8 := DAFAndRouting AND 0FH;
+   BEGIN
+      IF EFF = 0 THEN
+         RETURN ftStandard;
+      ELSIF EFF AND 0CH = 4 THEN
+         RETURN ftLTE;
+      ELSE
+         RETURN ftUser;
+      END;
+   END FrameType;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY FrameType SET( Value : TFrameType );
+   BEGIN
+      CASE Value OF
+      | ftStandard :
+         DAFAndRouting := DAFAndRouting AND 0F0H;
+      | ftLTE :
+         DAFAndRouting := DAFAndRouting AND 0F3H OR 04H;
+      | ftUser :
+         DAFAndRouting := DAFAndRouting OR 0FH;
+      ELSE
+         ASSERTLOG( FALSE );
+      END;
+   END FrameType;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE FromEMI( CONST EMI : EMIPacket );
+   VAR
+      data : TData;
+      i : INTEGER;
    BEGIN
       CASE EMI.Code OF
       | L_Data_REQ :
@@ -1469,22 +1538,177 @@ CLASS IMPLEMENTATION cEMIPacket;
       Source := EMI.Source;
       Destination := EMI.Destination;
       ACPILength := CARD8( EMI.NetworkControl ) AND 00FH;
-      TransportControl := EMI.TransportControl;
-      Data := EMI.Data;
+      Data[0] := CARD8( EMI.TransportControl );
+      Data[1] := CARD8( CARD16( EMI.TransportControl ) >> 8 );
+
+      data := EMI.Data;
+      FOR i := 2 TO INTEGER( ACPILength )-3 DO
+         Data[i] := data[i-2];
+      END;
    END FromEMI;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE ToEMI( OUT EMI : EMIPacket );
+   VAR
+      data : TData;
+      i : INTEGER;
    BEGIN
       EMI.Code := Code;
       EMI.LinkControl := LinkControl;
       EMI.Source := Source;
       EMI.Destination := Destination;
-      EMI.NetworkControl := BITSET8( DAFAndRouting OR ACPILength );
-      EMI.TransportControl := TransportControl;
-      EMI.Data := Data;
+      EMI.TransportControl := TTransportControl( Data[0] OR ( Data[1] << 8 ));
+
+      IF Long OR ( FrameType <> ftStandard ) THEN
+         EMI.NetworkControl := BITSET8( DAFAndRouting );
+      ELSE
+         EMI.NetworkControl := BITSET8( DAFAndRouting OR ACPILength );
+         FOR i := 2 TO INTEGER( ACPILength )-3 DO
+            data[i-2] := Data[i];
+         END;
+         EMI.Data := data;
+      END;
    END ToEMI;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToDataArray( VAR LData : ARRAY OF BYTE; VAR Len : CARDINAL ); // rough, handling of length is not intuitive
+   VAR
+      TransportControl : TTransportControl;
+   BEGIN
+      Len := CARDINAL( ACPILength );
+      IF Len = 0 THEN
+         RETURN;
+      ELSIF Len = 1 THEN
+         TransportControl := TTransportControl( Data[0] OR ( Data[1] << 8 ));
+         LData[0] := CARD8( CARD16( TransportControl * acmEISData ) >> 8 );
+      ELSE
+         Storage.Move( ADR( Data[2] ), ADR( LData ), Len-1 );
+      END;
+   END ToDataArray;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetDestinationAddress( OUT s : ARRAY OF WCHAR );
+   VAR
+      address : CAddress;
+      i : CARDINAL;
+      naddress : CARDINAL;
+      n : ARRAY [0..15] OF WCHAR;
+   BEGIN
+      address.Address.APIHi := Destination.EIBHi;
+      address.Address.APILo := Destination.EIBLo;
+
+      CASE FrameType OF
+      //-----
+      | eib_def.ftStandard :
+         IF ncLogicalAddress IN BITSET8( DAFAndRouting ) THEN
+            address.Type := addressGroup;
+            address.GetGroupAddress3( TRUE, s );
+         ELSE
+            address.Type := addressPhysical;
+            address.GetPhysicalAddress3( s );
+         END;
+      
+      //-----
+      | eib_def.ftLTE :
+         address.Type := addressPhysical;
+         naddress := CARDINAL( address.GetPhysicalAddress1());
+
+         IF 1 IN BITSET8( DAFAndRouting ) THEN // application or peripheral tags
+            IF 0 IN BITSET8( DAFAndRouting ) THEN // peripheral tags
+               ASSIGN( s, L"P/" );
+               // group
+               i := naddress >> 12;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L"/" );
+               // subgroup
+               i := naddress AND 0FFFH;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n );
+
+            ELSE // application tags
+               // domain
+               i := naddress >> 12;
+               IF i = 0 THEN
+                  ASSIGN( s, L"A/HVAC/" );
+               ELSE
+                  ASSIGN( s, L"A/????/" );
+               END;
+               // segments
+               i := ( naddress AND 0FFFH ) >> 9;
+               IF i = 0 THEN // distribution segment
+                  i := ( naddress AND 01FFH ) >> 5;
+                  CASE i OF
+                  | 1 :
+                     Strings.AppendW( REF s, L"dH/" );
+                  | 2 :
+                     Strings.AppendW( REF s, L"dC/" );
+                  | 3 :
+                     Strings.AppendW( REF s, L"dV/" );
+                  | 4 :
+                     Strings.AppendW( REF s, L"dW/" );
+                  | 5 :
+                     Strings.AppendW( REF s, L"dO/" );
+                  | 6 :
+                     Strings.AppendW( REF s, L"dD/" );
+                  END; // CASE
+                  // distributor number
+                  i := naddress AND 01FH;
+                  Strings.FromCARD32W( i, 10, OUT n );
+                  Strings.AppendW( REF s, n );
+
+               ELSE // producer segment
+                  IF i > 2 THEN
+                     Strings.AppendW( REF s, L"p?/" );
+                  ELSIF i = 2 THEN
+                     Strings.AppendW( REF s, L"pC/" );
+                  ELSIF i = 1 THEN
+                     Strings.AppendW( REF s, L"pH/" );
+                  END;
+                  // segment number
+                  i := ( naddress AND 01FFH ) >> 5;
+                  Strings.FromCARD32W( i, 10, OUT n );
+                  Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L"/" );
+                  // producer number
+                  i := naddress AND 01FH;
+                  Strings.FromCARD32W( i, 10, OUT n );
+                  Strings.AppendW( REF s, n );
+               
+               END;
+            END;
+
+         ELSE // geographical addresses
+            IF naddress = 0 THEN
+               ASSIGN( s, L"G/*" );
+
+            ELSE
+               ASSIGN( s, L"G/" );
+               // apartement/floor
+               IF 0 IN BITSET8( DAFAndRouting ) THEN
+                  i := naddress >> 10 + 64;
+               ELSE
+                  i := naddress >> 10;
+               END;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L"/" );
+               // room
+               i := ( naddress AND 03FFH ) >> 4;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L"/" );
+               // subzone
+               i := naddress AND 0FH;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n );
+
+            END;
+         END;
+
+      ELSE
+         ASSIGN( s, L"<user>" );
+      END;
+   END GetDestinationAddress;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1494,8 +1718,7 @@ BEGIN
    LinkControl := lcsDefault;
    DAFAndRouting := 0;
    ACPILength := 0;
-   TransportControl := BITSET16{};
-   Storage.Fill( ADR( Data ), SIZE( Data ), 0 );
+   Data[0] := 0;
 END cEMIPacket;
 
 (*===========================================================================*)

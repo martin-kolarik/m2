@@ -243,6 +243,7 @@ CLASS IMPLEMENTATION CConnection;
       | tiConnect :
          _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, L"CONNECT timeout" );
 
+         OnConnectError( Sync.arTimeout, 0 );
          DeviceDisconnect();
 
       //----
@@ -460,7 +461,7 @@ CLASS IMPLEMENTATION CConnection;
 
    LOCAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
    VAR
-      buffer : ARRAY [0..255] OF BYTE;
+      buffer : ARRAY [0..383] OF BYTE; // this is for safety, data from network are readed here, into the buffer, so all usagee access only valid memory locations. Maximal size of KNX packet is 254+10
       ia : inetaddr.INETADDR;
       l : CARDINAL := 0;
       packet : transport.TPPacket := transport.TPPacket( ADR( buffer ));
@@ -655,6 +656,12 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROCEDURE OnConnectError( Result : Sync.TAsyncResult; Code : CARDINAL );
+   BEGIN
+   END OnConnectError;
+
+(*--------------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    BEGIN
    END OnDisconnect;
@@ -670,6 +677,12 @@ CLASS IMPLEMENTATION CConnection;
    INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TKNXStackStatus );
    BEGIN
    END On_L_CON;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : knx_def.cEMIPacket ); // allows access to cEMI without converting to On_L_IND, IND_cEMI is called before IND
+   BEGIN
+   END On_L_IND_cEMI;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -695,6 +708,7 @@ CLASS IMPLEMENTATION CConnection;
          LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, TRUE );
       ELSE
          LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, FALSE );
+         On_L_IND_cEMI( packet.cEMI );
          On_L_IND( EMI );
       END;
    END OnRoutingIndication;
@@ -737,6 +751,8 @@ CLASS IMPLEMENTATION CConnection;
          OnConnect();
       ELSE
          LogSCHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"CONNECT failure: ", CARDINAL( packet.Status ), HPAIData );
+
+         OnConnectError( Sync.arAborted, CARDINAL( packet.Status ));
 
          DeviceDisconnect();
       END;
@@ -837,6 +853,7 @@ CLASS IMPLEMENTATION CConnection;
 
       | knx_def.L_Data_IND, knx_def.L_Data_IND_EMI2 : // L_IND
          LogPacket( FALSE, L"RECEIVE", EMI, ADR( packet ), packet.Length, FALSE );
+         On_L_IND_cEMI( packet.cEMI );
          On_L_IND( EMI );
 
       ELSE // L_REQ???

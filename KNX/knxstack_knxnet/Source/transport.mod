@@ -596,6 +596,21 @@ CLASS IMPLEMENTATION TunnelingRequest;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY cEMI GET : knx_def.cEMIPacket;
+   BEGIN
+      RETURN _EMI;
+   END cEMI;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY cEMI SET( CONST Value : knx_def.cEMIPacket );
+   BEGIN
+      _EMI := Value;
+      Length := HEADER_SIZE_10 + SIZE( _CHDR ) + _EMI.Length;
+   END cEMI;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY EMI GET : knx_def.TPacket;
    VAR
       packet : knx_def.TPacket;
@@ -673,6 +688,22 @@ CLASS IMPLEMENTATION RoutingIndication;
    BEGIN
       RETURN ( Service = ROUTING_INDICATION ) AND ( Length = HEADER_SIZE_10 + _EMI.Length );
    END Valid;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY cEMI GET : knx_def.cEMIPacket;
+   BEGIN
+      RETURN _EMI;
+   END cEMI;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY cEMI SET( CONST Value : knx_def.cEMIPacket );
+   BEGIN
+      _EMI := Value;
+      _EMI.Code := eib_def.L_Data_IND;
+      Length := HEADER_SIZE_10 + _EMI.Length;
+   END cEMI;
 
 (*--------------------------------------------------------------------------------*)
 

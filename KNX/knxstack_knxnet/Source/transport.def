@@ -380,8 +380,9 @@ CLASS TunnelingRequest( TunnelingPacket );
    PRIVATE VAR
       _EMI : knx_def.cEMIPacket;
    PUBLIC READONLY PROPERTY
-      Valid : BOOLEAN;
+      Valid : BOOLEAN; // returns FALSE for busmonitor and raw modes
    PUBLIC PROPERTY
+      cEMI : knx_def.cEMIPacket;
       EMI : knx_def.TPacket;
 END TunnelingRequest;
 
@@ -407,6 +408,7 @@ CLASS RoutingIndication( Packet );
    PUBLIC READONLY PROPERTY
       Valid : BOOLEAN;
    PUBLIC PROPERTY
+      cEMI : knx_def.cEMIPacket;
       EMI : knx_def.TPacket;
 END RoutingIndication;
 
