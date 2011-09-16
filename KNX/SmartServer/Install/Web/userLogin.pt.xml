@@ -2,7 +2,7 @@
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
     <html>
         <head>
-            <title>NeNo KNX/EIBSrv</title>
+            <title>NeNo KNXSrv</title>
             <link rel="StyleSheet" type="text/css" href="NeNo.css" />
         </head>
         <body>
@@ -46,7 +46,7 @@
                     </div>
 
                     <div class="bottom">
-                        <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
+                        <p>KNX SmartServer © NeNo ver. ${version}</p>
                     </div>
 
                 </div>

@@ -14,8 +14,8 @@
       <title>SmartServer</title>
 
       <text>
-        <p>SmartServer pro KNX/EIB je produkt, kterı dovoluje vzdálenım klientùm (vizualizaèním programùm) èíst a zapisovat data
-        KNX/EIB sbìrnice. SmartServer je urèen pro trvalı bìh, v operaèním systému je pøítomen jako sluba. SmartServer KNX/EIB
+        <p>SmartServer pro KNX je produkt, kterı dovoluje vzdálenım klientùm (vizualizaèním programùm) èíst a zapisovat data
+        KNX sbìrnice. SmartServer je urèen pro trvalı bìh, v operaèním systému je pøítomen jako sluba. SmartServer KNX
         data udruje v cache, take jejich aktuální hodnoty jsou klientùm dostupné nepøetritì. Server lze vzdálenì
         administrovat pomocí webového rozhraní (HTTP/HTML).</p>
 
@@ -29,9 +29,9 @@
 
           <li><p>10<c.special what="thinspace" />MB volného místa na disku,</p></li>
 
-          <li><p>síové pøipojení (Ethernet, WiFi<c.special what="commadots" />) pro spojení s klienty a KNX/EIB,</p></li>
+          <li><p>síové pøipojení (Ethernet, WiFi<c.special what="commadots" />) pro spojení s klienty a KNX,</p></li>
 
-          <li><p>na stranì KNX/EIB zaøízení s protokolem EIBNet/IP (souèást standardu KNX).</p></li>
+          <li><p>na stranì KNX zaøízení s protokolem KNXnet/IP (souèást standardu KNX).</p></li>
         </il>
 
         <p>Verze dokumentace: 1.2.1509</p>
@@ -45,7 +45,7 @@
 
           <text>
             <p>Instalaèní balíèek SmartServer (v podobì MSI souboru, MSI = Microsoft Installer) nainstaluje po spuštìní program
-            automaticky do sloky <file>Program Files\NeNo\EibSrv</file>. Bìhem instalace je tøeba vloit správné licenèní údaje
+            automaticky do sloky <file>Program Files\NeNo\KnxSrv</file>. Bìhem instalace je tøeba vloit správné licenèní údaje
             (z licenèního certifikátu), nebo je moné SmartServer nainstalovat jako demoverzi. Pokud je licence vystavena na
             jméno, musí bıt pøi instalaci toto jméno zadáno pøesnì podle licence (vèetnì mezer, velkıch a malıch písmen èi
             diakritiky).</p>
@@ -76,8 +76,8 @@
                 <p>Registraèní èíslo se pomocí nástroje <type>activate</type> získá následovnì (záznam operací v pøíkazové
                 øádce):</p>
 
-                <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
-C:\Program Files\NeNo\EibSrv&gt;activate -Q *
+                <p.type>C:\&gt;cd "Program Files\Neno\KnxSrv
+C:\Program Files\NeNo\KnxSrv&gt;activate -Q *
 Licence support tool
 (c) NeNo 2009
 
@@ -86,7 +86,7 @@ Licence support tool
   found 2 valid records
 
   processing licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxx"
-    for product "NeNo.EibSrv"
+    for product "NeNo.KnxSrv"
     registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
 
                 <p>Uvedené registraèní èíslo se nevypíše, pokud je SmartServer nainstalovanı bez licence (tj. jako demoverze),
@@ -96,8 +96,8 @@ Licence support tool
                 èíslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>. Toto aktivaèní èíslo se opìt pomocí nástroje <type>activate</type>
                 aplikuje:</p>
 
-                <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
-C:\Program Files\NeNo\EibSrv&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+                <p.type>C:\&gt;cd "Program Files\Neno\KnxSrv
+C:\Program Files\NeNo\KnxSrv&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
 Licence support tool
 (c) NeNo 2009
 
@@ -106,23 +106,23 @@ Licence support tool
   found 2 valid records
 
   processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
-  processing product "NeNo.EibSrv"</p.type>
+  processing product "NeNo.KnxSrv"</p.type>
 
                 <p>Úspìšnost aktivace lze ovìøit opìt pomocí <type>activate</type>:</p>
 
-                <p.type>C:\Program Files\NeNo\EibSrv&gt;activate -I
+                <p.type>C:\Program Files\NeNo\KnxSrv&gt;activate -I
 Licence support tool
 (c) NeNo 2009
 
   found 3 records
   found 3 unique records
 
-  product "NeNo.EibSrv"
+  product "NeNo.KnxSrv"
     licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
     type "----"
       activated permanently</p.type>
 
-                <p>Upozornìní: po aktivaci je tøeba restartovat slubu SmartServeru (EIB/KNX Server). V poèítaèích se
+                <p>Upozornìní: po aktivaci je tøeba restartovat slubu SmartServeru (KNX Server). V poèítaèích se
                 zabudovanım operaèním systémem (Windows<c.special what="thinspace" />XP Embedded) je tøeba navíc zapsat zmìny
                 nastavení poèítaèe na disk a poèítaè restartovat.</p>
               </text>
@@ -135,12 +135,12 @@ Licence support tool
 
           <text>
             <p>SmartServer bìí jako sluba operaèního systému a rozbíhá se bezprostøednì po instalaci. Všechna svá nastavení
-            (KNX/EIB objekty, komunikace, EIBNet/IP rozhraní) naèítá z textového souboru na disku (popis viz dále), kterı se
+            (KNX objekty, komunikace, KNXnet/IP rozhraní) naèítá z textového souboru na disku (popis viz dále), kterı se
             serveru pøiøadí pomocí administraèního webového rozhraní. Konfiguraèní soubor nelze pomocí administraèního rozhraní
             upravovat, soubor musí bıt na disk zapsán jinım zpùsobem (místnì, pomocí RDP, VNC, apod.).</p>
 
             <p>Bez úpravy administraèním rozhraním server hledá a naèítá jako vıchozí konfiguraèní soubor
-            <file>default.cfg</file>, kterı je umístìn ve stejné sloce jako je program serveru (<file>EibSrv.exe</file>). Tento
+            <file>default.cfg</file>, kterı je umístìn ve stejné sloce jako je program serveru (<file>KnxSrv.exe</file>). Tento
             vıchozí konfiguraèní soubor se rovnì instaluje a obsahuje seznam všech dostupnıch nastavení i se struènımi
             komentáøi.</p>
 
@@ -178,25 +178,25 @@ Licence support tool
 
                   <dt><type>id</type></dt>
 
-                  <dd><p>pro definici IP adresy a portu EIBNet/IP zaøízení; podle zpùsobu komunikace IP adresa musí bıt buï
+                  <dd><p>pro definici IP adresy a portu KNXnet/IP zaøízení; podle zpùsobu komunikace IP adresa musí bıt buï
                   vícesmìrová (multicast, pro <type>mode = routing</type>), nebo jednosmìrová (unicast, pro <type>mode = tunneling</type>
                   nebo mode = <type>tunneling-ACK</type>). Zápis parametru je sloen ze tøí èástí, parametr lze nalézt ve všech
-                  ukázkách:</p><p.type>id = eibnet:192.168.0.100:3671</p.type><p>pøièem poslední èást (<number>3671</number>,
+                  ukázkách:</p><p.type>id = knxnet:192.168.0.100:3671</p.type><p>pøièem poslední èást (<number>3671</number>,
                   èíslo portu) je nepovinná. Pokud není port zapsán, pouije se vıchozí port podle standardu KNX (tj. právì
-                  <number>3671</number>).</p><p>V reimu routing je nutné pouít vícesmìrovou adresu. Aby server s EIBNet/IP
+                  <number>3671</number>).</p><p>V reimu routing je nutné pouít vícesmìrovou adresu. Aby server s KNXnet/IP
                   routery správnì komunikoval, musí bıt stejná vícesmìrová adresa zapsána jak v parametru <type>id</type>, tak
                   i v konfiguracích jednotlivıch routerù. Jako dobrá volba se nabízí vıchozí adresa podle standardu KNX:
-                  224.0.23.12. Konfigurace pak vypadá napøíklad:</p><p.type>id = eibnet:224.0.23.12</p.type></dd>
+                  224.0.23.12. Konfigurace pak vypadá napøíklad:</p><p.type>id = knxnet:224.0.23.12</p.type></dd>
 
                   <dt><type>mode</type></dt>
 
-                  <dd><p>pro definici zpùsobu spojení s EIBNet/IP zaøízením. Moné hodnoty parametru jsou uvedeny v tabulce <in
+                  <dd><p>pro definici zpùsobu spojení s KNXnet/IP zaøízením. Moné hodnoty parametru jsou uvedeny v tabulce <in
                   label="tblMode"></in>.</p></dd>
 
                   <dt><type>cache_only</type></dt>
 
-                  <dd><p>pro povolení pøístupu k datovım objektùm bez pøipojení ke KNX/EIB sbìrnici. Je-li hodnota parametru
-                  <type>false</type> (vıchozí hodnota), vyaduje SmartServer spojení s KNX/EIB sbìrnicí. Dojde-li k rozpojení
+                  <dd><p>pro povolení pøístupu k datovım objektùm bez pøipojení ke KNX sbìrnici. Je-li hodnota parametru
+                  <type>false</type> (vıchozí hodnota), vyaduje SmartServer spojení s KNX sbìrnicí. Dojde-li k rozpojení
                   (nebo pokud se spojení nepodaøí navázat), neposkytne SmartServer data klientùm, ani je nezobrazí ve webovém
                   rozhraní (objeví se hlášení o chybì). Nastaví-li se parametr na hodnotu <type>true</type>, SmartServer se
                   nebude se sbìrnicí spojovat a data bude klientùm poskytovat stále (do sbìrnice však nebudou nikdy
@@ -254,7 +254,7 @@ Licence support tool
 
                   <dt><type>address</type></dt>
 
-                  <dd><p>pro definici fyzické KNX adresy, kterou server pouije pøi odesílání dat do KNX/EIB sbìrnice. Parametr
+                  <dd><p>pro definici fyzické KNX adresy, kterou server pouije pøi odesílání dat do KNX sbìrnice. Parametr
                   je pøítomen ve všech ukázkách. Pøíklad:</p><p.type>address = 1.2.1</p.type></dd>
 
                   <dt><type>read_on_start_repeat_count</type></dt>
@@ -344,7 +344,7 @@ Licence support tool
 
                   <table class="tblCommon">
                     <tr>
-                      <td>KNX/EIB datovı typ (Std. 2.6)</td>
+                      <td>KNX datovı typ (Std. 2.6)</td>
 
                       <td>klíèové slovo 1</td>
 
@@ -515,27 +515,27 @@ Licence support tool
                     <tr>
                       <td><type>tracker</type></td>
 
-                      <td>Datovı bod se nezapisuje do EIB, obsahuje poslední hodnotu, která sbìrnicí protekla</td>
+                      <td>Datovı bod se nezapisuje do KNX, obsahuje poslední hodnotu, která sbìrnicí protekla</td>
                     </tr>
 
                     <tr>
                       <td><em><type>tracker_init</type></em></td>
 
-                      <td>Jako <type>tracker</type>, avšak pøi rozbìhu serveru, nebo pøi obnovì spojení s KNX/EIB, vyèítá nucenì
-                      aktuální hodnotu z EIB. V EIB musí existovat zaøízení, které na tento poadavek odpoví.</td>
+                      <td>Jako <type>tracker</type>, avšak pøi rozbìhu serveru, nebo pøi obnovì spojení s KNX, vyèítá nucenì
+                      aktuální hodnotu z KNX. V KNX musí existovat zaøízení, které na tento poadavek odpoví.</td>
                     </tr>
 
                     <tr>
                       <td><em><type>transmitter</type></em></td>
 
-                      <td>Datovı bod se zapisuje do EIB, obsahuje poslední hodnotu, kterou do nìj nìkterı z klientù zapsal,
-                      nepøijímá hodnoty z EIB</td>
+                      <td>Datovı bod se zapisuje do KNX, obsahuje poslední hodnotu, kterou do nìj nìkterı z klientù zapsal,
+                      nepøijímá hodnoty z KNX</td>
                     </tr>
 
                     <tr>
                       <td><type>transmitter_with_status</type></td>
 
-                      <td>Datovı bod se zapisuje do EIB a pøijímá hodnoty z EIB. Obsahuje poslední hodnotu buï z EIB nebo
+                      <td>Datovı bod se zapisuje do KNX a pøijímá hodnoty z KNX. Obsahuje poslední hodnotu buï z KNX nebo
                       z klientù.</td>
                     </tr>
 
@@ -543,14 +543,14 @@ Licence support tool
                       <td><type><em>transmitter_with_status_init</em></type></td>
 
                       <td>Jako <type>transmitter_with_status</type>, avšak pøi rozbìhu èi obnovení spojení nucenì vyèítá hodnotu
-                      z EIB stejnì jako <type>tracker_init</type>.</td>
+                      z KNX stejnì jako <type>tracker_init</type>.</td>
                     </tr>
 
                     <tr>
                       <td><type>reader</type></td>
 
-                      <td>Jako <type>tracker</type>, server však navíc hodnotu z EIB pravidelnì podle nastavení parametru <type>readers_period</type>
-                      vyèítá. Komunikaèní objekt v EIB zaøízení musí mít nastavenu vlajku R (read). Ukázku pouití obsahuje
+                      <td>Jako <type>tracker</type>, server však navíc hodnotu z KNX pravidelnì podle nastavení parametru <type>readers_period</type>
+                      vyèítá. Komunikaèní objekt v KNX zaøízení musí mít nastavenu vlajku R (read). Ukázku pouití obsahuje
                       soubor <file>13 reader.cfg</file>.</td>
                     </tr>
                   </table>
@@ -813,7 +813,7 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
                   label="secDebug"></in.about>). Napøíklad, následující pravidla zamezí vıpisu všech zpráv kromì zpráv o KNX
                   pøipojení:</p><p.type>...
 filter = deny, *
-filter = allow, EibNet.Connection</p.type></dd>
+filter = allow, KnxNet.Connection</p.type></dd>
                 </dl>
 
                 <f.table label="tblTarget">
@@ -944,7 +944,7 @@ filter = allow, EibNet.Connection</p.type></dd>
                 </dl>
 
                 <p>Oba parametry sekce mohou obsahovat text <type>%exedir%</type>, kterı zastupuje sloku s programem serveru
-                (<file>EibSrv.exe</file>). Tento zástupnı text se nemusí pouít, cestu ke koøeni i k souboru s texty je však
+                (<file>KnxSrv.exe</file>). Tento zástupnı text se nemusí pouít, cestu ke koøeni i k souboru s texty je však
                 tøeba zadat úplnou.</p>
               </text>
             </section>
@@ -1141,9 +1141,9 @@ allow = 127.0.0.1</p.type>
                 <dl class="dlCommon">
                   <caption>Tøetí èást zprávy rozlišuje pùvodce zprávy, v serveru se objevují zprávy z tìchto zdrojù:</caption>
 
-                  <dt>KNX/EibNet.Connection</dt>
+                  <dt>KNX/KNXnet.Connection</dt>
 
-                  <dd><p>Spojení s KNX rozhraním, informace o EibNet/IP protokolu</p></dd>
+                  <dd><p>Spojení s KNX rozhraním, informace o KNXnet/IP protokolu</p></dd>
 
                   <dt>sys/HTTP</dt>
 
@@ -1166,7 +1166,7 @@ allow = 127.0.0.1</p.type>
                 <p>Za tøetí èástí následuje v ladicí zprávì text, kterı ji není formalizován a kterı obsahuje libovolná data
                 (taková která pùvodce chtìl vypsat).</p>
 
-                <p>Nejèastìjší dùvod pro pouití ladicích zpráv je komunikace pomocí EibNet/IP protokolu, tj. komunikace s KNX
+                <p>Nejèastìjší dùvod pro pouití ladicích zpráv je komunikace pomocí KNXnet/IP protokolu, tj. komunikace s KNX
                 rozhraním. Rozhraní je samostatnı prvek mimo kontrolu serveru, kterı mùe bıt nezávisle zapnut èi vypnut,
                 pøípadnì jej mùe pro spojení s KNX vyuít nìkdo jinı. V kadém takovém pøípadì server nemá spojení s KNX a pro
                 diagnostiku potíí je tøeba ladicí vıpisy zapnout.</p>
@@ -1229,11 +1229,11 @@ allow = 127.0.0.1</p.type>
 
               <text>
                 <p>Routery v IP komunikacích stojí vdy mezi sítìmi a logicky je spojují. Správnì nastavenı router posílá
-                veškerı KNX provoz mezi sítìmi bezproblémovì, povaha EIBNet/IP však mùe v konkrétních pøípadech pùsobit
+                veškerı KNX provoz mezi sítìmi bezproblémovì, povaha KNXnet/IP však mùe v konkrétních pøípadech pùsobit
                 potíe.</p>
 
                 <dl>
-                  <caption>Problematické pro EIBNet/IP mùe bıt:</caption>
+                  <caption>Problematické pro KNXnet/IP mùe bıt:</caption>
 
                   <dt>IP multicasting</dt>
 
@@ -1248,24 +1248,24 @@ allow = 127.0.0.1</p.type>
                   <dd><p>NAT je technologie, která dovoluje v komunikaci vymìòovat adresy a porty odesílatelù i pøíjemcù.
                   Nejbìnìjší pouití NAT dnes je vysoce jednoúèelové<c.special what="dash" />v domácích a kanceláøskıch
                   routerech<c.special what="dash" />pro pøipojení menší sítì k internetu. Aby pøes takovı router komunikace
-                  EIBNet/IP mezi SmartServerem a rozhraním procházela, je vdy nutné nastavení routeru pøizpùsobit (router to
-                  samozøejmì musí umìt).</p><p>EIBNet/IP komunikace je UDP, mezi prvky nedochází k uzavøení stálého spojení,
+                  KNXnet/IP mezi SmartServerem a rozhraním procházela, je vdy nutné nastavení routeru pøizpùsobit (router to
+                  samozøejmì musí umìt).</p><p>KNXnet/IP komunikace je UDP, mezi prvky nedochází k uzavøení stálého spojení,
                   router proto musí vìdìt, která data má smìrovat a kam. Pro úspìšnı pøechod pøes NAT router musí bıt zajištìno,
                   e vnìjší paket (z internetu, z WAN rozhraní routeru) router nasmìruje dovnitø ke konkrétnímu zaøízení
                   (poèítaèi se SmartServerem nebo KNX rozhraní). Routery obyèejnì rozhodují o smìrování podle typu protokolu
-                  (UDP) a èísla portu (není-li port zmìnìn, platí pro EIBNet/IP èíslo <number>3671</number>). V jejich
+                  (UDP) a èísla portu (není-li port zmìnìn, platí pro KNXnet/IP èíslo <number>3671</number>). V jejich
                   konfiguraci tak bude existovat pravidlo (port forwarding, port triggering, server inside<c.special
                   what="commadots" />), které postoupí UDP komunikaci na zvoleném portu zaøízení s vnitøní IP adresou. Pøesná
                   konfigurace se liší router od routeru, konfiguraci routeru nicménì zvládne kadı síovı
                   specialista.</p><p>Pøechod datovıch paketù pomocí NAT zevnitø sítì ven (do internetu) není zpravidla tøeba
-                  nijak konfigurovat.</p><p>Aby EIBNet/IP komunikace mezi SmartServerem a KNX rozhraním pracovala, musí bıt
+                  nijak konfigurovat.</p><p>Aby KNXnet/IP komunikace mezi SmartServerem a KNX rozhraním pracovala, musí bıt
                   správnì nastaveny všechny NAT routery po cestì. Typické je napøíklad propojení dvou malıch sítí pøes internet,
-                  kdy obì sítì mají na svém rozhraní NAT router. Oba tyto routery musejí mít pøechod vnìjších EIBNet/IP paketù
+                  kdy obì sítì mají na svém rozhraní NAT router. Oba tyto routery musejí mít pøechod vnìjších KNXnet/IP paketù
                   do vnitøní sítì nakonfigurován.</p></dd>
 
                   <dt>Poèítaè s více síovımi kartami, routery</dt>
 
-                  <dd><p>Tunelová komunikace v EIBNet/IP vyaduje, aby klient (SmartServer) uvnitø datového paketu oznamoval
+                  <dd><p>Tunelová komunikace v KNXnet/IP vyaduje, aby klient (SmartServer) uvnitø datového paketu oznamoval
                   serveru (KNX rozhraní) svou IP adresu. Server následnì odešle odpovìï na tuto IP adresu. Pokud má poèítaè více
                   síovıch karet (dvì Ethernet rozhraní, Ethernet+WiFi<c.special what="commadots" />), nebo pokud data
                   procházejí pøes router do jinıch sítí, nemusí se komunikace zpùsobem <type>tunneling</type>
@@ -1287,7 +1287,7 @@ allow = 127.0.0.1</p.type>
                 vıpisù (viz kapitolu <in label="secDebug"></in>). Ladicí vıpisy poskytnou informace, na základì kterı je moné
                 lépe urèit pøíèinu potíí.</p>
 
-                <p>Vıpisy spojení s KNX rozhraním pocházejí ze zdroje KNX/EibNet.Connection a pokrıvají navazování a rušení
+                <p>Vıpisy spojení s KNX rozhraním pocházejí ze zdroje KNX/KNXnet.Connection a pokrıvají navazování a rušení
                 spojení, pøenos dat (ve všech reimech) a øídicí informace. Navazování spojení se tıkají vıpisy se slovem <type>CONNECT</type>
                 a <type>LISTENING</type>, rušení spojení vıpisy se slovem <type>DISCONNECT</type>. Data, která jsou pøenášena
                 tunelovım spojením obsahují slova <type>SEND</type> nebo <type>RECEIVE</type>, data pøenášená pomocí routování
@@ -1299,21 +1299,21 @@ allow = 127.0.0.1</p.type>
                 v komunikaci vše v poøádku. Následující pøíklad ukazuje vıpisy spojení (ze záznamu jsou vybrány jen nìkteré
                 øádky) s èíslem <type>99</type>:</p>
 
-                <p.type>[3.450] t KNX/EibNet.Connection: CONNECTed in TUNNELING mode: 99 10.0.0.6:3671
-[3.700] t KNX/EibNet.Connection: RECEIVE 99 group: 2/1/30
-[3.970] t KNX/EibNet.Connection: SEND 99 group: 2/1/30 true
-[4.241] t KNX/EibNet.Connection: DISCONNECT request: 99 10.0.0.6:3671
-[4.251] t KNX/EibNet.Connection: DISCONNECTed: 99 10.0.0.6:3671</p.type>
+                <p.type>[3.450] t KNX/KNXnet.Connection: CONNECTed in TUNNELING mode: 99 10.0.0.6:3671
+[3.700] t KNX/KNXnet.Connection: RECEIVE 99 group: 2/1/30
+[3.970] t KNX/KNXnet.Connection: SEND 99 group: 2/1/30 true
+[4.241] t KNX/KNXnet.Connection: DISCONNECT request: 99 10.0.0.6:3671
+[4.251] t KNX/KNXnet.Connection: DISCONNECTed: 99 10.0.0.6:3671</p.type>
 
                 <p>Uvedenı pøíklad obsahuje úspìšnì uzavøené spojení. Spojení, které se nedaøí navázat, vypadá v záznamu
                 následovnì (uvedeny jsou dva pøípady):</p>
 
-                <p.type>[0.644] t KNX/EibNet.Connection: CONNECT request: 10.0.0.16:3671
-[0.661] t KNX/EibNet.Connection: CONNECT timeout
+                <p.type>[0.644] t KNX/KNXnet.Connection: CONNECT request: 10.0.0.16:3671
+[0.661] t KNX/KNXnet.Connection: CONNECT timeout
 ...
-[9.130] t KNX/EibNet.Connection: CONNECT request: 10.0.0.6:3671
-[9.140] t KNX/EibNet.Connection: CONNECT failure: 36 10.0.0.6:3671
-[9.140] t KNX/EibNet.Connection: DISCONNECTed: 0 10.0.0.6:3671</p.type>
+[9.130] t KNX/KNXnet.Connection: CONNECT request: 10.0.0.6:3671
+[9.140] t KNX/KNXnet.Connection: CONNECT failure: 36 10.0.0.6:3671
+[9.140] t KNX/KNXnet.Connection: DISCONNECTed: 0 10.0.0.6:3671</p.type>
 
                 <p>V prvním pøípadì se server s KNX rozhraním nespojil, protoe do stanoveného èasu nepøišla ádná odpovìï
                 (<type>timeout</type>). Nejèastìjší pøíèiny tohoto chování jsou: chybnì uvedená IP adresa nebo port adresy
@@ -1380,24 +1380,24 @@ allow = 127.0.0.1</p.type>
 
                 <p>Periodickı test spojení è.<c.special what="thinspace" />90, na kterı KNX rozhraní odpovìdìlo:</p>
 
-                <p.type>[12:03:27.789] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
-[12:03:27.794] t KNX/EibNet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
+                <p.type>[12:03:27.789] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:03:27.794] t KNX/KNXnet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
 
                 <p>Periodickı test spojení è.<c.special what="thinspace" />90, na kterı KNX rozhraní neodpovìdìlo, po trojím
                 opakování server spojení ukonèil:</p>
 
-                <p.type>[12:04:27.787] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
-[12:04:37.795] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
-[12:04:47.796] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
-[12:04:57.811] t KNX/EibNet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
-[12:05:07.825] t KNX/EibNet.Connection: DISCONNECT timeout:  90 
-[12:05:07.825] t KNX/EibNet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
-[12:05:07.825] t KNX/EibNet.Connection: Stop LISTENing on port:  60561</p.type>
+                <p.type>[12:04:27.787] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:37.795] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:47.796] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:57.811] t KNX/KNXnet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/KNXnet.Connection: DISCONNECT timeout:  90 
+[12:05:07.825] t KNX/KNXnet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/KNXnet.Connection: Stop LISTENing on port:  60561</p.type>
 
                 <p>Úspìšné navázání spojení è.<c.special what="thinspace" />91 následované poèáteèním ètením:</p>
 
-                <p.type>[12:05:37.841] t KNX/EibNet.Connection: LISTENing on port:  61829 
-[12:05:37.841] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+                <p.type>[12:05:37.841] t KNX/KNXnet.Connection: LISTENing on port:  61829 
+[12:05:37.841] t KNX/KNXnet.Connection: CONNECT request:  10.0.0.6:3671 
 [12:05:37.921] t KNX/...: CONNECTed in TUNNELING mode:  91 10.0.0.6:3671 
 [12:05:37.921] d KNX/srv: INIT:  2/0/0 
 [12:05:37.921] d KNX/srv: INIT:  2/0/1 
@@ -1406,55 +1406,55 @@ allow = 127.0.0.1</p.type>
 
                 <p>Neúspìšné navázání spojení, KNX rozhraní neodpovìdìlo:</p>
 
-                <p.type>[12:05:17.826] t KNX/EibNet.Connection: LISTENing on port:  58083 
-[12:05:17.826] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
-[12:05:27.841] t KNX/EibNet.Connection: CONNECT timeout 
-[12:05:27.841] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
-[12:05:27.841] t KNX/EibNet.Connection: Stop LISTENing on port:  58083</p.type>
+                <p.type>[12:05:17.826] t KNX/KNXnet.Connection: LISTENing on port:  58083 
+[12:05:17.826] t KNX/KNXnet.Connection: CONNECT request:  10.0.0.6:3671 
+[12:05:27.841] t KNX/KNXnet.Connection: CONNECT timeout 
+[12:05:27.841] t KNX/KNXnet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[12:05:27.841] t KNX/KNXnet.Connection: Stop LISTENing on port:  58083</p.type>
 
                 <p>Neúspìšné navázání spojení; chyba è. 36 znamená, e KNX rozhraní je spojeno s jinım klientem:</p>
 
-                <p.type>[13:12:29.708] t KNX/EibNet.Connection: CONNECT timeout 
-[13:12:29.723] t KNX/EibNet.Connection: LISTENing on port:  55123 
-[13:12:29.723] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
-[13:12:29.740] t KNX/EibNet.Connection: CONNECT failure:  36 10.0.0.6:3671 
-[13:12:29.740] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
-[13:12:29.740] t KNX/EibNet.Connection: Stop LISTENing on port:  55123</p.type>
+                <p.type>[13:12:29.708] t KNX/KNXnet.Connection: CONNECT timeout 
+[13:12:29.723] t KNX/KNXnet.Connection: LISTENing on port:  55123 
+[13:12:29.723] t KNX/KNXnet.Connection: CONNECT request:  10.0.0.6:3671 
+[13:12:29.740] t KNX/KNXnet.Connection: CONNECT failure:  36 10.0.0.6:3671 
+[13:12:29.740] t KNX/KNXnet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[13:12:29.740] t KNX/KNXnet.Connection: Stop LISTENing on port:  55123</p.type>
 
                 <p>Úspìšnı zápis do KNX (T_CON status = 0, R_CON status = 0)</p>
 
-                <p.type>[13:00:46.566] d KNX/EibNet.Connection: SEND seq:  8 
-[13:00:46.566] d KNX/EibNet.Connection: SEND data: [06 ...] 
-[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON status:  92 0 
-[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON seq:  8 
-[13:00:46.587] t KNX/EibNet.Connection: SEND R_CON ok 92 group:  3/1/21 
-[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok seq:  9E 
-[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok data: [06 ...] 
-[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON status:  92 0</p.type>
+                <p.type>[13:00:46.566] d KNX/KNXnet.Connection: SEND seq:  8 
+[13:00:46.566] d KNX/KNXnet.Connection: SEND data: [06 ...] 
+[13:00:46.570] d KNX/KNXnet.Connection: SEND T_CON status:  92 0 
+[13:00:46.570] d KNX/KNXnet.Connection: SEND T_CON seq:  8 
+[13:00:46.587] t KNX/KNXnet.Connection: SEND R_CON ok 92 group:  3/1/21 
+[13:00:46.588] d KNX/KNXnet.Connection: SEND R_CON ok seq:  9E 
+[13:00:46.588] d KNX/KNXnet.Connection: SEND R_CON ok data: [06 ...] 
+[13:00:46.588] d KNX/KNXnet.Connection: SEND R_CON status:  92 0</p.type>
 
                 <p>Neúspìšnı zápis do KNX, KNX rozhraní nepotvrdilo data (T_CON timeout), odesílání se opakuje:</p>
 
-                <p.type>[13:07:02.741] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
-[13:07:02.742] d KNX/EibNet.Connection: SEND seq:  2 
-[13:07:02.742] d KNX/EibNet.Connection: SEND data: [06 ...] 
-[13:07:03.746] t KNX/EibNet.Connection: T_CON timeout, repeat SEND:  94 
-[13:07:03.746] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
-[13:07:03.746] d KNX/EibNet.Connection: SEND seq:  2 
-[13:07:03.746] d KNX/EibNet.Connection: SEND data: [06 ...] 
-[13:07:04.760] t KNX/EibNet.Connection: T_CON timeout, kill SEND:  94</p.type>
+                <p.type>[13:07:02.741] t KNX/KNXnet.Connection: SEND 94 group:  3/0/128 
+[13:07:02.742] d KNX/KNXnet.Connection: SEND seq:  2 
+[13:07:02.742] d KNX/KNXnet.Connection: SEND data: [06 ...] 
+[13:07:03.746] t KNX/KNXnet.Connection: T_CON timeout, repeat SEND:  94 
+[13:07:03.746] t KNX/KNXnet.Connection: SEND 94 group:  3/0/128 
+[13:07:03.746] d KNX/KNXnet.Connection: SEND seq:  2 
+[13:07:03.746] d KNX/KNXnet.Connection: SEND data: [06 ...] 
+[13:07:04.760] t KNX/KNXnet.Connection: T_CON timeout, kill SEND:  94</p.type>
 
                 <p>Pøíchozí data z KNX, spojení è.<c.special what="thinspace" />92:</p>
 
-                <p.type>[12:59:28.089] t KNX/EibNet.Connection: RECEIVE 92 group:  2/0/30 
-[12:59:28.089] d KNX/EibNet.Connection: RECEIVE seq:  67 
-[12:59:28.089] d KNX/EibNet.Connection: RECEIVE data: [06 ...]</p.type>
+                <p.type>[12:59:28.089] t KNX/KNXnet.Connection: RECEIVE 92 group:  2/0/30 
+[12:59:28.089] d KNX/KNXnet.Connection: RECEIVE seq:  67 
+[12:59:28.089] d KNX/KNXnet.Connection: RECEIVE data: [06 ...]</p.type>
 
                 <p>Ukonèení spojení è.<c.special what="thinspace" />91 (napø. pøi zastavení serveru):</p>
 
-                <p.type>[12:54:46.964] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
-[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT forced as abortive 
-[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
-[12:54:46.965] t KNX/EibNet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
+                <p.type>[12:54:46.964] t KNX/KNXnet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/KNXnet.Connection: DISCONNECT forced as abortive 
+[12:54:46.965] t KNX/KNXnet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/KNXnet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
               </text>
             </section>
           </text>
@@ -1540,9 +1540,9 @@ allow = 127.0.0.1</p.type>
                   <dt><gui>Pøímı pøístup</gui></dt>
 
                   <dd><p>Jednoduchá stránka dovolující pøímo zapsat a èíst datové objekty serveru.</p><p><gui>Ètení hodnoty
-                  z EIB</gui> vyaduje vloení skupinové adresy (napøíklad <gui>3/2/3</gui>) do pole vlevo od tlaèítka
+                  z KNX</gui> vyaduje vloení skupinové adresy (napøíklad <gui>3/2/3</gui>) do pole vlevo od tlaèítka
                   <gui>Pøeèíst</gui> a jeho stisk. SmartServer vypíše hodnotu nebo informaci o chybì ètení.</p><p>Zápis hodnoty
-                  do EIB pracuje podobnì, navíc však v druhém poli vyaduje vloení zapisované hodnoty. Napøíklad, pokud má bıt
+                  do KNX pracuje podobnì, navíc však v druhém poli vyaduje vloení zapisované hodnoty. Napøíklad, pokud má bıt
                   na bitovou adresu 3/1/1 zapsána logická jednièka, uvede se do pole s hodnotou <gui>true</gui>. SmartServer po
                   stisku tlaèítka <gui>Zapsat</gui> oznámí vısledek zápisu (a ihned je moné se ve stránce <gui>Historie
                   dat</gui> pøesvìdèit, jak zápis dopadl).</p></dd>
@@ -1591,7 +1591,7 @@ allow = 127.0.0.1</p.type>
 
                 <p>Mezi soubory (bìné statické HTML, obrázky, styly) mohou bıt umístìny soubory s pøíponou <file>pt.xml</file>
                 (napøíklad <file>example.pt.xml</file>, kterı je souèástí instalace), které SmartServer zpracovává dynamicky a
-                umoòuje tak dovnitø jejich obsahu vkládat ivá data datovıch objektù z EIB. Soubory <file>pt.xml</file> jsou
+                umoòuje tak dovnitø jejich obsahu vkládat ivá data datovıch objektù z KNX. Soubory <file>pt.xml</file> jsou
                 XML, musejí proto bıt správnì formátovány a pro pouití ve SmartServeru musejí mít definovanı XML namespace
                 <uri>http://www.smartcontrol.cz/2008/XML/Web/PageTemplate</uri>. Pokud bude mít správnou pøíponu a chybnı
                 namespace, nezpracuje ho SmartServer jako dynamickı a ivá data do nìj nevloí.</p>
@@ -1600,7 +1600,7 @@ allow = 127.0.0.1</p.type>
                 souboru a tu upravovat.</p>
 
                 <p>ivá data se do stránky dostávají pomocí funkce <type>get</type> uzavøené do znaèek <type>${</type> a <type>}</type>.
-                SmartServer znaèky vyhledává a nahrazuje je aktuální hodnotou. Podobnì je moné zapsat do EIB hodnotu pomocí
+                SmartServer znaèky vyhledává a nahrazuje je aktuální hodnotou. Podobnì je moné zapsat do KNX hodnotu pomocí
                 funkce <type>set</type>. Zápis hodnoty vyaduje aktivitu uivatele (stisk tlaèítka, odkazu), SmartServer proto
                 v uivatelskıch dynamickıch (<file>pt.xml</file>) stránkách pøijímá funkci <type>set</type> jako parametr odkazu
                 na stránku (na jinou nebo na sebe samu). Uvnitø dynamickıch stránek je také moné pouít vybírací pøíkaz (<type>pt:choose</type>),
@@ -2055,7 +2055,7 @@ allow = 127.0.0.1</p.type>
 
                   <dt>201</dt>
 
-                  <dd><p>Poadavek byl vyøízen, avšak server nemá spojení s EIB a data byla pouze uloena v cache serveru
+                  <dd><p>Poadavek byl vyøízen, avšak server nemá spojení s KNX a data byla pouze uloena v cache serveru
                   (pøeètena z cache serveru).</p></dd>
 
                   <dt>202</dt>
@@ -2142,7 +2142,7 @@ allow = 127.0.0.1</p.type>
 
                   <dt><type>stop</type></dt>
 
-                  <dd><p>Server se zastaví (odpojí se od EIB), moné návratové kódy jsou 200 a 5XX.</p></dd>
+                  <dd><p>Server se zastaví (odpojí se od KNX), moné návratové kódy jsou 200 a 5XX.</p></dd>
 
                   <dt><type>advise</type></dt>
 
@@ -2225,8 +2225,8 @@ Control.Connected true</p.type>
                 <p>Znaèek <type>ask</type> uvnitø <type>xmlsocket</type> mùe bıt rovnì více, take klient mùe jedinou
                 komunikací poádat o více dat najednou.</p>
 
-                <p>Poslední monost, kterou rozhraní XMLSocket nabízí, je øízení spojení s EIB/KNX. Dvì znaèky, <type>&lt;connect/&gt;</type>
-                a <type>&lt;disconnect/&gt;</type>, pøipojí nebo odpojí SmartServer and EIB/KNX rozhraní. Pøíklady poadavkù
+                <p>Poslední monost, kterou rozhraní XMLSocket nabízí, je øízení spojení s KNX. Dvì znaèky, <type>&lt;connect/&gt;</type>
+                a <type>&lt;disconnect/&gt;</type>, pøipojí nebo odpojí SmartServer and KNX rozhraní. Pøíklady poadavkù
                 k pøipojení a odpojení:</p>
 
                 <p.type>&lt;xmlsocket&gt;
@@ -2266,8 +2266,8 @@ Control.Connected true</p.type>
               <text>
                 <p>Philips Pronto je univerzální dálkovı ovladaè s podporou grafiky, dotykovım displejem, WiFi komunikací a
                 plnou podporou programování. Podpora pro obecné programy dovoluje v Prontu vytvoøit komunikaèní rozhraní pro
-                SDAP, pomocí nìho se dovnitø Pronto aplikace dostanou informace z EIB a naopak, pomocí nìho program (uivatel)
-                mùe EIB vzdálenì ovládat.</p>
+                SDAP, pomocí nìho se dovnitø Pronto aplikace dostanou informace z KNX a naopak, pomocí nìho program (uivatel)
+                mùe KNX vzdálenì ovládat.</p>
 
                 <p>Jazyk programování Pronta je JavaScript (stejnı jazyk se pouívá pro klientské programování v internetovıch
                 stránkách), pro programování Pronta slouí ProntoEdit Professional, program volnì dostupnı ke staení na
@@ -2280,11 +2280,11 @@ Control.Connected true</p.type>
                   <dt><file>Template.xcf</file></dt>
 
                   <dd><p>Soubor s kostrou aplikace pro Pronto. Aplikaci lze pøímo naèíst do ProntoEdit a dále ji upravovat.
-                  Aplikace obsahuje nìkolik obrazovek pro ovládání A/V zaøízení a dvì obrazovky (uvnitø zaøízení EIB), které
-                  dovolují ovládat svìtla a rolety.</p><p>V ukázce je bezprostøednì zøejmı zpùsob komunikace s EIB: Hlavní
-                  JavaScript spojenı se zaøízením EIB zajišuje komunikaci pomocí SDAP; co a jak se má komunikovat kadá z obou
+                  Aplikace obsahuje nìkolik obrazovek pro ovládání A/V zaøízení a dvì obrazovky (uvnitø zaøízení KNX), které
+                  dovolují ovládat svìtla a rolety.</p><p>V ukázce je bezprostøednì zøejmı zpùsob komunikace s KNX: Hlavní
+                  JavaScript spojenı se zaøízením KNX zajišuje komunikaci pomocí SDAP; co a jak se má komunikovat kadá z obou
                   vnoøenıch obrazovek plní do pøi svém zobrazení do hlavního JavaScriptu a sama pak reaguje na pøíchozí
-                  hodnoty.</p><p>Hlavní komunikaèní skript je uloen ve vìtvi <gui>EIB/EIB Properties</gui> v záloce
+                  hodnoty.</p><p>Hlavní komunikaèní skript je uloen ve vìtvi <gui>KNX/KNX Properties</gui> v záloce
                   <gui>Advanced</gui>.</p></dd>
 
                   <dt><file>Main.js</file></dt>
@@ -2300,7 +2300,7 @@ Control.Connected true</p.type>
                   <dt><file>Page.js</file></dt>
 
                   <dd><p>JavaScript ze stránky pro ovládání svìtel. V <file>Template.xcf</file> je skript zapsán ve vìtvi
-                  <gui>EIB/Lights</gui> v záloce <gui>Advanced</gui>.</p><p>Ve skriptu jsou názornì pouity vıše zmínìné metody
+                  <gui>KNX/Lights</gui> v záloce <gui>Advanced</gui>.</p><p>Ve skriptu jsou názornì pouity vıše zmínìné metody
                   ze skriptu <file>Main.js</file>.</p></dd>
 
                   <dt><file>ButtonSwitch.js</file></dt>
@@ -2632,10 +2632,10 @@ var IP_PORT = "6007";</p.type>
 
               <dt><file>discover.exe</file></dt>
 
-              <dd><p>Nástroj pro prohledání místní sítì, vısledkem práce je seznam nalezenıch EibNet/IP zaøízení. Program
-              nalezne rozhraní i routery. Pøíklad vıstupu programu:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;discover
+              <dd><p>Nástroj pro prohledání místní sítì, vısledkem práce je seznam nalezenıch KNXnet/IP zaøízení. Program
+              nalezne rozhraní i routery. Pøíklad vıstupu programu:</p><p.type>C:\Program Files\NeNo\KnxSrv&gt;discover
   Vyhledává se...........................................
-  Bylo nalezeno 2 EIBNet/IP zaøízení
+  Bylo nalezeno 2 KNXnet/IP zaøízení
      1. IP Interface N148
         MAC: 00-0E-8C-00-13-E8, IP: 10.0.0.6:3671
      2. Internal Interface
@@ -2646,8 +2646,8 @@ var IP_PORT = "6007";</p.type>
 
               <dd><p>Program pro test správnosti konfiguraèního souboru. Program naèítá konfiguraci stejnì jako server a
               nalezené chyby vypisuje do pøíkazové øádky. Program mùe mít na svém vstupu více souborù (a mùe je tak ovìøit
-              najednou). Pøíklad se správnou konfigurací:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;checkcfg default.cfg
-  default.cfg   OK      240 objekty/ù</p.type><p>Pøíklad s chybnou konfigurací:</p><p.type>C:\Program files\NeNo\EibSrv&gt;checkcfg default.cfg
+              najednou). Pøíklad se správnou konfigurací:</p><p.type>C:\Program Files\NeNo\KnxSrv&gt;checkcfg default.cfg
+  default.cfg   OK      240 objekty/ù</p.type><p>Pøíklad s chybnou konfigurací:</p><p.type>C:\Program files\NeNo\KnxSrv&gt;checkcfg default.cfg
   default.cfg   CHYBA
     øádek 43: Neznámé jméno chování (trac)</p.type></dd>
             </dl>

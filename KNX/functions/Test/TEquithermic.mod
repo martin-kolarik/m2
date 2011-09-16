@@ -1,4 +1,4 @@
-MODULE eibTest;
+MODULE knxTest;
 (*# module( init_code => off ) *)
 
 (*===========================================================================*)
@@ -11,7 +11,7 @@ IMPORT
   Str;
 
 IMPORT
-  eib_def;
+  knx_def;
 
 (*===========================================================================*)
 
@@ -25,9 +25,9 @@ BEGIN
   FIO.WrStrA( File, String );
 END FWrStr;
 
-PROCEDURE FDumpPacket( Head : ARRAY OF CHAR; File : FIO.File; CONST EIB : eib_def.CEIBPacket );
+PROCEDURE FDumpPacket( Head : ARRAY OF CHAR; File : FIO.File; CONST KNX : knx_def.CKNXPacket );
 TYPE
-  TBC8 = ARRAY [0..SIZE( eib_def.CEIBPacket ) - 1] OF CARD8;
+  TBC8 = ARRAY [0..SIZE( knx_def.CKNXPacket ) - 1] OF CARD8;
   TPC8A = POINTER TO TBC8;
 VAR
   i : CARDINAL;
@@ -39,8 +39,8 @@ BEGIN
     FIO.WrLn( File );
   END;
   FIO.WrStrA( File, '  ' );
-  FOR i := 0 TO SIZE( eib_def.CEIBPacket ) - 1 DO
-    b := TPC8A( ADR( EIB ))^[i];
+  FOR i := 0 TO SIZE( knx_def.CKNXPacket ) - 1 DO
+    b := TPC8A( ADR( KNX ))^[i];
     IF b < 16 THEN
       FIO.WrCharA( File, '0' );
       FIO.WrHex8A( File, b, 1 );
@@ -139,12 +139,12 @@ VAR
   ErrOutF    : FIO.File;
   i          : CARDINAL;
 VAR
-  access     : eib_def.TAccessFlagSet;
+  access     : knx_def.TAccessFlagSet;
   c1, c2, c3 : CARDINAL;
-  day        : eib_def.TDay;
-  dadr       : eib_def.TAddress;
-  EIB        : eib_def.CEIBPacket;
-  sadr       : eib_def.TAddress;
+  day        : knx_def.TDay;
+  dadr       : knx_def.TAddress;
+  KNX        : knx_def.CKNXPacket;
+  sadr       : knx_def.TAddress;
   up, down   : BOOLEAN;
 BEGIN
   ErrorLevel := 0;
@@ -158,120 +158,120 @@ BEGIN
   sadr.SetGroupAddress1( 0AFFEH );
   dadr.SetGroupAddress1( 02FFEH );
 
-  EIB.InitToDefault();
-  EIB.SetSourceAddress( sadr );
-  EIB.SetDestinationAddress( dadr );
-  EIB.SetValueDirection( eib_def.directionWrite );
+  KNX.InitToDefault();
+  KNX.SetSourceAddress( sadr );
+  KNX.SetDestinationAddress( dadr );
+  KNX.SetValueDirection( knx_def.directionWrite );
 
-  EIB.SetEIS1( TRUE );
-  FDumpPacket( 'EIS1', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS1() );
+  KNX.SetEIS1( TRUE );
+  FDumpPacket( 'EIS1', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS1() );
 
-  EIB.SetEIS2Position( TRUE );
-  FDumpPacket( 'EIS2Position', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS2Position() );
+  KNX.SetEIS2Position( TRUE );
+  FDumpPacket( 'EIS2Position', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS2Position() );
 
-  EIB.SetEIS2Value( 50 );
-  FDumpPacket( 'EIS2Value set to 50 %', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS2Value() = 50 );
+  KNX.SetEIS2Value( 50 );
+  FDumpPacket( 'EIS2Value set to 50 %', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS2Value() = 50 );
 
   FOR i := 0 TO 100 DO
-    EIB.SetEIS2Value( i );
-    IF EIB.GetEIS2Value() <> i THEN
+    KNX.SetEIS2Value( i );
+    IF KNX.GetEIS2Value() <> i THEN
       FIO.WrHex32A( ErrOutF, i, 3 );
     END;
   END;
-  EIB.ClearData();
+  KNX.ClearData();
 
-  EIB.SetEIS2Control( TRUE, FALSE, 51 );
-  FDumpPacket( 'EIS2Control about 51 %', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS2Control( up, down ) = 100 );
+  KNX.SetEIS2Control( TRUE, FALSE, 51 );
+  FDumpPacket( 'EIS2Control about 51 %', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS2Control( up, down ) = 100 );
   FWrResult( ErrOutF, up = TRUE );
   FWrResult( ErrOutF, down = FALSE );
 
-  EIB.SetEIS2Control( TRUE, FALSE, 10 );
-  FDumpPacket( 'EIS2Control about 10 %', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS2Control( up, down ) = 13 );
+  KNX.SetEIS2Control( TRUE, FALSE, 10 );
+  FDumpPacket( 'EIS2Control about 10 %', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS2Control( up, down ) = 13 );
   FWrResult( ErrOutF, up = TRUE );
   FWrResult( ErrOutF, down = FALSE );
 
-  EIB.SetEIS3( eib_def.dayMonday, 21, 32, 32 );
-  FDumpPacket( 'EIS3', ErrOutF, EIB );
-  EIB.GetEIS3( day, c1, c2, c3 );
-  FWrResult( ErrOutF, day = eib_def.dayMonday );
+  KNX.SetEIS3( knx_def.dayMonday, 21, 32, 32 );
+  FDumpPacket( 'EIS3', ErrOutF, KNX );
+  KNX.GetEIS3( day, c1, c2, c3 );
+  FWrResult( ErrOutF, day = knx_def.dayMonday );
   FWrResult( ErrOutF, c1 = 21 );
   FWrResult( ErrOutF, c2 = 32 );
   FWrResult( ErrOutF, c3 = 32 );
-  EIB.ClearData();
+  KNX.ClearData();
 
-  EIB.SetEIS4( 1966, 3, 12 );
-  FDumpPacket( 'EIS4', ErrOutF, EIB );
-  EIB.GetEIS4( c1, c2, c3 );
+  KNX.SetEIS4( 1966, 3, 12 );
+  FDumpPacket( 'EIS4', ErrOutF, KNX );
+  KNX.GetEIS4( c1, c2, c3 );
   FWrResult( ErrOutF, c1 = 1966 );
   FWrResult( ErrOutF, c2 = 3 );
   FWrResult( ErrOutF, c3 = 12 );
-  EIB.ClearData();
+  KNX.ClearData();
 
-  EIB.SetEIS5( 20.0 );
-  FDumpPacket( 'EIS5 20.0 W/O range', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS5() = 20.0 );
-  EIB.ClearData();
+  KNX.SetEIS5( 20.0 );
+  FDumpPacket( 'EIS5 20.0 W/O range', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS5() = 20.0 );
+  KNX.ClearData();
 
-  EIB.SetEIS5Range( 20.0, -100.0, 100.0 );
-  FDumpPacket( 'EIS5 20.0 W/I range', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS5() = 20.0 );
-  EIB.ClearData();
+  KNX.SetEIS5Range( 20.0, -100.0, 100.0 );
+  FDumpPacket( 'EIS5 20.0 W/I range', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS5() = 20.0 );
+  KNX.ClearData();
 
-  EIB.SetEIS6( 40 );
-  FDumpPacket( 'EIS6 40 %', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS6() = 40 );
-  EIB.ClearData();
+  KNX.SetEIS6( 40 );
+  FDumpPacket( 'EIS6 40 %', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS6() = 40 );
+  KNX.ClearData();
 
-  EIB.SetEIS7Move( FALSE );
-  FDumpPacket( 'EIS7Move', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS7Move() = FALSE );
+  KNX.SetEIS7Move( FALSE );
+  FDumpPacket( 'EIS7Move', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS7Move() = FALSE );
 
-  EIB.SetEIS7Step( TRUE );
-  FDumpPacket( 'EIS7Step', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS7Move() = TRUE );
+  KNX.SetEIS7Step( TRUE );
+  FDumpPacket( 'EIS7Step', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS7Move() = TRUE );
 
-  EIB.SetEIS9( -0.47 );
-  FDumpPacket( 'EIS9 -0.47', ErrOutF, EIB );
-  FWrResult( ErrOutF, ABS( EIB.GetEIS9() + 0.47 ) < 0.001 );
-  EIB.ClearData();
+  KNX.SetEIS9( -0.47 );
+  FDumpPacket( 'EIS9 -0.47', ErrOutF, KNX );
+  FWrResult( ErrOutF, ABS( KNX.GetEIS9() + 0.47 ) < 0.001 );
+  KNX.ClearData();
 
-  EIB.SetEIS10( 5000 );
-  FDumpPacket( 'EIS10', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS10() = 5000 );
-  EIB.ClearData();
+  KNX.SetEIS10( 5000 );
+  FDumpPacket( 'EIS10', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS10() = 5000 );
+  KNX.ClearData();
 
-  EIB.SetEIS11( 789456123 );
-  FDumpPacket( 'EIS11', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS11() = 789456123 );
-  EIB.ClearData();
+  KNX.SetEIS11( 789456123 );
+  FDumpPacket( 'EIS11', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS11() = 789456123 );
+  KNX.ClearData();
 
-  EIB.SetEIS12( 0123456H, eib_def.TAccessFlagSet{eib_def.accessPermission, eib_def.accessDirection}, 1 );
-  FDumpPacket( 'EIS12', ErrOutF, EIB );
-  EIB.GetEIS12( c1, access, c2 );
+  KNX.SetEIS12( 0123456H, knx_def.TAccessFlagSet{knx_def.accessPermission, knx_def.accessDirection}, 1 );
+  FDumpPacket( 'EIS12', ErrOutF, KNX );
+  KNX.GetEIS12( c1, access, c2 );
   FWrResult( ErrOutF, c1 = 0123456H );
-  FWrResult( ErrOutF, access = eib_def.TAccessFlagSet{eib_def.accessPermission, eib_def.accessDirection} );
+  FWrResult( ErrOutF, access = knx_def.TAccessFlagSet{knx_def.accessPermission, knx_def.accessDirection} );
   FWrResult( ErrOutF, c2 = 1 );
-  EIB.ClearData();
+  KNX.ClearData();
 
-  EIB.SetEIS13( CHAR( 27 ));
-  FDumpPacket( 'EIS13', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS13() = CHAR( 27 ));
-  EIB.ClearData();
+  KNX.SetEIS13( CHAR( 27 ));
+  FDumpPacket( 'EIS13', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS13() = CHAR( 27 ));
+  KNX.ClearData();
 
-  EIB.SetEIS14( 50 );
-  FDumpPacket( 'EIS14', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS14() = 50 );
-  EIB.ClearData();
+  KNX.SetEIS14( 50 );
+  FDumpPacket( 'EIS14', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS14() = 50 );
+  KNX.ClearData();
 
-  EIB.SetEIS15( 'EIB ist OK' );
-  FDumpPacket( 'EIS15', ErrOutF, EIB );
-  FWrResult( ErrOutF, EIB.GetEIS15() = eib_def.TEISString( 'EIB ist OK' ));
-  EIB.ClearData();
+  KNX.SetEIS15( 'KNX is OK' );
+  FDumpPacket( 'EIS15', ErrOutF, KNX );
+  FWrResult( ErrOutF, KNX.GetEIS15() = knx_def.TEISString( 'KNX is OK' ));
+  KNX.ClearData();
 
 Error:
   FWrLn( ErrOutF );
@@ -282,4 +282,4 @@ END main;
 
 (*===========================================================================*)
 
-END eibTest.
+END knxTest.

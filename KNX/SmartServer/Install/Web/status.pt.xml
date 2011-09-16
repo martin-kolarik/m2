@@ -2,7 +2,7 @@
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
   <html>
       <head>
-          <title>NeNo KNX/EIBSrv</title>
+          <title>NeNo KNXSrv</title>
           <link rel="StyleSheet" type="text/css" href="NeNo.css" />
       </head>
       <body>
@@ -33,7 +33,7 @@
                             <td>${msg.status.Project}</td><td class="spare"> </td><td>${project}</td>
                           </tr>
                           <tr>
-                            <td>${msg.status.EIBconnection}</td><td class="spare"> </td>
+                            <td>${msg.status.KNXconnection}</td><td class="spare"> </td>
                             <pt:choose>
                               <pt:when condition="${connected}">
                                 <td><span class="green">${connection}, ${msg.status.connectedFrom}${connectionTime}</span>
@@ -77,7 +77,7 @@
                   </div>
 
                   <div class="bottom">
-                    <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
+                    <p>KNX SmartServer © NeNo ver. ${version}</p>
                   </div>
 
               </div>

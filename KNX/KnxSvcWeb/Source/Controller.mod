@@ -1178,7 +1178,7 @@ CLASS IMPLEMENTATION CController;
       IF NOT ids.Empty THEN
          ids.ToINT32( 10, OUT id );
          IF id = -1 THEN // new user is to be edited
-            role := EibSrvWeb.roleUserNamed;
+            role := KnxSvcWeb.roleUserNamed;
          ELSE
             DEC( id );
             IF _Web^.GetUser( id, OUT role, OUT currentName, OUT roleName ) THEN

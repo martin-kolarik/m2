@@ -30,7 +30,7 @@
                 <Directory Id="NeNoProgram" Name="$(var.Manufacturer)">
                     <Directory Id="INSTALLDIR" Name="SmartSrv" LongName="SmartServer">
                         <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
-                            <File DiskId="1" Id="EibSrv.EXE" Name="EibSrv.exe" Source="EibSrv.exe" Vital="yes" KeyPath="yes" />
+                            <File DiskId="1" Id="KnxSrv.EXE" Name="KnxSrv.exe" Source="KnxSrv.exe" Vital="yes" KeyPath="yes" />
                             <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Interactive="yes" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
                                 <ServiceDependency Id="Tcpip" />
                             </ServiceInstall>
@@ -46,10 +46,10 @@
                             <ServiceControl Id="SVCControlMVCLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
                         <Component Guid="14B49790-AE67-4a20-9852-C1935C7763D3" Id="DebugInfo">
-                            <File Id="EibSrv.PDB" Name="eibsrv.pdb" Source="eibsrv.pdb" DiskId="1" KeyPath="yes"/>
+                            <File Id="KnxSrv.PDB" Name="knxsrv.pdb" Source="knxsrv.pdb" DiskId="1" KeyPath="yes"/>
                             <File Id="ScMvc.PDB" Name="scmvc.pdb" Source="scmvc.pdb" DiskId="1" />
                             <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
-                            <File Id="EibSrv.MAP" Name="eibsrv.map" Source="eibsrv.map" DiskId="1" />
+                            <File Id="KnxSrv.MAP" Name="knxsrv.map" Source="knxsrv.map" DiskId="1" />
                             <File Id="ScMvc.MAP" Name="scmvc.map" Source="scmvc.map" DiskId="1" />
                             <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
                         </Component>

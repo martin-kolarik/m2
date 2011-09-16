@@ -16,8 +16,8 @@
         </string>
 
         <string name="index.text">
-            <item lang="en-US">NeNo EIB/KNX SmartServer Web Access, welcome!</item>
-            <item lang="cs-CZ">NeNo EIB/KNX SmartServer Web server, vítejte!</item>
+            <item lang="en-US">NeNo KNX SmartServer Web Access, welcome!</item>
+            <item lang="cs-CZ">NeNo KNX SmartServer Web server, vítejte!</item>
         </string>
         <string name="index.private">
             <item lang="en-US">Private pages</item>
@@ -94,9 +94,9 @@
             <item lang="en-US">Project</item>
             <item lang="cs-CZ">Projekt</item>
         </string>
-        <string name="status.EIBconnection">
-            <item lang="en-US">EIB connection</item>
-            <item lang="cs-CZ">Spojení s EIB</item>
+        <string name="status.KNXconnection">
+            <item lang="en-US">KNX connection</item>
+            <item lang="cs-CZ">Spojení s KNX</item>
         </string>
         <string name="status.connectedFrom">
             <item xml:space="preserve" lang="en-US">Connected from </item>
@@ -207,8 +207,8 @@
         </string>
         
         <string name="io.read">
-            <item lang="en-US">Read value from EIB (from server cache)</item>
-            <item lang="cs-CZ">Čtení hodnoty z EIB (z cache serveru)</item>
+            <item lang="en-US">Read value from KNX (from server cache)</item>
+            <item lang="cs-CZ">Čtení hodnoty z KNX (z cache serveru)</item>
         </string>
         <string name="io.doRead">
             <item lang="en-US">Read</item>
@@ -223,8 +223,8 @@
             <item lang="cs-CZ">Čtení se nezdařilo.</item>
         </string>
         <string name="io.write">
-            <item lang="en-US">Write value to EIB</item>
-            <item lang="cs-CZ">Zápis hodnoty do EIB</item>
+            <item lang="en-US">Write value to KNX</item>
+            <item lang="cs-CZ">Zápis hodnoty do KNX</item>
         </string>
         <string name="io.doWrite">
             <item lang="en-US">Write</item>

@@ -124,7 +124,7 @@ function ResetSynchronous() {
 
 // ===== GLOBAL HELPERS
 function Image( name ) {
-  return CF.widget( name, "PResources", "EIB" ).getImage();
+  return CF.widget( name, "PResources", "KNX" ).getImage();
 }
 
 function NormalizeNumber( n ) {

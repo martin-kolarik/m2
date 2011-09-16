@@ -1850,16 +1850,16 @@ CLASS IMPLEMENTATION CKNXServer;
       // read control
       IF TS.SetSection( snControl ) THEN
          IF NOT FindBehaviour( StringsO.FromOA( bnSource ), Priority, BFlags ) THEN
-            Priority := eib_def.priorityNormal;
-            BFlags := eib_def.TA_ObjectFlags{};
+            Priority := knx_def.priorityNormal;
+            BFlags := knx_def.TA_ObjectFlags{};
          END;
          IF TS.GetKeyStr( knDate, OUT ErrorLine, OUT so ) THEN
-            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, eib_def.eitDate, TObjectType{ objtDate } ) THEN
+            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitDate, TObjectType{ objtDate } ) THEN
                GOTO Fail;
             END;
          END;
          IF TS.GetKeyStr( knTime, OUT ErrorLine, OUT so ) THEN
-            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, eib_def.eitTime, TObjectType{ objtTime } ) THEN
+            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitTime, TObjectType{ objtTime } ) THEN
                GOTO Fail;
             END;
          END;
@@ -2507,10 +2507,10 @@ CLASS IMPLEMENTATION CKNXServer;
    PRIVATE PROCEDURE DoPushDateAndTime();
    VAR
       b : BOOLEAN;
-      Day : eib_def.TDay;
+      Day : knx_def.TDay;
       DT : DateTime.DateTime;
-      EVDate : eib_def.TValue;
-      EVTime : eib_def.TValue;
+      EVDate : knx_def.TValue;
+      EVTime : knx_def.TValue;
       i : INTEGER;
       PObject : TPObject;
    BEGIN
@@ -2520,7 +2520,7 @@ CLASS IMPLEMENTATION CKNXServer;
 
       DT.SetNowLocal();
       EVDate.SetDate( DT.Year, DT.Month, DT.Day );
-      Day := eib_def.TDay( 1 + ( CARDINAL( DT.DayOfWeek ) + 6 ) MOD 7 );
+      Day := knx_def.TDay( 1 + ( CARDINAL( DT.DayOfWeek ) + 6 ) MOD 7 );
       EVTime.SetTime( Day, DT.Hour, DT.Minute, DT.Second );
 
       FOR i := 0 TO DateAndTimeObjects.Count -1 DO;

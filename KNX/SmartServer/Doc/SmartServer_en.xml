@@ -14,9 +14,9 @@
       <title>SmartServer</title>
 
       <text>
-        <p>SmartServer for KNX/EIB is a product which allows to remote clients (to visualization programs) to read and write
-        data from KNX/EIB bus. SmartServer is designed for continuous running, it is present in the operating system as a
-        service. SmartServer KNX/EIB keeps data in the cache, so their current values are available for clients continually.
+        <p>SmartServer for KNX is a product which allows to remote clients (to visualization programs) to read and write
+        data from KNX bus. SmartServer is designed for continuous running, it is present in the operating system as a
+        service. SmartServer KNX keeps data in the cache, so their current values are available for clients continually.
         Server can be remotely administrated by web interface (HTTP/HTML).</p>
 
         <p>Server provides for clients two interfaces: XMLSocket and line-oriented text TCP/IP interface.</p>
@@ -29,9 +29,9 @@
 
           <li><p>10 megabytes of free disk space,</p></li>
 
-          <li><p>an active network connection for connection with clients and KNX/EIB,</p></li>
+          <li><p>an active network connection for connection with clients and KNX/KNX,</p></li>
 
-          <li><p>on the KNX/EIB devices EIBNet/IP (it is part of a KNX standard).</p></li>
+          <li><p>on the KNX devices KNXnet/IP (it is part of a KNX standard).</p></li>
         </il>
 
         <p>Version of the documentation: 1.2.1509</p>
@@ -45,7 +45,7 @@
 
           <text>
             <p>The SmartServer installation packet (in the form of MSI file, MSI = Microsoft Installer) is installed after
-            start-up automatically to <file>Program Files\NeNo\EibSrv</file> folder. During the installation, it is necessary to
+            start-up automatically to <file>Program Files\NeNo\KNXSrv</file> folder. During the installation, it is necessary to
             enter proper licence data (from licence certificate), or it is possible to install the SmartServer as a demo
             version.</p>
 
@@ -77,8 +77,8 @@
                 <p>The registration number is obtained with help of <type>activate</type> tool as follows (record of operations
                 in command line):</p>
 
-                <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
-C:\Program Files\NeNo\EibSrv&gt;activate -Q *
+                <p.type>C:\&gt;cd "Program Files\Neno\KNXSrv
+C:\Program Files\NeNo\KNXSrv&gt;activate -Q *
 Licence support tool
 (c) NeNo 2009
 
@@ -87,7 +87,7 @@ Licence support tool
   found 2 valid records
 
   processing licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxx"
-    for product "NeNo.EibSrv"
+    for product "NeNo.KNXSrv"
     registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
 
                 <p>The above-mentioned registration number is not written, if the SmartServer is installed without a licence
@@ -97,8 +97,8 @@ Licence support tool
                 activation number will arise in the form <type>VAN-xxxxx-...-xxxxx</type>. This activation number is applied
                 again with help of activate tool:</p>
 
-                <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
-C:\Program Files\NeNo\EibSrv&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+                <p.type>C:\&gt;cd "Program Files\Neno\KNXSrv
+C:\Program Files\NeNo\KNXSrv&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
 Licence support tool
 (c) NeNo 2009
 
@@ -107,23 +107,23 @@ Licence support tool
   found 2 valid records
 
   processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
-  processing product "NeNo.EibSrv"</p.type>
+  processing product "NeNo.KNXSrv"</p.type>
 
                 <p>A fruitfulness of activation can be verified again with help of <type>activate</type>:</p>
 
-                <p.type>C:\Program Files\NeNo\EibSrv&gt;activate -I
+                <p.type>C:\Program Files\NeNo\KNXSrv&gt;activate -I
 Licence support tool
 (c) NeNo 2009
 
   found 3 records
   found 3 unique records
 
-  product "NeNo.EibSrv"
+  product "NeNo.KNXSrv"
     licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
     type "----"
       activated permanently</p.type>
 
-                <p>Caution: After the activation the SmartServer service (EIB/KNXServer) must be restarted. In computers with
+                <p>Caution: After the activation the SmartServer service (KNX/KNXServer) must be restarted. In computers with
                 embedded operation system (Windows XP Embedded), it is further necessary to record changes of computer set-up on
                 the disc and to restart the computer.</p>
               </text>
@@ -136,14 +136,14 @@ Licence support tool
 
           <text>
             <p>The SmartServer runs as a service of operation system and it starts immediately after installation. It loads all
-            its settings (KNX/EIB objects, communication, EIBNet/IPinterface) from a text file on the disc (description, see
+            its settings (KNX objects, communication, KNXnet/IPinterface) from a text file on the disc (description, see
             bellow), which is allotted to the server with help of administrative web interface. The configuration file cannot be
             modified with help of the administrative interface, the file must be recorded on the disc by another way (locally,
             with help of RDP, VNC, etc.).</p>
 
             <p>Without modification by the administrative interface, the server searches and loads, as starting file,
             <file>default.cfg</file> configuration file, which is located in the same folder, as the server program
-            (<file>EibSrv.exe</file>). This starting configuration file is installed and contains also a list of all available
+            (<file>KNXSrv.exe</file>). This starting configuration file is installed and contains also a list of all available
             settings also with brief comments.</p>
 
             <p>Program running as the service has limited possibilities of interaction with user, therefore it is not possible
@@ -181,25 +181,25 @@ Licence support tool
 
                   <dt><type>id</type></dt>
 
-                  <dd><p>for definition of IP address and EIBNet/IP port of equipment; according to kind of communication, IP
+                  <dd><p>for definition of IP address and KNXnet/IP port of equipment; according to kind of communication, IP
                   address must be either multicast (for <type>mode = routing</type>), or unicast (for <type>mode = tunnelling</type>
                   or <type>mode = tunnelling-ACK</type>).Record of parameter consists from three parts, the parameter can be
-                  found in all examples:</p><p.type>id = eibnet:192.168.0.100:3671</p.type><p>whereas the last part
+                  found in all examples:</p><p.type>id = KNXnet:192.168.0.100:3671</p.type><p>whereas the last part
                   (<number>3671</number>, port number) is optional. If a port is not recorded, the initial port according to KNX
                   standard (i.e. just <number>3671</number>) is used.</p><p>In routing mode, a multicast address must be used.
-                  For proper communication of server with EIBNet/IP routers, the same multicast address must be recorded as in
+                  For proper communication of server with KNXnet/IP routers, the same multicast address must be recorded as in
                   id parameter, as in configurations of single routers. The initial address according to KNX: 224.0.23.12
-                  standard offers itself as a good choice. Then the configuration looks, e.g.:</p><p.type>id = eibnet:224.0.23.12</p.type></dd>
+                  standard offers itself as a good choice. Then the configuration looks, e.g.:</p><p.type>id = KNXnet:224.0.23.12</p.type></dd>
 
                   <dt><type>mode</type></dt>
 
-                  <dd><p>For definition of kind of connection with EIBNet/IP equipment. Possible values of the parameter are
+                  <dd><p>For definition of kind of connection with KNXnet/IP equipment. Possible values of the parameter are
                   displayed in the table <in label="tblMode"></in>.</p></dd>
 
                   <dt><type>cache_only</type></dt>
 
-                  <dd><p>For allowing access to data objects without connection to KNX/EIB data bus. If parametr valus is <type>false</type>
-                  (defaut value), SmartServer requires connection to KNX/EIB to be established. If the connection is broken (or
+                  <dd><p>For allowing access to data objects without connection to KNX data bus. If parametr valus is <type>false</type>
+                  (defaut value), SmartServer requires connection to KNX to be established. If the connection is broken (or
                   if it did not succeeded to establish), SmartServer does not provide data to clients either it does not
                   displays it in web interface (there error message appears). If the parameter is set to value <type>true</type>,
                   SmartServer will not connect the bus and data will be provided to clients continuously (but data will never be
@@ -257,7 +257,7 @@ Licence support tool
 
                   <dt><type>address</type></dt>
 
-                  <dd><p>for definition of KNX physical address, which is used by server for sending of data to KNX/EIB data
+                  <dd><p>for definition of KNX physical address, which is used by server for sending of data to KNX data
                   bus. The parameter is present in all examples. Example:</p><p.type>address = 1.2.1</p.type></dd>
 
                   <dt><type>read_on_start_repeat_count</type></dt>
@@ -335,7 +335,7 @@ Licence support tool
                 parameters. Their distinguishing is simple: <type>objects</type>, <type>logged_objects</type> and <type>logged_on_change_objects</type>
                 allow common definition of more data objects (each with one group address); <type>object</type>, <type>logged_object</type>
                 and <type>logged_on_change_object</type> define one data object eventually connected with more group addresses
-                (the model is the same as at connection of communication objects with group addresses at current EIB programming
+                (the model is the same as at connection of communication objects with group addresses at current KNX programming
                 in ETS).</p>
 
                 <p><type>logged_on_change_object</type>, <type>logged_objects</type> and <type>logged_object</type> parameters
@@ -350,7 +350,7 @@ Licence support tool
 
                   <table class="tblCommon">
                     <tr>
-                      <td>KNX/EIB data type (Std. 2.6)</td>
+                      <td>KNX data type (Std. 2.6)</td>
 
                       <td>keyword 1</td>
 
@@ -521,28 +521,28 @@ Licence support tool
                     <tr>
                       <td><type>tracker</type></td>
 
-                      <td>Data item is not written to EIB, it contains the last value flown through the data bus.</td>
+                      <td>Data item is not written to KNX, it contains the last value flown through the data bus.</td>
                     </tr>
 
                     <tr>
                       <td><em><type>tracker_init</type></em></td>
 
-                      <td>As <type>tracker</type>, but at start of server, or at restoration of connection with KNX/EIB, it
-                      reads out by forced way the current value from EIB. An equipment must exist in EIB, which will respond
+                      <td>As <type>tracker</type>, but at start of server, or at restoration of connection with KNX/KNX, it
+                      reads out by forced way the current value from KNX. An equipment must exist in KNX, which will respond
                       this requirement.</td>
                     </tr>
 
                     <tr>
                       <td><em><type>transmitter</type></em></td>
 
-                      <td>Data item is written to EIB, it contains the last value written by some of clients, it does not accept
-                      values from EIB.</td>
+                      <td>Data item is written to KNX, it contains the last value written by some of clients, it does not accept
+                      values from KNX.</td>
                     </tr>
 
                     <tr>
                       <td><type>transmitter_with_status</type></td>
 
-                      <td>Data item is written to EIB and accepts values from EIB. It contains the last value either from EIB or
+                      <td>Data item is written to KNX and accepts values from KNX. It contains the last value either from KNX or
                       from clients.</td>
                     </tr>
 
@@ -550,14 +550,14 @@ Licence support tool
                       <td><type><em>transmitter_with_status_init</em></type></td>
 
                       <td>As <type>transmitter_with_status</type>, but at starting or at restoration of connection it reads out
-                      the value from EIB by forced way as well as <type>tracker_init</type>.</td>
+                      the value from KNX by forced way as well as <type>tracker_init</type>.</td>
                     </tr>
 
                     <tr>
                       <td><type>reader</type></td>
 
                       <td>As <type>tracker</type>, but moreover server reads item value in the period defined by <type>readers_period</type>
-                      parameter. Communication object in the EIB device must have R (read) flag set. There is an example in file
+                      parameter. Communication object in the KNX device must have R (read) flag set. There is an example in file
                       <file>13 reader.cfg</file> installed.</td>
                     </tr>
                   </table>
@@ -822,7 +822,7 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs displa
                   the second part of message source against (see the chapter <in.about label="secDebug"></in.about>). For
                   example, following rules allow recording of KNX connection messages only:</p><p.type>...
 filter = deny, *
-filter = allow, EibNet.Connection</p.type></dd>
+filter = allow, KNXnet.Connection</p.type></dd>
                 </dl>
 
                 <f.table label="tblTarget">
@@ -954,7 +954,7 @@ filter = allow, EibNet.Connection</p.type></dd>
                 </dl>
 
                 <p>Both parameters of the section may contain text <type>%exedir%</type>, which substitutes the folder with the
-                server program (<file>EibSrv.exe</file>). This substitution text need not be used, nevertheless, there must be
+                server program (<file>KNXSrv.exe</file>). This substitution text need not be used, nevertheless, there must be
                 set the full path to the root and to the file with texts.</p>
               </text>
             </section>
@@ -1158,9 +1158,9 @@ allow = 127.0.0.1</p.type>
                   <caption>The third part of the report distinguishes the origin of the report; reports from following sources
                   appears in the server:</caption>
 
-                  <dt>KNX/EibNet.Connection</dt>
+                  <dt>KNX/KNXnet.Connection</dt>
 
-                  <dd><p>Connection with KNX interface, information about EibNet/IP protocol.</p></dd>
+                  <dd><p>Connection with KNX interface, information about KNXnet/IP protocol.</p></dd>
 
                   <dt>sys/HTTP</dt>
 
@@ -1183,7 +1183,7 @@ allow = 127.0.0.1</p.type>
                 <p>Behind the third part in the debugging report there follows a text, which is not longer formalised and which
                 contains any data (such ones, which the origin wants to show).</p>
 
-                <p>The most frequent reason for use of debugging reports is the communication with help of EibNet/IP protocol,
+                <p>The most frequent reason for use of debugging reports is the communication with help of KNXnet/IP protocol,
                 i.e. the communication with KNX interface. The interface is an independent element outside the server control,
                 which may be switched on or off independently, or which may be used by somebody else for connection with KNX. In
                 every such case, the server has not connection with KNX and it is necessary to switch on the debugging listings
@@ -1247,11 +1247,11 @@ allow = 127.0.0.1</p.type>
 
               <text>
                 <p>Routers in IP communications are located always between networks and logically connect them. Properly set
-                router transmits all KNX operation between networks without problems, nevertheless, EIBNet/IP character may
+                router transmits all KNX operation between networks without problems, nevertheless, KNXnet/IP character may
                 cause troubles in real cases.</p>
 
                 <dl>
-                  <caption>Problem issues for EIBNet/IP may be:</caption>
+                  <caption>Problem issues for KNXnet/IP may be:</caption>
 
                   <dt>IP multicasting</dt>
 
@@ -1267,26 +1267,26 @@ allow = 127.0.0.1</p.type>
                   <dd><p>NAT is a technology allowing exchanging of addresses and ports of senders and recipients in
                   communication. The most frequent use of NAT is currently highly single-purpose one<c.special what="dash" />in
                   home and office routers<c.special what="dash" />for connection of smaller network to Internet. To allow
-                  transfer between the SmartServer and interface through such EIBNet/IP communication router, it is always
-                  necessary to adjust setting of the router (of course, the router must be able to do it). </p><p>EIBNet/IP
+                  transfer between the SmartServer and interface through such KNXnet/IP communication router, it is always
+                  necessary to adjust setting of the router (of course, the router must be able to do it). </p><p>KNXnet/IP
                   communication is UDP, a permanent connection is not established between elements, therefore the router must
                   know, which data should be forwarded and where. For successful transfer through NAT router there must be
                   assured that the external packet (from Internet, from WAN interface of the router) will direct the router
                   inside to real equipment (to computer with the SmartServer or KNX interface). Routers usually decide about
                   routing according to the protocol type (UDP) and the port number (if port is not changed, then number
-                  <number>3671</number> is valid for EIBNet/IP). In their configuration then there will exist a rule (port
+                  <number>3671</number> is valid for KNXnet/IP). In their configuration then there will exist a rule (port
                   forwarding, for triggering, server inside, etc.), which will perform the UDP communication on selected port of
                   the equipment with internal IP address. An accurate configuration differs router from router, nevertheless,
                   the router configuration can be managed by any network specialist.</p><p>The transfer of data packages with
                   help of NAT from inside of the network out (to Internet) usually need not be configured by any way. </p><p>To
-                  allow the operation of EIBNet/IP communication between the SmartServer a the KNX interface, all NAT routers on
+                  allow the operation of KNXnet/IP communication between the SmartServer a the KNX interface, all NAT routers on
                   the route must be set properly. Typical case is, e.g., an interconnection of two smaller networks through
                   Internet, when both networks have NAT routers on their interfaces. Both these routers must have configured
-                  transfer of external EIBNet/IP packages to internal network.</p></dd>
+                  transfer of external KNXnet/IP packages to internal network.</p></dd>
 
                   <dt>Computer with more network cards, routers</dt>
 
-                  <dd><p>The tunnel communication in EIBNet/IP requires the client to announce to the server (KNX interface) its
+                  <dd><p>The tunnel communication in KNXnet/IP requires the client to announce to the server (KNX interface) its
                   IP address (SmartServer) inside the data packet. The server will consequently send the response to this IP
                   address. If a computer has more network cards (two Ethernet interface, Ethernet+WiFi, etc.), or if data pass
                   through the router to another networks, then the communication by the way of <type>tunnelling</type> need not
@@ -1309,7 +1309,7 @@ allow = 127.0.0.1</p.type>
                 the diagnostic listings (see chapter <in label="secDebug"></in>). Debugging listings will provide information,
                 based on which it is possible to determine the reason of troubles easier.</p>
 
-                <p>Listings connected with KNX interface originate from KNX/EibNet.Connection source and they cover establishing
+                <p>Listings connected with KNX interface originate from KNX/KNXnet.Connection source and they cover establishing
                 and disconnection of connection, data transfer (in all modes) and control information. Listings with word <type>CONNECT</type>
                 and <type>LISTENING</type> relate to establishing of connection, listings with word <type>DISCONNECT</type>
                 relate to disconnection of the connection. Data transferred by tunnel connection contain words <type>SEND</type>
@@ -1321,21 +1321,21 @@ allow = 127.0.0.1</p.type>
                 connection is changed in debugging listings, then something is probably wrong in the communication. Following
                 example shows listings of connection (only some lines are selected from the record) with number <type>99</type>:</p>
 
-                <p.type>[3.450] t KNX/EibNet.Connection: CONNECTed in TUNNELING mode: 99 10.0.0.6:3671
-[3.700] t KNX/EibNet.Connection: RECEIVE 99 group: 2/1/30
-[3.970] t KNX/EibNet.Connection: SEND 99 group: 2/1/30 true
-[4.241] t KNX/EibNet.Connection: DISCONNECT request: 99 10.0.0.6:3671
-[4.251] t KNX/EibNet.Connection: DISCONNECTed: 99 10.0.0.6:3671</p.type>
+                <p.type>[3.450] t KNX/KNXnet.Connection: CONNECTed in TUNNELING mode: 99 10.0.0.6:3671
+[3.700] t KNX/KNXnet.Connection: RECEIVE 99 group: 2/1/30
+[3.970] t KNX/KNXnet.Connection: SEND 99 group: 2/1/30 true
+[4.241] t KNX/KNXnet.Connection: DISCONNECT request: 99 10.0.0.6:3671
+[4.251] t KNX/KNXnet.Connection: DISCONNECTed: 99 10.0.0.6:3671</p.type>
 
                 <p>The example contains a successfully established connection. A connection, which cannot be established, is
                 shown in following record (two examples are shown):</p>
 
-                <p.type>[0.644] t KNX/EibNet.Connection: CONNECT request: 10.0.0.16:3671
-[0.661] t KNX/EibNet.Connection: CONNECT timeout
+                <p.type>[0.644] t KNX/KNXnet.Connection: CONNECT request: 10.0.0.16:3671
+[0.661] t KNX/KNXnet.Connection: CONNECT timeout
 ...
-[9.130] t KNX/EibNet.Connection: CONNECT request: 10.0.0.6:3671
-[9.140] t KNX/EibNet.Connection: CONNECT failure: 36 10.0.0.6:3671
-[9.140] t KNX/EibNet.Connection: DISCONNECTed: 0 10.0.0.6:3671</p.type>
+[9.130] t KNX/KNXnet.Connection: CONNECT request: 10.0.0.6:3671
+[9.140] t KNX/KNXnet.Connection: CONNECT failure: 36 10.0.0.6:3671
+[9.140] t KNX/KNXnet.Connection: DISCONNECTed: 0 10.0.0.6:3671</p.type>
 
                 <p>In the first case, the server was not connected with KNX interface, because no response came in the frame of
                 determined time (<type>timeout</type>). The most frequent reasons of this behaviour are: IP address or port
@@ -1404,24 +1404,24 @@ allow = 127.0.0.1</p.type>
 
                 <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface responded to it:</p>
 
-                <p.type>[12:03:27.789] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
-[12:03:27.794] t KNX/EibNet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
+                <p.type>[12:03:27.789] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:03:27.794] t KNX/KNXnet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
 
                 <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface did not respond to it, after
                 three tries server disconnected the connection.</p>
 
-                <p.type>[12:04:27.787] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
-[12:04:37.795] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
-[12:04:47.796] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
-[12:04:57.811] t KNX/EibNet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
-[12:05:07.825] t KNX/EibNet.Connection: DISCONNECT timeout:  90 
-[12:05:07.825] t KNX/EibNet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
-[12:05:07.825] t KNX/EibNet.Connection: Stop LISTENing on port:  60561</p.type>
+                <p.type>[12:04:27.787] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:37.795] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:47.796] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:57.811] t KNX/KNXnet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/KNXnet.Connection: DISCONNECT timeout:  90 
+[12:05:07.825] t KNX/KNXnet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/KNXnet.Connection: Stop LISTENing on port:  60561</p.type>
 
                 <p>Successfull establishing of connection No.<c.special what="thinspace" />91 followed by initial reading:</p>
 
-                <p.type>[12:05:37.841] t KNX/EibNet.Connection: LISTENing on port:  61829 
-[12:05:37.841] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+                <p.type>[12:05:37.841] t KNX/KNXnet.Connection: LISTENing on port:  61829 
+[12:05:37.841] t KNX/KNXnet.Connection: CONNECT request:  10.0.0.6:3671 
 [12:05:37.921] t KNX/...: CONNECTed in TUNNELING mode:  91 10.0.0.6:3671 
 [12:05:37.921] d KNX/srv: INIT:  2/0/0 
 [12:05:37.921] d KNX/srv: INIT:  2/0/1 
@@ -1430,57 +1430,57 @@ allow = 127.0.0.1</p.type>
 
                 <p>Unsuccessfull establishing of connection, KNX interface did not respond.</p>
 
-                <p.type>[12:05:17.826] t KNX/EibNet.Connection: LISTENing on port:  58083 
-[12:05:17.826] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
-[12:05:27.841] t KNX/EibNet.Connection: CONNECT timeout 
-[12:05:27.841] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
-[12:05:27.841] t KNX/EibNet.Connection: Stop LISTENing on port:  58083</p.type>
+                <p.type>[12:05:17.826] t KNX/KNXnet.Connection: LISTENing on port:  58083 
+[12:05:17.826] t KNX/KNXnet.Connection: CONNECT request:  10.0.0.6:3671 
+[12:05:27.841] t KNX/KNXnet.Connection: CONNECT timeout 
+[12:05:27.841] t KNX/KNXnet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[12:05:27.841] t KNX/KNXnet.Connection: Stop LISTENing on port:  58083</p.type>
 
                 <p>Unsuccessfull establishing of connection, error number 36 means that KNX interface is connected to another
                 client:</p>
 
-                <p.type>[13:12:29.708] t KNX/EibNet.Connection: CONNECT timeout 
-[13:12:29.723] t KNX/EibNet.Connection: LISTENing on port:  55123 
-[13:12:29.723] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
-[13:12:29.740] t KNX/EibNet.Connection: CONNECT failure:  36 10.0.0.6:3671 
-[13:12:29.740] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
-[13:12:29.740] t KNX/EibNet.Connection: Stop LISTENing on port:  55123</p.type>
+                <p.type>[13:12:29.708] t KNX/KNXnet.Connection: CONNECT timeout 
+[13:12:29.723] t KNX/KNXnet.Connection: LISTENing on port:  55123 
+[13:12:29.723] t KNX/KNXnet.Connection: CONNECT request:  10.0.0.6:3671 
+[13:12:29.740] t KNX/KNXnet.Connection: CONNECT failure:  36 10.0.0.6:3671 
+[13:12:29.740] t KNX/KNXnet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[13:12:29.740] t KNX/KNXnet.Connection: Stop LISTENing on port:  55123</p.type>
 
                 <p>Successfull writing to KNX (T_CON status = 0, R_CON status = 0)</p>
 
-                <p.type>[13:00:46.566] d KNX/EibNet.Connection: SEND seq:  8 
-[13:00:46.566] d KNX/EibNet.Connection: SEND data: [06 ...] 
-[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON status:  92 0 
-[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON seq:  8 
-[13:00:46.587] t KNX/EibNet.Connection: SEND R_CON ok 92 group:  3/1/21 
-[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok seq:  9E 
-[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok data: [06 ...] 
-[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON status:  92 0</p.type>
+                <p.type>[13:00:46.566] d KNX/KNXnet.Connection: SEND seq:  8 
+[13:00:46.566] d KNX/KNXnet.Connection: SEND data: [06 ...] 
+[13:00:46.570] d KNX/KNXnet.Connection: SEND T_CON status:  92 0 
+[13:00:46.570] d KNX/KNXnet.Connection: SEND T_CON seq:  8 
+[13:00:46.587] t KNX/KNXnet.Connection: SEND R_CON ok 92 group:  3/1/21 
+[13:00:46.588] d KNX/KNXnet.Connection: SEND R_CON ok seq:  9E 
+[13:00:46.588] d KNX/KNXnet.Connection: SEND R_CON ok data: [06 ...] 
+[13:00:46.588] d KNX/KNXnet.Connection: SEND R_CON status:  92 0</p.type>
 
                 <p>Unsuccessfull writing to KNX, KNX interface did not acknowledge the data (T_CON timeout), writing
                 repeats:</p>
 
-                <p.type>[13:07:02.741] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
-[13:07:02.742] d KNX/EibNet.Connection: SEND seq:  2 
-[13:07:02.742] d KNX/EibNet.Connection: SEND data: [06 ...] 
-[13:07:03.746] t KNX/EibNet.Connection: T_CON timeout, repeat SEND:  94 
-[13:07:03.746] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
-[13:07:03.746] d KNX/EibNet.Connection: SEND seq:  2 
-[13:07:03.746] d KNX/EibNet.Connection: SEND data: [06 ...] 
-[13:07:04.760] t KNX/EibNet.Connection: T_CON timeout, kill SEND:  94</p.type>
+                <p.type>[13:07:02.741] t KNX/KNXnet.Connection: SEND 94 group:  3/0/128 
+[13:07:02.742] d KNX/KNXnet.Connection: SEND seq:  2 
+[13:07:02.742] d KNX/KNXnet.Connection: SEND data: [06 ...] 
+[13:07:03.746] t KNX/KNXnet.Connection: T_CON timeout, repeat SEND:  94 
+[13:07:03.746] t KNX/KNXnet.Connection: SEND 94 group:  3/0/128 
+[13:07:03.746] d KNX/KNXnet.Connection: SEND seq:  2 
+[13:07:03.746] d KNX/KNXnet.Connection: SEND data: [06 ...] 
+[13:07:04.760] t KNX/KNXnet.Connection: T_CON timeout, kill SEND:  94</p.type>
 
                 <p>Incoming KNX data, connection No.<c.special what="thinspace" />92:</p>
 
-                <p.type>[12:59:28.089] t KNX/EibNet.Connection: RECEIVE 92 group:  2/0/30 
-[12:59:28.089] d KNX/EibNet.Connection: RECEIVE seq:  67 
-[12:59:28.089] d KNX/EibNet.Connection: RECEIVE data: [06 ...]</p.type>
+                <p.type>[12:59:28.089] t KNX/KNXnet.Connection: RECEIVE 92 group:  2/0/30 
+[12:59:28.089] d KNX/KNXnet.Connection: RECEIVE seq:  67 
+[12:59:28.089] d KNX/KNXnet.Connection: RECEIVE data: [06 ...]</p.type>
 
                 <p>End of connection No.<c.special what="thinspace" />91 (e.g. when server is stopped):</p>
 
-                <p.type>[12:54:46.964] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
-[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT forced as abortive 
-[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
-[12:54:46.965] t KNX/EibNet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
+                <p.type>[12:54:46.964] t KNX/KNXnet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/KNXnet.Connection: DISCONNECT forced as abortive 
+[12:54:46.965] t KNX/KNXnet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/KNXnet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
               </text>
             </section>
           </text>
@@ -1570,9 +1570,9 @@ allow = 127.0.0.1</p.type>
                   <dt><gui>Direct IO</gui></dt>
 
                   <dd><p>Simple page allowing directly record and load the server data objects.</p><p><gui>Read value from
-                  EIB</gui> requires insertion of the group address (e.g. <gui>3/2/3</gui>) to the field on the left from
+                  KNX</gui> requires insertion of the group address (e.g. <gui>3/2/3</gui>) to the field on the left from
                   <gui>Load</gui> push-button and its press. The SmartServer will write the value or information about loading
-                  error. </p><p><gui>Write value to EIB</gui> works analogously, nevertheless, there is further requested an
+                  error. </p><p><gui>Write value to KNX</gui> works analogously, nevertheless, there is further requested an
                   insertion of recorded value in the second field. E.g., if logic one should be recorded to the bit address
                   <gui>3/1/1</gui>, it is set to the field with value <gui>true</gui>. After press of <gui>Write</gui>
                   push-button, the SmartServer will announce the result of the record (and on <gui>Data history</gui> page one
@@ -1620,7 +1620,7 @@ allow = 127.0.0.1</p.type>
 
                 <p>Among files (current static HTML, figures, styles), there may be located files with <file>pt.xml</file>
                 extension (e.g. <file>example.pt.xml</file>, which is a part of installation), which the SmartServer processes
-                dynamically and thus allows to input live data of data objects from EIB inside their contents.
+                dynamically and thus allows to input live data of data objects from KNX inside their contents.
                 <file>pt.xml</file> files are XML, therefore they must be well formed and for use in the SmartServer they must
                 have defined XML namespace <uri>http://www.smartcontrol.cz/2008/XML/Web/PageTemplate</uri>. If it will have
                 proper suffix and wrong namespace, the Smart-Server will not process it as dynamical one and will not input live
@@ -1631,7 +1631,7 @@ allow = 127.0.0.1</p.type>
 
                 <p>Live data get to the page with help of get function closed to signs <type>${</type> a <type>}</type>. The
                 SmartServer searches these signs and replaces them with actual value. Similarly it is possible to record a value
-                to EIB using <type>set</type> function. The record of value requires the user’s activity (press of push-button,
+                to KNX using <type>set</type> function. The record of value requires the user’s activity (press of push-button,
                 reference), therefore the SmartServer in user’s dynamic (<file>pt.xml</file>) pages accepts set function as
                 parameter of reference on page (on another one or on itself). It is also possible to use a selection command
                 (<type>pt :choose</type>) inside dynamic pages, which allows to create the different contents of the page
@@ -2081,7 +2081,7 @@ allow = 127.0.0.1</p.type>
 
                   <dt>201</dt>
 
-                  <dd><p>The request was processed, nevertheless, the server has no connection with EIB and data were only
+                  <dd><p>The request was processed, nevertheless, the server has no connection with KNX and data were only
                   stored in the cache server.</p></dd>
 
                   <dt>202</dt>
@@ -2170,7 +2170,7 @@ allow = 127.0.0.1</p.type>
 
                   <dt><type>stop</type></dt>
 
-                  <dd><p>The server stops (is disconnected from EIB), possible return codes are 200 and 5XX.</p></dd>
+                  <dd><p>The server stops (is disconnected from KNX), possible return codes are 200 and 5XX.</p></dd>
 
                   <dt><type>advise</type></dt>
 
@@ -2253,8 +2253,8 @@ Control.Connected true</p.type>
                 <p>There may be also more <type>ask</type> tags inside the <type>xmlsocket</type> one, so the client may ask for
                 more data together by one communication.</p>
 
-                <p>The last option of XMLSocket interface is driving of EIB/KNX connection. There are tags <type>&lt;connect/&gt;</type>
-                and <type>&lt;disconnect/&gt;</type> which connect or disconnect the server and the EIB/KNX interface. Examples
+                <p>The last option of XMLSocket interface is driving of KNX connection. There are tags <type>&lt;connect/&gt;</type>
+                and <type>&lt;disconnect/&gt;</type> which connect or disconnect the server and the KNX interface. Examples
                 of connect and disconnect request are:</p>
 
                 <p.type>&lt;xmlsocket&gt;
@@ -2294,8 +2294,8 @@ Control.Connected true</p.type>
               <text>
                 <p>Philips Pronto is an universal remote controller with support of graphics, touch display, WiFi communication
                 and full support of programming. The support for general programs allows to create in Pronto the communication
-                interface for SDAP, with which information from EIB will get inside the Pronto application and vice versa, and
-                with help of which the program (user) may remotely control EIB.</p>
+                interface for SDAP, with which information from KNX will get inside the Pronto application and vice versa, and
+                with help of which the program (user) may remotely control KNX.</p>
 
                 <p>JavaScript is the programming language of Pronto (the same language is used for client programming in
                 Internet pages), ProntoEdit Professional serves for programming of Pronto, the program is free available for
@@ -2308,12 +2308,12 @@ Control.Connected true</p.type>
                   <dt><file>Template.xcf</file></dt>
 
                   <dd><p>A file with frame of application for Pronto. The application can be directly loaded to ProntoEdit and
-                  further modified. The application contains several displays for the A/V control and two displays (inside EIB
+                  further modified. The application contains several displays for the A/V control and two displays (inside KNX
                   equipment), which allow to control lights and blinds.</p><p>In the example, there is immediately obvious the
-                  kind of communication with EIB: The main JavaScript connected with the EIB equipment assures the communication
+                  kind of communication with KNX: The main JavaScript connected with the KNX equipment assures the communication
                   with help of SDAP; what and how should be communicated<c.special what="dash" />this complies each of both
                   immersed screens at its display to the main JavaScript and it itself then reach on incoming values. </p><p>The
-                  main communication script is stored in <gui>EIB/EIB Properties</gui> branch in <gui>Advanced</gui>
+                  main communication script is stored in <gui>KNX Properties</gui> branch in <gui>Advanced</gui>
                   tab.</p></dd>
 
                   <dt><file>Main.js</file></dt>
@@ -2329,7 +2329,7 @@ Control.Connected true</p.type>
                   <dt><file>Page.js</file></dt>
 
                   <dd><p>JavaScript from the page for control of lights. In <file>Template.xcf</file>, the script is recorded in
-                  <gui>EIB/Lights</gui> branch in <gui>Advanced</gui> tab. </p><p>The above-mentioned methods from
+                  <gui>KNX/Lights</gui> branch in <gui>Advanced</gui> tab. </p><p>The above-mentioned methods from
                   <file>Main.js</file> script are clearly used in the script.</p></dd>
 
                   <dt><file>ButtonSwitch.js</file></dt>
@@ -2665,10 +2665,10 @@ var IP_PORT = "6007";</p.type>
 
               <dt><file>discover.exe</file></dt>
 
-              <dd><p>A tool for browsing of local network, the result of work is the list of found Eib-Net/IP devices. The
-              program will find interfaces and routers. Example of the program output:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;discover
+              <dd><p>A tool for browsing of local network, the result of work is the list of found KNX-Net/IP devices. The
+              program will find interfaces and routers. Example of the program output:</p><p.type>C:\Program Files\NeNo\KNXSrv&gt;discover
   Searching...........................................
-  It was found 2 EIBNet/IP devices
+  It was found 2 KNXnet/IP devices
      1. IP Interface N148
         MAC: 00-0E-8C-00-13-E8, IP: 10.0.0.6:3671
      2. Internal Interface
@@ -2679,8 +2679,8 @@ var IP_PORT = "6007";</p.type>
 
               <dd><p>Program for test of correctness of configuration file. The program loads configuration as the server and
               writes found errors to the command line. In its output, the program may have more files (and can verify them
-              together then).</p><p>Example with right configuration:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;checkcfg default.cfg
-  default.cfg   OK      240 object/s</p.type><p>Example with wrong configuration:</p><p.type>C:\Program files\NeNo\EibSrv&gt;checkcfg default.cfg
+              together then).</p><p>Example with right configuration:</p><p.type>C:\Program Files\NeNo\KNXSrv&gt;checkcfg default.cfg
+  default.cfg   OK      240 object/s</p.type><p>Example with wrong configuration:</p><p.type>C:\Program files\NeNo\KNXSrv&gt;checkcfg default.cfg
   default.cfg   ERROR
     line 43: Unknown behaviour name (trac)</p.type></dd>
             </dl>
