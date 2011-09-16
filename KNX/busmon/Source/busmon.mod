@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   FIOO,
    knx_def,
    inetaddr,
    lists,
@@ -77,8 +78,8 @@ CLASS IMPLEMENTATION CBusmonConnection;
    INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : knx_def.cEMIPacket );
    VAR
       data : ARRAY [0..255] OF BYTE;
-      emi : eib_def.EMIPacket;
-      frameType : eib_def.TFrameType;
+      emi : knx_def.EMIPacket;
+      frameType : knx_def.TFrameType;
       i, len : CARDINAL;
       s : ARRAY [0..127] OF WCHAR;
       so : StringsO.CString;
@@ -92,24 +93,24 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
       frameType := packet.FrameType;
       CASE frameType OF
-      | eib_def.ftStandard :
+      | knx_def.ftStandard :
          TextWriter.stdout()^.WriteOA( L"STD ", FALSE );
-      | eib_def.ftLTE :
+      | knx_def.ftLTE :
          TextWriter.stdout()^.WriteOA( L"LTE ", FALSE );
-      | eib_def.ftUser :
+      | knx_def.ftUser :
          TextWriter.stdout()^.WriteOA( L"USR ", FALSE );
       ELSE
          TextWriter.stdout()^.WriteOA( L"??? ", FALSE );
       END;
       
       CASE emi.GetPriority() OF
-      | eib_def.priorityNormal :
+      | knx_def.priorityNormal :
          TextWriter.stdout()^.WriteOA( L"L ", FALSE );
-      | eib_def.priorityHigh :
+      | knx_def.priorityHigh :
          TextWriter.stdout()^.WriteOA( L"N ", FALSE );
-      | eib_def.priorityAlarm :
+      | knx_def.priorityAlarm :
          TextWriter.stdout()^.WriteOA( L"U ", FALSE );
-      | eib_def.prioritySystem :
+      | knx_def.prioritySystem :
          TextWriter.stdout()^.WriteOA( L"S ", FALSE );
       ELSE
          TextWriter.stdout()^.WriteOA( L"? ", FALSE );
@@ -134,18 +135,18 @@ CLASS IMPLEMENTATION CBusmonConnection;
       TextWriter.stdout()^.WriteOA( L" ", FALSE );
       
       CASE emi.GetValueDirection() OF // for LTE this is different
-      | eib_def.directionRead :
+      | knx_def.directionRead :
          TextWriter.stdout()^.WriteOA( L"rd ", FALSE );
-      | eib_def.directionResponse :
+      | knx_def.directionResponse :
          TextWriter.stdout()^.WriteOA( L"rs ", FALSE );
-      | eib_def.directionWrite :
+      | knx_def.directionWrite :
          TextWriter.stdout()^.WriteOA( L"wr ", FALSE );
       END;
 
       packet.ToDataArray( data, len );
       CASE frameType OF
       //-----
-      | eib_def.ftStandard :
+      | knx_def.ftStandard :
          // dump data
          IF len > 0 THEN
             IF len = 1 THEN
@@ -160,7 +161,7 @@ CLASS IMPLEMENTATION CBusmonConnection;
          END;
 
       //-----
-      | eib_def.ftLTE :
+      | knx_def.ftLTE :
          // interpret LTE addressing data
          IF len >= 4 THEN
             TextWriter.stdout()^.WriteOA( L"P[", FALSE );
@@ -257,10 +258,10 @@ CLASS IMPLEMENTATION CBusmonConnection;
    VAR
       i : CARDINAL;
       len : INTEGER;
-      packet : eib_def.TPacket;
+      packet : knx_def.TPacket;
       real : REAL := 0.0;
       up, down : BOOLEAN;
-      value : eib_def.TValue;
+      value : knx_def.TValue;
       so : StringsO.CString;
    BEGIN
       len := HIGH( data ) + 1;
@@ -273,7 +274,7 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
       CASE len OF
       | 1 :
-         value.SetType( eib_def.eitSwitch );
+         value.SetType( knx_def.eitSwitch );
          packet.ToValue( OUT value );
          IF value.GetSwitch() THEN
             TextWriter.stdout()^.WriteOA( L"on|open|", FALSE );
@@ -281,7 +282,7 @@ CLASS IMPLEMENTATION CBusmonConnection;
             TextWriter.stdout()^.WriteOA( L"off|close|", FALSE );
          END;
 
-         value.SetType( eib_def.eitIncrease );
+         value.SetType( knx_def.eitIncrease );
          packet.ToValue( OUT value );
          so.FromCARD32( value.GetIncrease( up, down ), 10 );
          IF up THEN
@@ -297,19 +298,19 @@ CLASS IMPLEMENTATION CBusmonConnection;
          END;
          
       | 2 :
-         value.SetType( eib_def.eitScaling );
+         value.SetType( knx_def.eitScaling );
          packet.ToValue( OUT value );
          so.FromCARD32( value.GetScaling(), 10 );
          TextWriter.stdout()^.Write( so, FALSE );
          TextWriter.stdout()^.WriteOA( L" %|0x", FALSE ); 
 
-         value.SetType( eib_def.eitScaling255 );
+         value.SetType( knx_def.eitScaling255 );
          packet.ToValue( OUT value );
          so.FromCARD32( value.GetScaling255(), 16 );
          TextWriter.stdout()^.Write( so, FALSE );
          
       | 3 :
-         value.SetType( eib_def.eitValue );
+         value.SetType( knx_def.eitValue );
          packet.ToValue( OUT value );
          so.FromLONGREALExt( LONGREAL( value.GetValue()), 5, -1, FALSE, L"." );
          TextWriter.stdout()^.Write( so, FALSE );
@@ -376,7 +377,7 @@ BEGIN
       INC( i );
    END; // WHILE
 
-   ia.SetAddressOA( address, 3671 );
+   ia.FromOA( address, 3671 );
 
    Busmon.Mode := protocol.cmTunnelingHPAI;
    Busmon.TunnelingMode := protocol.tmEMI;

@@ -1597,12 +1597,12 @@ CLASS IMPLEMENTATION cEMIPacket;
       naddress : CARDINAL;
       n : ARRAY [0..15] OF WCHAR;
    BEGIN
-      address.Address.APIHi := Destination.EIBHi;
-      address.Address.APILo := Destination.EIBLo;
+      address.Address.APIHi := Destination.KNXHi;
+      address.Address.APILo := Destination.KNXLo;
 
       CASE FrameType OF
       //-----
-      | eib_def.ftStandard :
+      | knx_def.ftStandard :
          IF ncLogicalAddress IN BITSET8( DAFAndRouting ) THEN
             address.Type := addressGroup;
             address.GetGroupAddress3( TRUE, s );
@@ -1612,7 +1612,7 @@ CLASS IMPLEMENTATION cEMIPacket;
          END;
       
       //-----
-      | eib_def.ftLTE :
+      | knx_def.ftLTE :
          address.Type := addressPhysical;
          naddress := CARDINAL( address.GetPhysicalAddress1());
 

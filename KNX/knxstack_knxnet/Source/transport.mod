@@ -701,7 +701,7 @@ CLASS IMPLEMENTATION RoutingIndication;
    PUBLIC PROPERTY cEMI SET( CONST Value : knx_def.cEMIPacket );
    BEGIN
       _EMI := Value;
-      _EMI.Code := eib_def.L_Data_IND;
+      _EMI.Code := knx_def.L_Data_IND;
       Length := HEADER_SIZE_10 + _EMI.Length;
    END cEMI;
 

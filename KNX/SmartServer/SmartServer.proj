@@ -25,7 +25,7 @@
     <ItemGroup>
         <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxsvc;$(RootPath)\KNX\KnxSvcWeb;$(RootPath)\KNX\SmartServer"/>
 
-        <Components Include="Component\sccore;Component\scmvc;KNX\knxsvc;KNX\checkcfg;KNX\discover;Licensing\LicTool;Tools\svcinst"/>
+        <Components Include="Licensing\LicTool;Tools\svcinst;Component\sccore;Component\scmvc;KNX\discover;KNX\busmon;KNX\knxsvc;KNX\checkcfg"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
