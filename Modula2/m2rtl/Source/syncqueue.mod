@@ -247,7 +247,7 @@ CLASS IMPLEMENTATION RingBuffer;
       SpentTime := 0;
       CASE ForWhat OF
       | Sync.pcqProduced :   
-         IF Empty THEN
+         IF NOT Full THEN
             RETURN Sync.arCompleted;
          END;
          Signal( Sync.pcqProducedFlush );
@@ -258,7 +258,7 @@ CLASS IMPLEMENTATION RingBuffer;
          IF Produce = NIL THEN
             LOOP
                Sync.Sleep( FlushSleep );
-               IF Empty THEN
+               IF NOT Full THEN
                   Result := Sync.arCompleted; EXIT;
                ELSIF time.UptimeMS() - Start > Timeout THEN
                   Result := Sync.arTimeout; EXIT;
@@ -806,7 +806,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
       SpentTime := 0;
       CASE ForWhat OF
       | Sync.pcqProduced :   
-         IF Empty THEN
+         IF NOT Full THEN
             RETURN Sync.arCompleted;
          END;
          Signal( Sync.pcqProducedFlush );
@@ -817,7 +817,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
          IF Produce = NIL THEN
             LOOP
                Sync.Sleep( FlushSleep );
-               IF Empty THEN
+               IF NOT Full THEN
                   Result := Sync.arCompleted; EXIT;
                ELSIF time.UptimeMS() - Start > Timeout THEN
                   Result := Sync.arTimeout; EXIT;
