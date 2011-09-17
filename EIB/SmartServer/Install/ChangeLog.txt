@@ -1,3 +1,9 @@
+Version 1.2.1550/R 17.9.2011
+- BUG: #250, rarely, after disconnecting KNX interface when new connection was temporarily
+       not able to establish, SmartServer stopped communication forever. Connection attempts
+       were still repeated, but connection was never established and Assertions.log (minidumps)
+       grew.
+
 Version 1.2.1509/R 19.6.2011
 - CHG: #247, new configuration parameters [web]port, [client_interface]sdap_port and
        [client_interface]xml_socket_port to allow change of default TCP listen ports added.
