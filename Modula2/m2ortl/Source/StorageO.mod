@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE StorageO;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
 	ALLOCATE, DEALLOCATE, REALLOCATE;

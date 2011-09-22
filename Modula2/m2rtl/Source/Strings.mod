@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Strings;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Strings IMPORT
 	CapitalizeW;

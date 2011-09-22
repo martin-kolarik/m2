@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE SyncQueue;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move, Zero;

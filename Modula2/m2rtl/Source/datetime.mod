@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE datetime;
 (*================================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
   windows,

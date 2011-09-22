@@ -4,7 +4,7 @@ IMPLEMENTATION MODULE Parser;
 (*# call( o_a_copy => off ) *)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;

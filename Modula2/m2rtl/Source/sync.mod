@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Sync;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, Zero;

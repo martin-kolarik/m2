@@ -5,7 +5,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    windows;
