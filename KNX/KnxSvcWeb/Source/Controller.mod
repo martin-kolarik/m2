@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE Controller;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
    
 IMPORT
    datetime,

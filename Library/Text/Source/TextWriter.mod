@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE TextWriter;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    FIOO,

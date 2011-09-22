@@ -75,7 +75,7 @@ FROM Exceptions IMPORT
 //================================================================================
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 IMPORT
    DateTime,

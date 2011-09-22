@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE rawconnection;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 (*================================================================================*)
 

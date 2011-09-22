@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Win32thread;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    Debug,

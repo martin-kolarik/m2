@@ -1,7 +1,7 @@
 MODULE TStringReplaceCharacters;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

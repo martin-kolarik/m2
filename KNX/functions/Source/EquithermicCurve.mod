@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE EquithermicCurve;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    io,

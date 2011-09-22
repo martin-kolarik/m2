@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE KnxSvcWeb;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    Controller,

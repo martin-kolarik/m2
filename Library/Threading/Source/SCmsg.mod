@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE SCmsg;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    msghandler,

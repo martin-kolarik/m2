@@ -36,7 +36,7 @@ IMPLEMENTATION MODULE knx_stack;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;

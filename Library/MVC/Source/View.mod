@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE View;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 FROM Exceptions IMPORT
    TestIfCatched, RetrieveException;
 

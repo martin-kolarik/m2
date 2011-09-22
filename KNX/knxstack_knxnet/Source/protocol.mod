@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE protocol;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

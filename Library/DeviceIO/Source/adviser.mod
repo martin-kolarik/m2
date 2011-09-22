@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE adviser;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 IMPORT
    lists;

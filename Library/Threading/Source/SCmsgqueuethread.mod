@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE SCmsgqueuethread;
 (*---------------------------------------------------------------------------*)
   
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

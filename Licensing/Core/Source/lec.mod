@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE lec;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 #if DEBUG #then
 FROM log IMPORT

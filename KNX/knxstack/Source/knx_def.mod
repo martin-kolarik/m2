@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE knx_def;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
   Storage,

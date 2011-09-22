@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Win32msg;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE;
