@@ -898,7 +898,6 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       Path : ARRAY [0..260] OF WCHAR;
       port : CARDINAL;
       rule : StringsO.CString;
-      sOA : ARRAY [0..63] OF WCHAR;
       s : StringsO.CString;
       sessionValidity : CARDINAL;
    BEGIN
@@ -953,7 +952,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
          Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"No users defined, web interface will not start." );
       ELSE
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT s, OUT authinfo ) DO // sOA = name, authinfo = role, hash
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT s, OUT authinfo ) DO // s = name, authinfo = role, hash
             _Users.Remove( s );
             _Users.Add( s, authinfo );
             _SysUsers.Add( s, 0 );

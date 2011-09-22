@@ -12,6 +12,7 @@ IMPORT
    adviser,
    cllv,
    device,
+   EquithermicCurve,
    FIO,
    FIOO,
    io,
@@ -83,6 +84,7 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       XMLS : xmlsocket.TPXMLSocketServer := NIL;
       Web : KnxSvcWeb.CKnxSvcWeb;
       CDI : TControlledDeviceInfo;
+      EqCurve : EquithermicCurve.TPEquithermicCurveFunction := NIL;
 
    // service, OS thread
    LOCAL VIRTUAL PROCEDURE OnStart();
@@ -192,7 +194,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       sdapPort : CARDINAL := 6007;
       xmlsPort : CARDINAL := 6006;
    BEGIN
-      // ASSERT( FALSE );
+      ASSERT( FALSE );
    
       // get confiuration file path
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
@@ -287,6 +289,13 @@ CLASS IMPLEMENTATION CKnxSvc;
       CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
+
+      IF Result IN Sync.arsCompletions THEN
+         ASSERT( EqCurve = NIL );
+         NEW( EqCurve );
+         EqCurve^.Device := Adviser;
+         Result := EqCurve^.Configure( configuration, ADR( ConfigLogger ));
+      END;
       
       IF Web.Init( L"/SmartServer", cfg, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
@@ -349,6 +358,12 @@ CLASS IMPLEMENTATION CKnxSvc;
          KNX^.Stop();
          KNX^.Dispose();
          DISPOSE( KNX );
+      END;
+
+      IF EqCurve <> NIL THEN
+         EqCurve^.Stop();
+         EqCurve^.Dispose();
+         DISPOSE( EqCurve );
       END;
 
       ConfigLogger.BufferClear();      

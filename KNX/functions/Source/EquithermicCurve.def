@@ -17,6 +17,7 @@ FROM Storage IMPORT
 (*================================================================================*)
 
 TYPE
+   TPEquithermicCurveFunction = POINTER TO CEquithermicCurveFunction;
    TPCurve = POINTER TO CCurve;
 
 CLASS CEquithermicCurveFunction IMPLEMENTS io.IStartStopControl, io.IAdviseInfo;

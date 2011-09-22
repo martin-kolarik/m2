@@ -60,7 +60,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDAPBridge", "..\..\CWDrive
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XML", "..\..\Library\XML\XML.vcxproj", "{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "functions", "..\functions\functions.vcproj", "{3660FA24-B555-4408-91F0-77E822A074F0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "functions", "..\functions\functions.vcxproj", "{CC2AB128-187F-4C6B-9247-A769F083D7A8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -372,16 +372,16 @@ Global
 		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Release|Win32.ActiveCfg = Release|Win32
 		{7BAFD6C2-2659-4D2C-9311-63A20E3EC6F3}.Release|Win32.Build.0 = Release|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Debug|Win32.ActiveCfg = Debug|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Debug|Win32.Build.0 = Debug|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Release|Any CPU.ActiveCfg = Release|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Release|Win32.ActiveCfg = Release|Win32
-		{3660FA24-B555-4408-91F0-77E822A074F0}.Release|Win32.Build.0 = Release|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Debug|Win32.Build.0 = Debug|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Release|Any CPU.ActiveCfg = Release|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Release|Win32.ActiveCfg = Release|Win32
+		{CC2AB128-187F-4C6B-9247-A769F083D7A8}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

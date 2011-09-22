@@ -32,7 +32,7 @@
         <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxsvc;$(RootPath)\KNX\KnxSvcWeb;$(RootPath)\KNX\SmartServer"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;Component\scmvc;Library\DeviceIO;KNX\knxcore;KNX\KnxSvcWeb"/>
+        <Components Include="Component\sccore;Component\scmvc;Library\DeviceIO;KNX\knxcore;KNX\KnxSvcWeb;KNX\functions"/>
         <Program Include="knxsvc"/>
     </ItemGroup>
 

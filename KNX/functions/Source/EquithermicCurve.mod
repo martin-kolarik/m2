@@ -155,7 +155,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       hash : ARRAY [0..2] OF ns.THash;
       iniFile : INIFile.TPINIFile;
       Line : CARDINAL;
-      key : ARRAY [0..255] OF WCHAR;
+      key : StringsO.CString;
       offset : LONGREAL;
       pieces : CARDINAL;
       s : StringsO.CString;
@@ -169,11 +169,11 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       END;
 
       IF Device <> NIL THEN
-	      Log^.LogS( log.dlcError, LOGNAME, OAsz( R[ Texts._DeviceIsNotInitialized ] ));
+	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._DeviceIsNotInitialized ] ));
          RETURN Sync.arCannotStart;
       
       ELSIF HIGH( Source ) < 0 THEN
-	      Log^.LogS( log.dlcError, LOGNAME, OAsz( R[ Texts._BadParameterMissingSourceOfConfiguration ] ));
+	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._BadParameterMissingSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
 
       ELSIF Source[0].Type = device.citINIFile THEN
@@ -185,12 +185,12 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          section.Assign( Source[0].section^ ); // load ordered section
 
       ELSE
-	      Log^.LogS( log.dlcError, LOGNAME, OAsz( R[ Texts._UnsupportedSourceOfConfiguration ] ));
+	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._UnsupportedSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
       END;
       
-      IF NOT iniFile^.SetSection( OA( section.Length-1, section.rawData )) THEN
-	      Log^.LogS( log.dlcInfo, LOGNAME, OAsz( R[ Texts._ConfigurationSectionNotFound ] ));
+      IF NOT iniFile^.SetSection( OA( section.Length-1, section.Data )) THEN
+	      Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
          RETURN Sync.arCompleted;
       END;
       // here the inifile has proper section set
@@ -198,34 +198,38 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       ES := 0;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
          // key/output = wish/input, outer/input [, slope/parameter [, offset/parameter]]
-         s.FromOA( key );
-         IF NOT Device^.NS()^.NameToHash( s, OUT hash[0] ) THEN
-	         Log^.LogSS( log.dlcError, LOGNAME, OAsz( R[ Texts._OutputGroupAddressNotFound ] ), OA( s.Length-1, s.rawData ));
+         IF NOT Device^.NS()^.NameToHash( key, OUT hash[0] ) THEN
+	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._OutputGroupAddressNotFound ] ), OA( s.Length-1, s.Data ));
             CONTINUE;
          END;
          
          value.SplitS( StringsO.WCHARS{L","}, 0, FALSE, OUT pieces, OUT values );
          // check mandatory parameters (wish, outer)
          IF pieces < 2 THEN
-	         Log^.LogS( log.dlcError, LOGNAME, OAsz( R[ Texts._InputValuesAreMissing ] ));
+	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._InputValuesAreMissing ] ));
             CONTINUE;
          ELSIF NOT Device^.NS()^.NameToHash( values[0], OUT hash[1] ) THEN
-	         Log^.LogSS( log.dlcError, LOGNAME, OAsz( R[ Texts._SetpointGroupAddressNotFound ] ), OA( values[0].Length-1, values[0].rawData ));
+	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._SetpointGroupAddressNotFound ] ), OA( values[0].Length-1, values[0].Data ));
             CONTINUE;
          ELSIF NOT Device^.NS()^.NameToHash( values[1], OUT hash[2] ) THEN
-	         Log^.LogSS( log.dlcError, LOGNAME, OAsz( R[ Texts._OuterGroupAddressNotFound ] ), OA( values[1].Length-1, values[1].rawData ));
+	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._OuterGroupAddressNotFound ] ), OA( values[1].Length-1, values[1].Data ));
             CONTINUE;
          END;
          
          // read optional parameters (slope, offset)
          slope := DEFAULT_SLOPE;
-         IF ( pieces > 2 ) AND NOT values[2].ToLONGREAL( OUT slope ) THEN
-	         Log^.LogSS( log.dlcError, LOGNAME, OAsz( R[ Texts._SlopeIsNotANumber ] ), OA( values[2].Length-1, values[2].rawData ));
-            CONTINUE;
+         IF pieces > 2 THEN
+            IF NOT values[2].ToLONGREAL( OUT slope ) THEN
+	            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._SlopeIsNotANumber ] ), OA( values[2].Length-1, values[2].Data ));
+               CONTINUE;
+            ELSIF ( slope < 0.2 ) OR ( slope > 3.5 ) THEN
+	            Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._SlopeOutOfRange ] ));
+               CONTINUE;
+            END;
          END;
          offset := DEFAULT_OFFSET;
          IF ( pieces > 3 ) AND NOT s.ToLONGREAL( OUT offset ) THEN
-	         Log^.LogSS( log.dlcError, LOGNAME, OAsz( R[ Texts._OffsetIsNotANumber ] ), OA( values[3].Length-1, values[3].rawData ));
+	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._OffsetIsNotANumber ] ), OA( values[3].Length-1, values[3].Data ));
             CONTINUE;
          END;
          

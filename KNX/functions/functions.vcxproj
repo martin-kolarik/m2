@@ -10,8 +10,14 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="functions.proj" />
+    <None Include="Source\EquithermicCurve.def" />
+    <None Include="Source\EquithermicCurve.mod" />
+    <None Include="Source\Texts.xrs" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{17512724-C564-49DE-90FB-8A460842E1BD}</ProjectGuid>
+    <ProjectGuid>{CC2AB128-187F-4C6B-9247-A769F083D7A8}</ProjectGuid>
     <Keyword>MakeFileProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -66,12 +72,6 @@
       <Path>$(OutDir)BuildLog.htm</Path>
     </BuildLog>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <None Include="Source\busmon.mod" />
-    <None Include="Source\Texts.xrs" />
-    <None Include="busmon.definition.proj" />
-    <None Include="busmon.proj" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
