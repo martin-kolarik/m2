@@ -38,6 +38,9 @@ TYPE
 CONST
     LOG_PREFIX = L"KnxSrv";
 
+    cfDefaultWebDir = L"Web";
+    cfDefaultMessageFile = L"SmartServer.xrs.xml";
+
     cfSmartServerUsersFolder = L"SmartServer";
     cfSmartServerUsersFile = L"WebUsers.cfg";
 
@@ -893,6 +896,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    VAR
       authinfo : StringsO.CString;
       es : PTR;
+      ExeDirFound : BOOLEAN;
       line : CARDINAL;
       ok : BOOLEAN := TRUE;
       Path : ARRAY [0..260] OF WCHAR;
@@ -917,11 +921,11 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
          _Project.FromOA( L"SmartServer Project" );
       END;
 
-      IF cfg.SetSection( snServer ) AND FIO.GetModuleDirW( L"", OUT Path ) THEN // EXE dir
+      ExeDirFound := FIO.GetModuleDirW( L"", OUT Path );
+
+      IF cfg.SetSection( snServer ) AND ExeDirFound THEN // EXE dir
          IF cfg.GetKeyStr( knWebRoot, OUT line, OUT _RootDir ) THEN
             _RootDir.ReplaceOA( L"%exedir%", Path );
-         ELSE
-            _RootDir.FromOA( Path );
          END;
          IF cfg.GetKeyStr( knMessageFile, OUT line, OUT _MessageFile ) THEN
             _MessageFile.ReplaceOA( L"%exedir%", Path );
@@ -933,13 +937,25 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
             _SessionValidity := sessionValidity;
          END;
       END;
+
+      // check and adjust root dir
+      FIO.PathAddW( REF Path, cfDefaultWebDir );
+      IF _RootDir.Empty AND ExeDirFound AND FIO.ExistsDirectoryW( Path ) THEN
+         _RootDir.FromOA( Path );
+      END;
       IF _RootDir.Empty THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"Web root is not defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"Web root is not defined, using default one (%exedir%\web). Web interface may not start or may not be correct." );
+      END;
+
+      // check and adjust message file
+      FIO.PathAddW( REF Path, cfDefaultMessageFile );
+      IF _MessageFile.Empty AND ExeDirFound AND FIO.ExistsW( Path ) THEN
+         _MessageFile.FromOA( Path );
       END;
       IF _MessageFile.Empty THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"Message source for web is not defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"Message source for web is not defined, using default one (%exedir%\web\SmartServer.xrs.xml). Web interface may not start or may be scrambled." );
       END;
       
       // add system roles      
@@ -948,8 +964,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       
       // load users from system configuration
       IF NOT cfg.SetSection( snUsers ) THEN
-         ok := FALSE;
-         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"No users defined, web interface will not start." );
+         Log.logger()^.LogS( Log.lcError, 0, LOG_PREFIX, L"No users defined, web interface may not start correctly." );
       ELSE
          es := 0;
          WHILE cfg.EnumerateKeys( REF es, OUT line, OUT s, OUT authinfo ) DO // s = name, authinfo = role, hash
