@@ -184,18 +184,17 @@ CLASS IMPLEMENTATION CKnxSvc;
       cfg : INIfile.CINIFile;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       Data : ARRAY [0..511] OF WCHAR;
+      GlobalResult : Sync.TAsyncResult := Sync.arCannotStart;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
+      LocalResult : Sync.TAsyncResult := Sync.arCompleted;
       Path : ARRAY [0..260] OF WCHAR;
       port : CARDINAL;
-      Result : Sync.TAsyncResult := Sync.arCannotStart;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
       sdapPort : CARDINAL := 6007;
       xmlsPort : CARDINAL := 6006;
    BEGIN
-      ASSERT( FALSE );
-   
       // get confiuration file path
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
@@ -257,7 +256,10 @@ CLASS IMPLEMENTATION CKnxSvc;
       
       configuration[0].Type := device.citIString;
       configuration[0].iString := ADR( s1 );
-      Result := KNX^.Configure( configuration, ADR( ConfigLogger ));
+      LocalResult := KNX^.Configure( configuration, ADR( ConfigLogger ));
+      IF GlobalResult = Sync.arCompleted THEN
+         GlobalResult := LocalResult;
+      END;
       
       ASSERT( Adviser = NIL );
       NEW( Adviser );
@@ -285,22 +287,23 @@ CLASS IMPLEMENTATION CKnxSvc;
       XMLS^.NetworkLogger := ADR( NetworkLogger );
       XMLS^.Start();
       
+      ASSERT( EqCurve = NIL );
+      NEW( EqCurve );
+      EqCurve^.Device := Adviser;
+      LocalResult := EqCurve^.Configure( configuration, ADR( ConfigLogger ));
+      IF GlobalResult = Sync.arCompleted THEN
+         GlobalResult := LocalResult;
+      END;
+      
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
       CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
 
-      IF Result IN Sync.arsCompletions THEN
-         ASSERT( EqCurve = NIL );
-         NEW( EqCurve );
-         EqCurve^.Device := Adviser;
-         Result := EqCurve^.Configure( configuration, ADR( ConfigLogger ));
-      END;
-      
       IF Web.Init( L"/SmartServer", cfg, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
       END;
-      IF Result = Sync.arCompleted THEN
+      IF GlobalResult = Sync.arCompleted THEN
          KNX^.Start();
       END;
 
@@ -339,21 +342,6 @@ CLASS IMPLEMENTATION CKnxSvc;
    BEGIN
       Web.Stop();
    
-      IF XMLS <> NIL THEN
-         XMLS^.Stop();
-         DISPOSE( XMLS );
-      END;
-   
-      IF SDAP <> NIL THEN
-         SDAP^.Stop();
-         DISPOSE( SDAP );
-      END;
-   
-      IF Adviser <> NIL THEN
-         Adviser^.Stop();
-         DISPOSE( Adviser );
-      END;
-
       IF KNX <> NIL THEN
          KNX^.Stop();
          KNX^.Dispose();
@@ -364,6 +352,21 @@ CLASS IMPLEMENTATION CKnxSvc;
          EqCurve^.Stop();
          EqCurve^.Dispose();
          DISPOSE( EqCurve );
+      END;
+
+      IF SDAP <> NIL THEN
+         SDAP^.Stop();
+         DISPOSE( SDAP );
+      END;
+   
+      IF XMLS <> NIL THEN
+         XMLS^.Stop();
+         DISPOSE( XMLS );
+      END;
+   
+      IF Adviser <> NIL THEN
+         Adviser^.Stop();
+         DISPOSE( Adviser );
       END;
 
       ConfigLogger.BufferClear();      
