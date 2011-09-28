@@ -1428,9 +1428,9 @@ CLASS IMPLEMENTATION CKNXServer;
       logged : BOOLEAN;
    BEGIN
 	   IF EXEFlag THEN
-         R.LoadRES2( L"", L"srvcore.Texts" );
+         R.LoadRES2( L"", L"knxcore.Texts" );
       ELSE
-         R.LoadRES2( EMITW( %dll ), L"srvcore.Texts" );
+         R.LoadRES2( EMITW( %dll ), L"knxcore.Texts" );
       END;
       ErrorLine := 0;
       InitToDefault();
