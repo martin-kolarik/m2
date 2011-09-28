@@ -178,7 +178,7 @@ VAR
    Name : ARRAY [0..3] OF WCHAR;
    Path : FIO.PathStrW;
 BEGIN
-   IF path[0] = 0W THEN
+   IF INSIDE( 0, path ) AND ( path[0] = 0W ) THEN
       GetDumpNameAndPath( L"ud", OUT Name, OUT Path );
       file := FIO.CreateW( Path, FIO.TFileShare{ FIO.fsRead } );
    ELSE
@@ -207,6 +207,10 @@ VAR
    Name, Path : FIO.PathStrW;
    text : ARRAY [0..1023] OF WCHAR;
 BEGIN
+   IF windows.IsDebuggerPresent() THEN
+      windows.DebugBreak();
+   END;
+
    // prepare minidump path
    GetDumpNameAndPath( L"ue", OUT Name, OUT Path );
    Dump( Path, ExceptionInfo );
@@ -288,7 +292,7 @@ BEGIN
 
       // write log entry
       Strings.AppendW( REF Name, L")" );
-      IF Text[0] = 0W THEN
+      IF INSIDE( 0, Text ) AND ( Text[0] = 0W ) THEN
          getLogger()^.LogSSS( Log.lcSysError, 0, Module, Line, L"(dump:", Name );
       ELSE
          getLogger()^.LogSSSS( Log.lcSysError, 0, Module, Text, Line, L"(dump:", Name );
@@ -303,7 +307,7 @@ BEGIN
 
    ELSE // no minidump
       // write log entry
-      IF Text[0] = 0W THEN
+      IF INSIDE( 0, Text ) AND ( Text[0] = 0W ) THEN
          getLogger()^.LogS( Log.lcSysError, 0, Module, Line );
       ELSE
          getLogger()^.LogSS( Log.lcSysError, 0, Module, Line, Text );
@@ -334,6 +338,7 @@ BEGIN
          windows.Sleep( 100 );
          // wait until debugger stops the loop
       END;
+      breakProcess := FALSE; // assume we are in debugger and somebody has already exit the loop
 
    END;
 
