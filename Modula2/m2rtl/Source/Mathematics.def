@@ -1,0 +1,10 @@
+DEFINITION MODULE Mathematics;
+
+#save, option( dll_export => on )
+
+// LONGREAL mathematics
+PROCEDURE Power( base, exponent : LONGREAL ) : LONGREAL;
+
+#restore
+
+END Mathematics.

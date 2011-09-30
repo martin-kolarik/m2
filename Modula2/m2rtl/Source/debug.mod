@@ -273,7 +273,6 @@ PROCEDURE DoAssertW( Mode : TAssertMode; CONST Module, Text : ARRAY OF WCHAR; Mo
 CONST
    CRLF = 13W + 10W;
 VAR
-   breakProcess : BOOLEAN := FALSE;
    exeName : FIO.PathStrW := L"";
    Line, LineCpp : ARRAY [0..31] OF WCHAR;
    Name, Path : FIO.PathStrW;
@@ -330,20 +329,15 @@ BEGIN
       IF result = windows.IDABORT THEN // kill process
          windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
       ELSIF result = windows.IDRETRY THEN // allow to debug process
-         breakProcess := TRUE;
+         windows.DebugBreak();
       END;
 
    ELSIF amLoop IN Mode THEN
-      WHILE NOT breakProcess DO
+      WHILE NOT windows.IsDebuggerPresent() DO
          windows.Sleep( 100 );
-         // wait until debugger stops the loop
       END;
-      breakProcess := FALSE; // assume we are in debugger and somebody has already exit the loop
-
-   END;
-
-   IF breakProcess THEN
       windows.DebugBreak();
+
    END;
 END DoAssertW;
 

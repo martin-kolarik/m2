@@ -26,7 +26,7 @@ CLASS CThreadLocalStorage IMPLEMENTS IThreadLocalStorage;
       Valid : BOOLEAN;
 
    PRIVATE VAR
-      _TlsIndex : CARDINAL;
+      _TlsIndex : CARDINAL := windows.TLS_OUT_OF_INDEXES;
 
 END CThreadLocalStorage;
 

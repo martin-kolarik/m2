@@ -1086,12 +1086,17 @@ CLASS IMPLEMENTATION SIGNAL;
    PUBLIC PROCEDURE Init( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
    BEGIN
      Dispose();
+     ASSERTLOG( Type <> stForeign, L"SIGNAL initialized with improper type (stForeign)" );
      SELF.Type := Type;
      _Lock.Init( ltSpin, L"", FALSE );
      IF Type = stEvent THEN
        Data := RawCreateSignal( InitiallySignaled, Name );
      ELSIF Type = stEventAutoreset THEN
        Data := RawCreateAutoresetSignal( InitiallySignaled, Name );
+     ELSIF InitiallySignaled THEN
+       Data := SPIN_SET;
+     ELSE
+       Data := SPIN_NOTSET;
      END;
    END Init;
 
