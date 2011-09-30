@@ -48,11 +48,12 @@ CONST
    
    nameSDAP = L'name.SDAP';
    nameXMLSocket = L'name.XMLSocket';
+   nameEqCurve = L'name.EqCurve';
    
 TYPE
    TControlledDeviceInfo = RECORD
-                              Names : ARRAY [0..1] OF PWCHAR;
-                              Devices : ARRAY [0..1] OF io.TPIStartStopControl;
+                              Names : ARRAY [0..2] OF PWCHAR;
+                              Devices : ARRAY [0..2] OF io.TPIStartStopControl;
                            END; // RECORD
 
 (*================================================================================*)
@@ -184,7 +185,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       cfg : INIfile.CINIFile;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       Data : ARRAY [0..511] OF WCHAR;
-      GlobalResult : Sync.TAsyncResult := Sync.arCannotStart;
+      GlobalResult : Sync.TAsyncResult := Sync.arCompleted;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
       LocalResult : Sync.TAsyncResult := Sync.arCompleted;
@@ -290,15 +291,24 @@ CLASS IMPLEMENTATION CKnxSvc;
       ASSERT( EqCurve = NIL );
       NEW( EqCurve );
       EqCurve^.Device := Adviser;
+      EqCurve^.Init( TRUE );
+
+      configuration[0].Type := device.citINIFile;
+      configuration[0].iniFile := ADR( cfg );
       LocalResult := EqCurve^.Configure( configuration, ADR( ConfigLogger ));
+      IF LocalResult = Sync.arCompleted THEN
+         EqCurve^.Start();
+      END;
       IF GlobalResult = Sync.arCompleted THEN
          GlobalResult := LocalResult;
       END;
       
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
       CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
+      CDI.Names[2] := PWCHAR( ADR( nameEqCurve ));
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
+      CDI.Devices[2] := EqCurve;
 
       IF Web.Init( L"/SmartServer", cfg, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
