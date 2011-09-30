@@ -122,6 +122,12 @@ END Value;
 
 (*---------------------------------------------------------------------------*)
 
+PROCEDURE FromInteger( value : INT32 ) : Value;
+PROCEDURE FromLong( value : INT64 ) : Value;
+PROCEDURE FromFloat( value : LONGREAL ) : Value;
+
+(*---------------------------------------------------------------------------*)
+
 #restore
 
 END iovalue.

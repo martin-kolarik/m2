@@ -1466,4 +1466,34 @@ END Value;
 
 (*================================================================================*)
 
+PROCEDURE FromInteger( value : INT32 ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Integer := value;
+   RETURN v;
+END FromInteger;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromLong( value : INT64 ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Long := value;
+   RETURN v;
+END FromLong;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromFloat( value : LONGREAL ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Float := value;
+   RETURN v;
+END FromFloat;
+
+(*================================================================================*)
+
 END iovalue.
