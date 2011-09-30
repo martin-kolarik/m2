@@ -5,6 +5,8 @@ IMPORT
    device,
    iovalue,
    log,
+   msghandler,
+   msgqueue,
    ns,
    Resources,
    Sync;
@@ -20,7 +22,14 @@ TYPE
    TPEquithermicCurveFunction = POINTER TO CEquithermicCurveFunction;
    TPCurve = POINTER TO CCurve;
 
-CLASS CEquithermicCurveFunction IMPLEMENTS io.IStartStopControl, io.IAdviseInfo;
+CLASS CEquithermicCurveFunction( msghandler.MessageHandler ) IMPLEMENTS io.IOriginator, io.IStartStopControl, io.IAdviseInfo;
+
+   // MessageHandler
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+
+   // IOriginator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Description : StringsO.CString;
 
    // IStartStopControl
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -42,12 +51,18 @@ CLASS CEquithermicCurveFunction IMPLEMENTS io.IStartStopControl, io.IAdviseInfo;
    // SELF
    PRIVATE VAR
       R : Resources.CResources;
+      _Description : StringsO.CString;
       _Device : adviser.TPAdvisedDevice := NIL;
       _Logger : log.TPILogger := log.logger();
       _Running : BOOLEAN := FALSE;
       _Curves : lists.CPtrList; // list of CCurve
+      _SendQueue : msgqueue.CPtrQueue;
 
+   PRIVATE PROCEDURE Enqueue( curve : TPCurve );
    PRIVATE PROCEDURE Compute( curve : TPCurve );
+
+   INITIALLY CEquithermicCurveFunction();
+   FINALLY CEquithermicCurveFunction();
 
 END CEquithermicCurveFunction;
 

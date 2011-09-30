@@ -7,25 +7,56 @@ FROM Debug IMPORT
 
 IMPORT
    io,
+   IOO,
+   iovalue,
    INIFile,
+   Mathematics,
    StringsO,
    Texts;
 
 (*================================================================================*)
 
 CLASS CCurve;
+
+   LOCAL PROCEDURE Enqueue() : BOOLEAN; // returns FALSE if the object is already in the queue
+   LOCAL PROCEDURE Dequeue();
+
    LOCAL VAR
       Slope : LONGREAL := 0.0;
       Offset : LONGREAL := 0.0;
       HInnerSetpointTemperature : ns.THash := NIL;
+      HaveInnerSetpointTemperature : BOOLEAN := FALSE;
       HOuterActualTemperature : ns.THash := NIL;
+      HaveOuterActualTemperature : BOOLEAN := FALSE;
       HOutputTemperature : ns.THash := NIL;
-END CCurve;      
+
+   PRIVATE VAR
+      _Signal : Sync.SIGNAL;
+
+END CCurve;
 
 (*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CCurve;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Enqueue() : BOOLEAN;
+   BEGIN
+      RETURN _Signal.Signal();
+   END Enqueue;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Dequeue();
+   BEGIN
+      _Signal.Reset();
+   END Dequeue;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
+   _Signal.Init( Sync.stSpin, L"", FALSE );
 END CCurve;
 
 (*================================================================================*)
@@ -35,8 +66,38 @@ CONST
    CFG_SECTION = L"equithermic_curve";
    DEFAULT_SLOPE = 1.3;
    DEFAULT_OFFSET = 0.0;
+   MSG_SEND = msghandler.MSG_BASE;
 
 CLASS IMPLEMENTATION CEquithermicCurveFunction;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+   VAR
+      curve : TPCurve;
+   BEGIN
+      IF SUPER.OnMessage( Message, OUT Result ) THEN
+         RETURN TRUE;
+
+      ELSIF Message.Message = MSG_SEND THEN
+         WHILE _SendQueue.Dequeue( OUT curve  ) DO
+            curve^.Dequeue();
+            Compute( curve );
+         END; // _SendQueue
+
+         RETURN TRUE;
+      
+      ELSE
+         RETURN FALSE;
+      END;
+   END OnMessage;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Description GET : StringsO.CString;
+   BEGIN
+      RETURN _Description;
+   END Description;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -57,6 +118,8 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          RETURN Sync.arCannotStart;
       END;
       _Running := TRUE;
+
+      _Device^.JoinClient( ADR( SELF ), io.advWithData );
       
       _Curves.Reset();
       WHILE _Curves.MoveNext() DO
@@ -79,6 +142,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       END;
       _Running := FALSE;
       _Device^.UnadviseAll( ADR( SELF ));
+      _Device^.LeaveClient( ADR( SELF ));
    END Stop;
    
 (*--------------------------------------------------------------------------------*)
@@ -100,8 +164,16 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
             _Curves.Reset();
             WHILE _Curves.MoveNext() DO
                curve := _Curves.Current;
-               IF ( curve^.HInnerSetpointTemperature = Item[i] ) OR ( curve^.HOuterActualTemperature = Item[i] ) THEN
-                  Compute( curve );
+               IF curve^.HInnerSetpointTemperature = Item[i] THEN
+                  curve^.HaveInnerSetpointTemperature := TRUE;
+               ELSIF curve^.HOuterActualTemperature = Item[i] THEN
+                  curve^.HaveOuterActualTemperature := TRUE;
+               ELSE
+                  CONTINUE; // no interesting for me
+               END;
+
+               IF curve^.HaveInnerSetpointTemperature AND curve^.HaveOuterActualTemperature THEN
+                  Enqueue( curve );
                END;
             END; // WHILE
             
@@ -153,6 +225,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       curve : TPCurve;
       ES : PTR;
       hash : ARRAY [0..2] OF ns.THash;
+      i : CARDINAL;
       iniFile : INIFile.TPINIFile;
       Line : CARDINAL;
       key : StringsO.CString;
@@ -168,7 +241,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
 	      R.LoadRES2( L"", L"functions.Texts" );
       END;
 
-      IF Device <> NIL THEN
+      IF Device = NIL THEN
 	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._DeviceIsNotInitialized ] ));
          RETURN Sync.arCannotStart;
       
@@ -198,20 +271,24 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       ES := 0;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
          // key/output = wish/input, outer/input [, slope/parameter [, offset/parameter]]
-         IF NOT Device^.NS()^.NameToHash( key, OUT hash[0] ) THEN
+         IF NOT Device^.Mapper()^.NameToHash( key, OUT hash[0] ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._OutputGroupAddressNotFound ] ), OA( s.Length-1, s.Data ));
             CONTINUE;
          END;
          
          value.SplitS( StringsO.WCHARS{L","}, 0, FALSE, OUT pieces, OUT values );
+         FOR i := 0 TO HIGH( values ) DO
+            values[i].Trim();
+         END;
+         
          // check mandatory parameters (wish, outer)
          IF pieces < 2 THEN
 	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._InputValuesAreMissing ] ));
             CONTINUE;
-         ELSIF NOT Device^.NS()^.NameToHash( values[0], OUT hash[1] ) THEN
+         ELSIF NOT Device^.Mapper()^.NameToHash( values[0], OUT hash[1] ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._SetpointGroupAddressNotFound ] ), OA( values[0].Length-1, values[0].Data ));
             CONTINUE;
-         ELSIF NOT Device^.NS()^.NameToHash( values[1], OUT hash[2] ) THEN
+         ELSIF NOT Device^.Mapper()^.NameToHash( values[1], OUT hash[2] ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._OuterGroupAddressNotFound ] ), OA( values[1].Length-1, values[1].Data ));
             CONTINUE;
          END;
@@ -228,7 +305,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
             END;
          END;
          offset := DEFAULT_OFFSET;
-         IF ( pieces > 3 ) AND NOT s.ToLONGREAL( OUT offset ) THEN
+         IF ( pieces > 3 ) AND NOT values[3].ToLONGREAL( OUT offset ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R[ Texts._OffsetIsNotANumber ] ), OA( values[3].Length-1, values[3].Data ));
             CONTINUE;
          END;
@@ -267,16 +344,76 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Compute( curve : TPCurve );
-   VAR 
+   PRIVATE PROCEDURE Enqueue( curve : TPCurve );
    BEGIN
-      
+      IF curve^.Enqueue() THEN // smart queueuing, the item has just put to the queue
+         _SendQueue.Enqueue( curve );
+      END;
+   END Enqueue;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Compute( curve : TPCurve );
+   VAR
+      outer : iovalue.Value;
+      output : LONGREAL;
+      result : Sync.TAsyncResult;
+      value : iovalue.Value;
+   BEGIN
+      WITH curve^ DO
+
+         // read inputs
+         result := _Device^.IO()^.IOh( ADR( SELF ), IOO.dirRead, HInnerSetpointTemperature, REF value, NIL );
+         IF result NOT IN Sync.arsCompletions THEN
+            ASSERTLOG( FALSE, L"Unable to read setpoint temperature value" );
+            RETURN;
+         END;
+         result := _Device^.IO()^.IOh( ADR( SELF ), IOO.dirRead, HOuterActualTemperature, REF outer, NIL );
+         IF result NOT IN Sync.arsCompletions THEN
+            ASSERTLOG( FALSE, L"Unable to read outer actual temperature value" );
+            RETURN;
+         END;
+
+         // compute
+         output := value.Float + Offset;
+         IF value >= outer THEN
+            output := output + 2.0 * Slope * Mathematics.Power( output - outer.Float, 0.8 );
+         END;
+         value.Float := output;
+
+         // write output
+
+         result := _Device^.IO()^.IOh( ADR( SELF ), IOO.dirWrite, HOutputTemperature, REF value, NIL );
+         IF result NOT IN Sync.arsCompletions THEN
+            ASSERTLOG( FALSE, L"Unable to write output temperature" );
+            RETURN;
+         END;
+
+      END; // WITH
    END Compute;
 
 (*--------------------------------------------------------------------------------*)
 
-BEGIN FINALLY
-   Dispose();
+   INITIALLY CEquithermicCurveFunction();
+   VAR
+      msg : msghandler.Message;
+   BEGIN
+      _Description.FromOA( L"Equithermic Curve" );
+      
+      msg.Message := MSG_SEND;
+      _SendQueue.ConsumerMsg := ADR( msg );
+      _SendQueue.Consumer := ADR( SELF );
+   END CEquithermicCurveFunction;
+
+(*--------------------------------------------------------------------------------*)
+
+   FINALLY CEquithermicCurveFunction();
+   BEGIN
+      Dispose();
+   END CEquithermicCurveFunction;
+
+(*--------------------------------------------------------------------------------*)
+
 END CEquithermicCurveFunction;
 
 (*================================================================================*)
