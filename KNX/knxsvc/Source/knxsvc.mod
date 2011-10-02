@@ -25,6 +25,7 @@ IMPORT
    LogConfig,
    msgqueuethread,
    netinit,
+   PersistentStorage,
    Registry,
    scinit,
    sdap,
@@ -45,15 +46,17 @@ CONST
    keyStorage = L"Storage";
    keyDefaultConfiguration = L"Default configuration";
    defaultConfiguration = L"default.cfg";
+   defaultStorageName = L"SmartServer";
    
    nameSDAP = L'name.SDAP';
    nameXMLSocket = L'name.XMLSocket';
+   nameStorage = L'name.Storage';
    nameEqCurve = L'name.EqCurve';
    
 TYPE
    TControlledDeviceInfo = RECORD
-                              Names : ARRAY [0..2] OF PWCHAR;
-                              Devices : ARRAY [0..2] OF io.TPIStartStopControl;
+                              Names : ARRAY [0..4] OF PWCHAR;
+                              Devices : ARRAY [0..4] OF io.TPIStartStopControl;
                            END; // RECORD
 
 (*================================================================================*)
@@ -86,6 +89,7 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       Web : KnxSvcWeb.CKnxSvcWeb;
       CDI : TControlledDeviceInfo;
       EqCurve : EquithermicCurve.TPEquithermicCurveFunction := NIL;
+      Storage : PersistentStorage.TPPersistentStorageFunction := NIL;
 
    // service, OS thread
    LOCAL VIRTUAL PROCEDURE OnStart();
@@ -254,7 +258,6 @@ CLASS IMPLEMENTATION CKnxSvc;
       KNX^.cllvData := ADR( cllv.data );
       KNX^.cllvLength := cllv.length;
       KNX^.DataLogger := ADR( DataLogger );
-      
       configuration[0].Type := device.citIString;
       configuration[0].iString := ADR( s1 );
       LocalResult := KNX^.Configure( configuration, ADR( ConfigLogger ));
@@ -276,7 +279,6 @@ CLASS IMPLEMENTATION CKnxSvc;
       SDAP^.CommonLogger := Log.logger();
       SDAP^.ConfigurationLogger := ADR( ConfigLogger );
       SDAP^.NetworkLogger := ADR( NetworkLogger );
-      SDAP^.Start();
       
       ASSERT( XMLS = NIL );
       NEW( XMLS );
@@ -286,15 +288,26 @@ CLASS IMPLEMENTATION CKnxSvc;
       XMLS^.Init( TRUE );
       XMLS^.CommonLogger := Log.logger();
       XMLS^.NetworkLogger := ADR( NetworkLogger );
-      XMLS^.Start();
+      
+      ASSERT( Storage = NIL );
+      NEW( Storage );
+      Storage^.Init( TRUE );
+      Storage^.Device := Adviser;
+      Storage^.Logger := Log.logger();
+      Storage^.DefaultStorageFolder := StringsO.FromOA( defaultStorageName );
+      KNX^.EventSinks.Subscribe( ADR( Storage^.IKNXServerSink ));
+      configuration[0].Type := device.citINIFile;
+      configuration[0].iniFile := ADR( cfg );
+      LocalResult := Storage^.Configure( configuration, ADR( ConfigLogger ));
+      IF GlobalResult = Sync.arCompleted THEN
+         GlobalResult := LocalResult;
+      END;
       
       ASSERT( EqCurve = NIL );
       NEW( EqCurve );
-      EqCurve^.Device := Adviser;
       EqCurve^.Init( TRUE );
-
-      configuration[0].Type := device.citINIFile;
-      configuration[0].iniFile := ADR( cfg );
+      EqCurve^.Device := Adviser;
+      EqCurve^.Logger := Log.logger();
       LocalResult := EqCurve^.Configure( configuration, ADR( ConfigLogger ));
       IF LocalResult = Sync.arCompleted THEN
          EqCurve^.Start();
@@ -302,13 +315,15 @@ CLASS IMPLEMENTATION CKnxSvc;
       IF GlobalResult = Sync.arCompleted THEN
          GlobalResult := LocalResult;
       END;
-      
+
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
       CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
-      CDI.Names[2] := PWCHAR( ADR( nameEqCurve ));
+      CDI.Names[2] := PWCHAR( ADR( nameStorage ));
+      CDI.Names[3] := PWCHAR( ADR( nameEqCurve ));
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
-      CDI.Devices[2] := EqCurve;
+      CDI.Devices[2] := Storage;
+      CDI.Devices[3] := EqCurve;
 
       IF Web.Init( L"/SmartServer", cfg, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
@@ -316,6 +331,10 @@ CLASS IMPLEMENTATION CKnxSvc;
       IF GlobalResult = Sync.arCompleted THEN
          KNX^.Start();
       END;
+
+      Storage^.Start();
+      SDAP^.Start();
+      XMLS^.Start();
 
       SetServiceState( Service.ssRunning, 0 );
    END _OnStart;
@@ -327,7 +346,11 @@ CLASS IMPLEMENTATION CKnxSvc;
       IF KNX = NIL THEN
          LogEvent( -1, L"Svc.OnPause called for KNX = NIL" );
       ELSE
+         XMLS^.Stop();
+         SDAP^.Stop();
+         Storage^.Stop();
          KNX^.Stop();
+         EqCurve^.Stop();
       END;
 
       SetServiceState( Service.ssPaused, 0 );
@@ -340,7 +363,11 @@ CLASS IMPLEMENTATION CKnxSvc;
       IF KNX = NIL THEN
          LogEvent( -1, L"Svc.OnContinue called for KNX = NIL" );
       ELSE
+         EqCurve^.Start();
          KNX^.Start();
+         Storage^.Start();
+         SDAP^.Start();
+         XMLS^.Start();
       END;
 
       SetServiceState( Service.ssRunning, 0 );
@@ -351,6 +378,22 @@ CLASS IMPLEMENTATION CKnxSvc;
    PRIVATE PROCEDURE _OnStop();
    BEGIN
       Web.Stop();
+   
+      IF SDAP <> NIL THEN
+         SDAP^.Stop();
+         DISPOSE( SDAP );
+      END;
+   
+      IF XMLS <> NIL THEN
+         XMLS^.Stop();
+         DISPOSE( XMLS );
+      END;
+   
+      IF Storage <> NIL THEN
+         KNX^.EventSinks.Unsubscribe( ADR( Storage^.IKNXServerSink ));
+         Storage^.Stop();
+         DISPOSE( Storage );
+      END;
    
       IF KNX <> NIL THEN
          KNX^.Stop();
@@ -364,16 +407,6 @@ CLASS IMPLEMENTATION CKnxSvc;
          DISPOSE( EqCurve );
       END;
 
-      IF SDAP <> NIL THEN
-         SDAP^.Stop();
-         DISPOSE( SDAP );
-      END;
-   
-      IF XMLS <> NIL THEN
-         XMLS^.Stop();
-         DISPOSE( XMLS );
-      END;
-   
       IF Adviser <> NIL THEN
          Adviser^.Stop();
          DISPOSE( Adviser );
