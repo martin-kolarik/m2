@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
    arrays,
    device,
+   Event,
    knx_def,
    knx_stack,
    knx_status,
@@ -146,6 +147,16 @@ INTERFACE IKNXServerSink;
    PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 END IKNXServerSink;
 
+CLASS KNXServerEvent( Event.AEvent ) IMPLEMENTS IKNXServerSink;
+   PUBLIC VIRTUAL PROCEDURE OnConnect();
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect();
+   PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
+END KNXServerEvent;
+
 CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMapper, io.IIO;
    RStatus                  : TRStatus;
    ConfigurationPath        : StringsO.CString;
@@ -154,7 +165,7 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    KNX                      : knx_stack.TPKNXStack;
    KNXBoundaryLock          : Sync.LOCK;
    Sink                     : CStackSink;
-   EventSink                : TPKNXServerSink;
+   EventSinks               : KNXServerEvent;
    Logger                   : log.CLogger;
    R                        : Resources.CResources;
    _Advise                  : io.TAdvise;

@@ -1,5 +1,8 @@
 DEFINITION MODULE Event;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    Rtti,
    synclists;
@@ -19,7 +22,7 @@ ABSTRACT CLASS AEvent; // meant to be used: "CLASS EventSource( EVENT ) IMPLEMEN
    PUBLIC PROCEDURE Subscribe( Listener : ADDRESS ); // TODO: shall be OBJECT
    PUBLIC PROCEDURE Unsubscribe( Listener : ADDRESS ); // TODO: shall be OBJECT
    
-   PUBLIC VIRTUAL Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL FINALLY AEvent();
 
    // for implementors

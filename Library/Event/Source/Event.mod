@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE Event;
 
+FROM Debug IMPORT
+   AssertionW;
+
 (*================================================================================*)
 
 CLASS IMPLEMENTATION AEvent;
@@ -45,7 +48,7 @@ CLASS IMPLEMENTATION AEvent;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
       UnsubscribeAll();
    END Dispose;
@@ -91,7 +94,5 @@ BEGIN
 END AEvent;
 
 (*================================================================================*)
-
-#restore
 
 END Event.

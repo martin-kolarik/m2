@@ -16,9 +16,8 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Modula2\m2rtl"/>
-        <Modules Include="Events"/>
-        <!-- avlmap -->
+        <Components Include="Modula2\m2rtl;Library\ADT"/>
+        <Modules Include="Event"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

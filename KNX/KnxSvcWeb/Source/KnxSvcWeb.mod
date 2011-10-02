@@ -1033,7 +1033,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       _StartedTime := datetime.GetCurrentJD();      
 
       // hook KNX
-      _KNX^.EventSink := ADR( SELF );
+      _KNX^.EventSinks.Subscribe( ADR( IKNXServerSink ));
    END Run;
 
 (*--------------------------------------------------------------------------------*)
@@ -1050,7 +1050,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       _SysUsers.Dispose();
       
       // unhook KNX
-      _KNX^.EventSink := NIL;
+      _KNX^.EventSinks.Unsubscribe( ADR( IKNXServerSink ));
       
       ASSERT( _MVC <> NIL );
       RemoveControllers();

@@ -436,6 +436,84 @@ END CSuspendableResult;
 
 //================================================================================
 
+CLASS IMPLEMENTATION KNXServerEvent;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE OnConnect();
+   BEGIN
+      Reset();
+      WHILE MoveNext() DO
+         TPKNXServerSink( Listener )^.OnConnect();
+      END; // WHILE
+   END OnConnect;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect();
+   BEGIN
+      Reset();
+      WHILE MoveNext() DO
+         TPKNXServerSink( Listener )^.OnDisconnect();
+      END; // WHILE
+   END OnDisconnect;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
+   BEGIN
+      Reset();
+      WHILE MoveNext() DO
+         TPKNXServerSink( Listener )^.OnInitReadCompleted();
+      END; // WHILE
+   END OnInitReadCompleted;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : TPObject );
+   BEGIN
+      Reset();
+      WHILE MoveNext() DO
+         TPKNXServerSink( Listener )^.OnRead( PObject );
+      END; // WHILE
+   END OnRead;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : TPObject );
+   BEGIN
+      Reset();
+      WHILE MoveNext() DO
+         TPKNXServerSink( Listener )^.OnWritten( PObject );
+      END; // WHILE
+   END OnWritten;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   BEGIN
+      Reset();
+      WHILE MoveNext() DO
+         TPKNXServerSink( Listener )^.OnInputQueueAdd( OOBQueue, PromiscuousQueue );
+      END; // WHILE
+   END OnInputQueueAdd;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
+   BEGIN
+      Reset();
+      WHILE MoveNext() DO
+         TPKNXServerSink( Listener )^.OnInputQueueOverflow( OOBQueue, PromiscuousQueue );
+      END; // WHILE
+   END OnInputQueueOverflow;
+
+//--------------------------------------------------------------------------------
+
+END KNXServerEvent;
+
+//================================================================================
+
 CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
@@ -1742,7 +1820,7 @@ CLASS IMPLEMENTATION CKNXServer;
                   ErrorMessage.AppendOA( OAsz( R[ Texts._UnknownBehaviour ] ));
                   AppendErrorId( REF ErrorMessage, p );
                   GOTO Fail;
-               ELSIF knx_def.aofInitRead IN BFlags THEN
+               ELSIF NOT _CacheOnlyMode AND ( knx_def.aofInitRead IN BFlags ) THEN // in _CacheOnlyMode no init read is done
                   EXCL( RStatus, rsInitReadFinished );
                END;
                so.ItemS( StringsO.WCHARS{L' ', L','}, 0, 1, TRUE, OUT p );
@@ -1800,7 +1878,7 @@ CLASS IMPLEMENTATION CKNXServer;
             ErrorMessage.AppendOA( OAsz( R[ Texts._UnknownBehaviour ] ));
             AppendErrorId( REF ErrorMessage, so );
             GOTO Fail;
-         ELSIF knx_def.aofInitRead IN BFlags THEN
+         ELSIF NOT _CacheOnlyMode AND ( knx_def.aofInitRead IN BFlags ) THEN
             EXCL( RStatus, rsInitReadFinished );
          END;
 
@@ -1926,13 +2004,13 @@ CLASS IMPLEMENTATION CKNXServer;
       result : Sync.TAsyncResult;
       value : iovalue.Value;
    BEGIN
-      IF EventSink <> NIL THEN
-         EventSink^.OnConnect();
-      END;
+      EventSinks.OnConnect();
 
       RStatus := RStatus - TRStatus{rsInitReadRepeat, rsInitReadFinished} + TRStatus{rsInitReadPending};
       InitReadItems := 0;
       IF Objects.Count = 0 THEN
+         InitReadFinished();
+      ELSIF _CacheOnlyMode THEN
          InitReadFinished();
       ELSE
          IF ( _ForceReadPeriod > 0 ) AND ( _ReadersCount > 0 ) THEN
@@ -1962,9 +2040,7 @@ CLASS IMPLEMENTATION CKNXServer;
       result : Sync.TAsyncResult;
       value : iovalue.Value;
    BEGIN
-      IF EventSink <> NIL THEN
-         EventSink^.OnDisconnect();
-      END;
+      EventSinks.OnDisconnect();
 
       StopTimer( tiDateAndTime );
       StopTimer( tiForceRead );
@@ -2210,8 +2286,8 @@ CLASS IMPLEMENTATION CKNXServer;
 
       // for both osReading and osInitReadPending the reading must be announced by callback -- CW driver, e.g., can wait
       // with InputFinalized = FALSE, and if it does not receive asynchronous notification, it will never ask for value again   
-      IF ResponseAwaited AND ( EventSink <> NIL ) THEN
-         EventSink^.OnRead( PObject );
+      IF ResponseAwaited THEN
+         EventSinks.OnRead( PObject );
       END;
    END ValueRead;
 
@@ -2283,11 +2359,11 @@ CLASS IMPLEMENTATION CKNXServer;
 
       ELSE // oobData promiscuous mode queueing
 
-         IF ( Direction = IOO.dirRead ) AND ( EventSink <> NIL ) THEN
+         IF ( Direction = IOO.dirRead ) AND NOT EventSinks.Empty THEN
             QueueLock.Lock();
             IF oobData.Count >= InputQueueLength THEN
                QueueLock.Unlock();
-               EventSink^.OnInputQueueOverflow( TRUE, FALSE );
+               EventSinks.OnInputQueueOverflow( TRUE, FALSE );
                RETURN;
             END;
          END;
@@ -2297,11 +2373,11 @@ CLASS IMPLEMENTATION CKNXServer;
             KNXValue2IOValue( EValue, PObject^.StringValue, OUT io );
          END;
 
-         IF ( Direction = IOO.dirRead ) AND ( EventSink <> NIL ) THEN
+         IF ( Direction = IOO.dirRead ) AND NOT EventSinks.Empty THEN
             oobData.EnqueueOA( EValue.Data, PObject );
             QueueLock.Unlock();
 
-            EventSink^.OnInputQueueAdd( TRUE, FALSE );
+            EventSinks.OnInputQueueAdd( TRUE, FALSE );
          END;
 
          IF _AdviseListener <> NIL THEN
@@ -2324,9 +2400,9 @@ CLASS IMPLEMENTATION CKNXServer;
       IF PObject^.WSStatus = knx_status.essOK THEN
          INCL( PObject^.Flags, knx_def.aofKNXValue );
       END;
-      IF EventSink <> NIL THEN
+      IF NOT EventSinks.Empty THEN
          IF knx_user.osWriting IN CurrentState THEN
-            EventSink^.OnWritten( PObject );
+            EventSinks.OnWritten( PObject );
          END;
          
          // in case of promiscuous mode report error
@@ -2372,14 +2448,14 @@ CLASS IMPLEMENTATION CKNXServer;
       EValue : knx_def.CValue;
       prItem : PromiscuousData;
    BEGIN
-      IF EventSink = NIL THEN
+      IF EventSinks.Empty THEN
          RETURN;
       END;
 
       QueueLock.Lock();
       IF prData.Count >= InputQueueLength THEN
          QueueLock.Unlock();
-         EventSink^.OnInputQueueOverflow( FALSE, TRUE );
+         EventSinks.OnInputQueueOverflow( FALSE, TRUE );
          RETURN;
       END;
       
@@ -2391,7 +2467,7 @@ CLASS IMPLEMENTATION CKNXServer;
       INCL( RStatus, rsPromiscuousInQueue );
       QueueLock.Unlock();
 
-      EventSink^.OnInputQueueAdd( FALSE, TRUE );
+      EventSinks.OnInputQueueAdd( FALSE, TRUE );
    END EnqueuePromiscuous;
          
 //--------------------------------------------------------------------------------
@@ -2542,9 +2618,7 @@ CLASS IMPLEMENTATION CKNXServer;
          KNX^.SetTimeout( knx_stack.tidA_PendingDelay, ReadDuringRun.Delay, knx_stack.pendingGroupRead );
          KNX^.SetTimeout( knx_stack.tidA_PendingTimeout, ReadDuringRun.Timeout, knx_stack.pendingGroupRead );
          StopTimer( tiInitReadDelay );
-         IF EventSink <> NIL THEN
-            EventSink^.OnInitReadCompleted();
-         END;
+         EventSinks.OnInitReadCompleted();
       ELSIF InitReadRepeat <= 1 THEN
          InitReadRepeat := 0;
          EXCL( RStatus, rsInitReadRepeat );
@@ -2830,12 +2904,13 @@ BEGIN
 
    KNX := NIL;
    Sink.Server := ADR( SELF );
-   EventSink := NIL;
+   EventSinks.SinkType := RTTI( IKNXServerSink );
    _Advise := io.advWithData;
    _AdviseListener := NIL;
    _DataLogger := NIL;
 
    Logger.Level := Log.ldDebug;
+   Logger.Output := log.outsNone; // redirect all to Log.logger()
    Logger.AddOutput( Log.logger());
    Log.ConfigureByRegistry( REF Logger, LIBRARY );
    Logger.SetName( L"KNX" );
