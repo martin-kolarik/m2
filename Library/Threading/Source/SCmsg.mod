@@ -163,6 +163,14 @@ CLASS IMPLEMENTATION SCMessage;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Send( Target : OSALmsg.TPMessageTarget; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
+   BEGIN
+      target := Target;
+      RETURN target^.Message( SELF, Delivery, Result );
+   END Send;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC OPERATOR :=( CONST MSG : SCMessage );
    BEGIN
       source := MSG.source;
@@ -185,6 +193,18 @@ BEGIN
    param3 := 0;
    param4 := 0;
 END SCMessage;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromMessage( Source : ADDRESS; Message : CARDINAL; Parameter : PTR ) : SCMessage;
+VAR
+   msg : SCMessage;
+BEGIN
+   msg.Source := Source;
+   msg.Message := Message;
+   msg.Parameter := Parameter;
+   RETURN msg;
+END FromMessage;
 
 (*================================================================================*)
 
@@ -231,22 +251,34 @@ CLASS IMPLEMENTATION SCMessageHandler;
 
    PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
    VAR
+      i : CARDINAL;
+      message : SCMessage;
+      msg : OSALmsg.TPMessage;
       LResult : PTR;
    BEGIN
-      OSALmsg.TPMessage( ADR( MSG ))^.Target := ADR( SELF );
+      IF MSG.Target = NIL THEN // no target, set self as it
+         FOR i := 0 TO MIN2( MSG.ParameterCount, message.ParameterCount )-1 DO
+            message[i] := MSG[i];
+         END; // FOR
+         message.Target := ADR( SELF );
+         msg := ADR( message );
+      ELSE
+         msg := OSALmsg.TPMessage( ADR( MSG ));
+      END;
+
       IF ( Delivery = OSALmsg.delSynchronous ) OR ( Delivery = OSALmsg.delSynchronousIfInThread ) AND SelfContext THEN
       
-         IF MSG.Message = msghandler.MSG_ON_TIMER THEN
-            OnTimer( MSG.Parameter );
+         IF msg^.Message = msghandler.MSG_ON_TIMER THEN
+            OnTimer( msg^.Parameter );
          ELSE
             IF Result = NIL THEN
                Result := ADR( LResult );
             END;
-            RETURN OnMessage( MSG, OUT Result^ );
+            RETURN OnMessage( msg^, OUT Result^ );
          END;
          
       ELSIF joinedTo <> NIL THEN // deffer message
-         joinedTo^.Message( MSG, OSALmsg.delAsynchronous, Result );
+         joinedTo^.Message( msg^, OSALmsg.delAsynchronous, Result );
 
       ELSE
          ASSERT( FALSE );

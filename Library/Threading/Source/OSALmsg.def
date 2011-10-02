@@ -30,7 +30,7 @@ CONST
    // RAW messages are system/internal and cannot be used outer of this library
    RAW_MESSAGE_SPACE = 64;
 
-   RAW_MESSAGE_TPC = 1;
+   RAW_MESSAGE_TPC = 1; // thread procedure call
    RAW_PROCESS_QUEUE = 2;
 
    RAW_MESSAGE_ONTIMER = 16;
@@ -44,17 +44,18 @@ CONST
 (*---------------------------------------------------------------------------*)
 
 INTERFACE IMessage;
-  PUBLIC PROPERTY
-    Source : ADDRESS; // can be NIL
-    Target : TPMessageTarget; // if Target is NIL the message's target is owner of Message method taking the message
-    Message : CARDINAL;
-    Parameter : PTR;
-  PUBLIC READONLY PROPERTY
-    ParameterCount : CARDINAL; // including MSG and optional Target and Source, message must have AT LEAST 1 parameter
-  PUBLIC 
-    INDEX( ParameterIndex : CARDINAL ) : PTR;
-  PUBLIC PROCEDURE Clone() : POINTER TO IMessage;
-  PUBLIC PROCEDURE Release(); // clone must go with pair to Clone
+   PUBLIC PROPERTY
+      Source : ADDRESS; // can be NIL
+      Target : TPMessageTarget; // if Target is NIL the message's target is owner of Message method taking the message
+      Message : CARDINAL;
+      Parameter : PTR;
+   PUBLIC READONLY PROPERTY
+      ParameterCount : CARDINAL; // including MSG and optional Target and Source, message must have AT LEAST 1 parameter
+   PUBLIC 
+      INDEX( ParameterIndex : CARDINAL ) : PTR;
+   PUBLIC PROCEDURE Clone() : POINTER TO IMessage;
+   PUBLIC PROCEDURE Release(); // Release must go with pair to Clone
+   PUBLIC VIRTUAL PROCEDURE Send( Target : TPMessageTarget; Delivery : TDelivery; Result : PPTR ) : BOOLEAN;
 END IMessage;
 
 (*===========================================================================*)

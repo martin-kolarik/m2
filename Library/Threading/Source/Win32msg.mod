@@ -247,6 +247,14 @@ CLASS IMPLEMENTATION Win32Message;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Send( Target : OSALmsg.TPMessageTarget; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
+   BEGIN
+      target := Target;
+      RETURN target^.Message( SELF, Delivery, Result );
+   END Send;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC VIRTUAL PROCEDURE Clone() : POINTER TO OSALmsg.IMessage;
   VAR
     Message : POINTER TO Win32Message;
@@ -285,6 +293,18 @@ BEGIN
   lParam := 0;
   wParam := 0;
 END Win32Message;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromMessage( Source : ADDRESS; Message : CARDINAL; Parameter : PTR ) : Win32Message;
+VAR
+   msg : Win32Message;
+BEGIN
+   msg.Source := Source;
+   msg.Message := Message;
+   msg.Parameter := Parameter;
+   RETURN msg;
+END FromMessage;
 
 (*================================================================================*)
 
@@ -331,14 +351,26 @@ CLASS IMPLEMENTATION Win32MessageHandler;
 
    PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
    VAR
+      i : CARDINAL;
+      message : Win32Message;
+      msg : OSALmsg.TPMessage;
       LResult : PTR;
       Repeat : PTR;
       Timer : PTR;
    BEGIN
-      OSALmsg.TPMessage( ADR( MSG ))^.Target := ADR( SELF );
+      IF MSG.Target = NIL THEN // no target, set self as it
+         FOR i := 0 TO MIN2( MSG.ParameterCount, message.ParameterCount )-1 DO
+            message[i] := MSG[i];
+         END; // FOR
+         message.Target := ADR( SELF );
+         msg := ADR( message );
+      ELSE
+         msg := OSALmsg.TPMessage( ADR( MSG ));
+      END;
+
       IF ( Delivery = OSALmsg.delSynchronous ) OR ( Delivery = OSALmsg.delSynchronousIfInThread ) AND SelfContext THEN
-         IF MSG[ OSALmsg.MI_MESSAGE ] = windows.WM_TIMER THEN
-            Timer := MSG[ MI_WPARAM ];
+         IF msg^[ OSALmsg.MI_MESSAGE ] = windows.WM_TIMER THEN
+            Timer := msg^[ MI_WPARAM ];
             IF NOT Timers.Get( Timer, OUT Repeat ) THEN
                RETURN FALSE;
             ELSIF Repeat = 0 THEN
@@ -349,12 +381,12 @@ CLASS IMPLEMENTATION Win32MessageHandler;
             IF Result = NIL THEN
                Result := ADR( LResult );
             END;
-            RETURN OnMessage( MSG, OUT Result^ );
+            RETURN OnMessage( msg^, OUT Result^ );
          END;
       ELSIF HWND = NIL THEN
          RETURN FALSE;
       ELSE // deffer message
-         windows.PostMessage( HWND, MSG.Message, windows.WPARAM( MSG[ MI_WPARAM ] ), windows.LPARAM( MSG[ MI_LPARAM ] ));
+         windows.PostMessage( HWND, msg^.Message, windows.WPARAM( msg^[ MI_WPARAM ] ), windows.LPARAM( msg^[ MI_LPARAM ] ));
       END;
       IF Result <> NIL THEN
          Result^ := 0;

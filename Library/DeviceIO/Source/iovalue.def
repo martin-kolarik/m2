@@ -122,9 +122,10 @@ END Value;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FromInteger( value : INT32 ) : Value;
-PROCEDURE FromLong( value : INT64 ) : Value;
-PROCEDURE FromFloat( value : LONGREAL ) : Value;
+PROCEDURE FromInteger( CONST value : INT32 ) : Value;
+PROCEDURE FromLong( CONST value : INT64 ) : Value;
+PROCEDURE FromFloat( CONST value : LONGREAL ) : Value;
+PROCEDURE FromString( CONST value : StringsO.CString ) : Value;
 
 (*---------------------------------------------------------------------------*)
 

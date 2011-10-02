@@ -1466,7 +1466,7 @@ END Value;
 
 (*================================================================================*)
 
-PROCEDURE FromInteger( value : INT32 ) : Value;
+PROCEDURE FromInteger( CONST value : INT32 ) : Value;
 VAR
    v : Value;
 BEGIN
@@ -1476,7 +1476,7 @@ END FromInteger;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE FromLong( value : INT64 ) : Value;
+PROCEDURE FromLong( CONST value : INT64 ) : Value;
 VAR
    v : Value;
 BEGIN
@@ -1486,13 +1486,23 @@ END FromLong;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE FromFloat( value : LONGREAL ) : Value;
+PROCEDURE FromFloat( CONST value : LONGREAL ) : Value;
 VAR
    v : Value;
 BEGIN
    v.Float := value;
    RETURN v;
 END FromFloat;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromString( CONST value : StringsO.CString ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.String := value;
+   RETURN v;
+END FromString;
 
 (*================================================================================*)
 
