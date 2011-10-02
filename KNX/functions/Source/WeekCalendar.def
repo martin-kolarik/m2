@@ -1,14 +1,14 @@
-DEFINITION MODULE EquithermicCurve;
+DEFINITION MODULE WeekCalendar;
 
 IMPORT
    adviser,
-   device,
    functionbase,
-   iovalue,
+   INIFile,
+   io,
    log,
    msghandler,
    msgqueue,
-   ns,
+   StringsO,
    Sync;
 
 FROM Storage IMPORT
@@ -19,18 +19,14 @@ FROM Storage IMPORT
 (*================================================================================*)
 
 TYPE
-   TPEquithermicCurveFunction = POINTER TO CEquithermicCurveFunction;
-   TPCurve = POINTER TO CCurve;
+   TPWeekCalendarFunction = POINTER TO CWeekCalendarFunction;
+   TPItem = POINTER TO CItem;
 
-CLASS CEquithermicCurveFunction( functionbase.CFunctionBase ) IMPLEMENTS io.IAdviseInfo;
+CLASS CWeekCalendarFunction( functionbase.CFunctionBase );
 
    // MessageHandler
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
 
-   // IAdviseInfo
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
-
-   // SELF
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // accepts citINIFile or citINIFileSection
    PUBLIC VIRTUAL PROCEDURE Dispose();
    
@@ -39,17 +35,18 @@ CLASS CEquithermicCurveFunction( functionbase.CFunctionBase ) IMPLEMENTS io.IAdv
    INTERNAL VIRTUAL PROCEDURE OnStop();
 
    PRIVATE VAR
-      _Curves : lists.CPtrList; // list of CCurve
+      _Items : lists.CPtrList; // list of CItem
       _SendQueue : msgqueue.CPtrQueue;
 
-   PRIVATE PROCEDURE Enqueue( curve : TPCurve );
-   PRIVATE PROCEDURE Compute( curve : TPCurve );
+   PRIVATE PROCEDURE LoadData( CONST iniFile : INIFile.TPINIFile; section : ARRAY OF WCHAR; CONST Log : log.TPLogger; acceptConfigurationKeys : BOOLEAN ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE Enqueue( item : TPItem );
+   PRIVATE PROCEDURE Write();
 
-   INITIALLY CEquithermicCurveFunction();
-   FINALLY CEquithermicCurveFunction();
+   INITIALLY CWeekCalendarFunction();
+   FINALLY CWeekCalendarFunction();
 
-END CEquithermicCurveFunction;
+END CWeekCalendarFunction;
 
 (*================================================================================*)
 
-END EquithermicCurve.
+END WeekCalendar.

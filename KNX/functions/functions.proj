@@ -17,8 +17,8 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;Library\DeviceIO"/>
-        <Modules Include="EquithermicCurve"/>
+        <Components Include="Component\sccore;Library\DeviceIO;KNX\knxcore"/>
+        <Modules Include="functionbase;PersistentStorage;EquithermicCurve"/>
         <Messages Include="Texts"/>
     </ItemGroup>
 
