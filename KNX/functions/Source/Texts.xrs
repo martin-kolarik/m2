@@ -20,7 +20,7 @@
             <item lang="cs-CZ">Sekce nebyla v konfiguraci nalezena:</item>
         </string>
         <string name="_OutputGroupAddressNotFound">
-            <item lang="en-US">An item coresponding to given output address does not exist</item>
+            <item lang="en-US">An item coresponding to given output address does not exist:</item>
             <item lang="cs-CZ">Prvek (výstup) s uvedenou adresou neexistuje:</item>
         </string>
         <string name="_InputValuesAreMissing">
@@ -28,11 +28,11 @@
             <item lang="cs-CZ">Chybí adresy vstupních prvků (žádaná hodnota, venkovní teplota)</item>
         </string>
         <string name="_SetpointGroupAddressNotFound">
-            <item lang="en-US">An item coresponding to given setpoint address does not exist</item>
+            <item lang="en-US">An item coresponding to given setpoint address does not exist:</item>
             <item lang="cs-CZ">Prvek (žádaná hodnota) s uvedenou adresou neexistuje:</item>
         </string>
         <string name="_OuterGroupAddressNotFound">
-            <item lang="en-US">An item coresponding to given outer temperature address does not exist</item>
+            <item lang="en-US">An item coresponding to given outer temperature address does not exist:</item>
             <item lang="cs-CZ">Prvek (venkovní teplota) s uvedenou adresou neexistuje:</item>
         </string>
         <string name="_SlopeIsNotANumber">
@@ -46,6 +46,19 @@
         <string name="_OffsetIsNotANumber">
             <item lang="en-US">Given offset is not a number (maybe it is malformed?)</item>
             <item lang="cs-CZ">Zadaná hodnota posunutí není číslo (je špatně zapsané?)</item>
+        </string>
+
+        <string name="_AppDataStorageUnavailable">
+            <item lang="en-US">Unable to set up common application data storage</item>
+            <item lang="cs-CZ">Nelze nastavit cestu ke společným datům aplikací</item>
+        </string>
+        <string name="_WriteDelayCannotBeZeroOrLessThanZeroIgnoring">
+            <item lang="en-US">Write delay must be at least 1 (second)</item>
+            <item lang="cs-CZ">Zpoždění zápisu musí být nejméně 1 (sekunda)</item>
+        </string>
+        <string name="_GroupAddressNotFound">
+            <item lang="en-US">An item corresponding to given address does not exist:</item>
+            <item lang="cs-CZ">Prvek s uvedenou adresou neexistuje:</item>
         </string>
 
     </strings>
