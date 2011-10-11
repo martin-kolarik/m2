@@ -59,6 +59,7 @@ namespace Tasks
         int _numRevision;
         String^ _idRevision;
         String^ _hgPath;
+        bool fallBack;
 
     public:
         HgVersion()
@@ -127,7 +128,14 @@ namespace Tasks
 
         virtual String^ GenerateCommandLineCommands() override {
             DirectoryInfo^ localPath = gcnew DirectoryInfo(_localPath);
-            return String::Format("log -q -l 1 \"{0}\"", localPath->FullName->Replace('\\', '/'));
+            if( fallBack )
+            {
+                return String::Format("log -q -l 1 \"{0}\"", localPath->FullName->Replace('\\', '/'));
+            }
+            else
+            {
+                return String::Format("log -r .:: -q -l 1 \"{0}\"", localPath->FullName->Replace('\\', '/'));
+            }
         }
 
         virtual void LogEventsFromTextOutput(String^ singleLine, MessageImportance messageImportance) override {
@@ -136,17 +144,27 @@ namespace Tasks
         }
 
     public:
-        virtual bool Execute() override {
+        virtual bool Execute() override
+        {
+            fallBack = false;
             bool result = ToolTask::Execute();
+            if (result && ParseOutput())
+            {
+                return true;
+            }
+
+            fallBack = true;
+            result = ToolTask::Execute();
             if (result)
             {
                 ParseOutput();
             }
+
             return result;
         }
 
     private:
-        void ParseOutput()
+        bool ParseOutput()
         {
             String^ buffer = _outputBuffer->ToString();
             int colon = buffer->IndexOf( ":" );
@@ -155,11 +173,13 @@ namespace Tasks
                 String^ num = buffer->Substring( 0, colon );
                 _numRevision = _numRevision.Parse( num );
                 _idRevision = buffer->Substring( colon+1 );
+                return true;
             }
             else
             {
                 _numRevision = 0;
                 _idRevision = gcnew String("<unversioned>");
+                return false;
             }
         }
     };
