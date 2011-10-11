@@ -298,8 +298,6 @@ CLASS IMPLEMENTATION ABridge;
 	   (*----------*)
 
 	BEGIN
-      ASSERT( FALSE );
-
 	   Dispose();
 	   
 	   IF Log = NIL THEN
