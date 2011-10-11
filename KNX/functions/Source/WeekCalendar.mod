@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE PersistentStorage;
+IMPLEMENTATION MODULE WeekCalendar;
 
 (*================================================================================*)
 
@@ -19,16 +19,15 @@ IMPORT
 
 CLASS CItem;
 
-   LOCAL PROCEDURE Enqueue() : BOOLEAN; // returns FALSE if the object is already in the queue
-   LOCAL PROCEDURE Dequeue();
+   LOCAL PROCEDURE Initialize( CONST LastPassedWeekStart : datetime.DateTime; DayOfWeek, Hour, Minute : CARDINAL ); // DayOfWeek 0 = Sunday
+   LOCAL PROCEDURE ShouldTick( CONST Now : datetime.DateTime ) : BOOLEAN;
+   LOCAL PROCEDURE ToString() : StringsO.CString; // for debugging purposes, returns next tick time
 
    LOCAL VAR
       Address : StringsO.CString;
       Hash : ns.THash := NIL;
       Value : iovalue.Value;
-
-   PRIVATE VAR
-      _Signal : Sync.SIGNAL;
+      ShouldTickAt : datetime.DateTime;
 
 END CItem;
 
@@ -38,22 +37,42 @@ CLASS IMPLEMENTATION CItem;
 
 (*-------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Enqueue() : BOOLEAN;
+   LOCAL PROCEDURE Initialize( CONST LastPassedWeekStart : datetime.DateTime; DayOfWeek, Hour, Minute : CARDINAL );
    BEGIN
-      RETURN _Signal.Signal();
-   END Enqueue;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE Dequeue();
-   BEGIN
-      _Signal.Reset();
-   END Dequeue;
+      ShouldTickAt := LastPassedWeekStart;
+      CASE DayOfWeek OF
+      | 0 : ms := 6 * 86400;
+      | 1 : ms := 0 * 86400;
+      | 2 : ms := 1 * 86400;
+      | 3 : ms := 2 * 86400;
+      | 4 : ms := 3 * 86400;
+      | 5 : ms := 4 * 86400;
+      | 6 : ms := 5 * 86400;
+      END; // CASE
+      ShouldTickAt.Add( datetime.MStoJDC( INC( ms, Hour * 3600 + Minute * 60 )));
+   END FromDateTime;
 
 (*-------------------------------------------------------------------------------*)
 
-BEGIN
-   _Signal.Init( Sync.stSpin, L"", FALSE );
+   PROCEDURE ShouldTick( CONST Now : datetime.DateTime ) : BOOLEAN;
+   BEGIN
+      IF Now < ShouldTickAt THEN
+         RETURN FALSE;
+      END;
+
+      ShouldTickAt.Add( datetime.DaysToJDC( 7 ));
+
+      RETURN TRUE;
+   END ShouldTick;
+
+(*-------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE ToString() : StringsO.CString; // for debugging purposes
+   BEGIN
+   END ToString;
+
+(*-------------------------------------------------------------------------------*)
+
 END CItem;
 
 (*================================================================================*)
@@ -415,8 +434,8 @@ BEGIN
    DescriptionSet := StringsO.FromOA( L"Persistent storage" );
 FINALLY
    Dispose();
-END CPersistentStorageFunction;
+END CWeekCalendarFunction;
 
 (*================================================================================*)
 
-END PersistentStorage.
+END WeekCalendar.
