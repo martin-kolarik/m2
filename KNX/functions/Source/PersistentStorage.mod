@@ -248,7 +248,6 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
       IF Device <> NIL THEN
          Device^.UnadviseAll( ADR( SELF ));
-         Device := NIL;
       END;
    
       _Items.Reset();

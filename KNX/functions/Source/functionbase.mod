@@ -79,11 +79,7 @@ CLASS IMPLEMENTATION CFunctionBase;
 
    PUBLIC PROPERTY Logger GET : log.TPILogger;
    BEGIN
-      IF _Logger = log.TPILogger( log.logger()) THEN
-         RETURN NIL;
-      ELSE
-         RETURN _Logger;
-      END;
+      RETURN _Logger;
    END Logger;
       
 (*--------------------------------------------------------------------------------*)

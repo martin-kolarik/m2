@@ -34,6 +34,7 @@ IMPORT
    StringsO,
    Sync,
    threadcall,
+   WeekCalendar,
    xmlsocket;
    
 IMPORT
@@ -52,6 +53,7 @@ CONST
    nameXMLSocket = L'name.XMLSocket';
    nameStorage = L'name.Storage';
    nameEqCurve = L'name.EqCurve';
+   nameWeekCalendar = L'name.WeekCalendar';
    
 TYPE
    TControlledDeviceInfo = RECORD
@@ -88,8 +90,9 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       XMLS : xmlsocket.TPXMLSocketServer := NIL;
       Web : KnxSvcWeb.CKnxSvcWeb;
       CDI : TControlledDeviceInfo;
-      EqCurve : EquithermicCurve.TPEquithermicCurveFunction := NIL;
       Storage : PersistentStorage.TPPersistentStorageFunction := NIL;
+      EqCurve : EquithermicCurve.TPEquithermicCurveFunction := NIL;
+      WeekCal : WeekCalendar.TPWeekCalendarFunction := NIL;
 
    // service, OS thread
    LOCAL VIRTUAL PROCEDURE OnStart();
@@ -211,7 +214,7 @@ CLASS IMPLEMENTATION CKnxSvc;
          END;
       END;
       RS.Close();
-      
+
       IF s1.Empty THEN
          FIO.GetModuleDirW( L"", OUT Data );
          s1.FromOA( Data );
@@ -316,14 +319,29 @@ CLASS IMPLEMENTATION CKnxSvc;
          GlobalResult := LocalResult;
       END;
 
+      ASSERT( WeekCal = NIL );
+      NEW( WeekCal );
+      WeekCal^.Init( TRUE );
+      WeekCal^.Device := Adviser;
+      WeekCal^.Logger := Log.logger();
+      LocalResult := WeekCal^.Configure( configuration, ADR( ConfigLogger ));
+      IF LocalResult = Sync.arCompleted THEN
+         WeekCal^.Start();
+      END;
+      IF GlobalResult = Sync.arCompleted THEN
+         GlobalResult := LocalResult;
+      END;
+
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
       CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
       CDI.Names[2] := PWCHAR( ADR( nameStorage ));
       CDI.Names[3] := PWCHAR( ADR( nameEqCurve ));
+      CDI.Names[4] := PWCHAR( ADR( nameWeekCalendar ));
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       CDI.Devices[2] := Storage;
       CDI.Devices[3] := EqCurve;
+      CDI.Devices[4] := WeekCal;
 
       IF Web.Init( L"/SmartServer", cfg, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
@@ -348,6 +366,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       ELSE
          XMLS^.Stop();
          SDAP^.Stop();
+         WeekCal^.Stop();
          Storage^.Stop();
          KNX^.Stop();
          EqCurve^.Stop();
@@ -366,6 +385,7 @@ CLASS IMPLEMENTATION CKnxSvc;
          EqCurve^.Start();
          KNX^.Start();
          Storage^.Start();
+         WeekCal^.Start();
          SDAP^.Start();
          XMLS^.Start();
       END;
@@ -399,6 +419,12 @@ CLASS IMPLEMENTATION CKnxSvc;
          KNX^.Stop();
          KNX^.Dispose();
          DISPOSE( KNX );
+      END;
+
+      IF WeekCal <> NIL THEN
+         WeekCal^.Stop();
+         WeekCal^.Dispose();
+         DISPOSE( WeekCal );
       END;
 
       IF EqCurve <> NIL THEN

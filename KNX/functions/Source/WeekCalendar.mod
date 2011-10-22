@@ -6,12 +6,14 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   datetime,
    device,
    FIO,
    Folders,
    IOO,
    iovalue,
    INIFile,
+   maps,
    ns,
    Texts;
 
@@ -38,6 +40,8 @@ CLASS IMPLEMENTATION CItem;
 (*-------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE Initialize( CONST LastPassedWeekStart : datetime.DateTime; DayOfWeek, Hour, Minute : CARDINAL );
+   VAR
+      ms : CARDINAL;
    BEGIN
       ShouldTickAt := LastPassedWeekStart;
       CASE DayOfWeek OF
@@ -49,14 +53,14 @@ CLASS IMPLEMENTATION CItem;
       | 5 : ms := 4 * 86400;
       | 6 : ms := 5 * 86400;
       END; // CASE
-      ShouldTickAt.Add( datetime.MStoJDC( INC( ms, Hour * 3600 + Minute * 60 )));
-   END FromDateTime;
+      ShouldTickAt.Add( datetime.MSToJDC( 1000 * INC( ms, Hour * 3600 + Minute * 60 )));
+   END Initialize;
 
 (*-------------------------------------------------------------------------------*)
 
-   PROCEDURE ShouldTick( CONST Now : datetime.DateTime ) : BOOLEAN;
+   LOCAL PROCEDURE ShouldTick( CONST Now : datetime.DateTime ) : BOOLEAN;
    BEGIN
-      IF Now < ShouldTickAt THEN
+      IF ShouldTickAt > Now THEN
          RETURN FALSE;
       END;
 
@@ -68,144 +72,81 @@ CLASS IMPLEMENTATION CItem;
 (*-------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE ToString() : StringsO.CString; // for debugging purposes
+   VAR
+      cs : StringsO.CString;
+      s : ARRAY [0..15] OF WCHAR;
    BEGIN
+      IF ShouldTickAt.ToStringOA( L"ddd, HH:mm", TRUE, TRUE, OUT s ) THEN
+         cs.FromOA( s );
+      ELSE
+         cs.FromOA( L"<invalid_date>" );
+      END;
+      RETURN cs;
    END ToString;
 
 (*-------------------------------------------------------------------------------*)
 
+BEGIN
 END CItem;
 
 (*================================================================================*)
 
 CONST
-   LOGNAME = L"Storage";
-   CFG_SECTION = L"storage";
-   WRITE_DELAY_TIMER = 1;
-   STORAGE_FILE = L'PersistingStorage.ini';
+   LOGNAME = L"WeekCalendar";
+   CALENDAR_PERIOD = 20000; // 20 second
+   MSG_WRITE = msghandler.MSG_BASE;
+   CFG_SECTION = L"week_calendar";
 
-CLASS IMPLEMENTATION CPersistentStorageFunction;
+CLASS IMPLEMENTATION CWeekCalendarFunction;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
    BEGIN
-      IF Timer = WRITE_DELAY_TIMER THEN
+      IF SUPER.OnMessage( Message, OUT Result ) THEN
+         RETURN TRUE;
+
+      ELSIF Message.Message = MSG_WRITE THEN
          Write();
-      END;
-   END OnTimer;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
-   VAR
-      item : TPItem;
-      i : CARDINAL;
-   BEGIN
-      // check validity of input
-      IF HIGH( Item ) < 0 THEN
-         RETURN;
-      END;
+         RETURN TRUE;
       
-      // look for items and check if operation finished sucessfully
-      FOR i := 0 TO HIGH( Item ) DO
-         IF Result[i] IN Sync.arsCompletions THEN
-            
-            _Items.Reset();
-            WHILE _Items.MoveNext() DO
-               item := _Items.Current;
-               IF item^.Hash = Item[i] THEN
-                  Mark( item );
-               END;
-            END; // WHILE
-            
-         END;
+      ELSE
+         RETURN FALSE;
       END;
-   END OnAdvise;
+   END OnMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnConnect();
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
-   END OnConnect;
+      IF PoolHandle = _CalendarPeriod THEN
+         EvaluateItems();
+      END;
+   END OnTimeout;
 
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDisconnect();
-   BEGIN
-   END OnDisconnect;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
-   VAR
-      item : TPItem;
-      result : Sync.TAsyncResult;
-      value : StringsO.CString;
-   BEGIN
-      Logger^.LogS( log.lcWarning, 0, LOGNAME, L"Init-read phase finished, pushing persistent values to KNX" );
-
-      // write values to KNX
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
-
-         value := item^.Value.String;
-         Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Pushing value:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
-
-         result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirWrite, item^.Hash, REF item^.Value, NIL );
-         IF result NOT IN Sync.arsCompletions THEN // log error
-            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write persisted value:", OA( item^.Address.Length-1, item^.Address.Data ));
-         END;
-
-      END; // WHILE      
-   END OnInitReadCompleted;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : knxcore.TPObject );
-   BEGIN
-   END OnRead;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : knxcore.TPObject );
-   BEGIN
-   END OnWritten;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
-   END OnInputQueueAdd;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
-   BEGIN
-   END OnInputQueueOverflow;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY DefaultStorageFolder GET : StringsO.CString;
-   BEGIN
-      RETURN _DefaultStorageFolder;
-   END DefaultStorageFolder;
-      
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY DefaultStorageFolder SET( CONST Value : StringsO.CString );
-   BEGIN
-      _DefaultStorageFolder := Value;
-   END DefaultStorageFolder;
-      
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   TYPE
+      Day = ( Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday );
+      Days = SET OF Day;
    VAR
+      day : Day;
+      days : Days;
+      dt : datetime.DateTime;
+      ES : PTR;
+      hash : ns.THash;
+      i : CARDINAL;
       iniFile : INIFile.TPINIFile;
-      result : Sync.TAsyncResult;
+      item : TPItem;
+      key : StringsO.CString;
+      Line : CARDINAL;
+      pieces : CARDINAL;
       section : StringsO.CString;
-      storageFile : INIFile.CINIFile;
-      storagePathOA : FIO.PathStrW;
+      valueTime : ARRAY [0..15] OF WCHAR;
+      value : StringsO.CString;
+      values : ARRAY [0..11] OF StringsO.CString;
+      weekStart : datetime.DateTime;
    BEGIN
       IF Device = NIL THEN
 	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
@@ -227,33 +168,91 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
       END;
-      
-      _StoragePath.Clear();
-      result := LoadData( iniFile, OA( section.Length-1, section.Data ), Log, TRUE );
-      IF result NOT IN Sync.arsCompletions THEN
-         RETURN result;
-      END;
 
-      IF _StoragePath.Empty THEN // nothing was read, set up default
-         IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT storagePathOA ) THEN
-	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._AppDataStorageUnavailable ] ));
-            RETURN Sync.arCannotStart;
+      IF NOT iniFile^.SetSection( OA( section.Length-1, section.Data )) THEN
+	      Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
+         RETURN Sync.arCompleted;
+      END;
+      // here the inifile has proper section set
+
+      // compute value which will be reused more times      
+      weekStart := DetermineLastPassedWeekStart();
+
+      ES := 0;
+      WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
+
+         // key/output = value, hh:mm [, days]
+         IF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
+	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
+            CONTINUE;
          END;
-         FIO.PathAddW( REF storagePathOA, OA( _DefaultStorageFolder.Length-1, _DefaultStorageFolder.Data ));
-         FIO.PathAddW( REF storagePathOA, STORAGE_FILE );
-         _StoragePath.FromOA( storagePathOA );
-      END;
-
-      Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Using storage file:", OA( _StoragePath.Length-1, _StoragePath.Data ));
-
-      IF storageFile.LoadPath( OA( _StoragePath.Length-1, _StoragePath.Data )) THEN
-         section.FromOA( CFG_SECTION ); // load default section
-         result := LoadData( ADR( storageFile ), OA( section.Length-1, section.Data ), Log, FALSE );
-         IF result NOT IN Sync.arsCompletions THEN
-            RETURN result;
+         
+         value.SplitS( StringsO.WCHARS{L","}, 0, FALSE, OUT pieces, OUT values );
+         FOR i := 0 TO HIGH( values ) DO
+            values[i].Trim();
+         END; // FOR
+         
+         // check mandatory parameters (value, time)
+         IF pieces < 2 THEN
+	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
+            CONTINUE;
          END;
-      END;
-      
+
+         values[1].ToOA( OUT valueTime );
+         IF NOT dt.FromStringOA( valueTime, L"H:mm" ) AND
+            NOT dt.FromStringOA( valueTime, L"HH:mm" ) AND
+            NOT dt.FromStringOA( valueTime, L"H:m" ) AND
+            NOT dt.FromStringOA( valueTime, L"HH:m" ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectTimeFormat ] ), OA( values[1].Length-1, values[1].Data ));
+            CONTINUE;
+         END;
+         
+         // read optional parameters (days)
+         IF pieces = 2 THEN // no days, create item for each day
+            days := Days{ Monday, Sunday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday };
+
+         ELSE // analyze items
+            days := Days{};
+            FOR i := 2 TO pieces-1 DO
+               values[i].Lowerize();
+               IF values[i].StartsWithOA( L"m" ) THEN
+                  days := days + Days{ Monday };
+               ELSIF values[i].StartsWithOA( L"tu" ) THEN
+                  days := days + Days{ Tuesday };
+               ELSIF values[i].StartsWithOA( L"wed" ) THEN
+                  days := days + Days{ Wednesday };
+               ELSIF values[i].StartsWithOA( L"th" ) THEN
+                  days := days + Days{ Thursday };
+               ELSIF values[i].StartsWithOA( L"f" ) THEN
+                  days := days + Days{ Friday };
+               ELSIF values[i].StartsWithOA( L"sa" ) THEN
+                  days := days + Days{ Saturday };
+               ELSIF values[i].StartsWithOA( L"su" ) THEN
+                  days := days + Days{ Sunday };
+               ELSIF values[i].StartsWithOA( L"wee" ) THEN // week
+                  days := days + Days{ Saturday, Sunday };
+               ELSIF values[i].StartsWithOA( L"wo" ) THEN // work
+                  days := days + Days{ Monday, Tuesday, Wednesday, Thursday, Friday };
+               ELSE // error
+                  Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectDaySpecification ] ), OA( values[i].Length-1, values[i].Data ));
+               END; // what has been found
+            END; // FOR
+
+         END; // IF analyze items
+
+         FOR day := Sunday TO Saturday DO
+            IF day IN days THEN
+               NEW( item );
+               item^.Initialize( weekStart, CARDINAL( day ), dt.Hour, dt.Minute );
+               item^.Address := key;
+               item^.Hash := hash;
+               item^.Value.String := values[0];
+               _Items.Add( item, 0 );
+            END;
+         END;
+
+      END; // WHILE line/key
+
       RETURN Sync.arCompleted;
    END Configure; 
    
@@ -263,13 +262,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    VAR
       item : TPItem;
    BEGIN
-      StopTimer( WRITE_DELAY_TIMER );
+      StopTimeout( REF _CalendarPeriod );
 
-      IF Device <> NIL THEN
-         Device^.UnadviseAll( ADR( SELF ));
-         Device := NIL;
-      END;
-   
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
@@ -282,112 +276,86 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
    VAR
-      item : TPItem;
+      item, furthest : TPItem;
+      now : datetime.DateTime := datetime.NowLocal();
+      outputs : maps.CPtrMap;
    BEGIN
-      Device^.JoinClient( ADR( SELF ), io.advWithData );
-      
+      // move all expired items to the future
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
-         Device^.AdviseHash( ADR( SELF ), item^.Hash );
+         item^.ShouldTick( now );
       END; // WHILE
 
-      // values are written into KNX after init read phase
+      // construct map from items to look for the furthest item
+      _Items.Reset();
+      WHILE _Items.MoveNext() DO
+         item := _Items.Current;
+         IF NOT outputs.Contains( item^.Hash ) THEN
+            outputs.Add( item^.Hash, 0 );
+         END;
+      END; // WHILE
+
+      // for each item store the furthest time in the map
+      _Items.Reset();
+      WHILE _Items.MoveNext() DO
+         item := _Items.Current;
+         outputs.Get( item^.Hash, OUT furthest );
+         IF furthest = NIL THEN
+            furthest := item;
+         ELSIF furthest^.ShouldTickAt < item^.ShouldTickAt THEN
+            furthest := item;
+         END;
+         outputs.Remove( item^.Hash ); // slow!!, but there is no way how to change DATA of some item in the map
+         outputs.Add( item^.Hash, furthest );
+      END; // WHILE
+
+      // emit current values from outputs
+      outputs.Reset();
+      WHILE outputs.MoveNext() DO
+         furthest := outputs.CurrentData;
+         Enqueue( furthest );
+      END; // WHILE
+
+      _PoolDelegate.TimeoutSink := ADR( SELF );
+      StartTimeout( CALENDAR_PERIOD, FALSE, REF _CalendarPeriod );
    END OnStart;
 
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnStop();
    BEGIN
-      Device^.UnadviseAll( ADR( SELF ));
-      Device^.LeaveClient( ADR( SELF ));
+      _PoolDelegate.TimeoutSink := NIL;
+      StopTimeout( REF _CalendarPeriod );
    END OnStop;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LoadData( CONST iniFile : INIFile.TPINIFile; section : ARRAY OF WCHAR; CONST Log : log.TPLogger; acceptConfigurationKeys : BOOLEAN ) : Sync.TAsyncResult;
-   CONST
-      keyWriteDelay = L"write_delay";
-      keyStoragePath = L"storage_file_path";
+   PRIVATE PROCEDURE EvaluateItems();
    VAR
-      ES : PTR;
-      hash : ns.THash;
       item : TPItem;
-      Line : CARDINAL;
-      key : StringsO.CString;
-      s : StringsO.CString;
-      storagePath : StringsO.CString;
-      value : StringsO.CString;
-      writeDelay : INTEGER;
+      now : datetime.DateTime := datetime.NowLocal();
    BEGIN
-      IF NOT iniFile^.SetSection( section ) THEN
-	      Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), section );
-         RETURN Sync.arCompleted;
-      END;
-      // here the inifile has proper section set
-
-      IF acceptConfigurationKeys THEN
-         // get optional write delay
-         IF iniFile^.GetKeyInt( keyWriteDelay, OUT Line, OUT writeDelay ) THEN
-            IF writeDelay < 1 THEN
-	            Log^.LogSC( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._WriteDelayCannotBeZeroOrLessThanZeroIgnoring ] ), writeDelay );
-            ELSE
-               _WriteDelay := 1000 * writeDelay;
-            END;
+      _Items.Reset();
+      WHILE _Items.MoveNext() DO
+         item := _Items.Current;
+         IF item^.ShouldTick( now ) THEN
+            Enqueue( item );
          END;
-      
-         // get optional storage path
-         IF iniFile^.GetKeyStr( keyStoragePath, OUT Line, OUT storagePath ) THEN
-            _StoragePath := storagePath;
-         END;
-      END;
-
-      ES := 0;
-      WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
-
-         // skip keys already read
-         IF NOT acceptConfigurationKeys THEN
-            // fall down, do not test for special configuration keys
-         ELSIF value.EqualsOA( keyWriteDelay ) OR
-            value.EqualsOA( keyStoragePath ) THEN
-            CONTINUE;
-         END;
-
-         // key/output = value
-         IF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._GroupAddressNotFound ] ), OA( s.Length-1, s.Data ));
-            CONTINUE;
-         END;
-         
-         // everything OK, create item in _Items
-         NEW( item );
-         item^.Address := key;
-         item^.Hash := hash;
-         item^.Value := iovalue.FromString( value );
-         _Items.Add( item, 0 );
       END; // WHILE
-
-      RETURN Sync.arCompleted;
-   END LoadData;
+   END EvaluateItems;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Mark( item : TPItem );
+   PRIVATE PROCEDURE Enqueue( item : TPItem );
+   VAR
+      s : StringsO.CString;
    BEGIN
-      IF NOT item^.Enqueue() THEN // smart queueuing, the item is already inside the queue
-         RETURN;
-      END;
+      s := item^.ToString();
+      Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Marking item for write:", OA( item^.Address.Length-1, item^.Address.Data ), L"at", OA( s.Length-1, s.Data ));
 
-      Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Marking item for write:", OA( item^.Address.Length-1, item^.Address.Data ));
       _WriteQueue.Enqueue( item );
-
-      IF TimerRunning( WRITE_DELAY_TIMER ) THEN
-         Logger^.LogS( log.lcInfo, 0, LOGNAME, L"Timer pending, not scheduled." );
-         RETURN;
-      END;
-      Logger^.LogS( log.lcWarning, 0, LOGNAME, L"Timer not pending, scheduled." );
-      StartTimer( WRITE_DELAY_TIMER, _WriteDelay, FALSE );
-   END Mark;
+   END Enqueue;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -397,43 +365,71 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       result : Sync.TAsyncResult;
       value : StringsO.CString;
    BEGIN
-      Logger^.LogS( log.lcWarning, 0, LOGNAME, L"Timer elapsed, writting changed items to the file." );
-
-      _Storage.CreateSection( CFG_SECTION, FALSE );
-      _Storage.SetSection( CFG_SECTION );
-
       WHILE _WriteQueue.Dequeue( OUT item ) DO
-         item^.Dequeue();
 
-         result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirRead, item^.Hash, REF item^.Value, NIL );
+         result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirWrite, item^.Hash, REF item^.Value, NIL );
          IF result NOT IN Sync.arsCompletions THEN // log error
-	         Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read value from device:", OA( item^.Address.Length-1, item^.Address.Data ));
+	         Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write value to device:", OA( item^.Address.Length-1, item^.Address.Data ));
 	         Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
             CONTINUE;
          END;
 
          value := item^.Value.String;
-         IF _Storage.SetKeyStr( OA( item^.Address.Length-1, item^.Address.Data ), value, FALSE ) THEN
-            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value stored:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
-         ELSE // log error
-            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to store value:", OA( item^.Address.Length-1, item^.Address.Data ));
-         END;
-
-      END; // _SendQueue
-
-      IF _Storage.SavePath( OA( _StoragePath.Length-1, _StoragePath.Data )) THEN // log error
-         Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Storage file saved:", OA( _StoragePath.Length-1, _StoragePath.Data ));
-      ELSE
-         Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to save storage file:", OA( _StoragePath.Length-1, _StoragePath.Data ));
-      END;
+         Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value written:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
+      END; // _WriteQueue
    END Write;
 
 (*--------------------------------------------------------------------------------*)
 
-BEGIN
-   DescriptionSet := StringsO.FromOA( L"Persistent storage" );
-FINALLY
-   Dispose();
+   PRIVATE PROCEDURE DetermineLastPassedWeekStart() : datetime.DateTime;
+   VAR
+      dt : datetime.DateTime := datetime.NowLocal();
+   BEGIN
+      dt.Subtract( datetime.DaysToJDC(( dt.DayOfWeek + 6 ) MOD 7 ));
+      dt.TrimTime();
+      RETURN dt;
+   END DetermineLastPassedWeekStart;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; REF Handle : threadpool.TPoolHandle );
+   BEGIN
+      ASSERTLOG( Handle = NIL );
+      threadpool.pool()^.WaitTimeout( ADR( _PoolDelegate ), 0, TimeoutMS, WaitOnce, FALSE, OUT Handle );
+   END StartTimeout;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
+   BEGIN
+      IF Handle = NIL THEN
+         RETURN;
+      END;
+      threadpool.pool()^.Abort( REF Handle );
+   END StopTimeout;
+
+(*--------------------------------------------------------------------------------*)
+
+   INITIALLY CWeekCalendarFunction();
+   VAR
+      msg : msghandler.Message;
+   BEGIN
+      DescriptionSet := StringsO.FromOA( L"Week calendar" );
+
+      msg.Message := MSG_WRITE;
+      _WriteQueue.ConsumerMsg := ADR( msg );
+      _WriteQueue.Consumer := ADR( SELF );
+   END CWeekCalendarFunction;
+
+(*--------------------------------------------------------------------------------*)
+
+   FINALLY CWeekCalendarFunction();
+   BEGIN
+      Dispose();
+   END CWeekCalendarFunction;
+
+(*--------------------------------------------------------------------------------*)
+
 END CWeekCalendarFunction;
 
 (*================================================================================*)

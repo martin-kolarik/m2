@@ -61,5 +61,14 @@
             <item lang="cs-CZ">Prvek s uvedenou adresou neexistuje:</item>
         </string>
 
+        <string name="_IncorrectTimeFormat">
+            <item lang="en-US">Invalid time specification, it has to be entered in 'hh:mm' format</item>
+            <item lang="cs-CZ">Neplatné určení času, čas musí být zadán ve formátu 'hh:mm'</item>
+        </string>
+        <string name="_IncorrectDaySpecification">
+            <item lang="en-US">Invalid day specification, values allowed are: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday, Workday, Weekend</item>
+            <item lang="cs-CZ">Neplatné určení dne, povolené hodnoty jsou: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday, Workday, Weekend</item>
+        </string>
+
     </strings>
 </resources>

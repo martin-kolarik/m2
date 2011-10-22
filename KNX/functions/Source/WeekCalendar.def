@@ -9,7 +9,8 @@ IMPORT
    msghandler,
    msgqueue,
    StringsO,
-   Sync;
+   Sync,
+   threadpool;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -22,11 +23,15 @@ TYPE
    TPWeekCalendarFunction = POINTER TO CWeekCalendarFunction;
    TPItem = POINTER TO CItem;
 
-CLASS CWeekCalendarFunction( functionbase.CFunctionBase );
+CLASS CWeekCalendarFunction( functionbase.CFunctionBase ) IMPLEMENTS threadpool.ITimeoutSink;
 
    // MessageHandler
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
 
+   // ITimeoutSink
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+
+   // CFunctionBase
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // accepts citINIFile or citINIFileSection
    PUBLIC VIRTUAL PROCEDURE Dispose();
    
@@ -36,11 +41,17 @@ CLASS CWeekCalendarFunction( functionbase.CFunctionBase );
 
    PRIVATE VAR
       _Items : lists.CPtrList; // list of CItem
-      _SendQueue : msgqueue.CPtrQueue;
+		_CalendarPeriod : threadpool.TPoolHandle := NIL;
+		_PoolDelegate : threadpool.CSinkDelegate;
+      _WriteQueue : msgqueue.CPtrQueue;
 
-   PRIVATE PROCEDURE LoadData( CONST iniFile : INIFile.TPINIFile; section : ARRAY OF WCHAR; CONST Log : log.TPLogger; acceptConfigurationKeys : BOOLEAN ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE EvaluateItems();
    PRIVATE PROCEDURE Enqueue( item : TPItem );
    PRIVATE PROCEDURE Write();
+
+   PRIVATE PROCEDURE DetermineLastPassedWeekStart() : datetime.DateTime;
+   PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; REF Handle : threadpool.TPoolHandle );
+   PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
 
    INITIALLY CWeekCalendarFunction();
    FINALLY CWeekCalendarFunction();

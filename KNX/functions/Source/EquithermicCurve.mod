@@ -239,7 +239,6 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
    BEGIN
       IF Device <> NIL THEN
          Device^.UnadviseAll( ADR( SELF ));
-         Device := NIL;
       END;
    
       _Curves.Reset();
