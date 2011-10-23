@@ -75,6 +75,7 @@ CLASS CIntegerPtrMap( CValueOwnershipControlMap );
    PUBLIC PROCEDURE Remove( Key : INTEGER );
    PUBLIC PROCEDURE Contains( Key : INTEGER ) : BOOLEAN;
    PUBLIC PROCEDURE Get( Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Key : INTEGER; Value, Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
    #save, option( leak_info => on )
@@ -107,6 +108,7 @@ CLASS CIntegerStringMap( avltree.CAVLTree );
    PUBLIC PROCEDURE Remove( Key : INTEGER );
    PUBLIC PROCEDURE Contains( Key : INTEGER ) : BOOLEAN;
    PUBLIC PROCEDURE Get( Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Key : INTEGER; CONST Value : IString; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
 
    #save, option( leak_info => on )
@@ -139,6 +141,7 @@ CLASS CPtrPtrMap( CValueOwnershipControlMap );
    PUBLIC PROCEDURE Remove( Key : PTR );
    PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE Get( Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Key : PTR; Value, Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
    #save, option( leak_info => on )
@@ -171,6 +174,7 @@ CLASS CStringPtrMap( CValueOwnershipControlMap );
    PUBLIC PROCEDURE Remove( CONST Key : IString );
    PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
    PUBLIC PROCEDURE Get( CONST Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( CONST Key : IString; Value, Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
    #save, option( leak_info => on )
@@ -203,6 +207,7 @@ CLASS CStringStringMap( avltree.CAVLTree );
    PUBLIC PROCEDURE Remove( CONST Key : IString );
    PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
    PUBLIC PROCEDURE Get( CONST Key : IString; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( CONST Key : IString; CONST Value : IString; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
 
    #save, option( leak_info => on )

@@ -41,7 +41,8 @@ CLASS CIntegerList( CDataOwnershipControlList );
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Add( Value : INTEGER; Data : PTR );
    #restore
-   PUBLIC PROCEDURE Get( Value : INTEGER; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE Get( Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Value : INTEGER; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE Remove( Value : INTEGER ); // removes all occurences
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
 
@@ -89,7 +90,8 @@ CLASS CPtrList( CDataOwnershipControlList );
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
    #restore
-   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Value : PTR; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
@@ -137,7 +139,8 @@ CLASS CStringList( CDataOwnershipControlList );
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Add( CONST Value : IString; Data : PTR );
    #restore
-   PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( CONST Value : IString; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE Remove( CONST Value : IString ); // removes all occurences
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
 
@@ -185,7 +188,8 @@ CLASS CStringStringList( list.CList );
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Add( CONST Value : IString; CONST Data : IString );
    #restore
-   PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : IString ): BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( CONST Value : IString; CONST Data : IString ) : BOOLEAN;
    PUBLIC PROCEDURE Remove( CONST Value : IString ); // removes all occurences
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : IString ) : BOOLEAN; // similar as []
 
@@ -240,7 +244,8 @@ CLASS CBufferList( CDataOwnershipControlList );
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Add( CONST Value : AMemoryBuffer; Data : PTR );
    #restore
-   PUBLIC PROCEDURE Get( CONST Value : AMemoryBuffer; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( CONST Value : AMemoryBuffer; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE Remove( CONST Value : AMemoryBuffer ); // removes all occurences
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; // similar as []
 
@@ -248,7 +253,8 @@ CLASS CBufferList( CDataOwnershipControlList );
    PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF BYTE; Data : PTR );
    #restore
    PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF BYTE ): BOOLEAN;
-   PUBLIC PROCEDURE GetOA( CONST Value : ARRAY OF BYTE; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE GetOA( CONST Value : ARRAY OF BYTE; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE SetOA( CONST Value : ARRAY OF BYTE; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE RemoveOA( CONST Value : ARRAY OF BYTE ); // removes all occurences
 
    #save, option( leak_info => on )

@@ -140,6 +140,21 @@ CLASS IMPLEMENTATION CIntegerList;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE CIntegerList.Set( Value : INTEGER; Data : PTR ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPIntegerItem;
+   BEGIN
+      IF Lookup( Value, OUT PE, OUT i ) THEN
+         PE^.Data := Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+  END CIntegerList.Set;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE CIntegerList.Remove( Value : INTEGER ); // removes all occurences
    VAR
       PE, PN : TPIntegerItem;
@@ -358,6 +373,21 @@ CLASS IMPLEMENTATION CPtrList;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE CPtrList.Set( Value : PTR; Data : PTR ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPPtrItem;
+   BEGIN
+      IF Lookup( Value, OUT PE, OUT i ) THEN
+         PE^.Data := Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CPtrList.Set;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE CPtrList.Remove( Value : PTR ); // removes all occurences
    VAR
       PE, PN : TPPtrItem;
@@ -567,13 +597,27 @@ CLASS IMPLEMENTATION CStringList;
       PE : TPStringItem;
    BEGIN
       IF Lookup( Value, OUT PE, OUT i ) THEN
-         Value.Assign( PE^.Value );
-          Data := PE^.Data;
+         Data := PE^.Data;
          RETURN TRUE;
       ELSE
          RETURN FALSE;
       END;
    END CStringList.Get;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringList.Set( CONST Value : IString; Data : PTR ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPStringItem;
+   BEGIN
+      IF Lookup( Value, OUT PE, OUT i ) THEN
+         PE^.Data := Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CStringList.Set;
 
 (*---------------------------------------------------------------------------*)
 
@@ -784,12 +828,28 @@ CLASS IMPLEMENTATION CStringStringList;
       i : INTEGER;
       PE : TPStringStringItem;
    BEGIN
-      IF NOT Lookup( Value, OUT PE, OUT i ) THEN
+      IF Lookup( Value, OUT PE, OUT i ) THEN
+         Data.Assign( PE^.Data );
+         RETURN TRUE;
+      ELSE
          RETURN FALSE;
       END;
-      Data.Assign( PE^.Data );
-      RETURN TRUE;
    END CStringStringList.Get;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringStringList.Set( CONST Value : IString; CONST Data : IString ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPStringStringItem;
+   BEGIN
+      IF Lookup( Value, OUT PE, OUT i ) THEN
+         PE^.Data.Assign( Data );
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CStringStringList.Set;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1102,6 +1162,21 @@ CLASS IMPLEMENTATION CBufferList;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE CBufferList.Set( CONST Value : AMemoryBuffer; Data : PTR ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPBufferItem;
+   BEGIN
+      IF Lookup( Value, OUT PE, OUT i ) THEN
+         PE^.Data := Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CBufferList.Set;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE CBufferList.Remove( CONST Value : AMemoryBuffer ); // removes all occurences
    VAR
       PE, PN : TPBufferItem;
@@ -1174,12 +1249,30 @@ CLASS IMPLEMENTATION CBufferList;
       S : StorageO.CMemoryBuffer;
    BEGIN
       S.FromOA( Value, TRUE );
-      IF NOT Lookup( S, OUT PE, OUT i ) THEN
+      IF Lookup( S, OUT PE, OUT i ) THEN
+         Data := PE^.Data;
+         RETURN TRUE;
+      ELSE
          RETURN FALSE;
       END;
-      Data := PE^.Data;
-      RETURN TRUE;
    END CBufferList.GetOA;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CBufferList.SetOA( CONST Value : ARRAY OF BYTE; Data : PTR ): BOOLEAN;
+   VAR
+      i : INTEGER;
+      PE : TPBufferItem;
+      S : StorageO.CMemoryBuffer;
+   BEGIN
+      S.FromOA( Value, TRUE );
+      IF Lookup( S, OUT PE, OUT i ) THEN
+         PE^.Data := Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CBufferList.SetOA;
 
 (*---------------------------------------------------------------------------*)
 

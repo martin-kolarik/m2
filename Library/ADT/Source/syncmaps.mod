@@ -116,6 +116,16 @@ CLASS IMPLEMENTATION CPtrPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Set( Key : PTR; Value, Data : PTR ) : BOOLEAN;
+   VAR
+      lock : Sync.AutoLock;
+   BEGIN
+      lock.TakeSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.Set( Key, Value, Data );
+   END Set;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       lock : Sync.AutoLock;
@@ -130,9 +140,6 @@ CLASS IMPLEMENTATION CPtrPtrSyncMap;
    VAR
       iterator : POINTER TO CPtrPtrSyncMapIterator := NEW( CPtrPtrSyncMapIterator );
    BEGIN
-      IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
-         ASSERT( FALSE );
-      END;
       iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END GetIterator;
@@ -245,6 +252,16 @@ CLASS IMPLEMENTATION CStringPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Set( CONST Key : IString; Value, Data : PTR ) : BOOLEAN;
+   VAR
+      lock : Sync.AutoLock;
+   BEGIN
+      lock.TakeSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.Set( Key, Value, Data );
+   END Set;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       lock : Sync.AutoLock;
@@ -259,9 +276,6 @@ CLASS IMPLEMENTATION CStringPtrSyncMap;
    VAR
       iterator : POINTER TO CStringPtrSyncMapIterator := NEW( CStringPtrSyncMapIterator );
    BEGIN
-      IF _Lock.LockRead( Sync.FORSAFETY ) <> Sync.arCompleted THEN
-         ASSERT( FALSE );
-      END;
       iterator^.Init( ADR( SELF ), collection.dirForward );
       RETURN iterator;
    END GetIterator;

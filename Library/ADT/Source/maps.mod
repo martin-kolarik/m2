@@ -178,6 +178,22 @@ CLASS IMPLEMENTATION CIntegerPtrMap;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE CIntegerPtrMap.Set( Key : INTEGER; Value, Data : PTR ) : BOOLEAN;
+   VAR
+      I : CIntegerPtrItem;
+      PI : TPIntegerPtrItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value := Value;
+      PI^.Data := Data;
+      RETURN TRUE;
+   END CIntegerPtrMap.Set;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE CIntegerPtrMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       PI : TPIntegerPtrItem;
@@ -371,6 +387,22 @@ CLASS IMPLEMENTATION CIntegerStringMap;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE CIntegerStringMap.Set( Key : INTEGER; CONST Value : IString; Data : PTR ) : BOOLEAN;
+   VAR
+      I : CIntegerStringItem;
+      PI : TPIntegerStringItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value.Assign( Value );
+      PI^.Data := Data;
+      RETURN TRUE;  
+   END CIntegerStringMap.Set;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE CIntegerStringMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
    VAR
       PI : TPIntegerStringItem;
@@ -552,6 +584,22 @@ CLASS IMPLEMENTATION CPtrPtrMap;
       Data := PI^.Data;
       RETURN TRUE;  
    END CPtrPtrMap.Get;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CPtrPtrMap.Set( Key : PTR; Value, Data : PTR ) : BOOLEAN;
+   VAR
+      I : CPtrPtrItem;
+      PI : TPPtrPtrItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value := Value;
+      PI^.Data := Data;
+      RETURN TRUE;  
+   END CPtrPtrMap.Set;
 
 (*---------------------------------------------------------------------------*)
 
@@ -740,6 +788,22 @@ CLASS IMPLEMENTATION CStringPtrMap;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE CStringPtrMap.Set( CONST Key : IString; Value, Data : PTR ) : BOOLEAN;
+   VAR
+      I : CStringPtrItem;
+      PI : TPStringPtrItem;
+   BEGIN
+      I.Key.Assign( Key );
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value := Value;
+      PI^.Data := Data;
+      RETURN TRUE;  
+   END CStringPtrMap.Set;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE CStringPtrMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       PI : TPStringPtrItem;
@@ -922,6 +986,22 @@ CLASS IMPLEMENTATION CStringStringMap;
       Data := PI^.Data;
       RETURN TRUE;  
    END CStringStringMap.Get;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringStringMap.Set( CONST Key : IString; CONST Value : IString; Data : PTR ) : BOOLEAN;
+   VAR
+      I : CStringStringItem;
+      PI : TPStringStringItem;
+   BEGIN
+      I.Key.Assign( Key );
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value.Assign( Value );
+      PI^.Data := Data;
+      RETURN TRUE;  
+   END CStringStringMap.Set;
 
 (*---------------------------------------------------------------------------*)
 

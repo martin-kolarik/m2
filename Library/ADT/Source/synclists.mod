@@ -1,17 +1,63 @@
 IMPLEMENTATION MODULE synclists;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 IMPORT
-   lists,
-   Sync;
+   collection;
   
 (*================================================================================*)
 
 CONST
    MESSAGE = L"Unable to lock list";
 
+(*================================================================================*)
+
+CLASS CPtrSyncListIterator( lists.CPtrListIterator );
+
+   LOCAL PROCEDURE Init( list : TPPtrSyncList; direction : collection.TDirection );
+
+   PRIVATE VAR
+      _List : TPPtrSyncList := NIL;
+
+END CPtrSyncListIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CPtrSyncListIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Init( list : TPPtrSyncList; direction : collection.TDirection );
+   VAR
+      result : Sync.TAsyncResult;
+   BEGIN
+      IF _List <> NIL THEN
+         _List^.Lock^.UnlockRead();
+      END;
+      SUPER.Init( list^, direction );
+      _List := list;
+      result := _List^.Lock^.LockRead( Sync.FORSAFETY );
+      ASSERTLOG( result <> Sync.arTimeout, L"Unable to lock list for reading" );
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN FINALLY
+   IF _List <> NIL THEN
+      _List^.Lock^.UnlockRead();
+      _List := NIL;
+   END;
+END CPtrSyncListIterator;
+
+(*================================================================================*)
+
 CLASS IMPLEMENTATION CPtrSyncList;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Count GET : CARDINAL;
    VAR
@@ -21,7 +67,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       RETURN SUPER.Count;
    END Count;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Empty GET : BOOLEAN;
    VAR
@@ -31,7 +77,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       RETURN SUPER.Empty;
    END Empty;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
    VAR
@@ -41,7 +87,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       RETURN SUPER.Contains( Value );
    END Contains;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
    VAR
@@ -51,7 +97,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       SUPER.Add( Value, Data );
    END Add;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ): BOOLEAN;
    VAR
@@ -61,7 +107,17 @@ CLASS IMPLEMENTATION CPtrSyncList;
       RETURN SUPER.Get( Value, OUT Data );
    END Get;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Set( Value : PTR; Data : PTR ): BOOLEAN;
+   VAR
+      lock : Sync.AutoLock;
+   BEGIN
+      lock.TakeSafe( REF _Lock, MESSAGE );
+      RETURN SUPER.Set( Value, Data );
+   END Set;
+
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
    VAR
@@ -71,7 +127,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       SUPER.Remove( Value );
    END Remove;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
    VAR
@@ -81,7 +137,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       RETURN SUPER.ElementAt( Index, OUT Value, OUT Data );
    END ElementAt;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE InsertFirst( Value : PTR; Data : PTR );
    VAR
@@ -91,7 +147,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       SUPER.InsertFirst( Value, Data );
    END InsertFirst;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE InsertBefore( Before, Value : PTR; Data : PTR );
    VAR
@@ -101,7 +157,17 @@ CLASS IMPLEMENTATION CPtrSyncList;
       SUPER.InsertBefore( Before, Value, Data );
    END InsertBefore;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetIterator() : lists.TPPtrListIterator;
+   VAR
+      iterator : POINTER TO CPtrSyncListIterator := NEW( CPtrSyncListIterator );
+   BEGIN
+      iterator^.Init( ADR( SELF ), collection.dirForward );
+      RETURN iterator;
+   END GetIterator;
+
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Enqueue( Value : PTR; Data : PTR );
    VAR
@@ -111,7 +177,7 @@ CLASS IMPLEMENTATION CPtrSyncList;
       SUPER.Enqueue( Value, Data );
    END Enqueue;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Dequeue( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; 
    VAR
@@ -121,14 +187,14 @@ CLASS IMPLEMENTATION CPtrSyncList;
       RETURN SUPER.Dequeue( OUT Value, OUT Data );
    END Dequeue;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Lock GET : Sync.PRWLOCK;
    BEGIN
       RETURN ADR( _Lock );
    END Lock;
 
-(*---------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
 
 END CPtrSyncList;
 

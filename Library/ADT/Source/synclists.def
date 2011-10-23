@@ -9,7 +9,7 @@ IMPORT
 (*================================================================================*)
 
 TYPE
-  TPPtrPtrSyncList = POINTER TO CPtrPtrSyncList;
+  TPPtrSyncList = POINTER TO CPtrSyncList;
 
 CLASS CPtrSyncList( lists.CPtrList );
 
@@ -23,12 +23,17 @@ CLASS CPtrSyncList( lists.CPtrList );
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
    #restore
-   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Value : PTR; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
    PUBLIC PROCEDURE InsertFirst( Value : PTR; Data : PTR );
    PUBLIC PROCEDURE InsertBefore( Before, Value : PTR; Data : PTR );
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : lists.TPPtrListIterator;
+   #restore
 
    // queue interface
    #save, option( leak_info => on )
