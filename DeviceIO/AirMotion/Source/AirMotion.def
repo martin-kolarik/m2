@@ -158,7 +158,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    PUBLIC PROCEDURE Abort();
    
    // private
-	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer );
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
    PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
 END CDeviceCommunicator;
