@@ -189,10 +189,10 @@ CLASS IMPLEMENTATION CLeakDetector;
   BEGIN
     ASSIGN( LF.Name, Source );
     Lock.Lock();
-    IF NOT Filters.Search( ADR( LF ), OUT F ) THEN
+    IF NOT Filters.Get( 0, ADR( LF ), OUT F ) THEN
       NEW( F );
       ASSIGN( F^.Name, Source );
-      Filters.Insert( F );
+      Filters.Add( F );
     END;
     Lock.Unlock();
   END AddFilter;
@@ -206,7 +206,7 @@ CLASS IMPLEMENTATION CLeakDetector;
   BEGIN
     ASSIGN( LF.Name, Source );
     Lock.Lock();
-    IF Filters.Remove( ADR( LF ), OUT F ) THEN
+    IF Filters.Remove( 0, ADR( LF ), OUT F ) THEN
       DISPOSE( F );
     END;
     Lock.Unlock();
@@ -274,16 +274,16 @@ CLASS IMPLEMENTATION CLeakDetector;
 
     ASSIGN( LF.Name, Track^.Data[0].Source );
     Lock.Lock();
-    IF Filters.Empty OR Filters.Search( ADR( LF ), OUT F ) THEN
+    IF Filters.Empty OR Filters.Get( 0, ADR( LF ), OUT F ) THEN
       LAL.Block := A;
-      IF Allocations.Search( ADR( LAL ), OUT AL ) THEN
+      IF Allocations.Get( 0, ADR( LAL ), OUT AL ) THEN
         Log.LogSP( log.lcWarning, 0, L"", L"Duplicite allocation:", A );
       ELSE
         NEW( AL );
         AL^.Track := Track^.Data;
         AL^.Block := A;
         AL^.Size := S;
-        Allocations.Insert( AL );
+        Allocations.Add( AL );
       END;
     END;
     Lock.Unlock();
@@ -313,9 +313,9 @@ CLASS IMPLEMENTATION CLeakDetector;
 
     ASSIGN( LF.Name, Track^.Data[0].Source );
     Lock.Lock();
-    IF Filters.Empty OR Filters.Search( ADR( LF ), OUT F ) THEN
+    IF Filters.Empty OR Filters.Get( 0, ADR( LF ), OUT F ) THEN
       LAL.Block := A;
-      IF Allocations.Remove( ADR( LAL ), OUT AL ) THEN
+      IF Allocations.Remove( 0, ADR( LAL ), OUT AL ) THEN
         DISPOSE( AL );
       ELSE
         Log.LogSP( log.lcWarning, 0, L"", L"Deallocation of unallocated memory:", A );
@@ -348,26 +348,26 @@ CLASS IMPLEMENTATION CLeakDetector;
 
     ASSIGN( LF.Name, Track^.Data[0].Source );
     Lock.Lock();
-    IF Filters.Empty OR Filters.Search( ADR( LF ), OUT F ) THEN
+    IF Filters.Empty OR Filters.Get( 0, ADR( LF ), OUT F ) THEN
       // deallocate
       LAL.Block := O;
       IF O = NIL THEN
         // OK, first re/allocation
-      ELSIF Allocations.Remove( ADR( LAL ), OUT AL ) THEN
+      ELSIF Allocations.Remove( 0, ADR( LAL ), OUT AL ) THEN
         DISPOSE( AL );
       ELSE
         Log.LogSP( log.lcWarning, 0, L"", L"Re/deallocation of unallocated memory:", O );
       END;
       // allocate
       LAL.Block := N;
-      IF Allocations.Search( ADR( LAL ), OUT AL ) THEN
+      IF Allocations.Get( 0, ADR( LAL ), OUT AL ) THEN
         Log.LogSP( log.lcWarning, 0, L"", L"Duplicite re/allocation", N );
       ELSE
         NEW( AL );
         AL^.Track := Track^.Data;
         AL^.Block := N;
         AL^.Size := S;
-        Allocations.Insert( AL );
+        Allocations.Add( AL );
       END;
     END;
     Lock.Unlock();
@@ -407,7 +407,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       Log.LogS( log.lcWarning, 0, L"", L"Start dumping of memory leaks" );
     END;
 
-    b := Allocations.GetFirst( OUT AL );
+    b := Allocations.GetFirst( 0, OUT AL );
     WHILE b DO
       i := 0;
       WHILE ( i < tracks ) AND ( AL^.Track[i].Line <> 0 ) DO
@@ -427,7 +427,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       Strings.FromCARD64W( CARD64( AL^.Block ), 16, OUT N );
       Log.LogSSSS( log.lcWarning, 0, L"", L"Leak of size", S, "at", N );
       
-      b := Allocations.NextOf( AL, OUT AL );
+      b := Allocations.NextOf( 0, AL, OUT AL );
     END; // WHILE
 
     IF Running THEN
