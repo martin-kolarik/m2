@@ -3,13 +3,26 @@ DEFINITION MODULE Event;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
-IMPORT
+IMPORT   
+   collection,
    Rtti,
    synclists;
   
 #save, option( dll_export => on )
 
 (*================================================================================*)
+
+TYPE
+   TPIEventIterator = POINTER TO IEventIterator;
+
+INTERFACE IEventIterator( collection.IIterator );
+
+   READONLY PROPERTY
+      Listener : ADDRESS;
+
+END IEventIterator;
+
+(*--------------------------------------------------------------------------------*)
 
 ABSTRACT CLASS AEvent; // meant to be used: "CLASS EventSource( EVENT ) IMPLEMENTS ISink..."
 
@@ -27,10 +40,7 @@ ABSTRACT CLASS AEvent; // meant to be used: "CLASS EventSource( EVENT ) IMPLEMEN
 
    // for implementors
    INTERNAL PROCEDURE UnsubscribeAll();
-   INTERNAL PROCEDURE Reset();
-   INTERNAL PROCEDURE MoveNext() : BOOLEAN;
-   INTERNAL READONLY PROPERTY
-      Listener : ADDRESS;
+   INTERNAL PROCEDURE GetIterator() : TPIEventIterator;
 
    // self
    PRIVATE VAR

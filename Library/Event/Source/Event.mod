@@ -3,6 +3,81 @@ IMPLEMENTATION MODULE Event;
 FROM Debug IMPORT
    AssertionW;
 
+IMPORT
+   baseobject,
+   lists;
+
+(*================================================================================*)
+
+CLASS CEventIterator( lists.CPtrListIterator ) IMPLEMENTS IEventIterator;
+
+   // collection.IIterator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      colCurrent : baseobject.PBASE;
+
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Implementor : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
+      OfCollection : collection.TPCollection;
+
+   // IEventIterator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Listener : ADDRESS;
+
+END CEventIterator;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CEventIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY colCurrent GET : baseobject.PBASE;
+   BEGIN
+      RETURN SUPER.colCurrent;
+   END colCurrent;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   BEGIN
+      SUPER.Reset();
+   END Reset;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
+   BEGIN
+      RETURN SUPER.MoveNext();
+   END MoveNext;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Implementor GET : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
+   BEGIN
+      RETURN SUPER.Implementor;
+   END Implementor;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY OfCollection GET : collection.TPCollection;
+   BEGIN
+      RETURN SUPER.OfCollection;
+   END OfCollection;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Listener GET : ADDRESS;
+   BEGIN
+      RETURN Value;
+   END Listener;
+
+(*---------------------------------------------------------------------------*)
+
+END CEventIterator;
+
 (*================================================================================*)
 
 CLASS IMPLEMENTATION AEvent;
@@ -69,24 +144,14 @@ CLASS IMPLEMENTATION AEvent;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL PROCEDURE Reset();
+   INTERNAL PROCEDURE GetIterator() : TPIEventIterator;
+   VAR
+      iterator : POINTER TO CEventIterator;
    BEGIN
-      _Listeners.Reset();
-   END Reset;
-
-(*--------------------------------------------------------------------------------*)
-
-   INTERNAL PROCEDURE MoveNext() : BOOLEAN;
-   BEGIN
-      RETURN _Listeners.MoveNext();
-   END MoveNext;
-
-(*--------------------------------------------------------------------------------*)
-
-   INTERNAL PROPERTY Listener GET : ADDRESS;
-   BEGIN
-      RETURN _Listeners.Current;
-   END Listener;
+      NEW( iterator );
+      iterator^.Init( _Listeners, collection.dirForward );
+      RETURN iterator;
+   END GetIterator;
 
 (*--------------------------------------------------------------------------------*)
 
