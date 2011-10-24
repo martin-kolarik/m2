@@ -7,8 +7,8 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, REALLOCATE;
 
 IMPORT
-  Storage,
-  windows;
+   collection,
+   StorageO;
 
 (*================================================================================*)
 
@@ -174,10 +174,14 @@ CLASS IMPLEMENTATION CPtrQueue;
    PUBLIC PROCEDURE Peek( OUT Message : PTR ) : BOOLEAN;
    VAR
       b : BOOLEAN;
-      data : PTR;
+      iterator : lists.CPtrListIterator;
    BEGIN
       Lock.Lock();
-      b := _Queue.GetFirst( OUT Message, OUT data );
+      iterator.Init( _Queue, collection.dirForward );
+      b := iterator.MoveNext();
+      IF b THEN
+         Message := iterator.Value;
+      END;
       Lock.Unlock();
       RETURN b;
    END Peek;
@@ -370,16 +374,18 @@ CLASS IMPLEMENTATION CBufferQueue;
    PUBLIC PROCEDURE DequeueOA( OUT Buffer : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // if HIGH is less than MessageLen the message is trimmed, Wait/Timeout unused yet
    VAR
       b : BOOLEAN;
+      buffer : StorageO.CMemoryBuffer;
       data : PTR;
-      Filled : CARDINAL;
+      filled : CARDINAL;
    BEGIN
       Lock.Lock();
-      b := _Queue.DequeueOA( OUT Buffer, OUT Filled, OUT data );
+      b := _Queue.Dequeue( OUT buffer, OUT data );
       IF b AND _Queue.Empty THEN
          Signal( Sync.pcqConsumed );
       END;
       Lock.Unlock();
       IF b THEN
+         buffer.ToOA( OUT Buffer, OUT filled );
          RETURN Sync.arCompleted;
       ELSE
          RETURN Sync.arNoData;

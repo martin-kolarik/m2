@@ -160,13 +160,7 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
 
-      IF Failure THEN
-         FirstFailure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-      Failure := FALSE;
+      Host^.StopPhaseWithResult( NOT Failure );
 
       //==========
       IF CompletionInOwningThread THEN
@@ -209,13 +203,9 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
 
-      RETURN FirstFailure OR Failure;
+      RETURN Failure;
    END Round;
 
 (*---------------------------------------------------------------------------*)

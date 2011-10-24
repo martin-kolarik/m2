@@ -11,9 +11,18 @@ FROM Storage IMPORT
 // primary base, head of all hereditary tree
 
 TYPE
+   PIBASE = POINTER TO IBASE;
+
+INTERFACE IBASE;
+   // intentionally empty
+END IBASE;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
    PBASE = POINTER TO BASE;
 
-CLASS BASE;
+CLASS BASE IMPLEMENTS IBASE;
    // intentionally empty
 END BASE;
 

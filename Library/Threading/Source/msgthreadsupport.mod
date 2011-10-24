@@ -6,6 +6,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
+   collection,
    datetime,
    Log,
    msghandler,
@@ -33,17 +34,18 @@ CLASS IMPLEMENTATION CSupport;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      iterator : maps.CPtrPtrMapIterator;
       logger : Log.TPLogger;
       name : StringsO.CString;
    BEGIN
       // diagnostics report
       IF NOT Joined.Empty THEN
          logger := Log.logger();
-         Joined.Reset();
-         WHILE Joined.MoveNext() DO
-            name.FromOAA( 0, OAsz( Rtti.TPRTTI( RTTI( OSALmsg.TPMessageHandler( Joined.Current )^ ))^.Name ));
+         iterator.Init( Joined, collection.dirForward );
+         WHILE iterator.MoveNext() DO
+            name.FromOAA( 0, OAsz( Rtti.TPRTTI( RTTI( OSALmsg.TPMessageHandler( iterator.Key )^ ))^.Name ));
             logger^.LogS( Log.ldDebug, 0, EMITW( %class ), OA( name.Length-1, name.Data ));
          END; // WHILE
          ASSERTLOG( FALSE, L"Unexpectedly not empty." );
@@ -243,7 +245,7 @@ CLASS IMPLEMENTATION CSupport;
       END;
 
       JoinedLock.Lock();
-      Joined.Add( Handler, 0 );
+      Joined.Add( Handler, 0, 0 );
       JoinedLock.Unlock();
 
       Handler^.OnJoin( OfThread^ );

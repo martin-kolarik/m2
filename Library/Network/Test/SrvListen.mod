@@ -73,7 +73,6 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       ai : inetaddr.INETADDR;
-      Failure : BOOLEAN;
       S : netsocket.TPSSocket;
    BEGIN
       SELF.Host := Host;
@@ -109,12 +108,7 @@ CLASS IMPLEMENTATION CTest;
       // wait
       WaitForMessages( 550 );
       // check
-      IF Count = 6 THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( Count = 6 );
 
       Host^.StartPhase( L"Listen and stop listen -- main thread notification" );
       // init
@@ -142,22 +136,13 @@ CLASS IMPLEMENTATION CTest;
       // wait
       WaitForMessages( 550 );
       // check
-      IF Count = 6 THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( Count = 6 );
 
       netinit.Cleanup();
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

@@ -18,6 +18,25 @@ IMPORT
 
 //--------------------------------------------------------------------------------
 
+VAR 
+   AssertHook : TAssertHook := NIL;
+   AssertHookUserData : PTR := 0;
+
+PROCEDURE SetAssertHook( hook : TAssertHook; userData : PTR );
+BEGIN
+   AssertHook := hook;
+   AssertHookUserData := userData;
+END SetAssertHook;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE GetAssertHook() : TAssertHook;
+BEGIN
+   RETURN AssertHook;
+END GetAssertHook;
+
+//--------------------------------------------------------------------------------
+
 PROCEDURE Assert( CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
 CONST
    CRLF = 13W + 10W;
@@ -30,6 +49,7 @@ BEGIN
    IF windows.GetModuleFileNameW( NIL, ADR( exeName ), HIGH( exeName ) + 1 ) = 0 THEN
       exeName := L"<unknown program>";   
    END;
+
    text := L"Debug assertion failed!" + CRLF + CRLF + L"Program: ";
    Strings.AppendW( REF text, exeName );
    Strings.AppendW( REF text, CRLF + L"File: " );
@@ -39,13 +59,25 @@ BEGIN
    Strings.FromCARD32W( CPPLine, 10, OUT n ); Strings.AppendW( REF text, n );
    Strings.AppendW( REF text, CRLF + CRLF + '(Press "Retry" to debug the application.)' );
 
-   result := windows.MessageBoxW( NIL, ADR( text ), L"Unexpected state of program execution", windows.MB_TASKMODAL OR windows.MB_ICONHAND OR windows.MB_ABORTRETRYIGNORE OR windows.MB_SETFOREGROUND ); // MB_SERVICE_NOTIFICATION cannot be used as Vista does not open anything in the case. For XP if service is interactive, it opens dialog correctly.
-   IF result = windows.IDABORT THEN // kill process
-      windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
-   ELSIF result = windows.IDRETRY THEN // allow to debug process
-      RETURN TRUE;
-   END;
-   RETURN FALSE;
+   IF AssertHook = NIL THEN
+      result := windows.MessageBoxW( NIL, ADR( text ), L"Unexpected state of program execution", windows.MB_TASKMODAL OR windows.MB_ICONHAND OR windows.MB_ABORTRETRYIGNORE OR windows.MB_SETFOREGROUND ); // MB_SERVICE_NOTIFICATION cannot be used as Vista does not open anything in the case. For XP if service is interactive, it opens dialog correctly.
+      IF result = windows.IDABORT THEN // kill process
+         windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
+      ELSIF result = windows.IDRETRY THEN // allow to debug process
+         RETURN TRUE;
+      // ELSE fall down
+      END;
+   ELSE
+      CASE AssertHook( AssertHookUserData, text ) OF
+      | -1 :
+         RETURN TRUE; // debug
+      | 1 :
+         windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
+      // ELSE fall down
+      END; // CASE
+   END; // IF
+
+   RETURN FALSE; // do not debug
 END Assert;
 
 //--------------------------------------------------------------------------------
@@ -255,6 +287,10 @@ VAR
    Line : ARRAY [0..15] OF WCHAR;
    Name, Path : FIO.PathStrW;
 BEGIN
+   IF AssertHook <> NIL THEN
+      RETURN;
+   END;
+
    // prepare minidump path
    GetDumpNameAndPath( L"as", OUT Name, OUT Path );
 

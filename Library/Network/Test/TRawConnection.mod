@@ -185,7 +185,7 @@ CLASS IMPLEMENTATION CTest;
          END;
       END; // WHILE
 
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhase();
 
       ClientConnection^.Close();
       DISPOSE( ClientConnection );

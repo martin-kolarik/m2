@@ -9,6 +9,7 @@ FROM Storage IMPORT
 IMPORT
   array,
   arrays,
+  collection,
   datetime,
   lists,
   maps,
@@ -156,8 +157,8 @@ CLASS CPoolThread( SCmsgqueuethread.SCMessageQueueThread );
   PRIVATE VAR
     Pool : TPThreadPool;
     HTasks : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMapSimplified; // CTask.Handle/PTask
-    Handles : maps.CPtrMap; // CTask.Data/PPtrList
-    Messages : maps.CPtrMap; // CTask.Data/PTask
+    Handles : maps.CPtrPtrMap; // CTask.Data/PPtrList
+    Messages : maps.CPtrPtrMap; // CTask.Data/PTask
     Workers : lists.CPtrList; // CTask.Data/PTask
     WaitArray : arrays.CPtrArray;
   LOCAL READONLY VAR
@@ -334,9 +335,10 @@ CLASS IMPLEMENTATION CPoolThread;
       PROCEDURE CheckAndHandleKnownMessage( CONST Message : msghandler.Message ) : BOOLEAN;
       VAR
          disposable : BOOLEAN;
+         ptr : PTR;
          Task : TPTask;
       BEGIN
-         IF NOT Messages.Get( Message.Message, OUT Task ) THEN // known waited message
+         IF NOT Messages.Get( Message.Message, OUT Task, OUT ptr ) THEN // known waited message
             RETURN FALSE; // check empty
          END;
 
@@ -358,36 +360,52 @@ CLASS IMPLEMENTATION CPoolThread;
       
       PROCEDURE CheckAndHandleKnownHandle( WaitAbandoned : BOOLEAN; Handle : PTR ) : BOOLEAN;
       VAR
-         b : BOOLEAN;
-         D : PTR;
          disposable : BOOLEAN;
          HandleList : lists.TPPtrList;
+         HandleListToLeave : lists.CPtrList;
+         HandleListToRemove : lists.CPtrList;
+         iterator : lists.CPtrListIterator;
+         ptr : PTR;
          removeTask : BOOLEAN;
-         Task, NextTask : TPTask;
+         Task : TPTask;
       BEGIN
-         IF NOT Handles.Get( Handle, OUT HandleList ) THEN
+         IF NOT Handles.Get( Handle, OUT HandleList, OUT ptr ) THEN
             RETURN FALSE; // check empty
          END;
 
-         b := HandleList^.GetFirst( OUT Task, OUT D );
-         WHILE b DO
-            b := HandleList^.NextOf( Task, OUT NextTask, OUT D );
+         // split list to list of tasks to be removed and tasks to be left
+         iterator.Init( HandleList^, collection.dirForward );
+         WHILE iterator.MoveNext() DO
+            Task := iterator.Value;
             removeTask := WaitAbandoned OR ( Task^.Task = tskHandleOnce );
+            // TODO: does Completed change HandleList^? If yes, existing iteration cannot be used here
             IF WaitAbandoned THEN
                Completed( Sync.arAborted, Task, NIL, TRUE, FALSE, OUT disposable );
             ELSE
                Completed( Sync.arCompleted, Task, NIL, removeTask, FALSE, OUT disposable );
             END;
             IF removeTask THEN
-               HandleList^.Remove( Task );
-               IF disposable THEN
-                  DISPOSE( Task );
-               END;
+               HandleListToRemove.Add( Task, PTR( disposable ));
             ELSE
-               Task^.Delegate^.Completed := FALSE;
-            END; // IF tskHandleOnce
-            Task := NextTask;
+               Task^.Delegate^.Completed := FALSE; // after calling Complete reset notification flag
+               HandleListToLeave.Add( Task, PTR( disposable ));
+            END;
          END; // WHILE
+
+         // replace existing list with list to leave, no dispose of items
+         HandleList^.Clear();
+         HandleList^.AppendList( REF HandleListToLeave ); // AppendList clears source list
+
+         // finish removing
+         iterator.Init( HandleListToRemove, collection.dirForward );
+         WHILE iterator.MoveNext() DO
+            Task := iterator.Value;
+            disposable := BOOLEAN( LOPTRLONGWORD( iterator.Data ));
+            IF disposable THEN
+               DISPOSE( Task );
+            END;
+         END; // WHILE
+         HandleListToRemove.Dispose();
 
          IF HandleList^.Empty THEN
             DISPOSE( HandleList );
@@ -466,8 +484,7 @@ CLASS IMPLEMENTATION CPoolThread;
          END; // ELSE CASE
       
          // Run Workers
-         IF Workers.GetFirst( OUT Worker, OUT WorkerTask ) THEN
-            Workers.Remove( Worker );
+         IF Workers.Dequeue( OUT Worker, OUT WorkerTask ) THEN
             Worker^.Run();
             Completed( Sync.arCompleted, WorkerTask, NIL, TRUE, TRUE, OUT disposable );
             Sync.IDec( REF WorkersCount );
@@ -491,24 +508,25 @@ CLASS IMPLEMENTATION CPoolThread;
   PRIVATE PROCEDURE AddTask( CurrentTime : CARDINAL; Task : TPTask );
   VAR
     HandleList : lists.TPPtrList;
+    ptr : PTR;
   BEGIN
     HTasks.Add( CurrentTime, Task^.Handle, Task, Task^.Timeout );
     CASE Task^.Task OF
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
     | tskMessageOnce, tskMessageRepeated :
-      Messages.Add( Task^.Data, Task );
+      Messages.Add( Task^.Data, Task, 0 );
     | tskHandleOnce, tskHandleRepeated :
-      IF Handles.Get( Task^.Data, OUT HandleList ) THEN
+      IF Handles.Get( Task^.Data, OUT HandleList, OUT ptr ) THEN
          Sync.IDec( REF HandlesCount ); // no resource was consumed, decrease count
       ELSE
          NEW( HandleList );
-         Handles.Add( Task^.Data, HandleList );
+         Handles.Add( Task^.Data, HandleList, 0 );
          WaitArray.Add( Task^.Data );
       END;
       HandleList^.Add( Task, 0 );
     | tskWorker :
-      Workers.Add( Task^.Data, Task );
+      Workers.Enqueue( Task^.Data, Task );
     ELSE
       ASSERTLOG( FALSE );
     END; // CASE
@@ -520,6 +538,7 @@ CLASS IMPLEMENTATION CPoolThread;
   VAR
     disposable : BOOLEAN;
     HandleList : lists.TPPtrList;
+    ptr : PTR;
   BEGIN
     CASE Task^.Task OF
     | tskTimeoutOnce, tskTimeoutRepeated :
@@ -528,7 +547,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Messages.Remove( Task^.Data );
       Sync.IDec( REF MessagesCount );
     | tskHandleOnce, tskHandleRepeated :
-      IF Handles.Get( Task^.Data, OUT HandleList ) THEN
+      IF Handles.Get( Task^.Data, OUT HandleList, OUT ptr ) THEN
         HandleList^.Remove( Task );
         IF HandleList^.Empty THEN
           DISPOSE( HandleList );
@@ -600,25 +619,27 @@ CLASS IMPLEMENTATION CPoolThread;
   VAR
     disposable : BOOLEAN;
     Key : PTR;
+    listIterator : lists.CPtrListIterator;
+    mapIterator : maps.CPtrPtrMapIterator;
     Task : TPTask;
   BEGIN
     Sync.DeleteSignal( REF ReqQueue.Produce );
-    Handles.Reset();
-    WHILE Handles.MoveNext() DO
-      lists.TPPtrList( Handles.CurrentData )^.Reset();
-      WHILE lists.TPPtrList( Handles.CurrentData )^.MoveNext() DO
-        Completed( Sync.arAborted, lists.TPPtrList( Handles.CurrentData )^.Current, NIL, TRUE, TRUE, OUT disposable );
+    mapIterator.Init( Handles, collection.dirForward );
+    WHILE mapIterator.MoveNext() DO
+      listIterator.Init( lists.TPPtrList( mapIterator.Value )^, collection.dirForward );
+      WHILE listIterator.MoveNext() DO
+        Completed( Sync.arAborted, listIterator.Value, NIL, TRUE, TRUE, OUT disposable );
       END; // WHILE
-      DISPOSE( lists.TPPtrList( Handles.CurrentData ));
+      DISPOSE( lists.TPPtrList( mapIterator.Value ));
     END; // WHILE
-    Messages.Reset();
-    WHILE Messages.MoveNext() DO
-      Completed( Sync.arAborted, Messages.CurrentData, NIL, TRUE, TRUE, OUT disposable );
+    mapIterator.Init( Messages, collection.dirForward );
+    WHILE mapIterator.MoveNext() DO
+      Completed( Sync.arAborted, mapIterator.Value, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
-    Workers.Reset();
-    WHILE Workers.MoveNext() DO
-      Completed( Sync.arAborted, Workers.CurrentData, NIL, TRUE, TRUE, OUT disposable );
-      TPPoolWorker( Workers.Current )^.Release();
+    listIterator.Init( Workers, collection.dirForward );
+    WHILE listIterator.MoveNext() DO
+      Completed( Sync.arAborted, listIterator.Data, NIL, TRUE, TRUE, OUT disposable );
+      TPPoolWorker( listIterator.Value )^.Release();
     END; // WHILE
     WHILE HTasks.GetFirstElapsed( datetime.UptimeMS(), FALSE, OUT Key, OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE, OUT disposable );
@@ -874,6 +895,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROCEDURE Abort( REF PoolHandle : TPoolHandle );
   VAR
+    iterator : lists.CPtrListIterator;
     MSG : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
@@ -883,9 +905,9 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := 0;
 
     _Lock.Lock();
-    Threads.Reset();
-    WHILE Threads.MoveNext() DO // deliver the message to pool threads
-      Result := TPPoolThread( Threads.Current )^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
+    iterator.Init( Threads, collection.dirForward );
+    WHILE iterator.MoveNext() DO // deliver the message to pool threads
+      Result := TPPoolThread( iterator.Value )^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
     END; // WHILE
     _Lock.Unlock();
@@ -895,6 +917,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROCEDURE AbortAll( CONST Delegate : TPPoolDelegate );
   VAR
+    iterator : lists.CPtrListIterator;
     MSG : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
@@ -903,9 +926,9 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Delegate := Delegate;
 
     _Lock.Lock();
-    Threads.Reset();
-    WHILE Threads.MoveNext() DO // deliver the message to pool threads
-      Result := TPPoolThread( Threads.Current )^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
+    iterator.Init( Threads, collection.dirForward );
+    WHILE iterator.MoveNext() DO // deliver the message to pool threads
+      Result := TPPoolThread( iterator.Value )^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
     END; // WHILE
     _Lock.Unlock();
@@ -960,16 +983,17 @@ CLASS IMPLEMENTATION CThreadPool;
 //--------------------------------------------------------------------------------
 
   PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
-  VAR
-    PoolThread : TPPoolThread;
+   VAR
+      iterator : lists.CPtrListIterator;
+      PoolThread : TPPoolThread;
   BEGIN
     IF NOT ForceSelfThread THEN
        // lookup
-       Threads.Reset();
-       WHILE Threads.MoveNext() DO
-         IF     WorkerFlag AND TPPoolThread( Threads.Current )^.AbleRunWorkers OR
-            NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWaitHandles THEN
-           _PoolThread := TPPoolThread( Threads.Current );
+       iterator.Init( Threads, collection.dirForward );
+       WHILE iterator.MoveNext() DO
+         IF     WorkerFlag AND TPPoolThread( iterator.Value )^.AbleRunWorkers OR
+            NOT WorkerFlag AND TPPoolThread( iterator.Value )^.AbleWaitHandles THEN
+           _PoolThread := TPPoolThread( iterator.Value );
            RETURN TRUE;
          END; // IF
        END; // WHILE
@@ -994,15 +1018,16 @@ CLASS IMPLEMENTATION CThreadPool;
 //--------------------------------------------------------------------------------
 
   PRIVATE PROCEDURE DisposeThreads( RespectMinThreads : BOOLEAN );
-  VAR
-    PoolThread : TPPoolThread;
-    ThreadsToLeave : lists.CPtrList;
-    ThreadsToRemove : lists.CPtrList;
+   VAR
+      iterator : lists.CPtrListIterator;
+      PoolThread : TPPoolThread;
+      ThreadsToLeave : lists.CPtrList;
+      ThreadsToRemove : lists.CPtrList;
   BEGIN
     _Lock.Lock();
-    Threads.Reset();
-    WHILE Threads.MoveNext() DO
-      PoolThread := TPPoolThread( Threads.Current );
+    iterator.Init( Threads, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      PoolThread := TPPoolThread( iterator.Value );
       IF NOT RespectMinThreads OR ( ThreadsToLeave.Count > _MinThreads ) AND PoolThread^.Empty THEN
         ThreadsToRemove.Add( PoolThread, 0 );
       ELSE
@@ -1014,9 +1039,9 @@ CLASS IMPLEMENTATION CThreadPool;
     Threads.AppendList( REF ThreadsToLeave );
     _Lock.Unlock();
 
-    ThreadsToRemove.Reset();
-    WHILE ThreadsToRemove.MoveNext() DO
-      PoolThread := TPPoolThread( ThreadsToRemove.Current );
+    iterator.Init( ThreadsToRemove, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      PoolThread := TPPoolThread( iterator.Value );
       PoolThread^.Stop( TRUE );
       DISPOSE( PoolThread );
     END; // WHILE

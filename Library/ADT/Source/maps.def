@@ -7,173 +7,224 @@ DEFINITION MODULE maps;
 // version 1 (c) 1993-2006 mk
 //
 //===========================================================================
+//
+// All classes having "Value : PTR" parameter properly distinguish between baseobject.BASE, baseobject.CDisposable and baseobject.CRefcounted
+// and calls proper deallocation if "ValueOwnership = TRUE".
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+  
 IMPORT
-  avltree;
+   avltree,
+   baseobject;
 
 FROM StringsO IMPORT
-  IString, CString;
-
-//---------------------------------------------------------------------------
+   IString, TPString;
 
 #save, option( dll_export => on )
 
+(*==========================================================================*)
+
+CLASS CValueOwnershipControlMap( avltree.CAVLTree ); // ancestors with ValueOwnership = TRUE will examine Value : PTR as being PBASE and deallocate it
+
+   // SELF
+   PUBLIC PROPERTY
+      ValueOwnership : BOOLEAN;
+
+   PRIVATE VAR
+      _ValueOwnership : BOOLEAN := FALSE;
+
+END CValueOwnershipControlMap;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CDataItem( avltree.CAVLTreeElem );
+
+   // SELF   
+   PUBLIC VAR
+      Data : PTR := NIL;
+
+END CDataItem;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CValueItem( CDataItem ); // The item disposes Value if owning map wants. Distinguished are: BASE, CDisposable, CRefcounted.
+
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // SELF   
+   PUBLIC VAR
+      Value : PTR := NIL;
+   LOCAL VAR
+      OfValueOwnershipControlMap : POINTER TO CValueOwnershipControlMap := NIL;
+
+END CValueItem;
+
+(*==========================================================================*)
+
 TYPE
-  TPIntegerMap = POINTER TO CIntegerMap;
+   TPIntegerPtrMap = POINTER TO CIntegerPtrMap;
+   TPIntegerPtrMapIterator = POINTER TO CIntegerPtrMapIterator;
 
-CLASS CIntegerMap( avltree.CAVLTreeWState );
-  PUBLIC READONLY PROPERTY
-    Current : INTEGER;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
+CLASS CIntegerPtrMap( CValueOwnershipControlMap );
 
-  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-  PUBLIC PROCEDURE Add( Key : INTEGER; Data : PTR );
-  PUBLIC PROCEDURE Remove( Key : INTEGER );
-  PUBLIC PROCEDURE Contains( Key : INTEGER ) : BOOLEAN;
-  PUBLIC PROCEDURE Get( Key : INTEGER; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Add( Key : INTEGER; Value, Data : PTR );
+   PUBLIC PROCEDURE Remove( Key : INTEGER );
+   PUBLIC PROCEDURE Contains( Key : INTEGER ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Key : INTEGER; Value, Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
-END CIntegerMap;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPIntegerPtrMapIterator;
+   #restore
+
+END CIntegerPtrMap;
+
+CLASS CIntegerPtrMapIterator( avltree.CAVLTreeIterator );
+
+   PUBLIC READONLY PROPERTY
+      Key : INTEGER;
+   PUBLIC PROPERTY
+      Value : PTR;
+      Data : PTR;
+
+END CIntegerPtrMapIterator;
 
 //---------------------------------------------------------------------------
 
 TYPE
-  TPIntegerStringMap = POINTER TO CIntegerStringMap;
+   TPIntegerStringMap = POINTER TO CIntegerStringMap;
+   TPIntegerStringMapIterator = POINTER TO CIntegerStringMapIterator;
 
-CLASS CIntegerStringMap( avltree.CAVLTreeWState );
-  PUBLIC READONLY PROPERTY
-    Current : INTEGER;
-  PUBLIC PROPERTY
-    CurrentData : POINTER TO CString;
+CLASS CIntegerStringMap( avltree.CAVLTree );
 
-  PUBLIC READONLY INDEX( Index : CARDINAL ) : POINTER TO CString;
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : TPString;
 
-  PUBLIC PROCEDURE Add( Key : INTEGER; CONST Data : IString );
-  PUBLIC PROCEDURE Remove( Key : INTEGER );
-  PUBLIC PROCEDURE Contains( Key : INTEGER ) : BOOLEAN;
-  PUBLIC PROCEDURE Get( Key : INTEGER; OUT Data : IString ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : IString ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Add( Key : INTEGER; CONST Value : IString; Data : PTR );
+   PUBLIC PROCEDURE Remove( Key : INTEGER );
+   PUBLIC PROCEDURE Contains( Key : INTEGER ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Key : INTEGER; CONST Value : IString; Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPIntegerStringMapIterator;
+   #restore
 
 END CIntegerStringMap;
 
-//---------------------------------------------------------------------------
+CLASS CIntegerStringMapIterator( avltree.CAVLTreeIterator );
 
-TYPE
-  TPCardinalMap = POINTER TO CCardinalMap;
+   PUBLIC READONLY PROPERTY
+      Key : INTEGER;
+      Value : TPString;
+   PUBLIC PROPERTY
+      Data : PTR;
 
-CLASS CCardinalMap( avltree.CAVLTreeWState );
-  PUBLIC READONLY PROPERTY
-    Current : CARDINAL;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
-
-  PUBLIC READONLY INDEX( Key : CARDINAL ) : PTR;
-
-  PUBLIC PROCEDURE Add( Key : CARDINAL; Data : PTR );
-  PUBLIC PROCEDURE Remove( Key : CARDINAL );
-  PUBLIC PROCEDURE Contains( Key : CARDINAL ) : BOOLEAN;
-  PUBLIC PROCEDURE Get( Key : CARDINAL; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : CARDINAL; OUT Data : PTR ) : BOOLEAN; // similar as []
-
-END CCardinalMap;
+END CIntegerStringMapIterator;
 
 //---------------------------------------------------------------------------
 
 TYPE
-  TPPtrMap = POINTER TO CPtrMap;
+   TPPtrPtrMap = POINTER TO CPtrPtrMap;
+   TPPtrPtrMapIterator = POINTER TO CPtrPtrMapIterator;
 
-CLASS CPtrMap( avltree.CAVLTreeWState );
-  PUBLIC READONLY PROPERTY
-    Current : PTR;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
+CLASS CPtrPtrMap( CValueOwnershipControlMap );
 
-  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-  PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
-  PUBLIC PROCEDURE Remove( Key : PTR );
-  PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Add( Key : PTR; Value, Data : PTR );
+   PUBLIC PROCEDURE Remove( Key : PTR );
+   PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Key : PTR; Value, Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
-END CPtrMap;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPPtrPtrMapIterator;
+   #restore
 
-//---------------------------------------------------------------------------
+END CPtrPtrMap;
 
-TYPE
-  TPQuadwordMap = POINTER TO CQuadwordMap;
+CLASS CPtrPtrMapIterator( avltree.CAVLTreeIterator );
 
-CLASS CQuadwordMap( avltree.CAVLTreeWState );
-  PUBLIC READONLY PROPERTY
-    Current : QUADWORD;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
+   PUBLIC READONLY PROPERTY
+      Key : PTR;
+   PUBLIC PROPERTY
+      Value : PTR;
+      Data : PTR;
 
-  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
-
-  PUBLIC PROCEDURE Add( Key : QUADWORD; Data : PTR );
-  PUBLIC PROCEDURE Remove( Key : QUADWORD );
-  PUBLIC PROCEDURE Contains( Key : QUADWORD ) : BOOLEAN;
-  PUBLIC PROCEDURE Get( Key : QUADWORD; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN; // similar as []
-
-END CQuadwordMap;
+END CPtrPtrMapIterator;
 
 //---------------------------------------------------------------------------
 
 TYPE
-  TPStringMap = POINTER TO CStringMap;
+   TPStringPtrMap = POINTER TO CStringPtrMap;
+   TPStringPtrMapIterator = POINTER TO CStringPtrMapIterator;
 
-CLASS CStringMap( avltree.CAVLTreeWState );
-  PUBLIC READONLY PROPERTY
-    Current : POINTER TO CString;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
+CLASS CStringPtrMap( CValueOwnershipControlMap );
 
-  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-  PUBLIC PROCEDURE Add( CONST Key : IString; Data : PTR );
-  PUBLIC PROCEDURE Remove( CONST Key : IString );
-  PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
-  PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Add( CONST Key : IString; Value, Data : PTR );
+   PUBLIC PROCEDURE Remove( CONST Key : IString );
+   PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( CONST Key : IString; Value, Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
-  PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; Data : PTR );
-  PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
-  PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
-  PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPStringPtrMapIterator;
+   #restore
 
-END CStringMap;
+END CStringPtrMap;
+
+CLASS CStringPtrMapIterator( avltree.CAVLTreeIterator );
+
+   PUBLIC READONLY PROPERTY
+      Key : TPString;
+   PUBLIC PROPERTY
+      Value : PTR;
+      Data : PTR;
+
+END CStringPtrMapIterator;
 
 //---------------------------------------------------------------------------
 
 TYPE
-  TPStringStringMap = POINTER TO CStringStringMap;
+   TPStringStringMap = POINTER TO CStringStringMap;
+   TPStringStringMapIterator = POINTER TO CStringStringMapIterator;
 
-CLASS CStringStringMap( avltree.CAVLTreeWState );
-  PUBLIC READONLY PROPERTY
-    Current : POINTER TO CString;
-  PUBLIC PROPERTY
-    CurrentData : POINTER TO CString;
+CLASS CStringStringMap( avltree.CAVLTree );
 
-  PUBLIC READONLY INDEX( Index : CARDINAL ) : POINTER TO CString;
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : TPString;
 
-  PUBLIC PROCEDURE Add( CONST Key : IString; CONST Data : IString );
-  PUBLIC PROCEDURE Remove( CONST Key : IString );
-  PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
-  PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : IString ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : IString ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Add( CONST Key : IString; CONST Value : IString; Data : PTR );
+   PUBLIC PROCEDURE Remove( CONST Key : IString );
+   PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( CONST Key : IString; CONST Value : IString; Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
 
-  PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; CONST Data : IString );
-  PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
-  PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
-  PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : IString ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : IString ) : BOOLEAN; // similar as []
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPStringStringMapIterator;
+   #restore
 
 END CStringStringMap;
+
+CLASS CStringStringMapIterator( avltree.CAVLTreeIterator );
+
+   PUBLIC READONLY PROPERTY
+      Key : TPString;
+      Value : TPString;
+   PUBLIC PROPERTY
+      Data : PTR;
+
+END CStringStringMapIterator;
 
 //===========================================================================
 

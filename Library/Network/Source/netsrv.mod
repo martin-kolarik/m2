@@ -6,26 +6,27 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM Storage IMPORT
-  ALLOCATE, DEALLOCATE;
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
-  winsock;
+   winsock;
 
 IMPORT
-  IOO,
-  iphlpapi,
-  iptypes,
-  lists,
-  log,
-  msghandler,
-  msgqueue,
-  netpool,
-  Storage,
-  Strings,
-  Sync,
-  threadpool,
-  winerror,
-  WS2TcpIp;
+   collection,
+   IOO,
+   iphlpapi,
+   iptypes,
+   lists,
+   log,
+   msghandler,
+   msgqueue,
+   netpool,
+   Storage,
+   Strings,
+   Sync,
+   threadpool,
+   winerror,
+   WS2TcpIp;
 
 CONST
    logPrefix = L"netsrv";
@@ -410,14 +411,15 @@ CLASS IMPLEMENTATION CIPServer;
 //--------------------------------------------------------------------------------
 
   PUBLIC VIRTUAL PROCEDURE Dispose();
-  VAR
-    Socket : netsocket.TPSSocket;
+   VAR
+      iterator : lists.CPtrListIterator;
+      Socket : netsocket.TPSSocket;
   BEGIN
     IF NOT Sockets.Empty THEN
-      Sockets.Reset();
-      WHILE Sockets.MoveNext() DO
-        Socket := netsocket.TPSSocket( Sockets.Current );
-        CloseSocket( Socket, Sockets.CurrentData, FALSE );
+      iterator.Init( Sockets, collection.dirForward );
+      WHILE iterator.MoveNext() DO
+        Socket := netsocket.TPSSocket( iterator.Value );
+        CloseSocket( Socket, iterator.Data, FALSE );
       END; // WHILE
       Sockets.Dispose();
     END;
@@ -638,15 +640,16 @@ CLASS IMPLEMENTATION CIPServer;
 //--------------------------------------------------------------------------------
 
   PRIVATE PROCEDURE SearchSocket( CONST Server : inetaddr.INETADDR; Type : netsocket.TSocketType; OUT Socket : netsocket.TPSSocket; OUT Creator : TPListener ) : BOOLEAN;
-  VAR
-    LSocket : netsocket.TPSSocket;
+   VAR
+      iterator : lists.CPtrListIterator;
+      LSocket : netsocket.TPSSocket;
   BEGIN
-    Sockets.Reset();
-    WHILE Sockets.MoveNext() DO
-      LSocket := Sockets.Current;
+    iterator.Init( Sockets, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      LSocket := iterator.Value;
       IF LSocket^.LocalAddress = Server THEN
         Socket := LSocket;
-        Creator := Sockets.CurrentData;
+        Creator := iterator.Data;
         RETURN TRUE;
       END;
     END; // WHILE

@@ -31,22 +31,21 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   VAR
-      Failure : BOOLEAN := FALSE;
    BEGIN
       Host^.StartPhase( L"Do ASSERT" );
 
       // ASSERT( FALSE );
+      // Host^.ParticleWithAssert( L"Simple assert" );
+
       // ASSERTLOG( FALSE );
+      // Host^.ParticleWithAssert( L"Assert with log and no text" );
+
       // ASSERTLOG( FALSE, L"Je to blbe" );
+      // Host^.ParticleWithAssert( L"Assert with log and text" );
    
       Host^.StopPhase();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trSuccess;
    END Run;
    
 (*---------------------------------------------------------------------------*)

@@ -1,20 +1,15 @@
-MODULE TDOMDocument;
+MODULE TSynclists;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   com,
-   DOM,
-   FIOO,
-   IOO,
+   baseobject,
    log,
-   Strings,
-   StringsO,
    sync,
+   synclists,
    test,
-   testimpl,
-   xmlreader;
+   testimpl;
   
 (*===========================================================================*)
 
@@ -42,25 +37,24 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-	VAR
-	   Failure : BOOLEAN := FALSE;
-		D : DOM.TPXMLDocument;
-		N : DOM.TPXMLElement;
-		L : DOM.TPXMLNodeList;
+   VAR
+      ba : ARRAY [0..9] OF baseobject.BASE;
+      Failure : BOOLEAN := FALSE;
+      c : CARDINAL;
+      list : synclists.CPtrSyncList;
    BEGIN
       SELF.Host := Host;
 
-		com.COMInit();
-		D := DOM.newXMLDocument();
-		D^.Load( L"d:\work\buff\test.xml" );
-		N := DOM.TPXMLElement( D^.SelectSingleNode( L"//name" ));
-		L := D^.GetElementsByTagName( L"p" );
-		IF L^.Count = 2 THEN END;
-		// DISPOSE( N );
-		// DISPOSE( D );
-		com.COMDone();
+      // fill in the list
+      FOR c := 0 TO HIGH( ba ) DO
+         list.Add( ADR( ba[c] ), 0 );
+      END; // FOR
 
-      Host^.StopPhaseWithResult( NOT Failure);
+      Host^.StartPhase( L"Various operations with read locked list" );
+
+      list.Lock^.LockRead( sync.FORSAFETY );
+      
+      Host^.StopPhaseWithResult( NOT Failure );
 
       RETURN test.trUnknown;
    END Run;
@@ -68,9 +62,9 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   testimpl.tests()^.AddTest( L"XML::DOMDocument", ADR( Test ));
+   testimpl.tests()^.AddTest( L"Synclists", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)
 
-END TDOMDocument.
+END TSynclists.

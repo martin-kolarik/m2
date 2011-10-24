@@ -4,11 +4,12 @@ FROM Storage IMPORT
   ALLOCATE, REALLOCATE, DEALLOCATE;
   
 IMPORT
-  FIO,
-  maps,
-  Strings,
-  Storage,
-  windows;
+   collection,
+   FIO,
+   maps,
+   Strings,
+   Storage,
+   windows;
   
 IMPORT
   com,
@@ -395,7 +396,7 @@ CLASS IMPLEMENTATION CResources;
 
   PUBLIC PROCEDURE RegisterNotifier( Notifier : TPResourcesNotifier );
   BEGIN
-    _Notifiers.Add( Notifier, 0 );
+    _Notifiers.Add( Notifier, NIL );
   END RegisterNotifier;
 
 //---------------------------------------------------------------------------
@@ -494,17 +495,19 @@ CLASS IMPLEMENTATION CResources;
 (*--------------------------------------------------------------------------------*)
 
   PRIVATE PROCEDURE Notify( Lang, Texts : BOOLEAN );
+   VAR
+      iterator : lists.CPtrListIterator;
   BEGIN
     IF Lang OR Texts = FALSE THEN
       RETURN;
     END;
-    _Notifiers.Reset();
-    WHILE _Notifiers.MoveNext() DO
+    iterator.Init( _Notifiers, collection.dirForward );
+    WHILE iterator.MoveNext() DO
       IF Lang THEN
-        TPResourcesNotifier( _Notifiers.Current )^.OnLangChange( ADR( SELF ));
-        TPResourcesNotifier( _Notifiers.Current )^.OnTextsChange( ADR( SELF ));
+        TPResourcesNotifier( iterator.Current )^.OnLangChange( ADR( SELF ));
+        TPResourcesNotifier( iterator.Current )^.OnTextsChange( ADR( SELF ));
       ELSE // Texts is surely TRUE
-        TPResourcesNotifier( _Notifiers.Current )^.OnTextsChange( ADR( SELF ));
+        TPResourcesNotifier( iterator.Current )^.OnTextsChange( ADR( SELF ));
       END;
     END; // WHILE
   END Notify;
@@ -619,21 +622,23 @@ CLASS IMPLEMENTATION CPlainResources;
 
     PROCEDURE AddString( CONST String : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
     VAR
+      cs : StringsO.CString := StringsO.FromOA( String );
+      iterator : lists.CIntegerListIterator;
       L : CARDINAL;
       ptr : PTR;
     BEGIN
-      IF _Strings.GetOA( String, OUT ptr ) THEN
+      IF _Strings.Get( cs, OUT ptr, OUT ptr ) THEN
         Strings.ConcatW( OUT ErrorString, L"String ", String );
         Strings.AppendW( REF ErrorString, L" is already known." );
         RETURN FALSE;
       END;
-      _Strings.AddOA( String, _Strings.Count );
+      _Strings.Add( cs, _Strings.Count, 0 );
       IF _Strings.Count > _TextsAllocated THEN
         L := MAX2( _TextsAllocated << 1, 256 );
-        _Langs.Reset();
-        WHILE _Langs.MoveNext() DO
-          REALLOCATE( REF _Langs.CurrentData, L * SIZE( TText ));
-          Storage.Fill( INC( _Langs.CurrentData, _TextsAllocated * SIZE( TText )), ( L - _TextsAllocated ) * SIZE( TText ), 0 );
+        iterator.Init( _Langs, collection.dirForward );
+        WHILE iterator.MoveNext() DO
+          REALLOCATE( REF iterator.Data, L * SIZE( TText ));
+          Storage.Fill( INC( iterator.Data, _TextsAllocated * SIZE( TText )), ( L - _TextsAllocated ) * SIZE( TText ), 0 );
         END; // END
         _TextsAllocated := L;
       END;
@@ -677,6 +682,7 @@ CLASS IMPLEMENTATION CPlainResources;
       al, c, cl, l : CARDINAL;
       diff : PTR;
       i, j : INTEGER;
+      iterator : lists.CIntegerListIterator;
       lang : Languages.TLanguage;
       RFC1766 : ARRAY [0..31] OF WCHAR;
     BEGIN
@@ -712,15 +718,15 @@ CLASS IMPLEMENTATION CPlainResources;
 
       // language slots and text indexes
       i := 0;
-      _Langs.Reset();
-      WHILE _Langs.MoveNext() DO WITH _Resource^ DO
+      iterator.Init( _Langs, collection.dirForward );
+      WHILE iterator.MoveNext() DO WITH _Resource^ DO
         // slot
         Slots^[i].Texts := at;
-        Slots^[i].LangBySource := _Langs.Current;
-        Slots^[i].LangWithoutSublang := _Langs.Current;
+        Slots^[i].LangBySource := iterator.Value;
+        Slots^[i].LangWithoutSublang := iterator.Value;
 
          // try to get language without sublang
-         IF Languages.LanguageToRFC1766( _Langs.Current, OUT RFC1766 ) THEN
+         IF Languages.LanguageToRFC1766( iterator.Value, OUT RFC1766 ) THEN
             RFC1766[2] := 0W; // trim RFC1766 to two-character code
             IF Languages.RFC1766ToLanguage( RFC1766, OUT lang ) THEN
                Slots^[i].LangWithoutSublang := lang;
@@ -728,14 +734,14 @@ CLASS IMPLEMENTATION CPlainResources;
          END;
       
         // text indexes
-        Storage.Move( _Langs.CurrentData, at, l );
+        Storage.Move( iterator.Data, at, l );
         FOR j := 0 TO INTEGER( c - 1 ) DO
           IF Slots^[i].Texts^[j].Length > 0 THEN
             INC( Slots^[i].Texts^[j].Text, diff ); // .Text are offsets from block begin
           END;
         END;
         // dispose temporary data
-        DISPOSE( _Langs.CurrentData );
+        DISPOSE( iterator.Data );
 
         // convert slot to offset
         DEC( Slots^[i].Texts, PTR( _Resource ));
@@ -954,7 +960,7 @@ CLASS IMPLEMENTATION CPlainResources;
    VAR
       ptr : PTR;
    BEGIN
-      IF _Strings.Get( Key, OUT ptr ) THEN
+      IF _Strings.Get( Key, OUT ptr, OUT ptr ) THEN
          Id := LOPTRLONGWORD( ptr );
          RETURN TRUE;
       ELSE
@@ -987,6 +993,7 @@ CLASS IMPLEMENTATION CResourcesCreator;
   VAR
     f : FIO.File;
     Index : ARRAY [0..15] OF WCHAR;
+    iterator : maps.CStringPtrMapIterator;
     Name : ARRAY [0..511] OF WCHAR;
   BEGIN
     f := FIO.CreateW( Path, FIO.TFileShare{} );
@@ -996,10 +1003,10 @@ CLASS IMPLEMENTATION CResourcesCreator;
     FIO.WrLnW( f );
     FIO.WrStrW( f, L'CONST' ); FIO.WrLnW( f );
     
-    _Strings.Reset();
-    WHILE _Strings.MoveNext() DO
-      _Strings.Current^.ToOA( OUT Name );
-      Strings.FromCARD64W( CARD64( _Strings.CurrentData ), 10, OUT Index );
+    iterator.Init( _Strings, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      iterator.Key^.ToOA( OUT Name );
+      Strings.FromCARD64W( CARD64( iterator.Data ), 10, OUT Index );
       FIO.WrStrW( f, L'  ' ); FIO.WrStrW( f, NamePrefix ); FIO.WrStrW( f, Name ); FIO.WrStrW( f, L' = ' ); FIO.WrStrW( f, Index ); FIO.WrStrW( f, L';' ); FIO.WrLnW( f );
     END; // WHILE
 

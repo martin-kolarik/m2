@@ -35,9 +35,6 @@
     <None Include="Source\maps.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\stack.mod">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="Source\stacks.mod">
       <Filter>Source Files</Filter>
     </None>
@@ -63,9 +60,6 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\maps.def">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="Source\stack.def">
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\stacks.def">
@@ -94,6 +88,9 @@
       <Filter>Test</Filter>
     </None>
     <None Include="Test\TBitArrayOps.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TSynclists.mod">
       <Filter>Test</Filter>
     </None>
   </ItemGroup>

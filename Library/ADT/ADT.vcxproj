@@ -70,7 +70,6 @@
     <None Include="Source\list.mod" />
     <None Include="Source\lists.mod" />
     <None Include="Source\maps.mod" />
-    <None Include="Source\stack.mod" />
     <None Include="Source\stacks.mod" />
     <None Include="Source\synclists.def" />
     <None Include="Source\synclists.mod" />
@@ -82,7 +81,6 @@
     <None Include="Source\list.def" />
     <None Include="Source\lists.def" />
     <None Include="Source\maps.def" />
-    <None Include="Source\stack.def" />
     <None Include="Source\stacks.def" />
     <None Include="Source\syncmaps.def" />
     <None Include="ADT.proj" />
@@ -91,6 +89,7 @@
     <None Include="Test\ListOp.mod" />
     <None Include="Test\TBitArrayOAs.mod" />
     <None Include="Test\TBitArrayOps.mod" />
+    <None Include="Test\TSynclists.mod" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

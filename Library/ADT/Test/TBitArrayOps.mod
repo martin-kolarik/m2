@@ -47,9 +47,9 @@ CLASS IMPLEMENTATION CTest;
 
       IF ( va[0] = 055555555H ) AND ( va[1] = 0AAAAFFFFH ) AND ( va[11] = 011113333H ) AND
          ( ba1.Count = 176 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -62,9 +62,9 @@ CLASS IMPLEMENTATION CTest;
 
       IF ( va[0] = 000005555H ) AND ( va[1] = 00000FFFFH ) AND ( va[11] = 000003333H ) AND
          ( ba1.Count = 100 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -77,9 +77,9 @@ CLASS IMPLEMENTATION CTest;
 
       IF ( va[0] = 055550000H ) AND ( va[1] = 0AAAA0000H ) AND ( va[11] = 011110000H ) AND
          ( ba1.Count = 76 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -91,12 +91,12 @@ CLASS IMPLEMENTATION CTest;
 
       IF ( va[0] = 0AAAAAAAAH ) AND ( va[1] = 055555555H ) AND ( va[11] = 0EEEEEEEEH ) AND
          ( ba1.Count = 256 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
-      RETURN test.trSuccess;
+      RETURN test.trUnknown;
    END Run;
 
 (*---------------------------------------------------------------------------*)

@@ -10,24 +10,25 @@ PROCEDURE ArrayTest();
 VAR
   I : CARDINAL;
 BEGIN
-  AR.Init( array.astrgListInArray, 4 );
+  AR.Strategy := array.astrgListInArray;
+  AR.ItemSize := 4;
   FOR I := 0 TO 1499 DO
-    AR.Add( ADR( I ), 4 );
+    AR.Add( I );
   END;
   FOR I := 0 TO 1499 DO
-    AR.Remove( ADR( I ), 4 );
+    AR.Remove( I );
   END;
   FOR I := 0 TO 1499 DO
-    AR.Add( ADR( I ), 4 );
+    AR.Add( I );
   END;
   FOR I := 1499 TO 0 BY -1 DO
-    AR.Remove( ADR( I ), 4 );
+    AR.Remove( I );
   END;
   FOR I := 0 TO 1499 DO
-    AR.Insert( 0, ADR( I ), 4 );
+    AR.Insert( 0, I );
   END;
   FOR I := 0 TO 1499 DO
-    AR.Remove( ADR( I ), 4 );
+    AR.Remove( I );
   END;
 END ArrayTest;
 

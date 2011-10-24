@@ -212,12 +212,7 @@ CLASS IMPLEMENTATION CTest;
       WaitForMessages( 250 );
       
       // check
-      IF Count <> Reader.PrevCount+1 THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( Count = Reader.PrevCount+1 );
 
       //=====
 
@@ -253,12 +248,7 @@ CLASS IMPLEMENTATION CTest;
       WaitForMessages( 250 );
       
       // check
-      IF Count <> Reader.PrevCount+1 THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( Count = Reader.PrevCount+1 );
 
       //=====
 
@@ -296,12 +286,7 @@ CLASS IMPLEMENTATION CTest;
       WaitForMessages( 250 );
       
       // check
-      IF Writer.Summa <> Reader.Summa THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( Writer.Summa = Reader.Summa );
 
       //=====
 
@@ -338,12 +323,7 @@ CLASS IMPLEMENTATION CTest;
       WaitForMessages( 250 );
       
       // check
-      IF Writer.Summa <> Reader.Summa THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( Writer.Summa = Reader.Summa );
 
       //=====
    
@@ -355,11 +335,7 @@ CLASS IMPLEMENTATION CTest;
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

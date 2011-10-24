@@ -132,7 +132,6 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       ai : inetaddr.INETADDR;
-      Failure : BOOLEAN := FALSE;
       lastCount : INTEGER;
    BEGIN
       SELF.Host := Host;
@@ -179,7 +178,7 @@ CLASS IMPLEMENTATION CTest;
          END;
       END; // WHILE
 
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhase();
 
       ClientSocket^.Disconnect( TRUE, netsocket.FORSAFETY );
       ClientSocket^.Release();
@@ -188,11 +187,7 @@ CLASS IMPLEMENTATION CTest;
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

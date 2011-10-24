@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   avltree;
+   maps;
 
 #save, option( dll_export => on )
 
@@ -86,23 +86,36 @@ CONST
 (*================================================================================*)
 
 TYPE
-  TPINETADDRMap = POINTER TO CINETADDRMap;
+   TPINETADDRPtrMap = POINTER TO CINETADDRPtrMap;
+   TPINETADDRPtrMapIterator = POINTER TO CINETADDRPtrMapIterator;
 
-CLASS CINETADDRMap( avltree.CAVLTreeWState );
-  PUBLIC READONLY PROPERTY
-    Current : TPINETADDR;
-  PUBLIC PROPERTY
-    CurrentData : PTR;
+CLASS CINETADDRPtrMap( maps.CValueOwnershipControlMap );
 
-  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-  PUBLIC PROCEDURE Add( CONST Key : INETADDR; Data : PTR );
-  PUBLIC PROCEDURE Remove( CONST Key : INETADDR );
-  PUBLIC PROCEDURE Contains( CONST Key : INETADDR ) : BOOLEAN;
-  PUBLIC PROCEDURE Get( CONST Key : INETADDR; OUT Data : PTR ) : BOOLEAN;
-  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INETADDR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Add( CONST Key : INETADDR; Value : PTR; Data : PTR );
+   PUBLIC PROCEDURE Remove( CONST Key : INETADDR );
+   PUBLIC PROCEDURE Contains( CONST Key : INETADDR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Key : INETADDR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INETADDR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
-END CINETADDRMap;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPINETADDRPtrMapIterator;
+   #restore
+
+END CINETADDRPtrMap;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CINETADDRPtrMapIterator( avltree.CAVLTreeIterator );
+
+   PUBLIC READONLY PROPERTY
+      Key : TPINETADDR;
+   PUBLIC PROPERTY
+      Value : PTR;
+      Data : PTR;
+
+END CINETADDRPtrMapIterator;
 
 (*================================================================================*)
 

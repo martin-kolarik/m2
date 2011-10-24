@@ -65,7 +65,7 @@ CLASS IMPLEMENTATION CTest;
          DISPOSE( Enum );
       END;
       
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhase();
 
       Host^.StartPhase( L"Enumeration of interface addresses -- V6" );
       
@@ -74,7 +74,7 @@ CLASS IMPLEMENTATION CTest;
          DISPOSE( Enum );
       END;
       
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhase();
 
       Host^.StartPhase( L"Enumeration of local addresses -- V4, up" );
       
@@ -89,7 +89,7 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
       
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhase();
 
       Host^.StartPhase( L"Enumeration of local addresses -- V6, down too" );
       
@@ -104,13 +104,13 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
       
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhase();
 
       netinit.Cleanup();
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
 
-      RETURN test.trSuccess;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

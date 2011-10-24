@@ -36,157 +36,92 @@ CLASS IMPLEMENTATION CTest;
       TEMPLATE = L"ahaj ahaj ahahajhaj ahaj ahaj ahaj ahaj";
       ITEM = L"ahaj";
    VAR
-      Failure : BOOLEAN := FALSE;
       i : INTEGER;
    BEGIN
       Host^.StartPhase( L"FirstIndex" );
       
       i := Strings.IndexOfW( TEMPLATE, ITEM, 0 );
-      IF i <> 0 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@0", i = 0 );
 
       i := Strings.IndexOfW( TEMPLATE, ITEM, 2 );
-      IF i <> 5 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@2", i = 5 );
 
       i := Strings.IndexOfW( TEMPLATE, ITEM, 9 );
-      IF i <> 12 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@9", i = 12 );
 
       i := Strings.IndexOfW( TEMPLATE, ITEM, 10 );
-      IF i <> 12 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@10", i = 12 );
 
       i := Strings.IndexOfW( TEMPLATE, ITEM, 40 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@40", i = -1 );
 
       i := Strings.IndexOfW( TEMPLATE, ITEM, 35 );
-      IF i <> 35 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@35", i = 35 );
 
       i := Strings.IndexOfW( TEMPLATE, ITEM, 34 );
-      IF i <> 35 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@34", i = 35 );
 
       i := Strings.IndexOfW( TEMPLATE, ITEM, 36 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@36", i = -1 );
 
       i := Strings.IndexOfW( TEMPLATE, ITEM, 70 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@70", i = -1 );
 
       i := Strings.IndexOfW( ITEM, TEMPLATE, 0 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@0r", i = -1 );
 
       i := Strings.IndexOfW( TEMPLATE, TEMPLATE, 0 );
-      IF i <> 0 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@00", i = 0 );
 
       i := Strings.IndexOfW( TEMPLATE, TEMPLATE, -1 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@-1", i = -1 );
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhase();
 
       Host^.StartPhase( L"LastIndex" );
 
-      Failure := FALSE;
-      
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, -1 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@-1", i = -1 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 0 );
-      IF i <> 35 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@0", i = 35 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 2 );
-      IF i <> 30 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@2", i = 30 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 40 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@40", i = -1 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 20 );
-      IF i <> 12 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@20", i = 12 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 21 );
-      IF i <> 12 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@21", i = 12 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 35 );
-      IF i <> 0 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@35", i = 0 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 34 );
-      IF i <> 0 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@34", i = 0 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 36 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@36", i = -1 );
 
       i := Strings.LastIndexOfW( TEMPLATE, ITEM, 70 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@70", i = -1 );
 
       i := Strings.LastIndexOfW( ITEM, TEMPLATE, 0 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@0r", i = -1 );
 
       i := Strings.LastIndexOfW( TEMPLATE, TEMPLATE, 0 );
-      IF i <> 0 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@00", i = 0 );
 
       i := Strings.LastIndexOfW( TEMPLATE, TEMPLATE, -1 );
-      IF i <> -1 THEN
-         Failure := Failure OR TRUE;
-      END;
+      Host^.ParticleWithResult( L"@-1", i = -1 );
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhase();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

@@ -20,7 +20,8 @@ IMPORT
    msgqueuethread,
    Texts,
    Resources,
-   Strings;
+   Strings,
+   StringsO;
 
 (*===========================================================================*)
 
@@ -123,7 +124,7 @@ END AService;
 (*===========================================================================*)
 
 VAR
-   Services : maps.CStringMap;
+   Services : maps.CStringPtrMap;
 
 (*# save, call( o_a_size=>off, convention=>stdcall ) *)
 
@@ -175,13 +176,14 @@ TYPE
 
 PROCEDURE ServiceMain( argc : INTEGER; argv : TPParamStringArrayW );
 VAR
+   ptr : PTR;
    _Service : TPService;
 BEGIN
    IF argc = 0 THEN
       ASSERT( FALSE );
       RETURN;
 
-   ELSIF Services.GetOA( OAsz( argv^[0] ), OUT _Service ) THEN // not known service
+   ELSIF Services.Get( StringsO.FromOA( OAsz( argv^[0] )), OUT _Service, OUT ptr ) THEN // not known service
 
       _Service^.StatusHandle := winsvc.RegisterServiceCtrlHandlerExW( argv^[0], winsvc.LPHANDLER_FUNCTION_EX( ControlHandlerEx ), _Service );
       IF _Service^.StatusHandle = winsvc.SERVICE_STATUS_HANDLE( NIL ) THEN
@@ -219,7 +221,7 @@ BEGIN
    // fill up it
    FOR i := 0 TO HIGH( _Services ) DO
 
-      Services.AddOA( OAsz( _Services[i]^.Name ), _Services[i] );
+      Services.Add( StringsO.FromOA( OAsz( _Services[i]^.Name )), _Services[i], 0 );
 
       DispatcherTable^[i].lpServiceName := _Services[i]^.Name;
       DispatcherTable^[i].lpServiceProc := winsvc.LPSERVICE_MAIN_FUNCTIONW( ServiceMain );

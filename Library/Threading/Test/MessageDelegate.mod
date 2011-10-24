@@ -163,12 +163,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      IF Count = lcount THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Host^.StopPhaseWithResult( Count = lcount );
 
       //==========
       IF CompletionInOwningThread THEN
@@ -201,12 +196,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      IF Count = lcount THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Host^.StopPhaseWithResult( Count = lcount );
 
       RETURN Failure;
    END Round;

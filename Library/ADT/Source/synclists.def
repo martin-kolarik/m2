@@ -14,50 +14,34 @@ TYPE
 CLASS CPtrSyncList( lists.CPtrList );
 
    // CList
-   PUBLIC READONLY PROPERTY
+   PUBLIC VIRTUAL READONLY PROPERTY
       Count : CARDINAL;
       Empty : BOOLEAN;
 
-   // CListWState
-   PUBLIC PROCEDURE Reset();
-   PUBLIC PROCEDURE MoveNext() : BOOLEAN;
-
-   // CPtrList
-   PUBLIC READONLY PROPERTY
-      Current : PTR;
-   PUBLIC PROPERTY
-      CurrentData : PTR;
-   PUBLIC READONLY
-      INDEX( Index : INTEGER ) : PTR; // SLOW, O(n)!!
-
-   // map interface
+   // CPtrPtrList interface
+   PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
    #restore
-   PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
-   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ): BOOLEAN;
+   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Value : PTR; Data : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
-   // list interface
    PUBLIC PROCEDURE InsertFirst( Value : PTR; Data : PTR );
    PUBLIC PROCEDURE InsertBefore( Before, Value : PTR; Data : PTR );
-   PUBLIC PROCEDURE Append( Value : PTR; Data : PTR );
 
-   PUBLIC PROCEDURE GetFirst( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE GetLast( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : lists.TPPtrListIterator;
+   #restore
 
-   PUBLIC PROCEDURE PrevOf( Value : PTR; OUT Previous : PTR; OUT Data : PTR ) : BOOLEAN; // SLOW
-   PUBLIC PROCEDURE NextOf( Value : PTR; OUT Next : PTR; OUT Data : PTR ) : BOOLEAN; // SLOW
-   PUBLIC PROCEDURE IndexOf( Value : PTR ) : INTEGER; // SLOW
-  
    // queue interface
    #save, option( leak_info => on )
    PUBLIC PROCEDURE Enqueue( Value : PTR; Data : PTR );
    #restore
    PUBLIC PROCEDURE Dequeue( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; 
 
-   // private
+   // SELF
    PUBLIC READONLY PROPERTY
       Lock : Sync.PRWLOCK;
 

@@ -14,6 +14,7 @@ FROM log IMPORT
 
 IMPORT
    array,
+   collection,
    IOO,
    list,
    lists,
@@ -272,6 +273,9 @@ CLASS CConnection( netsocket.DSocket );
 
   LOCAL PROCEDURE StartReading();
   LOCAL PROCEDURE Disconnect( Persist : BOOLEAN ); 
+
+   FINALLY CConnection();
+
 END CConnection;
 
 //--------------------------------------------------------------------------------
@@ -409,30 +413,36 @@ CLASS IMPLEMENTATION CConnection;
 //--------------------------------------------------------------------------------
   
   LOCAL PROCEDURE OnConnect( Local : BOOLEAN; Error : CARDINAL );
+  VAR
+    iterator : lists.CPtrListIterator;
   BEGIN
-    Clients.Reset();
-    WHILE Clients.MoveNext() DO
-      TPClientInterface( Clients.Current )^.OnConnect( ADR( SELF ), Local, Error );
+    iterator.Init( Clients, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      TPClientInterface( iterator.Value )^.OnConnect( ADR( SELF ), Local, Error );
     END; // WHILE
   END OnConnect;
 
 //--------------------------------------------------------------------------------
   
   LOCAL PROCEDURE OnDisconnect( Local : BOOLEAN; Error : CARDINAL );
+  VAR
+    iterator : lists.CPtrListIterator;
   BEGIN
-    Clients.Reset();
-    WHILE Clients.MoveNext() DO
-      TPClientInterface( Clients.Current )^.OnDisconnect( ADR( SELF ), Local, Error );
+    iterator.Init( Clients, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      TPClientInterface( iterator.Value )^.OnDisconnect( ADR( SELF ), Local, Error );
     END; // WHILE
   END OnDisconnect;
 
 //--------------------------------------------------------------------------------
 
   LOCAL PROCEDURE OnReceive( Data : ADDRESS; DataLen : CARDINAL );
+  VAR
+    iterator : lists.CPtrListIterator;
   BEGIN
-    Clients.Reset();
-    WHILE Clients.MoveNext() DO
-      TPClientInterface( Clients.Current )^.OnReceive( ADR( SELF ), Data, DataLen );
+    iterator.Init( Clients, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      TPClientInterface( iterator.Value )^.OnReceive( ADR( SELF ), Data, DataLen );
     END; // WHILE
   END OnReceive;
 
@@ -458,6 +468,31 @@ CLASS IMPLEMENTATION CConnection;
 
 //--------------------------------------------------------------------------------
 
+   FINALLY CConnection();
+   VAR
+      iterator : lists.CPtrListIterator;
+   BEGIN
+      IF PReader <> NIL THEN
+         DISPOSE( PReader );
+      END;
+      IF PDatagrammerNotifier <> NIL THEN
+         PDatagrammerNotifier^.Release();
+         PDatagrammerNotifier := NIL;
+      END;
+      IF PDatagrammer <> NIL THEN
+         PDatagrammer^.Release();
+         PDatagrammer := NIL;
+      END;
+      Stream.Close( FALSE );
+      iterator.Init( Clients, collection.dirForward );
+      WHILE iterator.MoveNext() DO
+         TPClientInterface( iterator.Value )^.Release();
+      END; // WHILE
+      Clients.Dispose();
+   END CConnection;
+
+//--------------------------------------------------------------------------------
+
 BEGIN
    Peer := NIL;
    DoStartReadingOnConnect.Signal();;
@@ -466,24 +501,6 @@ BEGIN
    PDatagrammer := NIL;
    PDatagrammerNotifier := NIL;
    PReader := NIL;
-FINALLY
-   IF PReader <> NIL THEN
-      DISPOSE( PReader );
-   END;
-   IF PDatagrammerNotifier <> NIL THEN
-      PDatagrammerNotifier^.Release();
-      PDatagrammerNotifier := NIL;
-   END;
-   IF PDatagrammer <> NIL THEN
-      PDatagrammer^.Release();
-      PDatagrammer := NIL;
-   END;
-   Stream.Close( FALSE );
-   Clients.Reset();
-   WHILE Clients.MoveNext() DO
-      TPClientInterface( Clients.Current )^.Release();
-   END; // WHILE
-   Clients.Dispose();
 END CConnection;
 
 //================================================================================
@@ -574,10 +591,12 @@ CLASS IMPLEMENTATION CDispatcher;
 //--------------------------------------------------------------------------------
 
   PUBLIC VIRTUAL PROCEDURE Dispose();
+   VAR
+      iterator : inetaddr.CINETADDRPtrMapIterator;
   BEGIN
     IF NOT Connections.Empty THEN
-      Connections.Reset();
-      WHILE Connections.MoveNext() DO WITH TPConnection( Connections.CurrentData )^ DO
+      iterator.Init( Connections, collection.dirForward );
+      WHILE iterator.MoveNext() DO WITH TPConnection( iterator.Value )^ DO
         Notifier := NIL;
         Disconnect( FALSE );
         Release();
@@ -642,7 +661,9 @@ CLASS IMPLEMENTATION CDispatcher;
     MDatagram : IOO.CMemoryProxy;
     Message : TPMessage := TPMessage( message );
     NResult : Sync.TAsyncResult;
+    iterator : inetaddr.CINETADDRPtrMapIterator;
     Peer : TPConnection;
+    ptr : PTR;
     WDatagram : IOO.CDatagramProxy;
     Writer : TextWriter.CTextWriter;
   BEGIN
@@ -653,7 +674,7 @@ CLASS IMPLEMENTATION CDispatcher;
        IF Connection^.Accept( Message^.NServerSocket, OUT Error ) = Sync.arCompleted THEN
          Log( ldTrace, Connection, "Accept.Net" );
 
-         IF Connections.Get( Connection^.RemoteAddress, OUT CurrentConnection ) THEN
+         IF Connections.Get( Connection^.RemoteAddress, OUT CurrentConnection, OUT ptr ) THEN
            Log( ldError, Connection, "Accept connection already exists" );
 
            // this should not occur -- two same connections are impossible, but it can be state after undetected failure
@@ -662,10 +683,10 @@ CLASS IMPLEMENTATION CDispatcher;
            Connection^.Release();
            Connection := CurrentConnection;
          ELSE
-           Connections.Add( Connection^.RemoteAddress, Connection );
+           Connections.Add( Connection^.RemoteAddress, Connection, 0 );
          END;
          
-         IF Connections.Get( Connection^.LocalAddress, OUT Peer ) THEN // connection is self to self in single process
+         IF Connections.Get( Connection^.LocalAddress, OUT Peer, OUT ptr ) THEN // connection is self to self in single process
             Log( ldTrace, Peer, "Accept.Net.InProcessPeer" );
 
             Connection^.Peer := Peer;
@@ -735,13 +756,13 @@ CLASS IMPLEMENTATION CDispatcher;
      | cmClientJoin :
        logger()^.LogSP( ldTrace, 0, logPrefix, L"Join ", Message^.CPClient );
 
-       IF Connections.Get( Message^.JRemoteAddress, OUT Connection ) THEN
+       IF Connections.Get( Message^.JRemoteAddress, OUT Connection, OUT ptr ) THEN
          Log( ldDebug, Connection, L"  to existing connection" );
 
        ELSE
          NEW( Connection ); Connection^.Init( ADR( SELF ), PNotifier );
          Connection^.RemoteAddress := Message^.JRemoteAddress;
-         Connections.Add( Message^.JRemoteAddress, Connection );
+         Connections.Add( Message^.JRemoteAddress, Connection, 0 );
 
          Log( ldDebug, Connection, L"  to new connection" );
        END;
@@ -766,9 +787,9 @@ CLASS IMPLEMENTATION CDispatcher;
        ELSE
          logger()^.LogSP( ldDebug, 0, logPrefix, L"Leave from all connections ", Message^.CPClient );
 
-         Connections.Reset();
-         b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         iterator.Init( Connections, collection.dirForward );
+         b := iterator.MoveNext();
+         Connection := iterator.Value;
        END;
        WHILE b DO
          IF Connection^.RemoveClient( Message^.CPClient ) THEN // OnDisconnect/OnLeave called inside
@@ -791,10 +812,10 @@ CLASS IMPLEMENTATION CDispatcher;
          IF Known THEN
            EXIT;
          ELSIF NOT b THEN // Connection was deleted
-           Connections.Reset();
+            iterator.Init( Connections, collection.dirForward );
          END;
-         b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         b := iterator.MoveNext();
+         Connection := iterator.Value;
        END; // WHILE
        Message^.CPClient^.Release(); // temporary
 
@@ -814,9 +835,9 @@ CLASS IMPLEMENTATION CDispatcher;
        ELSE
          logger()^.LogSP( ldDebug, 0, logPrefix, L"Connect to all connections ", Message^.CPClient );
 
-         Connections.Reset();
-         b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         iterator.Init( Connections, collection.dirForward );
+         b := iterator.MoveNext();
+         Connection := iterator.Value;
        END;
        WHILE b DO
          IF NOT Connection^.Connected THEN
@@ -829,8 +850,8 @@ CLASS IMPLEMENTATION CDispatcher;
          IF Known THEN
            EXIT;
          ELSE
-           b := Connections.MoveNext();
-           Connection := Connections.CurrentData;
+           b := iterator.MoveNext();
+           Connection := iterator.Value;
          END;
        END; // WHILE
 
@@ -850,17 +871,17 @@ CLASS IMPLEMENTATION CDispatcher;
        ELSE
          logger()^.LogSP( ldDebug, 0, logPrefix, L"Disconnect from all connections ", Message^.CPClient );
 
-         Connections.Reset();
-         b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         iterator.Init( Connections, collection.dirForward );
+         b := iterator.MoveNext();
+         Connection := iterator.Value;
        END;
        WHILE b DO
          Connection^.Disconnect( TRUE );
          IF Known THEN
            EXIT;
          ELSE
-           b := Connections.MoveNext();
-           Connection := Connections.CurrentData;
+           b := iterator.MoveNext();
+           Connection := iterator.Value;
          END;
        END; // WHILE
 
@@ -882,9 +903,9 @@ CLASS IMPLEMENTATION CDispatcher;
        ELSE // not known
          logger()^.LogSP( ldDebug, 0, logPrefix, L"Send to all connections ", Message^.CPClient );
 
-         Connections.Reset();
-         b := Connections.MoveNext();
-         Connection := Connections.CurrentData;
+         iterator.Init( Connections, collection.dirForward );
+         b := iterator.MoveNext();
+         Connection := iterator.Value;
        END;
 
        WHILE b DO
@@ -923,8 +944,8 @@ CLASS IMPLEMENTATION CDispatcher;
          IF Known THEN
            EXIT;
          ELSE
-           b := Connections.MoveNext();
-           Connection := Connections.CurrentData;
+           b := iterator.MoveNext();
+           Connection := iterator.Value;
          END;
 
        END; // WHILE

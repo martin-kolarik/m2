@@ -1,1214 +1,1088 @@
 IMPLEMENTATION MODULE maps;
 
-//===========================================================================
-//
-// simple AVL tree implementations
-//
-// version 1 (c) 1993-2006 mk
-//
-//===========================================================================
+(*==========================================================================*)
 
-FROM Storage IMPORT
-  ALLOCATE;
-  
-// FROM StorageO IMPORT
-  // CSlotAllocator;
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
 
-//---------------------------------------------------------------------------
+FROM StringsO IMPORT
+   CString;
 
-// VAR
-  // IntegerAllocator : CSlotAllocator;
-  // CardinalAllocator : CSlotAllocator;
-  // PtrAllocator : CSlotAllocator;
+IMPORT
+   collection;
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
 
-TYPE
-  TPIntegerItem = POINTER TO CIntegerItem;
+CLASS IMPLEMENTATION CValueOwnershipControlMap;
 
-CLASS CIntegerItem( avltree.CAVLTreeElem );
-  PUBLIC VAR
-    Key  : INTEGER;
-    Data : PTR;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   PUBLIC PROPERTY ValueOwnership GET : BOOLEAN;
+   BEGIN
+      RETURN _ValueOwnership;
+   END ValueOwnership;
 
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
-END CIntegerItem;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
+   PUBLIC PROPERTY ValueOwnership SET( Value : BOOLEAN );
+   BEGIN
+      _ValueOwnership := Value;
+   END ValueOwnership;
 
-CLASS IMPLEMENTATION CIntegerItem;
-
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  BEGIN
-    IF Key < TPIntegerItem( pelem )^.Key THEN
-      RETURN -1;
-    ELSIF Key > TPIntegerItem( pelem )^.Key THEN
-      RETURN 1;
-    ELSE
-      RETURN 0;
-    END;
-  END Compare;
-
-  // OPERATOR CIntegerItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF IntegerAllocator.Allocate( OUT a, SIZE( CIntegerItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CIntegerItem.NEW;
-  
-  // OPERATOR CIntegerItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   IntegerAllocator.Deallocate( REF a );
-  // END CIntegerItem.DISPOSE;
+(*---------------------------------------------------------------------------*)
 
 BEGIN
-  Key := -1;
-  Data := NIL;
-END CIntegerItem;
+END CValueOwnershipControlMap;
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
+// common ancestor
 
-CLASS IMPLEMENTATION CIntegerMap;
+CLASS IMPLEMENTATION CDataItem;
+BEGIN
+END CDataItem;
 
-  PUBLIC READONLY PROPERTY CIntegerMap.Current GET : INTEGER;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN 0;
-    ELSE
-      RETURN TPIntegerItem( _Current )^.Key;
-    END;
-  END CIntegerMap.Current;
+(*==========================================================================*)
+// common ancestor
 
-//---------------------------------------------------------------------------
+CLASS IMPLEMENTATION CValueItem;
 
-  PUBLIC READONLY PROPERTY CIntegerMap.CurrentData GET : PTR;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN TPIntegerItem( _Current )^.Data;
-    END;
-  END CIntegerMap.CurrentData;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   BEGIN
+      IF ( OfValueOwnershipControlMap <> NIL ) AND ( Value <> NIL ) AND ( OfValueOwnershipControlMap^.ValueOwnership ) THEN
+         IF baseobject.PBASE( Value )^ INHERITS baseobject.CRefcounted THEN
+            baseobject.TPRefcounted( Value )^.Release();
+         ELSIF baseobject.PBASE( Value )^ INHERITS baseobject.CDisposable THEN 
+            baseobject.TPDisposable( Value )^.Dispose();
+            DISPOSE( baseobject.TPDisposable( Value ));
+         ELSIF baseobject.PBASE( Value )^ INHERITS baseobject.BASE THEN
+            DISPOSE( baseobject.PBASE( Value ));
+         ELSE
+            ASSERTLOG( FALSE, L"Unable to deallocate map item -- unknown class" );
+         END;
+         Value := NIL;
+      END;
+      SUPER.Dispose();
+   END Dispose;
 
-  PUBLIC PROPERTY CIntegerMap.CurrentData SET( Data : PTR );
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN;
-    ELSE
-      TPIntegerItem( _Current )^.Data := Data;
-    END;
-  END CIntegerMap.CurrentData;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
+BEGIN FINALLY
+   Dispose();
+END CValueItem;
 
-  PUBLIC READONLY INDEX CIntegerMap GET ( Index : CARDINAL ) : PTR;
-  VAR
-    PI : TPIntegerItem;
-  BEGIN
-    PI := TPIntegerItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN NIL;
-    ELSE
-      RETURN PI^.Data;
-    END;
-  END CIntegerMap;
-
-  PUBLIC PROCEDURE CIntegerMap.Add( Key : INTEGER; Data : PTR );
-  VAR
-    PI : TPIntegerItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key := Key;
-    PI^.Data := Data;
-    Insert( PI );
-  END CIntegerMap.Add;
-  
-  PUBLIC PROCEDURE CIntegerMap.Remove( Key : INTEGER );
-  VAR
-    I : CIntegerItem;
-  BEGIN
-    I.Key := Key;
-    Delete( ADR( I ));
-  END CIntegerMap.Remove;
-
-  PUBLIC PROCEDURE CIntegerMap.Contains( Key : INTEGER ) : BOOLEAN;
-  VAR
-    I : CIntegerItem;
-  BEGIN
-    I.Key := Key;
-    RETURN SUPER.Contains( ADR( I ));
-  END CIntegerMap.Contains;
-
-  PUBLIC PROCEDURE CIntegerMap.Get( Key : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
-  VAR
-    I : CIntegerItem;
-    PI : TPIntegerItem;
-  BEGIN
-    I.Key := Key;
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data := PI^.Data;
-    RETURN TRUE;  
-  END CIntegerMap.Get;
-
-  PUBLIC PROCEDURE CIntegerMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : PTR ) : BOOLEAN;
-  VAR
-    PI : TPIntegerItem;
-  BEGIN
-    PI := TPIntegerItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Key := PI^.Key;
-      Data := PI^.Data;
-    END;
-    RETURN TRUE;
-  END CIntegerMap.ElementAt;
-
-END CIntegerMap;
-
-//===========================================================================
+(*==========================================================================*)
 
 TYPE
-  TPIntegerStringItem = POINTER TO CIntegerStringItem;
+   TPIntegerPtrItem = POINTER TO CIntegerPtrItem;
 
-CLASS CIntegerStringItem( avltree.CAVLTreeElem );
-  PUBLIC VAR
-    Key  : INTEGER;
-    Data : CString;
+CLASS CIntegerPtrItem( CValueItem );
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   LOCAL VAR
+      Key : INTEGER;
 
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+
+END CIntegerPtrItem;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CIntegerPtrItem;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   BEGIN
+      IF Key < TPIntegerPtrItem( pelem )^.Key THEN
+         RETURN -1;
+      ELSIF Key > TPIntegerPtrItem( pelem )^.Key THEN
+         RETURN 1;
+      ELSE
+         RETURN 0;
+      END;
+   END Compare;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   Key := 0;
+END CIntegerPtrItem;
+
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CIntegerPtrMap;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC READONLY INDEX CIntegerPtrMap GET( Index : CARDINAL ) : PTR;
+   VAR
+      PI : TPIntegerPtrItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         RETURN PI^.Value;
+      ELSE
+         RETURN NIL;
+      END;
+   END CIntegerPtrMap;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerPtrMap.Add( Key : INTEGER; Value, Data : PTR );
+   VAR
+      PI : TPIntegerPtrItem;
+   BEGIN
+      NEW( PI );
+      PI^.OfValueOwnershipControlMap := ADR( SELF );
+      PI^.Key := Key;
+      PI^.Value := Value;
+      PI^.Data := Data;
+      SUPER.Add( PI );
+   END CIntegerPtrMap.Add;
+  
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerPtrMap.Remove( Key : INTEGER );
+   VAR
+      I : CIntegerPtrItem;
+   BEGIN
+      I.Key := Key;
+      Delete( 0, ADR( I ));
+   END CIntegerPtrMap.Remove;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerPtrMap.Contains( Key : INTEGER ) : BOOLEAN;
+   VAR
+      I : CIntegerPtrItem;
+   BEGIN
+      I.Key := Key;
+      RETURN SUPER.Contains( 0, ADR( I ));
+   END CIntegerPtrMap.Contains;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerPtrMap.Get( Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      I : CIntegerPtrItem;
+      PI : TPIntegerPtrItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      Value := PI^.Value;
+      Data := PI^.Data;
+      RETURN TRUE;  
+   END CIntegerPtrMap.Get;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerPtrMap.Set( Key : INTEGER; Value, Data : PTR ) : BOOLEAN;
+   VAR
+      I : CIntegerPtrItem;
+      PI : TPIntegerPtrItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value := Value;
+      PI^.Data := Data;
+      RETURN TRUE;
+   END CIntegerPtrMap.Set;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerPtrMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      PI : TPIntegerPtrItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         Key := PI^.Key;
+         Value := PI^.Value;
+         Data := PI^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CIntegerPtrMap.ElementAt;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerPtrMap.GetIterator() : TPIntegerPtrMapIterator;
+   VAR
+      iterator : TPIntegerPtrMapIterator := NEW( CIntegerPtrMapIterator );
+   BEGIN
+      iterator^.Init( SELF, collection.dirForward );
+      RETURN iterator;
+   END CIntegerPtrMap.GetIterator;
+
+(*---------------------------------------------------------------------------*)
+
+END CIntegerPtrMap;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CIntegerPtrMapIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Key GET : INTEGER;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN 0;
+      ELSE
+         RETURN TPIntegerPtrItem( Current )^.Key;
+      END;
+   END Key;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPIntegerPtrItem( Current )^.Value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPIntegerPtrItem( Current )^.Value := value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPIntegerPtrItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPIntegerPtrItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CIntegerPtrMapIterator;
+
+(*===========================================================================*)
+
+TYPE
+   TPIntegerStringItem = POINTER TO CIntegerStringItem;
+
+CLASS CIntegerStringItem( CDataItem );
+
+   LOCAL VAR
+      Key  : INTEGER;
+      Value : CString;
+
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+
 END CIntegerStringItem;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CIntegerStringItem;
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  BEGIN
-    IF Key < TPIntegerItem( pelem )^.Key THEN
-      RETURN -1;
-    ELSIF Key > TPIntegerItem( pelem )^.Key THEN
-      RETURN 1;
-    ELSE
-      RETURN 0;
-    END;
-  END Compare;
+(*---------------------------------------------------------------------------*)
 
-  // OPERATOR CIntegerItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF IntegerAllocator.Allocate( OUT a, SIZE( CIntegerItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CIntegerItem.NEW;
-  
-  // OPERATOR CIntegerItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   IntegerAllocator.Deallocate( REF a );
-  // END CIntegerItem.DISPOSE;
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   BEGIN
+      IF Key < TPIntegerStringItem( pelem )^.Key THEN
+         RETURN -1;
+      ELSIF Key > TPIntegerStringItem( pelem )^.Key THEN
+         RETURN 1;
+      ELSE
+         RETURN 0;
+      END;
+   END Compare;
+
+(*---------------------------------------------------------------------------*)
 
 BEGIN
-  Key := -1;
+   Key := 0;
 END CIntegerStringItem;
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
 
 CLASS IMPLEMENTATION CIntegerStringMap;
 
-  PUBLIC READONLY PROPERTY CIntegerStringMap.Current GET : INTEGER;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN 0;
-    ELSE
-      RETURN TPIntegerStringItem( _Current )^.Key;
-    END;
-  END CIntegerStringMap.Current;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
+   PUBLIC READONLY INDEX CIntegerStringMap GET ( Index : CARDINAL ) : TPString;
+   VAR
+      PI : TPIntegerStringItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         RETURN ADR( PI^.Value );
+      ELSE
+         RETURN NIL;
+      END;
+   END CIntegerStringMap;
 
-  PUBLIC READONLY PROPERTY CIntegerStringMap.CurrentData GET : POINTER TO CString;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN ADR( TPIntegerStringItem( _Current )^.Data );
-    END;
-  END CIntegerStringMap.CurrentData;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
-
-  PUBLIC PROPERTY CIntegerStringMap.CurrentData SET( Data : POINTER TO CString );
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN;
-    ELSE
-      TPIntegerStringItem( _Current )^.Data := Data^;
-    END;
-  END CIntegerStringMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY INDEX CIntegerStringMap GET ( Index : CARDINAL ) : POINTER TO CString;
-  VAR
-    PI : TPIntegerStringItem;
-  BEGIN
-    PI := TPIntegerStringItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN NIL;
-    ELSE
-      RETURN ADR( PI^.Data );
-    END;
-  END CIntegerStringMap;
-
-  PUBLIC PROCEDURE CIntegerStringMap.Add( Key : INTEGER; CONST Data : IString );
-  VAR
-    PI : TPIntegerStringItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key := Key;
-    PI^.Data.Assign( Data );
-    Insert( PI );
-  END CIntegerStringMap.Add;
+   PUBLIC PROCEDURE CIntegerStringMap.Add( Key : INTEGER; CONST Value : IString; Data : PTR );
+   VAR
+      PI : TPIntegerStringItem;
+   BEGIN
+      NEW( PI );
+      PI^.Key := Key;
+      PI^.Value.Assign( Value );
+      PI^.Data := Data;
+      SUPER.Add( PI );
+   END CIntegerStringMap.Add;
   
-  PUBLIC PROCEDURE CIntegerStringMap.Remove( Key : INTEGER );
-  VAR
-    I : CIntegerStringItem;
-  BEGIN
-    I.Key := Key;
-    Delete( ADR( I ));
-  END CIntegerStringMap.Remove;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CIntegerStringMap.Contains( Key : INTEGER ) : BOOLEAN;
-  VAR
-    I : CIntegerStringItem;
-  BEGIN
-    I.Key := Key;
-    RETURN SUPER.Contains( ADR( I ));
-  END CIntegerStringMap.Contains;
+   PUBLIC PROCEDURE CIntegerStringMap.Remove( Key : INTEGER );
+   VAR
+      I : CIntegerStringItem;
+   BEGIN
+      I.Key := Key;
+      Delete( 0, ADR( I ));
+   END CIntegerStringMap.Remove;
 
-  PUBLIC PROCEDURE CIntegerStringMap.Get( Key : INTEGER; OUT Data : IString ) : BOOLEAN; // similar as []
-  VAR
-    I : CIntegerStringItem;
-    PI : TPIntegerStringItem;
-  BEGIN
-    I.Key := Key;
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data.Assign( PI^.Data );
-    RETURN TRUE;  
-  END CIntegerStringMap.Get;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CIntegerStringMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : IString ) : BOOLEAN;
-  VAR
-    PI : TPIntegerStringItem;
-  BEGIN
-    PI := TPIntegerStringItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Key := PI^.Key;
-      Data.Assign( PI^.Data );
-    END;
-    RETURN TRUE;
-  END CIntegerStringMap.ElementAt;
+   PUBLIC PROCEDURE CIntegerStringMap.Contains( Key : INTEGER ) : BOOLEAN;
+   VAR
+      I : CIntegerStringItem;
+   BEGIN
+      I.Key := Key;
+      RETURN SUPER.Contains( 0, ADR( I ));
+   END CIntegerStringMap.Contains;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerStringMap.Get( Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      I : CIntegerStringItem;
+      PI : TPIntegerStringItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      Value.Assign( PI^.Value );
+      Data := PI^.Data;
+      RETURN TRUE;  
+   END CIntegerStringMap.Get;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerStringMap.Set( Key : INTEGER; CONST Value : IString; Data : PTR ) : BOOLEAN;
+   VAR
+      I : CIntegerStringItem;
+      PI : TPIntegerStringItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value.Assign( Value );
+      PI^.Data := Data;
+      RETURN TRUE;  
+   END CIntegerStringMap.Set;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerStringMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      PI : TPIntegerStringItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         Key := PI^.Key;
+         Value.Assign( PI^.Value );
+         Data := PI^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CIntegerStringMap.ElementAt;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CIntegerStringMap.GetIterator() : TPIntegerStringMapIterator;
+   VAR
+      iterator : TPIntegerStringMapIterator := NEW( CIntegerStringMapIterator );
+   BEGIN
+      iterator^.Init( SELF, collection.dirForward );
+      RETURN iterator;
+   END CIntegerStringMap.GetIterator;
+
+(*---------------------------------------------------------------------------*)
 
 END CIntegerStringMap;
 
-//===========================================================================
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CIntegerStringMapIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Key GET : INTEGER;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN 0;
+      ELSE
+         RETURN TPIntegerStringItem( Current )^.Key;
+      END;
+   END Key;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : TPString;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPIntegerStringItem( Current )^.Value );
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPIntegerStringItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPIntegerStringItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CIntegerStringMapIterator;
+
+(*==========================================================================*)
 
 TYPE
-  TPCardinalItem = POINTER TO CCardinalItem;
+   TPPtrPtrItem = POINTER TO CPtrPtrItem;
 
-CLASS CCardinalItem( avltree.CAVLTreeElem );
-  PUBLIC VAR
-    Key  : CARDINAL;
-    Data : PTR;
+CLASS CPtrPtrItem( CValueItem );
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   PUBLIC VAR
+      Key : PTR;
 
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
-END CCardinalItem;
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
-//---------------------------------------------------------------------------
+END CPtrPtrItem;
 
-CLASS IMPLEMENTATION CCardinalItem;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  BEGIN
-    IF Key < TPCardinalItem( pelem )^.Key THEN
-      RETURN -1;
-    ELSIF Key > TPCardinalItem( pelem )^.Key THEN
-      RETURN 1;
-    ELSE
-      RETURN 0;
-    END;
-  END Compare;
+CLASS IMPLEMENTATION CPtrPtrItem;
 
-  // OPERATOR CCardinalItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF CardinalAllocator.Allocate( OUT a, SIZE( CCardinalItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CCardinalItem.NEW;
-  
-  // OPERATOR CCardinalItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   CardinalAllocator.Deallocate( REF a );
-  // END CCardinalItem.DISPOSE;
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   BEGIN
+      IF Key < TPPtrPtrItem( pelem )^.Key THEN
+         RETURN -1;
+      ELSIF Key > TPPtrPtrItem( pelem )^.Key THEN
+         RETURN 1;
+      ELSE
+         RETURN 0;
+      END;
+   END Compare;
+
+(*---------------------------------------------------------------------------*)
 
 BEGIN
-  Key := -1;
-  Data := NIL;
-END CCardinalItem;
+   Key := 0;
+END CPtrPtrItem;
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
 
-CLASS IMPLEMENTATION CCardinalMap;
+CLASS IMPLEMENTATION CPtrPtrMap;
 
-  PUBLIC READONLY PROPERTY CCardinalMap.Current GET : CARDINAL;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN 0;
-    ELSE
-      RETURN TPCardinalItem( _Current )^.Key;
-    END;
-  END CCardinalMap.Current;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
+   PUBLIC READONLY INDEX CPtrPtrMap GET( Index : CARDINAL ) : PTR;
+   VAR
+      PI : TPPtrPtrItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         RETURN PI^.Value;
+      ELSE
+         RETURN NIL;
+      END;
+   END CPtrPtrMap;
 
-  PUBLIC READONLY PROPERTY CCardinalMap.CurrentData GET : PTR;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN TPCardinalItem( _Current )^.Data;
-    END;
-  END CCardinalMap.CurrentData;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
-
-  PUBLIC PROPERTY CCardinalMap.CurrentData SET( Data : PTR );
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN;
-    ELSE
-      TPCardinalItem( _Current )^.Data := Data;
-    END;
-  END CCardinalMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY INDEX CCardinalMap GET ( Index : CARDINAL ) : PTR;
-  VAR
-    PI : TPCardinalItem;
-  BEGIN
-    PI := TPCardinalItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN NIL;
-    ELSE
-      RETURN PI^.Data;
-    END;
-  END CCardinalMap;
-
-  PUBLIC PROCEDURE CCardinalMap.Add( Key : CARDINAL; Data : PTR );
-  VAR
-    PI : TPCardinalItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key := Key;
-    PI^.Data := Data;
-    Insert( PI );
-  END CCardinalMap.Add;
+   PUBLIC PROCEDURE CPtrPtrMap.Add( Key : PTR; Value, Data : PTR );
+   VAR
+      PI : TPPtrPtrItem;
+   BEGIN
+      NEW( PI );
+      PI^.OfValueOwnershipControlMap := ADR( SELF );
+      PI^.Key := Key;
+      PI^.Value := Value;
+      PI^.Data := Data;
+      SUPER.Add( PI );
+   END CPtrPtrMap.Add;
   
-  PUBLIC PROCEDURE CCardinalMap.Remove( Key : CARDINAL );
-  VAR
-    I : CCardinalItem;
-  BEGIN
-    I.Key := Key;
-    Delete( ADR( I ));
-  END CCardinalMap.Remove;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CCardinalMap.Contains( Key : CARDINAL ) : BOOLEAN;
-  VAR
-    I : CCardinalItem;
-  BEGIN
-    I.Key := Key;
-    RETURN SUPER.Contains( ADR( I ));
-  END CCardinalMap.Contains;
+   PUBLIC PROCEDURE CPtrPtrMap.Remove( Key : PTR );
+   VAR
+      I : CPtrPtrItem;
+   BEGIN
+      I.Key := Key;
+      Delete( 0, ADR( I ));
+   END CPtrPtrMap.Remove;
 
-  PUBLIC PROCEDURE CCardinalMap.Get( Key : CARDINAL; OUT Data : PTR ) : BOOLEAN; // similar as []
-  VAR
-    I : CCardinalItem;
-    PI : TPCardinalItem;
-  BEGIN
-    I.Key := Key;
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data := PI^.Data;
-    RETURN TRUE;  
-  END CCardinalMap.Get;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CCardinalMap.ElementAt( Index : CARDINAL; OUT Key : CARDINAL; OUT Data : PTR ) : BOOLEAN;
-  VAR
-    PI : TPCardinalItem;
-  BEGIN
-    PI := TPCardinalItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Key := PI^.Key;
+   PUBLIC PROCEDURE CPtrPtrMap.Contains( Key : PTR ) : BOOLEAN;
+   VAR
+      I : CPtrPtrItem;
+   BEGIN
+      I.Key := Key;
+      RETURN SUPER.Contains( 0, ADR( I ));
+   END CPtrPtrMap.Contains;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CPtrPtrMap.Get( Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      I : CPtrPtrItem;
+      PI : TPPtrPtrItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      Value := PI^.Value;
       Data := PI^.Data;
-    END;
-    RETURN TRUE;
-  END CCardinalMap.ElementAt;
+      RETURN TRUE;  
+   END CPtrPtrMap.Get;
 
-END CCardinalMap;
+(*---------------------------------------------------------------------------*)
 
-//===========================================================================
+   PUBLIC PROCEDURE CPtrPtrMap.Set( Key : PTR; Value, Data : PTR ) : BOOLEAN;
+   VAR
+      I : CPtrPtrItem;
+      PI : TPPtrPtrItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value := Value;
+      PI^.Data := Data;
+      RETURN TRUE;  
+   END CPtrPtrMap.Set;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CPtrPtrMap.ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      PI : TPPtrPtrItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         Key := PI^.Key;
+         Value := PI^.Value;
+         Data := PI^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CPtrPtrMap.ElementAt;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CPtrPtrMap.GetIterator() : TPPtrPtrMapIterator;
+   VAR
+      iterator : TPPtrPtrMapIterator := NEW( CPtrPtrMapIterator );
+   BEGIN
+      iterator^.Init( SELF, collection.dirForward );
+      RETURN iterator;
+   END CPtrPtrMap.GetIterator;
+
+(*---------------------------------------------------------------------------*)
+
+END CPtrPtrMap;
+
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CPtrPtrMapIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Key GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN 0;
+      ELSE
+         RETURN TPPtrPtrItem( Current )^.Key;
+      END;
+   END Key;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPPtrPtrItem( Current )^.Value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPPtrPtrItem( Current )^.Value := value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPPtrPtrItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPPtrPtrItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CPtrPtrMapIterator;
+
+(*==========================================================================*)
 
 TYPE
-  TPPtrItem = POINTER TO CPtrItem;
+   TPStringPtrItem = POINTER TO CStringPtrItem;
 
-CLASS CPtrItem( avltree.CAVLTreeElem );
-  PUBLIC VAR
-    Key  : PTR;
-    Data : PTR;
+CLASS CStringPtrItem( CValueItem );
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   PUBLIC VAR
+      Key : CString;
 
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
-END CPtrItem;
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
-//---------------------------------------------------------------------------
+END CStringPtrItem;
 
-CLASS IMPLEMENTATION CPtrItem;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  BEGIN
-    IF Key < TPPtrItem( pelem )^.Key THEN
-      RETURN -1;
-    ELSIF Key > TPPtrItem( pelem )^.Key THEN
-      RETURN 1;
-    ELSE
-      RETURN 0;
-    END;
-  END Compare;
+CLASS IMPLEMENTATION CStringPtrItem;
 
-  // OPERATOR CPtrItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF PtrAllocator.Allocate( OUT a, SIZE( CPtrItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CPtrItem.NEW;
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   BEGIN
+      RETURN Key.Compare( TPStringPtrItem( pelem )^.Key );
+   END Compare;
+
+(*---------------------------------------------------------------------------*)
+
+END CStringPtrItem;
+
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CStringPtrMap;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC READONLY INDEX CStringPtrMap GET( Index : CARDINAL ) : PTR;
+   VAR
+      PI : TPStringPtrItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         RETURN PI^.Value;
+      ELSE
+         RETURN NIL;
+      END;
+   END CStringPtrMap;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.Add( CONST Key : IString; Value, Data : PTR );
+   VAR
+      PI : TPStringPtrItem;
+   BEGIN
+      NEW( PI );
+      PI^.OfValueOwnershipControlMap := ADR( SELF );
+      PI^.Key.Assign( Key );
+      PI^.Value := Value;
+      PI^.Data := Data;
+      SUPER.Add( PI );
+   END CStringPtrMap.Add;
   
-  // OPERATOR CPtrItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   PtrAllocator.Deallocate( REF a );
-  // END CPtrItem.DISPOSE;
+(*---------------------------------------------------------------------------*)
 
-BEGIN
-  Key := -1;
-  Data := NIL;
-END CPtrItem;
+   PUBLIC PROCEDURE CStringPtrMap.Remove( CONST Key : IString );
+   VAR
+      I : CStringPtrItem;
+   BEGIN
+      I.Key.Assign( Key );
+      Delete( 0, ADR( I ));
+   END CStringPtrMap.Remove;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CPtrMap;
+   PUBLIC PROCEDURE CStringPtrMap.Contains( CONST Key : IString ) : BOOLEAN;
+   VAR
+      I : CStringPtrItem;
+   BEGIN
+      I.Key.Assign( Key );
+      RETURN SUPER.Contains( 0, ADR( I ));
+   END CStringPtrMap.Contains;
 
-  PUBLIC READONLY PROPERTY CPtrMap.Current GET : PTR;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN 0;
-    ELSE
-      RETURN TPPtrItem( _Current )^.Key;
-    END;
-  END CPtrMap.Current;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY PROPERTY CPtrMap.CurrentData GET : PTR;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN TPPtrItem( _Current )^.Data;
-    END;
-  END CPtrMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROPERTY CPtrMap.CurrentData SET( Data : PTR );
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN;
-    ELSE
-      TPPtrItem( _Current )^.Data := Data;
-    END;
-  END CPtrMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY INDEX CPtrMap GET( Index : CARDINAL ) : PTR;
-  VAR
-    PI : TPPtrItem;
-  BEGIN
-    PI := TPPtrItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN NIL;
-    ELSE
-      RETURN PI^.Data;
-    END;
-  END CPtrMap;
-
-  PUBLIC PROCEDURE CPtrMap.Add( Key : PTR; Data : PTR );
-  VAR
-    PI : TPPtrItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key := Key;
-    PI^.Data := Data;
-    Insert( PI );
-  END CPtrMap.Add;
-  
-  PUBLIC PROCEDURE CPtrMap.Remove( Key : PTR );
-  VAR
-    I : CPtrItem;
-  BEGIN
-    I.Key := Key;
-    Delete( ADR( I ));
-  END CPtrMap.Remove;
-
-  PUBLIC PROCEDURE CPtrMap.Contains( Key : PTR ) : BOOLEAN;
-  VAR
-    I : CPtrItem;
-  BEGIN
-    I.Key := Key;
-    RETURN SUPER.Contains( ADR( I ));
-  END CPtrMap.Contains;
-
-  PUBLIC PROCEDURE CPtrMap.Get( Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
-  VAR
-    I : CPtrItem;
-    PI : TPPtrItem;
-  BEGIN
-    I.Key := Key;
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data := PI^.Data;
-    RETURN TRUE;  
-  END CPtrMap.Get;
-
-  PUBLIC PROCEDURE CPtrMap.ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
-  VAR
-    PI : TPPtrItem;
-  BEGIN
-    PI := TPPtrItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Key := PI^.Key;
+   PUBLIC PROCEDURE CStringPtrMap.Get( CONST Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      I : CStringPtrItem;
+      PI : TPStringPtrItem;
+   BEGIN
+      I.Key.Assign( Key );
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      Value := PI^.Value;
       Data := PI^.Data;
-    END;
-    RETURN TRUE;
-  END CPtrMap.ElementAt;
+      RETURN TRUE;  
+   END CStringPtrMap.Get;
 
-END CPtrMap;
+(*---------------------------------------------------------------------------*)
 
-//===========================================================================
+   PUBLIC PROCEDURE CStringPtrMap.Set( CONST Key : IString; Value, Data : PTR ) : BOOLEAN;
+   VAR
+      I : CStringPtrItem;
+      PI : TPStringPtrItem;
+   BEGIN
+      I.Key.Assign( Key );
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value := Value;
+      PI^.Data := Data;
+      RETURN TRUE;  
+   END CStringPtrMap.Set;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      PI : TPStringPtrItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         Key := PI^.Key;
+         Value := PI^.Value;
+         Data := PI^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CStringPtrMap.ElementAt;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringPtrMap.GetIterator() : TPStringPtrMapIterator;
+   VAR
+      iterator : TPStringPtrMapIterator := NEW( CStringPtrMapIterator );
+   BEGIN
+      iterator^.Init( SELF, collection.dirForward );
+      RETURN iterator;
+   END CStringPtrMap.GetIterator;
+
+(*---------------------------------------------------------------------------*)
+
+END CStringPtrMap;
+
+(*==========================================================================*)
+
+CLASS IMPLEMENTATION CStringPtrMapIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Key GET : TPString;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPStringPtrItem( Current )^.Key );
+      END;
+   END Key;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPStringPtrItem( Current )^.Value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPStringPtrItem( Current )^.Value := value;
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPStringPtrItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPStringPtrItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CStringPtrMapIterator;
+
+(*==========================================================================*)
 
 TYPE
-  TPQuadwordItem = POINTER TO CQuadwordItem;
+   TPStringStringItem = POINTER TO CStringStringItem;
 
-CLASS CQuadwordItem( avltree.CAVLTreeElem );
-  PUBLIC VAR
-    Key  : QUADWORD;
-    Data : PTR;
+CLASS CStringStringItem( CDataItem );
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
-END CQuadwordItem;
-
-//---------------------------------------------------------------------------
-
-CLASS IMPLEMENTATION CQuadwordItem;
-
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  BEGIN
-    IF Key < TPQuadwordItem( pelem )^.Key THEN
-      RETURN -1;
-    ELSIF Key > TPQuadwordItem( pelem )^.Key THEN
-      RETURN 1;
-    ELSE
-      RETURN 0;
-    END;
-  END Compare;
-
-  // OPERATOR CQuadwordItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF QuadwordAllocator.Allocate( OUT a, SIZE( CQuadwordItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CQuadwordItem.NEW;
-  
-  // OPERATOR CQuadwordItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   QuadwordAllocator.Deallocate( REF a );
-  // END CQuadwordItem.DISPOSE;
-
-BEGIN
-  Key := -1;
-  Data := NIL;
-END CQuadwordItem;
-
-//---------------------------------------------------------------------------
-
-CLASS IMPLEMENTATION CQuadwordMap;
-
-  PUBLIC READONLY PROPERTY CQuadwordMap.Current GET : QUADWORD;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN 0;
-    ELSE
-      RETURN TPQuadwordItem( _Current )^.Key;
-    END;
-  END CQuadwordMap.Current;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY PROPERTY CQuadwordMap.CurrentData GET : PTR;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN TPQuadwordItem( _Current )^.Data;
-    END;
-  END CQuadwordMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROPERTY CQuadwordMap.CurrentData SET( Data : PTR );
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN;
-    ELSE
-      TPQuadwordItem( _Current )^.Data := Data;
-    END;
-  END CQuadwordMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY INDEX CQuadwordMap GET( Index : CARDINAL ) : PTR;
-  VAR
-    PI : TPQuadwordItem;
-  BEGIN
-    PI := TPQuadwordItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN NIL;
-    ELSE
-      RETURN PI^.Data;
-    END;
-  END CQuadwordMap;
-
-  PUBLIC PROCEDURE CQuadwordMap.Add( Key : QUADWORD; Data : PTR );
-  VAR
-    PI : TPQuadwordItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key := Key;
-    PI^.Data := Data;
-    Insert( PI );
-  END CQuadwordMap.Add;
-  
-  PUBLIC PROCEDURE CQuadwordMap.Remove( Key : QUADWORD );
-  VAR
-    I : CQuadwordItem;
-  BEGIN
-    I.Key := Key;
-    Delete( ADR( I ));
-  END CQuadwordMap.Remove;
-
-  PUBLIC PROCEDURE CQuadwordMap.Contains( Key : QUADWORD ) : BOOLEAN;
-  VAR
-    I : CQuadwordItem;
-  BEGIN
-    I.Key := Key;
-    RETURN SUPER.Contains( ADR( I ));
-  END CQuadwordMap.Contains;
-
-  PUBLIC PROCEDURE CQuadwordMap.Get( Key : QUADWORD; OUT Data : PTR ) : BOOLEAN; // similar as []
-  VAR
-    I : CQuadwordItem;
-    PI : TPQuadwordItem;
-  BEGIN
-    I.Key := Key;
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data := PI^.Data;
-    RETURN TRUE;  
-  END CQuadwordMap.Get;
-
-  PUBLIC PROCEDURE CQuadwordMap.ElementAt( Index : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN;
-  VAR
-    PI : TPQuadwordItem;
-  BEGIN
-    PI := TPQuadwordItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Key := PI^.Key;
-      Data := PI^.Data;
-    END;
-    RETURN TRUE;
-  END CQuadwordMap.ElementAt;
-
-END CQuadwordMap;
-
-//===========================================================================
-
-TYPE
-  TPStringItem = POINTER TO CStringItem;
-
-CLASS CStringItem( avltree.CAVLTreeElem );
-  PUBLIC VAR
-    Key  : CString;
-    Data : PTR;
+   PUBLIC VAR
+      Key : CString;
+      Value : CString;
 
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
-END CStringItem;
-
-//---------------------------------------------------------------------------
-
-CLASS IMPLEMENTATION CStringItem;
-
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  BEGIN
-    RETURN Key.Compare( TPStringItem( pelem )^.Key );
-  END Compare;
-
-  // OPERATOR CPtrItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF PtrAllocator.Allocate( OUT a, SIZE( CPtrItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CPtrItem.NEW;
-  
-  // OPERATOR CPtrItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   PtrAllocator.Deallocate( REF a );
-  // END CPtrItem.DISPOSE;
-
-BEGIN
-  Data := NIL;
-END CStringItem;
-
-//---------------------------------------------------------------------------
-
-CLASS IMPLEMENTATION CStringMap;
-
-  PUBLIC READONLY PROPERTY CStringMap.Current GET : POINTER TO CString;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN ADR( TPStringItem( _Current )^.Key );
-    END;
-  END CStringMap.Current;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY PROPERTY CStringMap.CurrentData GET : PTR;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN TPStringItem( _Current )^.Data;
-    END;
-  END CStringMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC PROPERTY CStringMap.CurrentData SET( Data : PTR );
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN;
-    ELSE
-      TPStringItem( _Current )^.Data := Data;
-    END;
-  END CStringMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY INDEX CStringMap GET( Index : CARDINAL ) : PTR;
-  VAR
-    PI : TPStringItem;
-  BEGIN
-    PI := TPStringItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN NIL;
-    ELSE
-      RETURN PI^.Data;
-    END;
-  END CStringMap;
-
-  PUBLIC PROCEDURE CStringMap.Add( CONST Key : IString; Data : PTR );
-  VAR
-    PI : TPStringItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key.Assign( Key );
-    PI^.Data := Data;
-    Insert( PI );
-  END CStringMap.Add;
-  
-  PUBLIC PROCEDURE CStringMap.Remove( CONST Key : IString );
-  VAR
-    I : CStringItem;
-  BEGIN
-    I.Key.Assign( Key );
-    Delete( ADR( I ));
-  END CStringMap.Remove;
-
-  PUBLIC PROCEDURE CStringMap.Contains( CONST Key : IString ) : BOOLEAN;
-  VAR
-    I : CStringItem;
-  BEGIN
-    I.Key.Assign( Key );
-    RETURN SUPER.Contains( ADR( I ));
-  END CStringMap.Contains;
-
-  PUBLIC PROCEDURE CStringMap.Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
-  VAR
-    I : CStringItem;
-    PI : TPStringItem;
-  BEGIN
-    I.Key.Assign( Key );
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data := PI^.Data;
-    RETURN TRUE;  
-  END CStringMap.Get;
-
-  PUBLIC PROCEDURE CStringMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN;
-  VAR
-    PI : TPStringItem;
-  BEGIN
-    PI := TPStringItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Key.Assign( PI^.Key );
-      Data := PI^.Data;
-    END;
-    RETURN TRUE;
-  END CStringMap.ElementAt;
-
-  PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; Data : PTR );
-  VAR
-    PI : TPStringItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key.FromOA( Key );
-    PI^.Data := Data;
-    Insert( PI );
-  END CStringMap.AddOA;
-  
-  PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
-  VAR
-    I : CStringItem;
-  BEGIN
-    I.Key.FromOA( Key );
-    Delete( ADR( I ));
-  END CStringMap.RemoveOA;
-
-  PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
-  VAR
-    I : CStringItem;
-  BEGIN
-    I.Key.FromOA( Key );
-    RETURN SUPER.Contains( ADR( I ));
-  END CStringMap.ContainsOA;
-
-  PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN; // similar as []
-  VAR
-    I : CStringItem;
-    PI : TPStringItem;
-  BEGIN
-    I.Key.FromOA( Key );
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data := PI^.Data;
-    RETURN TRUE;  
-  END CStringMap.GetOA;
-
-  PUBLIC PROCEDURE CStringMap.ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN;
-  VAR
-    PI : TPStringItem;
-  BEGIN
-    PI := TPStringItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      PI^.Key.ToOA( OUT Key );
-      Data := PI^.Data;
-    END;
-    RETURN TRUE;
-  END CStringMap.ElementAtOA;
-
-END CStringMap;
-
-//===========================================================================
-
-TYPE
-  TPStringStringItem = POINTER TO CStringStringItem;
-
-CLASS CStringStringItem( avltree.CAVLTreeElem );
-  PUBLIC VAR
-    Key  : CString;
-    Data : CString;
-
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
 END CStringStringItem;
 
-//---------------------------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CStringStringItem;
+
+(*---------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
   BEGIN
     RETURN Key.Compare( TPStringStringItem( pelem )^.Key );
   END Compare;
 
-  // OPERATOR CPtrItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF PtrAllocator.Allocate( OUT a, SIZE( CPtrItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CPtrItem.NEW;
-  
-  // OPERATOR CPtrItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   PtrAllocator.Deallocate( REF a );
-  // END CPtrItem.DISPOSE;
+(*---------------------------------------------------------------------------*)
 
 END CStringStringItem;
 
-//---------------------------------------------------------------------------
+(*==========================================================================*)
 
 CLASS IMPLEMENTATION CStringStringMap;
 
-  PUBLIC READONLY PROPERTY CStringStringMap.Current GET : POINTER TO CString;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN ADR( TPStringStringItem( _Current )^.Key );
-    END;
-  END CStringStringMap.Current;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
+   PUBLIC READONLY INDEX CStringStringMap GET( Index : CARDINAL ) : TPString;
+   VAR
+      PI : TPStringStringItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         RETURN ADR( PI^.Value );
+      ELSE
+         RETURN NIL;
+      END;
+   END CStringStringMap;
 
-  PUBLIC READONLY PROPERTY CStringStringMap.CurrentData GET : POINTER TO CString;
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN NIL;
-    ELSE
-      RETURN ADR( TPStringStringItem( _Current )^.Data );
-    END;
-  END CStringStringMap.CurrentData;
+(*---------------------------------------------------------------------------*)
 
-//---------------------------------------------------------------------------
-
-  PUBLIC PROPERTY CStringStringMap.CurrentData SET( Data : POINTER TO CString );
-  BEGIN
-    IF _Current = -1 THEN
-      RETURN;
-    ELSE
-      TPStringStringItem( _Current )^.Data := Data^;
-    END;
-  END CStringStringMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-  PUBLIC READONLY INDEX CStringStringMap GET( Index : CARDINAL ) : POINTER TO CString;
-  VAR
-    PI : TPStringStringItem;
-  BEGIN
-    PI := TPStringStringItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN NIL;
-    ELSE
-      RETURN ADR( PI^.Data );
-    END;
-  END CStringStringMap;
-
-  PUBLIC PROCEDURE CStringStringMap.Add( CONST Key : IString; CONST Data : IString );
-  VAR
-    PI : TPStringStringItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key.Assign( Key );
-    PI^.Data.Assign( Data );
-    Insert( PI );
-  END CStringStringMap.Add;
+   PUBLIC PROCEDURE CStringStringMap.Add( CONST Key : IString; CONST Value : IString; Data : PTR );
+   VAR
+      PI : TPStringStringItem;
+   BEGIN
+      NEW( PI );
+      PI^.Key.Assign( Key );
+      PI^.Value.Assign( Value );
+      PI^.Data := Data;
+      SUPER.Add( PI );
+   END CStringStringMap.Add;
   
-  PUBLIC PROCEDURE CStringStringMap.Remove( CONST Key : IString );
-  VAR
-    I : CStringStringItem;
-  BEGIN
-    I.Key.Assign( Key );
-    Delete( ADR( I ));
-  END CStringStringMap.Remove;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringMap.Contains( CONST Key : IString ) : BOOLEAN;
-  VAR
-    I : CStringStringItem;
-  BEGIN
-    I.Key.Assign( Key );
-    RETURN SUPER.Contains( ADR( I ));
-  END CStringStringMap.Contains;
+   PUBLIC PROCEDURE CStringStringMap.Remove( CONST Key : IString );
+   VAR
+      I : CStringStringItem;
+   BEGIN
+      I.Key.Assign( Key );
+      Delete( 0, ADR( I ));
+   END CStringStringMap.Remove;
 
-  PUBLIC PROCEDURE CStringStringMap.Get( CONST Key : IString; OUT Data : IString ) : BOOLEAN; // similar as []
-  VAR
-    I : CStringStringItem;
-    PI : TPStringStringItem;
-  BEGIN
-    I.Key.Assign( Key );
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data.Assign( PI^.Data );
-    RETURN TRUE;  
-  END CStringStringMap.Get;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : IString ) : BOOLEAN;
-  VAR
-    PI : TPStringStringItem;
-  BEGIN
-    PI := TPStringStringItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      Key.Assign( PI^.Key );
-      Data.Assign( PI^.Data );
-    END;
-    RETURN TRUE;
-  END CStringStringMap.ElementAt;
+   PUBLIC PROCEDURE CStringStringMap.Contains( CONST Key : IString ) : BOOLEAN;
+   VAR
+      I : CStringStringItem;
+   BEGIN
+      I.Key.Assign( Key );
+      RETURN SUPER.Contains( 0, ADR( I ));
+   END CStringStringMap.Contains;
 
-  PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; CONST Data : IString );
-  VAR
-    PI : TPStringStringItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key.FromOA( Key );
-    PI^.Data.Assign( Data );
-    Insert( PI );
-  END CStringStringMap.AddOA;
-  
-  PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
-  VAR
-    I : CStringStringItem;
-  BEGIN
-    I.Key.FromOA( Key );
-    Delete( ADR( I ));
-  END CStringStringMap.RemoveOA;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
-  VAR
-    I : CStringStringItem;
-  BEGIN
-    I.Key.FromOA( Key );
-    RETURN SUPER.Contains( ADR( I ));
-  END CStringStringMap.ContainsOA;
+   PUBLIC PROCEDURE CStringStringMap.Get( CONST Key : IString; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      I : CStringStringItem;
+      PI : TPStringStringItem;
+   BEGIN
+      I.Key.Assign( Key );
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      Value.Assign( PI^.Value );
+      Data := PI^.Data;
+      RETURN TRUE;  
+   END CStringStringMap.Get;
 
-  PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : IString ) : BOOLEAN; // similar as []
-  VAR
-    I : CStringStringItem;
-    PI : TPStringStringItem;
-  BEGIN
-    I.Key.FromOA( Key );
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Data.Assign( PI^.Data );
-    RETURN TRUE;  
-  END CStringStringMap.GetOA;
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CStringStringMap.ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : IString ) : BOOLEAN;
-  VAR
-    PI : TPStringStringItem;
-  BEGIN
-    PI := TPStringStringItem( SUPER[ Index ] );
-    IF PI = NIL THEN
-      RETURN FALSE;
-    ELSE
-      PI^.Key.ToOA( OUT Key );
-      Data.Assign( PI^.Data );
-    END;
-    RETURN TRUE;
-  END CStringStringMap.ElementAtOA;
+   PUBLIC PROCEDURE CStringStringMap.Set( CONST Key : IString; CONST Value : IString; Data : PTR ) : BOOLEAN;
+   VAR
+      I : CStringStringItem;
+      PI : TPStringStringItem;
+   BEGIN
+      I.Key.Assign( Key );
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      PI^.Value.Assign( Value );
+      PI^.Data := Data;
+      RETURN TRUE;  
+   END CStringStringMap.Set;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringStringMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      PI : TPStringStringItem;
+   BEGIN
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         Key.Assign( PI^.Key );
+         Value.Assign( PI^.Value );
+         Data := PI^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CStringStringMap.ElementAt;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CStringStringMap.GetIterator() : TPStringStringMapIterator;
+   VAR
+      iterator : TPStringStringMapIterator := NEW( CStringStringMapIterator );
+   BEGIN
+      iterator^.Init( SELF, collection.dirForward );
+      RETURN iterator;
+   END CStringStringMap.GetIterator;
+
+(*---------------------------------------------------------------------------*)
 
 END CStringStringMap;
 
-//===========================================================================
+(*==========================================================================*)
 
-// INITIALLY __I();
-// BEGIN
-  // IntegerAllocator.Init( SIZE( CIntegerItem ), 0 );
-  // CardinalAllocator.Init( SIZE( CCardinalItem ), 0 );
-  // PtrAllocator.Init( SIZE( CPtrItem ), 0 );
-// END __I;
+CLASS IMPLEMENTATION CStringStringMapIterator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Key GET : TPString;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPStringStringItem( Current )^.Key );
+      END;
+   END Key;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : TPString;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPStringStringItem( Current )^.Value );
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPStringStringItem( Current )^.Data;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPStringStringItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+END CStringStringMapIterator;
+
+(*==========================================================================*)
 
 END maps.

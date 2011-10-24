@@ -50,22 +50,22 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Input : IOO.CMemoryStream;
       Reader : textreader.CTextReader;
-      Result : test.TTestResult := test.trSuccess;
+      Result : BOOLEAN := TRUE;
       
       //-----
       
-      PROCEDURE CharLoop( Template : ARRAY OF CHAR ) : test.TTestResult;
+      PROCEDURE CharLoop( Template : ARRAY OF CHAR ) : BOOLEAN;
       VAR
          Ch : WCHAR;
          Index : CARDINAL;
-         Result : test.TTestResult := test.trSuccess;
+         Result : BOOLEAN := TRUE;
       BEGIN
          Index := 0;
 
          WHILE Reader.ReadChar( OUT Ch, Sync.FOREVER, TRUE ) = Sync.arCompleted DO
             IF Ch <> WCHAR( Template[Index] ) THEN
                Host^.Log^.LogS( log.lcError, 0, L"", L"Unexpected char found" );
-               Result := test.trFailure;
+               Result := FALSE;
             END;
             INC( Index );
          END;
@@ -78,18 +78,18 @@ CLASS IMPLEMENTATION CTest;
       
       //-----
       
-      PROCEDURE CharSLoop( Template : ARRAY OF CHAR ) : test.TTestResult;
+      PROCEDURE CharSLoop( Template : ARRAY OF CHAR ) : BOOLEAN;
       VAR
          Ch : WCHAR;
          Index : CARDINAL;
-         Result : test.TTestResult := test.trSuccess;
+         Result : BOOLEAN := TRUE;
       BEGIN
          Index := 0;
 
          WHILE Reader.ReadCharS( OUT Ch ) DO
             IF Ch <> WCHAR( Template[Index] ) THEN
                Host^.Log^.LogS( log.lcError, 0, L"", L"Unexpected char found" );
-               Result := test.trFailure;
+               Result := FALSE;
             END;
             INC( Index );
          END;
@@ -102,11 +102,11 @@ CLASS IMPLEMENTATION CTest;
       
       //-----
       
-      PROCEDURE LineLoop( SFlag : BOOLEAN ) : test.TTestResult;
+      PROCEDURE LineLoop( SFlag : BOOLEAN ) : BOOLEAN;
       VAR
          Line : StringsO.CString;
          line : StringsO.CString;
-         Result : test.TTestResult := test.trSuccess;
+         Result : BOOLEAN := TRUE;
       BEGIN
          line.FromOAA( 0, line1 );
          IF SFlag THEN
@@ -116,7 +116,7 @@ CLASS IMPLEMENTATION CTest;
          END;
          IF NOT Line.Equals( line ) THEN
             Host^.Log^.LogS( log.lcError, 0, L"", L"line1 differs" );
-            Result := test.trFailure;
+            Result := FALSE;
          END;
 
          line.FromOAA( 0, line2 );
@@ -127,7 +127,7 @@ CLASS IMPLEMENTATION CTest;
          END;
          IF NOT Line.Equals( line ) THEN
             Host^.Log^.LogS( log.lcError, 0, L"", L"line2 differs" );
-            Result := test.trFailure;
+            Result := FALSE;
          END;
 
          line.FromOAA( 0, line3 );
@@ -138,7 +138,7 @@ CLASS IMPLEMENTATION CTest;
          END;
          IF NOT Line.Equals( line ) THEN
             Host^.Log^.LogS( log.lcError, 0, L"", L"line3 differs" );
-            Result := test.trFailure;
+            Result := FALSE;
          END;
          
          line.FromOAA( 0, line4 );
@@ -149,7 +149,7 @@ CLASS IMPLEMENTATION CTest;
          END;
          IF NOT Line.Equals( line ) THEN
             Host^.Log^.LogS( log.lcError, 0, L"", L"line4 differs" );
-            Result := test.trFailure;
+            Result := FALSE;
          END;
 
          RETURN Result;
@@ -247,7 +247,7 @@ CLASS IMPLEMENTATION CTest;
       
       //=====
 
-      RETURN Result;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

@@ -7,6 +7,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
+   collection,
    lists,
    Log,
    StringsO;
@@ -67,7 +68,7 @@ BEGIN
                NEW( chainedAppender );
                Result := ConfigureLogBySection( ini, OA( cs.Length-1, cs.Data ), REF chainedAppender^, REF createdAppenderList, OUT errorLine );
                IF Result = clrSuccess THEN
-                  createdAppenderList.Append( chainedAppender, 0 );
+                  createdAppenderList.Add( chainedAppender, 0 );
                   foundAppender := chainedAppender;
                ELSE
                   DISPOSE( chainedAppender );
@@ -251,10 +252,11 @@ PROCEDURE DisposeAppenderList( REF appenderList : lists.CPtrList ); // to clear 
 VAR
    appender : Log.TPBaseAppender;
    filter : iLog.TPIFilter;
+   iterator : lists.CPtrListIterator;
 BEGIN
-   appenderList.Reset();
-   WHILE appenderList.MoveNext() DO
-      appender := appenderList.Current;
+   iterator.Init( appenderList, collection.dirForward );
+   WHILE iterator.MoveNext() DO
+      appender := iterator.Value;
       ASSERT( appender^ IS Log.CBaseAppender );
       filter := appender^.Filter;
       IF filter <> NIL THEN
@@ -262,7 +264,7 @@ BEGIN
          DISPOSE( LogFilter.TPLogFilter( filter ));
       END;
       DISPOSE( appender );
-   END;
+   END; // WHILE
    appenderList.Dispose();
 END DisposeAppenderList;
 
