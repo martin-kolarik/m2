@@ -32,6 +32,9 @@ VAR
 (*================================================================================*)
 
 CONST
+   LOG_NAME = L"AirMotion";
+
+CONST
    DEFAULT_PORT = 10001;
 
 CONST
@@ -1003,7 +1006,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       _PoolDelegate.TimeoutSink := ADR( SELF );
 
-      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Started" );
+      Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Started" );
       RETURN Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
    END Start;
 
@@ -1017,7 +1020,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       StopTimeout( REF _RxTimeoutHandle );
 
       Connection.Close();
-      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Stopped" );
       
       LogConfig.DisposeAppenderList( REF _AppenderList );
    END Stop;
@@ -1028,12 +1031,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF PoolHandle = _TxTimeoutHandle THEN
          _TxTimeoutHandle := NIL;
-         Logger.LogS( log.ldTrace, 0, L"", L"Tx timeout" );
+         Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Tx timeout" );
          Automaton^.EventTimeout();
 
       ELSIF PoolHandle = _RxTimeoutHandle THEN
          _RxTimeoutHandle := NIL;
-         Logger.LogS( log.ldTrace, 0, L"", L"Rx timeout" );
+         Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Rx timeout" );
          Automaton^.EventTimeout();
 
       END;
@@ -1142,8 +1145,9 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       Data : StorageO.CMemoryBuffer;
    BEGIN
-      Connection.Stream^.ReadBuffer( 2048, REF Data, 0 );
+      Connection.BufferedStream^.ReadBuffer( 2048, REF Data, 0 );
       HandleRx( Sync.arCompleted, REF Data );
+
       Connection.BufferedStream^.StartReading();
    END OnReadable;
 
@@ -1299,7 +1303,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       TxBuffer : StorageO.CMemoryBuffer;
    BEGIN
       IF NOT Connection.Connected THEN
-         Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
+         Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Disconnected, trying to reconnect" );
          Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
       END;
    
@@ -1318,7 +1322,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          StartTimeout( _RxTimeout, REF _RxTimeoutHandle );
       END;
 
-      Logger.LogSCB( log.ldDebug, 0, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
+      Logger.LogSCB( log.ldDebug, 0, LOG_NAME, L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
       Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
       IF Result = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -1337,7 +1341,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 //---------------------------------------------------------
 
-   PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer );
    VAR
       LDI, LI : CARDINAL := 0;
       LRxBuffer : StorageO.CMemoryBuffer;
@@ -1346,43 +1350,45 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       ChkSumOK : BOOLEAN := TRUE;
    BEGIN
       IF Result <> Sync.arCompleted THEN
-         Logger.LogSC( log.ldError, 0, L'', L'rx error: ', CARDINAL( Result ));
+         Logger.LogSC( log.ldError, 0, LOG_NAME, L'rx error: ', CARDINAL( Result ));
          OnRx( Result, LRxBuffer );
          RxBuffer.Clear();
-         RETURN FALSE;
+         RETURN;
       ELSIF NOT Data.Empty THEN
          RxBuffer.Append( Data );
-         Logger.LogSCB( log.ldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+         Logger.LogSCB( log.ldDebug, 0, LOG_NAME, L'rx success, len: ', Data.Length, Data.Data, Data.Length );
       END;
 
-      IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
-         RxBuffer.Clear();
-         RETURN FALSE;
-      ELSIF LI > 0 THEN
-         RxBuffer.RemoveStart( LI );
-         DEC( LDI, LI );
-         LI := 0;
-      END;
+      LOOP
+         IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
+            RxBuffer.Clear();
+            RETURN;
+         ELSIF LI > 0 THEN
+            RxBuffer.RemoveStart( LI );
+            DEC( LDI, LI );
+            LI := 0;
+         END;
 
-      IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT ApplyChecksum ) THEN
-         RETURN FALSE;
-      END;
+         IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT ApplyChecksum ) THEN
+            RETURN;
+         END;
 
-      IF ApplyChecksum THEN
-         RxBuffer.Subbuffer( LI, TI - LI, OUT LRxBuffer );
-         ChkSumOK := TestChkSum( LRxBuffer );
-      END;
-      IF ChkSumOK THEN
-         RxBuffer.Subbuffer( LDI, TDI - LDI, OUT LRxBuffer );
-         OnRx( Result, LRxBuffer );
-      END;
+         IF ApplyChecksum THEN
+            RxBuffer.Subbuffer( LI, TI - LI, OUT LRxBuffer );
+            ChkSumOK := TestChkSum( LRxBuffer );
+         END;
+         IF ChkSumOK THEN
+            RxBuffer.Subbuffer( LDI, TDI - LDI, OUT LRxBuffer );
+            OnRx( Result, LRxBuffer );
+         END;
 
-      IF RxBuffer.Length = TI THEN
-         RxBuffer.Clear();
-      ELSE
-         RxBuffer.RemoveStart( TI );
-      END;
-      RETURN NOT RxBuffer.Empty;
+         IF RxBuffer.Length = TI THEN
+            RxBuffer.Clear();
+            RETURN;
+         ELSE
+            RxBuffer.RemoveStart( TI );
+         END;
+      END; // LOOP
    END HandleRx;
 
 //---------------------------------------------------------
