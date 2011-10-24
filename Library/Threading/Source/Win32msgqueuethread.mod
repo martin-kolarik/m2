@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE Win32msgqueuethread;
 (*---------------------------------------------------------------------------*)
   
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

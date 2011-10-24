@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE log;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    REALLOCATE, DEALLOCATE;

@@ -1,0 +1,42 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+        <ClientLicensing>on</ClientLicensing>
+
+        <ProductId>NeNo.KnxSrv</ProductId>
+        <ProductVersionMajor>2</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <ProductNote>Beta</ProductNote>
+
+        <ProjectDisplayName>KNX SmartServer</ProjectDisplayName>
+        <ProjectDescription>KNX SmartServer -- a KNX Object Server</ProjectDescription>
+
+        <ClientLicensing>on</ClientLicensing>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ResultName>KnxSrv</ResultName>
+        <TestExec>off</TestExec>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxsvc;$(RootPath)\KNX\KnxSvcWeb;$(RootPath)\KNX\SmartServer"/>
+
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore;Component\scmvc;Library\DeviceIO;KNX\knxcore;KNX\KnxSvcWeb;KNX\functions"/>
+        <Program Include="knxsvc"/>
+    </ItemGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

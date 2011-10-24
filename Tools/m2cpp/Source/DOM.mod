@@ -2,7 +2,7 @@ IMPLEMENTATION MODULE DOM;
 (*# call( o_a_copy => off ) *)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, REALLOCATE, DEALLOCATE;
@@ -5358,12 +5358,10 @@ CLASS IMPLEMENTATION CModule;
         OD^.MEnv.MIID[miidLowA] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"LowerizeW" ) THEN
         OD^.MEnv.MIID[miidLowW] := C^.IsLinkOf;
-      ELSIF Symbol^.N.EqualsOA( L"Assertion" ) THEN
-        OD^.MEnv.MIID[miidAssertion] := C^.IsLinkOf;
-      ELSIF Symbol^.N.EqualsOA( L"LogAssertionA" ) THEN
-        OD^.MEnv.MIID[miidLogAssertionA] := C^.IsLinkOf;
-      ELSIF Symbol^.N.EqualsOA( L"LogAssertionW" ) THEN
-        OD^.MEnv.MIID[miidLogAssertionW] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"AssertionA" ) THEN
+        OD^.MEnv.MIID[miidAssertionA] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"AssertionW" ) THEN
+        OD^.MEnv.MIID[miidAssertionW] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"StoreException" ) THEN
         OD^.MEnv.MIID[miidStoreException] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"RetrieveException" ) THEN
@@ -9359,58 +9357,61 @@ CLASS IMPLEMENTATION CDesignator;
 
       | epASSERT :
         IF eoAssertAllowed IN Options THEN
-          G^.OutS( L'ASSERT_( ' );
+          Project.Current()^.OD^.MEnv.MIID[miidAssertionW]^.Generate( G, gcsName );
+          G^.OutS( L'( false, ' );
             r.U1^.Generate( G, Cn );
             G^.OutS( L', ' );
             G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
+            G^.OutS( L', __LINE__, OA_MAX, L"' );
+            G^.OutCS( Project.Current()^.OD^.Name );
+            G^.OutS( L'", -1, NIL' );
           G^.OutSPRP();
         ELSE
           RETURN gumEmpty;
         END;
 
       | epASSERTLOG :
-        G^.OutS( L'if( !(' ); r.U1^.Generate( G, Cn ); G^.OutS( L')) { // assertion if' ); G^.EOL();
-        G^.Enter();
-        G^.Indent();
-           b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
-           IF b THEN
-             Project.Current()^.OD^.MEnv.MIID[miidLogAssertionA]^.Generate( G, gcsName );
-           ELSE
-             Project.Current()^.OD^.MEnv.MIID[miidLogAssertionW]^.Generate( G, gcsName );
-           END;
-           G^.OutS( L'( ' );
-             IF b THEN
-                IF r.U2 = NIL THEN
-                  G^.OutS( L'0, "", OA_MAX, "' );
-                ELSE
-                  TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TBCONSTOAString );
-                  r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-                  G^.OutS( L', OA_MAX, "' );
-                END;
-                G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
-             ELSE
-                IF r.U2 = NIL THEN
-                  G^.OutS( L'0, L"", OA_MAX, L"' );
-                ELSE
-                  TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
-                  r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-                  G^.OutS( L', OA_MAX, L"' );
-                END;
-                G^.OutCS( Project.Current()^.OD^.Name );
-             END;
-             G^.OutS( L'", ' );
-             G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
-           G^.OutS( L' );' );
-           IF eoAssertAllowed IN Options THEN
-             G^.OutS( L' ASSERT_( false, ' );
-               G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
-             G^.OutS( L' ); // stop always, do not evaluate cond twice' );
-           END;
-           G^.EOL();
-        G^.Leave();
-        G^.Indent();
-           G^.OutS( L'}' );
-        // the semicolon is added automatically
+        // head
+        b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
+        IF b THEN
+          Project.Current()^.OD^.MEnv.MIID[miidAssertionA]^.Generate( G, gcsName );
+        ELSE
+          Project.Current()^.OD^.MEnv.MIID[miidAssertionW]^.Generate( G, gcsName );
+        END;
+        IF eoAssertAllowed IN Options THEN
+          G^.OutS( L'( false, ' );
+        ELSE
+          G^.OutS( L'( true, ' );
+        END;
+        // expression
+        r.U1^.Generate( G, Cn );
+        G^.OutS( L', ' );
+        // m2 line
+        G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
+        G^.OutS( L', __LINE__' );
+        // message
+        IF b THEN
+          G^.OutS( L', OA_MAX, "' );
+          G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
+          G^.OutS( L'", ' );
+          IF r.U2 = NIL THEN
+            G^.OutS( L'-1, NIL' );
+          ELSE
+            TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TBCONSTOAString );
+            r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
+          END;
+        ELSE
+          G^.OutS( L', OA_MAX, L"' );
+          G^.OutCS( Project.Current()^.OD^.Name );
+          G^.OutS( L'", ' );
+          IF r.U2 = NIL THEN
+            G^.OutS( L'-1, NIL' );
+          ELSE
+            TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
+            r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
+          END;
+        END;
+        G^.OutSPRP();
 
       | epCAP :
         IF Types.TBString^.Compatible( cmOperation, TPExpression( r.U1 )^.T ) THEN

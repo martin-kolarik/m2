@@ -5,7 +5,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    windows;
@@ -26,7 +26,7 @@ CLASS CThreadLocalStorage IMPLEMENTS IThreadLocalStorage;
       Valid : BOOLEAN;
 
    PRIVATE VAR
-      _TlsIndex : CARDINAL;
+      _TlsIndex : CARDINAL := windows.TLS_OUT_OF_INDEXES;
 
 END CThreadLocalStorage;
 

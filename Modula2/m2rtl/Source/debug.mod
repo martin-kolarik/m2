@@ -1,8 +1,5 @@
 IMPLEMENTATION MODULE Debug;
 
-FROM Debug IMPORT
-   Assertion;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
@@ -18,35 +15,65 @@ IMPORT
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE Assert( CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
-CONST
-   CRLF = 13W + 10W;
-VAR
-   exeName : FIO.PathStrW := L"";
-   n : ARRAY [0..31] OF WCHAR;
-   result : CARDINAL;
-   text : ARRAY [0..1023] OF WCHAR;
-BEGIN
-   IF windows.GetModuleFileNameW( NIL, ADR( exeName ), HIGH( exeName ) + 1 ) = 0 THEN
-      exeName := L"<unknown program>";   
-   END;
-   text := L"Debug assertion failed!" + CRLF + CRLF + L"Program: ";
-   Strings.AppendW( REF text, exeName );
-   Strings.AppendW( REF text, CRLF + L"File: " );
-   Strings.AppendW( REF text, Module );
-   Strings.AppendW( REF text, CRLF + L"Line: " );
-   Strings.FromCARD32W( ModuleLine, 10, OUT n ); Strings.AppendW( REF text, n ); Strings.AppendW( REF text, L", " );
-   Strings.FromCARD32W( CPPLine, 10, OUT n ); Strings.AppendW( REF text, n );
-   Strings.AppendW( REF text, CRLF + CRLF + '(Press "Retry" to debug the application.)' );
+TYPE
+   TAssertModeItem = (
+      amDump,
+      amWindow,
+      amLoop
+   );
+   TAssertMode = SET OF TAssertModeItem;
 
-   result := windows.MessageBoxW( NIL, ADR( text ), L"Unexpected state of program execution", windows.MB_TASKMODAL OR windows.MB_ICONHAND OR windows.MB_ABORTRETRYIGNORE OR windows.MB_SETFOREGROUND ); // MB_SERVICE_NOTIFICATION cannot be used as Vista does not open anything in the case. For XP if service is interactive, it opens dialog correctly.
-   IF result = windows.IDABORT THEN // kill process
-      windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
-   ELSIF result = windows.IDRETRY THEN // allow to debug process
-      RETURN TRUE;
+VAR
+   OpenWindow : BOOLEAN := TRUE;
+
+PROCEDURE WaitUsingDialog();
+BEGIN
+   OpenWindow := TRUE;
+END WaitUsingDialog;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE WaitUsingLoop();
+BEGIN
+   OpenWindow := FALSE;
+END WaitUsingLoop;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE DoAssertW( Mode : TAssertMode; CONST Module, Text : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ); FORWARD;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE AssertA( ContinueWithRun, Condition : BOOLEAN; ModuleLine, CPPLine : CARDINAL; CONST Module, Text : ARRAY OF CHAR );
+VAR
+   ModuleW : ARRAY [0..63] OF WCHAR;
+   TextW : ARRAY [0..255] OF WCHAR;
+BEGIN
+   IF Condition THEN
+      RETURN;
    END;
-   RETURN FALSE;
-END Assert;
+   Strings.ToW( Text, 0, OUT TextW );
+   Strings.ToW( Module, 0, OUT ModuleW );
+   AssertionW( ContinueWithRun, Condition, ModuleLine, CPPLine, ModuleW, TextW );
+END AssertA;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE AssertW( ContinueWithRun, Condition : BOOLEAN; ModuleLine, CPPLine : CARDINAL; CONST Module, Text : ARRAY OF WCHAR );
+VAR
+   AssertMode : TAssertMode;
+BEGIN
+   IF Condition THEN
+      RETURN;
+   ELSIF ContinueWithRun THEN
+      AssertMode := TAssertMode{amDump};
+   ELSIF OpenWindow THEN
+      AssertMode := TAssertMode{amWindow};
+   ELSE
+      AssertMode := TAssertMode{amLoop};
+   END;
+   DoAssertW( AssertMode, Module, Text, ModuleLine, CPPLine );
+END AssertW;
 
 //--------------------------------------------------------------------------------
 
@@ -109,18 +136,6 @@ END getLogger;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE LogAssertA( CONST Text, Module : ARRAY OF CHAR; ModuleLine : CARDINAL );
-VAR
-   ModuleW : ARRAY [0..63] OF WCHAR;
-   TextW : ARRAY [0..255] OF WCHAR;
-BEGIN
-   Strings.ToW( Text, 0, OUT TextW );
-   Strings.ToW( Module, 0, OUT ModuleW );
-   LogAssertionW( TextW, ModuleW, ModuleLine );
-END LogAssertA;
-
-//--------------------------------------------------------------------------------
-
 PROCEDURE DumpToFile( file : FIO.File; exceptionPointers : windows.PEXCEPTION_POINTERS );
 VAR
    mdei : dbghelp.MINIDUMP_EXCEPTION_INFORMATION;
@@ -163,7 +178,7 @@ VAR
    Name : ARRAY [0..3] OF WCHAR;
    Path : FIO.PathStrW;
 BEGIN
-   IF path[0] = 0W THEN
+   IF INSIDE( 0, path ) AND ( path[0] = 0W ) THEN
       GetDumpNameAndPath( L"ud", OUT Name, OUT Path );
       file := FIO.CreateW( Path, FIO.TFileShare{ FIO.fsRead } );
    ELSE
@@ -192,6 +207,10 @@ VAR
    Name, Path : FIO.PathStrW;
    text : ARRAY [0..1023] OF WCHAR;
 BEGIN
+   IF windows.IsDebuggerPresent() THEN
+      windows.DebugBreak();
+   END;
+
    // prepare minidump path
    GetDumpNameAndPath( L"ue", OUT Name, OUT Path );
    Dump( Path, ExceptionInfo );
@@ -224,7 +243,7 @@ BEGIN
    IF PreviousExceptionFilter = NIL THEN
       PreviousExceptionFilter := windows.SetUnhandledExceptionFilter( windows.PTOP_LEVEL_EXCEPTION_FILTER( UnhandledExceptionFilter ));
    ELSE
-      LogAssertW( L"Trial to install second exception filter", EMITW( %dll ), EMITW( %line ));
+      AssertionW( TRUE, FALSE, EMITW( %line ), EMITW( %line ), L"debug.cpp", L"Trial to install second exception filter" );
    END;
 END InstallCrashHandler;
 
@@ -233,7 +252,7 @@ END InstallCrashHandler;
 PROCEDURE UninstallCrashHandler();
 BEGIN
    IF PreviousExceptionFilter = NIL THEN
-      LogAssertW( L"Trial to uninstall second exception filter", EMITW( %dll ), EMITW( %line ));
+      AssertionW( TRUE, FALSE, EMITW( %line ), EMITW( %line ), L"debug.cpp", L"Trial to uninstall second exception filter" );
    ELSE
       windows.SetUnhandledExceptionFilter( PreviousExceptionFilter );
       PreviousExceptionFilter := NIL;
@@ -250,29 +269,77 @@ END DumpingHandler;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE LogAssertW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL );
+PROCEDURE DoAssertW( Mode : TAssertMode; CONST Module, Text : ARRAY OF WCHAR; ModuleLine, CppLine : CARDINAL );
+CONST
+   CRLF = 13W + 10W;
 VAR
-   Line : ARRAY [0..15] OF WCHAR;
+   exeName : FIO.PathStrW := L"";
+   Line, LineCpp : ARRAY [0..31] OF WCHAR;
    Name, Path : FIO.PathStrW;
+   result : windows.DWORD;
+   text : ARRAY [0..1023] OF WCHAR;
 BEGIN
-   // prepare minidump path
-   GetDumpNameAndPath( L"as", OUT Name, OUT Path );
-
    Strings.FromCARD32W( ModuleLine, 10, OUT Line );
-   Strings.AppendW( REF Name, L")" );
-   IF Text[0] = 0W THEN
-      getLogger()^.LogSSS( Log.lcSysError, 0, Module, Line, L"(dump:", Name );
-   ELSE
-      getLogger()^.LogSSSS( Log.lcSysError, 0, Module, Text, Line, L"(dump:", Name );
+   Strings.AppendW( REF Line, L"m/" );
+   Strings.FromCARD32W( CppLine, 10, OUT LineCpp );
+   Strings.AppendW( REF LineCpp, L"c" );
+   Strings.AppendW( REF Line, LineCpp );
+
+   IF amDump IN Mode THEN
+      // prepare minidump path
+      GetDumpNameAndPath( L"as", OUT Name, OUT Path );
+
+      // write log entry
+      Strings.AppendW( REF Name, L")" );
+      IF INSIDE( 0, Text ) AND ( Text[0] = 0W ) THEN
+         getLogger()^.LogSSS( Log.lcSysError, 0, Module, Line, L"(dump:", Name );
+      ELSE
+         getLogger()^.LogSSSS( Log.lcSysError, 0, Module, Text, Line, L"(dump:", Name );
+      END;
+
+      // write minidump
+      TRY
+         ADDRESS( 0 )^ := 0; // do an exception, minidump cannot dump stack of calling thread properly, the possibility is to create an execption and store the context to exception information
+      EXCEPT DumpingHandler( Path, excpt.GetExceptionInformation()) DO
+         // intentionally do nothing
+      END;
+
+   ELSE // no minidump
+      // write log entry
+      IF INSIDE( 0, Text ) AND ( Text[0] = 0W ) THEN
+         getLogger()^.LogS( Log.lcSysError, 0, Module, Line );
+      ELSE
+         getLogger()^.LogSS( Log.lcSysError, 0, Module, Line, Text );
+      END;
    END;
    
-   // write minidump
-   TRY
-      ADDRESS( 0 )^ := 0; // do an exception, minidump cannot dump stack of calling thread properly, the possibility is to create an execption and store the context to exception information
-   EXCEPT DumpingHandler( Path, excpt.GetExceptionInformation()) DO
-      // intentionally do nothing
+   IF amWindow IN Mode THEN
+      IF windows.GetModuleFileNameW( NIL, ADR( exeName ), HIGH( exeName ) + 1 ) = 0 THEN
+         exeName := L"<unknown program>";   
+      END;
+      text := L"Debug assertion failed!" + CRLF + CRLF + L"Program: ";
+      Strings.AppendW( REF text, exeName );
+      Strings.AppendW( REF text, CRLF + L"File: " );
+      Strings.AppendW( REF text, Module );
+      Strings.AppendW( REF text, CRLF + L"Line: " );
+      Strings.AppendW( REF text, Line );
+      Strings.AppendW( REF text, CRLF + CRLF + '(Press "Retry" to debug the application.)' );
+
+      result := windows.MessageBoxW( NIL, ADR( text ), L"Unexpected state of program execution", windows.MB_TASKMODAL OR windows.MB_ICONHAND OR windows.MB_ABORTRETRYIGNORE OR windows.MB_SETFOREGROUND ); // MB_SERVICE_NOTIFICATION cannot be used as Vista does not open anything in the case. For XP if service is interactive, it opens dialog correctly.
+      IF result = windows.IDABORT THEN // kill process
+         windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
+      ELSIF result = windows.IDRETRY THEN // allow to debug process
+         windows.DebugBreak();
+      END;
+
+   ELSIF amLoop IN Mode THEN
+      WHILE NOT windows.IsDebuggerPresent() DO
+         windows.Sleep( 100 );
+      END;
+      windows.DebugBreak();
+
    END;
-END LogAssertW;
+END DoAssertW;
 
 //--------------------------------------------------------------------------------
 

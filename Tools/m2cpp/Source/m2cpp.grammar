@@ -4965,8 +4965,8 @@ ntEmbeddedProcedure<VAR D : DOM.TPDesignator>
 
 ntEmbeddedASSERT<VAR D : DOM.TPDesignator>                 (. E : DOM.TPExpression; .)
   = "ASSERT"                                               (. D^.r.EP := DOM.epASSERT;
-                                                              IF c^.OD^.MEnv.MIID[DOM.miidAssertion] = NIL THEN
-                                                                SemErr( err._MissingAssertion );
+                                                              IF c^.OD^.MEnv.MIID[DOM.miidAssertionW] = NIL THEN
+                                                                SemErr( err._MissingAssertionW );
                                                               END; .)
     lpar
       ntExpression<E>                                      (. D^.r.U1 := E;
@@ -4976,10 +4976,7 @@ ntEmbeddedASSERT<VAR D : DOM.TPDesignator>                 (. E : DOM.TPExpressi
 .
 
 ntEmbeddedASSERTLOG<VAR D : DOM.TPDesignator>              (. E : DOM.TPExpression; .)
-  = "ASSERTLOG"                                            (. D^.r.EP := DOM.epASSERTLOG;
-                                                              IF c^.OD^.MEnv.MIID[DOM.miidAssertion] = NIL THEN
-                                                                SemErr( err._MissingAssertion );
-                                                              END; .)
+  = "ASSERTLOG"                                            (. D^.r.EP := DOM.epASSERTLOG; .)
     lpar
       ntExpression<E>                                      (. D^.r.U1 := E;
                                                               D^.r.U2 := NIL;
@@ -4990,12 +4987,12 @@ ntEmbeddedASSERTLOG<VAR D : DOM.TPDesignator>              (. E : DOM.TPExpressi
                                                               c^.ExpectType( Types.TString, E^.T, -1 ); .)
       ]
     rpar                                                   (. IF ( D^.r.U2 <> NIL ) AND Types.TBCHAR^.Compatible( DOM.cmOperation, DOM.TPExpression( D^.r.U2 )^.T ) THEN
-                                                                IF c^.OD^.MEnv.MIID[DOM.miidLogAssertionA] = NIL THEN
-                                                                  SemErr( err._MissingLogAssertionA );
+                                                                IF c^.OD^.MEnv.MIID[DOM.miidAssertionA] = NIL THEN
+                                                                  SemErr( err._MissingAssertionA );
                                                                 END;
                                                               ELSE
-                                                                IF c^.OD^.MEnv.MIID[DOM.miidLogAssertionW] = NIL THEN
-                                                                  SemErr( err._MissingLogAssertionW );
+                                                                IF c^.OD^.MEnv.MIID[DOM.miidAssertionW] = NIL THEN
+                                                                  SemErr( err._MissingAssertionW );
                                                                 END;
                                                               END; .)
 .

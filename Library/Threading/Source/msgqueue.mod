@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE msgqueue;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, REALLOCATE;

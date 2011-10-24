@@ -1,0 +1,29 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ProjectDescription>KNX KNXnet Communication Stack</ProjectDescription>
+        <ProjectVersionMajor>1</ProjectVersionMajor>
+        <ProjectVersionMinor>0</ProjectVersionMinor>
+        <Test>off</Test>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPOMENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore"/>
+        <!-- Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\Resources;Library\Text;Library\Threading;Library\Service"/ -->
+        <Components Include="KNX\knxstack"/>
+        <Modules Include="transport;protocol;browser;knxstack_knxnet"/>
+    </ItemGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

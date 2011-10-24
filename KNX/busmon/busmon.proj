@@ -1,0 +1,40 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
+        <ProductGUID>D207A286-98FA-420f-917F-F3AF8E9C43FB</ProductGUID>
+        <ProductUpgradeGUID>8AC5313F-C205-4eab-90AE-3BB039D7CE65</ProductUpgradeGUID>
+
+        <ProductId>SmartControl.KnxBusmon</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <ProductNote></ProductNote>
+
+        <ProjectDisplayName>KNXnet/IP Bus Monitor</ProjectDisplayName>
+        <ProjectDescription>KNXnet/IP Bus Monitor</ProjectDescription>
+
+        <Result>Program</Result>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet"/>
+
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore;KNX\knxstack_knxnet"/>
+        <Messages Include="Texts"/>
+        <Program Include="busmon"/>
+    </ItemGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE lec;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 #if DEBUG #then
 FROM log IMPORT
@@ -73,7 +73,12 @@ CLASS IMPLEMENTATION CProduct;
    VAR
       TExpires : datetime.DateTime;
    BEGIN
-      IF ( _Expires = expNotSet ) OR ( _Expires = expNever ) THEN
+      IF _Expires = expNotSet THEN
+         TExpires.SetNowUTC();
+         IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
+            TExpires.Year := 117;
+         END;
+      ELSIF _Expires = expNever THEN
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
             TExpires.Year := 297;
          END;
@@ -465,9 +470,14 @@ CLASS IMPLEMENTATION CResult;
       _Lock.Lock();
       LExpires := _Expires;
       _Lock.Unlock();
-      IF ( LExpires = expNotSet ) OR ( LExpires = expNever ) THEN
+      IF LExpires = expNotSet THEN
+         LExpires := datetime.GetCurrentJD();
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
             TExpires.Year := 117;
+         END;
+      ELSIF LExpires = expNever THEN
+         IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
+            TExpires.Year := 297;
          END;
       ELSE
          TExpires.JulianDate := LExpires;

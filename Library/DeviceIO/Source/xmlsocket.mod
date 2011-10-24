@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE xmlsocket;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    io,

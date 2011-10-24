@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE adviser;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 IMPORT
    lists;
@@ -144,7 +144,7 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData;
    BEGIN
       IF _Clients.Get( Client, OUT ClientData ) THEN
-         DoUnadvise( ClientData, NIL, TRUE );
+         DoUnadvise( ClientData, NIL, ns.hashINVALID, TRUE );
          DISPOSE( ClientData );
 
          _Clients.Remove( Client );
@@ -158,11 +158,24 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData;
    BEGIN
       IF _Clients.Get( Client, OUT ClientData ) THEN
-         RETURN DoAdvise( ClientData, ADR( Name ));
+         RETURN DoAdvise( ClientData, ADR( Name ), ns.hashINVALID );
       ELSE
          RETURN FALSE;
       END;
    END Advise;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE AdviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN;
+   VAR
+      ClientData : TPClientData;
+   BEGIN
+      IF _Clients.Get( Client, OUT ClientData ) THEN
+         RETURN DoAdvise( ClientData, NIL, Hash );
+      ELSE
+         RETURN FALSE;
+      END;
+   END AdviseHash;
 
 (*---------------------------------------------------------------------------*)
 
@@ -171,7 +184,7 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData;
    BEGIN
       IF _Clients.Get( Client, OUT ClientData ) THEN
-         DoAdvise( ClientData, NIL );
+         DoAdvise( ClientData, NIL, ns.hashINVALID );
       END;
    END AdviseAll;
 
@@ -182,11 +195,24 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData;
    BEGIN
       IF _Clients.Get( Client, OUT ClientData ) THEN
-         RETURN DoUnadvise( ClientData, ADR( Name ), FALSE );
+         RETURN DoUnadvise( ClientData, ADR( Name ), ns.hashINVALID, FALSE );
       ELSE
          RETURN FALSE;
       END;
    END Unadvise;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE UnadviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN;
+   VAR
+      ClientData : TPClientData;
+   BEGIN
+      IF _Clients.Get( Client, OUT ClientData ) THEN
+         RETURN DoUnadvise( ClientData, NIL, Hash, FALSE );
+      ELSE
+         RETURN FALSE;
+      END;
+   END UnadviseHash;
 
 (*---------------------------------------------------------------------------*)
 
@@ -195,7 +221,7 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData;
    BEGIN
       IF _Clients.Get( Client, OUT ClientData ) THEN
-         DoUnadvise( ClientData, NIL, FALSE );
+         DoUnadvise( ClientData, NIL, ns.hashINVALID, FALSE );
       END;
    END UnadviseAll;
    
@@ -239,13 +265,12 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoAdvise( _ClientData : ADDRESS; CONST Name : StringsO.TPString ) : BOOLEAN;
+   PRIVATE PROCEDURE DoAdvise( _ClientData : ADDRESS; CONST Name : StringsO.TPString; Hash : ns.THash ) : BOOLEAN;
    VAR
       Clients : lists.TPPtrList;
       ClientData : TPClientData := _ClientData;
-      Hash : ns.THash := ns.hashINVALID;
    BEGIN
-      IF Name <> NIL THEN // want advise single, find it it
+      IF Name <> NIL THEN // want advise by name, find it it
          IF NOT _Device^.Mapper()^.NameToHash( Name^, OUT Hash ) THEN
             RETURN FALSE;
          END;
@@ -264,13 +289,12 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoUnadvise( _ClientData : ADDRESS; CONST Name : StringsO.TPString; UnadviseCompletely : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE DoUnadvise( _ClientData : ADDRESS; CONST Name : StringsO.TPString; Hash : ns.THash; UnadviseCompletely : BOOLEAN ) : BOOLEAN;
    VAR
       Clients : lists.TPPtrList;
       ClientData : TPClientData := _ClientData;
-      Hash : ns.THash := ns.hashINVALID;
    BEGIN
-      IF Name <> NIL THEN // want unadvise single, do it
+      IF Name <> NIL THEN // want unadvise by name, do it
          IF NOT _Device^.Mapper()^.NameToHash( Name^, OUT Hash ) THEN
             RETURN FALSE;
          END;

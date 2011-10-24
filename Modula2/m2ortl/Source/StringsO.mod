@@ -7,7 +7,7 @@ FROM Storage IMPORT
 FROM Strings IMPORT
    CapitalizeW, LowerizeW;
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 IMPORT
    lrconv,

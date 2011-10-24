@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE Service;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -14,6 +14,7 @@ IMPORT
    winsvc;
   
 IMPORT
+   Debug,
    Log,
    maps,
    msghandler,
@@ -181,7 +182,7 @@ BEGIN
       ASSERT( FALSE );
       RETURN;
 
-   ELSIF Services.GetOA( OAsz( argv^[0] ), OUT _Service ) THEN // not known service
+   ELSIF Services.GetOA( OAsz( argv^[0] ), OUT _Service ) THEN // known service
 
       _Service^.StatusHandle := winsvc.RegisterServiceCtrlHandlerExW( argv^[0], winsvc.LPHANDLER_FUNCTION_EX( ControlHandlerEx ), _Service );
       IF _Service^.StatusHandle = winsvc.SERVICE_STATUS_HANDLE( NIL ) THEN
@@ -190,6 +191,8 @@ BEGIN
       ELSIF NOT _Service^.SetServiceState( ssStartPending, 0 ) THEN
          RETURN;
       END;
+
+      Debug.WaitUsingLoop();
 
       _Service^.OnStart();
       _Service^.LogEvent( -1, OAsz( R()^[Texts._ServiceIsStartedSuccessfully] ));

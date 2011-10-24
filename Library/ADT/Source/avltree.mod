@@ -9,7 +9,7 @@ IMPLEMENTATION MODULE avltree;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    REALLOCATE, DEALLOCATE, Fill;

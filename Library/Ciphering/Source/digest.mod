@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE digest;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 IMPORT
 	cphcommon,

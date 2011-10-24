@@ -220,7 +220,7 @@
         <Message Importance="high" Text="$(ClientLicensingType)=='Host': $(ProductId) else: $(ProjectId)" />
         <Exec Condition="$(ClientLicensingType)=='Host'"
               WorkingDirectory="$(LicensingSourceDir)"
-              Command="$(LICSRC) $(ProductId"/>
+              Command="$(LICSRC) $(ProductId)"/>
         <Exec Condition="$(ClientLicensingType)=='Plugin'"
               WorkingDirectory="$(LicensingSourceDir)"
               Command="$(LICSRC) $(ProjectId)"/>
@@ -378,7 +378,8 @@
                        )"
             DependsOnTargets="ComponentCode">
         <Exec Condition="$(Result)=='Program' Or $(Result)=='Dynamic'"
-              Command="signtool sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"/>
+              Command="signtool sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"
+              ContinueOnError="true"/>
     </Target>
 
     <Target Name="Component"
