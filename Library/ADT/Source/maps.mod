@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE maps;
 (*==========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM StringsO IMPORT
    CString;

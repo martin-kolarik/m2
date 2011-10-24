@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE list;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    Sync;

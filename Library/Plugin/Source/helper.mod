@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE helper;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    baseobject;

@@ -4,7 +4,7 @@ FROM Storage IMPORT
    REALLOCATE;
   
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Exceptions IMPORT
    StoreException;

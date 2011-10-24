@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE baseobject; // dummy, for CONST cidPlugin and interfaces/R
 (*---------------------------------------------------------------------------*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    Sync;

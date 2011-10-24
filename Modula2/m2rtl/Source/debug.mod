@@ -331,17 +331,8 @@ BEGIN
          getLogger()^.LogSS( Log.lcSysError, 0, Module, Line, Text );
       END;
    END;
-   
-   IF AssertHook <> NIL THEN
-      CASE AssertHook( AssertHookUserData, text ) OF
-      | -1 :
-         windows.DebugBreak();
-      | 1 :
-         windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
-      // ELSE fall down silently
-      END; // CASE
 
-   ELSIF amWindow IN Mode THEN
+   IF ( AssertHook <> NIL ) OR ( amWindow IN Mode ) THEN // prepare text of assert
       IF windows.GetModuleFileNameW( NIL, ADR( exeName ), HIGH( exeName ) + 1 ) = 0 THEN
          exeName := L"<unknown program>";   
       END;
@@ -351,6 +342,19 @@ BEGIN
       Strings.AppendW( REF text, Module );
       Strings.AppendW( REF text, CRLF + L"Line: " );
       Strings.AppendW( REF text, Line );
+   END;
+   
+   IF AssertHook <> NIL THEN
+      CASE AssertHook( AssertHookUserData, text ) OF
+      | -1 :
+         windows.DebugBreak();
+      | 1 :
+         windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
+      // ELSE fall down silently, ignore
+      END; // CASE
+
+   ELSIF amWindow IN Mode THEN
+      // ...continue with text
       Strings.AppendW( REF text, CRLF + CRLF + '(Press "Retry" to debug the application.)' );
 
       result := windows.MessageBoxW( NIL, ADR( text ), L"Unexpected state of program execution", windows.MB_TASKMODAL OR windows.MB_ICONHAND OR windows.MB_ABORTRETRYIGNORE OR windows.MB_SETFOREGROUND ); // MB_SERVICE_NOTIFICATION cannot be used as Vista does not open anything in the case. For XP if service is interactive, it opens dialog correctly.
