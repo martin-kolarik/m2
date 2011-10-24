@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+    <html>
+        <head>
+            <title>NeNo KNXSrv</title>
+            <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+        </head>
+        <body>
+            <div class="shell">
+                <div class="shell-topstrip"></div>
+                <div class="canvas">
+
+                    <div class="top">
+                    </div>
+
+                    <div class="middle">
+
+                        <div id="menu">
+                            <p><a href="index">${msg.menu.index}</a></p>
+                        </div>
+
+                        <div class="content">
+
+                            <h1>${msg.login.text}</h1>
+                            <pt:form method="post" action="login">
+
+                                <table cellpadding="0px" cellspacing="0px">
+                                    <tr>
+                                        <td>${msg.login.username}</td>
+                                        <td class="spare"> </td>
+                                        <td>
+                                            <pt:input model="username"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>${msg.login.password}</td>
+                                        <td class="spare"> </td>
+                                        <td>
+                                            <pt:password model="password"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2"> </td>
+                                        <td>
+                                            <input type="submit" value="${msg.login.submit}"/>
+                                        </td>
+                                    </tr>
+                                    <tr condition="${message}">
+                                        <td colspan="2"> </td>
+                                        <td><p class="error">${message}</p></td>
+                                    </tr>
+                                </table>
+
+                            </pt:form>
+
+                        </div>
+                    </div>
+
+                    <div class="bottom">
+                        <p>KNX SmartServer © NeNo ver. ${version}</p>
+                    </div>
+
+                </div>
+            </div>
+        </body>
+    </html>
+</pageTemplate>

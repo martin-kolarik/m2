@@ -47,6 +47,7 @@ CLASS Win32Message IMPLEMENTS OSALmsg.IMessage;
     INDEX( ParameterIndex : CARDINAL ) : PTR;
   PUBLIC VIRTUAL PROCEDURE Clone() : POINTER TO OSALmsg.IMessage;
   PUBLIC VIRTUAL PROCEDURE Release();
+  PUBLIC VIRTUAL PROCEDURE Send( Target : OSALmsg.TPMessageTarget; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
   PUBLIC OPERATOR
     :=( CONST MSG : Win32Message );
 END Win32Message;

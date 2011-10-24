@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE log;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    REALLOCATE, DEALLOCATE;
@@ -115,7 +115,11 @@ CLASS IMPLEMENTATION AFormatter;
          ELSE
             dt.SetNowUTC();
          END;
-         dt.ToStringOA( L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT S );
+         IF SeparateTimeBrackets THEN
+            dt.ToStringOA( L"[ yyyy-MM-dd HH:mm:ss.fff ] ", TRUE, TRUE, OUT S );
+         ELSE
+            dt.ToStringOA( L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT S );
+         END;
       END;
       IF Levels THEN
          leading := TRUE;
@@ -822,9 +826,24 @@ CLASS IMPLEMENTATION CBaseAppender;
 
    PUBLIC PROPERTY LocalTime SET( Value : BOOLEAN );
    BEGIN
-      _KernelOutput.Names := LocalTime;
-      _FileOutput.Names := LocalTime;
+      _KernelOutput.LocalTime := Value;
+      _FileOutput.LocalTime := Value;
    END LocalTime;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY SeparateTimeBrackets GET : BOOLEAN;
+   BEGIN
+      RETURN _KernelOutput.SeparateTimeBrackets;
+   END SeparateTimeBrackets;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY SeparateTimeBrackets SET( Value : BOOLEAN );
+   BEGIN
+      _KernelOutput.SeparateTimeBrackets := Value;
+      _FileOutput.SeparateTimeBrackets := Value;
+   END SeparateTimeBrackets;
 
 (*---------------------------------------------------------------------------*)
 

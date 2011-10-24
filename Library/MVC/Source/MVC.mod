@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE MVC;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

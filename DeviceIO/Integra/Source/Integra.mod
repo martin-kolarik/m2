@@ -33,6 +33,8 @@ VAR
 (*================================================================================*)
 
 CONST
+   LOG_NAME = L"Integra";
+   
    ARM_SUFFIX = L" arm";
    DISARM_SUFFIX = L" disarm";
    ARMED_SUFFIX = L" armed";
@@ -601,7 +603,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       _LastReceiveTime := datetime.UptimeMS();
       StartTimeout( CONNECTION_CHECK_TIMEOUT, FALSE, REF _ConnectionTimeoutHandle );
 
-      Logger.LogS( log.ldMessage, 0, L"Integra", L"Started" );
+      Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Started" );
 
       RETURN Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
    END Start;
@@ -620,7 +622,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       StopTimeout( REF _ConnectionTimeoutHandle );
 
       Connection.Close();
-      Logger.LogS( log.ldMessage, 0, L"Integra", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Stopped" );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -629,10 +631,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF PoolHandle = _ConnectionTimeoutHandle THEN
          IF NOT Connection.Connected THEN
-            Logger.LogS( log.ldTrace, 0, L"Integra", L"Disconnected (periodic check), trying to reconnect" );
+            Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Disconnected (periodic check), trying to reconnect" );
             Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
          ELSIF datetime.UptimeMS() - _LastReceiveTime >= CONNECTION_CHECK_TIMEOUT THEN
-            Logger.LogS( log.ldTrace, 0, L"Integra", L"Disconnected (no data received for a long time), trying to reconnect" );
+            Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Disconnected (no data received for a long time), trying to reconnect" );
             Connection.Close();
             Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
          END;
@@ -667,7 +669,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       shift := 4; mask := 0FH;
       FOR i := 0 TO len-1 DO
          IF ( area^.Password[i] < L'0' ) OR ( area^.Password[i] > L'9' ) THEN
-            Logger.LogSS( log.ldError, 0, L"Integra", L"Unexpected character in the password, replacing with 0: ", OA( area^.Password.Length-1, area^.Password.Data ));
+            Logger.LogSS( log.ldError, 0, LOG_NAME, L"Unexpected character in the password, replacing with 0: ", OA( area^.Password.Length-1, area^.Password.Data ));
             Packet.ArmCode[i DIV 2] := Packet.ArmCode[i DIV 2] AND mask;
          ELSE
             Packet.ArmCode[i DIV 2] := ( Packet.ArmCode[i DIV 2] AND mask ) OR (( ORD( area^.Password[i] ) - ORD( L'0' )) << shift );
@@ -682,11 +684,11 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          Packet.ArmMode := 0;
          area^.Partitions.ToOA( 0, OUT Packet.ArmPartitions, OUT len );
 
-         Logger.LogSCB( log.ldTrace, 0, L"Integra", L"Armed partitions: ", SIZE( Packet.ArmPartitions ), ADR( Packet.ArmPartitions ), SIZE( Packet.ArmPartitions ));
+         Logger.LogSCB( log.ldTrace, 0, LOG_NAME, L"Armed partitions: ", SIZE( Packet.ArmPartitions ), ADR( Packet.ArmPartitions ), SIZE( Packet.ArmPartitions ));
       ELSE
          area^.Partitions.ToOA( 0, OUT Packet.DisarmPartitions, OUT len );
 
-         Logger.LogSCB( log.ldTrace, 0, L"Integra", L"Disarmed partitions: ", SIZE( Packet.DisarmPartitions ), ADR( Packet.DisarmPartitions ), SIZE( Packet.DisarmPartitions ));
+         Logger.LogSCB( log.ldTrace, 0, LOG_NAME, L"Disarmed partitions: ", SIZE( Packet.DisarmPartitions ), ADR( Packet.DisarmPartitions ), SIZE( Packet.DisarmPartitions ));
       END;
 
       Tx( OA( Wrapper.Length-1, Wrapper.Packet ));
@@ -831,7 +833,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF addonText <> NIL THEN
             msg.Append( addonText^ );
          END;
-         Log^.LogFilePos( level, 0, L"Integra", OA( iniFileSection.Length-1, iniFileSection.Data ), OA( msg.Length-1, msg.Data ), line, 0 );
+         Log^.LogFilePos( level, 0, LOG_NAME, OA( iniFileSection.Length-1, iniFileSection.Data ), OA( msg.Length-1, msg.Data ), line, 0 );
       END LogError;
 
       (*----------*)
@@ -981,7 +983,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       TxBuffer : StorageO.CMemoryBuffer;
    BEGIN
       IF NOT Connection.Connected THEN
-         Logger.LogS( log.ldTrace, 0, L"Integra", L"Disconnected, trying to reconnect" );
+         Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Disconnected, trying to reconnect" );
          Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
       END;
    
@@ -991,7 +993,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          AddChkSum( REF TxBuffer );
       END;
       
-      Logger.LogSCB( log.ldDebug, 0, L"Integra", L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
+      Logger.LogSCB( log.ldDebug, 0, LOG_NAME, L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
       Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
       IF Result = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -1017,13 +1019,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       ChkSumOK : BOOLEAN := TRUE;
    BEGIN
       IF Result <> Sync.arCompleted THEN
-         Logger.LogSC( log.ldError, 0, L"Integra", L'rx error: ', CARDINAL( Result ));
+         Logger.LogSC( log.ldError, 0, LOG_NAME, L'rx error: ', CARDINAL( Result ));
          OnRx( Result, LRxBuffer );
          RxBuffer.Clear();
          RETURN;
       ELSIF NOT Data.Empty THEN
          RxBuffer.Append( Data );
-         Logger.LogSCB( log.ldDebug, 0, L"Integra", L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+         Logger.LogSCB( log.ldDebug, 0, LOG_NAME, L'rx success, len: ', Data.Length, Data.Data, Data.Length );
       END;
 
       LOOP
@@ -1187,7 +1189,7 @@ CLASS IMPLEMENTATION CIO;
          ELSE
             Value.Boolean := area^.Outputs.Count > 0;
          END;
-         DeviceCommunicator.Logger.LogSSC( log.ldTrace, 0, L"Integra", L"Item read: ", OA( item^.Name^.Length-1, item^.Name^.Data ), CARDINAL( Value.Boolean ));
+         DeviceCommunicator.Logger.LogSSC( log.ldTrace, 0, LOG_NAME, L"Item read: ", OA( item^.Name^.Length-1, item^.Name^.Data ), CARDINAL( Value.Boolean ));
 
          Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
          
@@ -1206,7 +1208,7 @@ CLASS IMPLEMENTATION CIO;
 
          area := item^.Data;
          area^.Password := Value.String;
-         DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, L"Integra", L"Item write: ", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( area^.Password.Length-1, area^.Password.Data ));
+         DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item write: ", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( area^.Password.Length-1, area^.Password.Data ));
          IF item^.Name^.EndsWithOA( DISARM_SUFFIX ) THEN
             area^.Operation := ptDisarm;
          ELSE
@@ -1261,7 +1263,7 @@ CLASS IMPLEMENTATION CIO;
          RETURN; // event ignored
       END;
       data := ADR( PPacket^.Packet^.InfoData );
-      DeviceCommunicator.Logger.LogSH( log.ldTrace, 0, L"Integra", L"Received info type: 0x", CARDINAL( PPacket^.Packet^.InfoDataType ));
+      DeviceCommunicator.Logger.LogSH( log.ldTrace, 0, LOG_NAME, L"Received info type: 0x", CARDINAL( PPacket^.Packet^.InfoDataType ));
 
       al.TakeSafe( REF _Lock, L"Unable to lock data area" );
 

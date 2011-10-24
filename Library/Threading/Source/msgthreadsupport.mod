@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE msgthreadsupport;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    collection,

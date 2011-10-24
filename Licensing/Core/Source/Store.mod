@@ -5,7 +5,7 @@ FROM Storage IMPORT
 FROM Log IMPORT
    logger, ldTrace;
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 FROM Exceptions IMPORT
    StoreException, TestIfCatched, RetrieveException;
 

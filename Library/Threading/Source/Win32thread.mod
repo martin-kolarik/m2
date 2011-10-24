@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Win32thread;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    Debug,
@@ -105,6 +105,9 @@ END Loop;
 
 PROCEDURE ThreadCrashHandler( exceptionPointers : windows.PEXCEPTION_POINTERS ) : TRISTATE;
 BEGIN
+   IF windows.IsDebuggerPresent() THEN
+      windows.DebugBreak();
+   END;
    Debug.Dump( L"", exceptionPointers );
    RETURN excpt.EXCEPTION_EXECUTE_HANDLER;
 END ThreadCrashHandler;

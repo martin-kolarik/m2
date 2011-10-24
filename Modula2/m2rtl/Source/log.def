@@ -96,6 +96,7 @@ ABSTRACT CLASS AFormatter IMPLEMENTS iLog.IOutput;
       Levels : BOOLEAN := TRUE; // prints debug level of message
       Names : BOOLEAN := TRUE; // prints names/prefixes of message
       LocalTime : BOOLEAN := FALSE; // uses local time instead of UTC
+      SeparateTimeBrackets : BOOLEAN := FALSE; // includes space after [ and before ]
 
 END AFormatter;
 
@@ -204,6 +205,7 @@ CLASS CBaseAppender( CGenericAppender );
       Levels : BOOLEAN; // prints debug level of message, default TRUE --> AFormatter
       Names : BOOLEAN; // prints names/prefixes of message, default TRUE --> AFormatter
       LocalTime : BOOLEAN; // uses local time instead of UTC --> AFormatter
+      SeparateTimeBrackets : BOOLEAN; // includes space after [ and before ] --> AFormatter
 
    PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
    PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;

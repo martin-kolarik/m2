@@ -2,7 +2,7 @@ IMPLEMENTATION MODULE com;
 (*# option( pack => 8 ) *)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;

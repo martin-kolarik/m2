@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE netsrv;
 //================================================================================
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

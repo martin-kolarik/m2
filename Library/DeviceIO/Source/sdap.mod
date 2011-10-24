@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE sdap;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT   
    device,

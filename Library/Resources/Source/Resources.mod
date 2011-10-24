@@ -434,7 +434,7 @@ CLASS IMPLEMENTATION CResources;
 
    PRIVATE PROCEDURE AcquireText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL; Fallback : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
-      IF ( _Resource <> NIL ) OR ( Id < _Resource^.TextCount ) THEN
+      IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) THEN
          IF _Texts = NIL THEN
             // fall down
          ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN

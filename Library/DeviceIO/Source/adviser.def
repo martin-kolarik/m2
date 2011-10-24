@@ -49,16 +49,18 @@ CLASS CAdviser( baseobject.CDisposable ) IMPLEMENTS io.IAdviseInfo;
    PUBLIC PROCEDURE LeaveClient( Client : io.TPIAdviseInfo );
    
    PUBLIC PROCEDURE Advise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN; // returns if Name is known
+   PUBLIC PROCEDURE AdviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN; // does not checks for Hash validity, if the Hash is invalid, nothing will be advised
    PUBLIC PROCEDURE AdviseAll( Client : io.TPIAdviseInfo );
    PUBLIC PROCEDURE Unadvise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN; // returns if Name is known
+   PUBLIC PROCEDURE UnadviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN; // does not checks for Hash validity
    PUBLIC PROCEDURE UnadviseAll( Client : io.TPIAdviseInfo );
    
    PUBLIC PROCEDURE Start();
    PUBLIC PROCEDURE Stop();
 
    // helpers
-   PRIVATE PROCEDURE DoAdvise( ClientData : ADDRESS; CONST Name : StringsO.TPString ) : BOOLEAN;
-   PRIVATE PROCEDURE DoUnadvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; UnadviseCompletely : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE DoAdvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; Hash : ns.THash ) : BOOLEAN;
+   PRIVATE PROCEDURE DoUnadvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; Hash : ns.THash; UnadviseCompletely : BOOLEAN ) : BOOLEAN;
 END CAdviser;
 
 (*---------------------------------------------------------------------------*)

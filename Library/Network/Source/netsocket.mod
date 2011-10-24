@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE netsocket;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    winsock;

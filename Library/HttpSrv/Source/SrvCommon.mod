@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE SrvCommon;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Log IMPORT
    lcError, lcWarning, lcInfo;

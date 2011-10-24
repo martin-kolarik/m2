@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE lec;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 #if DEBUG #then
 FROM log IMPORT
@@ -70,7 +70,12 @@ CLASS IMPLEMENTATION CProduct;
    VAR
       TExpires : datetime.DateTime;
    BEGIN
-      IF _Expires.IsLowBound OR _Expires.IsHighBound THEN
+      IF _Expires.IsLowBound THEN
+         TExpires.SetNowUTC();
+         IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
+            TExpires.Year := 117;
+         END;
+      ELSIF _Expires.IsHighBound THEN
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
             TExpires.Year := 297;
          END;
@@ -470,9 +475,14 @@ CLASS IMPLEMENTATION CResult;
       _Lock.Lock();
       LExpires := _Expires;
       _Lock.Unlock();
-      IF LExpires.IsLowBound OR LExpires.IsHighBound THEN
+      IF LExpires.IsLowBound THEN
+         TExpires.SetNowUTC();
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
             TExpires.Year := 117;
+         END;
+      ELSIF LExpires.IsHighBound THEN
+         IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
+            TExpires.Year := 297;
          END;
       ELSE
          TExpires.DayCount := LExpires;

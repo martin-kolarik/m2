@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <string name="_InvalidOption">
+            <item xml:space="preserve" lang="en-US">  discover: invalid option </item>
+            <item xml:space="preserve" lang="cs-CZ">  discover: neplatný přepínač </item>
+        </string>
+        <string name="_UsageInfo">
+            <item xml:space="preserve" lang="en-US">  usage: discover [-u &lt;configuration-file&gt;] [-h] [-v]</item>
+            <item xml:space="preserve" lang="cs-CZ">  použití: discover [-u &lt;konfigurační-soubor&gt;] [-h] [-v]</item>
+        </string>
+
+        <string name="_UnableToStartDiscovery">
+            <item xml:space="preserve" lang="en-US">  Discovery of KNXnet/IP devices cannot start</item>
+            <item xml:space="preserve" lang="cs-CZ">  Vyhledávání KNXnet/IP zařízení nelze rozběhnout</item>
+        </string>
+        <string name="_MissingConfigurationFile">
+            <item xml:space="preserve" lang="en-US">  Missing configuration file to update</item>
+            <item xml:space="preserve" lang="cs-CZ">  Chybí jméno konfiguračního souboru pro úpravu</item>
+        </string>
+        <string name="_Searching">
+            <item xml:space="preserve" lang="en-US">  Searching...</item>
+            <item xml:space="preserve" lang="cs-CZ">  Vyhledává se...</item>
+        </string>
+        <string name="_NoDevicesFound">
+            <item xml:space="preserve" lang="en-US">  No KNXnet/IP devices was found</item>
+            <item xml:space="preserve" lang="cs-CZ">  Žádné KNXnet/IP zařízení nebylo nalezeno</item>
+        </string>
+        <string name="_FoundCount">
+            <item xml:space="preserve" lang="en-US">  There was found </item>
+            <item xml:space="preserve" lang="cs-CZ">  Bylo nalezeno </item>
+        </string>
+        <string name="_devices">
+            <item xml:space="preserve" lang="en-US"> KNXnet/IP devices</item>
+            <item xml:space="preserve" lang="cs-CZ"> KNXnet/IP zařízení</item>
+        </string>
+        <string name="_UnableToSaveConfigFile">
+            <item xml:space="preserve" lang="en-US">  Configuration file cannot be saved</item>
+            <item xml:space="preserve" lang="cs-CZ">  Konfigurační soubor se nepodařilo uložit</item>
+        </string>
+
+    </strings>
+</resources>    
+

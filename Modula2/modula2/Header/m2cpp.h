@@ -311,12 +311,12 @@ inline BOOLEAN EQUALSM_(const BYTE* S1, const BYTE* S2, CARDINAL L) throw()
 // strings -- INSIDE ANSI
 inline BOOLEAN INSIDEB_(INTEGER HIGH_, const CHAR* S, INTEGER I) throw()
 {
-  return I <= HIGH_ && S[I] != 0;
+  return S != 0 && I <= HIGH_ && S[I] != 0;
 }
 // strings -- INSIDE UNICODE
 inline BOOLEAN INSIDEW_(INTEGER HIGH_, const WCHAR* S, INTEGER I) throw()
 {
-  return I <= HIGH_ && S[I] != 0;
+  return S != 0 && I <= HIGH_ && S[I] != 0;
 }
 
 // strings -- LENGTH ANSI

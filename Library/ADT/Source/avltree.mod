@@ -12,7 +12,7 @@ FROM Storage IMPORT
    REALLOCATE, Fill;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    Sync;

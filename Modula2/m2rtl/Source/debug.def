@@ -5,10 +5,11 @@ DEFINITION MODULE Debug;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE Assert( CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
+PROCEDURE AssertA( ContinueWithRun, Condition : BOOLEAN; ModuleLine, CPPLine : CARDINAL; CONST Module, Text : ARRAY OF CHAR );
+PROCEDURE AssertW( ContinueWithRun, Condition : BOOLEAN; ModuleLine, CPPLine : CARDINAL; CONST Module, Text : ARRAY OF WCHAR );
 
-PROCEDURE LogAssertA( CONST Text, Module : ARRAY OF CHAR; ModuleLine : CARDINAL );
-PROCEDURE LogAssertW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL );
+PROCEDURE WaitUsingDialog();
+PROCEDURE WaitUsingLoop();
 
 // Mainly for test purposes, but for others it works too. When hooked LogAssert outputs nothing.
 TYPE
@@ -27,9 +28,8 @@ PROCEDURE UninstallCrashHandler();
 //--------------------------------------------------------------------------------
 
 CONST
-   Assertion ::= Assert;
-   LogAssertionA ::= LogAssertA;
-   LogAssertionW ::= LogAssertW;
+   AssertionA ::= AssertA;
+   AssertionW ::= AssertW;
 
 //--------------------------------------------------------------------------------
 

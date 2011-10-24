@@ -1,0 +1,58 @@
+DEFINITION MODULE browser;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   arrays,
+   Delegate,
+   inetaddr,
+   protocol,
+   StringsO,
+   Sync,
+   transport;
+
+(*================================================================================*)
+
+TYPE
+   TPServer = POINTER TO CServer;
+
+CLASS CServer;
+   PUBLIC VAR
+      HPAI            : transport.HostProtocolAddressInformation;
+      Description     : StringsO.CString;
+      ServiceFamilies : transport.TServiceFamilies;
+      MAC             : StringsO.CString;
+      Address         : inetaddr.INETADDR;
+      RoutingAddress  : inetaddr.INETADDR;
+END CServer;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPBrowserDelegate = POINTER TO CBrowserDelegate;
+
+ABSTRACT CLASS CBrowserDelegate( Delegate.ADelegate );
+   LOCAL ABSTRACT PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Servers : arrays.CPtrArray );
+END CBrowserDelegate;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CBrowser( protocol.CConnection );
+   PRIVATE VAR
+      Delegate : TPBrowserDelegate;
+      Servers  : arrays.CPtrArray;
+
+   PUBLIC PROCEDURE Browse( Delegate : TPBrowserDelegate; Timeout : CARDINAL ) : Sync.TAsyncResult; // if Timeout = 0 then the default one is used
+
+   INTERNAL VIRTUAL PROCEDURE OnScanCompleted();
+   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : transport.SearchResponse );
+
+   PRIVATE PROCEDURE DisposeServers();
+END CBrowser;
+
+(*================================================================================*)
+
+END browser.
