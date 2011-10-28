@@ -216,6 +216,10 @@ CLASS IMPLEMENTATION CHost;
          _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
          _PhaseResult := test.trFailure;
          _TestResult := test.trFailure;
+      ELSIF _ParticleAssert THEN // unexpected
+         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure (assert): ", FailureText );
+         _PhaseResult := test.trFailure;
+         _TestResult := test.trFailure;
       ELSIF _PhaseResult = test.trUnknown THEN
          _PhaseResult := test.trSuccess;
          IF _TestResult = test.trUnknown THEN

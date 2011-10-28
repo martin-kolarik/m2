@@ -323,7 +323,7 @@ CLASS IMPLEMENTATION CArray;
          RETURN;
       END;
       Dispose();
-      _ItemSize := ItemSize;
+      _ItemSize := Value;
       IF actualSize > 0 THEN // allocate space
          Size := actualSize;
       END;

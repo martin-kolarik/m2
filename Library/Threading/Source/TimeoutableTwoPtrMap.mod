@@ -113,6 +113,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       I : CTimeoutableItem;
    BEGIN
       I.Key1 := Key1;
+      I.Key2 := Key2;
       Delete( 0, ADR( I ));
    END Remove;
 
@@ -123,6 +124,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       I : CTimeoutableItem;
    BEGIN
       I.Key1 := Key1;
+      I.Key2 := Key2;
       RETURN SUPER.Contains( 0, ADR( I ));
    END Contains;
 
@@ -134,6 +136,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       PI : TPTimeoutableItem;
    BEGIN
       I.Key1 := Key1;
+      I.Key2 := Key2;
       IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;

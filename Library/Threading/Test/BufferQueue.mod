@@ -176,7 +176,7 @@ CLASS IMPLEMENTATION CTest;
       Strings.AppendW( REF Phase, L", threads: " );
       Strings.FromCARD32W( ThreadCount, 10, OUT s );
       Strings.AppendW( REF Phase, s );
-      Strings.AppendW( REF Phase, L", items: " );
+      Strings.AppendW( REF Phase, L", item size: " );
       Strings.FromCARD32W( ItemSize, 10, OUT s );
       Strings.AppendW( REF Phase, s );
       Host^.StartPhase( Phase );

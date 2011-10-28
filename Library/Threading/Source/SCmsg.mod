@@ -381,6 +381,8 @@ CLASS IMPLEMENTATION SCMessageHandler;
 
 BEGIN
    joinedTo := NIL;
+FINALLY
+   Dispose();
 END SCMessageHandler;
 
 (*================================================================================*)

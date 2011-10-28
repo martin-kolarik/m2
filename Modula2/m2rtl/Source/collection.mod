@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE collection;
 
+FROM Debug IMPORT
+   AssertionW;
+
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION CIterator;
@@ -12,6 +15,7 @@ CLASS IMPLEMENTATION CIterator;
          RETURN NIL;
       ELSIF _StartSequence <> _OfCollection^.Sequence THEN
          _Exhausted := TRUE;
+         ASSERTLOG( FALSE, L"Access to iterator whose collection has changed" );
          RETURN NIL;
       ELSE
          RETURN _Current;
@@ -35,6 +39,7 @@ CLASS IMPLEMENTATION CIterator;
          // fall down
       ELSIF _StartSequence <> _OfCollection^.Sequence THEN // owning collection has changed
          _Exhausted := TRUE;
+         ASSERTLOG( FALSE, L"Access to iterator whose collection has changed" );
       ELSIF _Current = NIL THEN
          IF _Direction = dirForward THEN
             _Exhausted := NOT _OfCollection^.colGetFirst( OUT _Current );

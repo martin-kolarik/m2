@@ -1056,6 +1056,7 @@ BEGIN
   MQueue.Consumer := ADR( SELF );
 FINALLY
   DisposeThreads( FALSE );
+  Dispose();
 END CThreadPool;
 
 //================================================================================

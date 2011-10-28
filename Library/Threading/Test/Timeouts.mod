@@ -145,9 +145,9 @@ CLASS IMPLEMENTATION CTest;
 
          // test
          IF CompletionInOwningThread THEN
-            WaitForMessages( Limit + Limit DIV 50 );
+            WaitForMessages( Limit * Period + Period DIV 4 );
          ELSE
-            windows.Sleep( Limit + Limit DIV 50 );
+            windows.Sleep( Limit * Period + Period DIV 4 );
          END;
 
       // check
@@ -174,9 +174,9 @@ CLASS IMPLEMENTATION CTest;
          END; // FOR
 
          IF CompletionInOwningThread THEN
-            WaitForMessages( Limit + Limit DIV 50 );
+            WaitForMessages( Limit * Period + Period DIV 10 );
          ELSE
-            windows.Sleep( Limit + Limit DIV 50 );
+            windows.Sleep( Limit * Period + Period DIV 10 );
          END;
 
          // test

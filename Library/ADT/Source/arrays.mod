@@ -154,7 +154,7 @@ CLASS IMPLEMENTATION CPtrArray;
       self : array.TPArray := ADR( SELF );
    BEGIN
       TRY
-         RETURN self^[Index]; // #246 shall allow RETURN SUPER[Index] and omit "self";
+         RETURN PPTR( self^[Index] )^; // #246 shall allow RETURN SUPER[Index] and omit "self";
       CATCH : CModula2Exception DO
          // do nothing
       END;
@@ -168,7 +168,7 @@ CLASS IMPLEMENTATION CPtrArray;
       self : array.TPArray := ADR( SELF ); // #246 shall allow RETURN SUPER[Index] and omit "self";
    BEGIN
       TRY
-         DisposeOwned( PTR( self^[Index] )); // #246 shall allow RETURN SUPER[Index] and omit "self";
+         DisposeOwned( PPTR( self^[Index] )^ ); // #246 shall allow RETURN SUPER[Index] and omit "self";
          self^[Index] := ADR( Value ); // #246 shall allow RETURN SUPER[Index] and omit "self";
       CATCH : CModula2Exception DO
          // do nothing
