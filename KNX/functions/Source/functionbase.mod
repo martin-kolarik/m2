@@ -120,6 +120,16 @@ CLASS IMPLEMENTATION CFunctionBase;
    END DescriptionSet;
 
 (*--------------------------------------------------------------------------------*)
+(*
+   INTERNAL PROCEDURE SplitOutputAndCondition( CONST composite : StringsO.IString; OUT output : StringsO.IString; OUT conditionFound : BOOLEAN; OUT condition : StringsO.IString ) : BOOLEAN;
+   BEGIN
+      IF composite.IndexOfChar( 0, L"[" ) = -1 THEN
+         conditionFound := FALSE;
+         output.Assign( composite );
+      RETURN FALSE;
+   END SplitOutputAndCondition;
+*)
+(*--------------------------------------------------------------------------------*)
 
 BEGIN
 	IF NOT _R.LoadRES2( EMITW( %dll ), L"functions.Texts" ) THEN
