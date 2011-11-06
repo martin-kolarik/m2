@@ -1,3 +1,8 @@
+Version 1.2.1067/R 6.11.2011
+- CHG: Current version renamed to "SmartServer Standard".
+- NEW: New version names "SmartServer Lite" introduced, SDAP and XMLSocket support is missing
+       in the version.
+
 Version 1.2.1550/R 17.9.2011
 - BUG: #250, rarely, after disconnecting KNX interface when new connection was temporarily
        not able to establish, SmartServer stopped communication forever. Connection attempts
