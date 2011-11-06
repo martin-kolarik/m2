@@ -344,16 +344,21 @@
             <ComponentRef Id="Changelog" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="ETSPR3" />
+            <?if $(var.ProductVariant)=Standard ?>
             <ComponentRef Id="RCWareDLL1" />
             <ComponentRef Id="RCWareDLL2" />
+            <?endif ?>
             <ComponentRef Id="Web" />
             <ComponentRef Id="UserWeb" />
             <ComponentRef Id="UserWebExamples" />
             <ComponentRef Id="Examples" />
+            <?if $(var.ProductVariant)=Standard ?>
             <ComponentRef Id="ExamplesFlash" />
             <ComponentRef Id="ExamplesPronto" />
+            <?endif ?>
             <ComponentRef Id="ExamplesWix" />
             <ComponentRef Id="ExamplesiWebKit" />
+            <?if $(var.ProductVariant)=Standard ?>
             <ComponentRef Id="RCWE01" />
             <ComponentRef Id="RCWE02" />
             <ComponentRef Id="RCWE03" />
@@ -362,6 +367,7 @@
             <ComponentRef Id="RCWE06" />
             <ComponentRef Id="RCWE07" />
             <ComponentRef Id="RCWE08" />
+            <?endif ?>
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
             <?endif ?>

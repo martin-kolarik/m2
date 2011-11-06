@@ -24,18 +24,22 @@ IMPORT
    netinit,
    Registry,
    scinit,
-   sdap,
    Service,
    srvcore,
    Strings,
    StringsO,
    Sync,
-   threadcall,
-   xmlsocket;
+   threadcall;
    
+#if ProductVariant #contains L"Standard" #then
+IMPORT   
+   sdap,
+   xmlsocket;
+#endif   
+
 IMPORT
    httpsrv,
-   MVC;   
+   MVC;
    
 (*================================================================================*)
 
@@ -52,6 +56,8 @@ TYPE
                               Names : ARRAY [0..1] OF PWCHAR;
                               Devices : ARRAY [0..1] OF io.TPIStartStopControl;
                            END; // RECORD
+   TPPIStartStopControl = POINTER TO io.TPIStartStopControl;
+   PPWCHAR = POINTER TO PWCHAR;
 
 (*================================================================================*)
 
@@ -79,8 +85,10 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       NetworkFilter : LoggerFilter.CLoggerFilter;
       EIB : srvcore.TPEIBServer := NIL;
       Adviser : adviser.TPAdvisedDevice := NIL;
-      SDAP : sdap.TPSDAPServer := NIL;
-      XMLS : xmlsocket.TPXMLSocketServer := NIL;
+      #if ProductVariant #contains L"Standard" #then
+         SDAP : sdap.TPSDAPServer := NIL;
+         XMLS : xmlsocket.TPXMLSocketServer := NIL;
+      #endif
       Web : EibSrvWeb.CEibSrvWeb;
       CDI : TControlledDeviceInfo;
 
@@ -179,6 +187,7 @@ CLASS IMPLEMENTATION CEibSvc;
       knSdapPort = L"sdap_port";
       knXmlsPort = L"xml_socket_port";
    VAR
+      b : BOOLEAN;
       cfg : INIfile.CINIFile;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       Data : ARRAY [0..511] OF WCHAR;
@@ -266,33 +275,39 @@ CLASS IMPLEMENTATION CEibSvc;
       Adviser^.Device := EIB;
       Adviser^.Start();
 
-      ASSERT( SDAP = NIL );
-      NEW( SDAP );
-      SDAP^.Device := Adviser;
-      IA.Port := sdapPort;
-      SDAP^.ListenAddress := IA;
-      SDAP^.Init( TRUE );
-      SDAP^.CommonLogger := Log.logger();
-      SDAP^.ConfigurationLogger := ADR( ConfigLogger );
-      SDAP^.NetworkLogger := ADR( NetworkLogger );
-      SDAP^.Start();
+      #if ProductVariant #contains L"Standard" #then
+         ASSERT( SDAP = NIL );
+         NEW( SDAP );
+         SDAP^.Device := Adviser;
+         IA.Port := sdapPort;
+         SDAP^.ListenAddress := IA;
+         SDAP^.Init( TRUE );
+         SDAP^.CommonLogger := Log.logger();
+         SDAP^.ConfigurationLogger := ADR( ConfigLogger );
+         SDAP^.NetworkLogger := ADR( NetworkLogger );
+         SDAP^.Start();
+         
+         ASSERT( XMLS = NIL );
+         NEW( XMLS );
+         XMLS^.Device := Adviser;
+         IA.Port := xmlsPort;
+         XMLS^.ListenAddress := IA;
+         XMLS^.Init( TRUE );
+         XMLS^.CommonLogger := Log.logger();
+         XMLS^.NetworkLogger := ADR( NetworkLogger );
+         XMLS^.Start();
       
-      ASSERT( XMLS = NIL );
-      NEW( XMLS );
-      XMLS^.Device := Adviser;
-      IA.Port := xmlsPort;
-      XMLS^.ListenAddress := IA;
-      XMLS^.Init( TRUE );
-      XMLS^.CommonLogger := Log.logger();
-      XMLS^.NetworkLogger := ADR( NetworkLogger );
-      XMLS^.Start();
+         CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
+         CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
+         CDI.Devices[0] := SDAP;
+         CDI.Devices[1] := XMLS;
+
+         b := Web.Init( L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger ));
+      #else
+         b := Web.Init( L"/SmartServer", cfg, EIB, OA( -1, PPWCHAR( NIL )), OA( -1, TPPIStartStopControl( NIL )), ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger ));
+      #endif         
       
-      CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
-      CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
-      CDI.Devices[0] := SDAP;
-      CDI.Devices[1] := XMLS;
-      
-      IF Web.Init( L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
+      IF b THEN
          Web.Run();
       END;
       IF Result = Sync.arCompleted THEN
@@ -334,15 +349,17 @@ CLASS IMPLEMENTATION CEibSvc;
    BEGIN
       Web.Stop();
    
-      IF XMLS <> NIL THEN
-         XMLS^.Stop();
-         DISPOSE( XMLS );
-      END;
-   
-      IF SDAP <> NIL THEN
-         SDAP^.Stop();
-         DISPOSE( SDAP );
-      END;
+      #if ProductVariant #contains L"Standard" #then
+         IF XMLS <> NIL THEN
+            XMLS^.Stop();
+            DISPOSE( XMLS );
+         END;
+      
+         IF SDAP <> NIL THEN
+            SDAP^.Stop();
+            DISPOSE( SDAP );
+         END;
+      #endif
    
       IF Adviser <> NIL THEN
          Adviser^.Stop();
