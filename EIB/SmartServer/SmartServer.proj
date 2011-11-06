@@ -11,7 +11,7 @@
         <ProductUpgradeGUID>67E4985B-93E9-43ED-8B7E-5D381F094F5D</ProductUpgradeGUID>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(ProductVariant)='Lite'">
+    <PropertyGroup Condition="$(ProductVariant)=='Lite'">
         <ProductId>NeNo.EibSrv.Lite</ProductId>
         <ProductNote>Stable</ProductNote>
 
@@ -19,8 +19,8 @@
         <FileDescription>EIB/KNX SmartServer Lite</FileDescription>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(ProductVariant)='Standard'">
-        <ProductId>NeNo.EibSrv.Standard</ProductId>
+    <PropertyGroup Condition="$(ProductVariant)=='Standard'">
+        <ProductId>NeNo.EibSrv</ProductId><!-- The id is left, the product is a continuation of previous V1.x SmartServers -->
         <ProductNote>Stable</ProductNote>
 
         <FileDisplayName>EIB/KNX Server Std</FileDisplayName>
