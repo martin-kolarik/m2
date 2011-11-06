@@ -9,13 +9,22 @@
 
         <ProductGUID>2E913ED6-D3C0-427D-B3B2-1D7AC3CFE725</ProductGUID>
         <ProductUpgradeGUID>67E4985B-93E9-43ED-8B7E-5D381F094F5D</ProductUpgradeGUID>
+    </PropertyGroup>
 
-        <ProductId>NeNo.EibSrv</ProductId>
+    <PropertyGroup Condition="$(ProductVariant)='Lite'">
+        <ProductId>NeNo.EibSrv.Lite</ProductId>
         <ProductNote>Stable</ProductNote>
-        <!-- DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod -->
 
-        <FileDisplayName>EIB/KNX Server</FileDisplayName>
-        <FileDescription>EIB/KNX SmartServer</FileDescription>
+        <FileDisplayName>EIB/KNX Server Lite</FileDisplayName>
+        <FileDescription>EIB/KNX SmartServer Lite</FileDescription>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(ProductVariant)='Standard'">
+        <ProductId>NeNo.EibSrv.Standard</ProductId>
+        <ProductNote>Stable</ProductNote>
+
+        <FileDisplayName>EIB/KNX Server Std</FileDisplayName>
+        <FileDescription>EIB/KNX SmartServer Standard</FileDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->

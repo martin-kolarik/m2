@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <document file="SmartServer" xml:lang="en"
           xmlns="http://www.mii.cz/2004/XML/Document/Common">
-  <header creator="martin" doc_type="generic" last_modified="2011-09-17"
+  <header creator="martin" doc_type="generic" last_modified="2011-11-06"
           last_modifier="martin" version="1.2.1550.0" xml:lang="en"></header>
 
   <adjustment>
@@ -22,8 +22,9 @@
         cache, so their current values are available for clients continually.
         Server can be remotely administrated by web interface (HTTP/HTML).</p>
 
-        <p>Server provides for clients two interfaces: XMLSocket and
-        line-oriented text TCP/IP interface.</p>
+        <p>Standard version of the server further extends the possibilities by
+        providing two client interfaces: XMLSocket and line-oriented text
+        TCP/IP interface.</p>
 
         <il>
           <caption>Software and hardware requirements:</caption>
@@ -41,7 +42,7 @@
           standard).</p></li>
         </il>
 
-        <p>Version of the documentation: 1.2.1550</p>
+        <p>Version of the documentation: 1.2.1606</p>
 
         <content>
           <caption>Content</caption>
