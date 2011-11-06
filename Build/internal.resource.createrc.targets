@@ -8,6 +8,7 @@
         <RCFileType Condition="$(Result)=='Static'">VFT_STATIC_LIB</RCFileType>
         <RCFileType Condition="$(Result)=='Dynamic'">VFT_DLL</RCFileType>
         <RCFileType Condition="$(Result)=='Program'">VFT_APP</RCFileType>
+        <RCProductVariant Condition="$(ProductDescription)!='' And $(ProductVariant)!=''"> $(ProductVariant)</RCProductVariant>
 
         <OriginalCodePageDec>$(CodePageDec)</OriginalCodePageDec>
         <CodePageDec Condition="$(LanguageStyle)=='UNICODE'">1200</CodePageDec>
@@ -20,7 +21,7 @@
     VALUE &quot;LegalCopyright&quot;, &quot;$(LegalCopyright)\0&quot;
     VALUE &quot;LegalTrademarks&quot;, &quot;$(LegalTrademarks)\0&quot;
 
-    VALUE &quot;ProductName&quot;, &quot;$(ProductDescription)\0&quot;
+    VALUE &quot;ProductName&quot;, &quot;$(ProductDescription)$(RCProductVariant)\0&quot;
     VALUE &quot;ProductVersion&quot;, &quot;$(ProductVersionMajor).$(ProductVersionMinor).#(ProductVersionBuild).$(ProductVersionRevision)\0&quot;
 
     VALUE &quot;FileDescription&quot;, &quot;$(FileDescription)\0&quot;

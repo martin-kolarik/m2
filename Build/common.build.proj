@@ -31,7 +31,7 @@
 
         <!-- recursive child parameters -->
         <InheritedProperties>InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedManufacturer=$(Manufacturer);InheritedLibraryName=$(LibraryName)</InheritedProperties>
-        <ChildParameters>Level=1+;ProductPath=$(ProductPath);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
+        <ChildParameters>Level=1+;ProductPath=$(ProductPath);ProductId=$(ProductId);ProductVariant=$(ProductVariant);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
         <ChildParameters Condition="$(Test)=='off'">Test=off;$(ChildParameters)</ChildParameters>
 
         <!-- M2 initializing code -->
@@ -190,7 +190,7 @@
 
     <Target Name="ProductBuildNumberGet"
             DependsOnTargets="DoDummyProductBuildNumberGet;DoProductBuildNumberGet">
-        <CreateProperty Value="-DProductId:$(CompileProductId) -DProductVersion:$(ProductVersion)">
+        <CreateProperty Value="-DProductId:$(CompileProductId) -DProductVersion:$(ProductVersion) -DProductVariant:$(ProductVariant)">
             <Output TaskParameter="Value" PropertyName="M2PROD"></Output>
         </CreateProperty>
     </Target>
@@ -246,7 +246,7 @@
     <Target Name="CPPs" Condition="(@(DEFFiles)!='' or @(MODFiles)!='')"
             Inputs="@(DEFFilesDir);@(MODFilesDir)"
             Outputs="@(DEFFilesDir -> '$(HeaderDir)\%(Filename).h');@(MODFilesDir -> '$(IntermediateDir)\%(Filename).cpp')">
-        <Message Importance="high" Text="$(M2PROD)" />
+        <!-- Message Importance="high" Text="$(ProductM2Control)@$(ComponentDefinitionsPath) $(M2PROD)" -->
         <Exec WorkingDirectory="$(SourceDir)"
               Command="$(M2) $(M2PROD) $(M2DEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFilesDir -> '%(FileName).def', ' ') @(MODFilesDir -> '%(FileName).mod', ' ')"/>
     </Target>

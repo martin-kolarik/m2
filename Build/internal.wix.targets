@@ -21,7 +21,7 @@
         <SetupFile>..\$(SetupDir)\$(MSBuildProjectName).wxs</SetupFile>
         <SetupObj>$(IntermediateDir)\$(MSBuildProjectName).wixobj</SetupObj>
 
-        <CandleDefs>-dBuildRoot=&quot;$(WiXSrc)&quot; -dProductRoot=&quot;$(ComponentPath)\Install&quot; -dProductId=&quot;$(ProductId)&quot;</CandleDefs>
+        <CandleDefs>-dBuildRoot=&quot;$(WiXSrc)&quot; -dProductRoot=&quot;$(ComponentPath)\Install&quot; -dProductId=&quot;$(ProductId)&quot; -dProductVariant=$(ProductVariant)</CandleDefs>
         <CandleDefs>$(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDisplayName=&quot;$(ProductDisplayName)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dUpgradeGUID=$(ProductUpgradeGUID) -dLicenceMId=$(LicenceMachineId)</CandleDefs>
@@ -45,10 +45,25 @@
             DependsOnTargets="OutputProperties;GUID;MSI;Digests"/>
 
     <Target Name="OutputProperties">
-        <CreateProperty Condition="$(ConfigurationName)=='Release'" Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short).msi">
-            <Output TaskParameter="Value" PropertyName="SetupResult" />
+        <CreateProperty Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short)">
+            <Output TaskParameter="Value" PropertyName="MsiBaseName"/>
         </CreateProperty>
-        <CreateProperty Condition="$(ConfigurationName)!='Release'" Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short)-$(ConfigurationName).msi">
+
+        <CreateProperty Condition="$(ProductVariant)==''" Value="">
+            <Output TaskParameter="Value" PropertyName="MsiProjectNameSuffix"/>
+        </CreateProperty>
+        <CreateProperty Condition="$(ProductVariant)!=''" Value="_$(ProductVariant)">
+            <Output TaskParameter="Value" PropertyName="MsiProjectNameSuffix"/>
+        </CreateProperty>
+
+        <CreateProperty Condition="$(ConfigurationName)=='Release'" Value="">
+            <Output TaskParameter="Value" PropertyName="MsiConfigurationNameSuffix"/>
+        </CreateProperty>
+        <CreateProperty Condition="$(ConfigurationName)!='Release'" Value="-$(ConfigurationName)">
+            <Output TaskParameter="Value" PropertyName="MsiConfigurationNameSuffix"/>
+        </CreateProperty>
+
+        <CreateProperty Value="$(MSBuildProjectName)$(MsiProjectNameSuffix)-$(ProductVersion)_$(RFC1766Short)$(MsiConfigurationNameSuffix).msi">
             <Output TaskParameter="Value" PropertyName="SetupResult" />
         </CreateProperty>
         <CreateProperty Value="$(OutputDir)\$(SetupResult)">

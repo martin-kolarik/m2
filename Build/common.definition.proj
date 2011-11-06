@@ -18,6 +18,7 @@
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
         <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
         <ProductVersion Condition="$(ProductVersion)==''">0.0.0</ProductVersion>
+        <ProductVariant Condition="$(ProductVariant)==''">Default</ProductVariant>
         <TestExec Condition="$(TestExec)==''">off</TestExec>
     </PropertyGroup>
 
