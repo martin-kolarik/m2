@@ -43,7 +43,7 @@ ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS io.IOrigina
       R : Resources.TPResources;
    INTERNAL WRITEONLY PROPERTY
       DescriptionSet : StringsO.CString;
-   // INTERNAL PROCEDURE SplitOutputAndCondition( CONST composite : StringsO.IString; OUT output : StringsO.IString; OUT conditionFound : BOOLEAN; OUT condition : StringsO.IString ) : BOOLEAN;
+   INTERNAL PROCEDURE SplitOutputAndCondition( CONST composite : StringsO.IString; OUT output : StringsO.IString; OUT conditionFound : BOOLEAN; OUT condition : StringsO.IString ) : BOOLEAN;
 
    PRIVATE VAR
       _R : Resources.CResources;

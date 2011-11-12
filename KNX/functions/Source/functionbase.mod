@@ -120,15 +120,40 @@ CLASS IMPLEMENTATION CFunctionBase;
    END DescriptionSet;
 
 (*--------------------------------------------------------------------------------*)
-(*
+
    INTERNAL PROCEDURE SplitOutputAndCondition( CONST composite : StringsO.IString; OUT output : StringsO.IString; OUT conditionFound : BOOLEAN; OUT condition : StringsO.IString ) : BOOLEAN;
+   VAR
+      compositeCopy : StringsO.CString;
+      i : CARDINAL;
    BEGIN
-      IF composite.IndexOfChar( 0, L"[" ) = -1 THEN
+      compositeCopy.Assign( composite );
+
+      i := compositeCopy.IndexOfOA( L"[", 0 );
+      IF i = 0 THEN
+         RETURN FALSE;
+
+      ELSIF i = -1 THEN // string starts directly with condition, which is impossible
          conditionFound := FALSE;
-         output.Assign( composite );
-      RETURN FALSE;
+         output.Assign( compositeCopy );
+
+      ELSE
+         // split by i to two parts
+         compositeCopy.Substring( 0, i-1, OUT output );
+         output.Trim();
+
+         compositeCopy.Substring( i+1, -1, OUT condition );
+         // look for trailing ]
+         i := condition.IndexOfOA( L"]", 0 );
+         IF i = -1 THEN // closing ] is missing, bad format
+            RETURN FALSE;
+         END;
+         condition.Remove( i, -1 );
+         condition.Trim();
+         conditionFound := NOT condition.Empty;
+
+      END;
+      RETURN TRUE;
    END SplitOutputAndCondition;
-*)
 (*--------------------------------------------------------------------------------*)
 
 BEGIN

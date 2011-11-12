@@ -320,7 +320,10 @@ CLASS IMPLEMENTATION CString;
    VAR
       ps : TPCString;
    BEGIN
-      IF S IS CString THEN
+      IF ADR( S ) = ADR( IString ) THEN
+         ASSERT( FALSE );
+         RETURN;
+      ELSIF S IS CString THEN
          ps := TPCString( ADR( S ));
       ELSE // I cannot assume anything about S, use generic method
          Copy( S );
@@ -351,6 +354,10 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE CString.Copy( CONST S : IString );
    BEGIN
+      IF ADR( S ) = ADR( IString ) THEN
+         ASSERT( FALSE );
+         RETURN;
+      END;
       _Len := S.Length;
       ReallocateAndFork( _Len, 0 );
       IF _Len > 0 THEN
