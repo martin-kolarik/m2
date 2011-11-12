@@ -27,7 +27,9 @@ CLASS CItem;
 
    LOCAL VAR
       Address : StringsO.CString;
-      Hash : ns.THash := NIL;
+      Hash : ns.THash := ns.hashINVALID;
+      Condition : BOOLEAN := TRUE;
+      ConditionHash : ns.THash := ns.hashINVALID;
       Value : iovalue.Value;
       ShouldTickAt : datetime.DateTime;
 
@@ -64,9 +66,9 @@ CLASS IMPLEMENTATION CItem;
          RETURN FALSE;
       END;
 
-      ShouldTickAt.Add( datetime.DaysToJDC( 7 ));
+      ShouldTickAt.Add( datetime.DaysToJDC( 7 )); // move forward is done always, notwithstanding the condition
 
-      RETURN TRUE;
+      RETURN Condition;
    END ShouldTick;
 
 (*-------------------------------------------------------------------------------*)
@@ -117,6 +119,35 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   VAR
+      item : TPItem;
+      i : CARDINAL;
+   BEGIN
+      // check validity of input
+      IF HIGH( Item ) < 0 THEN
+         RETURN;
+      END;
+      
+      // look for items and check if operation finished sucessfully
+      FOR i := 0 TO HIGH( Item ) DO
+         IF Result[i] IN Sync.arsCompletions THEN
+            
+            _Items.Reset();
+            WHILE _Items.MoveNext() DO
+               item := _Items.Current;
+               IF item^.ConditionHash = Item[i] THEN
+                  item^.Condition := Value[i].Boolean;
+                  Reanalyze( item );
+               END;
+            END; // WHILE
+            
+         END;
+      END;
+   END OnAdvise;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
       IF PoolHandle = _CalendarPeriod THEN
@@ -131,6 +162,9 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       Day = ( Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday );
       Days = SET OF Day;
    VAR
+      condition : StringsO.CString;
+      conditionFound : BOOLEAN;
+      conditionHash : ns.THash;
       day : Day;
       days : Days;
       dt : datetime.DateTime;
@@ -182,13 +216,19 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
 
          // key/output = value, hh:mm [, days]
-         IF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
+         IF NOT SplitOutputAndCondition( key, OUT key, OUT conditionFound, OUT condition ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectOutputConditionFormat ] ), OA( key.Length-1, key.Data ));
+            CONTINUE;
+         ELSIF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
+            CONTINUE;
+         ELSIF conditionFound AND NOT Device^.Mapper()^.NameToHash( condition, OUT conditionHash ) THEN
+	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ConditionGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
          END;
          
          value.SplitS( StringsO.WCHARS{L","}, 0, FALSE, OUT pieces, OUT values );
-         FOR i := 0 TO HIGH( values ) DO
+         FOR i := 0 TO pieces-1 DO
             values[i].Trim();
          END; // FOR
          
@@ -247,6 +287,9 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
                item^.Address := key;
                item^.Hash := hash;
                item^.Value.String := values[0];
+               IF conditionFound THEN
+                  item^.ConditionHash := conditionHash;
+               END;
                _Items.Add( item, 0 );
             END;
          END;
@@ -264,6 +307,10 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
    BEGIN
       StopTimeout( REF _CalendarPeriod );
 
+      IF Device <> NIL THEN
+         Device^.UnadviseAll( ADR( SELF ));
+      END;
+   
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
@@ -276,18 +323,31 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
    VAR
+      conditionValue : iovalue.Value;
       item, furthest : TPItem;
       now : datetime.DateTime := datetime.NowLocal();
       outputs : maps.CPtrMap;
+      result : Sync.TAsyncResult;
    BEGIN
-      // move all expired items to the future
+      // move all expired items to the future and simultaneously initialize Condition
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
          item^.ShouldTick( now );
+
+         // first evaluate condition
+         IF item^.ConditionHash <> ns.hashINVALID THEN
+            result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirRead, item^.ConditionHash, REF conditionValue, NIL );
+            IF result NOT IN Sync.arsCompletions THEN // log error
+	            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read condition value:", OA( item^.Address.Length-1, item^.Address.Data ));
+	            Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
+               CONTINUE;
+            END;
+            item^.Condition := conditionValue.Boolean;
+         END;
       END; // WHILE
 
-      // construct map from items to look for the furthest item
+      // construct map from items to look for the furthest item -- the furthest item is in the same time the last ticket, value of which shall be sent to KNX
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
@@ -303,9 +363,13 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          outputs.Get( item^.Hash, OUT furthest );
          IF furthest = NIL THEN
             furthest := item;
-         ELSIF furthest^.ShouldTickAt < item^.ShouldTickAt THEN
-            furthest := item;
+         ELSIF furthest^.ShouldTickAt >= item^.ShouldTickAt THEN
+            CONTINUE;
+         ELSIF NOT item^.Condition THEN
+            CONTINUE;
          END;
+         // take new furthest item
+         furthest := item;
          outputs.Remove( item^.Hash ); // slow!!, but there is no way how to change DATA of some item in the map
          outputs.Add( item^.Hash, furthest );
       END; // WHILE
@@ -319,6 +383,17 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
       _PoolDelegate.TimeoutSink := ADR( SELF );
       StartTimeout( CALENDAR_PERIOD, FALSE, REF _CalendarPeriod );
+
+      // register advises from condition addresses
+      Device^.JoinClient( ADR( SELF ), io.advWithData );
+      
+      _Items.Reset();
+      WHILE _Items.MoveNext() DO
+         item := _Items.Current;
+         IF item^.ConditionHash <> ns.hashINVALID THEN
+            Device^.AdviseHash( ADR( SELF ), item^.ConditionHash );
+         END;
+      END; // WHILE
    END OnStart;
 
 (*--------------------------------------------------------------------------------*)
@@ -327,6 +402,9 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
    BEGIN
       _PoolDelegate.TimeoutSink := NIL;
       StopTimeout( REF _CalendarPeriod );
+
+      Device^.UnadviseAll( ADR( SELF ));
+      Device^.LeaveClient( ADR( SELF ));
    END OnStop;
    
 (*--------------------------------------------------------------------------------*)
@@ -378,6 +456,39 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value written:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
       END; // _WriteQueue
    END Write;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Reanalyze( analyzedItem : TPItem );
+   // look for last previous item, the item keeps value which should be set to KNX just now
+   VAR
+      furthest : TPItem := NIL;
+      item : TPItem;
+   BEGIN
+      // for each item store the furthest time in the map
+      _Items.Reset();
+      WHILE _Items.MoveNext() DO
+         item := _Items.Current;
+         IF item^.Hash <> analyzedItem^.Hash THEN
+            CONTINUE;
+         END;
+
+         IF furthest = NIL THEN
+            furthest := item;
+         ELSIF furthest^.ShouldTickAt >= item^.ShouldTickAt THEN
+            CONTINUE;
+         ELSIF NOT item^.Condition THEN
+            CONTINUE;
+         END;
+
+         // take new furthest item
+         furthest := item;
+      END; // WHILE
+
+      IF furthest <> NIL THEN
+         Enqueue( furthest );
+      END; // WHILE
+   END Reanalyze;
 
 (*--------------------------------------------------------------------------------*)
 
