@@ -248,6 +248,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
       IF Device <> NIL THEN
          Device^.UnadviseAll( ADR( SELF ));
+         Device^.LeaveClient( ADR( SELF ));
       END;
    
       _Items.Reset();
@@ -335,7 +336,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
          // key/output = value
          IF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._GroupAddressNotFound ] ), OA( s.Length-1, s.Data ));
+	         Log^.LogSSSS( log.lcError, 0, LOGNAME, LOGNAME, OAsz( R^[ Texts._GroupAddressNotFound ] ), OA( key.Length-1, key.Data ), L"" );
             CONTINUE;
          END;
          
