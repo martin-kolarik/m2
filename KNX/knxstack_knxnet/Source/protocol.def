@@ -139,7 +139,7 @@ CLASS CConnection( msghandler.MessageHandler );
    PRIVATE PROCEDURE DataDisconnect(); // first phase
    PRIVATE PROCEDURE DeviceDisconnect(); // second phase
    PRIVATE PROCEDURE ProcessHbFailure();
-   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : knx_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
+   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : knx_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket, omitSeq : BOOLEAN );
 END CConnection;
 
 (*================================================================================*)

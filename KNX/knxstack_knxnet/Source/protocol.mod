@@ -705,9 +705,9 @@ CLASS IMPLEMENTATION CConnection;
    BEGIN
       EMI := packet.EMI;
       IF TestSelfPacket( EMI ) THEN // not to accept telegram from self
-         LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, TRUE );
+         LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, TRUE, TRUE );
       ELSE
-         LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, FALSE );
+         LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, FALSE, TRUE );
          On_L_IND_cEMI( packet.cEMI );
          On_L_IND( EMI );
       END;
@@ -837,9 +837,9 @@ CLASS IMPLEMENTATION CConnection;
       | knx_def.L_Data_CON, knx_def.L_Data_CON_EMI2 : // L_CON
          Error := EMI.GetError();
          IF Error THEN
-            LogPacket( FALSE, L"SEND R_CON error", EMI, ADR( packet ), packet.Length, FALSE );
+            LogPacket( FALSE, L"SEND R_CON error", EMI, ADR( packet ), packet.Length, FALSE, FALSE );
          ELSE
-            LogPacket( FALSE, L"SEND R_CON ok", EMI, ADR( packet ), packet.Length, FALSE );
+            LogPacket( FALSE, L"SEND R_CON ok", EMI, ADR( packet ), packet.Length, FALSE, FALSE );
          END;
          _Logger^.LogSCP( ldDebug, 0, DEBUG_PREFIX, L"SEND R_CON status: ", CARDINAL( ChannelId ), PTR( EMI.GetError() ));
 
@@ -852,7 +852,7 @@ CLASS IMPLEMENTATION CConnection;
          END;
 
       | knx_def.L_Data_IND, knx_def.L_Data_IND_EMI2 : // L_IND
-         LogPacket( FALSE, L"RECEIVE", EMI, ADR( packet ), packet.Length, FALSE );
+         LogPacket( FALSE, L"RECEIVE", EMI, ADR( packet ), packet.Length, FALSE, FALSE );
          On_L_IND_cEMI( packet.cEMI );
          On_L_IND( EMI );
 
@@ -924,7 +924,7 @@ CLASS IMPLEMENTATION CConnection;
       IF _Mode = cmRouting THEN
          rr.EMI := EMI;
 
-         LogPacket( TRUE, L"ROUTED out", EMI, ADR( rr ), rr.Length, FALSE );
+         LogPacket( TRUE, L"ROUTED out", EMI, ADR( rr ), rr.Length, FALSE, TRUE );
 
          StartTimer( PTR( tiACK ), transport.ROUTING_L_CON_TIME_OUT, FALSE );
          res := _Socket^.SendOA( OA( rr.Length-1, ADR( rr ))); // send to internal multicast group
@@ -937,7 +937,7 @@ CLASS IMPLEMENTATION CConnection;
          tr.Sequence := CARD8( OutSeq );
          tr.EMI := EMI;
          
-         LogPacket( TRUE, L"SEND", EMI, ADR( tr ), tr.Length, FALSE );
+         LogPacket( TRUE, L"SEND", EMI, ADR( tr ), tr.Length, FALSE, FALSE );
 
          StartTimer( PTR( tiACK ), transport.TUNNELING_REQUEST_TIME_OUT, FALSE );
          res := _Socket^.SendToOA( OA( tr.Length-1, ADR( tr )), HPAIData.Address ); // send to specified address
@@ -1015,7 +1015,7 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : knx_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
+   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : knx_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket, omitSeq : BOOLEAN );
    VAR
       address : knx_def.TAddress;
       s : ARRAY [0..31] OF WCHAR;
@@ -1036,22 +1036,24 @@ CLASS IMPLEMENTATION CConnection;
          address := packet.GetDestinationAddress();
          IF address.GetAddressType() = knx_def.addressGroup THEN
             address.GetGroupAddress3( TRUE, OUT s );
-            Strings.AppendW( REF out, L" group: " ); _Logger^.LogSS( ldTrace, 0, DEBUG_PREFIX, out, s );
+            Strings.AppendW( REF out, L" group:" ); _Logger^.LogSS( ldTrace, 0, DEBUG_PREFIX, out, s );
          ELSE
             Strings.AppendW( REF out, L" not group" ); _Logger^.LogS( ldTrace, 0, DEBUG_PREFIX, out );
          END;
-         IF NOT outputFlag AND ( InSeq <> AltInSeq ) THEN
+         IF NOT outputFlag AND ( InSeq <> AltInSeq ) AND NOT omitSeq THEN
             Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSH( ldTrace, 0, DEBUG_PREFIX, out, AltInSeq );
          END;
 
          IF NOT _Logger^.FilteredFastCheck( ldDebug, 0 ) THEN
-            IF outputFlag THEN
-               seq := CARDINAL( CARD8( OutSeq ));
-            ELSE
-               seq := CARDINAL( CARD8( InSeq ));
+            IF NOT omitSeq THEN
+               IF outputFlag THEN
+                  seq := CARDINAL( CARD8( OutSeq ));
+               ELSE
+                  seq := CARDINAL( CARD8( InSeq ));
+               END;
+               Strings.ConcatW( OUT out, text, L" seq:" ); _Logger^.LogSH( ldDebug, 0, DEBUG_PREFIX, out, seq );
             END;
-            Strings.ConcatW( OUT out, text, L" seq: " ); _Logger^.LogSH( ldDebug, 0, DEBUG_PREFIX, out, seq );
-            Strings.ConcatW( OUT out, text, L" data: " ); _Logger^.LogSB( ldDebug, 0, DEBUG_PREFIX, out, data, dataLen );
+            Strings.ConcatW( OUT out, text, L" data:" ); _Logger^.LogSB( ldDebug, 0, DEBUG_PREFIX, out, data, dataLen );
          END;
       END;
    END LogPacket;
