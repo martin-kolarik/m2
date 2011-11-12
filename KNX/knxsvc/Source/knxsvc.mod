@@ -416,6 +416,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       END;
    
       IF KNX <> NIL THEN
+         Adviser^.Device := NIL;
          KNX^.Stop();
          KNX^.Dispose();
          DISPOSE( KNX );
