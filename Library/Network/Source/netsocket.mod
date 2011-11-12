@@ -668,6 +668,7 @@ CLASS IMPLEMENTATION SSocket;
 
   INTERNAL PROCEDURE MulticastJoin() : CARDINAL;
   VAR
+    loopback : CARDINAL;
     MReq : WS2TcpIp.ip_mreq;
     res : CARDINAL;
     ttl : CARDINAL;
@@ -689,7 +690,13 @@ CLASS IMPLEMENTATION SSocket;
     END;
 
     ttl := 32; // the same site
-    RETURN winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_MULTICAST_TTL, windows.PSTR( ADR( ttl )), SIZE( ttl ));
+    res := winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_MULTICAST_TTL, windows.PSTR( ADR( ttl )), SIZE( ttl ));
+    IF res <> 0 THEN
+      RETURN res;
+    END;
+
+    loopback := 0; // false
+    RETURN winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_MULTICAST_LOOP, windows.PSTR( ADR( loopback )), SIZE( loopback ));
   END MulticastJoin;
 
 (*--------------------------------------------------------------------------------*)
