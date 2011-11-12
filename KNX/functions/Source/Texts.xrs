@@ -19,9 +19,17 @@
             <item lang="en-US">Configuration section not found: </item>
             <item lang="cs-CZ">Sekce nebyla v konfiguraci nalezena:</item>
         </string>
+        <string name="_IncorrectOutputConditionFormat">
+            <item lang="en-US">Incorrect output with condition format. The valid one is &lt;output&gt;[&lt;condition&gt;], where square bracket part is optional:</item>
+            <item lang="cs-CZ">Nesprávný formát výstupu s podmínkou. Správný zápis je &lt;output&gt;[&lt;condition&gt;], přičemž blok v hranatých závorkách je volitelný:</item>
+        </string>
         <string name="_OutputGroupAddressNotFound">
             <item lang="en-US">An item coresponding to given output address does not exist:</item>
             <item lang="cs-CZ">Prvek (výstup) s uvedenou adresou neexistuje:</item>
+        </string>
+        <string name="_ConditionGroupAddressNotFound">
+            <item lang="en-US">An item coresponding to given condition address does not exist:</item>
+            <item lang="cs-CZ">Prvek (podmínka) s uvedenou adresou neexistuje:</item>
         </string>
         <string name="_InputValuesAreMissing">
             <item lang="en-US">Missing input values addresses (inner setpoint, outer actual)</item>
