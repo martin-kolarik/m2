@@ -995,7 +995,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       END;
       
       Logger.LogSCB( log.ldDebug, 0, LOG_NAME, L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
-      Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
+      Result := Connection.BufferedStream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
       IF Result = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
       END;
@@ -1006,7 +1006,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    PUBLIC PROCEDURE Abort();
    BEGIN
       Automaton^.EventAbort();
-      Connection.Stream^.AbortWriting();
+      Connection.BufferedStream^.AbortWriting();
    END Abort;
 
 //---------------------------------------------------------
