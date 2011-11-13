@@ -68,8 +68,10 @@ TYPE
    TValueType = CARD8( // CARD8 due to presence in TNSPTR
       vtAnalog,
       vtInteger,
-      vtDigital
+      vtDigital,
+      vfUnknown
    );
+   TValueTypeSet = SET CARD8 OF TValueType;
 
 TYPE
    TPacket  = RECORD
@@ -114,7 +116,7 @@ TYPE
    TNSPTR  = RECORD
                 CASE : CARDINAL OF
                 | 0 :
-                  Type : TValueType;
+                  Type : TValueTypeSet;
                   Address : CARD8;
                   Value : INT16;
                 | 1 :
@@ -127,7 +129,7 @@ TYPE
    VAR
       Ptr : TNSPTR;
    BEGIN
-      Ptr.Type := Type;
+      Ptr.Type := TValueType{vfUnknown}; INCL( Ptr.Type, Type );
       Ptr.Address := Address;
       Ptr.Value := 0;
       RETURN Ptr.Ptr;
@@ -643,22 +645,31 @@ END CPacket;
 (*===========================================================================*)
 
 PROCEDURE SetPtrValueDigital( REF Ptr : PTR; Digital : BOOLEAN );
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Digital );
+   EXCL( PPtr^.Type, vfUnknown );
+   PPtr^.Value := INT16( Digital );
 END SetPtrValueDigital;
 
 (*---------------------------------------------------------------------------*)
 
 PROCEDURE SetPtrValueInteger( REF Ptr : PTR; Integer : INTEGER );
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Integer );
+   EXCL( PPtr^.Type, vfUnknown );
+   PPtr^.Value := INT16( Integer );
 END SetPtrValueInteger;
 
 (*---------------------------------------------------------------------------*)
 
 PROCEDURE SetPtrValueAnalog( REF Ptr : PTR; Analog : LONGREAL );
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Analog * 10.0 );
+   EXCL( PPtr^.Type, vfUnknown );
+   PPtr^.Value := INT16( Analog * 10.0 );
 END SetPtrValueAnalog;
 
 (*---------------------------------------------------------------------------*)
@@ -676,28 +687,40 @@ PROCEDURE GetTypeFromPtr( Ptr : PTR ) : TValueType;
 VAR
    PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   RETURN TValueType( PPtr^.Type );
+   IF vtDigital IN PPtr^.Type THEN
+      RETURN vtDigital;
+   ELSIF vtInteger IN PPtr^.Type THEN
+      RETURN vtInteger;
+   ELSIF vtAnalog IN PPtr^.Type THEN
+      RETURN vtAnalog;
+   ELSE
+      ASSERTLOG( FALSE );
+      RETURN vtDigital;
+   END;
 END GetTypeFromPtr;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE GetValueFromPtr( Ptr : PTR; OUT Value : iovalue.Value );
+PROCEDURE GetValueFromPtr( Ptr : PTR; OUT Value : iovalue.Value ) : BOOLEAN;
 VAR
    PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   CASE PPtr^.Type OF
-   | vtDigital :
+   IF vfUnknown IN PPtr^.Type THEN
+      Value.Dispose();
+      RETURN FALSE;
+   ELSIF vtDigital IN PPtr^.Type THEN
       Value.Type := iovalue.vtBoolean;
       Value.Boolean := BOOLEAN( PPtr^.Value );
-   | vtInteger :
+   ELSIF vtInteger IN PPtr^.Type THEN
       Value.Type := iovalue.vtInteger;
       Value.Integer := INTEGER( PPtr^.Value );
-   | vtAnalog :
+   ELSIF vtAnalog IN PPtr^.Type THEN
       Value.Type := iovalue.vtFloat;
       Value.Float := LONGREAL( PPtr^.Value ) / 10.0;
    ELSE
       ASSERTLOG( FALSE );
    END;
+   RETURN TRUE;
 END GetValueFromPtr;
 
 (*---------------------------------------------------------------------------*)
@@ -706,12 +729,11 @@ PROCEDURE SetValueToPtr( REF Ptr : PTR; CONST Value : iovalue.Value );
 VAR
    PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   CASE PPtr^.Type OF
-   | vtDigital :
+   IF vtDigital IN PPtr^.Type THEN
       SetPtrValueDigital( REF Ptr, Value.Boolean );
-   | vtInteger :
+   ELSIF vtInteger IN PPtr^.Type THEN
       SetPtrValueInteger( REF Ptr, Value.Integer );
-   | vtAnalog :
+   ELSIF vtAnalog IN PPtr^.Type THEN
       SetPtrValueAnalog( REF Ptr, Value.Float );
    ELSE
       ASSERTLOG( FALSE );
@@ -1323,7 +1345,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       END;
 
       Logger.LogSCB( log.ldDebug, 0, LOG_NAME, L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
-      Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
+      Result := Connection.BufferedStream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
       IF Result = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
       END;
@@ -1336,7 +1358,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       Automaton^.EventAbort();
       StopTimeout( REF _TxTimeoutHandle );
       StopTimeout( REF _RxTimeoutHandle );
-      Connection.Stream^.AbortWriting();
+      Connection.BufferedStream^.AbortWriting();
    END Abort;
 
 //---------------------------------------------------------
@@ -1500,13 +1522,18 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
-      Result : Sync.TAsyncResult := Sync.arCompleted;
+      Result : Sync.TAsyncResult;
    BEGIN
       IF Direction = IOO.dirRead THEN // get data immediatelly
-         GetValueFromPtr( nsitem.TPnsItem( Item )^.Data, OUT Value );
-         Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
+         IF GetValueFromPtr( nsitem.TPnsItem( Item )^.Data, OUT Value ) THEN
+            Result := Sync.arCompleted;
+            Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
+         ELSE
+            Result := Sync.arNoData;
+            Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, NIL ), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+         END;
+         RETURN Result;
          
-         RETURN Sync.arCompleted;
       ELSE
          _Pending := Direction;
          _Item := Item;
