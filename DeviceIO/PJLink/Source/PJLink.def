@@ -1,0 +1,211 @@
+DEFINITION MODULE Integra;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+	device,
+	helper,
+	INIFile,
+	io,
+	IOO,
+	iovalue,
+   lists,
+	log,
+	netsocket,
+	ns,
+	nsitem,
+	rawconnection,
+	StorageO,
+	StringsO,
+	Sync,
+	threadpool;
+	
+(*===========================================================================*)
+
+TYPE
+	TPIO = POINTER TO CIO;
+	TPNS = POINTER TO CNS;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CNS( nsitem.Ans );
+   LOCAL VAR
+      DataRoot : nsitem.TPnsItem;
+
+   // IMapper
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+
+   // Ans
+	INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
+	INTERNAL VIRTUAL PROCEDURE CreateStructure();
+
+   // SELF
+	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
+END CNS;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPPacket = POINTER TO CPacket;
+
+INTERFACE IAutomatonRequest;
+   PROCEDURE OnData( Packet : TPPacket );
+   PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
+   PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
+END IAutomatonRequest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl;
+   PRIVATE VAR
+      _Lock : Sync.LOCK;
+      _Driven : POINTER TO IAutomatonRequest;
+      _Running : BOOLEAN := FALSE;
+
+   // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   
+   // SELF      
+   PUBLIC PROCEDURE Init( REF Driven : IAutomatonRequest );
+
+   // events -- coming from DeviceCommunicator
+   PUBLIC PROCEDURE EventAbort();
+   PUBLIC PROCEDURE EventInfo( Packet : TPPacket );
+   PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
+
+END CDeviceAutomaton;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink, IAutomatonRequest;
+	LOCAL VAR
+		PIO : TPIO;
+		Connection : rawconnection.ClientTCPConnection;
+		RxBuffer : StorageO.CMemoryBuffer;
+		Logger : log.CLogger;
+		Automaton : POINTER TO CDeviceAutomaton;
+      AreaList : lists.CStringList;
+
+   PRIVATE VAR
+      _AppenderList : lists.CPtrList;
+		_HostAddress : StringsO.CString;
+      _LastReceiveTime : CARDINAL;
+		_ConnectionTimeoutHandle : threadpool.TPoolHandle;
+		_PoolDelegate : threadpool.CSinkDelegate;
+      _Running : BOOLEAN := FALSE;
+
+   // ASocketNotifier
+   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
+   PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
+
+   // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   
+   // ITimeoutSink
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+
+   // IAutomatonRequest
+   PUBLIC VIRTUAL PROCEDURE OnData( Packet : TPPacket );
+   PUBLIC VIRTUAL PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
+   PUBLIC VIRTUAL PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
+
+   // from CSerial
+   INTERNAL VIRTUAL PROCEDURE DetectDataStart( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexOfFrame, FirstIndexOfData : CARDINAL ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
+
+	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
+	
+	// SELF
+	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Dispose();
+   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE );
+   PUBLIC PROCEDURE Abort();
+   
+   // private
+	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer );
+   PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; REF Handle : threadpool.TPoolHandle );
+   PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
+END CDeviceCommunicator;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TPNSI = POINTER TO CNSI;
+
+CLASS CIO( io.AItemizedIO );
+	LOCAL VAR
+		DeviceCommunicator : CDeviceCommunicator;
+		DeviceAutomaton : CDeviceAutomaton;
+		DataRoot : nsitem.TPnsItem;
+	PRIVATE VAR
+		_AbortFlag : BOOLEAN;
+		_Pending : IOO.TDirection;
+		_Item : nsitem.TPnsItem;
+		_Callback : io.TPDataInfo;
+      _Lock : Sync.LOCK;
+
+	PUBLIC PROCEDURE Dispose();
+
+   // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+
+   // IIO
+   PUBLIC VIRTUAL READONLY PROPERTY
+      IOCapabilities : io.TCapabilities;
+      Pending : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY
+      Advise : io.TAdvise;
+      AdviseListener : io.TPIAdviseInfo;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
+	PUBLIC VIRTUAL PROCEDURE AbortAll();
+
+   // SELF
+	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
+	LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
+END CIO;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+
+   // IObject
+   PUBLIC FINAL READONLY PROPERTY
+      Type : iobject.TObjectType;
+   PUBLIC FINAL PROPERTY
+      Library : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROCEDURE OnDispose();
+
+   // IDevice
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DeviceCapabilities : device.TCapabilities;
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+
+   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+
+   // self
+	PRIVATE VAR
+		_NS : CNS;
+		_IO : CIO;
+
+   PRIVATE PROCEDURE FillNsWithLoadedConfiguration();
+
+END CIntegraDevice;
+
+(*---------------------------------------------------------------------------*)
+
+END Integra.
