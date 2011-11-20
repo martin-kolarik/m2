@@ -1,0 +1,100 @@
+DEFINITION MODULE Request;
+// Request is a delegate, which has waitable and completion interface. It is meant as a base
+// for various communication or synchronization tasks.
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   Delegate,
+   Sync;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPICompletable = POINTER TO ICompletable;
+
+INTERFACE ICompletable;
+
+   READONLY PROPERTY
+      // Implementor
+      Completed : BOOLEAN; // means real status, if WaitForCompletion fails with timeout, Completed still remains in FALSE state until real completion occurs.
+      Result : Sync.TAsyncResult;
+
+   PROCEDURE Reset();
+   PROCEDURE WaitForCompletion( Timeout : CARDINAL ) : Sync.TAsyncResult; // arTimeout or copies Result property
+
+END ICompletable;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPIAbortable = POINTER TO IAbortable;
+
+INTERFACE IAbortable;
+
+   PROCEDURE Abort();
+
+END IAbortable;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPICompletionSink = POINTER TO ICompletionSink;
+
+INTERFACE ICompletionSink;
+   
+   PROCEDURE OnCompleted( CONST WhatCompleted : ICompletable );
+
+END ICompletionSink;
+
+(*================================================================================*)
+
+TYPE
+   TPRequest = POINTER TO CRequest;
+
+CLASS CRequest( Delegate.ADelegate ) IMPLEMENTS ICompletable;
+
+   // ICompletable
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Completed : BOOLEAN;
+      Result : Sync.TAsyncResult;
+
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE WaitForCompletion( Timeout : CARDINAL ) : Sync.TAsyncResult; // arTimeout or copies Result property
+
+   // SELF
+   PUBLIC PROCEDURE Complete( Result : Sync.TAsyncResult ); // Principal completion action, callable from any source. First it sets Result, then calls Sink, then signalizes Signal.
+
+   PUBLIC PROPERTY
+      SignalType : Sync.TSignalType; // GET part does not work. TODO, it requires change in SIGNAL class
+      Sink : TPICompletionSink;
+      Value : PTR; // for user data
+
+   // private
+   PRIVATE VAR
+      _Signal : Sync.SIGNAL;
+      _Result : Sync.TAsyncResult := Sync.arUnknown; // arUnknown means "NOT Completed"
+      _Sink : TPICompletionSink := NIL;
+      _Value : PTR := 0;
+
+END CRequest;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CAbortableRequest( CRequest ) IMPLEMENTS IAbortable;
+
+   // IAbortable
+   PUBLIC VIRTUAL PROCEDURE Abort();
+
+END CAbortableRequest;
+
+(*================================================================================*)
+
+#restore
+
+END Request.
