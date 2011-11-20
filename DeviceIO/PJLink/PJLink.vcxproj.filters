@@ -15,13 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Source\Integra.mod">
+    <None Include="Source\PJLink.mod">
       <Filter>Source Files</Filter>
     </None>
     <None Include="Source\iface.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\Integra.def">
+    <None Include="Source\PJLink.def">
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\iface.def">
@@ -30,7 +30,7 @@
     <None Include="Source\Texts.xrs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Integra.definition.proj" />
-    <None Include="Integra.proj" />
+    <None Include="PJLink.definition.proj" />
+    <None Include="PJLink.proj" />
   </ItemGroup>
 </Project>

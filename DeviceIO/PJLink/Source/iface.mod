@@ -9,7 +9,7 @@ IMPORT
    cllv,
    device,
    helper,
-   Integra;
+   PJLink;
 
 (*===========================================================================*)
 
@@ -78,7 +78,7 @@ CLASS IMPLEMENTATION CCreator;
       IF NOT EQUALS( QName, nDeviceIO ) THEN
          RETURN iobject.lrClassNotFound;
       END;
-      Object := ADR( NEW( Integra.CIntegraDevice )^.IDevice );
+      Object := ADR( NEW( PJLink.CPJLinkDevice )^.IDevice );
       RETURN iobject.lrSuccess;
    END OnFactory;
 

@@ -10,7 +10,7 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='Integra'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='PJLink'">
         <Result>Dynamic</Result>
     </PropertyGroup>
 

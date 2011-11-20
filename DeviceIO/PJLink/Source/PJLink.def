@@ -1,4 +1,4 @@
-DEFINITION MODULE Integra;
+DEFINITION MODULE PJLink;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -46,63 +46,29 @@ END CNS;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-   TPPacket = POINTER TO CPacket;
+CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
 
-INTERFACE IAutomatonRequest;
-   PROCEDURE OnData( Packet : TPPacket );
-   PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
-   PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
-END IAutomatonRequest;
-
-(*---------------------------------------------------------------------------*)
-
-CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl;
-   PRIVATE VAR
-      _Lock : Sync.LOCK;
-      _Driven : POINTER TO IAutomatonRequest;
-      _Running : BOOLEAN := FALSE;
-
-   // IStartStopControl
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Running : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE Stop();
-   
-   // SELF      
-   PUBLIC PROCEDURE Init( REF Driven : IAutomatonRequest );
-
-   // events -- coming from DeviceCommunicator
-   PUBLIC PROCEDURE EventAbort();
-   PUBLIC PROCEDURE EventInfo( Packet : TPPacket );
-   PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
-
-END CDeviceAutomaton;
-
-(*---------------------------------------------------------------------------*)
-
-CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink, IAutomatonRequest;
 	LOCAL VAR
 		PIO : TPIO;
-		Connection : rawconnection.ClientTCPConnection;
-		RxBuffer : StorageO.CMemoryBuffer;
 		Logger : log.CLogger;
-		Automaton : POINTER TO CDeviceAutomaton;
-      AreaList : lists.CStringList;
 
    PRIVATE VAR
       _AppenderList : lists.CPtrList;
-		_HostAddress : StringsO.CString;
-      _LastReceiveTime : CARDINAL;
-		_ConnectionTimeoutHandle : threadpool.TPoolHandle;
-		_PoolDelegate : threadpool.CSinkDelegate;
       _Running : BOOLEAN := FALSE;
+      _Lock : Sync.LOCK;
+		_HostAddress : StringsO.CString;
+		_Connection : rawconnection.ClientTCPConnection;
+		_ConnectionCloseTimeoutHandle : threadpool.TPoolHandle;
+		_PoolDelegate : threadpool.CSinkDelegate;
+      _Queue : lists.CStringList;
+		_Reader : TextReader.CTextReader;
 
    // ASocketNotifier
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
 
    // IStartStopControl
+   // ???
    PUBLIC VIRTUAL READONLY PROPERTY
       Running : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
@@ -111,46 +77,26 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    // ITimeoutSink
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
-   // IAutomatonRequest
-   PUBLIC VIRTUAL PROCEDURE OnData( Packet : TPPacket );
-   PUBLIC VIRTUAL PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
-   PUBLIC VIRTUAL PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
-
-   // from CSerial
-   INTERNAL VIRTUAL PROCEDURE DetectDataStart( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexOfFrame, FirstIndexOfData : CARDINAL ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
-
-	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
-	
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE Dispose();
-   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE );
-   PUBLIC PROCEDURE Abort();
+
+   PUBLIC PROCEDURE Request( CONST request : StringsO.IString );
    
    // private
-	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer );
+   PRIVATE PROCEDURE FlushQueue();
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; REF Handle : threadpool.TPoolHandle );
    PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
 END CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-	TPNSI = POINTER TO CNSI;
-
 CLASS CIO( io.AItemizedIO );
+
 	LOCAL VAR
 		DeviceCommunicator : CDeviceCommunicator;
-		DeviceAutomaton : CDeviceAutomaton;
 		DataRoot : nsitem.TPnsItem;
 	PRIVATE VAR
-		_AbortFlag : BOOLEAN;
-		_Pending : IOO.TDirection;
-		_Item : nsitem.TPnsItem;
-		_Callback : io.TPDataInfo;
       _Lock : Sync.LOCK;
 
 	PUBLIC PROCEDURE Dispose();
@@ -172,13 +118,12 @@ CLASS CIO( io.AItemizedIO );
 	PUBLIC VIRTUAL PROCEDURE AbortAll();
 
    // SELF
-	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
-	LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
+	LOCAL PROCEDURE OnResponse( response : StringsO.CString );
 END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CPJLinkDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 
    // IObject
    PUBLIC FINAL READONLY PROPERTY
@@ -202,10 +147,8 @@ CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 		_NS : CNS;
 		_IO : CIO;
 
-   PRIVATE PROCEDURE FillNsWithLoadedConfiguration();
-
-END CIntegraDevice;
+END CPJLinkDevice;
 
 (*---------------------------------------------------------------------------*)
 
-END Integra.
+END PJLink.

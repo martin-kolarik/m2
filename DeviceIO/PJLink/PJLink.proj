@@ -6,13 +6,10 @@
     <PropertyGroup>
         <ComponentType>Product</ComponentType>
 
-        <ProjectId>NeNo.DeviceIO.Integra</ProjectId>
+        <ProjectId>NeNo.DeviceIO.PJLink</ProjectId>
         <ProjectVersionMajor>1</ProjectVersionMajor>
         <ProjectVersionMinor>0</ProjectVersionMinor>
-        <ProjectDescription>Integra Security System IO</ProjectDescription>
-
-        <ClientLicensing>on</ClientLicensing>
-        <ClientLicensingType>Plugin</ClientLicensingType>
+        <ProjectDescription>PJLink -- a projector controlling protocol</ProjectDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -23,7 +20,7 @@
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32" />
         <Components Include="Component\sccore;Library\DeviceIO"/>
-        <Modules Include="Integra;iface"/>
+        <Modules Include="PJLink;iface"/>
         <Messages Include="Texts"/>
     </ItemGroup>
 
