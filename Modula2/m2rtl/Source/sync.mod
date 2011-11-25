@@ -924,6 +924,31 @@ BEGIN
 END IGetPtr;
 
 (*================================================================================*)
+
+PROCEDURE IGetAR( REF Variable : TAsyncResult ) : TAsyncResult;
+BEGIN
+   ASSERT( SIZE( INT32 ) = 4 );
+   RETURN TAsyncResult( IExchgAdd( REF PINT32( ADR( Variable ))^, 0 ));
+END IGetAR;
+
+(*--------------------------------------------------------------------------------*)
+  
+PROCEDURE ISetAR( REF Variable : TAsyncResult; NewValue : TAsyncResult );
+BEGIN
+   ASSERT( SIZE( INT32 ) = 4 );
+   IExchg( REF PINT32( ADR( Variable ))^, INT32( NewValue ));
+END ISetAR;
+
+(*--------------------------------------------------------------------------------*)
+  
+PROCEDURE IExchgAR( REF Variable : TAsyncResult; NewValue : TAsyncResult; OUT PreviousValue : TAsyncResult ) : BOOLEAN; // returns if value changed
+BEGIN
+   ASSERT( SIZE( INT32 ) = 4 );
+   PreviousValue := TAsyncResult( IExchg( REF PINT32( ADR( Variable ))^, INT32( NewValue )));
+   RETURN PreviousValue <> NewValue;
+END IExchgAR;
+
+(*================================================================================*)
 // signalling
 
 #save, option( leak_info => on )

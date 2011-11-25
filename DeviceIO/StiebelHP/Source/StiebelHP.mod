@@ -515,7 +515,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       Data : StorageO.CMemoryBuffer;
    BEGIN
-      Connection.Stream^.ReadBuffer( 2048, REF Data, 0 );
+      Connection.BufferedStream^.ReadBuffer( 2048, REF Data, 0 );
       HandleRx( Sync.arCompleted, REF Data );
       Connection.BufferedStream^.StartReading();
    END OnReadable;
@@ -668,7 +668,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		END;
 
 		Logger.LogSCB( log.ldDebug, 0, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
-		Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
+		Result := Connection.BufferedStream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
 		IF Result = Sync.arTimeout THEN
 		   ASSERTLOG( FALSE );
 		END;
@@ -680,7 +680,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       StopTimeout( REF _TxTimeoutHandle );
       StopTimeout( REF _RxTimeoutHandle );
-		Connection.Stream^.AbortWriting();
+		Connection.BufferedStream^.AbortWriting();
    END Abort;
 
 //---------------------------------------------------------

@@ -201,5 +201,11 @@
     <None Include="Source\collection.def">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="Source\request.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\request.mod">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
