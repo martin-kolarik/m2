@@ -458,6 +458,9 @@ CLASS IMPLEMENTATION ABridge;
    BEGIN
       _Logger.LogS( log.ldMessage, 0, L"IOSDAPBridge", L"Started" );
 
+      s[0] := 114W;
+      WHILE s[0] = 114W DO END;
+
       _Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( L"", OUT s );
       lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF _Result );

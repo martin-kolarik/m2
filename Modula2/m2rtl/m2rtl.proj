@@ -16,7 +16,7 @@
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Definitions Include="Rtti"/>
-        <Modules Include="Exceptions;Storage;lrconv;Strings;FIO;datetime;datetimeWin32;Mathematics;Languages;Sync;SyncQueue;Delegate;iLog;Log;IObject;Folders;Debug;Tls"/>
+        <Modules Include="Exceptions;Storage;lrconv;Strings;FIO;datetime;datetimeWin32;Mathematics;Languages;Sync;SyncQueue;Delegate;Request;iLog;Log;IObject;Folders;Debug;Tls"/>
         <!-- Messages Include="XX1;XX2"/ -->
         <Libraries Include="advapi32"/>
         <Interface Include="advapi32"/>

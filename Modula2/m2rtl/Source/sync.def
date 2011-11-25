@@ -143,15 +143,20 @@ CONST
    ivNOTSET = 0;
 
 // for synchronization issues preferably use SpinLock* procedures above to leave system-wide compatible behavior
-PROCEDURE ICmpExchg( REF Destination : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
-PROCEDURE ICmpExchgPtr( REF Destination : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
-PROCEDURE IDec( REF Addend : INT32 ) : INT32;
-PROCEDURE IExchg( REF Target : INT32; Value : INT32 ) : INT32;
-PROCEDURE IExchgAdd( REF Addend : INT32; Value : INT32 ) : INT32;
-PROCEDURE IExchgPtr( REF Destination : ADDRESS; Value : ADDRESS ) : ADDRESS;
-PROCEDURE IInc( REF Addend : INT32 ): INT32;
-PROCEDURE IGet( REF Value : INT32 ) : INT32;
-PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
+PROCEDURE ICmpExchg( REF Variable : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
+PROCEDURE ICmpExchgPtr( REF Variable : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
+PROCEDURE IDec( REF Variable : INT32 ) : INT32;
+PROCEDURE IExchg( REF Variable : INT32; Value : INT32 ) : INT32;
+PROCEDURE IExchgAdd( REF Variable : INT32; Value : INT32 ) : INT32;
+PROCEDURE IExchgPtr( REF Variable : ADDRESS; Value : ADDRESS ) : ADDRESS;
+PROCEDURE IInc( REF Variable : INT32 ) : INT32;
+PROCEDURE IGet( REF Variable : INT32 ) : INT32;
+PROCEDURE IGetPtr( REF Variable : ADDRESS ) : ADDRESS;
+
+// synchronized access to typed values
+PROCEDURE IGetAR( REF Variable : TAsyncResult ) : TAsyncResult;
+PROCEDURE ISetAR( REF Variable : TAsyncResult; NewValue : TAsyncResult );
+PROCEDURE IExchgAR( REF Variable : TAsyncResult; NewValue : TAsyncResult; OUT PreviousValue : TAsyncResult ) : BOOLEAN; // returns if value changed
 
 (*--------------------------------------------------------------------------------*)
 // atomic signalling

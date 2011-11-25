@@ -378,8 +378,7 @@
                        )"
             DependsOnTargets="ComponentCode">
         <Exec Condition="$(Result)=='Program' Or $(Result)=='Dynamic'"
-              Command="signtool sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"
-              ContinueOnError="true"/>
+              Command="signtool sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"/>
     </Target>
 
     <Target Name="Component"
