@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   delegate,
    StringsO,
    Sync,
    IOO;
@@ -45,7 +46,7 @@ END IDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDataInfo( Delegate.ADelegate );
+CLASS CDataInfo( delegate.Delegate );
    PUBLIC VAR
       AdviseSink : TPIAdviseInfo;
       DataInfoSink : TPIDataInfo;

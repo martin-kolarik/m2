@@ -55,21 +55,21 @@ ABSTRACT CLASS APlugin( APluginObject ) IMPLEMENTS iplugin.IPlugin, baseobject.I
       HostHandle : PTR;
 
    // IRefcounterClient
-   PUBLIC FINAL PROCEDURE OnFirstAddRef( CONST Source : baseobject.TPIRefcounter );
-   PUBLIC FINAL PROCEDURE OnLastRelease( CONST Source : baseobject.TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnFirstAddRef( CONST Source : baseobject.TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnLastRelease( CONST Source : baseobject.TPIRefcounter );
 
    // SELF = APlugin
    // Main creation entry point called from DLL procedure Factory. The procedure calls CreateObject, which then should contain all user class creations.
    PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
 
    INTERNAL READONLY PROPERTY
-      Refcounter : baseobject.TPRefcounter;
+      Refcounter : baseobject.TPIRefcounter;
 
    LOCAL VAR
       _Host : StringsO.CString;
       _HostVersion : StringsO.CString;
       _HostHandle : PTR;
-      _Refcounter : baseobject.CRefcounter; // to handle singleton behavior of APlugin
+      _Refcounter : baseobject.CRefcounterImplHelper; // to handle singleton behavior of APlugin
 
 END APlugin;
 

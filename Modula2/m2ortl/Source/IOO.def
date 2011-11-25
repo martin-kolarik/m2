@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-  Delegate,
+  delegate,
   Exceptions,
   StorageO,
   Sync,
@@ -61,7 +61,7 @@ TYPE
       cbmDefault = cbmMainThread
    );
 
-ABSTRACT CLASS ADataInfo( Delegate.ADelegate ); // POSSIBLY FOREIGN THREAD
+ABSTRACT CLASS ADataInfo( delegate.Delegate ); // POSSIBLY FOREIGN THREAD
    PUBLIC VIRTUAL PROCEDURE OnError( Direction : TDirection; Error : CARDINAL; Source : ADDRESS; SourceSpecificCode : LONGWORD );
    PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : TDirection; Source : ADDRESS );
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );

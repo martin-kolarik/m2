@@ -63,6 +63,8 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="Source\basecompletion.def" />
+    <None Include="Source\basecompletion.mod" />
     <None Include="Source\baseobject.def" />
     <None Include="Source\baseobject.mod" />
     <None Include="Source\collection.def" />

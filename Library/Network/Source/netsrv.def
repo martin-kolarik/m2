@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   delegate,
    inetaddr,
    ioo,
    netsocket;
@@ -74,7 +75,7 @@ PROCEDURE newInterfaceEnumerator( IPV4 : BOOLEAN; IPV6 : BOOLEAN; OUT Enumerator
 TYPE
   TPListener = POINTER TO AListener;
 
-LOCAL CLASS AListener( Delegate.ADelegate );
+LOCAL CLASS AListener( delegate.Delegate );
   LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket ); // stStream
   LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
   LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket ); // both types

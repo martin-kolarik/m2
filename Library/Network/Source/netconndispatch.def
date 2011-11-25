@@ -4,7 +4,7 @@ DEFINITION MODULE netconndispatch; // network connections dispatcher
   
 IMPORT
   arrays,
-  Delegate,
+  delegate,
   inetaddr,
   maps,
   msghandler,
@@ -26,7 +26,7 @@ TYPE
 
 //--------------------------------------------------------------------------------
   
-CLASS CClientInterface( Delegate.ADelegate );
+CLASS CClientInterface( delegate.Delegate );
   INTERNAL VAR
     PDispatcher : TPDispatcher;
     

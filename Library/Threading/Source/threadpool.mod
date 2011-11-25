@@ -285,7 +285,7 @@ CLASS IMPLEMENTATION CPoolThread;
                CheckEmpty := TRUE;
             | tskTimeoutRepeated :
                Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE, OUT disposable );
-               Task^.Delegate^.Completed := FALSE;
+               // TODO Task^.Delegate^.Completed := FALSE;
                AddTask( CurrentTime, Task );
             | tskWorker :
                // workers are logically timeouted, but they must be removed after completion, allow worker run
@@ -350,7 +350,7 @@ CLASS IMPLEMENTATION CPoolThread;
                DISPOSE( Task );
             END;
          ELSE
-            Task^.Delegate^.Completed := FALSE;
+            // TODO Task^.Delegate^.Completed := FALSE;
          END;
 
          RETURN TRUE; // check empty
@@ -387,7 +387,7 @@ CLASS IMPLEMENTATION CPoolThread;
             IF removeTask THEN
                HandleListToRemove.Add( Task, PTR( disposable ));
             ELSE
-               Task^.Delegate^.Completed := FALSE; // after calling Complete reset notification flag
+               // TODO Task^.Delegate^.Completed := FALSE; // after calling Complete reset notification flag
                HandleListToLeave.Add( Task, PTR( disposable ));
             END;
          END; // WHILE
@@ -580,7 +580,7 @@ CLASS IMPLEMENTATION CPoolThread;
       DisposeTask := FALSE; // for safety
     END;
 
-    Task^.Delegate^.Completed := TRUE;
+    // TODO Task^.Delegate^.Completed := TRUE;
     IF Pool = NIL THEN
       Disposable := TRUE;
     ELSIF PMSG = NIL THEN

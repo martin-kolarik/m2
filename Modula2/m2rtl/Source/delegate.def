@@ -1,46 +1,36 @@
-DEFINITION MODULE Delegate;
+DEFINITION MODULE delegate;
 // Modula2 Delegates handling module -- Delegate is an object, which is shared between more owners.
-// The object must solve race condition during finishing/deallocating.
-
-FROM Storage IMPORT
-  ALLOCATE, DEALLOCATE;
+// The object solves race condition during finishing/deallocating.
 
 IMPORT
-  Exceptions;
+   basecompletion,
+   baseobject,
+   Sync;
 
 #save, option( dll_export => on )
 
-//--------------------------------------------------------------------------------
+(*================================================================================*)
 
-FINAL CLASS CDelegateException( Exceptions.CGenericException );
-END CDelegateException;
+CLASS Delegate( baseobject.CRefcounted );
+// AFTER CREATION (either static or NEW) THE _References = 1, see CRefcounted !!
+// This simplifies usage to NEW/Release only and solves problems with static instances,
+// for which AddRef/Release is used.
 
-PROCEDURE DelegateException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CDelegateException;
+   // CRefcounted
+   // AddRef
+   // Release
 
-//--------------------------------------------------------------------------------
+   // SELF
+   PUBLIC PROPERTY
+      Value : PTR; // to store user data
 
-ABSTRACT CLASS ADelegate; // AFTER CREATION (either static or NEW) THE _References = 1 !!
-                          // This simplifies usage to NEW/Release only and solves problems with static instances,
-                          // for which AddRef/Release is used.
-  PRIVATE VAR
-    _References : CARDINAL;
-    _dlgCompleted  : CARDINAL;
-  PUBLIC READONLY PROPERTY
-     References : CARDINAL;
-  PUBLIC PROPERTY
-     dlgCompleted : BOOLEAN;
+   PRIVATE VAR
+      _Value : PTR := 0;
 
-  PUBLIC PROCEDURE AddRef() : CARDINAL;
-  #save, option( leak_info => on )
-  PUBLIC PROCEDURE Release() : CARDINAL;
-  #restore
-  PUBLIC VIRTUAL FINALLY ADelegate();
-  
-  PRIVATE OPERATOR DISPOSE( a : ADDRESS );
-END ADelegate;
+END Delegate;
 
-//--------------------------------------------------------------------------------
+(*================================================================================*)
 
 #restore
 
-END Delegate.
+END delegate.

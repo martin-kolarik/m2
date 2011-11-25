@@ -2,7 +2,7 @@ DEFINITION MODULE threadpool;
 
 IMPORT
    avltree,
-   Delegate,
+   delegate,
    lists,
    msghandler,
    msgqueue,
@@ -44,7 +44,7 @@ END IWorkerSink;
 TYPE
   TPPoolDelegate = POINTER TO APoolDelegate;
 
-ABSTRACT CLASS APoolDelegate( Delegate.ADelegate ) IMPLEMENTS ITimeoutSink, IMessageSink, IHandleSink, IWorkerSink;
+ABSTRACT CLASS APoolDelegate( delegate.Delegate ) IMPLEMENTS ITimeoutSink, IMessageSink, IHandleSink, IWorkerSink;
   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
   LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
@@ -85,7 +85,7 @@ END CMessageHandlerDelegate;
 TYPE
   TPPoolWorker = POINTER TO APoolWorker;
 
-ABSTRACT CLASS APoolWorker( Delegate.ADelegate );
+ABSTRACT CLASS APoolWorker( delegate.Delegate );
   LOCAL ABSTRACT PROCEDURE Run();
 END APoolWorker;
 

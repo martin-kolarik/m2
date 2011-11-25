@@ -86,14 +86,14 @@ CLASS IMPLEMENTATION APlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE OnFirstAddRef( CONST Source : baseobject.TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnFirstAddRef( CONST Source : baseobject.TPIRefcounter );
    BEGIN
       // intentionally left empty
    END OnFirstAddRef;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE OnLastRelease( CONST Source : baseobject.TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnLastRelease( CONST Source : baseobject.TPIRefcounter );
    VAR
       a : POINTER TO APlugin := ADR( SELF );
    BEGIN
@@ -110,9 +110,9 @@ CLASS IMPLEMENTATION APlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL PROPERTY Refcounter GET : baseobject.TPRefcounter;
+   INTERNAL PROPERTY Refcounter GET : baseobject.TPIRefcounter;
    BEGIN
-      RETURN ADR( _Refcounter );
+      RETURN ADR( _Refcounter.IRefcounter );
    END Refcounter;
 
 (*---------------------------------------------------------------------------*)

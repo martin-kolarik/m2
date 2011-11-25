@@ -1,14 +1,12 @@
-DEFINITION MODULE Request;
+DEFINITION MODULE request;
 // Request is a delegate, which has waitable and completion interface. It is meant as a base
 // for various communication or synchronization tasks.
 
 (*================================================================================*)
 
-FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
-
 IMPORT
-   Delegate,
+   basecompletion,
+   delegate,
    Sync;
 
 #save, option( dll_export => on )
@@ -16,50 +14,42 @@ IMPORT
 (*================================================================================*)
 
 TYPE
-   TPICompletable = POINTER TO ICompletable;
+   TPCompletable = POINTER TO Completable;
 
-INTERFACE ICompletable;
+CLASS Completable( delegate.Delegate ) IMPLEMENTS basecompletion.ICompletable;
 
-   READONLY PROPERTY
-      // Implementor
-      Completed : BOOLEAN; // means real status, if WaitForCompletion fails with timeout, Completed still remains in FALSE state until real completion occurs.
-      Result : Sync.TAsyncResult;
-
-   PROCEDURE Reset();
-   PROCEDURE WaitForCompletion( Timeout : CARDINAL ) : Sync.TAsyncResult; // arTimeout or copies Result property
-
-END ICompletable;
-
-(*--------------------------------------------------------------------------------*)
-
-TYPE
-   TPIAbortable = POINTER TO IAbortable;
-
-INTERFACE IAbortable;
-
-   PROCEDURE Abort();
-
-END IAbortable;
-
-(*--------------------------------------------------------------------------------*)
-
-TYPE
-   TPICompletionSink = POINTER TO ICompletionSink;
-
-INTERFACE ICompletionSink;
-   
-   PROCEDURE OnCompleted( CONST WhatCompleted : ICompletable );
-
-END ICompletionSink;
-
-(*================================================================================*)
-
-TYPE
-   TPRequest = POINTER TO CRequest;
-
-CLASS CRequest( Delegate.ADelegate ) IMPLEMENTS ICompletable;
+   // ICompletableSink
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR ); // implementation must be independent from calling sink
 
    // ICompletable
+   PUBLIC VIRTUAL PROPERTY
+      CompletionSink : basecompletion.TPICompletionSink;
+
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+
+   // SELF
+   PRIVATE VAR
+      _Completable : basecompletion.CCompletableImplHelper;
+
+END Completable;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPWaitableCompletable = POINTER TO WaitableCompletable;
+
+CLASS WaitableCompletable( delegate.Delegate ) IMPLEMENTS basecompletion.IWaitableCompletable;
+
+   // ICompletableSink
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR ); // implementation must be independent from calling sink
+
+   // ICompletable
+   PUBLIC VIRTUAL PROPERTY
+      CompletionSink : basecompletion.TPICompletionSink;
+
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+
+   // IWaitableCompletable
    PUBLIC VIRTUAL READONLY PROPERTY
       Completed : BOOLEAN;
       Result : Sync.TAsyncResult;
@@ -68,33 +58,37 @@ CLASS CRequest( Delegate.ADelegate ) IMPLEMENTS ICompletable;
    PUBLIC VIRTUAL PROCEDURE WaitForCompletion( Timeout : CARDINAL ) : Sync.TAsyncResult; // arTimeout or copies Result property
 
    // SELF
-   PUBLIC PROCEDURE Complete( Result : Sync.TAsyncResult ); // Principal completion action, callable from any source. First it sets Result, then calls Sink, then signalizes Signal.
-
-   PUBLIC PROPERTY
-      SignalType : Sync.TSignalType;
-      Sink : TPICompletionSink;
-      Value : PTR; // for user data
-
-   // private
    PRIVATE VAR
-      _Signal : Sync.SIGNAL;
-      _Result : Sync.TAsyncResult := Sync.arUnknown; // arUnknown means "NOT Completed"
-      _Sink : TPICompletionSink := NIL;
-      _Value : PTR := 0;
+      _WaitableCompletable : basecompletion.CWaitableCompletableImplHelper;
 
-END CRequest;
+END WaitableCompletable;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CAbortableRequest( CRequest ) IMPLEMENTS IAbortable;
+TYPE
+   TPAbortableWaitableCompletable = POINTER TO AbortableWaitableCompletable;
+
+CLASS AbortableWaitableCompletable( WaitableCompletable ) IMPLEMENTS basecompletion.IAbortable;
 
    // IAbortable
-   PUBLIC VIRTUAL PROCEDURE Abort();
+   PUBLIC VIRTUAL PROPERTY
+      AbortSink : basecompletion.TPIAbortable;
 
-END CAbortableRequest;
+   PUBLIC VIRTUAL PROCEDURE Abort( OperationHandle : PTR );
+
+   // SELF
+   PRIVATE VAR
+      _AbortSink : basecompletion.TPIAbortable := NIL;
+
+END AbortableWaitableCompletable;
+
+(*================================================================================*)
+
+CONST
+   Request ::= AbortableWaitableCompletable;
 
 (*================================================================================*)
 
 #restore
 
-END Request.
+END request.

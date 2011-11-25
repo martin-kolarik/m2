@@ -207,5 +207,11 @@
     <None Include="Source\request.mod">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="Source\basecompletion.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\basecompletion.mod">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

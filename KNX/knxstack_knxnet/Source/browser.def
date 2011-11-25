@@ -7,7 +7,7 @@ FROM Storage IMPORT
 
 IMPORT
    arrays,
-   Delegate,
+   delegate,
    inetaddr,
    protocol,
    StringsO,
@@ -34,7 +34,7 @@ END CServer;
 TYPE
    TPBrowserDelegate = POINTER TO CBrowserDelegate;
 
-ABSTRACT CLASS CBrowserDelegate( Delegate.ADelegate );
+ABSTRACT CLASS CBrowserDelegate( delegate.Delegate );
    LOCAL ABSTRACT PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Servers : arrays.CPtrArray );
 END CBrowserDelegate;
 

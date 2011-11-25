@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   Delegate,
+   delegate,
    datetime,
    lists,
    sync;
@@ -68,7 +68,7 @@ END CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CResult( Delegate.ADelegate );
+CLASS CResult( delegate.Delegate );
    PRIVATE VAR
       _Lock : sync.LOCK;
       _Info : TStateInfo;

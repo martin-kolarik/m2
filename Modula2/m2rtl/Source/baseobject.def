@@ -78,8 +78,8 @@ TYPE
 
 INTERFACE IRefcounterClient;
 
-   PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
-   PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
+   LOCAL PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
+   LOCAL PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
 
 END IRefcounterClient;
 
@@ -88,7 +88,7 @@ END IRefcounterClient;
 TYPE
    TPRefcounter = POINTER TO CRefcounter;
 
-CLASS CRefcounter( BASE ) IMPLEMENTS IRefcounter; // functional, synchronized counter, no deallocation is made in the class
+CLASS CRefcounterImplHelper( BASE ) IMPLEMENTS IRefcounter; // functional, synchronized counter, no deallocation is made in the class
 
    // IRefcounter
    PUBLIC FINAL READONLY PROPERTY
@@ -105,7 +105,7 @@ CLASS CRefcounter( BASE ) IMPLEMENTS IRefcounter; // functional, synchronized co
       _References : CARDINAL := 0;
       _Client : TPIRefcounterClient := NIL;
 
-END CRefcounter;
+END CRefcounterImplHelper;
 
 (*===========================================================================*)
 // classes with counted references, the classes release self with the last Release
@@ -127,14 +127,14 @@ CLASS CRefcounted( CDisposable ) IMPLEMENTS IRefcounter, IRefcounterClient;
    #restore
 
    // IRefcounterClient
-   PUBLIC FINAL PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
    #save, option( leak_info => on )
-   PUBLIC FINAL PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
    #restore
 
    // SELF
    PRIVATE VAR
-      _Refcounter : CRefcounter;
+      _Refcounter : CRefcounterImplHelper;
 
    // deny DISPOSE
    PRIVATE OPERATOR DISPOSE( a : ADDRESS );

@@ -1,0 +1,130 @@
+DEFINITION MODULE basecompletion;
+
+(*================================================================================*)
+
+IMPORT
+   baseobject,
+   Sync;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPICompletionSink = POINTER TO ICompletionSink;
+
+INTERFACE ICompletionSink;
+   
+   INTERNAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+
+END ICompletionSink;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPICompletable = POINTER TO ICompletable;
+
+INTERFACE ICompletable( ICompletionSink ); // ICompletable can delegate operations to the sink
+
+   PROPERTY
+      CompletionSink : TPICompletionSink;
+
+   // INTERNAL PROCEDURE OnCompleted( OperationHandle : PTR; Result : Sync.TAsyncResult ); // implementation must be independent from calling sink
+
+   PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+
+END ICompletable;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPIWaitableCompletable = POINTER TO IWaitableCompletable;
+
+INTERFACE IWaitableCompletable( ICompletable );
+
+   READONLY PROPERTY
+      // Implementor
+      Completed : BOOLEAN; // means real status, if WaitForCompletion fails with timeout, Completed still remains in FALSE state until real completion occurs.
+      Result : Sync.TAsyncResult;
+
+   PROCEDURE Reset();
+   PROCEDURE WaitForCompletion( Timeout : CARDINAL ) : Sync.TAsyncResult; // arTimeout or copies Result property
+
+   // Complete call first sets Result, then calls OnCompleted, then calls Sink, then signals Signal
+
+END IWaitableCompletable;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPIAbortable = POINTER TO IAbortable;
+
+INTERFACE IAbortable;
+
+   PROPERTY
+      AbortSink : TPIAbortable;
+
+   PROCEDURE Abort( OperationHandle : PTR ); // first calls AbortSink, then calls own action
+
+END IAbortable;
+
+(*================================================================================*)
+
+CLASS CCompletableImplHelper( baseobject.BASE ) IMPLEMENTS ICompletable;
+
+   // ICompletionSink
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+
+   // ICompletable
+   PUBLIC VIRTUAL PROPERTY
+      CompletionSink : TPICompletionSink;
+
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR );
+
+   // SELF
+   PUBLIC PROPERTY
+      Client : TPICompletionSink; // driven object
+
+   PRIVATE VAR
+      _CompletionSink : TPICompletionSink := NIL;
+      _Client : TPICompletionSink := NIL;
+
+END CCompletableImplHelper;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CWaitableCompletableImplHelper( CCompletableImplHelper ) IMPLEMENTS IWaitableCompletable;
+
+   // ICompletionSink
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+
+   // ICompletable
+   PUBLIC VIRTUAL PROPERTY
+      CompletionSink : TPICompletionSink;
+
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR );
+
+   // IWaitableCompletable
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Completed : BOOLEAN;
+      Result : Sync.TAsyncResult;
+
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE WaitForCompletion( Timeout : CARDINAL ) : Sync.TAsyncResult; // arTimeout or copies Result property
+
+   // SELF
+   PUBLIC VIRTUAL PROPERTY
+      SignalType : Sync.TSignalType;
+
+   // private
+   PRIVATE VAR
+      _Signal : Sync.SIGNAL;
+      _Result : Sync.TAsyncResult := Sync.arUnknown; // arUnknown means "NOT Completed"
+
+END CWaitableCompletableImplHelper;
+
+(*================================================================================*)
+
+#restore
+
+END basecompletion.

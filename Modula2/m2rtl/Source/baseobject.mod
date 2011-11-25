@@ -36,7 +36,7 @@ END CDisposable;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CRefcounter;
+CLASS IMPLEMENTATION CRefcounterImplHelper;
 
 (*---------------------------------------------------------------------------*)
 
@@ -96,7 +96,7 @@ CLASS IMPLEMENTATION CRefcounter;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-END CRefcounter;
+END CRefcounterImplHelper;
 
 (*===========================================================================*)
 
@@ -125,14 +125,14 @@ CLASS IMPLEMENTATION CRefcounted;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
    BEGIN
       // intentionally left empty
    END OnFirstAddRef;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
    VAR
       a : TPRefcounted := ADR( SELF );
    BEGIN

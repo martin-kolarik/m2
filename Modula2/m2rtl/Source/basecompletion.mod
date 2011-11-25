@@ -1,43 +1,68 @@
-IMPLEMENTATION MODULE request;
+IMPLEMENTATION MODULE basecompletion;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION Completable;
+CLASS IMPLEMENTATION CCompletableImplHelper;
 
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   VAR
+      client : TPICompletionSink := Client;
    BEGIN
+      IF client <> NIL THEN
+         client^.OnCompleted( Result, OperationHandle );
+      END;
    END OnCompleted;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY CompletionSink GET : basecompletion.TPICompletionSink;
+   PUBLIC VIRTUAL PROPERTY CompletionSink GET : TPICompletionSink;
    BEGIN
-      RETURN _Completable.CompletionSink;
+      RETURN Sync.IGetPtr( REF _CompletionSink );
    END CompletionSink;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY CompletionSink SET( Value : basecompletion.TPICompletionSink );
+   PUBLIC VIRTUAL PROPERTY CompletionSink SET( Value : TPICompletionSink );
    BEGIN
-      _Completable.CompletionSink := Value;
+      Sync.IExchgPtr( REF _CompletionSink, Value );
    END CompletionSink;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   VAR
+      sink : TPICompletionSink := CompletionSink;
    BEGIN
-      _Completable.Complete( Result, OperationHandle );
+      OnCompleted( Result, OperationHandle );
+      IF sink <> NIL THEN
+         sink^.OnCompleted( Result, OperationHandle );
+      END;
    END Complete;
 
 (*--------------------------------------------------------------------------------*)
 
-END Completable;
+   PUBLIC PROPERTY Client GET : TPICompletionSink;
+   BEGIN
+      RETURN Sync.IGetPtr( REF _Client );
+   END Client;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Client SET( Value : TPICompletionSink );
+   BEGIN
+      Sync.IExchgPtr( REF _Client, Value );
+   END Client;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+END CCompletableImplHelper;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION WaitableCompletable;
+CLASS IMPLEMENTATION CWaitableCompletableImplHelper;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -47,90 +72,86 @@ CLASS IMPLEMENTATION WaitableCompletable;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY CompletionSink GET : basecompletion.TPICompletionSink;
+   PUBLIC VIRTUAL PROPERTY CompletionSink GET : TPICompletionSink;
    BEGIN
-      RETURN _WaitableCompletable.CompletionSink;
+      RETURN SUPER.CompletionSink;
    END CompletionSink;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY CompletionSink SET( Value : basecompletion.TPICompletionSink );
+   PUBLIC VIRTUAL PROPERTY CompletionSink SET( Value : TPICompletionSink );
    BEGIN
-      _WaitableCompletable.CompletionSink := Value;
+      SUPER.CompletionSink := Value;
    END CompletionSink;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR );
    BEGIN
-      _WaitableCompletable.Complete( Result, OperationHandle );
+      IF Completed THEN
+         RETURN;
+      END;
+      Sync.ISetAR( REF _Result, Result );
+      SUPER.Complete( Result, OperationHandle );
+      _Signal.Signal();
    END Complete;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Completed GET : BOOLEAN;
    BEGIN
-      RETURN _WaitableCompletable.Completed;
+      RETURN Sync.IGetAR( REF _Result ) <> Sync.arUnknown;
    END Completed;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Result GET : Sync.TAsyncResult;
    BEGIN
-      RETURN _WaitableCompletable.Result;
+      RETURN Sync.IGetAR( REF _Result );
    END Result;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Reset();
    BEGIN
-      _WaitableCompletable.Reset();
+      Sync.ISetAR( REF _Result, Sync.arUnknown );
+      _Signal.Reset();
    END Reset;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE WaitForCompletion( Timeout : CARDINAL ) : Sync.TAsyncResult; // arTimeout or copies Result property
    BEGIN
-      RETURN _WaitableCompletable.WaitForCompletion( Timeout );
+      IF Completed THEN
+         RETURN Sync.arAlreadyCompleted;
+      ELSIF _Signal.Wait( Timeout ) = Sync.arTimeout THEN
+         RETURN Sync.arTimeout;
+      ELSE
+         RETURN Result;
+      END;
    END WaitForCompletion;
 
 (*--------------------------------------------------------------------------------*)
 
-END WaitableCompletable;
-
-(*================================================================================*)
-
-CLASS IMPLEMENTATION AbortableWaitableCompletable;
+   PUBLIC VIRTUAL PROPERTY SignalType GET : Sync.TSignalType;
+   BEGIN
+      RETURN _Signal.Type;
+   END SignalType;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AbortSink GET : basecompletion.TPIAbortable;
+   PUBLIC VIRTUAL PROPERTY SignalType SET( Value : Sync.TSignalType );
    BEGIN
-      RETURN Sync.IGetPtr( REF _AbortSink );
-   END AbortSink;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY AbortSink SET( Value : basecompletion.TPIAbortable );
-   BEGIN
-      Sync.IExchgPtr( REF _AbortSink, Value );
-   END AbortSink;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Abort( OperationHandle : PTR );
-   BEGIN
-      IF _AbortSink <> NIL THEN
-         _AbortSink^.Abort( OperationHandle );
-      END;
-      Complete( Sync.arAborted, OperationHandle );
-   END Abort;
+      _Signal.Dispose();
+      _Signal.Init( Value, L"", FALSE );
+   END SignalType;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-END AbortableWaitableCompletable;
+   _Signal.Init( Sync.stSpin, L"", FALSE );
+END CWaitableCompletableImplHelper;
 
 (*================================================================================*)
 
-END request.
+END basecompletion.
