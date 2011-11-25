@@ -1069,7 +1069,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROPERTY State GET : BOOLEAN;
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          RETURN IGetPtr( REF Data ) = SPIN_SET;
       ELSE
          RETURN RawState( Data );
@@ -1080,7 +1080,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROPERTY State SET( Value : BOOLEAN );
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          IF Value THEN
             IExchgPtr( REF Data, SPIN_SET );
          ELSE
@@ -1097,9 +1097,16 @@ CLASS IMPLEMENTATION SIGNAL;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Type GET : TSignalType;
+   BEGIN
+      RETURN _Type;
+   END Type;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY RawHandle GET : WAITABLE;
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          RETURN NIL;
       ELSE
          RETURN Data;
@@ -1108,15 +1115,15 @@ CLASS IMPLEMENTATION SIGNAL;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+   PUBLIC PROCEDURE Init( _Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
    BEGIN
      Dispose();
-     ASSERTLOG( Type <> stForeign, L"SIGNAL initialized with improper type (stForeign)" );
-     SELF.Type := Type;
+     ASSERTLOG( _Type <> stForeign, L"SIGNAL initialized with improper type (stForeign)" );
+     SELF._Type := _Type;
      _Lock.Init( ltSpin, L"", FALSE );
-     IF Type = stEvent THEN
+     IF _Type = stEvent THEN
        Data := RawCreateSignal( InitiallySignaled, Name );
-     ELSIF Type = stEventAutoreset THEN
+     ELSIF _Type = stEventAutoreset THEN
        Data := RawCreateAutoresetSignal( InitiallySignaled, Name );
      ELSIF InitiallySignaled THEN
        Data := SPIN_SET;
@@ -1130,7 +1137,7 @@ CLASS IMPLEMENTATION SIGNAL;
    PUBLIC PROCEDURE InitForeign( EventHandle : WAITABLE; InitiallySignalled : BOOLEAN ); // EventHandle will not be closed
    BEGIN
       Dispose();
-      Type := stForeign;
+      _Type := stForeign;
       Data := EventHandle;
       IF InitiallySignalled THEN
          Signal();
@@ -1145,7 +1152,7 @@ CLASS IMPLEMENTATION SIGNAL;
    VAR
       b : BOOLEAN;
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          RETURN IExchgPtr( REF Data, SPIN_SET ) = SPIN_NOTSET;
       ELSE
          _Lock.Lock();
@@ -1160,7 +1167,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROCEDURE SignalAndReset();
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          IExchgPtr( REF Data, SPIN_SET );
          Sleep( 0 );
          IExchgPtr( REF Data, SPIN_NOTSET );
@@ -1177,7 +1184,7 @@ CLASS IMPLEMENTATION SIGNAL;
    VAR
       b : BOOLEAN;
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          RETURN IExchgPtr( REF Data, SPIN_NOTSET ) = SPIN_SET;
       ELSE
          _Lock.Lock();
@@ -1199,9 +1206,9 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROCEDURE Wait( Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
-      IF Type = stSpin THEN
+      IF _Type = stSpin THEN
          RETURN SpinLockAcquireOrRead( TRUE, REF Data, Spin, Timeout );
-      ELSIF Type = stSpinAutoreset THEN
+      ELSIF _Type = stSpinAutoreset THEN
          RETURN SpinLockAcquireOrRead( FALSE, REF Data, Spin, Timeout );
       ELSE
          RETURN RawWait( Data, Timeout );
@@ -1213,11 +1220,11 @@ CLASS IMPLEMENTATION SIGNAL;
    PUBLIC PROCEDURE Dispose();
    BEGIN
       Signal();
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          // do nothing
       ELSIF Data = 0 THEN
          // already clear
-      ELSIF Type = stForeign THEN
+      ELSIF _Type = stForeign THEN
          Data := 0;
       ELSE
          RawDeleteSignal( REF Data );

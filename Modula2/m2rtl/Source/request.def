@@ -71,7 +71,7 @@ CLASS CRequest( Delegate.ADelegate ) IMPLEMENTS ICompletable;
    PUBLIC PROCEDURE Complete( Result : Sync.TAsyncResult ); // Principal completion action, callable from any source. First it sets Result, then calls Sink, then signalizes Signal.
 
    PUBLIC PROPERTY
-      SignalType : Sync.TSignalType; // GET part does not work. TODO, it requires change in SIGNAL class
+      SignalType : Sync.TSignalType;
       Sink : TPICompletionSink;
       Value : PTR; // for user data
 

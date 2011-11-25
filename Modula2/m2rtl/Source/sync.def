@@ -167,13 +167,14 @@ TYPE
 
 CLASS SIGNAL IMPLEMENTS ILock;
    PRIVATE VAR
-      Type : TSignalType := stSpin;
+      _Type : TSignalType := stSpin;
       Spin : CARDINAL;
       Data : PTR; // initially reset
       _Lock : LOCK;
    PUBLIC PROPERTY
       State : BOOLEAN;
    PUBLIC READONLY PROPERTY
+      Type : TSignalType;
       RawHandle : WAITABLE;
 
    // ILock

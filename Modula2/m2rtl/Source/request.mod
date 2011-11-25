@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Request;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 (*================================================================================*)
 
@@ -58,10 +58,9 @@ CLASS IMPLEMENTATION CRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY SignalType GET : Sync.TSignalType; // GET part does not work. TODO, it requires change in SIGNAL class
+   PUBLIC PROPERTY SignalType GET : Sync.TSignalType;
    BEGIN
-      ASSERT( FALSE );
-      RETURN Sync.stSpin;
+      RETURN _Signal.Type;
    END SignalType;
 
 (*--------------------------------------------------------------------------------*)
