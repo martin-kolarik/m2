@@ -8,6 +8,7 @@ FROM Storage IMPORT
 
 IMPORT
    array,
+   collection,
    datetime,
    Items,
    lists,
@@ -253,21 +254,22 @@ END LoadProducts;
 PROCEDURE DisposeProducts( REF data : arrays.CPtrArray );
 VAR
    i : CARDINAL;
+   it, jit : lists.CPtrListIterator;
    item, jitem : Items.TPItem;
    items, jitems : lists.TPPtrList;
 BEGIN
    FOR i := 0 TO data.Count-1 DO
       items := Items.TPProduct( data[i] )^.LicencesAndInfos;
       IF items <> NIL THEN
-         items^.Reset();
-         WHILE items^.MoveNext() DO
-            item := Items.TPItem( items^.Current );
+         it.Init( items^, collection.dirForward );
+         WHILE it.MoveNext() DO
+            item := it.Value;
             IF item^ IS Items.CLicence THEN
                jitems := Items.TPLicence( item )^.Activations;
                IF jitems <> NIL THEN
-                  jitems^.Reset();
-                  WHILE jitems^.MoveNext() DO
-                     jitem := Items.TPItem( jitems^.Current );
+                  jit.Init( jitems^, collection.dirForward );
+                  WHILE jit.MoveNext() DO
+                     jitem := jit.Value;
                      DISPOSE( jitem );
                   END; // WHILE jitems
                END;
@@ -288,6 +290,7 @@ VAR
    info : Items.TPInfo := NIL;
    item : Items.TPItem;
    i : CARDINAL;
+   it : lists.CPtrListIterator;
    ls : Store.CFileStorage;
    lsINI : Store.CINIFilter;
    product : Items.TPProduct;
@@ -311,10 +314,10 @@ BEGIN
       ELSE
          CONTINUE;
       END;
-      product^.LicencesAndInfos^.Reset();
-      WHILE product^.LicencesAndInfos^.MoveNext() DO
-         IF Items.TPItem( product^.LicencesAndInfos^.Current )^ IS Items.CInfo THEN
-            info := product^.LicencesAndInfos^.Current;
+      it.Init( product^.LicencesAndInfos^, collection.dirForward );
+      WHILE it.MoveNext() DO
+         IF Items.TPItem( it.Value )^ IS Items.CInfo THEN
+            info := it.Value;
          END;
          EXIT;
       END;

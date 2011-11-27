@@ -1,6 +1,7 @@
 IMPLEMENTATION MODULE Items;
 
 IMPORT
+   collection,
    cphcommon,
    Rijndael,
    SHA256,
@@ -1032,6 +1033,7 @@ CLASS IMPLEMENTATION CInfo;
 
    PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
    VAR
+      it, tit : lists.CStringStringListIterator;
       _toList : lists.TPStringStringList;
    BEGIN
       IF NOT( To IS CInfo ) OR ( _ProductId <> To.ProductId ) THEN
@@ -1039,14 +1041,14 @@ CLASS IMPLEMENTATION CInfo;
       END;
 
       _toList := TPInfo( ADR( To ))^.List;
-      _List.Reset();
-      _toList^.Reset();
-      WHILE _List.MoveNext() AND _toList^.MoveNext() DO
-         IF NOT _List.Current^.Equals( _toList^.Current^ ) OR NOT _List.CurrentData^.Equals( _toList^.CurrentData^ ) THEN
+      it.Init( _List, collection.dirForward );
+      tit.Init( _toList^, collection.dirForward );
+      WHILE it.MoveNext() AND tit.MoveNext() DO
+         IF NOT it.Value^.Equals( tit.Value^ ) OR NOT it.Data^.Equals( tit.Data^ ) THEN
             RETURN FALSE;
          END;
       END; // WHILE
-      IF _List.MoveNext() OR _toList^.MoveNext() THEN
+      IF it.MoveNext() OR tit.MoveNext() THEN
          RETURN FALSE;
       ELSE
          RETURN TRUE;
@@ -1056,6 +1058,8 @@ CLASS IMPLEMENTATION CInfo;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data, sets Valid
+   VAR
+      it : lists.CStringStringListIterator;
    BEGIN
       IF isDirty NOT IN State THEN
          RETURN;
@@ -1068,12 +1072,12 @@ CLASS IMPLEMENTATION CInfo;
       _TransportData.AppendOA( sepItemCh + L"pid" + sepKeyCh );
       _TransportData.Append( _ProductId );
       
-      _List.Reset();
-      WHILE _List.MoveNext() DO
+      it.Init( _List, collection.dirForward );
+      WHILE it.MoveNext() DO
          _TransportData.AppendOA( sepItemCh );
-         _TransportData.Append( _List.Current^ );
+         _TransportData.Append( it.Value^ );
          _TransportData.AppendOA( sepKeyCh );
-         _TransportData.Append( _List.CurrentData^ );
+         _TransportData.Append( it.Data^ );
       END; // WHILE
 
       _TransportData.AppendOA( sepItemCh + end );
@@ -1086,6 +1090,7 @@ CLASS IMPLEMENTATION CInfo;
 
    PUBLIC VIRTUAL PROCEDURE ValidateByTransportData(); // gets transport data, sets Valid
    VAR
+      it : lists.CStringStringListIterator;
       nextIndex : CARDINAL := 0;
       pieces : CARDINAL;
       s : StringsO.CString;
@@ -1114,11 +1119,11 @@ CLASS IMPLEMENTATION CInfo;
          RETURN;
       END;
 
-      _List.Reset();
-      WHILE _List.MoveNext() AND ( nextIndex <> -1 ) DO
+      it.Init( _List, collection.dirForward );
+      WHILE it.MoveNext() AND ( nextIndex <> -1 ) DO
          nextIndex := td.ItemS( sepItem, nextIndex, 0, FALSE, OUT s );
          s.SplitS( sepKey, 0, FALSE, OUT pieces, OUT sa );
-         IF NOT _List.Current^.Equals( sa[0] ) OR ( pieces > 1 ) AND  NOT _List.CurrentData^.Equals( sa[1] ) THEN
+         IF NOT it.Value^.Equals( sa[0] ) OR ( pieces > 1 ) AND  NOT it.Data^.Equals( sa[1] ) THEN
             RETURN;
          END;
       END; // WHILE
@@ -1126,7 +1131,7 @@ CLASS IMPLEMENTATION CInfo;
       // get after EOT (at first read EOT, then move next, which sets nextIndex to -1)
       nextIndex := td.ItemS( sepItem, nextIndex, 1, FALSE, OUT s );
       // check if both lists have the same length
-      IF _List.MoveNext() OR ( nextIndex <> -1 ) THEN // different lists length
+      IF it.MoveNext() OR ( nextIndex <> -1 ) THEN // different lists length
          RETURN;
       END;
 
@@ -1136,12 +1141,14 @@ CLASS IMPLEMENTATION CInfo;
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE CreateHash( OUT Hash : StringsO.CString );
+   VAR
+      it : lists.CStringStringListIterator;
    BEGIN
       Hash.Clear();
-      _List.Reset();
-      WHILE _List.MoveNext() DO
-         Hash.Append( _List.Current^ );
-         Hash.Append( _List.CurrentData^ );
+      it.Init( _List, collection.dirForward );
+      WHILE it.MoveNext() DO
+         Hash.Append( it.Value^ );
+         Hash.Append( it.Data^ );
          Hash.AppendOA( sepItemCh );
       END; // WHILE      
    END CreateHash;

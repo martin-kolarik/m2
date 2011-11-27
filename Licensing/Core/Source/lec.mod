@@ -10,6 +10,7 @@ FROM log IMPORT
    
 IMPORT
    arrays,
+   collection,
    Engine,
    Items,
    lists,
@@ -211,11 +212,12 @@ CLASS IMPLEMENTATION CResult;
    LABEL
       Done;
    VAR
+      ait, lit : lists.CPtrListIterator;
       aitem : Items.TPActivation;
       dt, now : datetime.DateTime;
       expires, nowDayCount : datetime.DayCount;
-      litems, aitems : lists.TPPtrList;
       linfo : Items.TPInfo;
+      linfolit : lists.CStringStringListIterator;
       info : TStateInfo := siUnknown;
       litem : Items.TPLicence;
       localActivated : BOOLEAN;
@@ -262,17 +264,16 @@ CLASS IMPLEMENTATION CResult;
       END;
 
       // parse licences
-      litems := Items.TPProduct( pitem )^.LicencesAndInfos;
-      litems^.Reset();
-      WHILE litems^.MoveNext() DO
-         litem := litems^.Current;
+      lit.Init( Items.TPProduct( pitem )^.LicencesAndInfos^, collection.dirForward );
+      WHILE lit.MoveNext() DO
+         litem := lit.Value;
 
          IF litem^ IS Items.CInfo THEN // handle info
             linfo := Items.TPInfo( litem );
             IF linfo^.List <> NIL THEN
-               linfo^.List^.Reset();
-               WHILE linfo^.List^.MoveNext() DO
-                  product^.Info^.Add( linfo^.List^.Current^, linfo^.List^.CurrentData^ );
+               linfolit.Init( linfo^.List^, collection.dirForward );
+               WHILE linfolit.MoveNext() DO
+                  product^.Info^.Add( linfolit.Value^, linfolit.Data^ );
                END;
             END;
             CONTINUE;
@@ -292,10 +293,9 @@ CLASS IMPLEMENTATION CResult;
          IF litem^.HasChilds THEN
 
             // parse activations
-            aitems := litem^.Activations;
-            aitems^.Reset();
-            WHILE aitems^.MoveNext() DO
-               aitem := aitems^.Current;
+            ait.Init( litem^.Activations^, collection.dirForward );
+            WHILE ait.MoveNext() DO
+               aitem := ait.Value;
 
                #if DEBUG #then      
                   aitem^.ExpiresString.ToOA( OUT logs );
@@ -545,6 +545,13 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Products GET : lists.TPPtrList;
+   BEGIN
+      RETURN ADR( _Products );
+   END Products;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Reset( _Behaviour : TBehaviour );
    BEGIN
       _Lock.Lock();
@@ -570,15 +577,17 @@ CLASS IMPLEMENTATION CResult;
 
    PUBLIC PROCEDURE GetLicences( OUT list : lists.CStringList ); // fills licences of the first product
    VAR
-      product : TPProduct;
       data : PTR;
+      it : lists.CPtrListIterator;
+      pit : lists.CStringListIterator;
    BEGIN
       list.Dispose();
       _Lock.Lock();
-      IF _Products.GetFirst( OUT product, OUT data ) THEN
-         product^.Licences^.Reset();
-         WHILE product^.Licences^.MoveNext() DO
-            list.Add( product^.Licences^.Current^, product^.Licences^.CurrentData );
+      it.Init( _Products, collection.dirForward );
+      IF it.MoveNext() THEN
+         pit.Init( TPProduct( it.Value )^.Licences^, collection.dirForward );
+         WHILE pit.MoveNext() DO
+            list.Add( pit.Value^, pit.Data );
          END;
       END;
       _Lock.Unlock();
@@ -586,48 +595,14 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ProductsLock();
-   BEGIN
-      _Lock.Lock();
-   END ProductsLock;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ProductsUnlock();
-   BEGIN
-      _Lock.Unlock();
-   END ProductsUnlock;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ProductsReset();
-   BEGIN
-      _Products.Reset();
-   END ProductsReset;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ProductsMoveNext() : BOOLEAN;
-   BEGIN
-      RETURN _Products.MoveNext();
-   END ProductsMoveNext;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY CurrentProduct GET : TPProduct;
-   BEGIN
-      RETURN TPProduct( _Products.Current );
-   END CurrentProduct;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      it : lists.CPtrListIterator;
       product : TPProduct;
    BEGIN
-      _Products.Reset();
-      WHILE _Products.MoveNext() DO
-         product := _Products.Current;
+      it.Init( _Products, collection.dirForward );
+      WHILE it.MoveNext() DO
+         product := it.Value;
          DISPOSE( product );
       END; // WHILE
       _Products.Dispose();

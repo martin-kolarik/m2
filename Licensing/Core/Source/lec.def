@@ -91,21 +91,14 @@ CLASS CResult( delegate.Delegate );
       Expired : BOOLEAN;
       NextCheck : CARDINAL;
       Counted : BOOLEAN;
+      Products : lists.TPPtrList; // contains TPProduct
 
    PUBLIC PROCEDURE Reset( Behaviour : TBehaviour );
    PUBLIC PROCEDURE Inc();
    PUBLIC PROCEDURE GetLicences( OUT list : lists.CStringList ); // fills licences of the first product
    
-   // enumerating products
-   PUBLIC PROCEDURE ProductsLock();
-   PUBLIC PROCEDURE ProductsUnlock();
-   PUBLIC PROCEDURE ProductsReset();
-   PUBLIC PROCEDURE ProductsMoveNext() : BOOLEAN;
-   PUBLIC READONLY PROPERTY
-      CurrentProduct : TPProduct;
-
    // SELF helpers
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 END CResult;
 
 (*================================================================================*)

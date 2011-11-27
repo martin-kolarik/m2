@@ -80,7 +80,7 @@ INTERFACE ICollection;
       Sequence : CARDINAL; // the key for detecting iterator invalidity
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE colGetIterator( Direction : TDirection ) : TPIterator;
+   PUBLIC PROCEDURE colGetIterator( Direction : TDirection ) : TPIterator; // the iterator has to be Reset after the call
    #restore
 
    // required for manipulating content of the collection

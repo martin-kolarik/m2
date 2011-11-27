@@ -11,6 +11,7 @@ FROM Exceptions IMPORT
 
 IMPORT
    bitarray,
+   collection,
    FIO,
    FIOO,
    Folders,
@@ -70,8 +71,15 @@ CLASS IMPLEMENTATION CFileStorage;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY FilterToStore GET : TPFileFilter;
+   VAR
+      it : lists.CPtrListIterator;
    BEGIN
-      RETURN _Filters[0];
+      it.Init( _Filters, collection.dirForward );
+      IF it.MoveNext() THEN
+         RETURN it.Value;
+      ELSE
+         RETURN NIL;
+      END;
    END FilterToStore;
 
 (*--------------------------------------------------------------------------------*)
@@ -271,18 +279,19 @@ CLASS IMPLEMENTATION CFileStorage;
 
 	PUBLIC PROCEDURE LoadSingleFileOA( CONST Path : ARRAY OF WCHAR; REF Items : arrays.CPtrArray; ClearArray, RespectValidation : BOOLEAN ) : BOOLEAN;
 	VAR
+      it : lists.CPtrListIterator;
       LocalItems : arrays.CPtrArray;
       haveSomething : BOOLEAN := FALSE;
 	BEGIN
       IF ClearArray THEN
          Items.Dispose();
       END;
-      _Filters.Reset();
-      WHILE _Filters.MoveNext() DO
-         IF TPFileFilter( _Filters.Current )^.IsFor( Path ) THEN
-            TPFileFilter( _Filters.Current )^.InitLoad();
-            TPFileFilter( _Filters.Current )^.LoadFile( Path, REF LocalItems );
-            TPFileFilter( _Filters.Current )^.FinishLoad();
+      it.Init( _Filters, collection.dirForward );
+      WHILE it.MoveNext() DO
+         IF TPFileFilter( it.Value )^.IsFor( Path ) THEN
+            TPFileFilter( it.Value )^.InitLoad();
+            TPFileFilter( it.Value )^.LoadFile( Path, REF LocalItems );
+            TPFileFilter( it.Value )^.FinishLoad();
             haveSomething := TRUE;
             EXIT;
          END;
@@ -311,16 +320,17 @@ CLASS IMPLEMENTATION CFileStorage;
       count : CARDINAL;
       filter : TPFileFilter := NIL;
       i : CARDINAL;
+      it : lists.CPtrListIterator;
    BEGIN
       IF ItemsToStore.Empty THEN
          RETURN;
       END;
       
       // search proper filter
-      _Filters.Reset();
-      WHILE _Filters.MoveNext() DO
-         IF TPFileFilter( _Filters.Current )^.IsFor( Path ) THEN
-            filter := TPFileFilter( _Filters.Current );
+      it.Init( _Filters, collection.dirForward );
+      WHILE it.MoveNext() DO
+         IF TPFileFilter( it.Value )^.IsFor( Path ) THEN
+            filter := TPFileFilter( it.Value );
             EXIT;
          END;
       END; // WHILE
@@ -363,6 +373,7 @@ CLASS IMPLEMENTATION CFileStorage;
    VAR
       DI : FSO.CDirectoryInfo;
       filter : ARRAY [0..255] OF WCHAR;
+      it : lists.CPtrListIterator;
       LocalItems : arrays.CPtrArray;
       localPath : FIO.PathStrW;
    BEGIN
@@ -375,23 +386,23 @@ CLASS IMPLEMENTATION CFileStorage;
          RETURN;
       END;
 
-      _Filters.Reset();
-      WHILE _Filters.MoveNext() DO
-         TPFileFilter( _Filters.Current )^.InitLoad();
+      it.Init( _Filters, collection.dirForward );
+      WHILE it.MoveNext() DO
+         TPFileFilter( it.Value )^.InitLoad();
       END;
       REPEAT
          DI.Path.ToOA( OUT localPath );
-         _Filters.Reset();
-         WHILE _Filters.MoveNext() DO
-            IF TPFileFilter( _Filters.Current )^.IsFor( localPath ) THEN
-               TPFileFilter( _Filters.Current )^.LoadFile( localPath, REF LocalItems );
+         it.Reset();
+         WHILE it.MoveNext() DO
+            IF TPFileFilter( it.Value )^.IsFor( localPath ) THEN
+               TPFileFilter( it.Value )^.LoadFile( localPath, REF LocalItems );
                EXIT;
             END;
          END; // WHILE
       UNTIL NOT DI.MoveNext();
-      _Filters.Reset();
-      WHILE _Filters.MoveNext() DO
-         TPFileFilter( _Filters.Current )^.FinishLoad();
+      it.Reset();
+      WHILE it.MoveNext() DO
+         TPFileFilter( it.Value )^.FinishLoad();
       END;
 
       ValidateItems( RespectValidation, LocalItems, OUT ItemsToLoad );
@@ -541,6 +552,7 @@ CLASS IMPLEMENTATION CINIFilter;
 	   fs : FIOO.CFileStream;
 	   tw : TextWriter.CTextWriter;
 	   i : CARDINAL;
+      it : lists.CStringStringListIterator;
 	   INI : INIfile.CINIFile;
 	   item : Items.TPItem;
 	   list : lists.TPStringStringList;
@@ -577,9 +589,9 @@ CLASS IMPLEMENTATION CINIFilter;
             INI.CreateSection( L"info", TRUE );
             INI.SetKeyStr( L"id", item^.ProductId, FALSE );
             list := Items.TPInfo( item )^.List;
-            list^.Reset();
-            WHILE list^.MoveNext() DO
-               INI.SetKeyStr( OA( list^.Current^.Length-1, list^.Current^.Data ), list^.CurrentData^, FALSE );
+            it.Init( list^, collection.dirForward );
+            WHILE it.MoveNext() DO
+               INI.SetKeyStr( OA( it.Value^.Length-1, it.Value^.Data ), it.Data^, FALSE );
             END; // WHILE
             INI.SetKeyStr( L"data", item^.TransportData, FALSE );
          END;

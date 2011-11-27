@@ -1,6 +1,7 @@
 IMPLEMENTATION MODULE Uniquer;
 
 IMPORT
+   collection,
 	DiskInfo,
 	netsrv,
 	Rijndael,
@@ -32,6 +33,7 @@ CLASS IMPLEMENTATION CUniquer;
       salt = C"";
    VAR
       i : INTEGER;
+      it : lists.CPtrListIterator;
       uid, suid : TUId;
       seed : sha256.TDigest;
       source : POINTER TO IUniquerSource;
@@ -45,9 +47,9 @@ CLASS IMPLEMENTATION CUniquer;
          END;
       END;
 
-      _Sources.Reset();
-      WHILE _Sources.MoveNext() DO
-         source := _Sources.Current;
+      it.Init( _Sources, collection.dirForward );
+      WHILE it.MoveNext() DO
+         source := it.Value;
          IF source^.Valid THEN
             source^.Seed := TUId( seed );
             suid := source^.UId;
