@@ -63,14 +63,14 @@ CLASS IMPLEMENTATION CNS;
 
    INTERNAL VIRTUAL PROCEDURE CreateStructure();
    VAR
-      item : nsitem.TPnsItem;
+      item : ns.TPnsItem;
    BEGIN
       Root^.AddChild( CreateNewItem( L"Control", ns.ntName, iovalue.vtString, 0 ));
 
       DataRoot := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
       Root^.AddChild( DataRoot );
 
-		item := CreateNewItem( L"Power", ns.ntValue, iovalue.vtInteger, PTR( cmdPower )); DataRoot^.AddChild( item );
+		item := CreateNewItem( L"Power", ns.ntValue, iovalue.vtBoolean, PTR( cmdPower )); DataRoot^.AddChild( item );
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -79,7 +79,9 @@ CLASS IMPLEMENTATION CNS;
    VAR
       R : nsitem.TPnsItem;
    BEGIN
-      NEW( R )^.Init( Name, ConstNames, NType, VType, Data );
+      NEW( R );
+      R^.Init( Name, ConstNames, NType, VType, Data );
+      R^.Value^.Undefined := TRUE;
       RETURN R;
    END CreateNewItem;
 
@@ -92,6 +94,66 @@ END CNS;
 
 (*===========================================================================*)
 
+   PROCEDURE AssemblyCommand( command : TCommand; CONST value : iovalue.Value; OUT request : StringsO.CString ) : BOOLEAN;
+   BEGIN
+      // check
+      CASE command OF
+      | cmdPower :
+         // fall down
+      ELSE
+         RETURN FALSE;
+      END;
+
+      request.Size := 16; // reserve space
+      request[0] := L"%";
+      request[1] := L"1";
+      request[6] := L" ";
+      request[8] := 13W; // CR
+
+      CASE command OF
+      | cmdPower :
+         request[2] := L"P";
+         request[3] := L"O";
+         request[4] := L"W";
+         request[5] := L"R";
+         IF value.Boolean THEN
+            request[7] := L"1";
+         ELSE
+            request[7] := L"0";
+         END;
+         request.Length := 9;
+      //----
+      END; // CASE
+
+      RETURN TRUE;
+   END AssemblyCommand;
+
+(*---------------------------------------------------------------------------*)
+
+   PROCEDURE DisassemblyCommand( CONST response : StringsO.CString; OUT command : TCommand; REF value : iovalue.Value ) : BOOLEAN;
+   VAR
+      sCommand : StringsO.CString;
+   BEGIN
+      // check basic properties
+      IF ( response.Length < 9 ) OR ( response[0] <> L"%" ) OR ( response[1] <> L"1" ) THEN
+         RETURN FALSE;
+      END;
+
+      // determine command
+      response.Substring( 2, 4, OUT sCommand );
+      IF sCommand.EqualsOA( L"POWR" ) THEN
+         command := cmdPower;
+      ELSE
+         RETURN FALSE;
+      END;
+
+      value.Boolean := response[7] = L"1";
+
+      RETURN TRUE;
+   END DisassemblyCommand;
+
+(*===========================================================================*)
+
 CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
@@ -99,6 +161,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
    VAR
       al : Sync.AutoLock;
+      d : PTR;
+      request : StringsO.CString;
    BEGIN
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (request)" );
 
@@ -107,11 +171,15 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
          StartTimeout( CONNECTION_DISCONNECT_TIMEOUT, TRUE, REF _ConnectionCloseTimeoutHandle );
          _Reader.StartReading();
-
-         FlushQueue();
+         _State := -1;
 
       ELSE
          Logger.LogSC( log.ldTrace, 0, LOG_NAME, L"Connect failed:", Result );
+
+         // empty queue
+         WHILE _Queue.Dequeue( OUT request, OUT d ) DO
+            Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Dropped request:", OA( request.Length-1, request.Data ));
+         END; // WHILE
 
       END;
    END OnConnect;
@@ -127,8 +195,24 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       WHILE _Reader.Peek( OUT ptext, OUT byteLen ) DO
          IF byteLen >= 2 THEN
             response.FromOA( OA( byteLen DIV 2 - 1, ptext ));
-            PIO^.OnResponse( response );
-         END;
+
+            _Lock.Lock(); // TODO safety
+            IF _State = 1 THEN
+               _Lock.Unlock();
+               PIO^.OnResponse( response );
+            ELSIF ( _State = -1 ) AND ParseAuthResponse( response ) THEN
+               _State := 1;
+               FlushQueue();
+               _Lock.Unlock();
+            ELSE
+               _State := 0;
+               _Connection.Close();
+               _Lock.Unlock();
+            END;
+
+         END; // IF
+
+         _Reader.ReadOut( byteLen ); // read out and signal next reading
       END; // WHILE
       
       _Reader.StartReading();
@@ -168,6 +252,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       _PoolDelegate.TimeoutSink := NIL;
 
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (stop)" );
+
+      _State := 0;
       _Connection.Close();
 
       Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Stopped" );
@@ -181,6 +267,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF PoolHandle = _ConnectionCloseTimeoutHandle THEN
          al.TakeSafe( REF _Lock, L"Unable to lock communicator (timeout)" );
+
+         _State := 0;
          _Connection.Close();
 
          Logger.LogS( log.ldDebug, 0, LOG_NAME, L"Connection closed" );
@@ -214,6 +302,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
       (*----------*)
 
+   CONST
+      keyHost = L"host";
    VAR
       l : CARDINAL;
    BEGIN
@@ -250,9 +340,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (request)" );
 
       _Queue.Add( request, 0 );
-      IF _Connection.Connected THEN
+      IF _State = 1 THEN
          FlushQueue();
-      ELSE
+      ELSIF _State = 0 THEN
+         Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Connecting to:", OA( _HostAddress.Length-1, _HostAddress.Data ));
          _Connection.OpenS( _HostAddress, DEFAULT_PORT, FALSE, 0 );
       END;
    END Request;
@@ -269,7 +360,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
       WHILE _Queue.Dequeue( OUT request, OUT d ) DO
          IF Writer.WriteTimeout( request, FALSE, CONNECTION_DISCONNECT_TIMEOUT DIV 2 ) = Sync.arTimeout THEN
+            // disconnect
+            _State := 0;
             _Connection.Close();
+            // requeue the request
             _Queue.Enqueue( request, 0 );
             EXIT;
          END;
@@ -299,6 +393,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 BEGIN
    _Connection.Notifier := ADR( SELF );
    _Reader.Stream := _Connection.BufferedStream;
+   _Reader.LineEndStyle := TextReader.lesMAC;
    PIO := NIL;
    _ConnectionCloseTimeoutHandle := NIL;
 END CDeviceCommunicator;
@@ -382,8 +477,10 @@ CLASS IMPLEMENTATION CIO;
    VAR
       al : Sync.AutoLock;
       command : TCommand;
-      item : nsitem.TPnsItem;
+      i : CARDINAL;
+      item : nsitem.TPnsItem := NIL;
       Result : Sync.TAsyncResult := Sync.arCompleted;
+      s : StringsO.CString;
    BEGIN
       item := nsitem.TPnsItem( Item );
       IF ( item^.NameType <> ns.ntValue ) OR ( item^.ValueType = iovalue.vtString ) THEN
@@ -391,9 +488,13 @@ CLASS IMPLEMENTATION CIO;
       END;
 
       command := TCommand( LOPTRLONGWORD( item^.Data ));
-      CASE command OF
-      | cmdPower : // OK
-      ELSE
+      FOR i := 0 TO DataRoot^.Count-1 DO
+         IF DataRoot^[i]^.Data = PTR( command ) THEN
+            item := nsitem.TPnsItem( DataRoot^[i] );
+            EXIT;
+         END;
+      END;
+      IF item = NIL THEN
          ASSERTLOG( FALSE, L"Unexpected command in item found" );
          RETURN Sync.arCannotStart;
       END; // CASE
@@ -401,21 +502,32 @@ CLASS IMPLEMENTATION CIO;
       al.TakeSafe( REF _Lock, L"Unable to lock data area" );
 
       IF Direction = IOO.dirRead THEN // get data immediatelly
-
-         DeviceCommunicator.Logger.LogSSC( log.ldTrace, 0, LOG_NAME, L"Item read: ", OA( item^.Name^.Length-1, item^.Name^.Data ), CARDINAL( Value.Boolean ));
+         IF item^.Value^.Undefined THEN
+            Result := Sync.arNoData;
+         ELSE
+            Value := item^.Value^;
+            DeviceCommunicator.Logger.LogSSC( log.ldTrace, 0, LOG_NAME, L"Item read:", OA( item^.Name^.Length-1, item^.Name^.Data ), CARDINAL( Value.Boolean ));
+         END;
 
          Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
-         
-         RETURN Sync.arCompleted;
+         RETURN Result;
+
       ELSE
+         IF NOT DeviceCommunicator.Logger.FilteredFastCheck( log.ldTrace, 0 ) THEN
+            s := Value.String;
+            DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item write:", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( s.Length-1, s.Data ));
+         END;
 
-         DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item write: ", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( area^.Password.Length-1, area^.Password.Data ));
+         IF AssemblyCommand( command, Value, OUT s ) THEN
+            DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( s.Length-1, s.Data ));
 
-         DeviceCommunicator.Request( request );
-
-         Delegate^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
-
-         RETURN Sync.arCompleted;
+            DeviceCommunicator.Request( s );
+            Delegate^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+            RETURN Sync.arCompleted;
+         ELSE
+            DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Item write, cannot assembly packet:", OA( item^.Name^.Length-1, item^.Name^.Data ));
+            RETURN Sync.arCannotStart;
+         END;
       END;
    END IOh;
 
@@ -428,7 +540,29 @@ CLASS IMPLEMENTATION CIO;
 (*---------------------------------------------------------------------------*)
 
 	LOCAL PROCEDURE OnResponse( response : StringsO.CString );
+   VAR
+      al : Sync.AutoLock;
+      command : TCommand;
+      i : CARDINAL;
+      item : nsitem.TPnsItem;
+      value : iovalue.Value;
    BEGIN
+      DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Response received:", OA( response.Length-1, response.Data ));
+
+      IF DisassemblyCommand( response, OUT command, REF value ) THEN
+         FOR i := 0 TO DataRoot^.Count-1 DO
+            IF DataRoot^[i]^.Data = PTR( command ) THEN
+               item := nsitem.TPnsItem( DataRoot^[i] );
+               EXIT;
+            END;
+         END;
+         IF item = NIL THEN
+            RETURN;
+         ELSE
+            al.TakeSafe( REF _Lock, L"Unable to lock data area" );
+            item^.Value^ := value;
+         END; // CASE
+      END;
    END OnResponse;
 
 (*---------------------------------------------------------------------------*)
@@ -504,14 +638,22 @@ CLASS IMPLEMENTATION CPJLinkDevice;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
       IF HIGH( Source ) < 0 THEN
          RETURN Sync.arCannotStart;
       ELSIF Source[0].Type <> device.citINIFileSection THEN
          RETURN Sync.arCannotStart;
-      ELSE
-         RETURN _IO.DeviceCommunicator.Configure( Source[0]._iniFile^, Source[0].section^, Log );
       END;
+
+      Result := _IO.DeviceCommunicator.Configure( Source[0]._iniFile^, Source[0].section^, Log );
+      IF Result = Sync.arCompleted THEN // copy data from NS to IO
+         _NS.Initialize();
+         _IO.DataRoot := _NS.DataRoot;
+      END;
+
+      RETURN Result;
    END Configure;
    
 (*---------------------------------------------------------------------------*)

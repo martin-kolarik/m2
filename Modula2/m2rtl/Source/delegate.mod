@@ -31,19 +31,19 @@ CLASS IMPLEMENTATION ADelegate;
 		RETURN Sync.IGet( REF _References );
 	END References;
 
-  PUBLIC PROPERTY dlgCompleted GET : BOOLEAN;
+  PUBLIC PROPERTY Completed GET : BOOLEAN;
   BEGIN
-    RETURN Sync.IGet( REF _dlgCompleted ) = 1;
-  END dlgCompleted;
+    RETURN Sync.IGet( REF _Completed ) = 1;
+  END Completed;
 
-  PUBLIC PROPERTY dlgCompleted SET( Value : BOOLEAN );
+  PUBLIC PROPERTY Completed SET( Value : BOOLEAN );
   BEGIN
     IF Value THEN
-      Sync.IExchg( REF _dlgCompleted, 1 );
+      Sync.IExchg( REF _Completed, 1 );
     ELSE
-      Sync.IExchg( REF _dlgCompleted, 0 );
+      Sync.IExchg( REF _Completed, 0 );
     END;
-  END dlgCompleted;
+  END Completed;
 
   PUBLIC PROCEDURE AddRef() : CARDINAL; // new count
   BEGIN
@@ -79,7 +79,7 @@ CLASS IMPLEMENTATION ADelegate;
   
 BEGIN
   _References := 1;
-  _dlgCompleted := 0;
+  _Completed := 0;
 END ADelegate;
 
 //--------------------------------------------------------------------------------

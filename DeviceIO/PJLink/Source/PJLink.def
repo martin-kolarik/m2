@@ -19,6 +19,7 @@ IMPORT
 	StorageO,
 	StringsO,
 	Sync,
+   TextReader,
 	threadpool;
 	
 (*===========================================================================*)
@@ -56,7 +57,9 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
       _AppenderList : lists.CPtrList;
       _Running : BOOLEAN := FALSE;
       _Lock : Sync.LOCK;
+      _State : TRISTATE := 0; // 0 = disconnected, -1 = connected wait auth, 1 = connected with auth
 		_HostAddress : StringsO.CString;
+      _Password : StringsO.CString;
 		_Connection : rawconnection.ClientTCPConnection;
 		_ConnectionCloseTimeoutHandle : threadpool.TPoolHandle;
 		_PoolDelegate : threadpool.CSinkDelegate;

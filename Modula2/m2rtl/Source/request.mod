@@ -9,10 +9,10 @@ CLASS IMPLEMENTATION CRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Completed GET : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY resCompleted GET : BOOLEAN;
    BEGIN
       RETURN Sync.IGetAR( REF _Result ) <> Sync.arUnknown;
-   END Completed;
+   END resCompleted;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CRequest;
       END;
       Sync.ISetAR( REF _Result, Result );
       IF Sink <> NIL THEN
-         Sink^.OnCompleted( ICompletable );
+         // bad, but already fixed in delivery branch, do not fix this here: Sink^.OnCompleted( ICompletable );
       END;
       _Signal.Signal();
    END Complete;

@@ -111,7 +111,6 @@ END CBE;
 
 CLASS CNSI( nsitem.CnsItem );
 	LOCAL VAR
-      Value : iovalue.Value;
 		Multiplier : CARDINAL;
 END CNSI;
 
@@ -994,13 +993,13 @@ CLASS IMPLEMENTATION CIO;
          item := TErrorItem( itemFor );
          IF Item^.Items[item] <> NIL THEN
             delegate.Reset();
-            Result := IOh( NIL, Direction, Item^.Items[item], REF Item^.Items[item]^.Value, ADR( delegate ));
+            Result := IOh( NIL, Direction, Item^.Items[item], REF Item^.Items[item]^.Value^, ADR( delegate ));
             IF Result <> Sync.arPending THEN
                _Callback := Delegate; // change delegate used for reporting back
                OnRx( Result, NIL );
                RETURN Result;
             END;
-            Result := delegate.WaitCompletion( Sync.FORSAFETY, OUT Item^.Items[item]^.Value );
+            Result := delegate.WaitCompletion( Sync.FORSAFETY, OUT Item^.Items[item]^.Value^ );
             IF Result <> Sync.arCompleted THEN
                _Callback := Delegate; // change delegate used for reporting back
                OnRx( Result, NIL );
@@ -1010,8 +1009,8 @@ CLASS IMPLEMENTATION CIO;
       END; // FOR
 
       IF Item^.Items[eiYear] = NIL THEN // item is time
-         dt.Minute := Item^.Items[eiMinute]^.Value.Integer;
-         dt.Hour := Item^.Items[eiHour]^.Value.Integer;
+         dt.Minute := Item^.Items[eiMinute]^.Value^.Integer;
+         dt.Hour := Item^.Items[eiHour]^.Value^.Integer;
          IF TimeFormat.Empty THEN // use default format
             b := dt.ToStringOA( L"HH:mm:ss", FALSE, TRUE, OUT s );
             IF NOT b THEN
@@ -1023,13 +1022,13 @@ CLASS IMPLEMENTATION CIO;
                DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.Data ));
             END;
          END;
-         dt.Day := Item^.Peer^.Items[eiDay]^.Value.Integer;
-         dt.Month := Item^.Peer^.Items[eiMonth]^.Value.Integer;
-         dt.Year := Item^.Peer^.Items[eiYear]^.Value.Integer;
+         dt.Day := Item^.Peer^.Items[eiDay]^.Value^.Integer;
+         dt.Month := Item^.Peer^.Items[eiMonth]^.Value^.Integer;
+         dt.Year := Item^.Peer^.Items[eiYear]^.Value^.Integer;
       ELSE
-         dt.Day := Item^.Items[eiDay]^.Value.Integer;
-         dt.Month := Item^.Items[eiMonth]^.Value.Integer;
-         dt.Year := Item^.Items[eiYear]^.Value.Integer + 2000;
+         dt.Day := Item^.Items[eiDay]^.Value^.Integer;
+         dt.Month := Item^.Items[eiMonth]^.Value^.Integer;
+         dt.Year := Item^.Items[eiYear]^.Value^.Integer + 2000;
          IF DateFormat.Empty THEN
             b := dt.ToStringOA( L"yyyy-MM-dd", TRUE, FALSE, OUT s );
             IF NOT b THEN
@@ -1041,8 +1040,8 @@ CLASS IMPLEMENTATION CIO;
                DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.Data ));
             END;
          END;
-         dt.Minute := Item^.Peer^.Items[eiMinute]^.Value.Integer;
-         dt.Hour := Item^.Peer^.Items[eiHour]^.Value.Integer;
+         dt.Minute := Item^.Peer^.Items[eiMinute]^.Value^.Integer;
+         dt.Hour := Item^.Peer^.Items[eiHour]^.Value^.Integer;
       END;
       IF b THEN
          V.FromStringOA( s, FALSE );
