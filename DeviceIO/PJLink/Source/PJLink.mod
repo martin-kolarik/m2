@@ -9,9 +9,11 @@ FROM Exceptions IMPORT
    TestIfCatched, RetrieveException, CModula2Exception;
 
 IMPORT
+   digest,
    iobject,
    log,
    LogConfig,
+   md5,
    resources,
    TextWriter,
    Texts;
@@ -40,7 +42,8 @@ CONST
 
 TYPE
    TCommand = (
-      cmdPower
+      cmdPower,
+      cmdPowerQuery
    );
 
 CLASS IMPLEMENTATION CNS;
@@ -98,7 +101,7 @@ END CNS;
    BEGIN
       // check
       CASE command OF
-      | cmdPower :
+      | cmdPower, cmdPowerQuery :
          // fall down
       ELSE
          RETURN FALSE;
@@ -111,12 +114,14 @@ END CNS;
       request[8] := 13W; // CR
 
       CASE command OF
-      | cmdPower :
+      | cmdPower, cmdPowerQuery :
          request[2] := L"P";
          request[3] := L"O";
          request[4] := L"W";
          request[5] := L"R";
-         IF value.Boolean THEN
+         IF command = cmdPowerQuery THEN
+            request[7] := L"?";
+         ELSIF value.Boolean THEN
             request[7] := L"1";
          ELSE
             request[7] := L"0";
@@ -135,22 +140,58 @@ END CNS;
       sCommand : StringsO.CString;
    BEGIN
       // check basic properties
-      IF ( response.Length < 9 ) OR ( response[0] <> L"%" ) OR ( response[1] <> L"1" ) THEN
+      IF ( response.Length < 8 ) OR ( response[0] <> L"%" ) OR ( response[1] <> L"1" ) THEN
          RETURN FALSE;
       END;
 
       // determine command
       response.Substring( 2, 4, OUT sCommand );
+      sCommand.Capitalize();
       IF sCommand.EqualsOA( L"POWR" ) THEN
          command := cmdPower;
       ELSE
          RETURN FALSE;
       END;
 
-      value.Boolean := response[7] = L"1";
+      CASE response[7] OF
+      | L"0", L"2", L"3" : 
+         value.Boolean := FALSE;
+         RETURN TRUE;
+      | L"1" :
+         value.Boolean := TRUE;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE; // it covers ERRx and OK
+      END;
+   END DisassemblyCommand;
+
+(*---------------------------------------------------------------------------*)
+
+   PROCEDURE DisassemblyConnectResponse( CONST response : StringsO.IString; OUT authError, authRequired : BOOLEAN; OUT authKey : StringsO.IString ) : BOOLEAN;
+   VAR
+      sCommand : StringsO.CString;
+   BEGIN
+      // check basic properties
+      IF response.Length < 8 THEN
+         RETURN FALSE;
+      END;
+
+      // determine command
+      response.Substring( 0, 6, OUT sCommand );
+      sCommand.Capitalize();
+      IF NOT sCommand.EqualsOA( L"PJLINK" ) THEN
+         RETURN FALSE;
+      ELSIF response[7] = L"E" THEN // error
+         authError := TRUE;
+         RETURN TRUE;
+      END;
+
+      authError := FALSE;
+      authRequired := response[7] = L"1";
+      response.Substring( 9, -1, OUT authKey );
 
       RETURN TRUE;
-   END DisassemblyCommand;
+   END DisassemblyConnectResponse;
 
 (*===========================================================================*)
 
@@ -188,23 +229,35 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
    VAR
+      authError : BOOLEAN;
       byteLen : CARDINAL;
       ptext : PWCHAR;
       response : StringsO.CString;
    BEGIN
       WHILE _Reader.Peek( OUT ptext, OUT byteLen ) DO
-         IF byteLen >= 2 THEN
-            response.FromOA( OA( byteLen DIV 2 - 1, ptext ));
+         IF byteLen >= 4 THEN
+            response.FromOA( OA( byteLen DIV 2 - 2, ptext )); // -1 CR, -1 Len to HIGH
 
-            _Lock.Lock(); // TODO safety
-            IF _State = 1 THEN
-               _Lock.Unlock();
+            IF DisassemblyConnectResponse( response, OUT authError, OUT _AuthRequested, OUT _AuthKey ) THEN
+               IF authError THEN
+                  Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Auth error:", OA( response.Length-1, response.Data ));
+               ELSE
+                  Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Connect response:", OA( response.Length-1, response.Data ));
+
+                  _Lock.Lock(); // TODO safety
+                  _State := 1;
+                  FlushQueue();
+                  _Lock.Unlock();
+               END;
+
+            ELSIF _State = 1 THEN
                PIO^.OnResponse( response );
-            ELSIF ( _State = -1 ) AND ParseAuthResponse( response ) THEN
-               _State := 1;
-               FlushQueue();
-               _Lock.Unlock();
+
             ELSE
+               Logger.LogSS( log.ldTrace, 0, LOG_NAME, L"Connect response improper:", OA( response.Length-1, response.Data ));
+
+               _Lock.Lock(); // TODO safety
+               StopTimeout( REF _ConnectionCloseTimeoutHandle );
                _State := 0;
                _Connection.Close();
                _Lock.Unlock();
@@ -253,6 +306,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (stop)" );
 
+      StopTimeout( REF _ConnectionCloseTimeoutHandle );
       _State := 0;
       _Connection.Close();
 
@@ -268,6 +322,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       IF PoolHandle = _ConnectionCloseTimeoutHandle THEN
          al.TakeSafe( REF _Lock, L"Unable to lock communicator (timeout)" );
 
+         _ConnectionCloseTimeoutHandle := NIL; // can be StopTimeout, but calling Abort is not necessary here
          _State := 0;
          _Connection.Close();
 
@@ -304,6 +359,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    CONST
       keyHost = L"host";
+      keyPassword = L"password";
    VAR
       l : CARDINAL;
    BEGIN
@@ -318,6 +374,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
             LogError( TRUE, l, Texts._HostKeyMissing, NIL );
          END;
 
+         iniFile.GetKeyStr( keyPassword, OUT l, OUT _Password );
+
       ELSE
          LogError( TRUE, 0, Texts._ConfigurationSectionMissing, ADR( iniFileSection ));
       END;
@@ -328,6 +386,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC PROCEDURE Dispose();
    BEGIN
+      _Password.Clear();
+      _State := 0;
+      _AuthRequested := FALSE;
+
       LogConfig.DisposeAppenderList( REF _AppenderList );
    END Dispose;
 
@@ -339,7 +401,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (request)" );
 
-      _Queue.Add( request, 0 );
+      _Queue.Enqueue( request, 0 );
       IF _State = 1 THEN
          FlushQueue();
       ELSIF _State = 0 THEN
@@ -352,15 +414,41 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PRIVATE PROCEDURE FlushQueue(); // in sync environment
    VAR
-      request : StringsO.CString;
+      bHash : StorageO.CMemoryBuffer;
       d : PTR;
+      dg : md5.CDigest;
+      filled : CARDINAL;
+      request : StringsO.CString;
+      sHash : StringsO.CString;
       Writer : TextWriter.CTextWriter;
    BEGIN
       Writer.Stream := _Connection.BufferedStream;
 
       WHILE _Queue.Dequeue( OUT request, OUT d ) DO
+
+         IF _AuthRequested THEN
+            _AuthRequested := FALSE; // do not append key more times
+
+            sHash := _AuthKey + _Password;
+            bHash.Size := sHash.Length * 2;
+            sHash.ToUTF8( OUT OA( bHash.Size-1, PCHAR( bHash.Data )), OUT filled );
+            ASSERT( filled = sHash.Length );
+            bHash.Length := filled;
+            digest.Digest( digest.md5, OA( filled-1, bHash.Data ), OUT dg );
+
+            sHash.Size := 32; // md5 hash is 16 bytes long
+            sHash.Length := 32;
+            dg.ToHex( OUT OA( sHash.Size-1, PWCHAR( sHash.Data )));
+
+            request.Prepend( sHash );
+
+            Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Password:", OA( _Password.Length-1, _Password.Data ));
+            Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request with auth info:", OA( request.Length-1, request.Data ));
+         END;
+         
          IF Writer.WriteTimeout( request, FALSE, CONNECTION_DISCONNECT_TIMEOUT DIV 2 ) = Sync.arTimeout THEN
             // disconnect
+            StopTimeout( REF _ConnectionCloseTimeoutHandle );
             _State := 0;
             _Connection.Close();
             // requeue the request
@@ -419,6 +507,8 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
+      _PoolDelegate.TimeoutSink := ADR( SELF );
+      threadpool.pool()^.WaitTimeout( ADR( _PoolDelegate ), 0, POLL_TIMEOUT, FALSE, FALSE, OUT _PeriodHandle );
       RETURN DeviceCommunicator.Start();
    END Start;
 
@@ -426,6 +516,10 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
+      IF _PeriodHandle <> NIL THEN
+         _PoolDelegate.TimeoutSink := NIL;
+         threadpool.pool()^.Abort( REF _PeriodHandle );
+      END;
       DeviceCommunicator.Stop();
    END Stop;
 
@@ -539,12 +633,28 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   VAR
+      value : iovalue.Value;
+      s : StringsO.CString;
+   BEGIN
+      IF AssemblyCommand( cmdPowerQuery, value, OUT s ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( s.Length-1, s.Data ));
+         DeviceCommunicator.Request( s );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdPowerQuery packet" );
+      END;
+   END OnTimeout;
+
+(*---------------------------------------------------------------------------*)
+
 	LOCAL PROCEDURE OnResponse( response : StringsO.CString );
    VAR
       al : Sync.AutoLock;
       command : TCommand;
       i : CARDINAL;
       item : nsitem.TPnsItem;
+      s : StringsO.CString;
       value : iovalue.Value;
    BEGIN
       DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Response received:", OA( response.Length-1, response.Data ));
@@ -559,7 +669,13 @@ CLASS IMPLEMENTATION CIO;
          IF item = NIL THEN
             RETURN;
          ELSE
+            IF NOT DeviceCommunicator.Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
+               s := value.String;
+               DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item value accepted:", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( s.Length-1, s.Data ));
+            END;
+
             al.TakeSafe( REF _Lock, L"Unable to lock data area" );
+            item^.Value^.Undefined := FALSE;
             item^.Value^ := value;
          END; // CASE
       END;
