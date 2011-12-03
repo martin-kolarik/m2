@@ -80,6 +80,13 @@ CLASS IMPLEMENTATION CNumber;
 
 (*--------------------------------------------------------------------------------*)
 
+	PUBLIC PROPERTY PId SET( CONST Value : Defs.TPID );
+	BEGIN
+		_PId := Value;
+	END PId;
+
+(*--------------------------------------------------------------------------------*)
+
 	PUBLIC PROCEDURE SetPId( CONST PId : StringsO.IString );
 	BEGIN
 		hash.hashs( OA( PId.Length-1, PId.Data ), OUT _PId );
@@ -318,6 +325,13 @@ CLASS IMPLEMENTATION CRegistration;
 	PUBLIC PROPERTY MId GET : Defs.TMID;
 	BEGIN
 		RETURN _MId;
+	END MId;
+
+(*--------------------------------------------------------------------------------*)
+
+	PUBLIC PROPERTY MId SET( CONST Value : Defs.TMID );
+	BEGIN
+		_MId := Value;
 	END MId;
 
 (*--------------------------------------------------------------------------------*)
