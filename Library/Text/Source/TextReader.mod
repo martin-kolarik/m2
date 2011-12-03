@@ -369,7 +369,8 @@ CLASS IMPLEMENTATION CTextReader;
             charDataLength := i;
             charCommitLength := i+1;
             RETURN srBOM;
-         ELSIF current^ = 10W THEN
+         ELSIF ( LineEndStyle  = lesMAC ) AND ( current^ = 13W ) OR // mac
+               ( LineEndStyle <> lesMAC ) AND ( current^ = 10W ) THEN // unix, win
             IF CR THEN
                charDataLength := i-1;
             ELSE
@@ -379,6 +380,7 @@ CLASS IMPLEMENTATION CTextReader;
             RETURN srCompleteLine;
          END;
          CR := current^ = 13W;
+         ASSERT(( LineEndStyle <> lesMAC ) OR NOT CR ); // for mac CR here cannot be detected
          INC( i );
          IF i = l THEN
             IF NOT CR THEN // CR is not the last character

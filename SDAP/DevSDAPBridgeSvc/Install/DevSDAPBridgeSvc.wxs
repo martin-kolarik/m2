@@ -44,6 +44,10 @@
                             <File Id="Integra.DLL" Name="Integra.dll" Source="Integra.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             <ServiceControl Id="SVCControlIntegraLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
+                        <Component Guid="57D950DD-0C01-4C90-8026-DB1A8518B954" Id="PJLinkLib">
+                            <File Id="PJLink.DLL" Name="PJLink.dll" Source="PJLink.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlPJLinkLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
                         <Component Guid="E221959E-E8C4-412d-95A4-018C096D2A2F" Id="ToolSvcInst">
                             <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -70,6 +74,9 @@
                         </Component>
                         <Component Id="DefaultIntegraCfg" Guid="730A2B2A-A9ED-43EE-B62A-B4DB9AD66589">
                             <File Id="default.integra.cfg" Name="defaulti.cfg" LongName="default.integra.cfg" Source="default.integra.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Id="DefaultPJLinkCfg" Guid="A42B78AD-6C65-49E7-8843-5AE996B342F1">
+                            <File Id="default.pjlink.cfg" Name="defaultp.cfg" LongName="default.pjlink.cfg" Source="default.pjlink.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
                         <Component Id="DefaultCombinationCfg" Guid="E69A6EFC-FD99-4A88-96B7-65CEE31F7B64">
                             <File Id="default.combination.cfg" Name="defaultc.cfg" LongName="default.combination.cfg" Source="default.combination.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
@@ -121,6 +128,7 @@
             <ComponentRef Id="StiebelHPLib" />
             <ComponentRef Id="AirMotionLib" />
             <ComponentRef Id="IntegraLib" />
+            <ComponentRef Id="PJLinkLib" />
             <ComponentRef Id="Licence" />
             <ComponentRef Id="ToolSvcInst" />
             <ComponentRef Id="Documentation" />
@@ -128,6 +136,7 @@
             <ComponentRef Id="DefaultStiebelCfg" />
             <ComponentRef Id="DefaultAirmotionCfg" />
             <ComponentRef Id="DefaultIntegraCfg" />
+            <ComponentRef Id="DefaultPJLinkCfg" />
             <ComponentRef Id="DefaultCombinationCfg" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />

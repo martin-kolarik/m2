@@ -1198,6 +1198,8 @@ BEGIN
                err^.WriteOA( L'  the number is an invalid licence number', TRUE );
                CONTINUE;
             END;
+            st.FromCARD32( sn.GOrd, 10 );
+            err^.WriteOA( L'  gord ', FALSE ); err^.Write( st, TRUE );
             Items.LicenceTypeToString( sn.Type, OUT st );
             err^.WriteOA( L'  type "', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'"', TRUE );
             cphcommon.ToHex( sn.PId, OUT s );
@@ -1213,6 +1215,8 @@ BEGIN
                err^.WriteOA( L'  the number is an invalid registration number', TRUE );
                CONTINUE;
             END;
+            st.FromCARD32( rn.GOrd, 10 );
+            err^.WriteOA( L'  gord ', FALSE ); err^.Write( st, TRUE );
             cphcommon.ToHex( rn.PId, OUT s );
             err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             cphcommon.ToHex( rn.MId, OUT s );
@@ -1225,6 +1229,40 @@ BEGIN
             Strings.FromCARD32W( rn.OSVersion.Minor, 10, OUT s );
             err^.WriteOA( L'    minor "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
 
+            // dump associated numbers
+            err^.WriteOA( L'  of', TRUE );
+            // serial
+            sn.GOrd := rn.GOrd;
+            sn.PId := rn.PId;
+            IF owner.Empty THEN
+               sn.Type := Items.TLicenceType{Items.ltUnnamed};
+            ELSE
+               sn.SetOwner( owner );
+            END;
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/-', TRUE );
+            //-----            
+            INCL( sn.Type, Items.ltUpgrade );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/U', TRUE );
+            EXCL( sn.Type, Items.ltUpgrade );
+            //-----            
+            INCL( sn.Type, Items.ltEducational );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/E', TRUE );
+            EXCL( sn.Type, Items.ltEducational );
+            INCL( sn.Type, Items.ltTrial );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/T', TRUE );
+            EXCL( sn.Type, Items.ltTrial );
+
+            // activation
+            an.GOrd := rn.GOrd;
+            an.PId := rn.PId;
+            an.MId := rn.MId;
+            Number.Code( an, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, TRUE );
+
          ELSIF Number.Decode( sns.Current^, REF an ) THEN
             IF an.Valid THEN
                err^.WriteOA( L'  the number is a valid activation number', TRUE );
@@ -1232,6 +1270,8 @@ BEGIN
                err^.WriteOA( L'  the number is an invalid activation number', TRUE );
                CONTINUE;
             END;
+            st.FromCARD32( an.GOrd, 10 );
+            err^.WriteOA( L'  gord ', FALSE ); err^.Write( st, TRUE );
             cphcommon.ToHex( an.PId, OUT s );
             err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             cphcommon.ToHex( an.MId, OUT s );
@@ -1261,6 +1301,40 @@ BEGIN
                dte.ToStringOA( dateFormat, TRUE, TRUE, OUT s2 );
                err^.WriteOA( L'  activates from "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'" to "', FALSE ); err^.WriteOA( s2, FALSE ); err^.WriteOA( L'"', TRUE );
             END;
+
+            // dump associated numbers
+            err^.WriteOA( L'  of', TRUE );
+            // serial
+            sn.GOrd := an.GOrd;
+            sn.PId := an.PId;
+            IF owner.Empty THEN
+               sn.Type := Items.TLicenceType{Items.ltUnnamed};
+            ELSE
+               sn.SetOwner( owner );
+            END;
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/-', TRUE );
+            //-----            
+            INCL( sn.Type, Items.ltUpgrade );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/U', TRUE );
+            EXCL( sn.Type, Items.ltUpgrade );
+            //-----            
+            INCL( sn.Type, Items.ltEducational );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/E', TRUE );
+            EXCL( sn.Type, Items.ltEducational );
+            INCL( sn.Type, Items.ltTrial );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/T', TRUE );
+            EXCL( sn.Type, Items.ltTrial );
+
+            // activation
+            rn.GOrd := an.GOrd;
+            rn.PId := an.PId;
+            rn.MId := an.MId;
+            Number.Code( rn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, TRUE );
 
          ELSE
             err^.WriteOA( L'    the number is of no known type', TRUE );
