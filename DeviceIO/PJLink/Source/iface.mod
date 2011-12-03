@@ -6,7 +6,6 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   cllv,
    device,
    helper,
    PJLink;
@@ -64,11 +63,7 @@ CLASS IMPLEMENTATION CCreator;
 
    PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
-      cllvData.Length := cllv.length;
-      cllvData.Data := ADR( cllv.data );
-      cllvData.Validator := cllv.validator();
-      cllvPath := L"";
-      RETURN TRUE;
+      RETURN FALSE;
    END GetLECData;
 
 (*---------------------------------------------------------------------------*)

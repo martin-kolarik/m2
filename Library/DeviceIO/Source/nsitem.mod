@@ -34,6 +34,13 @@ CLASS IMPLEMENTATION CnsWrapper;
    
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Value GET : iovalue.TPValue;
+   BEGIN
+      RETURN _NS^.Root^.Value;
+   END Value;
+   
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY Data GET : PTR;
    BEGIN
       RETURN _NS^.Root^.Data;
@@ -126,8 +133,15 @@ CLASS IMPLEMENTATION CnsItem;
 
    VIRTUAL PROPERTY ValueType GET : iovalue.TValueType;
    BEGIN
-      RETURN _ValueType;
+      RETURN _Value.Type;
    END ValueType;
+
+(*---------------------------------------------------------------------------*)
+
+   VIRTUAL PROPERTY Value GET : iovalue.TPValue;
+   BEGIN
+      RETURN ADR( _Value );
+   END Value;
 
 (*---------------------------------------------------------------------------*)
 
@@ -149,7 +163,7 @@ CLASS IMPLEMENTATION CnsItem;
    BEGIN
       _Name.FromOA( SingleChildName );
       _NameType := NameType;
-      _ValueType := ValueType;
+      _Value.Type := ValueType;
       _Data := Data;
    END Init;
 
@@ -157,7 +171,7 @@ CLASS IMPLEMENTATION CnsItem;
 
 BEGIN
    _NameType := ns.ntName;
-   _ValueType := iovalue.vtVoid;
+   _Value.Type := iovalue.vtUnknown;
    _Data := 0;
 END CnsItem;
 

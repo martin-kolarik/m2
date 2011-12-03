@@ -39,6 +39,7 @@ ABSTRACT CLASS AnsItem;
       Name : StringsO.TPString;
       NameType : TNameType;
       ValueType : iovalue.TValueType;
+      Value : iovalue.TPValue; // can be NIL if not nt*Value
    PUBLIC ABSTRACT PROPERTY
       Data : PTR; // for user data or references
 

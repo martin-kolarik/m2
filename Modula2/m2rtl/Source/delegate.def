@@ -24,11 +24,11 @@ ABSTRACT CLASS ADelegate; // AFTER CREATION (either static or NEW) THE _Referenc
                           // for which AddRef/Release is used.
   PRIVATE VAR
     _References : CARDINAL;
-    _dlgCompleted  : CARDINAL;
+    _Completed  : CARDINAL;
   PUBLIC READONLY PROPERTY
      References : CARDINAL;
   PUBLIC PROPERTY
-     dlgCompleted : BOOLEAN;
+     Completed : BOOLEAN;
 
   PUBLIC PROCEDURE AddRef() : CARDINAL;
   #save, option( leak_info => on )

@@ -19,6 +19,7 @@ CLASS CnsWrapper( ns.AnsItem );
       Name : StringsO.TPString;
       NameType : ns.TNameType;
       ValueType : iovalue.TValueType;
+      Value : iovalue.TPValue;
    PUBLIC VIRTUAL PROPERTY
       Data : PTR;
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -43,12 +44,13 @@ CLASS CnsItem( nslookup.AnsAVLItem ); // generic, everybody can/should create se
    PRIVATE VAR
       _Name : StringsO.CString;
       _NameType : ns.TNameType;
-      _ValueType : iovalue.TValueType;
+      _Value : iovalue.Value;
       _Data : PTR;
    PUBLIC VIRTUAL READONLY PROPERTY
       Name : StringsO.TPString;
       NameType : ns.TNameType;
       ValueType : iovalue.TValueType;
+      Value : iovalue.TPValue;
    PUBLIC VIRTUAL PROPERTY
       Data : PTR;
    PUBLIC PROCEDURE Init( CONST SingleChildName : ARRAY OF WCHAR; ConstName : BOOLEAN; NameType : ns.TNameType; ValueType : iovalue.TValueType; Data : PTR );

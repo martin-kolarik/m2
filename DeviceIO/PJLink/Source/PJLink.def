@@ -19,6 +19,7 @@ IMPORT
 	StorageO,
 	StringsO,
 	Sync,
+   TextReader,
 	threadpool;
 	
 (*===========================================================================*)
@@ -56,7 +57,11 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
       _AppenderList : lists.CPtrList;
       _Running : BOOLEAN := FALSE;
       _Lock : Sync.LOCK;
+      _State : TRISTATE := 0; // 0 = disconnected, -1 = connected wait auth, 1 = connected with auth
+      _AuthRequested : BOOLEAN := FALSE;
+      _AuthKey : StringsO.CString;
 		_HostAddress : StringsO.CString;
+      _Password : StringsO.CString;
 		_Connection : rawconnection.ClientTCPConnection;
 		_ConnectionCloseTimeoutHandle : threadpool.TPoolHandle;
 		_PoolDelegate : threadpool.CSinkDelegate;
@@ -91,13 +96,15 @@ END CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIO( io.AItemizedIO );
+CLASS CIO( io.AItemizedIO ) IMPLEMENTS threadpool.ITimeoutSink;
 
 	LOCAL VAR
 		DeviceCommunicator : CDeviceCommunicator;
 		DataRoot : nsitem.TPnsItem;
 	PRIVATE VAR
       _Lock : Sync.LOCK;
+		_PoolDelegate : threadpool.CSinkDelegate;
+      _PeriodHandle : threadpool.TPoolHandle := NIL;
 
 	PUBLIC PROCEDURE Dispose();
 
@@ -116,6 +123,9 @@ CLASS CIO( io.AItemizedIO );
       AdviseListener : io.TPIAdviseInfo;
    PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
 	PUBLIC VIRTUAL PROCEDURE AbortAll();
+
+   // ITimeoutSink
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // SELF
 	LOCAL PROCEDURE OnResponse( response : StringsO.CString );

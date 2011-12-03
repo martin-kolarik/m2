@@ -22,7 +22,8 @@ INTERFACE ICompletable;
 
    READONLY PROPERTY
       // Implementor
-      Completed : BOOLEAN; // means real status, if WaitForCompletion fails with timeout, Completed still remains in FALSE state until real completion occurs.
+      resCompleted : BOOLEAN; // means real status, if WaitForCompletion fails with timeout, Completed still remains in FALSE state until real completion occurs.
+                              // already renamed and fixed in delivery branch, leave it here temporarily renamed
       Result : Sync.TAsyncResult;
 
    PROCEDURE Reset();
@@ -61,7 +62,7 @@ CLASS CRequest( Delegate.ADelegate ) IMPLEMENTS ICompletable;
 
    // ICompletable
    PUBLIC VIRTUAL READONLY PROPERTY
-      Completed : BOOLEAN;
+      resCompleted : BOOLEAN; // already renamed and fixed in delivery branch, leave it here temporarily renamed
       Result : Sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE Reset();
