@@ -138,7 +138,7 @@ ABSTRACT CLASS ASrvCommon( threadpool.APoolDelegate ) IMPLEMENTS HttpSrv.IHttpSe
    PUBLIC FINAL PROCEDURE ForgetProcessor( Processor : HttpSrv.TPHttpProcessor );
 
    // SELF
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    INTERNAL READONLY PROPERTY
       PreparedStream : TPSrvStream;

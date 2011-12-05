@@ -78,11 +78,7 @@ CLASS IMPLEMENTATION CTest;
       T.Stop( TRUE );
       httpsrv.Cleanup();
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
 
       (*==========*)
 

@@ -6,6 +6,7 @@ FROM Exceptions IMPORT
    TestIfCatched, RetrieveException;
 
 IMPORT
+   collection,
    cphcommon,
    Exceptions,
    Languages,
@@ -137,6 +138,7 @@ END DecodeLanguage;
 PROCEDURE DecodeURLEncoding( XFormFlag : BOOLEAN; CONST Encoded : ARRAY OF BYTE; OUT Decoded : lists.CStringStringList );
 VAR
    bl : lists.CBufferList;
+   blit : lists.CBufferListIterator;
    byte : BYTE;
    encoded : StorageO.CMemoryBuffer;
    escprevi : INTEGER;
@@ -149,6 +151,7 @@ VAR
    s : StringsO.CString;
    sd : StringsO.CString;
    sl : lists.CStringList;
+   slit : lists.CStringListIterator;
 BEGIN
    encoded.FromOA( Encoded, FALSE );
    pb := encoded.Data;
@@ -178,9 +181,9 @@ BEGIN
    END; // LOOP
 
    // find equals and revert + to spaces if XFormFlag
-   bl.Reset();
-   WHILE bl.MoveNext() DO
-      mb := bl.Current;
+   blit.Init( bl, collection.dirForward );
+   WHILE blit.MoveNext() DO
+      mb := blit.Value;
 
       i := 0;
       l := mb^.Length;
@@ -197,7 +200,7 @@ BEGIN
                DEC( l, 2 );
 
             ELSIF ch = C"=" THEN // remember split position (length)
-               bl.CurrentData := PTR( i );
+               blit.Data := PTR( i );
                mb^[i] := C"=";
                
             ELSIF ch = C"&" THEN // here it can only be an & escape
@@ -224,20 +227,20 @@ BEGIN
       ELSE
          s.FromOAA( 0, OA( i-1, PCHAR( mb^.Data )));
       END;
-      sl.Add( s, bl.CurrentData );
+      sl.Add( s, blit.Data );
    END; // WHILE
    
    // split
-   sl.Reset();
-   WHILE sl.MoveNext() DO
+   slit.Init( sl, collection.dirForward );
+   WHILE slit.MoveNext() DO
       // first part
-      i := INTEGER( LOPTRLONGWORD( sl.CurrentData ));
-      s.FromOA( OA( i-1, sl.Current^.Data ));
+      i := INTEGER( LOPTRLONGWORD( slit.Data ));
+      s.FromOA( OA( i-1, slit.Value^.Data ));
 
       // second part
-      l := sl.Current^.Length;
+      l := slit.Value^.Length;
       IF i+1 <= l THEN
-         sd.FromOA( OA( l-i-2, sl.Current^.Data@[(i+1)<<1] ));
+         sd.FromOA( OA( l-i-2, slit.Value^.Data@[(i+1)<<1] ));
       ELSE
          sd.Clear();
       END;

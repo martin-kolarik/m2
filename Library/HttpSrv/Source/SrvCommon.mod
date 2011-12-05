@@ -7,6 +7,7 @@ FROM Log IMPORT
    lcError, lcWarning, lcInfo;
    
 IMPORT
+   collection,
    cphcommon,
    datetime,
    digest,
@@ -48,9 +49,10 @@ CLASS IMPLEMENTATION CHeaders;
 
    PUBLIC VIRTUAL PROCEDURE Get( Header : HttpCommon.TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
    VAR
+      d : PTR;
       s : StringsO.CString;
    BEGIN
-      IF KnownCache.Get( INTEGER( Header ), OUT s ) THEN
+      IF KnownCache.Get( INTEGER( Header ), OUT s, OUT d ) THEN
          Value.Assign( s );
          RETURN TRUE;
       ELSE
@@ -80,7 +82,7 @@ CLASS IMPLEMENTATION CHeaders;
          RETURN;
       END;
       KnownCache.Remove( INTEGER( Header ));
-      KnownCache.Add( INTEGER( Header ), Value );
+      KnownCache.Add( INTEGER( Header ), Value, 0 );
    END Add;
    
 (*--------------------------------------------------------------------------------*)
@@ -124,12 +126,13 @@ CLASS IMPLEMENTATION CHeaders;
 
    PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
    VAR
+      d : PTR;
       n : StringsO.CString;
       s : StringsO.CString;
    BEGIN
       n.FromOA( Name );
       n.Lowerize();
-      IF UnknownCache.Get( n, OUT s ) THEN
+      IF UnknownCache.Get( n, OUT s, OUT d ) THEN
          Value.Assign( s );
          RETURN TRUE;
       ELSE
@@ -149,7 +152,7 @@ CLASS IMPLEMENTATION CHeaders;
       n.FromOA( Name );
       n.Lowerize();
       UnknownCache.Remove( n );
-      UnknownCache.Add( n, Value );
+      UnknownCache.Add( n, Value, 0 );
    END AddUnknown;
 
 (*--------------------------------------------------------------------------------*)
@@ -941,7 +944,7 @@ CLASS CSession IMPLEMENTS HttpSrv.ISession;
       _Created : datetime.DayCount;
       _New : BOOLEAN := TRUE;
       _SID : StringsO.CString;
-      _Data : syncmaps.CStringSyncMap;
+      _Data : syncmaps.CStringPtrSyncMap;
    PUBLIC PROPERTY
       New : BOOLEAN;
    PUBLIC READONLY PROPERTY
@@ -976,28 +979,30 @@ CLASS IMPLEMENTATION CSession;
 
    PUBLIC VIRTUAL PROCEDURE Add( CONST Key : ARRAY OF WCHAR; Data : PTR );
    BEGIN
-      _Data.AddOA( Key, Data );
+      _Data.Add( StringsO.FromOA( Key ), Data, 0 );
    END Add;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Remove( CONST Key : ARRAY OF WCHAR );
    BEGIN
-      _Data.RemoveOA( Key );
+      _Data.Remove( StringsO.FromOA( Key ));
    END Remove;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Contains( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
-      RETURN _Data.ContainsOA( Key );
+      RETURN _Data.Contains( StringsO.FromOA( Key ));
    END Contains;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Get( CONST Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      d : PTR;
    BEGIN
-      RETURN _Data.GetOA( Key, OUT Data );
+      RETURN _Data.Get( StringsO.FromOA( Key ), OUT Data, OUT d );
    END Get;
 
 (*--------------------------------------------------------------------------------*)
@@ -1164,7 +1169,7 @@ CLASS CSessionHolder;
 
    PUBLIC VAR
       Processor : HttpSrv.TPHttpProcessor;
-      Sessions : maps.CStringMap; 
+      Sessions : maps.CStringPtrMap; 
       Expiration : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMapSimplified;
       Seed : sha256.TDigest;
 
@@ -1196,6 +1201,7 @@ CLASS IMPLEMENTATION CSessionHolder;
    VAR
       c : CARDINAL;
       cookie : StringsO.CString;
+      d : PTR;
       data : sha256.TDigest;
       iv : sha256.TDigest;
       l : CARDINAL;
@@ -1214,7 +1220,7 @@ CLASS IMPLEMENTATION CSessionHolder;
          DISPOSE( session );
       END; // WHILE
    
-      IF ( pcookie <> NIL ) AND Sessions.Get( pcookie^, OUT session ) THEN
+      IF ( pcookie <> NIL ) AND Sessions.Get( pcookie^, OUT session, OUT d ) THEN
          session^.New := FALSE;
          Expiration.Remove( session );
          IF session^.Valid THEN // move expiration to the future
@@ -1240,7 +1246,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       
       NEW( session );
       session^.Init( cookie, rootPath );
-      Sessions.Add( cookie, session );
+      Sessions.Add( cookie, session, 0 );
       Expiration.Add( shorttime, session, 0, Processor^.SessionValidityMS );
       
       RETURN session;      
@@ -1250,11 +1256,12 @@ CLASS IMPLEMENTATION CSessionHolder;
 
    PUBLIC PROCEDURE Dispose();   
    VAR
+      it : maps.CStringPtrMapIterator;
       Session : TPSrvSession;
    BEGIN
-      Sessions.Reset();
-      WHILE Sessions.MoveNext() DO
-         Session := Sessions.CurrentData;
+      it.Init( Sessions, collection.dirForward );
+      WHILE it.MoveNext() DO
+         Session := it.Data;
          OnSessionExpired( Session );
          DISPOSE( Session );
       END; // WHILE      
@@ -1423,15 +1430,16 @@ CLASS IMPLEMENTATION ASrvCommon;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       holder : TPSessionHolder;
+      it : lists.CPtrListIterator;
    BEGIN
       _Pool.FinishAndWait();
 
-      _Processors.Reset();
-      WHILE _Processors.MoveNext() DO
-         holder := _Processors.CurrentData;
+      it.Init( _Processors, collection.dirForward );
+      WHILE it.MoveNext() DO
+         holder := it.Data;
          DISPOSE( holder );
       END; // WHILE
       _Processors.Dispose();
@@ -1462,6 +1470,7 @@ CLASS IMPLEMENTATION ASrvCommon;
       currentHolder : TPSessionHolder;
       currentProcessor : HttpSrv.TPHttpProcessor;
       foundProcessor : HttpSrv.TPHttpProcessor := NIL;
+      it : lists.CPtrListIterator;
       ph : threadpool.TPoolHandle;
       Reported : BOOLEAN := FALSE;
       Result : Sync.TAsyncResult;
@@ -1486,11 +1495,11 @@ CLASS IMPLEMENTATION ASrvCommon;
          _PreparedStream^.StatusCode := HttpCommon.httpres_501; // unsupported
 
       ELSE // verb OK, search processor
-         _Processors.Reset();
-         WHILE _Processors.MoveNext() DO
+         it.Init( _Processors, collection.dirForward );
+         WHILE it.MoveNext() DO
             uri := _PreparedStream^.RequestURI;
-            currentProcessor := _Processors.Current;
-            currentHolder := _Processors.CurrentData;
+            currentProcessor := it.Value;
+            currentHolder := it.Data;
             IF currentProcessor^.AppliesFor( Verb, OA( uri.Length-1, uri.Data ), OUT WantsSession ) THEN
                foundProcessor := currentProcessor;
                EXIT;

@@ -8,6 +8,7 @@ FROM Exceptions IMPORT
 IMPORT
    array,
    arrays,
+   collection,
    cphcommon,
    datetime,
    Defs,
@@ -123,6 +124,7 @@ PROCEDURE Main( argc : INTEGER; argp : TPParameters ) : INTEGER;
 #restore
 VAR
    args : lists.CStringList;
+   argsit : lists.CStringListIterator;
    count : INTEGER;
    err : TextWriter.TPTextWriter := TextWriter.errout();
    i : INTEGER;
@@ -162,6 +164,7 @@ VAR
       rn : Number.CRegistration;
       sn : Number.CSerial;
       sns : lists.CStringList;
+      snsit : lists.CStringListIterator;
       so : StringsO.CString;
    #endif
 
@@ -172,7 +175,7 @@ VAR
       haveSome : BOOLEAN := FALSE;
       identity : TIdentity := TIdentity{idMAC};
       j : INTEGER;
-      jlist, klist : lists.TPPtrList;
+      jlistit, klistit : lists.CPtrListIterator;
       licenceItem : Items.TPLicence;
       uid : Uniquer.TUId;
       uq : Uniquer.CUniquer;
@@ -225,15 +228,17 @@ VAR
 
    #if Client #or Activator #then
    PROCEDURE LoadData( bind, validate : BOOLEAN; OUT data : arrays.CPtrArray );
+   VAR
+      it : lists.CStringListIterator;
    BEGIN
       ls.Filters^.Add( ADR( lsINI ), 0 );
       data.Strategy := array.astrgListInArray;
 
-      args.Reset();
+      it.Init( args, collection.dirForward );
       IF useCommonStorage THEN
          // do nothing
-      ELSIF args.MoveNext() THEN 
-         so.Assign( args.Current^ );
+      ELSIF it.MoveNext() THEN 
+         so.Assign( it.Value^ );
          ls.Path := so;
       ELSE
          ls.SetPathOA( L"." );
@@ -440,7 +445,7 @@ BEGIN
                err^.WriteOA( L'  "A" parameter requires activation number', TRUE );
                RETURN 101;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'a' :
             op := opApplyActivationFromFile;
             INC( i );
@@ -506,7 +511,7 @@ BEGIN
                err^.WriteOA( L'  "L" parameter requires licence number', TRUE );
                RETURN 102;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'l' :
             op := opApplyLicenceFromFile;
             INC( i );
@@ -535,7 +540,7 @@ BEGIN
                err^.WriteOA( L'  "N" parameter requires a number', TRUE );
                RETURN 118;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'n' :
             op := opNumberInfoFromFile;
             INC( i );
@@ -563,7 +568,7 @@ BEGIN
                err^.WriteOA( L'  "R" parameter requires registration number', TRUE );
                RETURN 104;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'r' :
             op := opRegisterFromFile;
             INC( i );
@@ -611,7 +616,7 @@ BEGIN
                err^.WriteOA( L'  "U" parameter requires licence number', TRUE );
                RETURN 105;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'u' :
             op := opRemoveLicenceFromFile;
             INC( i );
@@ -626,7 +631,7 @@ BEGIN
             RETURN 120;
          END;
       ELSE // paths
-         args.AddOA( OAsz( argp^[i] ), 0 );
+         args.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
       END;
 
       INC( i );
@@ -658,13 +663,13 @@ BEGIN
    | opSignProduct :
       ls.Filters^.Add( ADR( lsINI ), 0 );
       IF args.Empty THEN
-         args.AddOA( L".", 0 );
+         args.Add( StringsO.FromOA( L"." ), 0 );
       END;
    
-      args.Reset();
-      WHILE args.MoveNext() DO
-         IF NOT di.StartFromPath( args.Current^, FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
-            err^.WriteOA( L'  nothing found for "', FALSE ); err^.Write( args.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
+      argsit.Init( args, collection.dirForward );
+      WHILE argsit.MoveNext() DO
+         IF NOT di.StartFromPath( argsit.Value^, FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
+            err^.WriteOA( L'  nothing found for "', FALSE ); err^.Write( argsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
             CONTINUE;
          END;
          REPEAT
@@ -714,13 +719,11 @@ BEGIN
    #if Licensor #then
    //-----
    | opGenerateLicence :
-      args.Reset();
-
-      IF NOT args.MoveNext() THEN
+      IF NOT argsit.MoveNext() THEN
          err^.WriteOA( L'  expected gord', TRUE );
          RETURN 201;
       END;
-      ps := args.Current;
+      ps := argsit.Value;
       IF NOT ps^.ToCARD32( 10, OUT i ) THEN
          err^.WriteOA( L'  bad gord: ', FALSE ); err^.Write( ps^, TRUE );
          RETURN 202;
@@ -732,11 +735,11 @@ BEGIN
          sn.GOrd := i;
       END;
 
-      IF NOT args.MoveNext() THEN
+      IF NOT argsit.MoveNext() THEN
          err^.WriteOA( L'  expected product', TRUE );
          RETURN 204;
       END;
-      sn.SetPId( args.Current^ );
+      sn.SetPId( argsit.Value^ );
 
       IF owner.Empty THEN
          sn.Type := Items.TLicenceType{Items.ltUnnamed};
@@ -790,13 +793,13 @@ BEGIN
       
       LoadData( FALSE, FALSE, OUT data );
    
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          err^.LineEnd();
 
          // get current licence
-         err^.WriteOA( L'  processing licence "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF NOT Number.Decode( sns.Current^, REF sn ) THEN
+         err^.WriteOA( L'  processing licence "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF NOT Number.Decode( snsit.Value^, REF sn ) THEN
             err^.WriteOA( L'    the licence is not valid', TRUE );
             CONTINUE;
          ELSIF Items.ltUnnamed IN sn.Type THEN
@@ -822,7 +825,7 @@ BEGIN
                   licenceItem^.ProductId := item^.ProductId;
                   licenceItem^.Type := sn.Type;
                   licenceItem^.Created := datetime.NowUTC();
-                  so.Assign( sns.Current^ );
+                  so.Assign( snsit.Value^ );
                   licenceItem^.Serial := so;
                   licenceItem^.Owner := owner;
                   licenceItem^.UId := uq.UId( licenceItem^.ProductId );
@@ -868,13 +871,13 @@ BEGIN
       
       LoadData( FALSE, FALSE, OUT data );
    
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          err^.LineEnd();
 
          // get current licence
-         err^.WriteOA( L'  processing licence "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF NOT Number.Decode( sns.Current^, REF sn ) THEN
+         err^.WriteOA( L'  processing licence "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF NOT Number.Decode( snsit.Value^, REF sn ) THEN
             err^.WriteOA( L'    the licence is not valid', TRUE );
             CONTINUE;
          END; 
@@ -1028,15 +1031,15 @@ BEGIN
       END;
 
       count := 0;
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          IF count > 0 THEN
             err^.LineEnd();
          END;
 
          // get current licence
-         err^.WriteOA( L'  processing registration "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF NOT Number.Decode( sns.Current^, REF rn ) THEN
+         err^.WriteOA( L'  processing registration "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF NOT Number.Decode( snsit.Value^, REF rn ) THEN
             err^.WriteOA( L'    the registration is not valid', TRUE );
             CONTINUE;
          END;
@@ -1074,13 +1077,13 @@ BEGIN
       
       LoadData( TRUE, TRUE, OUT data );
    
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          err^.LineEnd();
 
          // get current licence
-         err^.WriteOA( L'  processing activation "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF NOT Number.Decode( sns.Current^, REF an ) THEN
+         err^.WriteOA( L'  processing activation "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF NOT Number.Decode( snsit.Value^, REF an ) THEN
             err^.WriteOA( L'    the activation is not valid', TRUE );
             CONTINUE;
          END; 
@@ -1185,13 +1188,13 @@ BEGIN
          RETURN 207;
       END;
       
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          err^.LineEnd();
 
          // get current licence
-         err^.WriteOA( L'  processing number "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF Number.Decode( sns.Current^, REF sn ) THEN
+         err^.WriteOA( L'  processing number "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF Number.Decode( snsit.Value^, REF sn ) THEN
             IF sn.Valid THEN
                err^.WriteOA( L'  the number is a valid licence number', TRUE );
             ELSE
@@ -1208,7 +1211,7 @@ BEGIN
                err^.WriteOA( L'  ohash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             END;
 
-         ELSIF Number.Decode( sns.Current^, REF rn ) THEN
+         ELSIF Number.Decode( snsit.Value^, REF rn ) THEN
             IF rn.Valid THEN
                err^.WriteOA( L'  the number is a valid registration number', TRUE );
             ELSE
@@ -1263,7 +1266,7 @@ BEGIN
             Number.Code( an, OUT st );
             err^.WriteOA( L'    ', FALSE ); err^.Write( st, TRUE );
 
-         ELSIF Number.Decode( sns.Current^, REF an ) THEN
+         ELSIF Number.Decode( snsit.Value^, REF an ) THEN
             IF an.Valid THEN
                err^.WriteOA( L'  the number is a valid activation number', TRUE );
             ELSE
@@ -1370,14 +1373,13 @@ BEGIN
                err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             #endif
 
-            jlist := Items.TPProduct( item )^.LicencesAndInfos;
-            jlist^.Reset();
-            WHILE jlist^.MoveNext() DO
-               IF NOT( Items.TPItem( jlist^.Current )^ IS Items.CLicence ) THEN
+            jlistit.Init( Items.TPProduct( item )^.LicencesAndInfos^, collection.dirForward );
+            WHILE jlistit.MoveNext() DO
+               IF NOT( Items.TPItem( jlistit.Value )^ IS Items.CLicence ) THEN
                   CONTINUE;
                END;
             
-               item := Items.TPItem( jlist^.Current );
+               item := Items.TPItem( jlistit.Value );
                err^.WriteOA( L'    licence "', FALSE ); err^.Write( Items.TPLicence( item )^.Serial, FALSE ); err^.WriteOA( L'"', TRUE );
                err^.WriteOA( L'    type "', FALSE ); err^.Write( Items.TPLicence( item )^.TypeString, FALSE ); err^.WriteOA( L'"', TRUE );
 
@@ -1400,10 +1402,9 @@ BEGIN
                   END;
                #endif
 
-               klist := Items.TPLicence( item )^.Activations;
-               klist^.Reset();
-               WHILE klist^.MoveNext() DO
-                  item := Items.TPItem( klist^.Current );
+               klistit.Init( Items.TPLicence( item )^.Activations^, collection.dirForward );
+               WHILE klistit.MoveNext() DO
+                  item := Items.TPItem( klistit.Value );
 
                   dtb := Items.TPActivation( item )^.Starts;
                   dte := Items.TPActivation( item )^.Expires;
@@ -1451,10 +1452,9 @@ BEGIN
                err^.WriteOA( L'    ohash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             END;
 
-            klist := Items.TPLicence( item )^.Activations;
-            klist^.Reset();
-            WHILE klist^.MoveNext() DO
-               item := Items.TPItem( klist^.Current );
+            klistit.Init( Items.TPLicence( item )^.Activations^, collection.dirForward );
+            WHILE klistit.MoveNext() DO
+               item := Items.TPItem( klistit.Value );
 
                dtb := Items.TPActivation( item )^.Starts;
                dte := Items.TPActivation( item )^.Expires;

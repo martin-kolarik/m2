@@ -8,6 +8,7 @@ FROM Storage IMPORT
 
 IMPORT
    accesslist,
+   collection,
    HttpConnection,
    HttpTools,
    LanguagesO,
@@ -36,7 +37,7 @@ TYPE
       mtUnknown,
       mtQualification,
       mtKey,
-      mtValueKey,
+      mtValue,
       mtCall
    );
 
@@ -44,7 +45,7 @@ TYPE
 
 CLASS CContainer IMPLEMENTS IContainer;
    PRIVATE VAR
-      Models : maps.CStringMap;
+      Models : maps.CStringPtrMap;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
@@ -85,24 +86,25 @@ CLASS IMPLEMENTATION CContainer;
    TYPE
       TPCString = POINTER TO StringsO.CString;
    VAR
+      i : maps.CStringPtrMapIterator;
       l : lists.TPStringList;
       m : maps.TPStringStringMap;
       s : TPCString;
    BEGIN
-      Models.Reset();
-      WHILE Models.MoveNext() DO
-         CASE Models.Current^[0] OF
+      i.Init( Models, collection.dirForward );
+      WHILE i.MoveNext() DO
+         CASE i.Key^[0] OF
          | L"b" :
             // do nothing
          | L"s",
            L"v" :
-            s := TPCString( Models.CurrentData );
+            s := TPCString( i.Value );
             DISPOSE( s );
          | L"l" :
-            l := lists.TPStringList( Models.CurrentData );
+            l := lists.TPStringList( i.Value );
             DISPOSE( l );
          | L"m" :
-            m := maps.TPStringStringMap( Models.CurrentData );
+            m := maps.TPStringStringMap( i.Value );
             DISPOSE( m );
          | L"f" :
             // do nothing
@@ -117,6 +119,7 @@ CLASS IMPLEMENTATION CContainer;
 
    PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR );
    VAR
+      d : PTR;
       l : lists.TPStringList;
       m : maps.TPStringStringMap;
       name : StringsO.CString;
@@ -129,19 +132,19 @@ CLASS IMPLEMENTATION CContainer;
       Models.Remove( name );
 
       name[0] := L"s";
-      IF Models.Get( name, OUT s ) THEN
+      IF Models.Get( name, OUT s, OUT d ) THEN
          DISPOSE( s );
          Models.Remove( name );
       END;
 
       name[0] := L"l";
-      IF Models.Get( name, OUT l ) THEN
+      IF Models.Get( name, OUT l, OUT d ) THEN
          DISPOSE( l );
          Models.Remove( name );
       END;
 
       name[0] := L"m";
-      IF Models.Get( name, OUT m ) THEN
+      IF Models.Get( name, OUT m, OUT d ) THEN
          DISPOSE( m );
          Models.Remove( name );
       END;
@@ -158,21 +161,22 @@ CLASS IMPLEMENTATION CContainer;
       IF Models.Contains( name ) THEN
          Models.Remove( name );
       END;
-      Models.Add( name, PTR( Model ));
+      Models.Add( name, PTR( Model ), 0 );
    END AddBooleanOA;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // creates string in model
    VAR
+      d : PTR;
       model : POINTER TO StringsO.CString;
       name : StringsO.CString;
    BEGIN
       name.FromOA( L"s." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model, OUT d ) THEN
          NEW( model );
-         Models.Add( name, model );
+         Models.Add( name, model, 0 );
       END;
       model^.Assign( Model );
    END AddStringOA;
@@ -181,15 +185,16 @@ CLASS IMPLEMENTATION CContainer;
 
    PUBLIC VIRTUAL PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model
    VAR
+      d : PTR;
       name : StringsO.CString;
    BEGIN
       name.FromOA( L"l." );
       name.AppendOA( Name );
-      IF Models.Get( name, OUT Model ) THEN
+      IF Models.Get( name, OUT Model, OUT d ) THEN
          Model^.Dispose();
       ELSE
          NEW( Model );
-         Models.Add( name, Model );
+         Models.Add( name, Model, 0 );
       END;
    END AddListOA;
 
@@ -197,15 +202,16 @@ CLASS IMPLEMENTATION CContainer;
 
    PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
    VAR
+      d : PTR;
       name : StringsO.CString;
    BEGIN
       name.FromOA( L"m." );
       name.AppendOA( Name );
-      IF Models.Get( name, OUT Model ) THEN
+      IF Models.Get( name, OUT Model, OUT d ) THEN
          Model^.Dispose();
       ELSE
          NEW( Model );
-         Models.Add( name, Model );
+         Models.Add( name, Model, 0 );
       END;
    END AddMapOA;
 
@@ -220,21 +226,22 @@ CLASS IMPLEMENTATION CContainer;
       IF Models.Contains( name ) THEN
          Models.Remove( name );
       END;
-      Models.Add( name, PTR( Handler ));
+      Models.Add( name, PTR( Handler ), 0 );
    END AddFunctionHandlerOA;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
    VAR
+      d : PTR;
       model : POINTER TO StringsO.CString;
       name : StringsO.CString;
    BEGIN
       name.FromOA( L"v." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model, OUT d ) THEN
          NEW( model );
-         Models.Add( name, model );
+         Models.Add( name, model, 0 );
       END;
       model^.Assign( Model );
    END AddVariable;
@@ -243,12 +250,13 @@ CLASS IMPLEMENTATION CContainer;
 
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    VAR
+      d : PTR;
       model : PTR;
       name : StringsO.CString;
    BEGIN
       name.FromOA( L"b." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model, OUT d ) THEN
          RETURN FALSE;
       END;
       Model := BOOLEAN( LOPTRLONGWORD( model ));
@@ -259,20 +267,21 @@ CLASS IMPLEMENTATION CContainer;
 
    PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
    VAR
+      d : PTR;
       model : StringsO.TPString;
       name : StringsO.CString;
    BEGIN
      // try model string
       name.FromOA( L"s." );
       name.AppendOA( Name );
-      IF Models.Get( name, OUT model ) THEN
+      IF Models.Get( name, OUT model, OUT d ) THEN
          Model.Assign( model^ );
          RETURN TRUE;
       END;
       // try variable
       name.FromOA( L"v." );
       name.AppendOA( Name );
-      IF Models.Get( name, OUT model ) THEN
+      IF Models.Get( name, OUT model, OUT d ) THEN
          Model.Assign( model^ );
          RETURN TRUE;
       END;
@@ -284,12 +293,13 @@ CLASS IMPLEMENTATION CContainer;
 
    PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
    VAR
+      d : PTR;
       model : lists.TPStringStringList;
       name : StringsO.CString;
    BEGIN
       name.FromOA( L"l." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model, OUT d ) THEN
          RETURN FALSE;
       END;
       Model := model;
@@ -300,12 +310,13 @@ CLASS IMPLEMENTATION CContainer;
 
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    VAR
+      d : PTR;
       model : maps.TPStringStringMap;
       name : StringsO.CString;
    BEGIN
       name.FromOA( L"m." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model, OUT d ) THEN
          RETURN FALSE;
       END;
       Model := model;
@@ -316,12 +327,13 @@ CLASS IMPLEMENTATION CContainer;
 
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
    VAR
+      d : PTR;
       model : TPFunctionHandler;
       name : StringsO.CString;
    BEGIN
       name.FromOA( L"f." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT Models.Get( name, OUT model, OUT d ) THEN
          RETURN FALSE;
       END;
       Handler := model;
@@ -335,12 +347,12 @@ CLASS IMPLEMENTATION CContainer;
       Error;
    VAR
       boolean : BOOLEAN;
+      d : PTR;
       i, index, j : INTEGER;
       lvalue : StringsO.CString;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
       modelType : TModelType := mtUnknown;
-      ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
       i := model.IndexOfAnyS( StringsO.WCHARS{L".", L"[", L"<", L"("}, 0 );
@@ -348,7 +360,7 @@ CLASS IMPLEMENTATION CContainer;
          CASE model[i] OF
          | L"." : modelType := mtQualification;
          | L"[" : modelType := mtKey;
-         | L"<" : modelType := mtValueKey;
+         | L"<" : modelType := mtValue;
          | L"(" : modelType := mtCall;
          END; // CASE
       END;
@@ -371,7 +383,7 @@ CLASS IMPLEMENTATION CContainer;
          sindex2.Trim();
          IF map <> NIL THEN
             map^.Remove( sindex2 );
-            map^.Add( sindex2, value );
+            map^.Add( sindex2, value, 0 );
          ELSIF list <> NIL THEN
             list^.Remove( sindex2 );
             list^.Add( sindex2, value );
@@ -379,7 +391,7 @@ CLASS IMPLEMENTATION CContainer;
          RETURN TRUE;
 
       //-----
-      | mtKey, mtValueKey :
+      | mtKey, mtValue :
          IF modelType = mtKey THEN
             j := model.IndexOfOA( L"]", i+1 );
          ELSE
@@ -398,32 +410,28 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
 
          ELSIF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
-            IF modelType = mtValueKey THEN
-               ps := map^[index];
-               IF ps = NIL THEN
-                  GOTO Error;
-               END;
-               ps^.Assign( value );
-            ELSIF map^.ElementAt( index, OUT sindex1, OUT lvalue ) THEN
-               map^.Remove( sindex1 );
-               map^.Add( sindex1, value );
-            ELSE
+            IF NOT map^.ElementAt( index, OUT sindex1, OUT lvalue, OUT d ) THEN
                GOTO Error;
+            END;
+            map^.Remove( sindex1 );
+            IF modelType = mtKey THEN
+               map^.Add( sindex1, value, 0 );
+            ELSE
+               map^.Remove( value );
+               map^.Add( value, lvalue, 0 );
             END;
             RETURN TRUE;
 
          ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
-            IF modelType = mtKey THEN
-               ps := list^[index];
-               IF ps = NIL THEN
-                  GOTO Error;
-               END;
-               ps^.Assign( value );
-            ELSIF list^.ElementAt( index, OUT sindex1, OUT lvalue ) THEN
-               list^.Remove( sindex1 );
-               list^.Add( sindex1, value );
-            ELSE
+            IF NOT list^.ElementAt( index, OUT sindex1, OUT lvalue ) THEN
                GOTO Error;
+            END;
+            list^.Remove( sindex1 );
+            IF modelType = mtKey THEN
+               map^.Remove( value );
+               list^.Add( value, lvalue );
+            ELSE
+               list^.Add( sindex1, value );
             END;
             RETURN TRUE;
 
@@ -468,6 +476,7 @@ CLASS IMPLEMENTATION CContainer;
       Error;
    VAR
       boolean : BOOLEAN;
+      d : PTR;
       empty : StringsO.CString;
       functionHandler : TPFunctionHandler;
       i, index, j : INTEGER;
@@ -478,6 +487,7 @@ CLASS IMPLEMENTATION CContainer;
       msgFunctionShortcut : BOOLEAN;
       parameter : StringsO.CString;
       parameterList : lists.CStringStringList;
+      parameterListIterator : lists.CStringStringListIterator;
       parameters : StringsO.CString;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
@@ -487,7 +497,7 @@ CLASS IMPLEMENTATION CContainer;
          CASE model[i] OF
          | L"." : modelType := mtQualification;
          | L"[" : modelType := mtKey;
-         | L"<" : modelType := mtValueKey;
+         | L"<" : modelType := mtValue;
          | L"(" : modelType := mtCall;
          END; // CASE
       END;
@@ -517,7 +527,7 @@ CLASS IMPLEMENTATION CContainer;
             sindex2 := sindex1;
          END;
          sindex2.Trim();
-         IF ( map <> NIL ) AND NOT map^.Get( sindex2, OUT value ) THEN
+         IF ( map <> NIL ) AND NOT map^.Get( sindex2, OUT value, OUT d ) THEN
             GOTO Error;
          ELSIF ( list <> NIL ) AND NOT list^.Get( sindex2, OUT value ) THEN
             GOTO Error;
@@ -525,7 +535,7 @@ CLASS IMPLEMENTATION CContainer;
          RETURN TRUE;
 
       //-----
-      | mtKey, mtValueKey :
+      | mtKey, mtValue :
          IF modelType = mtKey THEN
             j := model.IndexOfOA( L"]", i+1 );
          ELSE
@@ -544,26 +554,18 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
 
          ELSIF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
-            IF modelType = mtValueKey THEN
-               ps := map^[index];
-               IF ps = NIL THEN
-                  GOTO Error;
-               END;
-               value.Assign( ps^ );
-            ELSIF NOT map^.ElementAt( index, OUT sindex1, OUT value ) THEN
+            IF NOT map^.ElementAt( index, OUT sindex1, OUT value, OUT d ) THEN
                GOTO Error;
+            ELSIF modelType = mtKey THEN
+               value.Assign( sindex1 );
             END;
             RETURN TRUE;
 
          ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
-            IF modelType = mtKey THEN
-               ps := list^[index];
-               IF ps = NIL THEN
-                  GOTO Error;
-               END;
-               value.Assign( ps^ );
-            ELSIF NOT list^.ElementAt( index, OUT value, OUT sindex1 ) THEN
+            IF NOT list^.ElementAt( index, OUT value, OUT sindex1 ) THEN
                GOTO Error;
+            ELSIF modelType = mtValue THEN
+               value.Assign( sindex1 );
             END;
             RETURN TRUE;
 
@@ -599,9 +601,10 @@ CLASS IMPLEMENTATION CContainer;
                IF parameterList.Empty THEN
                   value.FromOA( L'##unknown message: missing the id of the message' );
                ELSE
-                  parameterList.Reset(); parameterList.MoveNext();
-                  IF NOT MessageSource^.GetMessage( language, parameterList.CurrentData^, OUT value ) THEN
-                     value.FromOA( L'##unknown message: msg.' ); value.Append( parameterList.CurrentData^ );
+                  parameterListIterator.Init( parameterList, collection.dirForward );
+                  parameterListIterator.MoveNext();
+                  IF NOT MessageSource^.GetMessage( language, parameterListIterator.Data^, OUT value ) THEN
+                     value.FromOA( L'##unknown message: msg.' ); value.Append( parameterListIterator.Data^ );
                   END;
                END;
                boolean := TRUE; // mask error as it is already reported in the resulting text itself
@@ -716,13 +719,14 @@ CLASS IMPLEMENTATION CContainer;
       IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
          AddMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper );
       END;
-      mapper^.Add( InViewName, FullModel );
+      mapper^.Add( InViewName, FullModel, 0 );
    END SetModelInViewName;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
    VAR
+      d : PTR;
       LSetId : StringsO.CString;
       mapper : maps.TPStringStringMap;
    BEGIN
@@ -730,7 +734,7 @@ CLASS IMPLEMENTATION CContainer;
       LSetId.Append( ControllerURI );
       IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
          RETURN FALSE;
-      ELSIF NOT mapper^.Get( InViewName, OUT FullModel ) THEN
+      ELSIF NOT mapper^.Get( InViewName, OUT FullModel, OUT d ) THEN
          RETURN FALSE;
       ELSE
          RETURN TRUE;
@@ -744,13 +748,14 @@ CLASS IMPLEMENTATION CContainer;
       empty : StringsO.CString;
       LSetId : StringsO.CString;
       mapper : maps.TPStringStringMap;
+      mapperIterator : maps.CStringStringMapIterator;
    BEGIN
       LSetId.FromOA( VIEW_MAPPER );
       LSetId.Append( ControllerURI );
       IF GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
-         mapper^.Reset();
-         WHILE mapper^.MoveNext() DO
-            SetModelValue( Request, NIL, 0, mapper^.CurrentData^, empty ); // clear model value
+         mapperIterator.Init( mapper^, collection.dirForward );
+         WHILE mapperIterator.MoveNext() DO
+            SetModelValue( Request, NIL, 0, mapperIterator.Value^, empty ); // clear model value
          END; // WHILE
       END;
    END ResetModelValues;
@@ -1455,7 +1460,7 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
    PRIVATE VAR
       _Running : BOOLEAN := FALSE;
       _Context : StringsO.CString;
-      _Controllers : syncmaps.CStringSyncMap;
+      _Controllers : syncmaps.CStringPtrSyncMap;
       _FallbackController : TPController;
       _SessionValidity : CARDINAL := 30 * 60 * 1000; // 30 minutes
       _MessageSourcePath : StringsO.CString;
@@ -1539,8 +1544,9 @@ CLASS IMPLEMENTATION CMVC;
       connectionData : lists.CStringStringList;
       controller : TPController;
       controllerURI : StringsO.CString;
-      containerMap : syncmaps.TPPtrSyncMap;
+      containerMap : syncmaps.TPPtrPtrSyncMap;
       container : POINTER TO CSynchronizedContainer;
+      d : PTR;
       fallbackFlag : BOOLEAN := FALSE;
       functionCalled : BOOLEAN;
       InputStream : IOO.TPStream;
@@ -1569,9 +1575,9 @@ CLASS IMPLEMENTATION CMVC;
          NEW( containerMap );
          Session^.Add( SESSION_MVC, containerMap );
       END;
-      IF NOT containerMap^.Get( controller, OUT container ) THEN
+      IF NOT containerMap^.Get( controller, OUT container, OUT d ) THEN
          NEW( container );
-         containerMap^.Add( controller, container );
+         containerMap^.Add( controller, container, 0 );
          controller^.InitializeModelContainer( REF container^ );
       END;
       

@@ -51,7 +51,7 @@ CLASS WaitableCompletable( delegate.Delegate ) IMPLEMENTS basecompletion.IWaitab
 
    // IWaitableCompletable
    PUBLIC VIRTUAL READONLY PROPERTY
-      resCompleted : BOOLEAN; // already renamed and fixed in delivery branch, leave it here temporarily renamed
+      Completed : BOOLEAN; // already renamed and fixed in delivery branch, leave it here temporarily renamed
       Result : Sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE Reset();
