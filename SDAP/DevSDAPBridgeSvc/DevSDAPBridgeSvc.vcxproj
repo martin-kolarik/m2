@@ -70,7 +70,9 @@
     <None Include="Source\BridgeSvc.mod" />
     <None Include="DevSDAPBridgeSvc.definition.proj" />
     <None Include="DevSDAPBridgeSvc.proj" />
-    <None Include="Install\DevSDAPBridgeSvc.wxs" />
+    <None Include="Install\DevSDAPBridgeSvc.wxs">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
