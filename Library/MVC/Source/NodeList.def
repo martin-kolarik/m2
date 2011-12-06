@@ -6,7 +6,7 @@ IMPORT
    StringsO,
    xmlreader;
   
-//---------------------------------------------------------------------------
+(*================================================================================*)
 
 TYPE
    TPNodeItem = POINTER TO CNodeItem;
@@ -28,21 +28,27 @@ CLASS CNodeItem( list.CListElem );
       Attributes : lists.TPStringStringList;
 END CNodeItem;
 
-//---------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 TYPE
    TPNodeList = POINTER TO CNodeList;
 
-CLASS CNodeList( list.CListWState );
-
-   PUBLIC READONLY PROPERTY
-      Current : TPNodeItem;
+CLASS CNodeList( list.CList );
 
    // map interface
    PUBLIC PROCEDURE Add( Type : xmlreader.TNodeType; CONST Prefix, Name : StringsO.IString; Empty : BOOLEAN; CONST Value : StringsO.IString; REF Attributes : lists.CStringStringList ); // Attributes are cleared when added
 
 END CNodeList;
 
-//---------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
+
+CLASS CNodeListIterator( list.CListIterator );
+
+   PUBLIC READONLY PROPERTY
+      Value : TPNodeItem;
+
+END CNodeListIterator;
+
+(*================================================================================*)
 
 END NodeList.

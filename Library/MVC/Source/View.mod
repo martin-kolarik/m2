@@ -6,6 +6,7 @@ FROM Exceptions IMPORT
    TestIfCatched, RetrieveException;
 
 IMPORT
+   collection,
    datetime,
    FIO,
    FIOO,
@@ -945,16 +946,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
       b : BOOLEAN;
       condition : StringsO.CString;
       empty : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
       ptype : POINTER TO CONST WCHAR;
       simpleInput : BOOLEAN;
    BEGIN
       // look for condition
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
-            ParseText( attributes.CurrentData^, OUT condition );
+            ParseText( it.Data^, OUT condition );
             IF NOT EvaluateBoolean( condition ) THEN
                IF isEmpty OR Parse( FALSE, limitToPTOnly ) THEN
                   RETURN esaProcessedInDeep;
@@ -1105,6 +1107,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseAccess( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       lattributes : lists.CStringStringList;
       prefix : StringsO.CString;
       pname : StringsO.TPString;
@@ -1114,20 +1117,20 @@ CLASS IMPLEMENTATION CPageTemplateView;
       prefix.AppendOA( L":" );
 
       // first analyze attributes
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
 
          attribute := prefix; attribute.AppendOA( PT_AUTHENTICATION );
          IF pname^.EqualsIgnoreCaseOA( PT_AUTHENTICATION ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT AuthMethod );
+            ParseText( it.Data^, OUT AuthMethod );
          END;
          
          attribute := prefix; attribute.AppendOA( PT_ROLE );
          IF pname^.EqualsIgnoreCaseOA( PT_ROLE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             IF AuthTokens <> NIL THEN
-               ParseText( attributes.CurrentData^, OUT role );
-               AuthTokens^.AddOA( L"", role );
+               ParseText( it.Data^, OUT role );
+               AuthTokens^.Add( StringsO.Empty(), role );
             END;
          END;
       END; // WHILE
@@ -1146,7 +1149,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ELSIF NOT LoadTextContents( OUT role ) THEN
          RETURN FALSE;
       ELSIF AuthTokens <> NIL THEN
-         AuthTokens^.AddOA( L"", role );
+         AuthTokens^.Add( StringsO.Empty(), role );
       END;
       RETURN TRUE;
    END ParseRole;
@@ -1161,6 +1164,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       emit : TRISTATE;
       haveOtherwise : BOOLEAN := FALSE;
       isEmpty : BOOLEAN;
+      it : lists.CStringStringListIterator;
       nodeName : StringsO.CString;
       nodePrefix : StringsO.CString;
       nodeType : xmlreader.TNodeType;
@@ -1199,11 +1203,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
                   emit := 0;
                ELSE // look for condition
                   emit := -1;
-                  attributes.Reset();
-                  WHILE attributes.MoveNext() DO
-                     pname := attributes.Current;
+                  it.Init( attributes, collection.dirForward );
+                  WHILE it.MoveNext() DO
+                     pname := it.Value;
                      IF pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
-                        ParseText( attributes.CurrentData^, OUT condition );
+                        ParseText( it.Data^, OUT condition );
                         IF EvaluateBoolean( condition ) THEN
                            emit := 1;
                         ELSE
@@ -1253,6 +1257,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       attribute : StringsO.CString;
       by : INTEGER := 1;
+      d : PTR;
       depth : INTEGER := 0;
       from : INTEGER;
       haveBy : BOOLEAN := FALSE;
@@ -1262,6 +1267,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       index : StringsO.CString;
       inverted : BOOLEAN;
       isEmpty : BOOLEAN;
+      it : lists.CStringStringListIterator;
       lattributes : lists.CStringStringList;
       nl : NodeList.CNodeList;
       nodeName : StringsO.CString;
@@ -1279,13 +1285,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
       prefix.AppendOA( L":" );
 
       // first analyze attributes
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
 
          attribute := prefix; attribute.AppendOA( PT_FROM );
          IF pname^.EqualsIgnoreCaseOA( PT_FROM ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT value );
+            ParseText( it.Data^, OUT value );
             IF value.ToCARD32( 10, OUT from ) THEN
                haveFrom := TRUE;
             ELSE
@@ -1298,7 +1304,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          
          attribute := prefix; attribute.AppendOA( PT_TO );
          IF pname^.EqualsIgnoreCaseOA( PT_TO ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT value );
+            ParseText( it.Data^, OUT value );
             IF value.ToCARD32( 10, OUT to ) THEN
                haveTo := TRUE;
             ELSE
@@ -1311,7 +1317,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
          attribute := prefix; attribute.AppendOA( PT_BY );
          IF pname^.EqualsIgnoreCaseOA( PT_BY ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT value );
+            ParseText( it.Data^, OUT value );
             IF value.ToCARD32( 10, OUT by ) THEN
                haveBy := TRUE;
             ELSE
@@ -1324,19 +1330,19 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
          attribute := prefix; attribute.AppendOA( PT_INDEX );
          IF pname^.EqualsIgnoreCaseOA( PT_INDEX ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT index );
+            ParseText( it.Data^, OUT index );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ORDER );
          IF pname^.EqualsIgnoreCaseOA( PT_ORDER ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT order );
+            ParseText( it.Data^, OUT order );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ODD );
          IF pname^.EqualsIgnoreCaseOA( PT_ODD ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT odd );
+            ParseText( it.Data^, OUT odd );
             CONTINUE;
          END;
 
@@ -1381,7 +1387,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END; // WHILE
       
       // third switch sources and do "for"
-      Sources.Push( ADR( nl ));
+      Sources.Push( ADR( nl ), 0 );
       inverted := from > to;
       idx := from;
       item := 1;
@@ -1398,7 +1404,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
             Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value );
          END;
 
-         nl.Reset(); // prepare parsing
          IF NOT Parse( TRUE, FALSE ) THEN
             RETURN FALSE;
          END;
@@ -1406,7 +1411,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          INC( idx, by );
          INC( item );
       END; // WHILE
-      Sources.Pop();
+      Sources.Pop( OUT d, OUT d );
       
       RETURN TRUE;
    END ParseFor;
@@ -1415,11 +1420,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE ParseForeach( CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
+      atit : lists.CStringStringListIterator;
       attribute : StringsO.CString;
       current : StringsO.TPString;
       currentData : StringsO.TPString;
+      d : PTR;
       data : StringsO.CString;
       depth : INTEGER := 0;
+      eachit : collection.TPIterator;
       haveSource : BOOLEAN := FALSE;
       haveList : BOOLEAN := FALSE;
       index : StringsO.CString;
@@ -1427,8 +1435,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
       isEmpty : BOOLEAN;
       lattributes : lists.CStringStringList;
       list : lists.TPStringStringList;
+      listit : lists.CStringStringListIterator;
       loopItem : INTEGER;
       map : maps.TPStringStringMap;
+      mapit : maps.CStringStringMapIterator;
       model : StringsO.CString;
       nl : NodeList.CNodeList;
       nodeName : StringsO.CString;
@@ -1445,43 +1455,43 @@ CLASS IMPLEMENTATION CPageTemplateView;
       prefix.AppendOA( L":" );
 
       // first analyze attributes
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      atit.Init( attributes, collection.dirForward );
+      WHILE atit.MoveNext() DO
+         pname := atit.Value;
 
          attribute := prefix; attribute.AppendOA( PT_MODEL );
          IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT model );
+            ParseText( atit.Data^, OUT model );
             CONTINUE;
          END;
          
          attribute := prefix; attribute.AppendOA( PT_INDEX );
          IF pname^.EqualsIgnoreCaseOA( PT_INDEX ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT index );
+            ParseText( atit.Data^, OUT index );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ORDER );
          IF pname^.EqualsIgnoreCaseOA( PT_ORDER ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT order );
+            ParseText( atit.Data^, OUT order );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ITEM );
          IF pname^.EqualsIgnoreCaseOA( PT_ITEM ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT item );
+            ParseText( atit.Data^, OUT item );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_DATA );
          IF pname^.EqualsIgnoreCaseOA( PT_DATA ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT data );
+            ParseText( atit.Data^, OUT data );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ODD );
          IF pname^.EqualsIgnoreCaseOA( PT_ODD ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT odd );
+            ParseText( atit.Data^, OUT odd );
             CONTINUE;
          END;
       END; // WHILE
@@ -1522,26 +1532,26 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END; // WHILE
       
       // third switch sources and do "for"
-      Sources.Push( ADR( nl ));
+      Sources.Push( ADR( nl ), 0 );
       loopItem := 1;
       IF haveList THEN
-         list^.Reset();
+         listit.Init( list^, collection.dirForward );
       ELSE
-         map^.Reset();
+         mapit.Init( map^, collection.dirForward );
       END;
       LOOP
          IF haveList THEN
-            IF NOT list^.MoveNext() THEN
+            IF NOT listit.MoveNext() THEN
                EXIT;
             END;
-            current := list^.Current;
-            currentData := list^.CurrentData;
+            current := listit.Value;
+            currentData := listit.Data;
          ELSE
-            IF NOT map^.MoveNext() THEN
+            IF NOT mapit.MoveNext() THEN
                EXIT;
             END;
-            current := map^.Current;
-            currentData := map^.CurrentData;
+            current := mapit.Key;
+            currentData := mapit.Value;
          END;
          
          IF NOT item.Empty THEN
@@ -1562,14 +1572,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
             Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value );
          END;
 
-         nl.Reset(); // prepare parsing
          IF NOT Parse( TRUE, FALSE ) THEN
             RETURN FALSE;
          END;
 
          INC( loopItem );
       END; // LOOP
-      Sources.Pop();
+      Sources.Pop( OUT d, OUT d );
       
       RETURN TRUE;
    END ParseForeach;
@@ -1710,6 +1719,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       attribute : StringsO.CString;
       fullModel : StringsO.CString;
       fullSelectedModel : StringsO.CString;
+      it : lists.CStringStringListIterator;
       model : StringsO.CString;
       pname : StringsO.TPString;
       selectedModel : StringsO.CString;
@@ -1729,11 +1739,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_FORM_OPTION_SELECTED );
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_FORM_OPTION_SELECTED ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT selectedModel );
+            ParseText( it.Data^, OUT selectedModel );
          END;
       END; // WHILE
       IF NOT selectedModel.Empty AND NOT FormModel.Empty THEN
@@ -1773,6 +1783,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseVariable( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       lattributes : lists.CStringStringList;
       nodeName : StringsO.CString;
       nodePrefix : StringsO.CString;
@@ -1792,11 +1803,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_SOURCE );
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_SOURCE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT source );
+            ParseText( it.Data^, OUT source );
             EXIT;
          END;
       END;
@@ -1826,17 +1837,18 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE GetFormAction( CONST attributes : lists.CStringStringList; OUT formAction : StringsO.IString ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
    BEGIN
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_ACTION );
 
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_ACTION ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT formAction );
+            ParseText( it.Data^, OUT formAction );
          END;
       END; // WHILE
 
@@ -1848,17 +1860,18 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE GetFormModel( CONST attributes : lists.CStringStringList; OUT formModel : StringsO.IString ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
    BEGIN
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_MODEL );
 
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT formModel );
+            ParseText( it.Data^, OUT formModel );
          END;
       END; // WHILE
 
@@ -1870,17 +1883,18 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE GetFormId( CONST attributes : lists.CStringStringList; OUT formId : StringsO.IString ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
    BEGIN
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_FORMID );
 
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_FORMID ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT formId );
+            ParseText( it.Data^, OUT formId );
          END;
       END; // WHILE
 
@@ -1891,9 +1905,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT empty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
    VAR
-      al : lists.TPStringStringList;
-      nl : NodeList.TPNodeList;
+      it : lists.CStringStringListIterator;
       nli : NodeList.TPNodeItem;
+      nlit : NodeList.CNodeListIterator;
       xmle : xmlreader.TXMLError;
    BEGIN
       IF Sources.Empty THEN
@@ -1944,12 +1958,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END; // LOOP
 
       ELSE
-         nl := NodeList.TPNodeList( Sources.Peek());
-         IF NOT nl^.MoveNext() THEN
+         nlit.Init( NodeList.TPNodeList( Sources.Top )^, collection.dirForward );
+         IF NOT nlit.MoveNext() THEN
             RETURN xmlreader.xmle_S_FALSE;
          END;
          
-         nli := nl^.Current;
+         nli := nlit.Value;
          nodeType := nli^.Type;
          nodePrefix.Assign( nli^.Prefix^ );
          nodeName.Assign( nli^.Name^ );
@@ -1957,13 +1971,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
          nodeValue.Assign( nli^.Value^ );
 
          attributes.Dispose();
-         al := nli^.Attributes;
-         IF al <> NIL THEN
-            al^.Reset();
-            WHILE al^.MoveNext() DO
-               attributes.Add( al^.Current^, al^.CurrentData^ );
+         IF nli^.Attributes <> NIL THEN
+            it.Init( nli^.Attributes^, collection.dirForward );
+            WHILE it.MoveNext() DO
+               attributes.Add( it.Value^, it.Data^ );
             END; // WHILE
-         END; // IF al <> NIL
+         END; // IF nli^.Attributes <> NIL
          
          RETURN xmlreader.xmle_S_OK;
       END;
@@ -1975,6 +1988,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       ignore1 : StringsO.CString;
       ignore2 : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
       value : StringsO.CString;
    BEGIN
@@ -1990,9 +2004,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ignore2.AppendOA( L":" );
       ignore2.AppendOA( ignoreOA2 );
 
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF ptFlag AND pname^.EqualsIgnoreCaseOA( ignoreOA1 ) OR pname^.EqualsIgnoreCase( ignore1 ) THEN
             CONTINUE; // ignore pt:ignore
          ELSIF ignoreOA2[0] = 0W THEN
@@ -2000,7 +2014,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          ELSIF ptFlag AND pname^.EqualsIgnoreCaseOA( ignoreOA2 ) OR pname^.EqualsIgnoreCase( ignore2 ) THEN
             CONTINUE; // ignore pt:ignore
          END;
-         ParseText( attributes.CurrentData^, OUT value );
+         ParseText( it.Data^, OUT value );
          Writer.WriteAttributeStringOA( L"", OA( pname^.Length-1, pname^.Data ), OA( value.Length-1, value.Data ));
       END; // WHILE
    END CopyAttributes;

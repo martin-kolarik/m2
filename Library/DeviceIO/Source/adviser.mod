@@ -4,6 +4,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   collection,
    lists;
 
 (*===========================================================================*)
@@ -35,19 +36,20 @@ CLASS IMPLEMENTATION CAdviser;
    VAR
       Advised : lists.TPPtrList;
       ClientData : TPClientData;
+      it : maps.CPtrPtrMapIterator;
    BEGIN
       Device := NIL;
 
-      _Clients.Dispose();
-      WHILE _Clients.MoveNext() DO
-         ClientData := _Clients.Current;
+      it.Init( _Clients, collection.dirForward );
+      WHILE it.MoveNext() DO
+         ClientData := it.Key;
          DISPOSE( ClientData );
       END; // WHILE      
       _Clients.Dispose();
 
-      _Advised.Reset();
-      WHILE _Advised.MoveNext() DO
-         Advised := _Advised.CurrentData;
+      it.Init( _Advised, collection.dirForward );
+      WHILE it.MoveNext() DO
+         Advised := it.Value;
          DISPOSE( Advised );
       END; // WHILE      
       _Advised.Dispose();
@@ -59,7 +61,9 @@ CLASS IMPLEMENTATION CAdviser;
    VAR
       ClientData : TPClientData;
       Clients : lists.TPPtrList;
+      d : PTR;
       i : INTEGER;
+      it : maps.CPtrPtrMapIterator;
    BEGIN
       IF NOT _Advising.State THEN
          RETURN;
@@ -68,11 +72,11 @@ CLASS IMPLEMENTATION CAdviser;
    
       // handle addressed advising
       FOR i := 0 TO HIGH( Item ) DO
-         IF _Advised.Get( Item[i], OUT Clients ) THEN
+         IF _Advised.Get( Item[i], OUT Clients, OUT d ) THEN
 
-            Clients^.Reset();
-            WHILE Clients^.MoveNext() DO
-               ClientData := Clients^.Current;
+            it.Init( Clients^, collection.dirForward );
+            WHILE it.MoveNext() DO
+               ClientData := it.Key;
                CASE ClientData^.Advise OF
                | io.advWithData :
                   ClientData^.Client^.OnAdvise( Source, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( 0, ADR( Value[i] )));
@@ -85,11 +89,11 @@ CLASS IMPLEMENTATION CAdviser;
       END; // FOR
 
       // handle promiscuous advising
-      IF _Advised.Get( NIL, OUT Clients ) THEN
+      IF _Advised.Get( NIL, OUT Clients, OUT d ) THEN
 
-         Clients^.Reset();
-         WHILE Clients^.MoveNext() DO
-            ClientData := Clients^.Current;
+         it.Init( Clients^, collection.dirForward );
+         WHILE it.MoveNext() DO
+            ClientData := it.Key;
 
             FOR i := 0 TO HIGH( Item ) DO
                CASE ClientData^.Advise OF
@@ -158,7 +162,7 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData^.Client := Client;
       ClientData^.Advise := Advise;
       
-      _Clients.Add( Client, ClientData );
+      _Clients.Add( Client, ClientData, 0 );
    END JoinClient;
 
 (*---------------------------------------------------------------------------*)
@@ -166,8 +170,9 @@ CLASS IMPLEMENTATION CAdviser;
    PUBLIC PROCEDURE LeaveClient( Client : io.TPIAdviseInfo );
    VAR
       ClientData : TPClientData;
+      d : PTR;
    BEGIN
-      IF _Clients.Get( Client, OUT ClientData ) THEN
+      IF _Clients.Get( Client, OUT ClientData, OUT d ) THEN
          DoUnadvise( ClientData, NIL, ns.hashINVALID, TRUE );
          DISPOSE( ClientData );
 
@@ -180,8 +185,9 @@ CLASS IMPLEMENTATION CAdviser;
    PUBLIC PROCEDURE Advise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
+      d : PTR;
    BEGIN
-      IF _Clients.Get( Client, OUT ClientData ) THEN
+      IF _Clients.Get( Client, OUT ClientData, OUT d ) THEN
          RETURN DoAdvise( ClientData, ADR( Name ), ns.hashINVALID );
       ELSE
          RETURN FALSE;
@@ -193,8 +199,9 @@ CLASS IMPLEMENTATION CAdviser;
    PUBLIC PROCEDURE AdviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
+      d : PTR;
    BEGIN
-      IF _Clients.Get( Client, OUT ClientData ) THEN
+      IF _Clients.Get( Client, OUT ClientData, OUT d ) THEN
          RETURN DoAdvise( ClientData, NIL, Hash );
       ELSE
          RETURN FALSE;
@@ -206,8 +213,9 @@ CLASS IMPLEMENTATION CAdviser;
    PUBLIC PROCEDURE AdviseAll( Client : io.TPIAdviseInfo );
    VAR
       ClientData : TPClientData;
+      d : PTR;
    BEGIN
-      IF _Clients.Get( Client, OUT ClientData ) THEN
+      IF _Clients.Get( Client, OUT ClientData, OUT d ) THEN
          DoAdvise( ClientData, NIL, ns.hashINVALID );
       END;
    END AdviseAll;
@@ -217,8 +225,9 @@ CLASS IMPLEMENTATION CAdviser;
    PUBLIC PROCEDURE Unadvise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
+      d : PTR;
    BEGIN
-      IF _Clients.Get( Client, OUT ClientData ) THEN
+      IF _Clients.Get( Client, OUT ClientData, OUT d ) THEN
          RETURN DoUnadvise( ClientData, ADR( Name ), ns.hashINVALID, FALSE );
       ELSE
          RETURN FALSE;
@@ -230,8 +239,9 @@ CLASS IMPLEMENTATION CAdviser;
    PUBLIC PROCEDURE UnadviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
+      d : PTR;
    BEGIN
-      IF _Clients.Get( Client, OUT ClientData ) THEN
+      IF _Clients.Get( Client, OUT ClientData, OUT d ) THEN
          RETURN DoUnadvise( ClientData, NIL, Hash, FALSE );
       ELSE
          RETURN FALSE;
@@ -243,8 +253,9 @@ CLASS IMPLEMENTATION CAdviser;
    PUBLIC PROCEDURE UnadviseAll( Client : io.TPIAdviseInfo );
    VAR
       ClientData : TPClientData;
+      d : PTR;
    BEGIN
-      IF _Clients.Get( Client, OUT ClientData ) THEN
+      IF _Clients.Get( Client, OUT ClientData, OUT d ) THEN
          DoUnadvise( ClientData, NIL, ns.hashINVALID, FALSE );
       END;
    END UnadviseAll;
@@ -269,6 +280,7 @@ CLASS IMPLEMENTATION CAdviser;
    VAR
       Clients : lists.TPPtrList;
       ClientData : TPClientData := _ClientData;
+      d : PTR;
    BEGIN
       IF Name <> NIL THEN // want advise by name, find it it
          IF NOT _Device^.Mapper()^.NameToHash( Name^, OUT Hash ) THEN
@@ -276,9 +288,9 @@ CLASS IMPLEMENTATION CAdviser;
          END;
       END;
 
-      IF NOT _Advised.Get( Hash, OUT Clients ) THEN
+      IF NOT _Advised.Get( Hash, OUT Clients, OUT d ) THEN
          NEW( Clients );
-         _Advised.Add( Hash, Clients );
+         _Advised.Add( Hash, Clients, 0 );
       END;
       IF NOT Clients^.Contains( ClientData ) THEN
          Clients^.Add( ClientData, 0 );
@@ -293,6 +305,8 @@ CLASS IMPLEMENTATION CAdviser;
    VAR
       Clients : lists.TPPtrList;
       ClientData : TPClientData := _ClientData;
+      d : PTR;
+      it : maps.CPtrPtrMapIterator;
    BEGIN
       IF Name <> NIL THEN // want unadvise by name, do it
          IF NOT _Device^.Mapper()^.NameToHash( Name^, OUT Hash ) THEN
@@ -301,14 +315,14 @@ CLASS IMPLEMENTATION CAdviser;
       END;
 
       IF UnadviseCompletely THEN
-         _Advised.Reset();
-         WHILE _Advised.MoveNext() DO
-            Clients := _Advised.CurrentData;
+         it.Init( _Advised, collection.dirForward );
+         WHILE it.MoveNext() DO
+            Clients := it.Value;
             Clients^.Remove( ClientData );
          END; // WHILE
 
       ELSE
-         IF _Advised.Get( Hash, OUT Clients ) THEN
+         IF _Advised.Get( Hash, OUT Clients, OUT d ) THEN
             Clients^.Remove( ClientData );
          END;
 

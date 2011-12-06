@@ -28,8 +28,8 @@ CLASS CAdviser( baseobject.CDisposable ) IMPLEMENTS io.IAdviseInfo;
    PRIVATE VAR
       _Advising : Sync.SIGNAL;
       _OnAdviseLock : Sync.LOCK; // to serialize OnAdvise processing, it uses loops over lists and trees and if device sends advises from more threads it could fail
-      _Clients : maps.CPtrMap; // map of client/PtrList of joined clients
-      _Advised : maps.CPtrMap; // map of item/PtrArray of clients/client data
+      _Clients : maps.CPtrPtrMap; // map of client/PtrList of joined clients
+      _Advised : maps.CPtrPtrMap; // map of item/PtrArray of clients/client data
    INTERNAL VAR
       _Device : device.TPDevice;
 

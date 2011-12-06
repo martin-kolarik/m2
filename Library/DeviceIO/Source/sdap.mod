@@ -5,7 +5,8 @@ IMPLEMENTATION MODULE sdap;
 FROM Debug IMPORT
    AssertionW;
 
-IMPORT   
+IMPORT
+   collection,
    device,
    io,
    IOO,
@@ -253,7 +254,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       // done on request only
       // _Device^.AdviseAll( Client );
 
-      _Clients.Add( Connection, Client );
+      _Clients.Add( Connection, Client, 0 );
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
@@ -262,13 +263,15 @@ CLASS IMPLEMENTATION CSDAPServer;
    VAR
       address : ARRAY [0..63] OF WCHAR;
       Client : TPClient;
+      d : PTR;
+      it : lists.CStringListIterator;
    BEGIN
       IF NOT _NetworkLogger^.FilteredFastCheck( log.lcError, 0 ) THEN
          Connection^.RemoteAddress.ToOA( TRUE, OUT address );
          _NetworkLogger^.LogSS( log.lcError, 0, LOG_SDAP, "DISCONNECT:", address );
       END;
 
-      IF _Clients.Get( Connection, OUT Client ) THEN
+      IF _Clients.Get( Connection, OUT Client, OUT d ) THEN
          _Clients.Remove( Connection );
 
          _Device^.UnadviseAll( Client );
@@ -276,10 +279,10 @@ CLASS IMPLEMENTATION CSDAPServer;
          
          // mark pending send data as unusable
          _SendLock.Lock();
-         _SendQueue.Reset();
-         WHILE _SendQueue.MoveNext() DO
-            IF _SendQueue.CurrentData = PTR( Client ) THEN
-               _SendQueue.CurrentData := NIL; // reset Data field
+         it.Init( _SendQueue, collection.dirForward );
+         WHILE it.MoveNext() DO
+            IF it.Data = PTR( Client ) THEN
+               it.Data := NIL; // reset Data field
             END;
          END; // WHILE
          _SendLock.Unlock();
@@ -297,6 +300,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       Command : TsdapCommand;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       count, prevcount : CARDINAL;
+      d : PTR;
       data : StringsO.CString; // data
       error : ARRAY [0..511] OF WCHAR;
       Hash : ns.THash;
@@ -533,7 +537,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          END;
          
          allFlag := p[1].EqualsOA( L"all" );
-         IF NOT _Clients.Get( PConnection, OUT Client ) THEN
+         IF NOT _Clients.Get( PConnection, OUT Client, OUT d ) THEN
             ACK( PConnection, sdap500 );
 
          ELSIF Command = sdapADVISE THEN         
@@ -680,10 +684,11 @@ CLASS IMPLEMENTATION CSDAPServer;
    FINALLY CSDAPServer();
    VAR
       Client : TPClient;
+      it : maps.CPtrPtrMapIterator;
    BEGIN
-      _Clients.Reset();
-      WHILE _Clients.MoveNext() DO
-         Client := _Clients.CurrentData;
+      it.Init( _Clients, collection.dirForward );
+      WHILE it.MoveNext() DO
+         Client := it.Value;
          _Device^.UnadviseAll( Client );
          _Device^.LeaveClient( Client );
          DISPOSE( Client );

@@ -86,7 +86,7 @@ CLASS IMPLEMENTATION AnsAVLItem;
 
 	PUBLIC VIRTUAL INDEX AnsAVLItem GET( Index : CARDINAL ) : ns.TPnsItem;
 	BEGIN
-		RETURN TPnsAVLTreeElem( _Childs[Index] )^.Item;
+		// RETURN TPnsAVLTreeElem( _Childs[Index] )^.Item;
 	END AnsAVLItem;
 
 (*---------------------------------------------------------------------------*)
@@ -96,7 +96,7 @@ CLASS IMPLEMENTATION AnsAVLItem;
 		SH : CSearchHelper;
 	BEGIN
 		SH.Init( SingleName );
-		RETURN _Childs.Contains( ADR( SH ));
+		RETURN _Childs.Contains( 0, ADR( SH ));
 	END ContainsOA;
 
 (*---------------------------------------------------------------------------*)
@@ -108,7 +108,7 @@ CLASS IMPLEMENTATION AnsAVLItem;
 		b : BOOLEAN;
 	BEGIN
 		SH.Init( SingleName );
-		b := _Childs.Search( ADR( SH ), OUT PElem );
+		b := _Childs.Get( 0, ADR( SH ), OUT PElem );
 		IF b THEN
 			Item := PElem^.Item;
 		END;
@@ -123,7 +123,7 @@ CLASS IMPLEMENTATION AnsAVLItem;
 	BEGIN
 		NEW( PElem );
 		PElem^.Item := Child;
-		_Childs.Insert( PElem );
+		_Childs.Add( PElem );
 	END AddChild;
 
 (*---------------------------------------------------------------------------*)

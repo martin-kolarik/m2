@@ -32,7 +32,7 @@ CLASS CXMLSocketServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopCo
       _NetworkLogger : log.TPILogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
-      _Clients : maps.CPtrMap;
+      _Clients : maps.CPtrPtrMap;
       _SendQueue : msgqueue.CPtrQueue;
       
    // inherited

@@ -1542,6 +1542,7 @@ CLASS IMPLEMENTATION CMVC;
    VAR
       buffer : StorageO.CMemoryBuffer;
       connectionData : lists.CStringStringList;
+      connectionDataIterator : lists.CStringStringListIterator;
       controller : TPController;
       controllerURI : StringsO.CString;
       containerMap : syncmaps.TPPtrPtrSyncMap;
@@ -1598,12 +1599,12 @@ CLASS IMPLEMENTATION CMVC;
       // fill models, call functions
       functionCalled := FALSE;
       container^.ResetModelValues( request, controllerURI );
-      connectionData.Reset();
-      WHILE connectionData.MoveNext() DO
-         IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
-            container^.SetModelValue( request, ADR( SELF ), request.Language, mappedName, connectionData.CurrentData^ );
+      connectionDataIterator.Init( connectionData, collection.dirForward );
+      WHILE connectionDataIterator.MoveNext() DO
+         IF container^.GetModelByInViewName( controllerURI, connectionDataIterator.Value^, OUT mappedName ) THEN
+            container^.SetModelValue( request, ADR( SELF ), request.Language, mappedName, connectionDataIterator.Data^ );
          ELSIF Connection^.RequestVerb <> HttpCommon.verbPOST THEN
-            uriParameters^.Add( connectionData.Current^, connectionData.CurrentData^ );
+            uriParameters^.Add( connectionDataIterator.Value^, connectionDataIterator.Data^ );
          END;
       END; // WHILE
       connectionData.Dispose();
@@ -1672,7 +1673,8 @@ CLASS IMPLEMENTATION CMVC;
 
    PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : HttpSrv.TPSession );
    VAR
-      containerMap : syncmaps.TPPtrSyncMap;
+      containerMap : syncmaps.TPPtrPtrSyncMap;
+      containerMapIterator : maps.CPtrPtrMapIterator;
       container : POINTER TO CSynchronizedContainer;
       controller : TPController;
    BEGIN
@@ -1680,10 +1682,10 @@ CLASS IMPLEMENTATION CMVC;
          RETURN;
       END;
       
-      containerMap^.Reset();
-      WHILE containerMap^.MoveNext() DO
-         controller := containerMap^.Current;
-         container := containerMap^.CurrentData;
+      containerMapIterator.Init( containerMap^, collection.dirForward );
+      WHILE containerMapIterator.MoveNext() DO
+         controller := containerMapIterator.Key;
+         container := containerMapIterator.Value;
 
          controller^.CleanupModelContainer( REF container^ );
 
@@ -1747,6 +1749,7 @@ CLASS IMPLEMENTATION CMVC;
 
    PUBLIC VIRTUAL PROCEDURE RegisterController( controller : TPController; ForVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
    VAR
+      d : PTR;
       s : StringsO.CString;
    BEGIN
       IF ForVerb = HttpCommon.verbGET THEN
@@ -1755,11 +1758,11 @@ CLASS IMPLEMENTATION CMVC;
          s.FromOA( L"p" );
       END;
       s.AppendOA( URL );
-      IF _Controllers.Get( s, OUT controller ) THEN
+      IF _Controllers.Get( s, OUT controller, OUT d ) THEN
          ASSERTLOG( FALSE );
          _Controllers.Remove( s );
       END;
-      _Controllers.Add( s, controller );
+      _Controllers.Add( s, controller, 0 );
    END RegisterController;
 
 //--------------------------------------------------------------------------------
@@ -1781,17 +1784,19 @@ CLASS IMPLEMENTATION CMVC;
 
    PUBLIC VIRTUAL PROCEDURE ForgetControllerCompletely( controller : TPController );
    VAR
+      controllersIterator : maps.CStringPtrMapIterator;
       list : lists.CPtrList;
+      listIterator : lists.CPtrListIterator;
    BEGIN
-      _Controllers.Reset();
-      WHILE _Controllers.MoveNext() DO
-         IF _Controllers.CurrentData = PTR( controller ) THEN
-            list.Add( _Controllers.Current, 0 );
+      controllersIterator.Init( _Controllers, collection.dirForward );
+      WHILE controllersIterator.MoveNext() DO
+         IF controllersIterator.Value = PTR( controller ) THEN
+            list.Add( controllersIterator.Key, 0 );
          END;
       END; // WHILE
-      list.Reset();
-      WHILE list.MoveNext() DO
-         _Controllers.Remove( StringsO.TPString( list.Current )^ );
+      listIterator.Init( list, collection.dirForward );
+      WHILE listIterator.MoveNext() DO
+         _Controllers.Remove( StringsO.TPString( listIterator.Value )^ );
       END; // WHILE
    END ForgetControllerCompletely;
 
@@ -1899,6 +1904,7 @@ CLASS IMPLEMENTATION CMVC;
    PRIVATE PROCEDURE LookupController( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT controller : TPController ) : BOOLEAN;
    VAR
       b : BOOLEAN;
+      d : PTR;
       s : StringsO.CString;
    BEGIN
       IF Verb = HttpCommon.verbGET THEN
@@ -1907,7 +1913,7 @@ CLASS IMPLEMENTATION CMVC;
          s.FromOA( L"p" );
       END;
       s.AppendOA( URL );
-      RETURN _Controllers.Get( s, OUT controller );
+      RETURN _Controllers.Get( s, OUT controller, OUT d );
    END LookupController;
    
 //--------------------------------------------------------------------------------
@@ -1961,7 +1967,7 @@ END CMVC;
 
 CLASS CMVCHolder;
    PRIVATE VAR
-      _MVC : maps.CStringMap;
+      _MVC : maps.CStringPtrMap;
 
    PUBLIC PROCEDURE GetMVC( CONST context : ARRAY OF WCHAR ) : TPMVC;
 
@@ -1976,6 +1982,7 @@ CLASS IMPLEMENTATION CMVCHolder;
 
    PUBLIC PROCEDURE GetMVC( CONST context : ARRAY OF WCHAR ) : TPMVC;
    VAR
+      d : PTR;
       h : INTEGER;
       mvc : POINTER TO CMVC;
       s : StringsO.CString;
@@ -1997,12 +2004,12 @@ CLASS IMPLEMENTATION CMVCHolder;
          s.AppendOA( L"/" );
       END;
 
-      IF _MVC.Get( s, OUT mvc ) THEN
+      IF _MVC.Get( s, OUT mvc, OUT d ) THEN
          RETURN mvc;
       END;
       NEW( mvc );
       mvc^.Init( s );
-      _MVC.Add( s, mvc );
+      _MVC.Add( s, mvc, 0 );
 
       HttpSrv.srv()^.RegisterProcessor( mvc );
       
@@ -2013,11 +2020,12 @@ CLASS IMPLEMENTATION CMVCHolder;
 
    PUBLIC PROCEDURE Dispose();
    VAR
+      it : maps.CStringPtrMapIterator;
       mvc : POINTER TO CMVC;
    BEGIN
-      _MVC.Reset();
-      WHILE _MVC.MoveNext() DO
-         mvc := _MVC.CurrentData;
+      it.Init( _MVC, collection.dirForward );
+      WHILE it.MoveNext() DO
+         mvc := it.Value;
 
          HttpSrv.srv()^.ForgetProcessor( mvc );
          DISPOSE( mvc );

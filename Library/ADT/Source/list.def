@@ -17,6 +17,8 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
+#save, option( dll_export => on )
+
 CLASS CListElem( baseobject.CDisposable );
 
    PUBLIC READONLY PROPERTY
@@ -30,8 +32,6 @@ CLASS CListElem( baseobject.CDisposable );
 END CListElem;
 
 (*---------------------------------------------------------------------------*)
-
-#save, option( dll_export => on )
 
 CLASS CList( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
 

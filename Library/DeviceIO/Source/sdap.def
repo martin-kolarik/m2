@@ -9,6 +9,7 @@ IMPORT
    adviser,
    inetaddr,
    iovalue,
+   lists,
    log,
    maps,
    msghandler,
@@ -66,7 +67,7 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
       _ConfigurationLogger : log.TPBufferedLogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
-      _Clients : maps.CPtrMap;
+      _Clients : maps.CPtrPtrMap;
       _SendLock : Sync.LOCK;
       _SendQueue : lists.CStringList;
 

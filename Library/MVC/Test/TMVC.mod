@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, Move;
 
 IMPORT
+   collection,
    HttpCommon,
    httpsrv,
    lists,
@@ -78,11 +79,7 @@ CLASS IMPLEMENTATION CTest;
       T.Stop( TRUE );
       httpsrv.Cleanup();
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
 
       (*==========*)
 
@@ -158,7 +155,9 @@ CLASS IMPLEMENTATION CController;
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : MVC.IMvcRequest; OUT View : MVC.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
+      d : PTR;
       l : lists.TPStringStringList;
+      lit : lists.CStringStringListIterator;
       m : maps.TPStringStringMap;
       s : StringsO.CString;
       v : StringsO.CString;
@@ -186,32 +185,32 @@ CLASS IMPLEMENTATION CController;
          s.FromOA( L"xxx" ); Request.ModelContainer^.AddStringOA( L"teststring", s );
 
          IF Request.ModelContainer^.GetListOA( L"testlist", OUT l ) THEN
-            l^.Reset();
-            WHILE l^.MoveNext() DO
-               s.Assign( l^.Current^ );
-               v.Assign( l^.CurrentData^ );
+            lit.Init( l^, collection.dirForward );
+            WHILE lit.MoveNext() DO
+               s.Assign( lit.Value^ );
+               v.Assign( lit.Data^ );
             END;
          END;
          Request.ModelContainer^.AddListOA( L"testlist", OUT l );
-         l^.AddOA( L"list item 1", s );
-         l^.AddOA( L"list item 2", s );
-         l^.AddOA( L"list item 3", s );
-         l^.AddOA( L"list item 4", s );
-         l^.AddOA( L"list item 5", s );
+         l^.Add( StringsO.FromOA( L"list item 1" ), s );
+         l^.Add( StringsO.FromOA( L"list item 2" ), s );
+         l^.Add( StringsO.FromOA( L"list item 3" ), s );
+         l^.Add( StringsO.FromOA( L"list item 4" ), s );
+         l^.Add( StringsO.FromOA( L"list item 5" ), s );
 
          IF Request.ModelContainer^.GetMapOA( L"testmap", OUT m ) THEN
-            b := m^.GetOA( L"key", OUT v );
-            b := m^.GetOA( L"lock", OUT v );
-            b := m^.GetOA( L"flock", OUT v );
-            b := m^.GetOA( L"block", OUT v );
-            b := m^.GetOA( L"mlock", OUT v );
+            b := m^.Get( StringsO.FromOA( L"key" ), OUT v, OUT d );
+            b := m^.Get( StringsO.FromOA( L"lock" ), OUT v, OUT d );
+            b := m^.Get( StringsO.FromOA( L"flock" ), OUT v, OUT d );
+            b := m^.Get( StringsO.FromOA( L"block" ), OUT v, OUT d );
+            b := m^.Get( StringsO.FromOA( L"mlock" ), OUT v, OUT d );
          END;
          Request.ModelContainer^.AddMapOA( L"testmap", OUT m );
-         s.FromOA( L"MAPA" ); m^.AddOA( L"key", s );
-         s.FromOA( L"MAPB" ); m^.AddOA( L"lock", s );
-         s.FromOA( L"MAPC" ); m^.AddOA( L"flock", s );
-         s.FromOA( L"MAPD" ); m^.AddOA( L"block", s );
-         s.FromOA( L"MAPE" ); m^.AddOA( L"mlock", s );
+         s.FromOA( L"MAPA" ); m^.Add( StringsO.FromOA( L"key" ), s, 0 );
+         s.FromOA( L"MAPB" ); m^.Add( StringsO.FromOA( L"lock" ), s, 0 );
+         s.FromOA( L"MAPC" ); m^.Add( StringsO.FromOA( L"flock" ), s, 0 );
+         s.FromOA( L"MAPD" ); m^.Add( StringsO.FromOA( L"block" ), s, 0 );
+         s.FromOA( L"MAPE" ); m^.Add( StringsO.FromOA( L"mlock" ), s, 0 );
 
          View := MVC.pageTemplateView( NIL, L"d:\work\smartcontrol\code\library\httpsrv\~Debug\page.pt", FALSE, 0 );
       END;

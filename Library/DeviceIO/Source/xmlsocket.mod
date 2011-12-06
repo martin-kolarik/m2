@@ -6,6 +6,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   collection,
    io,
    IOO,
    iovalue,
@@ -225,7 +226,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       _Device^.JoinClient( Client, io.advWithData );
       _Device^.AdviseAll( Client );
 
-      _Clients.Add( Connection, Client );
+      _Clients.Add( Connection, Client, 0 );
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
@@ -234,13 +235,14 @@ CLASS IMPLEMENTATION CXMLSocketServer;
    VAR
       address : ARRAY [0..63] OF WCHAR;
       Client : TPClient;
+      d : PTR;
    BEGIN
       IF NOT _NetworkLogger^.FilteredFastCheck( log.lcError, 0 ) THEN
          Connection^.RemoteAddress.ToOA( TRUE, OUT address );
          _NetworkLogger^.LogSS( log.lcError, 0, LOG_XMLS, "DISCONNECT:", address );
       END;
 
-      IF _Clients.Get( Connection, OUT Client ) THEN
+      IF _Clients.Get( Connection, OUT Client, OUT d ) THEN
          _Clients.Remove( Connection );
 
          _Device^.UnadviseAll( Client );
@@ -256,13 +258,14 @@ CLASS IMPLEMENTATION CXMLSocketServer;
    VAR
       appendLength, i : INTEGER;
       Client : TPClient;
+      d : PTR;
       sd : ARRAY [0..63] OF WCHAR;
    BEGIN
       Connection^.RemoteAddress.ToOA( TRUE, OUT sd );
       _CommonLogger^.LogSS( log.ldDebug, 0, LOG_XMLS, "RCV: ", sd );
       _CommonLogger^.LogSC( log.ldDebug, 0, LOG_XMLS, "  length: ", DataLen );
 
-      IF NOT _Clients.Get( Connection, OUT Client ) THEN
+      IF NOT _Clients.Get( Connection, OUT Client, OUT d ) THEN
          _CommonLogger^.LogS( log.ldDebug, 0, LOG_XMLS, "  to: unknown connection" );
          RETURN;
       END;
@@ -311,6 +314,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
    VAR
       Client : TPClient;
       Connection : netconndispatch.TConnectionHandle;
+      d : PTR;
       i, l : CARDINAL;
       IO : io.TPIO;
       name : StringsO.CString;
@@ -324,7 +328,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
       // client's presence must be recheck, because scheduled send can arrive after client disconnect
       Connection := Items^[0];
-      IF NOT _Clients.Get( Connection, OUT Client ) THEN
+      IF NOT _Clients.Get( Connection, OUT Client, OUT d ) THEN
          _CommonLogger^.LogS( log.ldDebug, 0, LOG_XMLS, "SND: after disconnect" );
          RETURN;
       END;
@@ -591,10 +595,11 @@ CLASS IMPLEMENTATION CXMLSocketServer;
    FINALLY CXMLSocketServer();
    VAR
       Client : TPClient;
+      it : maps.CPtrPtrMapIterator;
    BEGIN
-      _Clients.Reset();
-      WHILE _Clients.MoveNext() DO
-         Client := _Clients.CurrentData;
+      it.Init( _Clients, collection.dirForward );
+      WHILE it.MoveNext() DO
+         Client := it.Value;
          _Device^.UnadviseAll( Client );
          _Device^.LeaveClient( Client );
          DISPOSE( Client );
