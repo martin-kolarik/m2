@@ -141,6 +141,13 @@ CLASS IMPLEMENTATION CIntegerArrayIterator;
 
 (*-----------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CIntegerArray; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
+
 END CIntegerArrayIterator;
 
 (*=============================================================================*)
@@ -306,6 +313,13 @@ CLASS IMPLEMENTATION CPtrArrayIterator;
    BEGIN
       RETURN colCurrent;
    END Value;
+
+(*-----------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrArray; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
 
 (*-----------------------------------------------------------------------------*)
 

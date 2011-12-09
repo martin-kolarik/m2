@@ -75,6 +75,8 @@ CLASS CIntegerListIterator( list.CListIterator );
    PUBLIC PROPERTY
       Data : PTR;
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CIntegerList; Direction : collection.TDirection );
+
 END CIntegerListIterator;
 
 (*==========================================================================*)
@@ -123,6 +125,8 @@ CLASS CPtrListIterator( list.CListIterator );
       Value : PTR;
    PUBLIC PROPERTY
       Data : PTR;
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrList; Direction : collection.TDirection );
 
 END CPtrListIterator;
 
@@ -173,6 +177,8 @@ CLASS CStringListIterator( list.CListIterator );
    PUBLIC PROPERTY
       Data : PTR;
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringList; Direction : collection.TDirection );
+
 END CStringListIterator;
 
 (*==========================================================================*)
@@ -220,6 +226,8 @@ CLASS CStringStringListIterator( list.CListIterator );
    PUBLIC READONLY PROPERTY
       Value : TPString;
       Data : TPString;
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringStringList; Direction : collection.TDirection );
 
 END CStringStringListIterator;
 
@@ -289,6 +297,8 @@ CLASS CBufferListIterator( list.CListIterator );
       Value : POINTER TO AMemoryBuffer;
    PUBLIC PROPERTY
       Data : PTR;
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CBufferList; Direction : collection.TDirection );
 
 END CBufferListIterator;
 

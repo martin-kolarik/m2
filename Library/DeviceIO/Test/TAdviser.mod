@@ -376,11 +376,7 @@ CLASS IMPLEMENTATION CTest;
       Adviser^.LeaveClient( ADR( SELF )); // abundant
       DISPOSE( Adviser );
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
       Failure1 := FALSE;
       Failure2 := FALSE;
 
@@ -403,11 +399,7 @@ CLASS IMPLEMENTATION CTest;
       Failure1 := NOT Adviser^.Empty;
       DISPOSE( Adviser );
 
-      IF Failure1 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 );
       Failure1 := FALSE;
 
       (*==========*)
@@ -439,11 +431,7 @@ CLASS IMPLEMENTATION CTest;
       DISPOSE( c5 );
       DISPOSE( Adviser );
 
-      IF Failure1 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 );
 
       (*==========*)
 
@@ -475,11 +463,7 @@ CLASS IMPLEMENTATION CTest;
       
       Failure1 := Count <> 10;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
       Failure1 := FALSE;
       Failure2 := FALSE;
 
@@ -516,11 +500,7 @@ CLASS IMPLEMENTATION CTest;
       
       Failure1 := Count <> 10;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
       Failure1 := FALSE;
       Failure2 := FALSE;
 
@@ -560,11 +540,7 @@ CLASS IMPLEMENTATION CTest;
       
       Failure1 := Count <> 3;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 OR NOT Failure2 );
       Failure1 := FALSE;
       Failure2 := FALSE;
 
@@ -616,11 +592,7 @@ CLASS IMPLEMENTATION CTest;
       
       Failure1 := Count <> 1;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
       Failure1 := FALSE;
       Failure2 := FALSE;
 

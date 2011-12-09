@@ -78,6 +78,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   collection,
    DateTime,
    FIO,
    FIOO,
@@ -416,16 +417,15 @@ CLASS IMPLEMENTATION CSuspendableResult;
 
    PUBLIC PROCEDURE QuerySuspension();
    VAR
+      it : lists.CPtrListIterator;
       value : StringsO.CString;
    BEGIN
-      ProductsLock();
-      ProductsReset();
-      WHILE ProductsMoveNext() DO
-         IF CurrentProduct^.Info^.GetOA( suspendKey, OUT value ) THEN
+      it.Init( Products^, collection.dirForward );
+      WHILE it.MoveNext() DO
+         IF lec.TPProduct( it.Value )^.Info^.Get( StringsO.FromOA( suspendKey ), OUT value ) THEN
             _Suspended := value.EqualsOA( suspendValue );
          END;
       END;
-      ProductsUnlock();
    END QuerySuspension;
 
 //--------------------------------------------------------------------------------
@@ -441,70 +441,84 @@ CLASS IMPLEMENTATION KNXServerEvent;
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnConnect();
+   VAR
+      it : Event.CEventIterator;
    BEGIN
-      Reset();
-      WHILE MoveNext() DO
-         TPKNXServerSink( Listener )^.OnConnect();
+      StartIteration( REF it );
+      WHILE it.MoveNext() DO
+         TPKNXServerSink( it.Listener )^.OnConnect();
       END; // WHILE
    END OnConnect;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnDisconnect();
+   VAR
+      it : Event.CEventIterator;
    BEGIN
-      Reset();
-      WHILE MoveNext() DO
-         TPKNXServerSink( Listener )^.OnDisconnect();
+      StartIteration( REF it );
+      WHILE it.MoveNext() DO
+         TPKNXServerSink( it.Listener )^.OnDisconnect();
       END; // WHILE
    END OnDisconnect;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
+   VAR
+      it : Event.CEventIterator;
    BEGIN
-      Reset();
-      WHILE MoveNext() DO
-         TPKNXServerSink( Listener )^.OnInitReadCompleted();
+      StartIteration( REF it );
+      WHILE it.MoveNext() DO
+         TPKNXServerSink( it.Listener )^.OnInitReadCompleted();
       END; // WHILE
    END OnInitReadCompleted;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnRead( PObject : TPObject );
+   VAR
+      it : Event.CEventIterator;
    BEGIN
-      Reset();
-      WHILE MoveNext() DO
-         TPKNXServerSink( Listener )^.OnRead( PObject );
+      StartIteration( REF it );
+      WHILE it.MoveNext() DO
+         TPKNXServerSink( it.Listener )^.OnRead( PObject );
       END; // WHILE
    END OnRead;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : TPObject );
+   VAR
+      it : Event.CEventIterator;
    BEGIN
-      Reset();
-      WHILE MoveNext() DO
-         TPKNXServerSink( Listener )^.OnWritten( PObject );
+      StartIteration( REF it );
+      WHILE it.MoveNext() DO
+         TPKNXServerSink( it.Listener )^.OnWritten( PObject );
       END; // WHILE
    END OnWritten;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   VAR
+      it : Event.CEventIterator;
    BEGIN
-      Reset();
-      WHILE MoveNext() DO
-         TPKNXServerSink( Listener )^.OnInputQueueAdd( OOBQueue, PromiscuousQueue );
+      StartIteration( REF it );
+      WHILE it.MoveNext() DO
+         TPKNXServerSink( it.Listener )^.OnInputQueueAdd( OOBQueue, PromiscuousQueue );
       END; // WHILE
    END OnInputQueueAdd;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
+   VAR
+      it : Event.CEventIterator;
    BEGIN
-      Reset();
-      WHILE MoveNext() DO
-         TPKNXServerSink( Listener )^.OnInputQueueOverflow( OOBQueue, PromiscuousQueue );
+      StartIteration( REF it );
+      WHILE it.MoveNext() DO
+         TPKNXServerSink( it.Listener )^.OnInputQueueOverflow( OOBQueue, PromiscuousQueue );
       END; // WHILE
    END OnInputQueueOverflow;
 
@@ -831,8 +845,8 @@ CLASS IMPLEMENTATION CKNXServer;
       changed : BOOLEAN;
       key, value : StringsO.CString;
       licences : lists.CStringList;
+      licencesIterator : lists.CStringListIterator;
       PObject : TPObject;
-      ptrType : PTR;
       s : FIO.PathStrW;
    BEGIN
       // system suspend must be processed before expiration check
@@ -857,10 +871,11 @@ CLASS IMPLEMENTATION CKNXServer;
 
       ELSIF Item = itemSystemSerialNumber THEN
          Result.GetLicences( OUT licences );
-         IF NOT licences.GetFirst( OUT value, OUT ptrType ) THEN
+         licencesIterator.Init( licences, collection.dirForward );
+         IF NOT licencesIterator.MoveNext() THEN
             value.Clear();
          END;
-         Value.String := value;
+         Value.String.Assign( licencesIterator.Value^ );
          RETURN Sync.arCompleted;
       END;
       
@@ -1747,7 +1762,7 @@ CLASS IMPLEMENTATION CKNXServer;
             PBehaviour^.Name := Name;
             PBehaviour^.Class := Priority;
             PBehaviour^.Flags := BFlags;
-            Behaviours.Append( PBehaviour );
+            Behaviours.Add( PBehaviour );
          END; // WHILE
       END; // IF snBehaviours
       
@@ -2112,14 +2127,14 @@ CLASS IMPLEMENTATION CKNXServer;
       PBehaviour : TPBehaviour;
       b : BOOLEAN;
    BEGIN
-      b := Behaviours.GetFirst( OUT PBehaviour );
+      b := Behaviours.colGetFirst( OUT PBehaviour );
       WHILE b DO
          IF PBehaviour^.Name = BehaviourName THEN
             Priority := PBehaviour^.Class;
             Flags := PBehaviour^.Flags;
             RETURN TRUE;
          END;
-         b := Behaviours.NextOf( PBehaviour, OUT PBehaviour );
+         b := Behaviours.colNextOf( PBehaviour, OUT PBehaviour );
       END;
       IF BehaviourName.EqualsOA( bnReader ) THEN
          Flags := knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofUpdate, knx_def.aofWritable, knx_def.aofInitRead, knx_def.aofForceRead};

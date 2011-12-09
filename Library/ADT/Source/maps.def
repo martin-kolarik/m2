@@ -92,6 +92,8 @@ CLASS CIntegerPtrMapIterator( avltree.CAVLTreeIterator );
       Value : PTR;
       Data : PTR;
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CIntegerPtrMap; Direction : collection.TDirection );
+
 END CIntegerPtrMapIterator;
 
 //---------------------------------------------------------------------------
@@ -124,6 +126,8 @@ CLASS CIntegerStringMapIterator( avltree.CAVLTreeIterator );
       Value : TPString;
    PUBLIC PROPERTY
       Data : PTR;
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CIntegerStringMap; Direction : collection.TDirection );
 
 END CIntegerStringMapIterator;
 
@@ -158,6 +162,8 @@ CLASS CPtrPtrMapIterator( avltree.CAVLTreeIterator );
       Value : PTR;
       Data : PTR;
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrPtrMap; Direction : collection.TDirection );
+
 END CPtrPtrMapIterator;
 
 //---------------------------------------------------------------------------
@@ -191,6 +197,8 @@ CLASS CStringPtrMapIterator( avltree.CAVLTreeIterator );
       Value : PTR;
       Data : PTR;
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringPtrMap; Direction : collection.TDirection );
+
 END CStringPtrMapIterator;
 
 //---------------------------------------------------------------------------
@@ -223,6 +231,8 @@ CLASS CStringStringMapIterator( avltree.CAVLTreeIterator );
       Value : TPString;
    PUBLIC PROPERTY
       Data : PTR;
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringStringMap; Direction : collection.TDirection );
 
 END CStringStringMapIterator;
 

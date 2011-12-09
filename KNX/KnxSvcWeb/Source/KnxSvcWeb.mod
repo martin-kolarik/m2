@@ -6,6 +6,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   collection,
    Controller,
    cphcommon,
    device,
@@ -279,14 +280,14 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
    PUBLIC PROPERTY LicenceType GET : lec.TLicenceType;
    VAR
+      it : lists.CStringListIterator;
       licences : lists.CStringList;
-      ptrType : PTR;
-      s : StringsO.CString;
    BEGIN
       // no need to sync
       _KNX^.PResult^.GetLicences( OUT licences );
-      IF licences.GetFirst( OUT s, OUT ptrType ) THEN
-         RETURN lec.TLicenceType( LOPTRLONGWORD( ptrType ));
+      it.Init( licences, collection.dirForward );
+      IF it.MoveNext() THEN
+         RETURN lec.TLicenceType( LOPTRLONGWORD( it.Data ));
       ELSE
          RETURN lec.TLicenceType{};
       END;
@@ -296,14 +297,15 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
    PUBLIC PROPERTY Licence GET : StringsO.CString;
    VAR
+      it : lists.CStringListIterator;
       licences : lists.CStringList;
-      ptrType : PTR;
       s : StringsO.CString;
    BEGIN
       // no need to sync
       _KNX^.PResult^.GetLicences( OUT licences );
-      IF NOT licences.GetFirst( OUT s, OUT ptrType ) THEN
-         s.Clear();
+      it.Init( licences, collection.dirForward );
+      IF it.MoveNext() THEN
+         s.Assign( it.Value^ );
       END;
       RETURN s;
    END Licence;
@@ -564,6 +566,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       PROCEDURE PrepareItem( CONST authinfo : StringsO.IString; OUT Role : StringsO.IString; OUT hash : sha256.CDigest ) : TRole;
       VAR
          base64OA : ARRAY [0..63] OF WCHAR;
+         d : PTR;
          hashOA : sha256.TDigest;
          i : CARDINAL;
          itemRolePtr : PTR;
@@ -581,7 +584,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
          Strings.TrimW( REF base64OA );
          
          // check if role is known
-         IF NOT _Roles.Get( roleS, OUT itemRolePtr ) THEN
+         IF NOT _Roles.Get( roleS, OUT itemRolePtr, OUT d ) THEN
             RETURN roleGuest;
          END;
          role := TRole( LOPTRLONGWORD( itemRolePtr ));
@@ -600,7 +603,9 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    
    VAR
       authinfo : StringsO.CString;
+      d : PTR;
       hash, password : sha256.CDigest;
+      it : maps.CStringStringMapIterator;
       itemRole, role : TRole := roleGuest;
       s : StringsO.CString;
    BEGIN
@@ -614,9 +619,9 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       IF Name.Empty THEN // keyed users
          digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"project", OUT password );
          
-         _Users.Reset();
-         WHILE _Users.MoveNext() DO
-            itemRole := PrepareItem( _Users.CurrentData^, OUT s, OUT hash );
+         it.Init( _Users, collection.dirForward );
+         WHILE it.MoveNext() DO
+            itemRole := PrepareItem( it.Value^, OUT s, OUT hash );
             IF ( itemRole = roleUserKeyed ) AND ( hash = password ) THEN
                role := itemRole;
                Role.Assign( s );
@@ -626,7 +631,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
          
       ELSE // named users
 
-         IF _Users.Get( Name, OUT authinfo ) THEN
+         IF _Users.Get( Name, OUT authinfo, OUT d ) THEN
             itemRole := PrepareItem( authinfo, OUT s, OUT hash );
             IF ( itemRole <> roleUserKeyed ) AND ( itemRole <> roleGuest ) THEN 
                IF itemRole = roleSystemAdministrator THEN
@@ -665,9 +670,9 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
    PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
    VAR
-      data : PTR;
+      d, data : PTR;
    BEGIN
-      IF NOT _Roles.ElementAt( i, OUT name, OUT data ) THEN
+      IF NOT _Roles.ElementAt( i, OUT name, OUT data, OUT d ) THEN
          RETURN FALSE;
       END;
 
@@ -681,9 +686,9 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT userName, roleName : StringsO.IString ) : BOOLEAN;
    VAR
       authinfo : StringsO.CString;
-      data : PTR;
+      d, data : PTR;
    BEGIN
-      IF NOT _Users.ElementAt( i, OUT userName, OUT authinfo ) THEN
+      IF NOT _Users.ElementAt( i, OUT userName, OUT authinfo, OUT d ) THEN
          RETURN FALSE;
       END;
 
@@ -695,7 +700,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       authinfo.Trim();
       
       roleName.Assign( authinfo );
-      IF NOT _Roles.Get( roleName, OUT data ) THEN
+      IF NOT _Roles.Get( roleName, OUT data, OUT d ) THEN
          RETURN FALSE;
       END;
       role := TRole( LOPTRLONGWORD( data ));
@@ -721,6 +726,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
    VAR
       i : CARDINAL;
+      it : maps.CStringStringMapIterator;
       userRole : StringsO.CString;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
@@ -736,22 +742,22 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
       // replace roles in users, if the role is not new
       IF NOT currentName.Empty THEN
-         _Users.Reset();
-         WHILE _Users.MoveNext() DO
-            i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+         it.Init( _Users, collection.dirForward );
+         WHILE it.MoveNext() DO
+            i := it.Value^.IndexOfOA( L",", 0 );
             IF i = -1 THEN
                CONTINUE;
             END;
-            _Users.CurrentData^.Substring( 0, i, OUT userRole );
+            it.Value^.Substring( 0, i, OUT userRole );
             IF userRole.Equals( currentName ) THEN
-               _Users.CurrentData^.Remove( 0, i );
-               _Users.CurrentData^.Prepend( roleName );
+               it.Value^.Remove( 0, i );
+               it.Value^.Prepend( roleName );
             END;
          END; // WHILE
       END;
 
       _Roles.Remove( currentName );
-      _Roles.Add( roleName, PTR( role ));
+      _Roles.Add( roleName, PTR( role ), 0 );
 
       PersistUsers();
       
@@ -764,6 +770,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    PUBLIC PROCEDURE DeleteRole( CONST roleName : StringsO.IString ) : BOOLEAN;
    VAR
       i : CARDINAL;
+      it : maps.CStringStringMapIterator;
       userRole : StringsO.CString;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
@@ -771,13 +778,13 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
          RETURN FALSE;
       END;
 
-      _Users.Reset();
-      WHILE _Users.MoveNext() DO
-         i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+      it.Init( _Users, collection.dirForward );
+      WHILE it.MoveNext() DO
+         i := it.Value^.IndexOfOA( L",", 0 );
          IF i = -1 THEN
             CONTINUE;
          END;
-         _Users.CurrentData^.Substring( 0, i, OUT userRole );
+         it.Value^.Substring( 0, i, OUT userRole );
          IF userRole.Equals( roleName ) THEN
             _Lock.UnlockWrite();
             RETURN FALSE; // cannot delete role when it is used
@@ -809,6 +816,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    PUBLIC PROCEDURE UpdateUser( CONST roleName, currentName, userName, password : StringsO.IString ) : BOOLEAN;
    VAR
       authinfo : StringsO.CString;
+      d : PTR;
       hash : sha256.CDigest;
       hashOA : sha256.TDigest;
       base64OA : ARRAY [0..63] OF WCHAR;
@@ -818,7 +826,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
          RETURN FALSE;
-      ELSIF NOT currentName.Empty AND NOT _Users.Contains( currentName ) OR NOT _Roles.Get( roleName, OUT rolePtr ) THEN // unable to edit user, which does not exist, or role of which does not exist
+      ELSIF NOT currentName.Empty AND NOT _Users.Contains( currentName ) OR NOT _Roles.Get( roleName, OUT rolePtr, OUT d ) THEN // unable to edit user, which does not exist, or role of which does not exist
          _Lock.UnlockWrite();
          RETURN FALSE;
       ELSIF currentName.Equals( userName ) THEN
@@ -851,7 +859,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       authinfo.AppendOA( base64OA );
 
       _Users.Remove( currentName );
-      _Users.Add( userName, authinfo );
+      _Users.Add( userName, authinfo, 0 );
       PersistUsers();
       
       _Lock.UnlockWrite();
@@ -959,8 +967,8 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       END;
       
       // add system roles      
-      _Roles.AddOA( ROLE_SYS_ADMIN, PTR( roleSystemAdministrator ));
-      _Roles.AddOA( ROLE_SYS_USER, PTR( roleSystemUser ));
+      _Roles.Add( StringsO.FromOA( ROLE_SYS_ADMIN ), PTR( roleSystemAdministrator ), 0 );
+      _Roles.Add( StringsO.FromOA( ROLE_SYS_USER ), PTR( roleSystemUser ), 0 );
       
       // load users from system configuration
       IF NOT cfg.SetSection( snUsers ) THEN
@@ -969,7 +977,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
          es := 0;
          WHILE cfg.EnumerateKeys( REF es, OUT line, OUT s, OUT authinfo ) DO // s = name, authinfo = role, hash
             _Users.Remove( s );
-            _Users.Add( s, authinfo );
+            _Users.Add( s, authinfo, 0 );
             _SysUsers.Add( s, 0 );
          END; // WHILE
       END;
@@ -1090,10 +1098,10 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
                CONTINUE;
             ELSIF key.EqualsOA( knNamed ) THEN
                _Roles.Remove( role );
-               _Roles.Add( role, PTR( roleUserNamed ));
+               _Roles.Add( role, PTR( roleUserNamed ), 0 );
             ELSIF key.EqualsOA( knKeyed ) THEN
                _Roles.Remove( role );
-               _Roles.Add( role, PTR( roleUserKeyed ));
+               _Roles.Add( role, PTR( roleUserKeyed ), 0 );
             ELSE
                CONTINUE;
             END;
@@ -1116,7 +1124,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
             END;
 
             _Users.Remove( user );
-            _Users.Add( user, authinfo );
+            _Users.Add( user, authinfo, 0 );
          END; // WHILE roles
       END;
       
@@ -1128,6 +1136,8 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    PRIVATE PROCEDURE PersistUsers(); // synchronized
    VAR
       cfg : INIfile.CINIFile;
+      itr : maps.CStringPtrMapIterator;
+      itu : maps.CStringStringMapIterator;
       usersFileOA : FIO.PathStrW;
    BEGIN
       IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT usersFileOA ) THEN
@@ -1145,16 +1155,16 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       cfg.CreateSection( snRoles, FALSE );
       cfg.ClearSection( snRoles );
       IF cfg.SetSection( snRoles ) THEN
-         _Roles.Reset();
-         WHILE _Roles.MoveNext() DO
-            CASE TRole( LOPTRLONGWORD( _Roles.CurrentData )) OF
+         itr.Init( _Roles, collection.dirForward );
+         WHILE itr.MoveNext() DO
+            CASE TRole( LOPTRLONGWORD( itr.Value )) OF
             | roleSystemAdministrator,
               roleSystemUser :
                CONTINUE; // roles are not written
             | roleUserKeyed :
-               cfg.SetKeyStr( knKeyed, _Roles.Current^, TRUE );
+               cfg.SetKeyStr( knKeyed, itr.Key^, TRUE );
             ELSE
-               cfg.SetKeyStr( knNamed, _Roles.Current^, TRUE );
+               cfg.SetKeyStr( knNamed, itr.Key^, TRUE );
             END;
          END;
       END;
@@ -1162,9 +1172,9 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       cfg.CreateSection( snUsers, FALSE );
       cfg.ClearSection( snUsers );
       IF cfg.SetSection( snUsers ) THEN
-         _Users.Reset();
-         WHILE _Users.MoveNext() DO
-            cfg.SetKeyStr( OA( _Users.Current^.Length-1, _Users.Current^.Data ), _Users.CurrentData^, FALSE );
+         itu.Init( _Users, collection.dirForward );
+         WHILE itu.MoveNext() DO
+            cfg.SetKeyStr( OA( itu.Key^.Length-1, itu.Key^.Data ), itu.Value^, FALSE );
          END;
       END;
 

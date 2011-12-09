@@ -85,8 +85,14 @@ CLASS IMPLEMENTATION AnsAVLItem;
 (*---------------------------------------------------------------------------*)
 
 	PUBLIC VIRTUAL INDEX AnsAVLItem GET( Index : CARDINAL ) : ns.TPnsItem;
+   VAR
+      PElem : TPnsAVLTreeElem;
 	BEGIN
-		// RETURN TPnsAVLTreeElem( _Childs[Index] )^.Item;
+      IF _Childs.ElementAt( 0, Index, OUT PElem ) THEN
+		   RETURN PElem^.Item;
+      ELSE
+         RETURN NIL;
+      END;
 	END AnsAVLItem;
 
 (*---------------------------------------------------------------------------*)

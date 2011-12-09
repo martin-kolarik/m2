@@ -6,6 +6,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   collection,
    device,
    FIO,
    Folders,
@@ -81,6 +82,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    VAR
       item : TPItem;
       i : CARDINAL;
+      it : lists.CPtrListIterator;
    BEGIN
       // check validity of input
       IF HIGH( Item ) < 0 THEN
@@ -91,9 +93,9 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       FOR i := 0 TO HIGH( Item ) DO
          IF Result[i] IN Sync.arsCompletions THEN
             
-            _Items.Reset();
-            WHILE _Items.MoveNext() DO
-               item := _Items.Current;
+            it.Init( _Items, collection.dirForward );
+            WHILE it.MoveNext() DO
+               item := it.Value;
                IF item^.Hash = Item[i] THEN
                   Mark( item );
                END;
@@ -119,6 +121,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
    PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
    VAR
+      it : lists.CPtrListIterator;
       item : TPItem;
       result : Sync.TAsyncResult;
       value : StringsO.CString;
@@ -126,9 +129,9 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       Logger^.LogS( log.lcWarning, 0, LOGNAME, L"Init-read phase finished, pushing persistent values to KNX" );
 
       // write values to KNX
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Init( _Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         item := it.Value;
 
          value := item^.Value.String;
          Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Pushing value:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
@@ -242,6 +245,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      it : lists.CPtrListIterator;
       item : TPItem;
    BEGIN
       StopTimer( WRITE_DELAY_TIMER );
@@ -250,9 +254,9 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          Device^.UnadviseAll( ADR( SELF ));
       END;
    
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Init( _Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         item := it.Value;
          DISPOSE( item );
       END; // WHILE
       _Items.Dispose();
@@ -262,13 +266,14 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
    VAR
+      it : lists.CPtrListIterator;
       item : TPItem;
    BEGIN
       Device^.JoinClient( ADR( SELF ), io.advWithData );
       
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Init( _Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         item := it.Value;
          Device^.AdviseHash( ADR( SELF ), item^.Hash );
       END; // WHILE
 

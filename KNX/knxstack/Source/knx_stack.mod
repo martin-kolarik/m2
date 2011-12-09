@@ -388,7 +388,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
     PE^.BUSY_Retry := BUSY_Retry;
     PE^.Pending := FALSE;
 
-    Requests[ PPacket^.GetPriority() ].Append( PE );
+    Requests[ PPacket^.GetPriority() ].Enqueue( PE );
   END AppendPacket;
 
 (*--------------------------------------------------------------------------------*)
@@ -453,7 +453,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
     RETURN FALSE;
 
   Found:
-    Requests[ Priority ].GetFirst( OUT PE );
+    Requests[ Priority ].colGetFirst( OUT PE );
     PCurrent := PE;
     Packet := TPL_Request( PCurrent )^.Packet;
     Pending := FALSE;
@@ -734,7 +734,7 @@ CLASS IMPLEMENTATION CKNXStackLinkLayer;
     IF L_Data.Listeners.Contains( PListener ) THEN
       RETURN;
     END;
-    L_Data.Listeners.Append( PListener );
+    L_Data.Listeners.Add( PListener );
 
     PListener^.PExecutive := ADR( SELF );
     PListener^.GetGroups( ListenerGroups );
@@ -752,13 +752,13 @@ CLASS IMPLEMENTATION CKNXStackLinkLayer;
     END;
     L_Data.Listeners.Remove( PListener );
     L_Data.Groups := TGroupInfo{};
-    IF NOT L_Data.Listeners.GetFirst( OUT PListener ) THEN
+    IF NOT L_Data.Listeners.colGetFirst( OUT PListener ) THEN
       RETURN;
     END;
     REPEAT
       PListener^.GetGroups( ListenerGroups );
       L_Data.Groups := L_Data.Groups + ListenerGroups;
-    UNTIL NOT L_Data.Listeners.NextOf( PListener, OUT PListener );
+    UNTIL NOT L_Data.Listeners.colNextOf( PListener, OUT PListener );
   END ForgetListener;
 
 (*--------------------------------------------------------------------------------*)
@@ -771,13 +771,13 @@ CLASS IMPLEMENTATION CKNXStackLinkLayer;
       RETURN;
     END;
     L_Data.Groups := TGroupInfo{};
-    IF NOT L_Data.Listeners.GetFirst( OUT PListener ) THEN
+    IF NOT L_Data.Listeners.colGetFirst( OUT PListener ) THEN
       RETURN;
     END;
     REPEAT
       PListener^.GetGroups( ListenerGroups );
       L_Data.Groups := L_Data.Groups + ListenerGroups;
-    UNTIL NOT L_Data.Listeners.NextOf( PListener, OUT PListener );
+    UNTIL NOT L_Data.Listeners.colNextOf( PListener, OUT PListener );
   END ListenerGroupUpdated;
 
 (*--------------------------------------------------------------------------------*)
@@ -986,10 +986,10 @@ CLASS IMPLEMENTATION CKNXStackLinkLayer;
     PListener : TPL_Data_Listener;
     b : BOOLEAN;
   BEGIN
-    b := L_Data.Listeners.GetFirst( OUT PListener );
+    b := L_Data.Listeners.colGetFirst( OUT PListener );
     WHILE b DO
       L_Data_Ind( PListener, PPacket^.GetSourceAddress(), PPacket^.GetDestinationAddress(), PPacket^.GetPriority(), PPacket );
-      b := L_Data.Listeners.NextOf( PListener, OUT PListener );
+      b := L_Data.Listeners.colNextOf( PListener, OUT PListener );
     END; // WHILE
   END Process_L_Data_Ind;
 
@@ -1756,11 +1756,11 @@ CLASS IMPLEMENTATION CA_Group;
     b : BOOLEAN;
   BEGIN
     IF EnumerateState = 0 THEN
-      b := Objects.GetFirst( OUT PA_Object );
+      b := Objects.colGetFirst( OUT PA_Object );
     ELSE
       PA_Object := EnumerateState;
       ASSERT( Objects.Contains( PA_Object ));
-      b := Objects.NextOf( PA_Object, OUT PA_Object );
+      b := Objects.colNextOf( PA_Object, OUT PA_Object );
     END;
     IF b THEN
       EnumerateState := PA_Object;
@@ -2195,7 +2195,7 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
     IF NOT A_Group_SearchGroup( Address, PGroup ) THEN
       NEW( PGroup );
       PGroup^.Address := Address;
-      A_Data.Groups.Insert( PGroup );
+      A_Data.Groups.Add( PGroup );
       IF PStack^.Layers[ kltNetwork ] <> NIL THEN
         TPN_L_Data_Listener( TPKNXStackNetworkLayer( PStack^.Layers[ kltNetwork ] )^.N_Data.PL_Listener )^.AddGroup( Address );
       END;
@@ -2204,14 +2204,14 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
       END;
     END;
 
-    b := PGroup^.Objects.GetFirst( OUT PA_Object );
+    b := PGroup^.Objects.colGetFirst( OUT PA_Object );
     WHILE b AND ( PA_Object^.PObject <> PObject ) DO
-      b := PGroup^.Objects.NextOf( PA_Object, OUT PA_Object );
+      b := PGroup^.Objects.colNextOf( PA_Object, OUT PA_Object );
     END; // WHILE
     IF NOT b THEN
       NEW( PA_Object );
       PA_Object^.PObject := PObject;
-      PGroup^.Objects.Append( PA_Object );
+      PGroup^.Objects.Add( PA_Object );
     END;
 
     DataLock.Unlock();
@@ -2237,14 +2237,14 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
        RETURN knx_status.essOK;
     END;
 
-    b := PGroup^.Objects.GetFirst( OUT PA_Object );
+    b := PGroup^.Objects.colGetFirst( OUT PA_Object );
     WHILE b AND ( PA_Object^.PObject <> PObject ) DO
-      b := PGroup^.Objects.NextOf( PA_Object, OUT PA_Object );
+      b := PGroup^.Objects.colNextOf( PA_Object, OUT PA_Object );
     END; // WHILE
     IF b THEN
       PGroup^.Objects.Delete( PA_Object );
       IF PGroup^.Objects.Empty THEN
-        A_Data.Groups.Delete( PGroup );
+        A_Data.Groups.Delete( 0, PGroup );
         IF PStack^.Layers[ kltNetwork ] <> NIL THEN
           TPN_L_Data_Listener( TPKNXStackNetworkLayer( PStack^.Layers[ kltNetwork ] )^.N_Data.PL_Listener )^.RemoveGroup( Address );
         END;
@@ -2278,14 +2278,14 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
 
     PGroup := A_Data.prGroup[Length];
 
-    b := PGroup^.Objects.GetFirst( OUT PA_Object );
+    b := PGroup^.Objects.colGetFirst( OUT PA_Object );
     WHILE b AND ( PA_Object^.PObject <> PObject ) DO
-      b := PGroup^.Objects.NextOf( PA_Object, OUT PA_Object );
+      b := PGroup^.Objects.colNextOf( PA_Object, OUT PA_Object );
     END; // WHILE
     IF NOT b THEN
       NEW( PA_Object );
       PA_Object^.PObject := PObject;
-      PGroup^.Objects.Append( PA_Object );
+      PGroup^.Objects.Add( PA_Object );
     END;
 
     DataLock.Unlock();
@@ -2312,9 +2312,9 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
 
     PGroup := A_Data.prGroup[Length];
 
-    b := PGroup^.Objects.GetFirst( OUT PA_Object );
+    b := PGroup^.Objects.colGetFirst( OUT PA_Object );
     WHILE b AND ( PA_Object^.PObject <> PObject ) DO
-      b := PGroup^.Objects.NextOf( PA_Object, OUT PA_Object );
+      b := PGroup^.Objects.colNextOf( PA_Object, OUT PA_Object );
     END; // WHILE
     IF b THEN
       PGroup^.Objects.Delete( PA_Object );
@@ -2347,7 +2347,7 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
       IF MSG.Message = msgqueue.MSG_PROCESS_QUEUE THEN
 
          WHILE Queue.Dequeue( OUT PPendingData ) DO
-            A_Data.Pending[ PPendingData^.WhatIsPending ][ PPendingData^.Class ].Append( PPendingData );
+            A_Data.Pending[ PPendingData^.WhatIsPending ][ PPendingData^.Class ].Add( PPendingData );
             A_StartPendingOperation( PPendingData^.WhatIsPending, PPendingData^.POriginator^.Promiscuous, ADR( PPendingData^.Class ));
          END; // while
 
@@ -2418,7 +2418,7 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
   VAR
     PSPO : TPPendingData;
   BEGIN
-    IF A_Data.Pending[ WhatIsPending ][Class].GetFirst( OUT PSPO ) THEN
+    IF A_Data.Pending[ WhatIsPending ][Class].colGetFirst( OUT PSPO ) THEN
       Destination := PSPO^.Destination;
       RETURN TRUE;
     ELSE
@@ -2432,7 +2432,7 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
   VAR
     PSPO : TPPendingData;
   BEGIN
-    IF A_Data.Pending[ WhatIsPending ][Class].GetFirst( OUT PSPO ) AND ( PSPO^.Destination = Destination ) THEN // PSPO^.Pending ignored
+    IF A_Data.Pending[ WhatIsPending ][Class].colGetFirst( OUT PSPO ) AND ( PSPO^.Destination = Destination ) THEN // PSPO^.Pending ignored
       A_Data.Timeouter[ WhatIsPending ].Stop();
       A_Data.Pending[ WhatIsPending ][Class].Delete( PSPO );
     END;
@@ -2509,7 +2509,7 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
     A_Group : CA_Group;
   BEGIN
     A_Group.Address := Address;
-    RETURN A_Data.Groups.Search( ADR( A_Group ), OUT PGroup );
+    RETURN A_Data.Groups.Get( 0, ADR( A_Group ), OUT PGroup );
   END A_Group_SearchGroup;
 
 (*--------------------------------------------------------------------------------*)
@@ -2551,7 +2551,7 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
       priority := PClass^;
     END;
     LOOP
-      IF A_Data.Pending[ WhatIsPending ][priority].GetFirst( OUT PSPO ) THEN // have it
+      IF A_Data.Pending[ WhatIsPending ][priority].colGetFirst( OUT PSPO ) THEN // have it
         _PSPO := PSPO;
         RETURN TRUE;
       ELSIF PClass <> NIL THEN
@@ -2577,7 +2577,7 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
       priority := PClass^;
     END;
     LOOP
-      IF A_Data.Pending[ WhatIsPending ][priority].GetLast( OUT PSPO ) THEN // have it
+      IF A_Data.Pending[ WhatIsPending ][priority].colGetLast( OUT PSPO ) THEN // have it
         _PSPO := PSPO;
         RETURN TRUE;
       ELSIF PClass <> NIL THEN

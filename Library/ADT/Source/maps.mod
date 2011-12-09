@@ -279,6 +279,13 @@ CLASS IMPLEMENTATION CIntegerPtrMapIterator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CIntegerPtrMap; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
+
 END CIntegerPtrMapIterator;
 
 (*===========================================================================*)
@@ -478,6 +485,13 @@ CLASS IMPLEMENTATION CIntegerStringMapIterator;
    END Data;
 
 (*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CIntegerStringMap; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
 
 END CIntegerStringMapIterator;
 
@@ -688,6 +702,13 @@ CLASS IMPLEMENTATION CPtrPtrMapIterator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrPtrMap; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
+
 END CPtrPtrMapIterator;
 
 (*==========================================================================*)
@@ -889,6 +910,13 @@ CLASS IMPLEMENTATION CStringPtrMapIterator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringPtrMap; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
+
 END CStringPtrMapIterator;
 
 (*==========================================================================*)
@@ -1080,6 +1108,13 @@ CLASS IMPLEMENTATION CStringStringMapIterator;
    END Data;
 
 (*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringStringMap; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
 
 END CStringStringMapIterator;
 

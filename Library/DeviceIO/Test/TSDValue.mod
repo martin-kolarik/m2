@@ -118,11 +118,7 @@ CLASS IMPLEMENTATION CTest;
 	   v1.Long := 300;
 	   v1.Limit( 8, TRUE, FALSE );
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
 
       IF Failure THEN
          RETURN test.trFailure;

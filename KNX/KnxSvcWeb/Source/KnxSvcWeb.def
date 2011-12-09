@@ -13,7 +13,9 @@ IMPORT
    io,
    knxcore,
    lec,
+   lists,
    Log,
+   maps,
    mvc,
    StringsO,
    threadcall;
@@ -113,7 +115,7 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       _ConfigLogger : Log.TPBufferedLogger;
       _DataLogger : Log.TPBufferedLogger;
       _HttpLogger : Log.TPILogger;
-      _Roles : maps.CStringMap;
+      _Roles : maps.CStringPtrMap;
       _SysUsers : lists.CStringList;
       _Users : maps.CStringStringMap;
       _Lock : Sync.RWLOCK;

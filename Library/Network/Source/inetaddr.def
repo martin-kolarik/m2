@@ -115,6 +115,8 @@ CLASS CINETADDRPtrMapIterator( avltree.CAVLTreeIterator );
       Value : PTR;
       Data : PTR;
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CINETADDRPtrMap; Direction : collection.TDirection );
+
 END CINETADDRPtrMapIterator;
 
 (*================================================================================*)

@@ -309,6 +309,13 @@ CLASS IMPLEMENTATION CIntegerListIterator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CIntegerList; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
+
 END CIntegerListIterator;
 
 (*==========================================================================*)
@@ -541,6 +548,13 @@ CLASS IMPLEMENTATION CPtrListIterator;
    END Data;
 
 (*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrList; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
 
 END CPtrListIterator;
 
@@ -775,6 +789,13 @@ CLASS IMPLEMENTATION CStringListIterator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringList; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
+
 END CStringListIterator;
 
 (*===========================================================================*)
@@ -997,6 +1018,13 @@ CLASS IMPLEMENTATION CStringStringListIterator;
    END Data;
 
 (*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringStringList; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
 
 END CStringStringListIterator;
 
@@ -1442,6 +1470,13 @@ CLASS IMPLEMENTATION CBufferListIterator;
    END Data;
 
 (*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CBufferList; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
 
 END CBufferListIterator;
 

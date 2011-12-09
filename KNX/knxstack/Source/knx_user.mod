@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION CUserObject;
     IF PExecutive = NIL THEN
       Groups.Dispose();
     ELSE
-      WHILE Groups.GetFirst( OUT PGroup ) DO
+      WHILE Groups.colGetFirst( OUT PGroup ) DO
         Groups.Remove( PGroup );
         PExecutive^.A_Unsubscribe( FALSE, PGroup^.Address, ADR( SELF ));
         DISPOSE( PGroup );
@@ -103,7 +103,7 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
   BEGIN
     Lock();
-    IF NOT Groups.GetFirst( OUT PGroup ) THEN
+    IF NOT Groups.colGetFirst( OUT PGroup ) THEN
       Unlock();
       RETURN;
     ELSIF knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofReadable} * Flags <> knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofReadable} THEN
@@ -238,13 +238,13 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT PGroup );
+    b := Groups.colGetFirst( OUT PGroup );
     WHILE b AND NOT PGroup^.ReadFlag DO
-      b := Groups.NextOf( PGroup, OUT PGroup );
+      b := Groups.colNextOf( PGroup, OUT PGroup );
     END;
     IF b THEN
       Address := PGroup^.Address;
-    ELSIF Groups.GetFirst( OUT PGroup ) THEN
+    ELSIF Groups.colGetFirst( OUT PGroup ) THEN
       Address := PGroup^.Address;
     ELSE
       Address.SetAddressType( knx_def.addressUnknown );
@@ -266,7 +266,7 @@ CLASS IMPLEMENTATION CUserObject;
     Address : knx_def.TAddress;
     PGroup : TPAU_Group;
   BEGIN
-    IF Groups.GetFirst( OUT PGroup ) THEN
+    IF Groups.colGetFirst( OUT PGroup ) THEN
       Address := PGroup^.Address;
     ELSE
       Address.SetAddressType( knx_def.addressUnknown );
@@ -281,12 +281,12 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT PGroup );
+    b := Groups.colGetFirst( OUT PGroup );
     IF b AND PGroup^.Address.Equals( Address ) THEN
       RETURN;
     END;
     WHILE b AND NOT PGroup^.Address.Equals( Address ) DO
-      b := Groups.NextOf( PGroup, OUT PGroup );
+      b := Groups.colNextOf( PGroup, OUT PGroup );
     END; // WHILE
     IF b THEN // address found
       Groups.Remove( PGroup );
@@ -335,7 +335,7 @@ CLASS IMPLEMENTATION CUserObject;
   VAR
     PGroup : TPAU_Group;
   BEGIN
-    IF NOT Groups.GetFirst( OUT PGroup ) THEN
+    IF NOT Groups.colGetFirst( OUT PGroup ) THEN
       RETURN FALSE;
     ELSIF PGroup^.Address.Equals( Address ) THEN
       SendFlag := TRUE;
@@ -352,11 +352,11 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT PGroup );
+    b := Groups.colGetFirst( OUT PGroup );
     IF b AND PGroup^.Address.Equals( Address ) THEN
       IF NOT SendFlag THEN
         Groups.Remove( PGroup );
-        Groups.Append( PGroup );
+        Groups.Add( PGroup );
       END;
       RETURN TRUE;
     END;
@@ -371,9 +371,9 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT PGroup );
+    b := Groups.colGetFirst( OUT PGroup );
     WHILE b AND NOT PGroup^.Address.Equals( Address ) DO
-      b := Groups.NextOf( PGroup, OUT PGroup );
+      b := Groups.colNextOf( PGroup, OUT PGroup );
     END;
     IF b THEN
       ReadFlag := PGroup^.ReadFlag;
@@ -390,13 +390,13 @@ CLASS IMPLEMENTATION CUserObject;
     b : BOOLEAN;
   BEGIN
     PPrevious := NIL;
-    b := Groups.GetFirst( OUT PGroup );
+    b := Groups.colGetFirst( OUT PGroup );
     WHILE b AND NOT PGroup^.Address.Equals( Address ) DO
       IF PGroup^.ReadFlag THEN
         PPrevious := PGroup;
       END;
       PGroup^.ReadFlag := FALSE;
-      b := Groups.NextOf( PGroup, OUT PGroup );
+      b := Groups.colNextOf( PGroup, OUT PGroup );
     END;
     IF b THEN
       PGroup^.ReadFlag := ReadFlag;
@@ -427,9 +427,9 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT PGroup );
+    b := Groups.colGetFirst( OUT PGroup );
     WHILE b AND NOT PGroup^.Address.Equals( Address ) DO
-      b := Groups.NextOf( PGroup, OUT PGroup );
+      b := Groups.colNextOf( PGroup, OUT PGroup );
     END; // WHILE
     IF NOT b THEN // address does not exist yet
       // create self data entry
@@ -438,7 +438,7 @@ CLASS IMPLEMENTATION CUserObject;
       IF SendFlag THEN
         Groups.InsertFirst( PGroup );
       ELSE
-        Groups.Append( PGroup );
+        Groups.Add( PGroup );
       END;
       // create application data entry
       IF PExecutive <> NIL THEN
@@ -454,9 +454,9 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT PGroup );
+    b := Groups.colGetFirst( OUT PGroup );
     WHILE b AND NOT PGroup^.Address.Equals( Address ) DO
-      b := Groups.NextOf( PGroup, OUT PGroup );
+      b := Groups.colNextOf( PGroup, OUT PGroup );
     END; // WHILE
     IF b THEN // address found
       Groups.Delete( PGroup );
@@ -474,9 +474,9 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT PGroup );
+    b := Groups.colGetFirst( OUT PGroup );
     WHILE b AND NOT PGroup^.Address.Equals( Address ) DO
-      b := Groups.NextOf( PGroup, OUT PGroup );
+      b := Groups.colNextOf( PGroup, OUT PGroup );
     END; // WHILE
     RETURN b;
   END HaveAddress;
@@ -510,10 +510,10 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
   BEGIN
     IF EnumerationState = 0 THEN
-      IF NOT Groups.GetFirst( OUT PGroup ) THEN
+      IF NOT Groups.colGetFirst( OUT PGroup ) THEN
         RETURN FALSE;
       END;
-    ELSIF NOT Groups.Contains( TPAU_Group( EnumerationState )) OR NOT Groups.NextOf( PGroup, OUT PGroup ) THEN
+    ELSIF NOT Groups.Contains( TPAU_Group( EnumerationState )) OR NOT Groups.colNextOf( PGroup, OUT PGroup ) THEN
       RETURN FALSE;
     END;
     EnumerationState := PGroup;
@@ -548,7 +548,7 @@ CLASS IMPLEMENTATION CUserObject;
     IF knx_def.aofPromiscuous IN Flags THEN
       _Value.CopyFrom( Value );
 
-    ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
+    ELSIF NOT Groups.colGetFirst( OUT PGroup ) THEN
       Unlock();
       RETURN knx_status.essAU_NoAddress;
 
@@ -558,10 +558,10 @@ CLASS IMPLEMENTATION CUserObject;
     ELSIF ForceReadIgnoringObjectFlags OR ( knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofForceRead} * Flags = knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofForceRead} ) THEN
       b := TRUE;
       WHILE b AND NOT PGroup^.ReadFlag DO
-        b := Groups.NextOf( PGroup, OUT PGroup );
+        b := Groups.colNextOf( PGroup, OUT PGroup );
       END;
       IF NOT b THEN // ReadFlag not set, correct self
-        Groups.GetFirst( OUT PGroup );
+        Groups.colGetFirst( OUT PGroup );
         PGroup^.ReadFlag := TRUE;
       END;
       IF ForceReadIgnoringObjectFlags THEN
@@ -591,7 +591,7 @@ CLASS IMPLEMENTATION CUserObject;
    
       IF knx_def.aofPromiscuous IN Flags THEN
          Address := PromiscuousAddress;
-      ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
+      ELSIF NOT Groups.colGetFirst( OUT PGroup ) THEN
          Unlock();
          RETURN knx_status.essAU_NoAddress;
       ELSIF knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofTransmit} * Flags <> knx_def.TA_ObjectFlags{knx_def.aofCommunicated, knx_def.aofTransmit} THEN

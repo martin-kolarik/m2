@@ -1,6 +1,7 @@
 DEFINITION MODULE NodeList;
 
 IMPORT
+   collection,
    list,
    lists,
    StringsO,
@@ -46,6 +47,8 @@ CLASS CNodeListIterator( list.CListIterator );
 
    PUBLIC READONLY PROPERTY
       Value : TPNodeItem;
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CNodeList; Direction : collection.TDirection );
 
 END CNodeListIterator;
 

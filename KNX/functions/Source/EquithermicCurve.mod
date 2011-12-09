@@ -6,6 +6,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   collection,
    io,
    IOO,
    iovalue,
@@ -99,6 +100,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
    VAR
       curve : TPCurve;
       i : CARDINAL;
+      it : lists.CPtrListIterator;
    BEGIN
       // check validity of input
       IF HIGH( Item ) < 0 THEN
@@ -109,9 +111,9 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       FOR i := 0 TO HIGH( Item ) DO
          IF Result[i] IN Sync.arsCompletions THEN
             
-            _Curves.Reset();
-            WHILE _Curves.MoveNext() DO
-               curve := _Curves.Current;
+            it.Init( _Curves, collection.dirForward );
+            WHILE it.MoveNext() DO
+               curve := it.Value;
                IF curve^.HInnerSetpointTemperature = Item[i] THEN
                   curve^.HaveInnerSetpointTemperature := TRUE;
                ELSIF curve^.HOuterActualTemperature = Item[i] THEN
@@ -236,14 +238,15 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       curve : TPCurve;
+      it : lists.CPtrListIterator;
    BEGIN
       IF Device <> NIL THEN
          Device^.UnadviseAll( ADR( SELF ));
       END;
    
-      _Curves.Reset();
-      WHILE _Curves.MoveNext() DO
-         curve := _Curves.Current;
+      it.Init( _Curves, collection.dirForward );
+      WHILE it.MoveNext() DO
+         curve := it.Value;
          DISPOSE( curve );
       END; // WHILE
       _Curves.Dispose();
@@ -254,12 +257,13 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
    INTERNAL VIRTUAL PROCEDURE OnStart();
    VAR
       curve : TPCurve;
+      it : lists.CPtrListIterator;
    BEGIN
       Device^.JoinClient( ADR( SELF ), io.advWithData );
       
-      _Curves.Reset();
-      WHILE _Curves.MoveNext() DO
-         curve := _Curves.Current;
+      it.Init( _Curves, collection.dirForward );
+      WHILE it.MoveNext() DO
+         curve := it.Value;
          Device^.AdviseHash( ADR( SELF ), curve^.HInnerSetpointTemperature );
          Device^.AdviseHash( ADR( SELF ), curve^.HOuterActualTemperature );
       END; // WHILE

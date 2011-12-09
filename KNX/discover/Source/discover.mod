@@ -8,6 +8,7 @@ FROM Storage IMPORT
 IMPORT
    arrays,
    browser,
+   collection,
    INIFile,
    lists,
    Resources,
@@ -103,6 +104,7 @@ VAR
    First : BOOLEAN := TRUE;
    ForceFlag : BOOLEAN := FALSE;
    i : INTEGER;
+   it : lists.CStringListIterator;
    Id : StringsO.CString;
    Result : CResult;
    TS : INIFile.CINIFile;
@@ -156,10 +158,10 @@ BEGIN
       IF Result.IPs.Empty THEN
          TS.SetKeyStr( L"id", Id, FALSE );
       ELSE
-         Result.IPs.Reset();
-         WHILE Result.IPs.MoveNext() DO
+         it.Init( Result.IPs, collection.dirForward );
+         WHILE it.MoveNext() DO
             Id.FromOA( L"knxnet:" );
-            Id.Append( Result.IPs.Current^ );
+            Id.Append( it.Value^ );
             IF ForceFlag AND First THEN
                TS.SetKeyStr( L"id", Id, NOT First );
                First := FALSE;

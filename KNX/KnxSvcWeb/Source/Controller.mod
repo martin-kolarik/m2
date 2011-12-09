@@ -6,6 +6,7 @@ FROM Debug IMPORT
    AssertionW;
    
 IMPORT
+   collection,
    datetime,
    FIO,
    FIOO,
@@ -380,6 +381,7 @@ CLASS IMPLEMENTATION CController;
       authMethodInfo : StringsO.CString;
       authorized : BOOLEAN := FALSE;
       authTokens : lists.CStringStringList;
+      authTokensIterator : lists.CStringStringListIterator;
       data : PTR;
       empty : StringsO.CString;
       functionsCalled : CARDINAL := 0;
@@ -390,6 +392,7 @@ CLASS IMPLEMENTATION CController;
       singleSetCalled : BOOLEAN := FALSE;
       uri : StringsO.CString;
       uriParameters : lists.TPStringStringList := Request.URIParameters;
+      uriParametersIterator : lists.CStringStringListIterator;
       value : StringsO.CString;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
@@ -400,7 +403,7 @@ CLASS IMPLEMENTATION CController;
       END;
       
       // process parameters not known to views' models
-      IF uriParameters^.GetOA( LANGUAGE, OUT s ) THEN // override language
+      IF uriParameters^.Get( StringsO.FromOA( LANGUAGE ), OUT s ) THEN // override language
          SetOverriddenLanguage( Request, s );
 
          uri := Request.ControllerURI;
@@ -413,14 +416,14 @@ CLASS IMPLEMENTATION CController;
 
       // process other unknown parameters to detect functions
       ELSE
-         uriParameters^.Reset();
-         WHILE uriParameters^.MoveNext() DO
-            IF Request.ModelContainer^.IsFunctionCall( uriParameters^.Current^ ) THEN
+         uriParametersIterator.Init( uriParameters^, collection.dirForward );
+         WHILE uriParametersIterator.MoveNext() DO
+            IF Request.ModelContainer^.IsFunctionCall( uriParametersIterator.Value^ ) THEN
                INC( functionsCalled );
-               IF uriParameters^.Current^.StartsWithOA( FN_SET + L"(" ) THEN
+               IF uriParametersIterator.Value^.StartsWithOA( FN_SET + L"(" ) THEN
                   INC( setsCalled );
                END;
-               IF Request.ModelContainer^.GetModelValue( Request, Request.MessageSource, Language( Request ), uriParameters^.Current^, OUT value ) THEN
+               IF Request.ModelContainer^.GetModelValue( Request, Request.MessageSource, Language( Request ), uriParametersIterator.Value^, OUT value ) THEN
                   s.Append( value );
                ELSE
                   s.AppendOA( L"##error: function call failed" );
@@ -459,9 +462,9 @@ CLASS IMPLEMENTATION CController;
             IF authTokens.Empty OR ( role = KnxSvcWeb.roleSystemAdministrator ) THEN // if page does not want to authorize or if admin is logged
                authorized := TRUE;
             ELSIF Request.ModelContainer^.GetStringOA( ROLE_NAME, OUT roleName ) THEN // check role, it takes sense only if is somebody is logged
-               authTokens.Reset();
-               WHILE authTokens.MoveNext() DO
-                  IF authTokens.CurrentData^.Equals( roleName ) THEN // authorized
+               authTokensIterator.Init( authTokens, collection.dirForward );
+               WHILE authTokensIterator.MoveNext() DO
+                  IF authTokensIterator.Data^.Equals( roleName ) THEN // authorized
                      authorized := TRUE;
                      EXIT;
                   END;
@@ -491,7 +494,7 @@ CLASS IMPLEMENTATION CController;
       
       ELSIF Request.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
          InvalidateUser( REF Request );
-         IF uriParameters^.GetOA( LOGOUT_NEXT_PAGE, OUT s ) THEN
+         IF uriParameters^.Get( StringsO.FromOA( LOGOUT_NEXT_PAGE ), OUT s ) THEN
             View := mvc.redirectView( OA( s.Length-1, s.Data ));
          ELSE
             View := mvc.redirectView( INDEX_PAGE );
@@ -662,11 +665,11 @@ CLASS IMPLEMENTATION CController;
       uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
       // check actions to do
-      IF uriParameters^.GetOA( STATUS_CONNECT, OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
+      IF uriParameters^.Get( StringsO.FromOA( STATUS_CONNECT ), OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
          _Web^.ConnectKNX();
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
-      ELSIF uriParameters^.GetOA( STATUS_DISCONNECT, OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
+      ELSIF uriParameters^.Get( StringsO.FromOA( STATUS_DISCONNECT ), OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
          _Web^.DisconnectKNX();
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
@@ -794,7 +797,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF uriParameters^.GetOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      ELSIF uriParameters^.Get( StringsO.FromOA( CONTROL_START ), OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
@@ -802,7 +805,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF uriParameters^.GetOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      ELSIF uriParameters^.Get( StringsO.FromOA( CONTROL_STOP ), OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
@@ -810,7 +813,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF uriParameters^.GetOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      ELSIF uriParameters^.Get( StringsO.FromOA( CONTROL_DOWNLOAD ), OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.Data ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          RETURN TRUE;
       END;
@@ -869,7 +872,7 @@ CLASS IMPLEMENTATION CController;
       logS : StringsO.CString;
       uriParameters : lists.TPStringStringList := Request.URIParameters;
    BEGIN
-      downloadFlag := uriParameters^.GetOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 );
+      downloadFlag := uriParameters^.Get( StringsO.FromOA( LOG_DOWNLOAD ), OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 );
       count := _Web^.DataLogger^.BufferCount;
 
       IF downloadFlag THEN
@@ -927,7 +930,7 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-      IF uriParameters^.GetOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      IF uriParameters^.Get( StringsO.FromOA( LOG_DOWNLOAD ), OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          View := mvc.rawTextView( OA( logS.Length-1, logS.Data ), L"systemlog", empty, TRUE );
       ELSE
          Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
@@ -1066,7 +1069,7 @@ CLASS IMPLEMENTATION CController;
       // retrieve editation id      
       IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
          Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
-      ELSIF uriParameters^.GetOA( USERS_ID, OUT ids ) THEN // OK, first opening the page transfers id using URI...
+      ELSIF uriParameters^.Get( StringsO.FromOA( USERS_ID ), OUT ids ) THEN // OK, first opening the page transfers id using URI...
          Request.ModelContainer^.AddStringOA( USERS_ID, ids );
       ELSE // ...the second opening uses model's variable
          Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
@@ -1118,7 +1121,7 @@ CLASS IMPLEMENTATION CController;
          Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
          currentName.Assign( roleName );
 
-      ELSIF uriParameters^.GetOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
+      ELSIF uriParameters^.Get( StringsO.FromOA( USERS_ACTION ), OUT action ) AND NOT action.Empty THEN
 
          IF Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids ) AND NOT ids.Empty THEN
             // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes
@@ -1180,7 +1183,7 @@ CLASS IMPLEMENTATION CController;
       // retrieve editation id      
       IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
          Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
-      ELSIF uriParameters^.GetOA( USERS_ID, OUT ids ) THEN // OK, first opening the page transfers id using URI...
+      ELSIF uriParameters^.Get( StringsO.FromOA( USERS_ID ), OUT ids ) THEN // OK, first opening the page transfers id using URI...
          Request.ModelContainer^.AddStringOA( USERS_ID, ids );
       ELSE // ...the second opening uses model's variable
          Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
@@ -1234,7 +1237,7 @@ CLASS IMPLEMENTATION CController;
          Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
          currentName.Assign( userName );
 
-      ELSIF uriParameters^.GetOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
+      ELSIF uriParameters^.Get( StringsO.FromOA( USERS_ACTION ), OUT action ) AND NOT action.Empty THEN
          
          IF Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids ) AND NOT ids.Empty THEN
             // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes

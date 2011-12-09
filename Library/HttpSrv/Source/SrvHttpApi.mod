@@ -16,6 +16,7 @@ IMPORT
    inetaddr,
    LanguagesO,
    lists,
+   maps,
    SrvCommon,
    Storage,
    StorageO,
@@ -137,10 +138,10 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
       a : ADDRESS;
       i : INTEGER;
       id : httpapi.HTTP_HEADER_ID;
-      kit : lists.CIntegerListIterator;
+      kit : maps.CIntegerStringMapIterator;
       l : CARDINAL;
       s : StringsO.TPString;
-      uit : lists.CStringListIterator;
+      uit : maps.CStringStringMapIterator;
    BEGIN
       HeaderBuffer.Clear();
       
@@ -156,7 +157,7 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
          LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
          HeaderBuffer.AppendByte( 0 );
 
-         ToSysApi( HttpCommon.TKnownHeader( kit.Value ), OUT id );
+         ToSysApi( HttpCommon.TKnownHeader( kit.Key ), OUT id );
          Response.Headers.KnownHeaders[CARDINAL( id )].RawValueLength := CARD16( HeaderBuffer.Length - l - 1 ); // trailing byte
       END; // WHILE KnownCache
       
@@ -167,14 +168,14 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
          i := 0;
          uit.Init( UnknownCache, collection.dirForward );
          WHILE uit.MoveNext() DO
-            s := uit.Value;
+            s := uit.Key;
             l := HeaderBuffer.Length;
             LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
             HeaderBuffer.AppendByte( 0 );
             
             UnknownHeaderBuffer^[i].NameLength := CARD16( HeaderBuffer.Length - l - 1 ); // trailing byte
 
-            s := uit.Data;
+            s := uit.Value;
             l := HeaderBuffer.Length;
             LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
             HeaderBuffer.AppendByte( 0 );

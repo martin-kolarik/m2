@@ -52,6 +52,8 @@ CLASS CIntegerArrayIterator( array.CArrayIterator );
    PUBLIC READONLY PROPERTY
       Value : INTEGER;
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CIntegerArray; Direction : collection.TDirection );
+
 END CIntegerArrayIterator;
 
 (*=============================================================================*)
@@ -103,6 +105,8 @@ CLASS CPtrArrayIterator( array.CArrayIterator );
 
    PUBLIC READONLY PROPERTY
       Value : PTR;
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrArray; Direction : collection.TDirection );
 
 END CPtrArrayIterator;
 

@@ -63,7 +63,7 @@ CLASS IMPLEMENTATION CAdviser;
       Clients : lists.TPPtrList;
       d : PTR;
       i : INTEGER;
-      it : maps.CPtrPtrMapIterator;
+      it : lists.CPtrListIterator;
    BEGIN
       IF NOT _Advising.State THEN
          RETURN;
@@ -76,7 +76,7 @@ CLASS IMPLEMENTATION CAdviser;
 
             it.Init( Clients^, collection.dirForward );
             WHILE it.MoveNext() DO
-               ClientData := it.Key;
+               ClientData := it.Value;
                CASE ClientData^.Advise OF
                | io.advWithData :
                   ClientData^.Client^.OnAdvise( Source, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( 0, ADR( Value[i] )));
@@ -93,7 +93,7 @@ CLASS IMPLEMENTATION CAdviser;
 
          it.Init( Clients^, collection.dirForward );
          WHILE it.MoveNext() DO
-            ClientData := it.Key;
+            ClientData := it.Value;
 
             FOR i := 0 TO HIGH( Item ) DO
                CASE ClientData^.Advise OF

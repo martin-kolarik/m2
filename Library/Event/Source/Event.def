@@ -13,14 +13,14 @@ IMPORT
 (*================================================================================*)
 
 TYPE
-   TPIEventIterator = POINTER TO IEventIterator;
+   TPEventIterator = POINTER TO CEventIterator;
 
-INTERFACE IEventIterator( collection.IIterator );
+CLASS CEventIterator( lists.CPtrListIterator );
 
-   READONLY PROPERTY
+   PUBLIC READONLY PROPERTY
       Listener : ADDRESS;
 
-END IEventIterator;
+END CEventIterator;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -32,15 +32,15 @@ ABSTRACT CLASS AEvent; // meant to be used: "CLASS EventSource( EVENT ) IMPLEMEN
    PUBLIC PROPERTY
       SinkType : Rtti.CLASSTYPE;
 
-   PUBLIC PROCEDURE Subscribe( Listener : ADDRESS ); // TODO: shall be OBJECT
-   PUBLIC PROCEDURE Unsubscribe( Listener : ADDRESS ); // TODO: shall be OBJECT
+   PUBLIC PROCEDURE Subscribe( Listener : ADDRESS ); // TODO: shall be OBJECT/PBASE
+   PUBLIC PROCEDURE Unsubscribe( Listener : ADDRESS ); // TODO: shall be OBJECT/PBASE
    
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL FINALLY AEvent();
 
    // for implementors
    INTERNAL PROCEDURE UnsubscribeAll();
-   INTERNAL PROCEDURE GetIterator() : TPIEventIterator;
+   INTERNAL PROCEDURE StartIteration( REF iterator : CEventIterator );
 
    // self
    PRIVATE VAR

@@ -6,6 +6,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   collection,
    datetime,
    device,
    FIO,
@@ -53,7 +54,7 @@ CLASS IMPLEMENTATION CItem;
       | 5 : ms := 4 * 86400;
       | 6 : ms := 5 * 86400;
       END; // CASE
-      ShouldTickAt.Add( datetime.MSToJDC( 1000 * INC( ms, Hour * 3600 + Minute * 60 )));
+      ShouldTickAt.Add( datetime.TimeSpanMS32( 1000 * INC( ms, Hour * 3600 + Minute * 60 )));
    END Initialize;
 
 (*-------------------------------------------------------------------------------*)
@@ -64,7 +65,7 @@ CLASS IMPLEMENTATION CItem;
          RETURN FALSE;
       END;
 
-      ShouldTickAt.Add( datetime.DaysToJDC( 7 ));
+      ShouldTickAt.Add( datetime.TimeSpanD( 7.0 ));
 
       RETURN TRUE;
    END ShouldTick;
@@ -260,13 +261,14 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      it : lists.CPtrListIterator;
       item : TPItem;
    BEGIN
       StopTimeout( REF _CalendarPeriod );
 
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Init( _Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         item := it.Value;
          DISPOSE( item );
       END; // WHILE
       _Items.Dispose();
@@ -276,44 +278,47 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
    VAR
+      d : PTR;
+      it : lists.CPtrListIterator;
+      ito : maps.CPtrPtrMapIterator;
       item, furthest : TPItem;
       now : datetime.DateTime := datetime.NowLocal();
-      outputs : maps.CPtrMap;
+      outputs : maps.CPtrPtrMap;
    BEGIN
       // move all expired items to the future
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Init( _Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         item := it.Value;
          item^.ShouldTick( now );
       END; // WHILE
 
       // construct map from items to look for the furthest item
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Reset();
+      WHILE it.MoveNext() DO
+         item := it.Value;
          IF NOT outputs.Contains( item^.Hash ) THEN
-            outputs.Add( item^.Hash, 0 );
+            outputs.Add( item^.Hash, 0, 0 );
          END;
       END; // WHILE
 
       // for each item store the furthest time in the map
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
-         outputs.Get( item^.Hash, OUT furthest );
+      it.Reset();
+      WHILE it.MoveNext() DO
+         item := it.Value;
+         outputs.Get( item^.Hash, OUT furthest, OUT d );
          IF furthest = NIL THEN
             furthest := item;
          ELSIF furthest^.ShouldTickAt < item^.ShouldTickAt THEN
             furthest := item;
          END;
          outputs.Remove( item^.Hash ); // slow!!, but there is no way how to change DATA of some item in the map
-         outputs.Add( item^.Hash, furthest );
+         outputs.Add( item^.Hash, furthest, 0 );
       END; // WHILE
 
       // emit current values from outputs
-      outputs.Reset();
-      WHILE outputs.MoveNext() DO
-         furthest := outputs.CurrentData;
+      ito.Init( outputs, collection.dirForward );
+      WHILE ito.MoveNext() DO
+         furthest := it.Value;
          Enqueue( furthest );
       END; // WHILE
 
@@ -333,12 +338,13 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
    PRIVATE PROCEDURE EvaluateItems();
    VAR
+      it : lists.CPtrListIterator;
       item : TPItem;
       now : datetime.DateTime := datetime.NowLocal();
    BEGIN
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Init( _Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         item := it.Value;
          IF item^.ShouldTick( now ) THEN
             Enqueue( item );
          END;
@@ -385,7 +391,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
    VAR
       dt : datetime.DateTime := datetime.NowLocal();
    BEGIN
-      dt.Subtract( datetime.DaysToJDC(( dt.DayOfWeek + 6 ) MOD 7 ));
+      dt.Subtract( datetime.TimeSpanD( LONGREAL( dt.DayOfWeek ) - 1.0 )); // TODO, is it correct?
       dt.TrimTime();
       RETURN dt;
    END DetermineLastPassedWeekStart;

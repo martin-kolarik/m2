@@ -91,6 +91,13 @@ CLASS IMPLEMENTATION CNodeListIterator;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CNodeList; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
+
 END CNodeListIterator;
 
 (*================================================================================*)

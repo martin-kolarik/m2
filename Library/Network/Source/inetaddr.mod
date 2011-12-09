@@ -696,6 +696,13 @@ CLASS IMPLEMENTATION CINETADDRPtrMapIterator;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST OfCollection : CINETADDRPtrMap; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
 END CINETADDRPtrMapIterator;
 
 (*================================================================================*)
