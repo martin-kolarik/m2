@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE drv_def;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -600,7 +600,7 @@ BEGIN
       RETURN AssignDrvValueCStringW( REF CWValue, CWValueUFlag, TrimFlag, IOValue.String );
 
    | iovalue.vtDate :
-      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, datetime.ToSJD( IOValue.Date ));
+      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, IOValue.Date.DayCount.JulianDate );
 
    ELSE
       RETURN AssignDrvValueStringW( REF CWValue, CWValueUFlag, TrimFlag, L"" );

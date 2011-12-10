@@ -127,7 +127,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 	
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE );
    PUBLIC PROCEDURE Abort();
    
@@ -181,7 +181,7 @@ END CIO;
 
 CLASS CIntegraDevice( helper.APluginObject ) IMPLEMENTS device.IDevice;
 
-   // AObject
+   // APluginObject
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // IDevice/IObject

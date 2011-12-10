@@ -60,7 +60,7 @@ ABSTRACT CLASS ABridge( baseobject.CDisposable ) IMPLEMENTS
       _Loader : loader.CLoader;
       _Devices : lists.CStringList;
       _Data : lists.CPtrList;
-      _Lookup : maps.CStringMap;
+      _Lookup : maps.CStringPtrMap;
       _Thread : thread.Thread;
       _Connecting : BOOLEAN;
       _PeriodCounter : CARDINAL;
@@ -70,8 +70,6 @@ ABSTRACT CLASS ABridge( baseobject.CDisposable ) IMPLEMENTS
       _WriteQueue : lists.CStringStringList;
       _Result : lec.CResult;
    
-   PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT device : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
-
    PUBLIC VIRTUAL PROCEDURE Dispose();
 END ABridge;
 

@@ -10,6 +10,7 @@ IMPORT
 	io,
 	IOO,
 	iovalue,
+   iplugin,
    lists,
 	log,
 	netsocket,
@@ -84,7 +85,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    PUBLIC PROCEDURE Request( CONST request : StringsO.IString );
    
@@ -133,14 +134,16 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CPJLinkDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CPJLinkDevice( helper.APluginObject ) IMPLEMENTS device.IDevice;
 
-   // IObject
+   // APluginObject
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // IDevice/IObject
    PUBLIC FINAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC FINAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY

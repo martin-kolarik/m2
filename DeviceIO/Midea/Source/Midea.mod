@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE Midea;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 IMPORT
    FIO,

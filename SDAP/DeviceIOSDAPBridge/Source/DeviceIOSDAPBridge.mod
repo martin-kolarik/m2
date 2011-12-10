@@ -1,10 +1,11 @@
 IMPLEMENTATION MODULE DeviceIOSDAPBridge;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    cllv,
+   collection,
    FIO,
    INIFile,
    IOO,
@@ -60,6 +61,7 @@ CLASS IMPLEMENTATION ABridge;
    INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       cb : io.CCompletionDataInfo;
+      it : lists.CPtrListIterator;
       item : TPItem;
       Result : Sync.TAsyncResult;
       s : StringsO.CString;
@@ -109,13 +111,13 @@ CLASS IMPLEMENTATION ABridge;
             END;
 
             // get values from device and send them to SDAP
-            _Data.Reset();
-            WHILE _Data.MoveNext() DO
+            it.Init( _Data, collection.dirForward );
+            WHILE it.MoveNext() DO
                IF Helper.WaitForStopRequest( 0 ) = Sync.arCompleted THEN // stop loop prematurely, someone wants to stop the thread
                   EXIT;
                END;
 
-               item := _Data.Current;
+               item := it.Value;
                IF item^.Direction <> IOO.dirRead THEN
                   CONTINUE;
                END;
@@ -175,9 +177,9 @@ CLASS IMPLEMENTATION ABridge;
                   CONTINUE;
                END;
 
-               _Data.Reset();
-               WHILE _Data.MoveNext() DO
-                  item := _Data.Current;
+               it.Init( _Data, collection.dirForward );
+               WHILE it.MoveNext() DO
+                  item := it.Value;
                   IF item^.Direction <> IOO.dirWrite THEN
                      CONTINUE;
                   ELSIF NOT item^.SDAPName.Equals( sdapName ) THEN
@@ -239,12 +241,13 @@ CLASS IMPLEMENTATION ABridge;
 	   dev : device.TPDevice;
 	   deviceId : StringsO.CString;
 	   devices : maps.CStringStringMap;
+      devicesIterator : maps.CStringStringMapIterator;
 	   devPath, exePath : FIO.PathStrW;
 	   ES : PTR;
 	   hash : ns.THash;
 	   iniFile : INIFile.TPINIFile;
 	   item : POINTER TO CItem;
-	   nameDevMap : maps.CStringMap;
+	   nameDevMap : maps.CStringPtrMap;
 	   key : StringsO.CString;
 	   l : CARDINAL;
 	   Result : Sync.TAsyncResult := Sync.arCompleted;
@@ -258,6 +261,7 @@ CLASS IMPLEMENTATION ABridge;
 	   CONST
 	      charSplit = StringsO.WCHARS{ L"/" };
 	   VAR
+         d : PTR;
 	      deviceName : StringsO.CString;
 	      i : CARDINAL;
 	      inputS : StringsO.CString;
@@ -270,7 +274,7 @@ CLASS IMPLEMENTATION ABridge;
 	      inputS.Remove( 0, i );
 	      IF inputS.Empty THEN
 	         RETURN FALSE;
-	      ELSIF NOT nameDevMap.Get( deviceName, OUT dev ) THEN
+	      ELSIF NOT nameDevMap.Get( deviceName, OUT dev, OUT d ) THEN
 	         RETURN FALSE;
 	      ELSIF NOT dev^.Mapper()^.NameToHash( inputS, OUT hash ) THEN
 	         RETURN FALSE;
@@ -327,22 +331,22 @@ CLASS IMPLEMENTATION ABridge;
       IF iniFile^.SetSection( secDevices ) THEN
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
-            devices.Add( key, value );
+            devices.Add( key, value, 0 );
          END; // WHILE
       END;
 
       FIO.GetModuleDirW( L"", OUT exePath );
       
-      devices.Reset();
-      WHILE devices.MoveNext() DO
+      devicesIterator.Init( devices, collection.dirForward );
+      WHILE devicesIterator.MoveNext() DO
 
-         IF nameDevMap.Contains( devices.Current^ ) THEN
-            LogError( 0, Texts._DeviceAlreadyExists, devices.Current );
+         IF nameDevMap.Contains( devicesIterator.Key^ ) THEN
+            LogError( 0, Texts._DeviceAlreadyExists, devicesIterator.Key );
             CONTINUE;
          END;
 
          deviceId.FromOA( secDevicePrefix );
-         deviceId.Append( devices.Current^ );
+         deviceId.Append( devicesIterator.Key^ );
          IF NOT iniFile^.SetSection( OA( deviceId.Length-1, deviceId.Data )) THEN
             LogError( 0, Texts._DeviceSectionMissing, ADR( deviceId ));
             CONTINUE;
@@ -361,8 +365,8 @@ CLASS IMPLEMENTATION ABridge;
             src._iniFile := iniFile;
             src.section := ADR( deviceId );
             IF dev^.Configure( OA( 0, ADR( src )), Log ) = Sync.arCompleted THEN
-               _Devices.Add( devices.CurrentData^, dev );
-               nameDevMap.Add( devices.Current^, dev );
+               _Devices.Add( devicesIterator.Value^, dev );
+               nameDevMap.Add( devicesIterator.Key^, dev, 0 );
             ELSE
                _Loader.ReleaseObject( REF dev );
                Result := Sync.arAborted;
@@ -452,6 +456,7 @@ CLASS IMPLEMENTATION ABridge;
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    VAR
       dev : device.TPDevice;
+      it : lists.CStringListIterator;
       Result : Sync.TAsyncResult := Sync.arCannotStart;
       s : FIO.PathStrW;
    BEGIN
@@ -461,9 +466,9 @@ CLASS IMPLEMENTATION ABridge;
       FIO.GetModuleDirW( L"", OUT s );
       lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF _Result );
 
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         dev := _Devices.CurrentData;
+      it.Init( _Devices, collection.dirForward );
+      WHILE it.MoveNext() DO
+         dev := it.Data;
          CASE dev^.IO()^.Start() OF
          | Sync.arCompleted :
             // OK
@@ -485,12 +490,13 @@ CLASS IMPLEMENTATION ABridge;
    PUBLIC VIRTUAL PROCEDURE Stop();
    VAR
       dev : device.TPDevice;
+      it : lists.CStringListIterator;
    BEGIN
       _Thread.Stop( TRUE );
    
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         dev := _Devices.CurrentData;
+      it.Init( _Devices, collection.dirForward );
+      WHILE it.MoveNext() DO
+         dev := it.Data;
          dev^.IO()^.Stop();
       END; // WHILE
 
@@ -556,52 +562,26 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT deviceName : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
-   VAR
-      b : BOOLEAN;
-      dev : device.TPDevice;
-   BEGIN
-      IF ES = -1 THEN
-         RETURN FALSE;
-      ELSIF ES = 0 THEN
-         _Devices.Reset();
-         b := _Devices.MoveNext();
-      ELSE
-         b := _Devices.SetNextOf( ES );
-      END;
-      IF b THEN
-         ES := _Devices.CListWState.Current;
-         
-         dev := _Devices.CurrentData;
-         deviceName.Assign( _Devices.Current^ );
-         Running := dev^.IO()^.Running;         
-         
-      ELSE
-         ES := -1;
-      END;
-      RETURN b;
-   END EnumerateDeviceState;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       dev : device.TPDevice;
+      dataIterator : lists.CPtrListIterator;
+      devicesIterator : lists.CStringListIterator;
       item : TPItem;
    BEGIN
       Stop();
       
-      _Data.Reset();
-      WHILE _Data.MoveNext() DO
-         item := _Data.Current;
+      dataIterator.Init( _Data, collection.dirForward );
+      WHILE dataIterator.MoveNext() DO
+         item := dataIterator.Value;
          DISPOSE( item );
       END; // WHILE
       _Data.Dispose();
       _Lookup.Dispose();
       
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         dev := _Devices.CurrentData;
+      devicesIterator.Init( _Devices, collection.dirForward );
+      WHILE devicesIterator.MoveNext() DO
+         dev := devicesIterator.Data;
          _Loader.ReleaseObject( REF dev );
       END; // WHILE
       _Devices.Dispose();

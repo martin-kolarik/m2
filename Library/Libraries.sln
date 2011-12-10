@@ -63,6 +63,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Event", "Event\Event.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LeakDetector", "..\Debug\LeakDetector\LeakDetector.vcxproj", "{10476CFA-8DB7-4469-A72A-92AD2D7A05A1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ActiveX", "ActiveX\ActiveX.vcxproj", "{57418949-0922-46EC-824B-ED7B59897F4C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -383,6 +385,16 @@ Global
 		{10476CFA-8DB7-4469-A72A-92AD2D7A05A1}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{10476CFA-8DB7-4469-A72A-92AD2D7A05A1}.Release|Win32.ActiveCfg = Release|Win32
 		{10476CFA-8DB7-4469-A72A-92AD2D7A05A1}.Release|Win32.Build.0 = Release|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Debug|Win32.Build.0 = Debug|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Release|Any CPU.ActiveCfg = Release|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Release|Win32.ActiveCfg = Release|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

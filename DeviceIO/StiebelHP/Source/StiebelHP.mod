@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE StiebelHP;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
     datetime,

@@ -2196,7 +2196,7 @@ CLASS IMPLEMENTATION CChannelMap;
     WHILE PDriver^.EnumerateChannels( ES, i, ME.Direction, ME.From, ME.Count, b ) DO
       ME.Type := drv_def.TValueType( i );
 
-      IF Channels.Search( ADR( ME ), OUT PME ) THEN
+      IF Channels.Get( 0, ADR( ME ), OUT PME ) THEN
         ASSIGN( ErrorString, drv_wrapper_._Channel_number_redefined );
         Strings.FromCARD32W( PME^.From, 10, OUT ns );
         Strings.AppendW( REF ErrorString, L' (' );
@@ -2206,12 +2206,12 @@ CLASS IMPLEMENTATION CChannelMap;
       ELSIF NOT b THEN
         NEW( PME );
         PME^ := ME;
-        Channels.Insert( PME );  
+        Channels.Add( PME );  
       ELSIF b THEN // get description too
         FOR i := ME.From TO ME.From + ME.Count - 1 DO
           NEW( PME );
           PME^ := ME; PME^.From := i; PME^.Count := 1;
-          Channels.Insert( PME );
+          Channels.Add( PME );
           IF PDriver^.GetChannelDescription( i, Description, Id ) THEN
             PME^.Id.FromOA( Id );
             PME^.Description.FromOA( Description );
@@ -2249,7 +2249,7 @@ CLASS IMPLEMENTATION CChannelMap;
     ME.Count := 1;
     FOR i := DriverIndex TO DriverIndex + Count - 1 DO
       ME.From := i;
-      IF Channels.Search( ADR( ME ), OUT PME ) THEN
+      IF Channels.Get( 0, ADR( ME ), OUT PME ) THEN
         // element found, test direction and type
         IF CheckedDirection * PME^.Direction <> CheckedDirection THEN
           ASSIGN( ErrorString, drv_wrapper_._Incorrect_channel_direction );
@@ -2262,7 +2262,7 @@ CLASS IMPLEMENTATION CChannelMap;
       ELSIF AutomaticInsertOnCheck THEN
         NEW( PME );
         PME^ := ME;
-        Channels.Insert( PME );
+        Channels.Add( PME );
         AllowedDirection := CheckedDirection;
         RETURN TRUE;
       ELSE
@@ -2284,7 +2284,7 @@ CLASS IMPLEMENTATION CChannelMap;
   BEGIN
     ME.From := DriverIndex;
     ME.Count := 1;
-    IF Channels.Search( ADR( ME ), OUT PME ) THEN
+    IF Channels.Get( 0, ADR( ME ), OUT PME ) THEN
       Type := PME^.Type;
       Direction := PME^.Direction;
       RETURN TRUE;
@@ -2304,7 +2304,7 @@ CLASS IMPLEMENTATION CChannelMap;
   BEGIN
     ME.From := DriverIndex;
     ME.Count := 1;
-    IF Channels.Search( ADR( ME ), OUT PME ) THEN
+    IF Channels.Get( 0, ADR( ME ), OUT PME ) THEN
       PME^.Id.ToOA( OUT Id );
       PME^.Description.ToOA( OUT Description );
       RETURN TRUE;

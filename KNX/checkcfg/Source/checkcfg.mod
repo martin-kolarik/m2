@@ -6,7 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   winsock,
+   collection,
    FSO,
    knxcore,
    lists,
@@ -34,6 +34,7 @@ VAR
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    ErrorText : StringsO.CString;
    i : INTEGER;
+   it : lists.CStringListIterator;
    Line : CARDINAL;
    KNX : knxcore.CKNXServer;
    R : Resources.CResources;
@@ -53,14 +54,14 @@ BEGIN
             GOTO Error;
          END;
       ELSE // file/mask/dir
-         Args.AddOA( argp^[i]^, 0 );
+         Args.Add( StringsO.FromOA( argp^[i]^ ), 0 );
       END;
       INC( i );
    END; // WHILE
 
-   Args.Reset();
-   WHILE Args.MoveNext() DO
-      IF DI.StartFromPathOA( OA( Args.Current^.Length-1, Args.Current^.Data ), FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
+   it.Init( Args, collection.dirForward );
+   WHILE it.MoveNext() DO
+      IF DI.StartFromPathOA( OA( it.Value^.Length-1, it.Value^.Data ), FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
          REPEAT
             stdout^.WriteOA( L"  ", FALSE ); stdout^.Write( DI.Path, FALSE ); stdout^.WriteOA( 9W, FALSE );
 

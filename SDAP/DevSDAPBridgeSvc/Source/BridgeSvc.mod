@@ -3,7 +3,7 @@ MODULE BridgeSvc;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

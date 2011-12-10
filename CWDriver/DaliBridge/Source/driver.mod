@@ -20,6 +20,7 @@ IMPORT
    IOO,
    lists,
    Log,
+   LogConfig,
    netpool,
    Resources,
    Strings,
@@ -101,15 +102,15 @@ CLASS IMPLEMENTATION CDriver;
          RETURN FALSE;
       END;
 
-      Logger.SetUpByRegistry( LIBRARY );
-      CASE INIFile.ConfigureLog( TS, L"", REF Logger, OUT line ) OF
-      | INIFile.clrUnknownTarget :
+      log.ConfigureByRegistry( REF Logger, LIBRARY );
+      CASE LogConfig.ConfigureLog( TS, L"", REF Logger, REF AppenderList, OUT line ) OF
+      | LogConfig.clrUnknownTarget :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
          RETURN FALSE;
-      | INIFile.clrUnknownLevel :
+      | LogConfig.clrUnknownLevel :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
          RETURN FALSE;
-      | INIFile.clrTargetFileMissingFile :
+      | LogConfig.clrTargetFileMissingFile :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;
@@ -1322,7 +1323,7 @@ BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
 
-   Logger.SetLogName( logName );
+   Logger.SetName( logName );
    StatusChannel := MAX( CARDINAL );
    OutputQueueCountChannel := MAX( CARDINAL );
    OutputQueueLength := MAX( CARDINAL );

@@ -3,13 +3,14 @@ IMPLEMENTATION MODULE Integra;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
    
 FROM Exceptions IMPORT
    TestIfCatched, RetrieveException, CModula2Exception;
 
 IMPORT
    bitarray,
+   collection,
    datetime,
    FIO,
    IOO,
@@ -845,6 +846,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       area : TPArea;
       es : PTR;
       i, j, l : CARDINAL;
+      it : lists.CStringListIterator;
       key, value : StringsO.CString;
       partitionFrom : CARDINAL;
       partitionTo : CARDINAL;
@@ -886,18 +888,18 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          END;
 
          // load configuration of particular areas
-         AreaList.Reset();
-         WHILE AreaList.MoveNext() DO
-            IF NOT iniFile.SetSection( OA( AreaList.Current^.Length-1, AreaList.Current^.Data )) THEN
-               LogError( TRUE, l, Texts._AreaNotFound, AreaList.Current );
+         it.Init( AreaList, collection.dirForward );
+         WHILE it.MoveNext() DO
+            IF NOT iniFile.SetSection( OA( it.Value^.Length-1, it.Value^.Data )) THEN
+               LogError( TRUE, l, Texts._AreaNotFound, it.Value );
                CONTINUE;
             END;
                
-            area := AreaList.CurrentData;
+            area := it.Data;
             iniFile.GetKeyBool( keyScanForAlarm, OUT l, OUT area^.ScanForAlarm );
 
             IF NOT iniFile.GetKeyStr( keyPartitions, OUT l, OUT value ) THEN
-               LogError( TRUE, l, Texts._PartitionsKeyMissing, AreaList.Current );
+               LogError( TRUE, l, Texts._PartitionsKeyMissing, it.Value );
                CONTINUE;
             END;
 
@@ -960,15 +962,16 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       area : TPArea;
+      it : lists.CStringListIterator;
    BEGIN
       LogConfig.DisposeAppenderList( REF _AppenderList );
 
-      AreaList.Reset();
-      WHILE AreaList.MoveNext() DO
-         area := AreaList.CurrentData;
+      it.Init( AreaList, collection.dirForward );
+      WHILE it.MoveNext() DO
+         area := it.Data;
          DISPOSE( area );
       END; // WHILE
       AreaList.Dispose();
@@ -1429,17 +1432,17 @@ CLASS IMPLEMENTATION CIntegraDevice;
    VAR
       area : TPArea;
       I : ns.TPnsItem;
-      list : lists.TPStringList := ADR( _IO.DeviceCommunicator.AreaList );
+      it : lists.CStringListIterator;
       name, s : StringsO.CString;
    BEGIN
       // _NS.Dispose(); -- possible leak?
       _NS.Initialize();
       _IO.DataRoot := _NS.DataRoot;
 
-      list^.Reset();
-      WHILE list^.MoveNext() DO
-         area := list^.CurrentData;
-         name.Assign( list^.Current^ );
+      it.Init( _IO.DeviceCommunicator.AreaList, collection.dirForward );
+      WHILE it.MoveNext() DO
+         area := it.Data;
+         name.Assign( it.Value^ );
 
          s := name; s.AppendOA( ARM_SUFFIX );
          I := _NS.CreateNewItem( OA( s.Length-1, s.Data ), ns.ntValue, iovalue.vtString, area ); _NS.DataRoot^.AddChild( I );

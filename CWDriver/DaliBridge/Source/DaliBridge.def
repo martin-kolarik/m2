@@ -10,6 +10,7 @@ IMPORT
    INIFile,
    lists,
    log,
+   maps,
    msghandler,
    msgqueue,
    StringsO,
@@ -301,14 +302,14 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
    PRIVATE PROCEDURE FeedCommand( Linie : TDaliLinie; daliAddress : TPDaliAddress; Command : TDaliCommand; Data : CARD8; LongData : ADDRESS; CONST ClientId : PTR; CONST userId : ARRAY OF WCHAR ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
    PRIVATE PROCEDURE ProgrammingStep( Linie : TDaliLinie );
-   PRIVATE PROCEDURE LogRequest( Level : log.TDebugLevel; LeadingText : ARRAY OF WCHAR; Request : ADDRESS; Result : Sync.TAsyncResult; PrintAddress, PrintResult, PrintData : BOOLEAN );
+   PRIVATE PROCEDURE LogRequest( Level : log.TLevel; FilterData : PTR; LeadingText : ARRAY OF WCHAR; Request : ADDRESS; Result : Sync.TAsyncResult; PrintAddress, PrintResult, PrintData : BOOLEAN );
 END CDaliDevice;
 
 (*===============================================================================*)
 
 CLASS CDali IMPLEMENTS IDaliEventSink;
    PRIVATE VAR
-      Dali : maps.CStringMap;
+      Dali : maps.CStringPtrMap;
       Running : BOOLEAN;
    PUBLIC VAR
       EventSink : POINTER TO IDaliEventSink;

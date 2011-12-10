@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE AirMotion;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
    
 FROM Exceptions IMPORT
    TestIfCatched, RetrieveException, CModula2Exception;
