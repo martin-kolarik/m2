@@ -311,12 +311,16 @@ CLASS IMPLEMENTATION SSocket;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY MulticastGroup SET( CONST Value : inetaddr.INETADDR );
+   VAR
+      error : CARDINAL;
    BEGIN
       IF Remote = Value THEN
          RETURN;
       END;
-      MulticastLeave();
-      IF NOT Value.Multicast THEN
+      IF Value.Multicast THEN
+         Close( TRUE );
+      ELSE
+         MulticastLeave();
          Remote.SetV6( inetaddr.saEmpty );
          RETURN;
       END;
@@ -324,7 +328,7 @@ CLASS IMPLEMENTATION SSocket;
       IF Socket = winsock.INVALID_SOCKET THEN
          RETURN;
       END;
-      MulticastJoin();
+      Open( OUT error );
    END MulticastGroup;
   
 (*--------------------------------------------------------------------------------*)
@@ -366,6 +370,7 @@ CLASS IMPLEMENTATION SSocket;
       len : CARDINAL;
       na : inetaddr.INETADDR;
       Result : CARDINAL;
+      reuseaddr : CARDINAL;
       wb : windows.BOOL := windows.True;
    BEGIN
       Close( TRUE );
@@ -375,6 +380,18 @@ CLASS IMPLEMENTATION SSocket;
             Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_DGRAM, 0 );
          ELSE
             Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_DGRAM, 0 );
+         END;
+         IF _Broadcast THEN
+            Error := winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb ));
+            IF Error <> 0 THEN
+               GOTO Failed;
+            END;
+         ELSIF MulticastGroup.Multicast THEN
+            reuseaddr := 1; // true
+            Error := winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_REUSEADDR, windows.PSTR( ADR( reuseaddr )), SIZE( reuseaddr ));
+            IF Error <> 0 THEN
+               GOTO Failed;
+            END;
          END;
       ELSE
          IF Local.V6 THEN
@@ -393,12 +410,6 @@ CLASS IMPLEMENTATION SSocket;
       END;
       IF _Type = stDatagram THEN
          _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnection} ), BITSET32( posConnectPrerequisities )); // allow reading data
-         IF _Broadcast THEN
-            Error := winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb ));
-            IF Error <> 0 THEN
-               GOTO Failed;
-            END;
-         END;
          MulticastJoin();
       END;
       // obtain real port number
