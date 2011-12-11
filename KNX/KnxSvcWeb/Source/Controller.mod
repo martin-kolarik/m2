@@ -652,6 +652,7 @@ CLASS IMPLEMENTATION CController;
       cs : StringsO.CString;
       currentDT : datetime.DateTime;
       currentTime : datetime.TJD;
+      expiration : StringsO.CString;
       dt : datetime.DateTime;
       language : Languages.TLanguage;
       LangName : ARRAY[0..15] OF WCHAR;
@@ -661,6 +662,7 @@ CLASS IMPLEMENTATION CController;
       starttime : datetime.TJD;
       uptime : datetime.TJDC;
       uriParameters : lists.TPStringStringList := Request.URIParameters;
+      valid : BOOLEAN;
    BEGIN
       // check actions to do
       IF uriParameters^.GetOA( STATUS_CONNECT, OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
@@ -723,32 +725,32 @@ CLASS IMPLEMENTATION CController;
       cs.AppendOA( L"m " );
       Request.ModelContainer^.AddStringOA( STATUS_UPTIME, cs );
 
+      // get licence
       licence := _Web^.Licence;
+      // prepare expiration string
+      dt := _Web^.LicenceExpires;
+      IF licence.Empty OR ( dt.Day > 0 ) THEN // no or expiring licence
+         valid := currentDT < dt;
+         dt.SetZoneToLocal();
+         IF Strings.StartsWithW( LangName, L"cs" ) THEN
+            dt.ToLanguageStringOA( language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
+         ELSE
+            dt.ToLanguageStringOA( language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
+         END;
+         Request.MessageSource^.GetMessageOA( language, STATUS_TEXT_VALID_UNTIL, OUT expiration );
+         expiration.AppendOA( s );
+      ELSE
+         valid := TRUE;
+         Request.MessageSource^.GetMessageOA( Language( Request ), STATUS_TEXT_PERMANENT, OUT expiration );
+      END;
+      Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, valid );
+      Request.ModelContainer^.AddStringOA( STATUS_LICENCE, expiration );
+
       IF licence.Empty THEN // surely invalid
-         Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, FALSE );
-         Request.MessageSource^.GetMessageOA( language, STATUS_TEXT_LICENCE_INVALID, OUT licence );
-         Request.ModelContainer^.AddStringOA( STATUS_LICENCE, licence );
          cs.Clear();
          Request.ModelContainer^.AddStringOA( STATUS_LICENCE_NUMBER, cs );
          Request.ModelContainer^.AddStringOA( STATUS_LICENCE_TYPE, cs );
-
       ELSE // licence is not empty
-         dt := _Web^.LicenceExpires;
-         IF dt.Day = 0 THEN
-            Request.MessageSource^.GetMessageOA( Language( Request ), STATUS_TEXT_PERMANENT, OUT cs );
-         ELSE
-            dt.SetZoneToLocal();
-            IF Strings.StartsWithW( LangName, L"cs" ) THEN
-               dt.ToLanguageStringOA( language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
-            ELSE
-               dt.ToLanguageStringOA( language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
-            END;
-            Request.MessageSource^.GetMessageOA( language, STATUS_TEXT_VALID_UNTIL, OUT cs );
-            cs.AppendOA( s );
-         END;
-         Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR ( currentDT < dt ));
-         Request.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
-
          Request.ModelContainer^.AddStringOA( STATUS_LICENCE_NUMBER, licence );
          cs.Clear();
          lt := _Web^.LicenceType;
