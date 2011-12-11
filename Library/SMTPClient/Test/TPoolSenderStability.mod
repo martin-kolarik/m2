@@ -48,7 +48,7 @@ CLASS CTest IMPLEMENTS test.ITest, SmtpSender.INotifier;
    // SELF
    PRIVATE VAR
       _Host : test.TPHost := NIL;
-      _Mails : syncmaps.CPtrSyncMap;
+      _Mails : syncmaps.CPtrPtrSyncMap;
       _Lock : Sync.RWLOCK;
 
       Current : TStatistics;
@@ -72,13 +72,14 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE OnMailMessageCompletion( Result : Sync.TAsyncResult; SmtpPhase : SmtpSender.TSmtpPhase; CONST message : MailMessage.TPMailMessage; UserId : PTR; CONST failedRecipientsList : MailPerson.TPPersons );
    VAR
+      d : PTR;
       delay : datetime.TimeSpan;
       delayMS : LONGREAL;
       lock : Sync.AutoLock;
       mailData : TPMailData;
       r : LONGREAL;
    BEGIN
-      IF _Mails.Get( message, OUT mailData ) THEN
+      IF _Mails.Get( message, OUT mailData, OUT d ) THEN
          _Mails.Remove( message );
          delay := datetime.NowHR() - mailData^.Created;
          delayMS := delay.Milliseconds;
@@ -167,7 +168,7 @@ CLASS IMPLEMENTATION CTest;
             MailMessage.New( OUT message );
             NEW( mailData );
             mailData^.Created := datetime.NowHR();
-            _Mails.Add( message, mailData );
+            _Mails.Add( message, mailData, 0 );
 
             message^.Sender := person;
             message^.Recipient := person;
@@ -237,7 +238,7 @@ CLASS IMPLEMENTATION CTest;
 
       SmtpSender.Dispose( REF sender );
 
-      Host^.StopPhaseWithResult( testResult );
+      Host^.StopPhaseWithResult( testResult = test.trSuccess );
 
       scinit.Cleanup();
       RETURN testResult;

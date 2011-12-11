@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE MailMessage;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    PersonsImpl,

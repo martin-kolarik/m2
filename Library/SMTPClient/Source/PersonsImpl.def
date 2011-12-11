@@ -33,6 +33,7 @@ CLASS CPersonsImpl IMPLEMENTS MailPerson.IPersons;
    // SELF
    PRIVATE VAR
       _Persons : lists.CStringStringList;
+      _Iterator : lists.CStringStringListIterator;
 
 END CPersonsImpl;
 

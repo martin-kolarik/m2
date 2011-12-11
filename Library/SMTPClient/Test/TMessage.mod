@@ -41,9 +41,9 @@ CLASS IMPLEMENTATION CTest;
       person.Address.FromOA( L"martin.kolarik@smartcontrol.cz" );
       IF person.Name.EqualsOA( L"Martin Kolaøík" ) AND
          person.Address.EqualsOA( L"martin.kolarik@smartcontrol.cz" ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -51,18 +51,14 @@ CLASS IMPLEMENTATION CTest;
       personAssigned := person;
       IF ( person.Name.Data = personAssigned.Name.Data ) AND
          ( person.Address.Data = personAssigned.Address.Data ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
       Host^.StartPhase( L"Create the message" );
-      IF MailMessage.New( OUT message ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( MailMessage.New( OUT message ));
 
       //-----
       Host^.StartPhase( L"Check initial state" );
@@ -73,9 +69,9 @@ CLASS IMPLEMENTATION CTest;
          ( message^.Body <> NIL ) AND
          ( message^.Attachments <> NIL ) AND
          ( message^.GrabFailedRecipients = FALSE ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -91,9 +87,9 @@ CLASS IMPLEMENTATION CTest;
          ( message^.ReplyTo.Address = person.Address ) AND
            message^.Subject.EqualsOA( L"A subject of the test mail, with ìšèøž too" ) AND
            message^.BodyMimeType.EqualsOA( L"text/html" ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -105,9 +101,9 @@ CLASS IMPLEMENTATION CTest;
          ( message^.Recipients^.Current.Name = person.Name ) AND
          ( message^.Recipients^.Current.Address = person.Address ) AND
          NOT message^.Recipients^.MoveNext() THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -124,9 +120,9 @@ CLASS IMPLEMENTATION CTest;
          ( message^.Recipients^.Current.Name = person.Name ) AND
          ( message^.Recipients^.Current.Address = person.Address ) AND
          NOT message^.Recipients^.MoveNext() THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -138,19 +134,15 @@ CLASS IMPLEMENTATION CTest;
          ( message^.Recipients^.Current.Name = person.Name ) AND
          ( message^.Recipients^.Current.Address = person.Address ) AND
          NOT message^.Recipients^.MoveNext() THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
       Host^.StartPhase( L"Dispose recipients" );
       message^.Recipients^.Dispose();
-      IF message^.Recipients^.Empty THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( message^.Recipients^.Empty );
 
       RETURN test.trSuccess;
    END Run;

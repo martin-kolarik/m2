@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE SMTPTools;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    cphcommon,

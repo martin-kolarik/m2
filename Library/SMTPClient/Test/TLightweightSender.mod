@@ -47,11 +47,7 @@ CLASS IMPLEMENTATION CTest;
 
       //-----
       Host^.StartPhase( L"Create the sender" );
-      IF SmtpSender.New( OUT sender, TRUE, FALSE ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( SmtpSender.New( OUT sender, TRUE, FALSE ));
 
       //-----
       Host^.StartPhase( L"Fill simple data" );
@@ -65,9 +61,9 @@ CLASS IMPLEMENTATION CTest;
          sender^.Login.EqualsOA( L"martin@smartcontrol.cz" ) AND
          sender^.Password.EqualsOA( L"Tankem" ) AND
          ( sender^.TimeToLive = 2*86400 ) THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
+         Host^.StopPhaseWithResult( TRUE );
       ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
+         Host^.StopPhaseWithResult( FALSE );
       END;
 
       //-----
@@ -81,11 +77,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[SINGLE] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.Body^.WriteOA( L"Obsah testovacího emailu", OUT c, 0 );
 
-      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( sender^.Send( message, 0, FALSE ) = Sync.arCompleted );
 
       MailMessage.Dispose( REF message );
 
@@ -108,11 +100,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[TO CC BCC] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.BodyMimeType := StringsO.FromOA( L"text/plain; charset = neco; format=flowed; delsp=yes" );
 
-      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( sender^.Send( message, 0, FALSE ) = Sync.arCompleted );
 
       MailMessage.Dispose( REF message );
 
@@ -133,11 +121,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[BCC only] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.BodyMimeType := StringsO.FromOA( L"text/plain; charset = neco; format=flowed; delsp=yes" );
 
-      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( sender^.Send( message, 0, FALSE ) = Sync.arCompleted );
 
       MailMessage.Dispose( REF message );
 
@@ -160,11 +144,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Subject := StringsO.FromOA( L"[TO 2xCC] Testovací majlíèek mazlíèek pro Pifíèka" );
       message^.BodyMimeType := StringsO.FromOA( L"text/plain; charset = neco; format=flowed; delsp=yes" );
 
-      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( sender^.Send( message, 0, FALSE ) = Sync.arCompleted );
 
       MailMessage.Dispose( REF message );
 
@@ -206,11 +186,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù." + 13W + 10W + 13W + 10W, OUT c, 0 );
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù." + 13W + 10W + 13W + 10W, OUT c, 0 );
 
-      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( sender^.Send( message, 0, FALSE ) = Sync.arCompleted );
 
       MailMessage.Dispose( REF message );
 
@@ -259,11 +235,7 @@ CLASS IMPLEMENTATION CTest;
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù.</p>", OUT c, 0 );
       message^.Body^.WriteOA( L"Obsah testovacího emailu -- kromobyèejnì kulaoulinkatı nesmyslík všehoschopné ravé blátotlaèky z Traalu pøinesl text zvící asi sto dvaceti znaèíkù textíku, co by mìlo vydat na kopec a kopec øádkù.</p></body></html>", OUT c, 0 );
 
-      IF sender^.Send( message, 0, FALSE ) = Sync.arCompleted THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( sender^.Send( message, 0, FALSE ) = Sync.arCompleted );
 
       MailMessage.Dispose( REF message );
 

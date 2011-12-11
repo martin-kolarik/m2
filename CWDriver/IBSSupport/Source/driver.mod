@@ -8,7 +8,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
   
 FROM log IMPORT
   ldTrace, ldDebug, lcError;

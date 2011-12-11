@@ -4,12 +4,13 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Exceptions IMPORT
    StoreException, RetrieveException, TestIfCatched;
 
 IMPORT
+   collection,
    cphcommon,
    cphcommonO,
    datetime,
@@ -155,7 +156,7 @@ CLASS CSender( threadpool.APoolDelegate ) IMPLEMENTS threadcall.IThreadProcedure
       LightWeight : BOOLEAN;
       BypassSmtp : BOOLEAN;
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    LOCAL PROCEDURE NotifyCompletion( queueItem : TPQueueItem; Result : Sync.TAsyncResult; SmtpPhase : TSmtpPhase; CONST failedRecipients : PersonsImpl.CPersonsImpl );
    PRIVATE PROCEDURE DispatchSend( queueItem : TPQueueItem ) : Sync.TAsyncResult;
@@ -762,7 +763,7 @@ CLASS IMPLEMENTATION CWorker;
       pbuffer : StorageO.TPMemoryBuffer;
       Result : Sync.TAsyncResult;
    BEGIN
-      inputBufferSize := MIN2( 2048, Stream^.Length32 );
+      inputBufferSize := MIN2( 2048, Stream^.Length );
       IF StreamIsText THEN
          srcString.Size := inputBufferSize DIV SIZE( WCHAR );
          srcBuffer.FromOA( OA( inputBufferSize-1, srcString.Data ), FALSE );
@@ -889,21 +890,22 @@ CLASS IMPLEMENTATION CWorker;
       fileName : StringsO.CString;
       fs : FIOO.CFileStream;
       header : StringsO.CString;
+      it : lists.CStringStringListIterator;
    BEGIN
       IF _Message^.Attachments^.Empty THEN
          RETURN;
       END;
 
       TRY
-         _Message^.Attachments^.Reset();
-         WHILE _Message^.Attachments^.MoveNext() DO
+         it.Init( _Message^.Attachments^, collection.dirForward );
+         WHILE it.MoveNext() DO
 
             header.FromOA( 13W + 10W + L"--" );  // leading of next multipart part
             header.Append( _Boundary );
             WriteServer( header );
 
             // get file name
-            header.Assign( _Message^.Attachments^.Current^ );
+            header.Assign( it.Value^ );
             FIO.PathTailW( OA( header.Length-1, header.Data ), OUT fileNameOA );
             IF fileNameOA[0] = 0W THEN
                fileName := header;
@@ -922,11 +924,11 @@ CLASS IMPLEMENTATION CWorker;
 
             header.FromOA( L"name=" );
             SmtpTools.AppendStringToHeader( REF header, fileName, SmtpTools.HintMimeHeader );
-            WriteMimeHeader( _Message^.Attachments^.CurrentData^, L"Content-Type: application/octet-stream", ADR( header ), FALSE );
+            WriteMimeHeader( it.Data^, L"Content-Type: application/octet-stream", ADR( header ), FALSE );
 
             // write the file
             TRY
-               fileName.Assign( _Message^.Attachments^.Current^ );
+               fileName.Assign( it.Value^ );
                fs.FromPath( OA( fileName.Length-1, fileName.Data ), FIOO.imOpenRead );
             CATCH e : IOO.CIOException DO
                THROW SmtpException( Sync.arAborted );
@@ -1316,8 +1318,9 @@ CLASS IMPLEMENTATION CSender;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      it : lists.CPtrListIterator;
       queueItem : TPQueueItem;
    BEGIN
       IF _PoolQueueHandle <> NIL THEN
@@ -1327,9 +1330,9 @@ CLASS IMPLEMENTATION CSender;
          threadpool.pool()^.Abort( REF _PoolTimeoutHandle );
       END;
 
-      _Queue.Reset();
-      WHILE _Queue.MoveNext() DO
-         queueItem := _Queue.Current;
+      it.Init( _Queue, collection.dirForward );
+      WHILE it.MoveNext() DO
+         queueItem := it.Value;
          IF queueItem^.Ownership THEN
             MailMessage.Dispose( REF queueItem^.Message );
             _Logger^.LogSP( log.ldDebug, CAT_QUEUE OR CAT_LIFECYCLE, LOG_PREFIX, L"Mail disposed (having ownership) [userId]:", queueItem^.UserId );
@@ -1484,6 +1487,7 @@ CLASS IMPLEMENTATION CSender;
 
    PRIVATE PROCEDURE ProcessQueue();
    VAR
+      it : lists.CPtrListIterator;
       now : datetime.DateTime;
       queueItem : TPQueueItem;
       oldestCreation : datetime.DateTime;
@@ -1495,9 +1499,9 @@ CLASS IMPLEMENTATION CSender;
       ASSERT( thread.Current()^.InfoType = thread.infoTypePool );
       now := datetime.NowUTC();
 
-      _Queue.Reset();
-      WHILE _Queue.MoveNext() DO
-         queueItem := _Queue.Current;
+      it.Init( _Queue, collection.dirForward );
+      WHILE it.MoveNext() DO
+         queueItem := it.Value;
 
          CASE Sync.TAsyncResult( Sync.IGet( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^ )) OF
          | Sync.arPending :
@@ -1505,7 +1509,7 @@ CLASS IMPLEMENTATION CSender;
          | Sync.arCompleted,
            Sync.arTimeout : // sending has finished, remove the message from the queue
             _Queue.Remove( queueItem );
-            _Queue.Reset(); // iterate again
+            it.Reset(); // iterate again
             _Logger^.LogSP( log.ldTrace, CAT_QUEUE, LOG_PREFIX, L"Mail dequeued [userId]:", queueItem^.UserId );
 
             IF queueItem^.Ownership THEN

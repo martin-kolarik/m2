@@ -1,7 +1,10 @@
 IMPLEMENTATION MODULE PersonsImpl;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
+
+IMPORT
+   collection;
 
 (*================================================================================*)
 
@@ -41,9 +44,9 @@ CLASS IMPLEMENTATION CPersonsImpl;
    VAR
       person : MailPerson.Person;
    BEGIN
-      IF _Persons.Current <> NIL THEN
-         person.Name.Assign( _Persons.Current^ );
-         person.Address.Assign( _Persons.CurrentData^ );
+      IF _Iterator.Value <> NIL THEN
+         person.Name.Assign( _Iterator.Value^ );
+         person.Address.Assign( _Iterator.Data^ );
       END;
       RETURN person;
    END Current;
@@ -52,11 +55,11 @@ CLASS IMPLEMENTATION CPersonsImpl;
 
    PUBLIC VIRTUAL PROPERTY Current SET( CONST Value : MailPerson.Person );
    BEGIN
-      IF _Persons.Current = NIL THEN
+      IF _Iterator.Value = NIL THEN
          ASSERTLOG( FALSE, L"Current value assigned when Current is not valid." );
       ELSE
-         _Persons.Current^.Assign( Value.Name );
-         _Persons.CurrentData^.Assign( Value.Address );
+         _Iterator.Value^.Assign( Value.Name );
+         _Iterator.Data^.Assign( Value.Address );
       END;
    END Current;
 
@@ -64,18 +67,20 @@ CLASS IMPLEMENTATION CPersonsImpl;
 
    PUBLIC VIRTUAL PROCEDURE Reset();
    BEGIN
-      _Persons.Reset();
+      _Iterator.Reset();
    END Reset;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
    BEGIN
-      RETURN _Persons.MoveNext();
+      RETURN _Iterator.MoveNext();
    END MoveNext;
 
 (*--------------------------------------------------------------------------------*)
 
+BEGIN
+   _Iterator.Init( _Persons, collection.dirForward );
 END CPersonsImpl;
 
 (*================================================================================*)
