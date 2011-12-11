@@ -17,16 +17,14 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    cllv,
+   collection,
    datetime,
    diface,
    drv_def,
-   eib_def,
-   eib_user,
-   eib_status,
    FIO,
    FIOO,
    INIFile,
@@ -35,9 +33,13 @@ IMPORT
    lists,
    log,
    LogConfig,
+   knx_def,
+   knx_user,
+   knx_status,
+   knxcore,
    msgqueuethread,
    Resources,
-   srvcore,
+   StorageO,
    Strings,
    StringsO,
    Sync,
@@ -106,7 +108,7 @@ END LogNumber2Group;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE LogNumber2Address( LogNumber : CARDINAL; VAR Address : eib_def.CAddress );
+PROCEDURE LogNumber2Address( LogNumber : CARDINAL; VAR Address : knx_def.CAddress );
 VAR
    G, M, S : CARDINAL;
    LongForm : BOOLEAN;
@@ -121,24 +123,24 @@ END LogNumber2Address;
 
 //================================================================================
 
-PROCEDURE EITToCWType( EIT : eib_def.TEIBType ) : drv_def.TValueType;
+PROCEDURE EITToCWType( EIT : knx_def.TKNXType ) : drv_def.TValueType;
 BEGIN
    CASE EIT OF
-   | eib_def.eitSwitch :     RETURN drv_def.vtBoolean;
-   | eib_def.eitIncrease :   RETURN drv_def.vtShortInt;
-   | eib_def.eitTime :       RETURN drv_def.vtLongCard;
-   | eib_def.eitDate :       RETURN drv_def.vtLongReal;
-   | eib_def.eitValue,
-     eib_def.eitValueRange : RETURN drv_def.vtLongReal;
-   | eib_def.eitScaling,
-     eib_def.eitScaling255 : RETURN drv_def.vtShortCard;
-   | eib_def.eitMove :       RETURN drv_def.vtBoolean;
-   | eib_def.eitFloat :      RETURN drv_def.vtLongReal;
-   | eib_def.eit16bit :      RETURN drv_def.vtLongCard;
-   | eib_def.eit32bit :      RETURN drv_def.vtLongCard;
-   | eib_def.eitChar :       RETURN drv_def.vtDString;
-   | eib_def.eit8bit :       RETURN drv_def.vtShortCard;
-   | eib_def.eitString :     RETURN drv_def.vtDString;
+   | knx_def.eitSwitch :     RETURN drv_def.vtBoolean;
+   | knx_def.eitIncrease :   RETURN drv_def.vtShortInt;
+   | knx_def.eitTime :       RETURN drv_def.vtLongCard;
+   | knx_def.eitDate :       RETURN drv_def.vtLongReal;
+   | knx_def.eitValue,
+     knx_def.eitValueRange : RETURN drv_def.vtLongReal;
+   | knx_def.eitScaling,
+     knx_def.eitScaling255 : RETURN drv_def.vtShortCard;
+   | knx_def.eitMove :       RETURN drv_def.vtBoolean;
+   | knx_def.eitFloat :      RETURN drv_def.vtLongReal;
+   | knx_def.eit16bit :      RETURN drv_def.vtLongCard;
+   | knx_def.eit32bit :      RETURN drv_def.vtLongCard;
+   | knx_def.eitChar :       RETURN drv_def.vtDString;
+   | knx_def.eit8bit :       RETURN drv_def.vtShortCard;
+   | knx_def.eitString :     RETURN drv_def.vtDString;
    END; // CASE EV.Type
    RETURN drv_def.vtUnknown;
 END EITToCWType;
@@ -163,11 +165,12 @@ CONST // device specific error codes
 
 //--------------------------------------------------------------------------------
 
-CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS diface.ICWDriver, srvcore.IEIBServerSink, threadcall.IThreadProcedureCallTarget;
+CLASS CEIBDriver( knxcore.CKNXServer ) IMPLEMENTS diface.ICWDriver, knxcore.IKNXServerSink, threadcall.IThreadProcedureCallTarget;
    CallbackId               : ADDRESS;
    CallbackProc             : drv_def.TDriverCallbackW;
    ClientName               : ARRAY [0..63] OF WCHAR;
    LogAppenders             : lists.CPtrList;
+   oobIterator              : lists.CBufferListIterator;
 
    StatusChannel            : CARDINAL;
    WatchDogChannel          : CARDINAL;
@@ -205,8 +208,8 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS diface.ICWDriver, srvcore.IEIB
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
 
    // index/log number management
-   LOCAL PROCEDURE LogNumber2Object( LogNumber : CARDINAL; VAR PObject : srvcore.TPObject ) : BOOLEAN;
-   PROCEDURE EIBStatus2ErrorCode( Status : eib_status.TEIBStackStatus ) : CARDINAL;
+   LOCAL PROCEDURE LogNumber2Object( LogNumber : CARDINAL; VAR PObject : knxcore.TPObject ) : BOOLEAN;
+   PROCEDURE KNXStatus2ErrorCode( Status : knx_status.TKNXStackStatus ) : CARDINAL;
    PROCEDURE HWConnected( VAR ErrorCode : CARDINAL ) : BOOLEAN;
 
    // IThreadProcedureCallTarget
@@ -216,8 +219,8 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS diface.ICWDriver, srvcore.IEIB
    PUBLIC VIRTUAL PROCEDURE OnConnect();
    PUBLIC VIRTUAL PROCEDURE OnDisconnect();
    PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
-   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : srvcore.TPObject );
-   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : knxcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : knxcore.TPObject );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 
@@ -336,12 +339,12 @@ CLASS IMPLEMENTATION CEIBDriver;
    LABEL
       Described;
    CONST
-      directionInput = eib_def.TA_ObjectFlags{eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofInitRead, eib_def.aofAdvise};
-      directionOutput = eib_def.TA_ObjectFlags{eib_def.aofTransmit, eib_def.aofReadable};
+      directionInput = knx_def.TA_ObjectFlags{knx_def.aofUpdate, knx_def.aofWritable, knx_def.aofInitRead, knx_def.aofAdvise};
+      directionOutput = knx_def.TA_ObjectFlags{knx_def.aofTransmit, knx_def.aofReadable};
    VAR
       Index : CARDINAL;
       OCount : CARDINAL := Objects.Count;
-      PObject : srvcore.TPObject;
+      PObject : knxcore.TPObject;
    BEGIN
       Index := CARDINAL( EnumerateState );
       IF Index >= OCount THEN // process special channels, not objects
@@ -377,12 +380,12 @@ CLASS IMPLEMENTATION CEIBDriver;
          END; // LOOP
       END;
 
-      PObject := srvcore.TPObject( Objects[ Index ] );
+      PObject := knxcore.TPObject( Objects[ Index ] );
       Type := EITToCWType( PObject^.Type );
 
-      IF directionOutput * PObject^.Flags = eib_def.TA_ObjectFlags{} THEN
+      IF directionOutput * PObject^.Flags = knx_def.TA_ObjectFlags{} THEN
          Direction := drv_def.TDirection{drv_def.dirInput};
-      ELSIF directionInput * PObject^.Flags = eib_def.TA_ObjectFlags{} THEN
+      ELSIF directionInput * PObject^.Flags = knx_def.TA_ObjectFlags{} THEN
          Direction := drv_def.TDirection{drv_def.dirOutput};
       ELSE
          Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
@@ -409,7 +412,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       _OutputQueueLengthId = L'drvOutputQueueLength';
       _WriteQueueLengthId  = L'drvWriteQueueLength';
    VAR
-      PObject : srvcore.TPObject;
+      PObject : knxcore.TPObject;
    BEGIN
       IF DriverIndex = StatusChannel THEN
          Description.FromOA( OAsz( DR()^[ Texts._StatusComment ] ));
@@ -493,8 +496,8 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
    VAR
-      EV : eib_def.TValue;
-      PObject : srvcore.TPObject;
+      EV : knx_def.TValue;
+      PObject : knxcore.TPObject;
    BEGIN
       Result.Inc();
       IF ( DriverIndex = StatusChannel ) OR
@@ -508,7 +511,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          // pass down
       ELSIF PObject^.Reading THEN
          // pass down
-      ELSIF eib_def.aofForceRead IN PObject^.GetFlags() THEN
+      ELSIF knx_def.aofForceRead IN PObject^.GetFlags() THEN
          IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( datetime.UptimeMS())) < 0 ) THEN
             // still cannot read, pass away
             RETURN;
@@ -529,7 +532,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    VAR
-      PObject : srvcore.TPObject;
+      PObject : knxcore.TPObject;
    BEGIN
       IF ( DriverIndex = StatusChannel ) OR
          ( DriverIndex = InputQueueLengthChannel ) OR
@@ -544,10 +547,10 @@ CLASS IMPLEMENTATION CEIBDriver;
          PObject^.CancelIO();
       ELSIF PObject^.Reading THEN
          RETURN FALSE;
-      ELSIF PObject^.RSStatus = eib_status.essOK THEN
+      ELSIF PObject^.RSStatus = knx_status.essOK THEN
          ErrorCode := drv_def.ecSuccess;
       ELSE
-         ErrorCode := EIBStatus2ErrorCode( PObject^.RSStatus );
+         ErrorCode := KNXStatus2ErrorCode( PObject^.RSStatus );
       END;
       RETURN TRUE;
    END InputFinalized;
@@ -558,18 +561,18 @@ CLASS IMPLEMENTATION CEIBDriver;
    BEGIN
       QueueLock.Lock();
       IF ( CARDINAL( EnumerateState ) >= oobData.Count ) OR Result.Counted OR Result.Expired THEN
-         EXCL( RStatus, srvcore.rsProcessingOOB );
+         EXCL( RStatus, knxcore.rsProcessingOOB );
          oobData.Dispose();
          QueueLock.Unlock();
          RETURN FALSE;
-      ELSIF srvcore.rsProcessingOOB NOT IN RStatus THEN
-         INCL( RStatus, srvcore.rsProcessingOOB );
-         oobData.Reset();
+      ELSIF knxcore.rsProcessingOOB NOT IN RStatus THEN
+         INCL( RStatus, knxcore.rsProcessingOOB );
+         oobIterator.Init( oobData, collection.dirForward );
       END;
-      oobData.MoveNext();
+      oobIterator.MoveNext();
       QueueLock.Unlock();
 
-      DriverIndex := srvcore.TPObject( oobData.CurrentData )^.LogNumber();
+      DriverIndex := knxcore.TPObject( oobIterator.Data )^.LogNumber();
       EnumerateState := CARDINAL( EnumerateState ) + 1;
 
       RETURN TRUE;
@@ -580,8 +583,8 @@ CLASS IMPLEMENTATION CEIBDriver;
    PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
    VAR
       c : CARDINAL;
-      EV : eib_def.TValue;
-      PObject : srvcore.TPObject;
+      EV : knx_def.TValue;
+      PObject : knxcore.TPObject;
       Status : TStatusChannel;
    BEGIN
       IF DriverIndex = StatusChannel THEN
@@ -589,7 +592,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          ErrorCode := drv_def.ecSuccess;
 
          Status := TStatusChannel{};
-         IF EIB^.DeviceConnected() THEN
+         IF KNX^.DeviceConnected() THEN
             INCL( Status, schiUSBConnected );
          END;
 
@@ -603,15 +606,15 @@ CLASS IMPLEMENTATION CEIBDriver;
                INCL( Status, schiInputQueueOverflow );
             END;
          END;
-         IF srvcore.rsPromiscuousInQueue IN RStatus THEN
+         IF knxcore.rsPromiscuousInQueue IN RStatus THEN
             INCL( Status, schiHavePromiscuousData );
          END;
          QueueLock.Unlock();
 
-         IF EIB^.EIBConnected() THEN
+         IF KNX^.KNXConnected() THEN
             INCL( Status, schiEIBConnected );
          END;
-         IF NOT( srvcore.rsInitReadFinished IN RStatus ) THEN
+         IF NOT( knxcore.rsInitReadFinished IN RStatus ) THEN
             INCL( Status, schiInitReadPending );
          END;
          IF Result.Counted OR Result.Expired THEN
@@ -633,33 +636,33 @@ CLASS IMPLEMENTATION CEIBDriver;
       ELSIF DriverIndex = OutputQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
-         InValue.Integer := EIB^.OutputQueueLength();
+         InValue.Integer := KNX^.OutputQueueLength();
 
       ELSIF DriverIndex = WriteQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
-         InValue.Integer := EIB^.WriteQueueLength();
+         InValue.Integer := KNX^.WriteQueueLength();
 
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          QoS := drv_def.qosBad;
          ErrorCode := drv_def.ecUnknownElement;
 
       ELSE
-         ErrorCode := EIBStatus2ErrorCode( PObject^.RSStatus );
+         ErrorCode := KNXStatus2ErrorCode( PObject^.RSStatus );
          IF ErrorCode <> drv_def.ecSuccess THEN
             QoS := drv_def.qosBad;
             RETURN;
-         ELSIF eib_def.aofEIBValue IN PObject^.GetFlags() THEN
+         ELSIF knx_def.aofKNXValue IN PObject^.GetFlags() THEN
             QoS := drv_def.qosGood;
          ELSE
             QoS := drv_def.qosBad;
          END;
 
          PObject^.GetValue( OUT EV, TRUE, FALSE );
-         IF srvcore.rsProcessingOOB IN RStatus THEN
-            oobData.Current^.ToOA( OUT EV.Data, OUT c ); // iteration depends on client (GetFirst/NextOf), no need for sync
+         IF knxcore.rsProcessingOOB IN RStatus THEN
+            oobIterator.Value^.ToOA( OUT EV.Data, OUT c ); // iteration depends on client (GetFirst/NextOf), no need for sync
          END;
-         EIBValue2IOValue( EV, OUT InValue );
+         KNXValue2IOValue( EV, StringsO.Empty(), OUT InValue );
 
       END;
    END GetInput;
@@ -675,9 +678,10 @@ CLASS IMPLEMENTATION CEIBDriver;
    PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
    VAR
       changed : BOOLEAN;
-      EV : eib_def.TValue;
+      EV : knx_def.TValue;
       IO : iovalue.Value;
-      PObject : srvcore.TPObject;
+      PObject : knxcore.TPObject;
+      s : StringsO.CString;
    BEGIN
       Result.Inc();
 
@@ -690,12 +694,12 @@ CLASS IMPLEMENTATION CEIBDriver;
          // do nothing
 
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
-         IF PObject^.Type = eib_def.eitDate THEN
+         IF PObject^.Type = knx_def.eitDate THEN
             IO.Type := iovalue.vtDate;
             IO := OutValue;
-            IOValue2EIBValue( IO, eib_def.eitDate, OUT EV );
+            IOValue2KNXValue( IO, knx_def.eitDate, OUT EV, OUT s );
          ELSE
-            IOValue2EIBValue( OutValue, PObject^.Type, OUT EV );
+            IOValue2KNXValue( OutValue, PObject^.Type, OUT EV, OUT s );
          END;
          PObject^.SetValue( EV, OUT changed );
 
@@ -712,7 +716,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    VAR
-      PObject : srvcore.TPObject;
+      PObject : knxcore.TPObject;
    BEGIN
       IF DriverIndex = WatchDogChannel THEN
          ErrorCode := drv_def.ecSuccess;
@@ -724,10 +728,10 @@ CLASS IMPLEMENTATION CEIBDriver;
          PObject^.CancelIO();
       ELSIF PObject^.Writing THEN
          RETURN FALSE;
-      ELSIF PObject^.WSStatus = eib_status.essOK THEN
+      ELSIF PObject^.WSStatus = knx_status.essOK THEN
          ErrorCode := drv_def.ecSuccess;
       ELSE
-         ErrorCode := EIBStatus2ErrorCode( PObject^.WSStatus );
+         ErrorCode := KNXStatus2ErrorCode( PObject^.WSStatus );
       END;
       RETURN TRUE;
    END OutputFinalized;
@@ -744,16 +748,18 @@ CLASS IMPLEMENTATION CEIBDriver;
    LABEL
       Error;
    VAR
-      Address : eib_def.TAddress;
+      Address : knx_def.TAddress;
       CS : StringsO.CString;
       d : PTR;
-      EIT : eib_def.TEIBType;
-      EV : eib_def.TValue;
+      EIT : knx_def.TKNXType;
+      EV : knx_def.TValue;
       i : CARDINAL;
       IO : iovalue.Value;
       N, V : ARRAY [0..63] OF WCHAR;
-      promiscuousData : srvcore.PromiscuousData;
+      promiscuousData : knxcore.PromiscuousData;
+      promiscuousDataBuffer : StorageO.CMemoryBuffer;
       s : ARRAY [0..15] OF WCHAR;
+      so : StringsO.CString;
    BEGIN
       CS := InValue1.String;
       CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT N );
@@ -792,35 +798,36 @@ CLASS IMPLEMENTATION CEIBDriver;
             // check licensing           
             IF Result.Counted OR Result.Expired THEN
                prData.Dispose();
-               EXCL( RStatus, srvcore.rsPromiscuousInQueue );
+               EXCL( RStatus, knxcore.rsPromiscuousInQueue );
 
                QueueLock.Unlock();
                CS.Clear();
                GOTO Error;
             END;
 
-            prData.DequeueOA( OUT promiscuousData, OUT i, OUT d );
+            prData.Dequeue( OUT promiscuousDataBuffer, OUT d );
+            promiscuousDataBuffer.ToOA( OUT promiscuousData, OUT i );
             IF prData.Count = 0 THEN
-               EXCL( RStatus, srvcore.rsPromiscuousInQueue );
+               EXCL( RStatus, knxcore.rsPromiscuousInQueue );
             END;
             QueueLock.Unlock();
 
-            IF promiscuousData.Status = eib_status.essOK THEN
+            IF promiscuousData.Status = knx_status.essOK THEN
                promiscuousData.Address.GetGroupAddress3( TRUE, s );
                CS.FromOA( s ); CS.AppendOA( L' ' );
-               eib_def.TypeToString( promiscuousData.Value.GetType(), s );
+               knx_def.TypeToString( promiscuousData.Value.GetType(), s );
                CS.AppendOA( s ); CS.AppendOA( L' ' );
 
-               IF promiscuousData.Value.GetType() = eib_def.eitDate THEN
+               IF promiscuousData.Value.GetType() = knx_def.eitDate THEN
                   IO.Type := iovalue.vtFloat;
                END;
-               EIBValue2IOValue( promiscuousData.Value, OUT IO );
+               KNXValue2IOValue( promiscuousData.Value, StringsO.Empty(), OUT IO );
                CS.Append( IO.String );
             ELSE
                CS.FromOA( L"error " );
                promiscuousData.Address.GetGroupAddress3( TRUE, s );
                CS.AppendOA( s ); CS.AppendOA( L' ' );
-               eib_def.TypeToString( promiscuousData.Value.GetType(), s );
+               knx_def.TypeToString( promiscuousData.Value.GetType(), s );
                CS.AppendOA( s );
             END;
             
@@ -845,7 +852,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF Result.Counted THEN
             CS.Clear();
             GOTO Error;
-         ELSIF NOT eib_def.StringToType( s, EIT ) THEN
+         ELSIF NOT knx_def.StringToType( s, EIT ) THEN
             CS.FromOA( L'error: "send" procedure, bad type name (' );
             CS.AppendOA( s );
             CS.AppendOA( L')' );
@@ -884,7 +891,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF Result.Counted THEN
             CS.Clear();
             GOTO Error;
-         ELSIF NOT eib_def.StringToType( s, EIT ) THEN
+         ELSIF NOT knx_def.StringToType( s, EIT ) THEN
             CS.FromOA( L'error: "send" procedure, bad type name (' );
             CS.AppendOA( s );
             CS.AppendOA( L')' );
@@ -899,11 +906,11 @@ CLASS IMPLEMENTATION CEIBDriver;
             GOTO Error;
          END;
 
-         IF EIT = eib_def.eitDate THEN
+         IF EIT = knx_def.eitDate THEN
             IO.Type := iovalue.vtFloat;
          END;
          IO.FromStringOA( V, FALSE );
-         IOValue2EIBValue( IO, EIT, OUT EV );
+         IOValue2KNXValue( IO, EIT, OUT EV, OUT so );
          prObjects[EIT].InitiateTransmit( Address, EV );
 
       ELSE
@@ -917,9 +924,9 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE LogNumber2Object( LogNumber : CARDINAL; VAR PObject : srvcore.TPObject ) : BOOLEAN;
+   LOCAL PROCEDURE LogNumber2Object( LogNumber : CARDINAL; VAR PObject : knxcore.TPObject ) : BOOLEAN;
    VAR
-      a : eib_def.CAddress;
+      a : knx_def.CAddress;
       c : CARDINAL;
    BEGIN
       IF Objects.Count = 0 THEN
@@ -938,29 +945,29 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PROCEDURE EIBStatus2ErrorCode( Status : eib_status.TEIBStackStatus ) : CARDINAL;
+   PROCEDURE KNXStatus2ErrorCode( Status : knx_status.TKNXStackStatus ) : CARDINAL;
    BEGIN 
       CASE Status OF
-      | eib_status.essOK :
+      | knx_status.essOK :
          RETURN drv_def.ecSuccess;
-      | eib_status.essConError, eib_status.essL_Timeout :
+      | knx_status.essConError, knx_status.essL_Timeout :
          RETURN ceLCONError;
-      | eib_status.essA_Timeout :
+      | knx_status.essA_Timeout :
          RETURN ceRD_RES_Timeout;
-      | eib_status.essLineBusy :
+      | knx_status.essLineBusy :
          RETURN ceLineBusy;
-      | eib_status.essTransceiverFault :
+      | knx_status.essTransceiverFault :
          RETURN ceTransceiverFault;
       ELSE
          RETURN ceTransceiverFault; // drv_def.ecValueProcessing;
       END;
-   END EIBStatus2ErrorCode;
+   END KNXStatus2ErrorCode;
 
 //--------------------------------------------------------------------------------
 
    PROCEDURE HWConnected( VAR ErrorCode : CARDINAL ) : BOOLEAN;
    BEGIN
-      IF NOT EIB^.DeviceConnected() THEN
+      IF NOT KNX^.DeviceConnected() THEN
          ErrorCode := ceDeviceUnplugged;
          RETURN FALSE;
       ELSE
@@ -1027,14 +1034,14 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : knxcore.TPObject );
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfInputFinalized, NIL );
    END OnRead;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : knxcore.TPObject );
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfOutputFinalized, NIL );
    END OnWritten;
@@ -1090,7 +1097,7 @@ BEGIN
    CallbackProc := NIL;
    ClientName := L"";
 
-   EventSink := ADR( SELF );
+   EventSinks.Subscribe( ADR( SELF ));
    
    StatusChannel := MAX( CARDINAL );
    WatchDogChannel := MAX( CARDINAL );
@@ -1102,6 +1109,10 @@ BEGIN
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;
+
+FINALLY
+   EventSinks.Unsubscribe( ADR( SELF ));
+
 END CEIBDriver;
 
 (*================================================================================*)

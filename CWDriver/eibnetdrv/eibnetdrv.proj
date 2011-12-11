@@ -25,11 +25,11 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvcore;$(RootPath)\CWDriver\EibNet"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxcore;$(RootPath)\CWDriver\EibNet"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Component\sccore"/>
-        <Components Include="EIB\srvcore;Library\CWDriver"/>
+        <Components Include="KNX\knxcore;Library\CWDriver"/>
         <Messages Include="Texts"/>
         <Program Include="driver"/>
     </ItemGroup>
