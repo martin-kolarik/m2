@@ -1333,7 +1333,7 @@ CLASS IMPLEMENTATION CDaliDevice;
       // set file data   
       DISPOSE( FileToSend[Linie] );
       FileToSend[Linie] := _FileToSend;
-      FileToSend[Linie]^.Reset();
+      FileToSendIterator[Linie].Init( _FileToSend^, collection.dirForward );
       
       SendFileItem( Linie );
       RETURN TRUE;
@@ -1343,7 +1343,7 @@ CLASS IMPLEMENTATION CDaliDevice;
 
    PRIVATE PROCEDURE SendFileItem( Linie : TDaliLinie );
    BEGIN
-      IF NOT FileToSend[Linie]^.MoveNext() THEN
+      IF NOT FileToSendIterator[Linie].MoveNext() THEN
          Programming[Linie] := FALSE;
          DISPOSE( FileToSend[Linie] );
          IF EventSink <> NIL THEN
@@ -1355,7 +1355,7 @@ CLASS IMPLEMENTATION CDaliDevice;
          END;
          RETURN;
       END;
-      FeedCommand( Linie, NIL, cmdFileItem, 0, FileToSend[Linie]^.Current^.Data, 0, L'' );
+      FeedCommand( Linie, NIL, cmdFileItem, 0, FileToSendIterator[Linie].Value^.Data, 0, L'' );
    END SendFileItem;
 
 (*-------------------------------------------------------------------------------*)
@@ -1446,7 +1446,7 @@ CLASS IMPLEMENTATION CDaliDevice;
 
             IF FileToSend[Request^.Linie] <> NIL THEN // we are sending file
                FileToSendFailure[Request^.Linie] := FileToSendFailure[Request^.Linie] OR ( Result <> Sync.arCompleted );
-               fileItem := FileToSend[Request^.Linie]^.Current^.Data;
+               fileItem := FileToSendIterator[Request^.Linie].Value^.Data;
                IF ( fileItem <> NIL ) AND ( ADR( Data ) <> NIL ) THEN
                   FOR i := 0 TO CARDINAL( fileItem@[32]^ )-1 DO
                      IF Data[i] <> fileItem@[33+i]^ THEN
@@ -2228,7 +2228,6 @@ CLASS IMPLEMENTATION CDali;
       DaliDevice : POINTER TO CDaliDevice;
       it : maps.CStringPtrMapIterator;
    BEGIN
-      Dali.Reset();
       it.Init( Dali, collection.dirForward );
       WHILE it.MoveNext() DO
          DaliDevice := it.Value;

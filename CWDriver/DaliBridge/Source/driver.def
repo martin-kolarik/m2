@@ -50,6 +50,7 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver, DaliBridge.IDaliEventSink;
       SendDelay      : CARDINAL;
    
       Logger         : log.CLogger;
+      AppenderList   : lists.CPtrList;
       Dali           : DaliBridge.CDali;
       Result         : lec.CResult;
       cllvData       : ADDRESS;

@@ -244,6 +244,7 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
       LastProgrammedAddress : ARRAY TDaliLinie OF TProgramAddress;
       Programming : ARRAY TDaliLinie OF BOOLEAN;
       FileToSend : ARRAY TDaliLinie OF lists.TPBufferList;
+      FileToSendIterator : ARRAY TDaliLinie OF lists.CBufferListIterator;
       FileToSendFailure : ARRAY TDaliLinie OF BOOLEAN;
    PRIVATE VAR
       Polled : ARRAY TDaliLinie OF BOOLEAN;
