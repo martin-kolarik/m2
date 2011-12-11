@@ -102,6 +102,16 @@
     <None Include="Test\WorkerDelegate.mod" />
     <None Include="Threading.proj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Modula2\m2rtl\m2rtl.vcxproj">
+      <Project>{8995d229-d00f-4f29-b235-14249d391d21}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\ADT\ADT.vcxproj">
+      <Project>{ee84c683-65a3-4321-bba5-7392d3357b32}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

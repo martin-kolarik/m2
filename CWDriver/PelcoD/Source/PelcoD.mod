@@ -14,7 +14,7 @@ FA 06-03 / 20 / 4 / 24
 //================================================================================
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
