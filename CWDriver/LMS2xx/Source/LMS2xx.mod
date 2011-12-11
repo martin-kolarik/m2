@@ -626,7 +626,7 @@ CLASS IMPLEMENTATION CDriver;
     ComChannel : ARRAY [0..63] OF WCHAR;
     ComDriver : ARRAY [0..63] OF WCHAR;
     DebugFile : FIO.PathStrW;
-    DebugLevel : Log.TDebugLevel;
+    DebugLevel : Log.TLevel;
     DebugMode : Log.TDebugMethod;
     so : StringsO.CString;
     TS : INIFile.CINIFile;
@@ -644,7 +644,7 @@ CLASS IMPLEMENTATION CDriver;
     ComChannel := L'';
     ComDriver := L'';
     DebugMode := Log.dmNone;
-    DebugLevel := Log.dldError;
+    DebugLevel := Log.ldError;
     ReadBack := FALSE;
 
     IF NOT TS.SetSection( snDevice ) THEN
@@ -701,11 +701,11 @@ CLASS IMPLEMENTATION CDriver;
       IF DebugMode <> Log.dmNone THEN
         IF TS.GetKeyStr( knDebugLevel, OUT ErrorLine, OUT so ) THEN
           IF so.EqualsOA( kvDebugBasic ) THEN
-            DebugLevel := Log.dldError;
+            DebugLevel := Log.ldError;
           ELSIF so.EqualsOA( kvDebugExtended ) THEN
-            DebugLevel := Log.dldTrace;
+            DebugLevel := Log.ldTrace;
           ELSIF so.EqualsOA( kvDebugAll ) THEN
-            DebugLevel := Log.dldDebug;
+            DebugLevel := Log.ldDebug;
           END;
         END;
       END;
@@ -969,12 +969,12 @@ CLASS IMPLEMENTATION CDriver;
       DSW.ItemSOA( delimS, 0, 2, TRUE, OUT R ); LOW( R );
 
       IF EQUALS( N, L'create' ) THEN
-        b := Zones.GetFirst( OUT Zone );
+        b := Zones.colGetFirst( OUT Zone );
         LOOP
           IF NOT b THEN
             NEW( Zone );
             ASSIGN( Zone^.Id, R );
-            Zones.Append( Zone );
+            Zones.Add( Zone );
             EditZone := Zone^;
             CurrentZone := Zone;
             EXIT;
@@ -982,11 +982,11 @@ CLASS IMPLEMENTATION CDriver;
             DSW.FromOA( L'error: zone exists' );
             GOTO Error;
           END;
-          b := Zones.NextOf( Zone, OUT Zone );
+          b := Zones.colNextOf( Zone, OUT Zone );
         END; // LOOP
 
       ELSIF EQUALS( N, L'change' ) THEN
-        b := Zones.GetFirst( OUT Zone );
+        b := Zones.colGetFirst( OUT Zone );
         LOOP
           IF NOT b THEN
             DSW.FromOA( L'error: zone not found' );
@@ -996,12 +996,12 @@ CLASS IMPLEMENTATION CDriver;
             CurrentZone := Zone;
             EXIT;
           END;
-          b := Zones.NextOf( Zone, OUT Zone );
+          b := Zones.colNextOf( Zone, OUT Zone );
         END; // LOOP
 
       ELSIF EQUALS( N, L'remove' ) THEN
         CurrentZone := NIL;
-        b := Zones.GetFirst( OUT Zone );
+        b := Zones.colGetFirst( OUT Zone );
         LOOP
           IF NOT b THEN
             DSW.FromOA( L'error: zone not found' );
@@ -1010,11 +1010,11 @@ CLASS IMPLEMENTATION CDriver;
             Zones.Delete( Zone );
             EXIT;
           END;
-          b := Zones.NextOf( Zone, OUT Zone );
+          b := Zones.colNextOf( Zone, OUT Zone );
         END; // LOOP
 
       ELSIF EQUALS( N, L'copy_from' ) THEN
-        b := Zones.GetFirst( OUT Zone );
+        b := Zones.colGetFirst( OUT Zone );
         LOOP
           IF NOT b THEN
             DSW.FromOA( L'error: zone to copy from not found' );
@@ -1023,7 +1023,7 @@ CLASS IMPLEMENTATION CDriver;
             EditZone := Zone^;
             EXIT;
           END;
-          b := Zones.NextOf( Zone, OUT Zone );
+          b := Zones.colNextOf( Zone, OUT Zone );
         END; // LOOP
 
       ELSIF EQUALS( N, L'commit' ) THEN
@@ -1211,7 +1211,7 @@ CLASS IMPLEMENTATION CDriver;
 
     EXCL( RStatus, rsEventsReportPending );
     R[0] := WCHAR( 0 );
-    IF Events.GetFirst( OUT PELE ) THEN
+    IF Events.colGetFirst( OUT PELE ) THEN
       Events.Remove( PELE );
 
       i := 0;
@@ -1806,7 +1806,7 @@ CLASS IMPLEMENTATION CDriver;
     PELE^.Id := Id;
     PELE^.Mean := Mean;
     PELE^.Diff := Diff;
-    Events.Append( PELE );
+    Events.Add( PELE );
   END AddEvent;
 
 //--------------------------------------------------------------------------------
@@ -1977,7 +1977,7 @@ CLASS IMPLEMENTATION CDriver;
       Step := 1;
     END;
 
-    b := Zones.GetFirst( OUT Zone );
+    b := Zones.colGetFirst( OUT Zone );
     WHILE b DO
       WITH Zone^ DO IF Active THEN
         // prepare
@@ -2066,7 +2066,7 @@ CLASS IMPLEMENTATION CDriver;
           INC( NAVG );
         END;
       END; END; // IF // WITH
-      b := Zones.NextOf( Zone, OUT Zone );
+      b := Zones.colNextOf( Zone, OUT Zone );
     END;
   END CheckZones;
 
