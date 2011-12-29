@@ -1,0 +1,56 @@
+DEFINITION MODULE ns;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   iovalue;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPMapper = POINTER TO IMapper; // simple name mapper
+   TPNamespace = POINTER TO INamespace;
+   THash = PTR;
+   
+CONST
+   hashINVALID = NIL;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IMapper;
+   PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
+   PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+END IMapper;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS Namespace IMPLEMENTS IMapper, iovalue.INameValuePairs;
+
+   // IMapper
+   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+
+   // INameValuePairs -- looks inside whole namespace, names are separated with '.'
+   PUBLIC VIRTUAL PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
+   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
+   PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPINameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
+
+   // SELF
+   PUBLIC READONLY PROPERTY
+      Root : iovalue.TPValue;
+      Name : StringsO.CString; // reads Root.String
+
+   PUBLIC PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
+
+   PRIVATE VAR
+      _Root : iovalue.Value;
+      _Pairs : nstools.CNameValuePairs;
+
+END Namespace;
+
+(*---------------------------------------------------------------------------*)
+
+END ns.

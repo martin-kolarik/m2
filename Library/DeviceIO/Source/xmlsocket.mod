@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE xmlsocket;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   AssertionW;
+   Assertion, LogAssertionW;
 
 IMPORT
    io,
@@ -560,7 +560,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          d.FromOA( LOG_XMLS ); d.AppendOA( L"/" ); d.AppendOA( inetaddr );
          Originator.SetDescription( d );
 
-         value.FromStringOA( Value, FALSE );
+         value.FromString( StringsO.FromOA( Value ), FALSE );
          Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF value, NIL );
       END;         
    END HandleWrite;
