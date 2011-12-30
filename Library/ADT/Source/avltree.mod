@@ -377,6 +377,7 @@ CLASS IMPLEMENTATION CAVLTree;
                   pPredecessor^[i]^.L := L;
                   pPredecessor^[i]^.R := R;
                   pPredecessor^[i]^.Balance := Balance;
+                  pPredecessor^[i]^.Items := Items - 1; // node replacing pRemoved has surely by one item less
                   // adjust caller's PL or PR
                   Element := pPredecessor;
                   IF w THEN
@@ -860,6 +861,7 @@ CLASS IMPLEMENTATION CAVLTree;
                Element := L; // ...and adjust neighbours of it
                w := TRUE;
             ELSE
+               DEC( Items ); // removed predecessor surely decreases my count
                iiFindPredecessor( i, REF R );
                IF w THEN
                   iRemoveBalanceR( i, REF Element, REF w );
