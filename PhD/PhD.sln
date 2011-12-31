@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2rtl", "..\Modula2\m2rtl\m2rtl.vcxproj", "{8995D229-D00F-4F29-B235-14249D391D21}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MouseTracker", "MouseTracker\MouseTracker.vcxproj", "{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8995D229-D00F-4F29-B235-14249D391D21}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Debug|Win32.Build.0 = Debug|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Release|Win32.ActiveCfg = Release|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Release|Win32.Build.0 = Release|Win32
+		{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}.Debug|Win32.Build.0 = Debug|Win32
+		{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}.Release|Win32.ActiveCfg = Release|Win32
+		{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,29 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 PRODUCT NAME -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
+        <ProductId>SmartControl.MouseTracker</ProductId>
+        <ProductVersionMajor>0</ProductVersionMajor>
+        <ProductVersionMinor>9</ProductVersionMinor>
+
+        <ProjectDescription>Tool track mouse movements</ProjectDescription>
+    </PropertyGroup>
+
+    <!-- 2 ROOT DIRS (including ProjectBuildDir) -->
+    <Import Project="..\..\Build\common.rootdir.proj"/><!-- property CodeRoot affects this -->
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 PRODUCT DEFINITION -->
+    <ItemGroup>
+        <Components Include="API\CLib;Modula2\modula2;API\win32;Modula2\m2rtl;Library\Ciphering;Library\Text"/>
+        <Program Include="MouseTracker"/>
+    </ItemGroup>
+
+    <!-- 5 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
