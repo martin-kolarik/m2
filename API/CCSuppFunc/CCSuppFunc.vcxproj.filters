@@ -18,9 +18,6 @@
     <ClCompile Include="Source\atexit.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\coninit.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\dllinit.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -37,6 +34,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\stackprobe.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\exeinit.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

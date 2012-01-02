@@ -450,4 +450,11 @@ PROCEDURE GetConsoleOutputCP() : windows.UINT;
 
 PROCEDURE SetConsoleOutputCP( wCodePageID : windows.UINT ) : windows.BOOL;
 
+CONST
+   ATTACH_PARENT_PROCESS = -1;
+
+PROCEDURE AttachConsole(
+    dwProcessId : windows.DWORD
+   ) : windows.BOOL;
+
 END wincon.

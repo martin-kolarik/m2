@@ -9,6 +9,7 @@ extern unsigned short** __stdcall CommandLineToArgvW( unsigned short* lpCmdLine,
 extern unsigned short* __stdcall GetCommandLineW();
 extern void* __stdcall LocalFree( void* hMem );
 extern void __stdcall ExitProcess( unsigned int exitCode );
+extern int __stdcall AttachConsole( unsigned int processId );
 
 /* Main is a startup routine of program */
 extern int __cdecl Main( int argc, unsigned short** argv ); 

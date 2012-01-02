@@ -92,8 +92,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\atexit.c" />
-    <ClCompile Include="Source\coninit.c" />
     <ClCompile Include="Source\dllinit.c" />
+    <ClCompile Include="Source\exeinit.c" />
     <ClCompile Include="Source\initterm.c" />
     <ClCompile Include="Source\math.c" />
     <ClCompile Include="Source\memory.c" />
