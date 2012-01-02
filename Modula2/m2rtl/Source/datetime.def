@@ -105,7 +105,7 @@ END HighResolutionTime;
 PROCEDURE NowHR() : HighResolutionTime;
 
 (*================================================================================================*)
-// DayCount routines, continuous time base on Julian Date. Internally stored as 100-us fixed poing.
+// DayCount routines, continuous time based on Julian Date. Internally stored as 100-us fixed poing.
 
 CLASS DayCount;
    
