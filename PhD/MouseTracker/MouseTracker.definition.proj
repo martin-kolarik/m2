@@ -8,10 +8,11 @@
         <Language Condition="$(Language)==''">English</Language>
         <CLib>Private</CLib>
         <Result>Program</Result>
+        <ResultSubsystem>GUI</ResultSubsystem>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)!='sum'">
+    <PropertyGroup Condition="$(MSBuildProjectName)!='MouseTracker'">
         <Result>Static</Result>
     </PropertyGroup>
 

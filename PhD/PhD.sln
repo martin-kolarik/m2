@@ -5,6 +5,16 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2rtl", "..\Modula2\m2rtl\m
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MouseTracker", "MouseTracker\MouseTracker.vcxproj", "{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CCSuppFunc", "..\API\CCSuppFunc\CCSuppFunc.vcxproj", "{70BDC764-6FA8-4CA8-B728-C0C999747851}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2ortl", "..\Modula2\m2ortl\m2ortl.vcxproj", "{332A033A-AF35-4573-83CB-A19E643D5845}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Text", "..\Library\Text\Text.vcxproj", "{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Threading", "..\Library\Threading\Threading.vcxproj", "{97C30A53-92E2-4179-B0A0-A740E2FDD762}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ADT", "..\Library\ADT\ADT.vcxproj", "{EE84C683-65A3-4321-BBA5-7392D3357B32}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +29,26 @@ Global
 		{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}.Debug|Win32.Build.0 = Debug|Win32
 		{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}.Release|Win32.ActiveCfg = Release|Win32
 		{8BCE4D79-CDEA-4AC7-A62D-601C17D517A0}.Release|Win32.Build.0 = Release|Win32
+		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Debug|Win32.ActiveCfg = Debug|Win32
+		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Debug|Win32.Build.0 = Debug|Win32
+		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|Win32.ActiveCfg = Release|Win32
+		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|Win32.Build.0 = Release|Win32
+		{332A033A-AF35-4573-83CB-A19E643D5845}.Debug|Win32.ActiveCfg = Debug|Win32
+		{332A033A-AF35-4573-83CB-A19E643D5845}.Debug|Win32.Build.0 = Debug|Win32
+		{332A033A-AF35-4573-83CB-A19E643D5845}.Release|Win32.ActiveCfg = Release|Win32
+		{332A033A-AF35-4573-83CB-A19E643D5845}.Release|Win32.Build.0 = Release|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Debug|Win32.Build.0 = Debug|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Release|Win32.ActiveCfg = Release|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Release|Win32.Build.0 = Release|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Win32.ActiveCfg = Debug|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Win32.Build.0 = Debug|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Win32.ActiveCfg = Release|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Win32.Build.0 = Release|Win32
+		{EE84C683-65A3-4321-BBA5-7392D3357B32}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EE84C683-65A3-4321-BBA5-7392D3357B32}.Debug|Win32.Build.0 = Debug|Win32
+		{EE84C683-65A3-4321-BBA5-7392D3357B32}.Release|Win32.ActiveCfg = Release|Win32
+		{EE84C683-65A3-4321-BBA5-7392D3357B32}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
