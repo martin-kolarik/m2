@@ -1,4 +1,4 @@
-DEFINITION MODULE ns;
+DEFINITION MODULE nsex;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -21,15 +21,29 @@ CONST
 INTERFACE IMapper;
    PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
    PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   PROCEDURE HashToValue( CONST Hash : THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
 END IMapper;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS Namespace IMPLEMENTS IMapper, iovalue.INameValuePairs;
+INTERFACE IHierarchyMapper( IMapper );
+   PROCEDURE HashToParent( CONST Hash : THash; OUT Parent : THash ) : BOOLEAN;
+END IHierarchyMapper;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPairs;
+
+CLASS Namespace IMPLEMENTS IMapper, iovalue.INameValuePairs; // CDisposable
+
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // IMapper
    PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
    // INameValuePairs -- looks inside whole namespace, names are separated with '.'
    PUBLIC VIRTUAL PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
@@ -47,10 +61,10 @@ CLASS Namespace IMPLEMENTS IMapper, iovalue.INameValuePairs;
 
    PRIVATE VAR
       _Root : iovalue.Value;
-      _Pairs : nstools.CNameValuePairs;
+      _Pairs : TPairs;
 
 END Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-END ns.
+END nsex.

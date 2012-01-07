@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE iovalue;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

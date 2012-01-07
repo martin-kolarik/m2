@@ -1,217 +1,233 @@
-IMPLEMENTATION MODULE nsitem;
-
-FROM Storage IMPORT
-   ALLOCATE;
-
-IMPORT
-   Exceptions,
-   StringsO;
-
-(*===========================================================================*)
-
-CLASS IMPLEMENTATION CnsWrapper;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Name GET : StringsO.TPString;
-   BEGIN
-      RETURN _NS^.Root^.Name;
-   END Name;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY NameType GET : ns.TNameType;
-   BEGIN
-      RETURN _NS^.Root^.NameType;
-   END NameType;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY ValueType GET : iovalue.TValueType;
-   BEGIN
-      RETURN _NS^.Root^.ValueType;
-   END ValueType;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Value GET : iovalue.TPValue;
-   BEGIN
-      RETURN _NS^.Root^.Value;
-   END Value;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Data GET : PTR;
-   BEGIN
-      RETURN _NS^.Root^.Data;
-   END Data;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Data SET( Value : PTR );
-   BEGIN
-      _NS^.Root^.Data := Value;
-   END Data;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Count GET : CARDINAL;
-   BEGIN
-      RETURN _NS^.Root^.Count;
-   END Count;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Namespace GET : ns.TPns;
-   BEGIN
-      RETURN _NS;
-   END Namespace;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Namespace SET( NS : ns.TPns );
-   BEGIN
-      _NS := NS;
-   END Namespace;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL INDEX CnsWrapper GET( Index : CARDINAL ) : ns.TPnsItem;
-   BEGIN
-      RETURN _NS^.Root^[Index];
-   END CnsWrapper;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
-   BEGIN
-      RETURN _NS^.Root^.ContainsOA( SingleName );
-   END ContainsOA;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : ns.TPnsItem ) : BOOLEAN;
-   BEGIN
-      RETURN _NS^.Root^.GetOA( SingleName, OUT Item );
-   END GetOA;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AddChild( Child : ns.TPnsItem );
-   BEGIN
-      Exceptions.Modula2Exception( NIL, L"Namespace Wrapper", L"", Exceptions.mexNotSupported );
-   END AddChild;
-
-(*---------------------------------------------------------------------------*)
-
-BEGIN
-   _NS := NIL;
-END CnsWrapper;
+IMPLEMENTATION MODULE nstools;
 
 (*===========================================================================*)
 
 TYPE
-  TPnsItem = POINTER TO CnsItem;
+  TPNameValuePairsElem = POINTER TO CNameValuePairsElem;
 
-CLASS IMPLEMENTATION CnsItem;
+CLASS CNameValuePairsElem( avltree.CAVLTreeElem );
 
-(*---------------------------------------------------------------------------*)
+   // CAVLTreeElem
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
-   VIRTUAL PROPERTY Name GET : StringsO.TPString;
-   BEGIN
-      RETURN ADR( _Name );
-   END Name;
+   // SELF
+   LOCAL VAR
+      Name : StringsO.CString;
+      Value : iovalue.Value;
+      Parent : TPNameValuePairsElem;
 
-(*---------------------------------------------------------------------------*)
-
-   VIRTUAL PROPERTY NameType GET : ns.TNameType;
-   BEGIN
-      RETURN _NameType;
-   END NameType;
+END CNameValuePairsElem;
 
 (*---------------------------------------------------------------------------*)
 
-   VIRTUAL PROPERTY ValueType GET : iovalue.TValueType;
-   BEGIN
-      RETURN _Value.Type;
-   END ValueType;
+CLASS CSearchHelper( avltree.CAVLTreeElem );
+
+   // CAVLTreeElem
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+
+   // SELF
+   LOCAL PROCEDURE Init( CONST Source : StringsO.IString );
+
+   PRIVATE VAR
+      Source : POINTER TO CONST StringsO.IString;
+
+END CSearchHelper;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CNameValuePairsElem;
 
 (*---------------------------------------------------------------------------*)
 
-   VIRTUAL PROPERTY Value GET : iovalue.TPValue;
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
    BEGIN
-      RETURN ADR( _Value );
-   END Value;
+      RETURN Name.Compare( TPNameValuePairsElem( pelem )^.Name );
+   END Compare;
 
 (*---------------------------------------------------------------------------*)
 
-   VIRTUAL PROPERTY Data GET : PTR;
-   BEGIN
-      RETURN _Data;
-   END Data;
+BEGIN
+   Parent := NIL;
+END CNameValuePairsElem;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CSearchHelper;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Data SET( Value : PTR );
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
    BEGIN
-      _Data := Value;
-   END Data;
-   
+      RETURN Source^.Compare( TPNameValuePairsElem( pelem )^.Name );
+   END Compare;
+
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST SingleChildName : ARRAY OF WCHAR; ConstName : BOOLEAN; NameType : ns.TNameType; ValueType : iovalue.TValueType; Data : PTR );
+   LOCAL PROCEDURE Init( CONST Source : StringsO.IString );
    BEGIN
-      _Name.FromOA( SingleChildName );
-      _NameType := NameType;
-      _Value.Type := ValueType;
-      _Data := Data;
+      SELF.Source := ADR( Source );
    END Init;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   _NameType := ns.ntName;
-   _Value.Type := iovalue.vtUnknown;
-   _Data := 0;
-END CnsItem;
+   Source := NIL;
+END CSearchHelper;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION Ans;
+CLASS IMPLEMENTATION CNameValuePairs;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Root GET : ns.TPnsItem;
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      RETURN _Root;
-   END Root;
+      _Storage.Dispose();
+   END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Initialize();
+   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : nsex.THash ) : BOOLEAN;
+   VAR
+      elem : TPNameValuePairsElem;
+      helper : CSearchHelper;
    BEGIN
-      _Root := CreateRoot();
-      CreateStructure();
-   END Initialize;
+      helper.Init( Name );
+      IF _Storage.SearchI( 0, ADR( helper ), OUT elem ) THEN
+         Hash := elem;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END NameToHash;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE CreateStructure(); // excluding root, need not to be overriden
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : nsex.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   VAR
+      elem : TPNameValuePairsElem := TPNameValuePairsElem( Hash );
    BEGIN
-   END CreateStructure;
+      IF elem = NIL THEN
+         RETURN FALSE;
+      ELSIF NOT( elem^ IS CNameValuePairsElem ) THEN
+         RETURN FALSE;
+      ELSE
+         Name := elem^.Name;
+         RETURN TRUE;
+      END;
+   END HashToName;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE FromXML( Stream : IOO.TPStream );
+   PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : nsex.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
+   VAR
+      elem : TPNameValuePairsElem := TPNameValuePairsElem( Hash );
    BEGIN
-   END FromXML;
+      IF elem = NIL THEN
+         RETURN FALSE;
+      ELSIF NOT( elem^ IS CNameValuePairsElem ) THEN
+         RETURN FALSE;
+      ELSE
+         Value := ADR( elem^.Value );
+         RETURN TRUE;
+      END;
+   END HashToValue;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE HashToParent( CONST Hash : nsex.THash; OUT Parent : nsex.THash ) : BOOLEAN;
+   VAR
+      elem : TPNameValuePairsElem := TPNameValuePairsElem( Hash );
+   BEGIN
+      IF elem = NIL THEN
+         RETURN FALSE;
+      ELSIF NOT( elem^ IS CNameValuePairsElem ) THEN
+         RETURN FALSE;
+      ELSE
+         Parent := ADR( elem^.Parent );
+         RETURN TRUE;
+      END;
+   END HashToParent;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
+   VAR
+      index : CARDINAL;
+   BEGIN
+      IF NameOrIndex.ToCARD32( 10, OUT index ) THEN
+         RETURN ElementAt( index, OUT Value );
+      ELSE
+         RETURN Map( NameOrIndex, OUT Value );
+      END;
+   END Get;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
+   VAR
+      elem : TPNameValuePairsElem;
+      hash : nsex.THash;
+   BEGIN
+      IF NameToHash( Name, OUT hash ) THEN
+         elem := TPNameValuePairsElem( hash );
+         Value := ADR( elem^.Value );
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END Map;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
+   VAR
+      elem : TPNameValuePairsElem;
+   BEGIN
+      elem := TPNameValuePairsElem( _Storage[ Index ] );
+      IF elem = NIL THEN
+         RETURN FALSE;
+      ELSE
+         Value := ADR( elem^.Value );
+         RETURN TRUE;
+      END;
+      (*
+      IF _Storage.ElementAt( Index, OUT elem ) THEN
+         Value := ADR( elem^.Value );
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+      *)
+   END ElementAt;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT children : iovalue.TPINameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
+   VAR
+      Value : iovalue.TPValue;
+   BEGIN
+      IF NOT Map( Name, OUT Value ) THEN
+         RETURN FALSE;
+      ELSIF Value^.Children = NIL THEN
+         RETURN FALSE;
+      ELSE
+         children := Value^.Children;
+         RETURN TRUE;
+      END;
+   END Children;
+
+(*---------------------------------------------------------------------------*)
+
+END CNameValuePairs;
+
+(*===========================================================================*)
+
+PUBLIC PROCEDURE LoadNamespace( CONST stream : IOO.TPStream; REF ns : nsex.Namespace ) : Sync.TAsyncResult;
 BEGIN
-   _Root := NIL;
-END Ans;
+   RETURN Sync.arCannotStart;
+END LoadNameSpace;
 
 (*===========================================================================*)
 
-END nsitem.
+END nstools.

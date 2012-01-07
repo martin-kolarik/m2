@@ -78,5 +78,17 @@
       <Filter>Test</Filter>
     </None>
     <None Include="DeviceIO.proj" />
+    <None Include="Source\nstools.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\nstools.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\nsex.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\nsex.mod">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

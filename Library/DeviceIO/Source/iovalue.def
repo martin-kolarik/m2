@@ -78,11 +78,6 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 CLASS Value;
-   INTERNAL VAR
-      _Flags : TFlags;
-      _Type : TValueType;
-      _Storage : TStorage;
-      _Children : TPINameValuePairs;
 
    PUBLIC PROPERTY
       Type : TValueType;
@@ -137,6 +132,14 @@ CLASS Value;
    PUBLIC PROCEDURE LimitedInteger( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : INT32; // limites all types
    PUBLIC PROCEDURE LimitedLong( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : INT64; // limites all types
    PUBLIC PROCEDURE LimitedFloat( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : LONGREAL; // limites all types
+
+   // SELF
+   INTERNAL VAR
+      _Flags : TFlags;
+      _Type : TValueType;
+      _Storage : TStorage;
+      _Children : TPINameValuePairs;
+
 END Value;
 
 (*---------------------------------------------------------------------------*)
