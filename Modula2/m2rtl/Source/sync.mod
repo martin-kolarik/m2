@@ -761,14 +761,14 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
 
    PUBLIC PROCEDURE Take( REF LockToOwn : ILock; Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
-      IF _OwnedLock <> NIL THEN
-         IF _Read THEN
-            UnlockRead();
-         ELSE
-            Unlock();
-         END;
+      IF _OwnedLock = NIL THEN
+         Attach( REF LockToOwn );
+      ELSIF _OwnedLock = ADR( LockToOwn ) THEN
+         // do nothing, I am already attached
+      ELSE
+         // here, do not unlock previously owned lock, as such cross-taking is not safe. It is better to cause deadlock always than to crash sometimes.
+         Attach( REF LockToOwn );
       END;
-      Attach( REF LockToOwn );
       RETURN LockTimeout( Timeout );
    END Take;
 
@@ -789,14 +789,14 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
 
    PUBLIC PROCEDURE TakeRead( REF LockToOwn : ILock; Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
-      IF _OwnedLock <> NIL THEN
-         IF _Read THEN
-            UnlockRead();
-         ELSE
-            Unlock();
-         END;
+      IF _OwnedLock = NIL THEN
+         Attach( REF LockToOwn );
+      ELSIF _OwnedLock = ADR( LockToOwn ) THEN
+         // do nothing, I am already attached
+      ELSE
+         // here, do not unlock previously owned lock, as such cross-taking is not safe. It is better to cause deadlock always than to crash sometimes.
+         Attach( REF LockToOwn );
       END;
-      Attach( REF LockToOwn );
       RETURN LockRead( Timeout );
    END TakeRead;
 
