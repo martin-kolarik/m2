@@ -197,11 +197,11 @@ VAR
    Name : ARRAY [0..3] OF WCHAR;
    Path : FIO.PathStrW;
 BEGIN
-   IF INSIDE( 0, path ) AND ( path[0] = 0W ) THEN
+   IF INSIDE( 0, path ) AND ( path[0] <> 0W ) THEN
+      file := FIO.CreateW( path, FIO.TFileShare{ FIO.fsRead } );
+   ELSE
       GetDumpNameAndPath( L"ud", OUT Name, OUT Path );
       file := FIO.CreateW( Path, FIO.TFileShare{ FIO.fsRead } );
-   ELSE
-      file := FIO.CreateW( path, FIO.TFileShare{ FIO.fsRead } );
    END;
    IF file = NIL THEN
       RETURN FALSE;
@@ -310,10 +310,10 @@ BEGIN
 
       // write log entry
       Strings.AppendW( REF Name, L")" );
-      IF INSIDE( 0, Text ) AND ( Text[0] = 0W ) THEN
-         getLogger()^.LogSSS( Log.lcSysError, 0, Module, Line, L"(dump:", Name );
-      ELSE
+      IF INSIDE( 0, Text ) AND ( Text[0] <> 0W ) THEN
          getLogger()^.LogSSSS( Log.lcSysError, 0, Module, Text, Line, L"(dump:", Name );
+      ELSE
+         getLogger()^.LogSSS( Log.lcSysError, 0, Module, Line, L"(dump:", Name );
       END;
 
       // write minidump
@@ -325,10 +325,10 @@ BEGIN
 
    ELSE // no minidump
       // write log entry
-      IF INSIDE( 0, Text ) AND ( Text[0] = 0W ) THEN
-         getLogger()^.LogS( Log.lcSysError, 0, Module, Line );
-      ELSE
+      IF INSIDE( 0, Text ) AND ( Text[0] <> 0W ) THEN
          getLogger()^.LogSS( Log.lcSysError, 0, Module, Line, Text );
+      ELSE
+         getLogger()^.LogS( Log.lcSysError, 0, Module, Line );
       END;
    END;
 
