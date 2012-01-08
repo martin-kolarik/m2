@@ -66,7 +66,7 @@ INTERFACE IDevice( iobject.IObject ); // aka device driver
 	PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
 
    PROCEDURE Mapper() : ns.TPMapper; // required
-	PROCEDURE NS() : ns.TPns; // optional
+	PROCEDURE NS() : ns.TPNamespace; // optional
 
 	PROCEDURE IO() : io.TPIO; // required
 END IDevice;

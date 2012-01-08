@@ -411,7 +411,7 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
 	BEGIN
 	   IF _Device = NIL THEN
 	      ASSERT( FALSE );

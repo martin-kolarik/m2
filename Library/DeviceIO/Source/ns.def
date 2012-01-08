@@ -1,107 +1,52 @@
 DEFINITION MODULE ns;
 
-FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
-
 IMPORT
-   StringsO,
-   TextWriter;
-   
-IMPORT
-   iovalue;
+   iovalue,
+   StringsO;
 
 (*---------------------------------------------------------------------------*)
+// Base namespace storage structure is tightly linked to Value, so
+// NameValuePairs has to be defined in "iovalue.def".
 
-TYPE
-   TNameType = (
-      ntName, // aka namespace/package, value of its type cannot exist
-      ntClass, // values of its type can exists
-      ntValue, // typed value
-      ntIndexedValue // typed array value
-   );
+CONST
+   INameValuePairs ::= iovalue.INameValuePairs;
+   TPINameValuePairs ::= iovalue.TPINameValuePairs;
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
    TPMapper = POINTER TO IMapper; // simple name mapper
-   TPns = POINTER TO Ans;
-   TPnsItem = POINTER TO AnsItem;
-   TPnsIterator = POINTER TO CnsIterator;
+   TPNamespace = POINTER TO INamespace;
    THash = PTR;
    
 CONST
-   hashINVALID = 0;
-
-(*---------------------------------------------------------------------------*)
-
-ABSTRACT CLASS AnsItem;
-   PUBLIC ABSTRACT READONLY PROPERTY
-      Name : StringsO.TPString;
-      NameType : TNameType;
-      ValueType : iovalue.TValueType;
-   PUBLIC ABSTRACT PROPERTY
-      Data : PTR; // for user data or references
-
-   PUBLIC ABSTRACT READONLY PROPERTY
-      Count : CARDINAL;
-   PUBLIC READONLY PROPERTY
-      Empty : BOOLEAN;
-   PUBLIC ABSTRACT READONLY INDEX( Index : CARDINAL ) : TPnsItem;
-
-   PUBLIC PROCEDURE Contains( CONST SingleName : StringsO.IString ) : BOOLEAN;
-   PUBLIC ABSTRACT PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
-
-   PUBLIC PROCEDURE Get( CONST SingleName : StringsO.IString; OUT Item : TPnsItem ) : BOOLEAN;
-   PUBLIC ABSTRACT PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : TPnsItem ) : BOOLEAN;
-
-   PUBLIC ABSTRACT PROCEDURE AddChild( Child : TPnsItem );
-
-   PUBLIC PROCEDURE GetNewIterator() : TPnsIterator;
-END AnsItem;
-
-(*---------------------------------------------------------------------------*)
-
-CLASS CnsIterator;
-   PRIVATE VAR
-      Owner : TPnsItem;
-      Index : CARDINAL;
-   PUBLIC READONLY PROPERTY
-      Count : CARDINAL;
-   PUBLIC READONLY PROPERTY
-      Current : TPnsItem;
-   PUBLIC READONLY INDEX( Index : CARDINAL ) : TPnsItem;
-   
-   LOCAL PROCEDURE Init( Item : TPnsItem );
-
-   PUBLIC PROCEDURE Reset();
-   PUBLIC PROCEDURE MoveNext() : BOOLEAN;
-END CnsIterator;
+   hashINVALID = NIL;
 
 (*---------------------------------------------------------------------------*)
 
 INTERFACE IMapper;
-   PUBLIC PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
-   PUBLIC PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
+   PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   PROCEDURE HashToValue( CONST Hash : THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
 END IMapper;
 
 (*---------------------------------------------------------------------------*)
 
-ABSTRACT CLASS Ans IMPLEMENTS IMapper;
-   PUBLIC ABSTRACT READONLY PROPERTY
-      Root : TPnsItem;
-   PUBLIC READONLY PROPERTY
-      Namespace : StringsO.TPString;
+INTERFACE IHierarchyMapper( IMapper );
+   PROCEDURE HashToParent( CONST Hash : THash; OUT Parent : THash ) : BOOLEAN;
+END IHierarchyMapper;
 
-   PUBLIC PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
+(*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Get( CONST Name : StringsO.IString; OUT Item : TPnsItem ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetOA( CONST Name : ARRAY OF WCHAR; OUT Item : TPnsItem ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetByHash( Hash : THash; OUT Item : TPnsItem ) : BOOLEAN;
+INTERFACE INamespace( INameValuePairs );
 
-   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
+   READONLY PROPERTY
+      Root : iovalue.TPValue;
+      Name : StringsO.CString; // reads Root.String
 
-   PUBLIC PROCEDURE Dump( CONST Writer : TextWriter.TPTextWriter );
-END Ans;
+   PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
+
+END INamespace;
 
 (*---------------------------------------------------------------------------*)
 

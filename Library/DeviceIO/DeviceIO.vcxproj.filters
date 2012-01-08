@@ -26,12 +26,6 @@
     <None Include="Source\ns.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\nsitem.mod">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="Source\nslookup.mod">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="Source\sdap.mod">
       <Filter>Source Files</Filter>
     </None>
@@ -59,12 +53,6 @@
     <None Include="Source\ns.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\nsitem.def">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="Source\nslookup.def">
-      <Filter>Header Files</Filter>
-    </None>
     <None Include="Source\sdap.def">
       <Filter>Header Files</Filter>
     </None>
@@ -78,16 +66,10 @@
       <Filter>Test</Filter>
     </None>
     <None Include="DeviceIO.proj" />
-    <None Include="Source\nstools.def">
+    <None Include="Source\nsimpl.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\nstools.mod">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="Source\nsex.def">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="Source\nsex.mod">
+    <None Include="Source\nsimpl.mod">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
