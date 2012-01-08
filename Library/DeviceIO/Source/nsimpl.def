@@ -32,9 +32,13 @@ CLASS NameValuePairs IMPLEMENTS ns.IHierarchyMapper, iovalue.INameValuePairs; //
    PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
    PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPINameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
+   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
 
    // SELF
+   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : ns.THash; Hash : ns.TPHash ) : BOOLEAN;
+      // returns FALSE e.g. if Name already exists and so
+      // InitialValue/in, Child/in, Hash/out is optional
+
    PRIVATE VAR
       _Storage : avltree.CAVLTree;
 
@@ -60,7 +64,7 @@ CLASS Namespace IMPLEMENTS ns.IMapper, ns.INamespace; // CDisposable
    PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
    PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPINameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
+   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
 
    // INamespace
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -70,6 +74,8 @@ CLASS Namespace IMPLEMENTS ns.IMapper, ns.INamespace; // CDisposable
    PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
 
    // SELF
+   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; CONST Children : ns.THash; Hash : ns.TPHash ) : BOOLEAN;
+
    PRIVATE VAR
       _Root : iovalue.Value;
       _Pairs : NameValuePairs;

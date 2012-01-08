@@ -12,7 +12,7 @@ IMPORT
 #save, option( dll_export => on )
 
 TYPE
-   TPINameValuePairs = POINTER TO INameValuePairs;
+   TPNameValuePairs = POINTER TO INameValuePairs;
    TPValue = POINTER TO Value;
 
 INTERFACE INameValuePairs;
@@ -21,7 +21,7 @@ INTERFACE INameValuePairs;
    PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
    PROCEDURE ElementAt( Index : CARDINAL; OUT Value : TPValue ) : BOOLEAN;
 
-   PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : TPINameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
+   PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
 
    // TODO iterator in "default" branch
 
@@ -31,7 +31,7 @@ END INameValuePairs;
 (*---------------------------------------------------------------------------*)
 
 TYPE
-   TValueType = (
+   TType = (
       vtUnknown,
       vtTag, // link to internal world, not visible for user
       vtObject, // has prototype
@@ -47,20 +47,25 @@ TYPE
    
 TYPE
    TFlagItem = (
+      vfReadOnly,
       vfUndefined,
       vfFunction, // children carries call parameters
       vfSaturate,
-      vfReadonly,
       vfUser // can be cleared, values without the flag can be removed from the pairs
    );
    TFlags = SET OF TFlagItem;
+
+CONST
+   flagsDefaultObject = TFlags{};
+   flagsDefaultRO = TFlags{vfReadOnly, vfUndefined, vfSaturate};
+   flagsDefaultRW = TFlags{vfUndefined, vfSaturate};
    
 (*---------------------------------------------------------------------------*)
 
 TYPE
    #save, option( pack => 1 )
    TStorage  = RECORD
-                  CASE : TValueType OF
+                  CASE : TType OF
                   | vtUnknown  :
                   | vtObject   : // children contains members, the value is pure object
                   | vtTag      : Tag      : PTR;
@@ -80,7 +85,7 @@ TYPE
 CLASS Value;
 
    PUBLIC PROPERTY
-      Type : TValueType;
+      Type : TType;
       Undefined : BOOLEAN;
       Saturate : BOOLEAN;
    PUBLIC PROPERTY
@@ -96,7 +101,7 @@ CLASS Value;
       // TODO
       // Data : StorageO.CMemoryBuffer;
    PUBLIC READONLY PROPERTY
-      Children : TPINameValuePairs;
+      Children : TPNameValuePairs;
       PString : StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
 
    PUBLIC OPERATOR :=( CONST Source : Value ); // respects type
@@ -136,9 +141,9 @@ CLASS Value;
    // SELF
    INTERNAL VAR
       _Flags : TFlags;
-      _Type : TValueType;
+      _Type : TType;
       _Storage : TStorage;
-      _Children : TPINameValuePairs;
+      _Children : TPNameValuePairs;
 
 END Value;
 

@@ -203,7 +203,7 @@ CLASS IMPLEMENTATION NameValuePairs;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT children : iovalue.TPINameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
+   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT children : iovalue.TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
    VAR
       Value : iovalue.TPValue;
    BEGIN
@@ -216,6 +216,50 @@ CLASS IMPLEMENTATION NameValuePairs;
          RETURN TRUE;
       END;
    END Children;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : ns.THash; Hash : ns.TPHash ) : BOOLEAN;
+   VAR
+      children : TPNameValuePairsElem := TPNameValuePairsElem( Children );
+      elem : TPNameValuePairsElem;
+      hash : ns.THash;
+      s : StringsO.CString;
+   BEGIN
+      // check input parameters
+      IF Name.Empty THEN
+         RETURN FALSE;
+      ELSIF NameToHash( Name, OUT hash ) THEN // cannot define two items with same names
+         RETURN FALSE;
+      ELSIF ( children <> NIL ) AND NOT( children^ IS CNameValuePairsElem ) THEN
+         RETURN FALSE;
+      END;
+
+      NEW( elem );
+      // fill name
+      elem^.Name.Assign( Name );
+      // fill value part
+      elem^.Value.Type := Type;
+      elem^.Value.Flags := Flags;
+      elem^.Value.Tag := Data;
+      IF InitialValue <> NIL THEN
+         s.Assign( InitialValue^ );
+         elem^.Value.String := s; // R/O
+      END;
+      // fill structure part
+      IF children <> NIL THEN
+         children^.Parent := 
+         elem^.Value.Children := children;
+      END;
+      // add it
+      _Storage.Insert( elem );
+
+      // return value
+      IF Hash <> NIL THEN
+         Hash^ := elem;
+      END;
+      RETURN TRUE;
+   END DefineValue;
 
 (*---------------------------------------------------------------------------*)
 
@@ -346,7 +390,7 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT children : iovalue.TPINameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT children : iovalue.TPNameValuePairs ) : BOOLEAN;
    VAR
       value : iovalue.TPValue;
    BEGIN
@@ -357,6 +401,13 @@ CLASS IMPLEMENTATION Namespace;
          RETURN FALSE;
       END;
    END Children;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; CONST Children : ns.THash; Hash : ns.TPHash ) : BOOLEAN;
+   BEGIN
+      RETURN _Pairs.DefineValue( Name, Type, Flags, Data, InitialValue, Children, Hash );
+   END DefineValue;
 
 (*---------------------------------------------------------------------------*)
 
@@ -374,8 +425,7 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-BEGIN
-FINALLY
+BEGIN FINALLY
    Dispose();
 END Namespace;
 

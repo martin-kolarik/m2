@@ -25,19 +25,19 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Type GET : TValueType;
+   PUBLIC PROPERTY Type GET : TType;
    BEGIN
       RETURN _Type;
    END Type;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Type SET( value : TValueType );
+   PUBLIC PROPERTY Type SET( value : TType );
    VAR
       LFlags : TFlags;
       LValue : Value;
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
 
       ELSIF _Type <> value THEN
@@ -72,7 +72,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Undefined SET( Value : BOOLEAN );
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF Value THEN
          INCL( _Flags, vfUndefined );
@@ -97,7 +97,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Saturate SET( Value : BOOLEAN );
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF Value THEN
          INCL( _Flags, vfSaturate );
@@ -532,7 +532,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Boolean SET( value : BOOLEAN );
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF _Type = vtUnknown THEN
          _Type := vtBoolean;
@@ -593,7 +593,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Tristate SET( value : TRISTATE );
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF _Type = vtUnknown THEN
          _Type := vtTristate;
@@ -679,7 +679,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Long SET( value : INT64 );
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF _Type = vtUnknown THEN
          _Type := vtLong;
@@ -734,7 +734,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Float SET( value : LONGREAL );
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF _Type = vtUnknown THEN
          _Type := vtFloat;
@@ -799,7 +799,7 @@ CLASS IMPLEMENTATION Value;
    VAR
       dt : datetime.DateTime;
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF _Type = vtUnknown THEN
          Type := vtString; // using property allocates string
@@ -860,7 +860,7 @@ CLASS IMPLEMENTATION Value;
       dt : datetime.DateTime;
       s : ARRAY [0..63] OF WCHAR;
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF _Type = vtUnknown THEN
          _Type := vtDate;
@@ -910,7 +910,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Tag SET( Value : PTR );
    BEGIN
-      IF vfReadonly IN _Flags THEN
+      IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF _Type = vtUnknown THEN
          _Type := vtTag;
@@ -927,7 +927,7 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Children GET : TPINameValuePairs;
+   PUBLIC PROPERTY Children GET : TPNameValuePairs;
    BEGIN
       RETURN _Children;
    END Children;

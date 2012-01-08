@@ -10,14 +10,16 @@ IMPORT
 
 CONST
    INameValuePairs ::= iovalue.INameValuePairs;
-   TPINameValuePairs ::= iovalue.TPINameValuePairs;
+   TPNameValuePairs ::= iovalue.TPNameValuePairs;
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
    TPMapper = POINTER TO IMapper; // simple name mapper
    TPNamespace = POINTER TO INamespace;
+
    THash = PTR;
+   TPHash = POINTER TO THash;
    
 CONST
    hashINVALID = NIL;
