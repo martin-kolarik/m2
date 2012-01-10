@@ -17,10 +17,17 @@ TYPE
 
 INTERFACE INameValuePairs;
 
+   // map interface
    PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
    PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
    PROCEDURE ElementAt( Index : CARDINAL; OUT Value : TPValue ) : BOOLEAN;
 
+   // information and structurals
+   READONLY PROPERTY
+      Name : POINTER TO CONST StringsO.IString;
+      Parent : TPNameValuePairs;
+
+   // helpers, shortcut
    PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
 
    // TODO iterator in "default" branch
@@ -139,6 +146,10 @@ CLASS Value;
    PUBLIC PROCEDURE LimitedFloat( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : LONGREAL; // limites all types
 
    // SELF
+   PUBLIC WRITEONLY PROPERTY // meant for group initialization only (in namespaces etc.)
+      InitializeFlags : TFlags;
+      InitializeChildren : TPNameValuePairs;
+
    INTERNAL VAR
       _Flags : TFlags;
       _Type : TType;

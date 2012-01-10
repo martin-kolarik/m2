@@ -14,7 +14,7 @@ IMPORT
 (*---------------------------------------------------------------------------*)
 
 TYPE
-  TPNameValuePairs = POINTER TO NameValuePairs;
+   TPNameValuePairs = POINTER TO NameValuePairs;
 
 CLASS NameValuePairs IMPLEMENTS ns.IHierarchyMapper, iovalue.INameValuePairs; // ( baseobject.CDisposable ) // not synchronized
 
@@ -32,12 +32,16 @@ CLASS NameValuePairs IMPLEMENTS ns.IHierarchyMapper, iovalue.INameValuePairs; //
    PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
    PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Name : POINTER TO CONST StringsO.IString;
+      Parent : iovalue.TPNameValuePairs;
+
    PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
 
    // SELF
-   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : ns.THash; Hash : ns.TPHash ) : BOOLEAN;
+   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : TPNameValuePairs ) : BOOLEAN;
       // returns FALSE e.g. if Name already exists and so
-      // InitialValue/in, Child/in, Hash/out is optional
+      // InitialValue/in, Child/in are optional
 
    PRIVATE VAR
       _Storage : avltree.CAVLTree;
@@ -55,26 +59,30 @@ CLASS Namespace IMPLEMENTS ns.IMapper, ns.INamespace; // CDisposable
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // IMapper
-   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN; // Name must not contain namespace's Name
    PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
    // INamespace/INameValuePairs -- looks inside whole namespace, names are separated with '.'
    PUBLIC VIRTUAL PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
-   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
+   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index, name must not contain namespace's Name
    PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Name : POINTER TO CONST StringsO.IString;
+      Parent : iovalue.TPNameValuePairs;
 
    PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
 
    // INamespace
    PUBLIC VIRTUAL READONLY PROPERTY
       Root : iovalue.TPValue;
-      Name : StringsO.CString; // reads Root.String
 
    PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
 
    // SELF
-   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; CONST Children : ns.THash; Hash : ns.TPHash ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( CONST Name : StringsO.IString );
+   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : TPNameValuePairs ) : BOOLEAN;
 
    PRIVATE VAR
       _Root : iovalue.Value;

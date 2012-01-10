@@ -14,7 +14,6 @@ CLASS CNameValuePairsElem( avltree.CAVLTreeElem );
    LOCAL VAR
       Name : StringsO.CString;
       Value : iovalue.Value;
-      Parent : TPNameValuePairsElem;
 
 END CNameValuePairsElem;
 
@@ -29,7 +28,7 @@ CLASS CSearchHelper( avltree.CAVLTreeElem );
    LOCAL PROCEDURE Init( CONST Source : StringsO.IString );
 
    PRIVATE VAR
-      Source : POINTER TO CONST StringsO.IString;
+      Source : POINTER TO CONST StringsO.IString := NIL;
 
 END CSearchHelper;
 
@@ -46,8 +45,6 @@ CLASS IMPLEMENTATION CNameValuePairsElem;
 
 (*---------------------------------------------------------------------------*)
 
-BEGIN
-   Parent := NIL;
 END CNameValuePairsElem;
 
 (*===========================================================================*)
@@ -71,8 +68,71 @@ CLASS IMPLEMENTATION CSearchHelper;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   Source := NIL;
 END CSearchHelper;
+
+(*===========================================================================*)
+
+PROCEDURE hashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN; // STATIC
+VAR
+   value : iovalue.TPValue := iovalue.TPValue( Hash );
+BEGIN
+   IF value = NIL THEN
+      RETURN FALSE;
+   ELSIF NOT( value^ IS LOOSE iovalue.Value ) THEN
+      RETURN FALSE;
+   END;
+   Value := value;
+   RETURN TRUE;
+END hashToValue;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE hashToChildren( CONST Hash : ns.THash; OUT Children : iovalue.TPNameValuePairs ) : BOOLEAN; // STATIC
+VAR
+   value : iovalue.TPValue;
+BEGIN
+   IF NOT hashToValue( Hash, OUT value ) THEN
+      RETURN FALSE;
+   ELSIF value^.Children = NIL THEN
+      RETURN FALSE;
+   END;
+   Children := value^.Children;
+   RETURN TRUE;
+END hashToChildren;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE hashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN; // STATIC
+VAR
+   children : iovalue.TPNameValuePairs;
+   value : iovalue.TPValue;
+BEGIN
+   IF NOT hashToChildren( Hash, OUT children ) THEN
+      RETURN FALSE;
+   ELSIF NOT children^.Map( ns.nameName()^, OUT value ) THEN // could be children^.Name too
+      RETURN FALSE;
+   END;
+   Name.Assign( value^.String );
+   RETURN TRUE;
+END hashToName;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE hashToParent( CONST Hash : ns.THash; OUT Parent : ns.THash ) : BOOLEAN; // STATIC
+VAR
+   children : iovalue.TPNameValuePairs;
+   value : iovalue.TPValue;
+BEGIN
+   IF NOT hashToChildren( Hash, OUT children ) THEN
+      RETURN FALSE;
+   ELSIF NOT children^.Map( ns.nameParent()^, OUT value ) THEN // could be children^.Parent too
+      RETURN FALSE;
+   ELSIF value^.Tag = NIL THEN
+      RETURN FALSE;
+   END;
+   Parent := value^.Tag;
+   RETURN TRUE;
+END hashToParent;
 
 (*===========================================================================*)
 
@@ -94,7 +154,7 @@ CLASS IMPLEMENTATION NameValuePairs;
    BEGIN
       helper.Init( Name );
       IF _Storage.SearchI( 0, ADR( helper ), OUT elem ) THEN
-         Hash := elem;
+         Hash := ADR( elem^.Value );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -104,49 +164,22 @@ CLASS IMPLEMENTATION NameValuePairs;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
-   VAR
-      elem : TPNameValuePairsElem := TPNameValuePairsElem( Hash );
    BEGIN
-      IF elem = NIL THEN
-         RETURN FALSE;
-      ELSIF NOT( elem^ IS CNameValuePairsElem ) THEN
-         RETURN FALSE;
-      ELSE
-         Name := elem^.Name;
-         RETURN TRUE;
-      END;
+      RETURN hashToName( Hash, OUT Name );
    END HashToName;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
-   VAR
-      elem : TPNameValuePairsElem := TPNameValuePairsElem( Hash );
    BEGIN
-      IF elem = NIL THEN
-         RETURN FALSE;
-      ELSIF NOT( elem^ IS CNameValuePairsElem ) THEN
-         RETURN FALSE;
-      ELSE
-         Value := ADR( elem^.Value );
-         RETURN TRUE;
-      END;
+      RETURN hashToValue( Hash, OUT Value );
    END HashToValue;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE HashToParent( CONST Hash : ns.THash; OUT Parent : ns.THash ) : BOOLEAN;
-   VAR
-      elem : TPNameValuePairsElem := TPNameValuePairsElem( Hash );
    BEGIN
-      IF elem = NIL THEN
-         RETURN FALSE;
-      ELSIF NOT( elem^ IS CNameValuePairsElem ) THEN
-         RETURN FALSE;
-      ELSE
-         Parent := ADR( elem^.Parent );
-         RETURN TRUE;
-      END;
+      RETURN hashToParent( Hash, OUT Parent );
    END HashToParent;
 
 (*---------------------------------------------------------------------------*)
@@ -166,12 +199,10 @@ CLASS IMPLEMENTATION NameValuePairs;
 
    PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
    VAR
-      elem : TPNameValuePairsElem;
       hash : ns.THash;
    BEGIN
       IF NameToHash( Name, OUT hash ) THEN
-         elem := TPNameValuePairsElem( hash );
-         Value := ADR( elem^.Value );
+         Value := iovalue.TPValue( hash );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -203,6 +234,32 @@ CLASS IMPLEMENTATION NameValuePairs;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Name GET : POINTER TO CONST StringsO.IString;
+   VAR
+      value : iovalue.TPValue;
+   BEGIN
+      IF Map( ns.nameName()^, OUT value ) THEN
+         RETURN value^.PString;
+      ELSE
+         RETURN NIL;
+      END;
+   END Name;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Parent GET : iovalue.TPNameValuePairs;
+   VAR
+      value : iovalue.TPValue;
+   BEGIN
+      IF Map( ns.nameParent()^, OUT value ) THEN
+         RETURN value^.Tag;
+      ELSE
+         RETURN NIL;
+      END;
+   END Parent;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT children : iovalue.TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
    VAR
       Value : iovalue.TPValue;
@@ -219,9 +276,8 @@ CLASS IMPLEMENTATION NameValuePairs;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : ns.THash; Hash : ns.TPHash ) : BOOLEAN;
+   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : TPNameValuePairs ) : BOOLEAN;
    VAR
-      children : TPNameValuePairsElem := TPNameValuePairsElem( Children );
       elem : TPNameValuePairsElem;
       hash : ns.THash;
       s : StringsO.CString;
@@ -231,7 +287,7 @@ CLASS IMPLEMENTATION NameValuePairs;
          RETURN FALSE;
       ELSIF NameToHash( Name, OUT hash ) THEN // cannot define two items with same names
          RETURN FALSE;
-      ELSIF ( children <> NIL ) AND NOT( children^ IS CNameValuePairsElem ) THEN
+      ELSIF Children <> NIL THEN
          RETURN FALSE;
       END;
 
@@ -239,25 +295,24 @@ CLASS IMPLEMENTATION NameValuePairs;
       // fill name
       elem^.Name.Assign( Name );
       // fill value part
+      elem^.Value.InitializeFlags := Flags - iovalue.TFlags{iovalue.vfReadOnly};
       elem^.Value.Type := Type;
-      elem^.Value.Flags := Flags;
       elem^.Value.Tag := Data;
       IF InitialValue <> NIL THEN
          s.Assign( InitialValue^ );
-         elem^.Value.String := s; // R/O
+         elem^.Value.String := s;
       END;
+      elem^.Value.InitializeFlags := Flags;
       // fill structure part
-      IF children <> NIL THEN
-         children^.Parent := 
-         elem^.Value.Children := children;
+      IF Children <> NIL THEN
+         elem^.Value.InitializeChildren := Children;
+         Children^.DefineValue( ns.nameName()^, iovalue.vtString, iovalue.flagsDefaultRO, NIL, ADR( Name ), NIL );
+         Children^.DefineValue( ns.nameParent()^, iovalue.vtObject, iovalue.flagsDefaultRO, ADR( SELF ), NIL, NIL );
       END;
       // add it
       _Storage.Insert( elem );
 
       // return value
-      IF Hash <> NIL THEN
-         Hash^ := elem;
-      END;
       RETURN TRUE;
    END DefineValue;
 
@@ -280,42 +335,35 @@ CLASS IMPLEMENTATION Namespace;
 
    PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
    VAR
-      hash : ns.THash;
-      i : CARDINAL;
-      pairs : TPNameValuePairs;
+      i : CARDINAL := 0;
+      pairs : iovalue.TPNameValuePairs;
       toTest : StringsO.CString;
-      value : iovalue.TPValue;
+      value : iovalue.TPValue := NIL;
    BEGIN
       IF Name.Empty THEN
          RETURN FALSE;
       END;
 
-      // Root, the first item, must be handled separatelly
-      i := Name.ItemS( StringsO.WCHARS{L'.'}, 0, 0, TRUE, OUT toTest );
-      IF toTest.Empty THEN
-         RETURN FALSE;
-      ELSIF Name <> toTest THEN
-         RETURN FALSE;
-      END;
-      // then continue down pairs by pairs
       pairs := ADR( _Pairs );
       LOOP
          i := Name.ItemS( StringsO.WCHARS{L'.'}, i, 0, TRUE, OUT toTest );
          IF toTest.Empty THEN
             EXIT;
-         ELSIF NOT pairs^.NameToHash( toTest, OUT hash ) OR NOT pairs^.HashToValue( hash, OUT value ) THEN
+         ELSIF NOT pairs^.Map( toTest, OUT value ) THEN
             RETURN FALSE;
          ELSIF value^.Children = NIL THEN
             RETURN FALSE;
-         ELSIF value^.Children^ IS NameValuePairs THEN
-            pairs := TPNameValuePairs( value^.Children );
          ELSE
-            RETURN FALSE;
+            pairs := value^.Children;
          END;
       END; // LOOP
 
-      Hash := hash;
-      RETURN TRUE;
+      IF value = NIL THEN
+         RETURN FALSE;
+      ELSE
+         Hash := value;
+         RETURN TRUE;
+      END;
    END NameToHash;
 
 (*---------------------------------------------------------------------------*)
@@ -325,20 +373,28 @@ CLASS IMPLEMENTATION Namespace;
       dot : StringsO.CString;
       name : StringsO.CString;
       hash : ns.THash := Hash;
+      parentHash : ns.THash;
       singleName : StringsO.CString;
    BEGIN
-      IF NOT _Pairs.HashToName( Hash, OUT name ) THEN
-         RETURN FALSE;
-      END;
       dot := StringsO.FromOA( L"." );
-      WHILE _Pairs.HashToParent( hash, OUT hash ) DO
-         IF _Pairs.HashToName( hash, OUT singleName ) THEN
-            name.Prepend( dot );
-            name.Prepend( singleName );
-         ELSE
+
+      LOOP
+         IF NOT hashToParent( hash, OUT parentHash ) THEN
+            EXIT;
+         ELSIF NOT hashToName( hash, OUT singleName ) THEN
             RETURN FALSE;
          END;
-      END; // WHILE
+         // construct
+         IF name.Empty THEN
+            name := singleName;
+         ELSE
+            name.Prepend( dot );
+            name.Prepend( singleName );
+         END;
+         // move up
+         hash := parentHash;
+      END; // LOOP
+
       Name.Assign( name );
       RETURN TRUE;
    END HashToName;
@@ -347,17 +403,8 @@ CLASS IMPLEMENTATION Namespace;
 
    PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
    BEGIN
-      RETURN _Pairs.HashToValue( Hash, OUT Value );
+      RETURN hashToValue( Hash, OUT Value );
    END HashToValue;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
-   VAR
-      Value : iovalue.TPValue;
-   BEGIN
-      RETURN Get( Name, OUT Value );
-   END Contains;
 
 (*---------------------------------------------------------------------------*)
 
@@ -365,10 +412,10 @@ CLASS IMPLEMENTATION Namespace;
    VAR
       index : CARDINAL;
    BEGIN
-      IF Name.ToCARD32( 10, OUT index ) THEN
+      IF NameOrIndex.ToCARD32( 10, OUT index ) THEN
          RETURN ElementAt( index, OUT Value );
       ELSE
-         RETURN Map( Name, OUT Value );
+         RETURN Map( NameOrIndex, OUT Value );
       END;
    END Get;
 
@@ -390,6 +437,20 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Name GET : POINTER TO CONST StringsO.IString;
+   BEGIN
+      RETURN INameValuePairs.Name;
+   END Name;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Parent GET : iovalue.TPNameValuePairs;
+   BEGIN
+      RETURN INameValuePairs.Parent;
+   END Parent;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT children : iovalue.TPNameValuePairs ) : BOOLEAN;
    VAR
       value : iovalue.TPValue;
@@ -404,13 +465,6 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; CONST Children : ns.THash; Hash : ns.TPHash ) : BOOLEAN;
-   BEGIN
-      RETURN _Pairs.DefineValue( Name, Type, Flags, Data, InitialValue, Children, Hash );
-   END DefineValue;
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC PROPERTY Root GET : iovalue.TPValue;
    BEGIN
       RETURN ADR( _Root );
@@ -418,10 +472,33 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Name GET : StringsO.CString; // reads Root.String
+   PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
+   VAR
+      Value : iovalue.TPValue;
    BEGIN
-      RETURN _Root.String;
-   END Name;
+      RETURN Get( Name, OUT Value );
+   END Contains;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST Name : StringsO.IString );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      // store name
+      s.Assign( Name );
+      _Root.String := s;
+      // create mandatory keys
+      DefineValue( ns.nameName()^, iovalue.vtString, iovalue.flagsDefaultRO, NIL, ADR( Name ), NIL );
+      DefineValue( ns.nameParent()^, iovalue.vtObject, iovalue.flagsDefaultRO, NIL, NIL, NIL );
+   END Init;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : TPNameValuePairs ) : BOOLEAN;
+   BEGIN
+      RETURN _Pairs.DefineValue( Name, Type, Flags, Data, InitialValue, Children );
+   END DefineValue;
 
 (*---------------------------------------------------------------------------*)
 

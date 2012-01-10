@@ -24,6 +24,9 @@ TYPE
 CONST
    hashINVALID = NIL;
 
+PROCEDURE nameName() : POINTER TO CONST StringsO.IString; // STATIC
+PROCEDURE nameParent() : POINTER TO CONST StringsO.IString; // STATIC
+
 (*---------------------------------------------------------------------------*)
 
 INTERFACE IMapper;
@@ -44,7 +47,6 @@ INTERFACE INamespace( INameValuePairs );
 
    READONLY PROPERTY
       Root : iovalue.TPValue;
-      Name : StringsO.CString; // reads Root.String
 
    PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
 

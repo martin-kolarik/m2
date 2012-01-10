@@ -1503,6 +1503,20 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY InitializeFlags SET( Value : TFlags );
+   BEGIN
+      _Flags := Value;
+   END InitializeFlags;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY InitializeChildren SET( Value : TPNameValuePairs );
+   BEGIN
+      _Children := Value;
+   END InitializeChildren;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _Flags := TFlags{};
    _Type := vtUnknown;
