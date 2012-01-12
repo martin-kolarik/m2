@@ -72,5 +72,11 @@
     <None Include="Source\nsimpl.mod">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="Test\TNamespace.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TNameValuePair.mod">
+      <Filter>Test</Filter>
+    </None>
   </ItemGroup>
 </Project>
