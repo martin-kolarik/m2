@@ -43,7 +43,7 @@ CLASS IMPLEMENTATION Value;
       ELSIF _Type <> value THEN
          LFlags := _Flags;
 
-         IF ( value <> vtUnknown ) AND ( value <> vtObject ) THEN
+         IF ( value <> vtUnknown ) AND ( value <> vtObject ) AND ( value <> vtLink ) THEN
             // convert
             LValue._Type := value;
             LValue := SELF;
@@ -108,6 +108,23 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Link GET : PTR;
+   BEGIN
+      IF _Type <> vtLink THEN
+         ASSERT( FALSE );
+
+      ELSIF vfUndefined IN _Flags THEN
+         RETURN 0;
+
+      ELSE
+         RETURN _Storage.Link;
+
+      END;
+      RETURN 0;
+   END Link;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Boolean GET : BOOLEAN;
    VAR
       PS : StringsO.TPString;
@@ -119,7 +136,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -165,7 +182,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -242,7 +259,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -308,7 +325,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -358,7 +375,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -409,13 +426,11 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-         S.FromCARD64( CARD64( _Storage.Tag ), 10 );
-
-      | vtObject:
+      | vtObject :
          ASSERT( FALSE );
 
-      | vtTag :
-         S.FromCARD64( CARD64( _Storage.Tag ), 16 );
+      | vtLink :
+         S.FromCARD64( CARD64( _Storage.Link ), 16 );
 
       | vtBoolean :
          IF _Storage.Boolean THEN
@@ -465,7 +480,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -515,18 +530,27 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Tag GET : PTR;
    BEGIN
-      IF _Type <> vtTag THEN
-         ASSERT( FALSE );
+      RETURN _Tag;
+   END Tag;   
 
-      ELSIF vfUndefined IN _Flags THEN
-         RETURN 0;
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Link SET( Value : PTR );
+   BEGIN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
+         _Type := vtLink;
+      END;
+
+      CASE _Type OF
+      | vtLink :
+         _Storage.Link := Value;
 
       ELSE
-         RETURN _Storage.Tag;
-
-      END;
-      RETURN 0;
-   END Tag;
+         ASSERT( FALSE );
+      END; // CASE
+   END Link;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -540,7 +564,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -601,7 +625,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -640,7 +664,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -687,7 +711,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -742,7 +766,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -807,7 +831,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -868,7 +892,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtTag :
+        vtLink :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -910,20 +934,8 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Tag SET( Value : PTR );
    BEGIN
-      IF vfReadOnly IN _Flags THEN
-         RETURN;
-      ELSIF _Type = vtUnknown THEN
-         _Type := vtTag;
-      END;
-
-      CASE _Type OF
-      | vtTag :
-         _Storage.Tag := Value;
-
-      ELSE
-         ASSERT( FALSE );
-      END; // CASE
-   END Tag;
+      _Tag := Value;
+   END Tag;   
 
 (*--------------------------------------------------------------------------------*)
 
@@ -957,8 +969,8 @@ CLASS IMPLEMENTATION Value;
         vtObject :
          // intentionally do nothing
 
-      | vtTag :
-         _Storage.Tag := Source.Tag;
+      | vtLink :
+         _Storage.Link := Source.Link;
 
       | vtBoolean :
          _Storage.Boolean := Source.Boolean;
@@ -1521,6 +1533,7 @@ BEGIN
    _Flags := TFlags{};
    _Type := vtUnknown;
    _Storage.Long := 0;
+   _Tag := 0;
    _Children := NIL;
 FINALLY
    Dispose();

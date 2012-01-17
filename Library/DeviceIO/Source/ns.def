@@ -22,10 +22,11 @@ TYPE
    TPHash = POINTER TO THash;
    
 CONST
-   hashINVALID = NIL;
+   hashINVALID = THash( NIL );
 
 PROCEDURE nameName() : POINTER TO CONST StringsO.IString; // STATIC
 PROCEDURE nameParent() : POINTER TO CONST StringsO.IString; // STATIC
+PROCEDURE namePrototype() : POINTER TO CONST StringsO.IString; // STATIC
 
 (*---------------------------------------------------------------------------*)
 

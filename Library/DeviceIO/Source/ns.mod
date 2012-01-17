@@ -11,6 +11,7 @@ FROM Storage IMPORT
 VAR
    NameName : StringsO.CString;
    NameParent : StringsO.CString;
+   NamePrototype : StringsO.CString;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -31,6 +32,16 @@ BEGIN
    END;
    RETURN ADR( NameParent );
 END nameParent;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE namePrototype() : POINTER TO CONST StringsO.IString;
+BEGIN
+   IF NamePrototype.Empty THEN
+      NamePrototype := StringsO.FromOA( L"#prototype" );
+   END;
+   RETURN ADR( NamePrototype );
+END namePrototype;
 
 (*--------------------------------------------------------------------------------*)
 

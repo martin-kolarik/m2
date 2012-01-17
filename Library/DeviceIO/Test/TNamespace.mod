@@ -1,4 +1,4 @@
-MODULE TAdviser;
+MODULE TNamespace;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -42,14 +42,14 @@ CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
    PUBLIC VIRTUAL READONLY PROPERTY
       DeviceCapabilities : device.TCapabilities;
 
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper; // required
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns; // optional
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // optional
 
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO; // required
-	
-	// IIO
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO; // required
+   
+   // IIO
    PUBLIC VIRTUAL READONLY PROPERTY
       IOCapabilities : io.TCapabilities;
       Pending : BOOLEAN;
@@ -65,10 +65,11 @@ CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
    PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
-	
-	// IMapper
+   
+   // IMapper
    PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
    
    // SELF
    LOCAL PROCEDURE Simulate();
@@ -134,11 +135,11 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
-	BEGIN
-	   RETURN sync.arCompleted;
-	END Configure;
-	
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
+   BEGIN
+      RETURN sync.arCompleted;
+   END Configure;
+   
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
@@ -148,14 +149,14 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
    BEGIN
       RETURN NIL;
    END NS;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
    BEGIN
       RETURN ADR( SELF );
    END IO;
@@ -288,6 +289,13 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END HashToValue;
+
+(*---------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE Simulate();
    VAR
       ios : ARRAY [0..3] OF iovalue.Value;
@@ -308,10 +316,10 @@ CLASS IMPLEMENTATION CSimulator;
       Items[2] := 3;
       Items[3] := 1002;
 
-      ios[0].FromStringOA( L"simval1", FALSE );
-      ios[1].FromStringOA( L"simval2", FALSE );
-      ios[2].FromStringOA( L"simval3", FALSE );
-      ios[3].FromStringOA( L"simval4", FALSE );
+      ios[0].FromString( StringsO.FromOA( L"simval1" ), FALSE );
+      ios[1].FromString( StringsO.FromOA( L"simval2" ), FALSE );
+      ios[2].FromString( StringsO.FromOA( L"simval3" ), FALSE );
+      ios[3].FromString( StringsO.FromOA( L"simval4" ), FALSE );
       
       _AdviseListener^.OnAdvise( ADR( SELF ), Results, Items, OA( 3, ADR( ios[0] )));
 
@@ -654,4 +662,4 @@ END CTest;
 
 (*===========================================================================*)
 
-END TAdviser.
+END TNamespace.

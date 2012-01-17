@@ -2,6 +2,12 @@ IMPLEMENTATION MODULE nsimpl;
 
 (*===========================================================================*)
 
+CONST
+   flagsDefaultName = iovalue.TFlags{iovalue.vfReadOnly};
+   flagsDefaultParent = iovalue.TFlags{iovalue.vfReadOnly, iovalue.vfHidden};
+
+(*===========================================================================*)
+
 TYPE
   TPNameValuePairsElem = POINTER TO CNameValuePairsElem;
 
@@ -55,7 +61,7 @@ CLASS IMPLEMENTATION CSearchHelper;
 
    PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
    BEGIN
-      RETURN Source^.Compare( TPNameValuePairsElem( pelem )^.Name );
+      RETURN StringsO.TPString( Source )^.Compare( TPNameValuePairsElem( pelem )^.Name );
    END Compare;
 
 (*---------------------------------------------------------------------------*)
@@ -76,10 +82,11 @@ PROCEDURE hashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BO
 VAR
    value : iovalue.TPValue := iovalue.TPValue( Hash );
 BEGIN
-   IF value = NIL THEN
+   IF Hash = ns.hashINVALID THEN
       RETURN FALSE;
-   ELSIF NOT( value^ IS LOOSE iovalue.Value ) THEN
-      RETURN FALSE;
+   // not appliable, casting to non-polymorphic class always gives correct RTTI
+   // ELSIF NOT( value^ IS LOOSE iovalue.Value ) THEN
+   //   RETURN FALSE;
    END;
    Value := value;
    RETURN TRUE;
@@ -127,10 +134,10 @@ BEGIN
       RETURN FALSE;
    ELSIF NOT children^.Map( ns.nameParent()^, OUT value ) THEN // could be children^.Parent too
       RETURN FALSE;
-   ELSIF value^.Tag = NIL THEN
+   ELSIF value^.Link = NIL THEN
       RETURN FALSE;
    END;
-   Parent := value^.Tag;
+   Parent := value^.Link;
    RETURN TRUE;
 END hashToParent;
 
@@ -181,19 +188,6 @@ CLASS IMPLEMENTATION NameValuePairs;
    BEGIN
       RETURN hashToParent( Hash, OUT Parent );
    END HashToParent;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
-   VAR
-      index : CARDINAL;
-   BEGIN
-      IF NameOrIndex.ToCARD32( 10, OUT index ) THEN
-         RETURN ElementAt( index, OUT Value );
-      ELSE
-         RETURN Map( NameOrIndex, OUT Value );
-      END;
-   END Get;
 
 (*---------------------------------------------------------------------------*)
 
@@ -252,7 +246,7 @@ CLASS IMPLEMENTATION NameValuePairs;
       value : iovalue.TPValue;
    BEGIN
       IF Map( ns.nameParent()^, OUT value ) THEN
-         RETURN value^.Tag;
+         RETURN value^.Link;
       ELSE
          RETURN NIL;
       END;
@@ -287,8 +281,6 @@ CLASS IMPLEMENTATION NameValuePairs;
          RETURN FALSE;
       ELSIF NameToHash( Name, OUT hash ) THEN // cannot define two items with same names
          RETURN FALSE;
-      ELSIF Children <> NIL THEN
-         RETURN FALSE;
       END;
 
       NEW( elem );
@@ -306,8 +298,8 @@ CLASS IMPLEMENTATION NameValuePairs;
       // fill structure part
       IF Children <> NIL THEN
          elem^.Value.InitializeChildren := Children;
-         Children^.DefineValue( ns.nameName()^, iovalue.vtString, iovalue.flagsDefaultRO, NIL, ADR( Name ), NIL );
-         Children^.DefineValue( ns.nameParent()^, iovalue.vtObject, iovalue.flagsDefaultRO, ADR( SELF ), NIL, NIL );
+         Children^.DefineValue( ns.nameName()^, iovalue.vtString, flagsDefaultName, NIL, ADR( Name ), NIL );
+         Children^.DefineLink( ns.nameParent()^, flagsDefaultParent, ADR( SELF ), NIL );
       END;
       // add it
       _Storage.Insert( elem );
@@ -315,6 +307,36 @@ CLASS IMPLEMENTATION NameValuePairs;
       // return value
       RETURN TRUE;
    END DefineValue;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DefineLink( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Link, Data : PTR ) : BOOLEAN;
+   VAR
+      elem : TPNameValuePairsElem;
+      hash : ns.THash;
+   BEGIN
+      // check input parameters
+      IF Name.Empty THEN
+         RETURN FALSE;
+      ELSIF NameToHash( Name, OUT hash ) THEN // cannot define two items with same names
+         RETURN FALSE;
+      END;
+
+      NEW( elem );
+      // fill name
+      elem^.Name.Assign( Name );
+      // fill value part
+      elem^.Value.InitializeFlags := Flags - iovalue.TFlags{iovalue.vfReadOnly};
+      elem^.Value.Type := iovalue.vtLink;
+      elem^.Value.Link := Link;
+      elem^.Value.Tag := Data;
+      elem^.Value.InitializeFlags := Flags;
+      // add it
+      _Storage.Insert( elem );
+
+      // return value
+      RETURN TRUE;
+   END DefineLink;
 
 (*---------------------------------------------------------------------------*)
 
@@ -408,19 +430,6 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
-   VAR
-      index : CARDINAL;
-   BEGIN
-      IF NameOrIndex.ToCARD32( 10, OUT index ) THEN
-         RETURN ElementAt( index, OUT Value );
-      ELSE
-         RETURN Map( NameOrIndex, OUT Value );
-      END;
-   END Get;
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
    VAR
       hash : ns.THash;
@@ -438,15 +447,27 @@ CLASS IMPLEMENTATION Namespace;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Name GET : POINTER TO CONST StringsO.IString;
+   VAR
+      value : iovalue.TPValue;
    BEGIN
-      RETURN INameValuePairs.Name;
+      IF Map( ns.nameName()^, OUT value ) THEN
+         RETURN value^.PString;
+      ELSE
+         RETURN NIL;
+      END;
    END Name;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Parent GET : iovalue.TPNameValuePairs;
+   VAR
+      value : iovalue.TPValue;
    BEGIN
-      RETURN INameValuePairs.Parent;
+      IF Map( ns.nameParent()^, OUT value ) THEN
+         RETURN value^.Link;
+      ELSE
+         RETURN NIL;
+      END;
    END Parent;
 
 (*---------------------------------------------------------------------------*)
@@ -476,7 +497,7 @@ CLASS IMPLEMENTATION Namespace;
    VAR
       Value : iovalue.TPValue;
    BEGIN
-      RETURN Get( Name, OUT Value );
+      RETURN Map( Name, OUT Value );
    END Contains;
 
 (*---------------------------------------------------------------------------*)
@@ -489,8 +510,8 @@ CLASS IMPLEMENTATION Namespace;
       s.Assign( Name );
       _Root.String := s;
       // create mandatory keys
-      DefineValue( ns.nameName()^, iovalue.vtString, iovalue.flagsDefaultRO, NIL, ADR( Name ), NIL );
-      DefineValue( ns.nameParent()^, iovalue.vtObject, iovalue.flagsDefaultRO, NIL, NIL, NIL );
+      DefineValue( ns.nameName()^, iovalue.vtString, flagsDefaultName, NIL, ADR( Name ), NIL );
+      DefineValue( ns.nameParent()^, iovalue.vtLink, flagsDefaultParent, NIL, NIL, NIL );
    END Init;
 
 (*---------------------------------------------------------------------------*)
@@ -499,6 +520,13 @@ CLASS IMPLEMENTATION Namespace;
    BEGIN
       RETURN _Pairs.DefineValue( Name, Type, Flags, Data, InitialValue, Children );
    END DefineValue;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DefineLink( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Link, Data : PTR ) : BOOLEAN;
+   BEGIN
+      RETURN _Pairs.DefineLink( Name, Flags, Link, Data );
+   END DefineLink;
 
 (*---------------------------------------------------------------------------*)
 

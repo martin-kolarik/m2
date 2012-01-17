@@ -28,7 +28,6 @@ CLASS NameValuePairs IMPLEMENTS ns.IHierarchyMapper, iovalue.INameValuePairs; //
    PUBLIC VIRTUAL PROCEDURE HashToParent( CONST Hash : ns.THash; OUT Parent : ns.THash ) : BOOLEAN; // STATIC
 
    // INameValuePairs
-   PUBLIC VIRTUAL PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
    PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
    PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
@@ -42,6 +41,7 @@ CLASS NameValuePairs IMPLEMENTS ns.IHierarchyMapper, iovalue.INameValuePairs; //
    PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : TPNameValuePairs ) : BOOLEAN;
       // returns FALSE e.g. if Name already exists and so
       // InitialValue/in, Child/in are optional
+   PUBLIC PROCEDURE DefineLink( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Link, Data : PTR ) : BOOLEAN;
 
    PRIVATE VAR
       _Storage : avltree.CAVLTree;
@@ -64,7 +64,6 @@ CLASS Namespace IMPLEMENTS ns.IMapper, ns.INamespace; // CDisposable
    PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
    // INamespace/INameValuePairs -- looks inside whole namespace, names are separated with '.'
-   PUBLIC VIRTUAL PROCEDURE Get( CONST NameOrIndex : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // tries to convert string to number, if it succeeds index is used
    PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index, name must not contain namespace's Name
    PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
@@ -83,6 +82,7 @@ CLASS Namespace IMPLEMENTS ns.IMapper, ns.INamespace; // CDisposable
    // SELF
    PUBLIC PROCEDURE Init( CONST Name : StringsO.IString );
    PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : TPNameValuePairs ) : BOOLEAN;
+   PUBLIC PROCEDURE DefineLink( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Link, Data : PTR ) : BOOLEAN;
 
    PRIVATE VAR
       _Root : iovalue.Value;
