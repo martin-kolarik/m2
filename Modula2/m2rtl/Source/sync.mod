@@ -1792,11 +1792,11 @@ END NToOneQueue;
 
 INITIALLY Sync;
 VAR
-	si : windows.SYSTEM_INFO;
+   si : windows.SYSTEM_INFO;
 BEGIN
-	Zero( ADR( si ), SIZE( si ));
-	windows.GetSystemInfo( ADR( si ));
-	NumOfProcessors := MAX2( 1, si.dwNumberOfProcessors ); // do not to decrease to zero, even if erroneous count is returned
+   Zero( ADR( si ), SIZE( si ));
+   windows.GetSystemInfo( ADR( si ));
+   NumOfProcessors := MAX2( 1, si.dwNumberOfProcessors ); // do not to decrease to zero, even if erroneous count is returned
 END Sync;
 
 (*--------------------------------------------------------------------------------*)
