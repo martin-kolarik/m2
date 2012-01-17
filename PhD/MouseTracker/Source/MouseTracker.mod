@@ -190,9 +190,7 @@ CLASS IMPLEMENTATION CMessageHandler;
 
       IF al.TakeSafe( REF _Lock, L"Unable to lock event queue" ) = Sync.arCompleted THEN
          _Queue.EnqueueOA( event, 1 );
-         IF _Queue.Count = 1 THEN
-            _Signal.Signal();
-         END;
+         _Signal.Signal();
          al.Unlock();
       END;
    END EnqueueLLHook;
