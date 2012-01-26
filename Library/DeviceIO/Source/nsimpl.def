@@ -8,51 +8,21 @@ IMPORT
    IOO,
    iovalue,
    ns,
+   nsinternal,
    StringsO,
    Sync;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-   TPNameValuePairs = POINTER TO NameValuePairs;
-
-CLASS NameValuePairs IMPLEMENTS ns.IHierarchyMapper, iovalue.INameValuePairs; // ( baseobject.CDisposable ) // not synchronized
-
-   // CDisposable
-   PUBLIC VIRTUAL PROCEDURE Dispose();
-
-   // IHierarchyMapper
-   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN; // STATIC
-   PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN; // STATIC
-   PUBLIC VIRTUAL PROCEDURE HashToParent( CONST Hash : ns.THash; OUT Parent : ns.THash ) : BOOLEAN; // STATIC
-
-   // INameValuePairs
-   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
-   PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
-
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Name : POINTER TO CONST StringsO.IString;
-      Parent : iovalue.TPNameValuePairs;
-
-   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
-
-   // SELF
-   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : TPNameValuePairs ) : BOOLEAN;
-      // returns FALSE e.g. if Name already exists and so
-      // InitialValue/in, Child/in are optional
-   PUBLIC PROCEDURE DefineLink( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Link, Data : PTR ) : BOOLEAN;
-
-   PRIVATE VAR
-      _Storage : avltree.CAVLTree;
-
-END NameValuePairs;
+// STATIC-like
+PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
    TPNamespace = POINTER TO Namespace;
 
+// all Name parameters are/can be hierachical
 CLASS Namespace IMPLEMENTS ns.IMapper, ns.INamespace; // CDisposable
 
    // CDisposable
@@ -60,33 +30,29 @@ CLASS Namespace IMPLEMENTS ns.IMapper, ns.INamespace; // CDisposable
 
    // IMapper
    PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN; // Name must not contain namespace's Name
-   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN; // STATIC-like, name without namespace's Name
 
    // INamespace/INameValuePairs -- looks inside whole namespace, names are separated with '.'
-   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index, name must not contain namespace's Name
-   PUBLIC VIRTUAL PROCEDURE ElementAt( Index : CARDINAL; OUT Value : iovalue.TPValue ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, Name must not contain namespace's Name
 
    PUBLIC VIRTUAL READONLY PROPERTY
       Name : POINTER TO CONST StringsO.IString;
-      Parent : iovalue.TPNameValuePairs;
+      Parent : ns.TPNameValuePairs;
 
-   PUBLIC VIRTUAL PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : iovalue.TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
+   PUBLIC VIRTUAL PROCEDURE Child( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
    // INamespace
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Root : iovalue.TPValue;
-
    PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Name : StringsO.IString );
-   PUBLIC PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : StringsO.TPString; Children : TPNameValuePairs ) : BOOLEAN;
    PUBLIC PROCEDURE DefineLink( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Link, Data : PTR ) : BOOLEAN;
 
    PRIVATE VAR
-      _Root : iovalue.Value;
-      _Pairs : NameValuePairs;
+      _Pairs : nsinternal.TPNameValuePairs;
+   PRIVATE PROCEDURE LookupForDefine( CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
 END Namespace;
 

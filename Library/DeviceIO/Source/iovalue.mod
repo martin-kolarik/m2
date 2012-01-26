@@ -939,13 +939,6 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Children GET : TPNameValuePairs;
-   BEGIN
-      RETURN _Children;
-   END Children;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROPERTY PString GET: StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
    BEGIN
       IF _Type = vtString THEN
@@ -1333,8 +1326,6 @@ CLASS IMPLEMENTATION Value;
       _Flags := TFlags{};
       _Type := vtUnknown;
       _Storage.Long := 0;
-
-      // TODO Children
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -1522,19 +1513,11 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY InitializeChildren SET( Value : TPNameValuePairs );
-   BEGIN
-      _Children := Value;
-   END InitializeChildren;
-
-(*--------------------------------------------------------------------------------*)
-
 BEGIN
    _Flags := TFlags{};
    _Type := vtUnknown;
    _Storage.Long := 0;
    _Tag := 0;
-   _Children := NIL;
 FINALLY
    Dispose();
 END Value;

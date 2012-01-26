@@ -8,46 +8,57 @@ IMPORT
 // Base namespace storage structure is tightly linked to Value, so
 // NameValuePairs has to be defined in "iovalue.def".
 
-CONST
-   INameValuePairs ::= iovalue.INameValuePairs;
-   TPNameValuePairs ::= iovalue.TPNameValuePairs;
+TYPE
+   TPNameValuePairs = POINTER TO INameValuePairs;
+
+INTERFACE INameValuePairs;
+
+   // map interface
+   PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
+
+   // information and structurals
+   READONLY PROPERTY
+      Name : POINTER TO CONST StringsO.IString;
+      Parent : TPNameValuePairs;
+
+   PROCEDURE Child( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
+
+   // creation
+   PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : TPNameValuePairs ) : BOOLEAN;
+
+   // TODO iterator in "default" branch
+
+END INameValuePairs;
+
+PROCEDURE namePrototype() : POINTER TO CONST StringsO.IString; // STATIC
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
-   TPMapper = POINTER TO IMapper; // simple name mapper
-   TPNamespace = POINTER TO INamespace;
-
    THash = PTR;
    TPHash = POINTER TO THash;
    
 CONST
    hashINVALID = THash( NIL );
 
-PROCEDURE nameName() : POINTER TO CONST StringsO.IString; // STATIC
-PROCEDURE nameParent() : POINTER TO CONST StringsO.IString; // STATIC
-PROCEDURE namePrototype() : POINTER TO CONST StringsO.IString; // STATIC
-
 (*---------------------------------------------------------------------------*)
 
+TYPE
+   TPMapper = POINTER TO IMapper;
+
 INTERFACE IMapper;
+
    PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
    PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
-   PROCEDURE HashToValue( CONST Hash : THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
+
 END IMapper;
 
 (*---------------------------------------------------------------------------*)
 
-INTERFACE IHierarchyMapper( IMapper );
-   PROCEDURE HashToParent( CONST Hash : THash; OUT Parent : THash ) : BOOLEAN;
-END IHierarchyMapper;
-
-(*---------------------------------------------------------------------------*)
+TYPE
+   TPNamespace = POINTER TO INamespace;
 
 INTERFACE INamespace( INameValuePairs );
-
-   READONLY PROPERTY
-      Root : iovalue.TPValue;
 
    PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
 

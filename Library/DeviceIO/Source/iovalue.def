@@ -12,31 +12,6 @@ IMPORT
 #save, option( dll_export => on )
 
 TYPE
-   TPNameValuePairs = POINTER TO INameValuePairs;
-   TPValue = POINTER TO Value;
-
-INTERFACE INameValuePairs;
-
-   // map interface
-   PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
-   PROCEDURE ElementAt( Index : CARDINAL; OUT Value : TPValue ) : BOOLEAN;
-
-   // information and structurals
-   READONLY PROPERTY
-      Name : POINTER TO CONST StringsO.IString;
-      Parent : TPNameValuePairs;
-
-   // helpers, shortcut
-   PROCEDURE Children( CONST Name : StringsO.IString; OUT Children : TPNameValuePairs ) : BOOLEAN; // shorthand for Get[Name]->Value->Children
-
-   // TODO iterator in "default" branch
-
-END INameValuePairs;
-
-
-(*---------------------------------------------------------------------------*)
-
-TYPE
    TType = (
       vtUnknown,
       vtLink, // link to internal world, not visible for user
@@ -74,7 +49,7 @@ TYPE
    #save, option( pack => 1 )
    TStorage  = RECORD
                   CASE : TType OF
-                  | vtUnknown   :
+                  | vtUnknown  :
                   | vtLink     : Link      : PTR;
                   | vtObject   : // children contains members, the value is pure object
                   | vtBoolean  : Boolean   : BOOLEAN;
@@ -89,6 +64,9 @@ TYPE
    #restore
    
 (*---------------------------------------------------------------------------*)
+
+TYPE
+   TPValue = POINTER TO Value;
 
 CLASS Value;
 
@@ -109,7 +87,6 @@ CLASS Value;
       // Data : StorageO.CMemoryBuffer;
       Tag : PTR; // user data
    PUBLIC READONLY PROPERTY
-      Children : TPNameValuePairs;
       PString : StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
 
    PUBLIC OPERATOR :=( CONST Source : Value ); // respects type
@@ -149,14 +126,12 @@ CLASS Value;
    // SELF
    PUBLIC WRITEONLY PROPERTY // meant for group initialization only (in namespaces etc.)
       InitializeFlags : TFlags;
-      InitializeChildren : TPNameValuePairs;
 
    INTERNAL VAR
       _Flags : TFlags;
       _Type : TType;
       _Storage : TStorage;
       _Tag : PTR; // user data
-      _Children : TPNameValuePairs;
 
 END Value;
 

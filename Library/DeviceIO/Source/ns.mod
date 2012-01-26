@@ -9,29 +9,7 @@ FROM Storage IMPORT
 (*--------------------------------------------------------------------------------*)
 
 VAR
-   NameName : StringsO.CString;
-   NameParent : StringsO.CString;
    NamePrototype : StringsO.CString;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE nameName() : POINTER TO CONST StringsO.IString;
-BEGIN
-   IF NameName.Empty THEN
-      NameName := StringsO.FromOA( L"#name" );
-   END;
-   RETURN ADR( NameName );
-END nameName;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE nameParent() : POINTER TO CONST StringsO.IString;
-BEGIN
-   IF NameParent.Empty THEN
-      NameParent := StringsO.FromOA( L"#parent" );
-   END;
-   RETURN ADR( NameParent );
-END nameParent;
 
 (*--------------------------------------------------------------------------------*)
 
