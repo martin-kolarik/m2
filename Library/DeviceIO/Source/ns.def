@@ -4,9 +4,7 @@ IMPORT
    iovalue,
    StringsO;
 
-(*---------------------------------------------------------------------------*)
-// Base namespace storage structure is tightly linked to Value, so
-// NameValuePairs has to be defined in "iovalue.def".
+(*===========================================================================*)
 
 TYPE
    TPNameValuePairs = POINTER TO INameValuePairs;
@@ -14,44 +12,22 @@ TYPE
 INTERFACE INameValuePairs;
 
    // map interface
-   PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
+   PROCEDURE Get( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
 
    // information and structurals
    READONLY PROPERTY
-      Name : POINTER TO CONST StringsO.IString;
+      Name : StringsO.CString;
       Parent : TPNameValuePairs;
-
-   PROCEDURE Child( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
+   PROPERTY
+      Value : iovalue.Value;
 
    // creation
    PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : TPNameValuePairs ) : BOOLEAN;
+   PROCEDURE Link( CONST Child : TPNameValuePairs ) : BOOLEAN; // creates child, name is taken from Child^.Name
 
    // TODO iterator in "default" branch
 
 END INameValuePairs;
-
-PROCEDURE namePrototype() : POINTER TO CONST StringsO.IString; // STATIC
-
-(*---------------------------------------------------------------------------*)
-
-TYPE
-   THash = PTR;
-   TPHash = POINTER TO THash;
-   
-CONST
-   hashINVALID = THash( NIL );
-
-(*---------------------------------------------------------------------------*)
-
-TYPE
-   TPMapper = POINTER TO IMapper;
-
-INTERFACE IMapper;
-
-   PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
-   PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
-
-END IMapper;
 
 (*---------------------------------------------------------------------------*)
 
@@ -62,8 +38,18 @@ INTERFACE INamespace( INameValuePairs );
 
    PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
 
+   PROCEDURE GetFullName( CONST Value : TPNameValuePairs; OUT FullName : StringsO.IString ) : BOOLEAN;
+
 END INamespace;
 
 (*---------------------------------------------------------------------------*)
+
+TYPE
+   THash = TPNameValuePairs;
+   
+CONST
+   hashINVALID = THash( NIL );
+
+(*===========================================================================*)
 
 END ns.

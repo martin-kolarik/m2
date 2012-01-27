@@ -14,7 +14,7 @@ IMPORT
 TYPE
    TType = (
       vtUnknown,
-      vtLink, // link to internal world, not visible for user
+      vtReference, // link to internal native world, not visible for user
       vtObject,
       vtBoolean,
       vtTristate,
@@ -39,7 +39,7 @@ TYPE
 
 CONST
    flagsDefaultObject = TFlags{};
-   flagsDefaultLink = TFlags{vfReadOnly,vfHidden};
+   flagsDefaultReference = TFlags{vfReadOnly,vfHidden};
    flagsDefaultRO = TFlags{vfReadOnly, vfUndefined, vfSaturate}; // intended for values
    flagsDefaultRW = TFlags{vfUndefined, vfSaturate}; // intended for values
    
@@ -49,16 +49,16 @@ TYPE
    #save, option( pack => 1 )
    TStorage  = RECORD
                   CASE : TType OF
-                  | vtUnknown  :
-                  | vtLink     : Link      : PTR;
-                  | vtObject   : // children contains members, the value is pure object
-                  | vtBoolean  : Boolean   : BOOLEAN;
-                  | vtTristate : Tristate  : TRISTATE;
-                  | vtInteger  : Integer   : INT32;
-                  | vtLong     : Long      : INT64;
-                  | vtFloat    : Float     : LONGREAL;
-                  | vtString   : String    : POINTER TO StringsO.CString;
-                  | vtDate     : Date      : datetime.TJD;
+                  | vtUnknown   :
+                  | vtReference : Reference : PTR;
+                  | vtObject    : // children contains members, the value is pure object
+                  | vtBoolean   : Boolean   : BOOLEAN;
+                  | vtTristate  : Tristate  : TRISTATE;
+                  | vtInteger   : Integer   : INT32;
+                  | vtLong      : Long      : INT64;
+                  | vtFloat     : Float     : LONGREAL;
+                  | vtString    : String    : POINTER TO StringsO.CString;
+                  | vtDate      : Date      : datetime.TJD;
                   END;
                 END; // RECORD
    #restore
@@ -75,7 +75,7 @@ CLASS Value;
       Undefined : BOOLEAN;
       Saturate : BOOLEAN;
    PUBLIC PROPERTY
-      Link : PTR;
+      Reference : PTR;
       Boolean : BOOLEAN;
       Tristate : TRISTATE;
       Integer : INT32;

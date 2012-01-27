@@ -43,7 +43,7 @@ CLASS IMPLEMENTATION Value;
       ELSIF _Type <> value THEN
          LFlags := _Flags;
 
-         IF ( value <> vtUnknown ) AND ( value <> vtObject ) AND ( value <> vtLink ) THEN
+         IF ( value <> vtUnknown ) AND ( value <> vtObject ) AND ( value <> vtReference ) THEN
             // convert
             LValue._Type := value;
             LValue := SELF;
@@ -108,20 +108,20 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Link GET : PTR;
+   PUBLIC PROPERTY Reference GET : PTR;
    BEGIN
-      IF _Type <> vtLink THEN
+      IF _Type <> vtReference THEN
          ASSERT( FALSE );
 
       ELSIF vfUndefined IN _Flags THEN
          RETURN 0;
 
       ELSE
-         RETURN _Storage.Link;
+         RETURN _Storage.Reference;
 
       END;
       RETURN 0;
-   END Link;
+   END Reference;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -136,7 +136,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -182,7 +182,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -259,7 +259,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -325,7 +325,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -375,7 +375,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -429,8 +429,8 @@ CLASS IMPLEMENTATION Value;
       | vtObject :
          ASSERT( FALSE );
 
-      | vtLink :
-         S.FromCARD64( CARD64( _Storage.Link ), 16 );
+      | vtReference :
+         S.FromCARD64( CARD64( _Storage.Reference ), 16 );
 
       | vtBoolean :
          IF _Storage.Boolean THEN
@@ -480,7 +480,7 @@ CLASS IMPLEMENTATION Value;
       CASE _Type OF
       | vtUnknown :
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -535,22 +535,22 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Link SET( Value : PTR );
+   PUBLIC PROPERTY Reference SET( Value : PTR );
    BEGIN
       IF vfReadOnly IN _Flags THEN
          RETURN;
       ELSIF _Type = vtUnknown THEN
-         _Type := vtLink;
+         _Type := vtReference;
       END;
 
       CASE _Type OF
-      | vtLink :
-         _Storage.Link := Value;
+      | vtReference :
+         _Storage.Reference := Value;
 
       ELSE
          ASSERT( FALSE );
       END; // CASE
-   END Link;
+   END Reference;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -564,7 +564,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -625,7 +625,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -664,7 +664,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -711,7 +711,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -766,7 +766,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -831,7 +831,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -892,7 +892,7 @@ CLASS IMPLEMENTATION Value;
 
       CASE _Type OF
       | vtObject,
-        vtLink :
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -962,8 +962,8 @@ CLASS IMPLEMENTATION Value;
         vtObject :
          // intentionally do nothing
 
-      | vtLink :
-         _Storage.Link := Source.Link;
+      | vtReference :
+         _Storage.Reference := Source.Reference;
 
       | vtBoolean :
          _Storage.Boolean := Source.Boolean;

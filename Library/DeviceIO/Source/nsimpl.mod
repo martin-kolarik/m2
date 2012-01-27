@@ -141,10 +141,11 @@ CLASS IMPLEMENTATION Namespace;
 
    PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    VAR
+      leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
-      IF LookupForDefine( Name, OUT pairs ) THEN
-         RETURN pairs^.DefineValue( Name, Type, Flags, Data, InitialValue, OUT Children );
+      IF LookupAndDefine( Name, OUT pairs, OUT leaf ) THEN
+         RETURN pairs^.DefineValue( leaf, Type, Flags, Data, InitialValue, OUT Children );
       ELSE
          RETURN FALSE;
       END;
@@ -154,10 +155,11 @@ CLASS IMPLEMENTATION Namespace;
 
    PUBLIC PROCEDURE DefineLink( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Link, Data : PTR ) : BOOLEAN;
    VAR
+      leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
-      IF LookupForDefine( Name, OUT pairs ) THEN
-         RETURN nsinternal.TPNameValuePairs( ns.TPNameValuePairs( pairs ))^.DefineLink( Name, Flags, Link, Data );
+      IF LookupAndDefine( Name, OUT pairs, OUT leaf ) THEN
+         RETURN nsinternal.TPNameValuePairs( ns.TPNameValuePairs( pairs ))^.DefineLink( leaf, Flags, Link, Data );
       ELSE
          RETURN FALSE;
       END;
@@ -165,7 +167,7 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LookupForDefine( CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PRIVATE PROCEDURE LookupAndDefine( CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs; OUT LeafName : StringsO.IString ) : BOOLEAN;
    VAR
       i : CARDINAL := 0;
       pairs : ns.TPNameValuePairs := NIL;
@@ -190,8 +192,10 @@ CLASS IMPLEMENTATION Namespace;
       END; // LOOP
 
       Children := pairs;
+      LeafName.Assign( toTest );
+
       RETURN TRUE;
-   END LookupForDefine;
+   END LookupAndDefine;
 
 (*---------------------------------------------------------------------------*)
 
