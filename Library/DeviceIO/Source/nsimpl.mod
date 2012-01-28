@@ -2,13 +2,6 @@ IMPLEMENTATION MODULE nsimpl;
 
 (*===========================================================================*)
 
-PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
-BEGIN
-   RETURN nsinternal.HashToValue( Hash, OUT Value );
-END HashToValue;
-
-(*===========================================================================*)
-
 CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
@@ -22,7 +15,7 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Get( CONST Name : StringsO.IString; OUT child : ns.TPNameValuePairs ) : BOOLEAN;
    VAR
       i : CARDINAL := 0;
       pairs : ns.TPNameValuePairs := NIL;
@@ -39,7 +32,7 @@ CLASS IMPLEMENTATION Namespace;
             EXIT;
          ELSIF toTest.Empty THEN // Empty string before Name end detected, likely ".." appeared in the Name. This is disallowed.
             RETURN FALSE;
-         ELSIF NOT pairs^.Child( toTest, OUT pairs ) THEN
+         ELSIF NOT pairs^.Get( toTest, OUT pairs ) THEN
             RETURN FALSE;
          END;
       END; // LOOP
@@ -47,56 +40,14 @@ CLASS IMPLEMENTATION Namespace;
       IF pairs = NIL THEN
          RETURN FALSE;
       ELSE
-         Hash := pairs;
+         child := pairs;
          RETURN TRUE;
       END;
-   END NameToHash;
+   END Get;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
-   VAR
-      dot : StringsO.CString;
-      name : StringsO.CString;
-      pairs : ns.TPNameValuePairs;
-      singleName : StringsO.CString;
-   BEGIN
-      IF Hash = ns.hashINVALID THEN
-         RETURN FALSE;
-      END;
-
-      dot := StringsO.FromOA( L"." );
-      pairs := ns.TPNameValuePairs( Hash );
-
-      REPEAT
-         singleName.Assign( pairs^.Name^ );
-         // construct
-         IF name.Empty THEN
-            name := singleName;
-         ELSE
-            name.Prepend( dot );
-            name.Prepend( singleName );
-         END;
-         // move up
-         pairs := pairs^.Parent;
-      UNTIL pairs = ADR( _Pairs^.INameValuePairs ); // me as a Hash
-
-      Name.Assign( name );
-      RETURN TRUE;
-   END HashToName;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : StringsO.IString; OUT Value : iovalue.TPValue ) : BOOLEAN; // looks for string, does not try to convert name to index
-   VAR
-      hash : ns.THash;
-   BEGIN
-      RETURN NameToHash( Name, OUT hash ) AND HashToValue( hash, OUT Value );
-   END Map;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Name GET : POINTER TO CONST StringsO.IString;
+   PUBLIC VIRTUAL PROPERTY Name GET : StringsO.CString;
    BEGIN
       RETURN _Pairs^.Name;
    END Name;
@@ -110,32 +61,57 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Child( CONST Name : StringsO.IString; OUT child : ns.TPNameValuePairs ) : BOOLEAN;
-   VAR
-      hash : ns.THash;
+   PUBLIC VIRTUAL PROPERTY Value GET : iovalue.Value;
    BEGIN
-      IF NOT NameToHash( Name, OUT hash ) THEN
-         RETURN FALSE;
-      END;
-      child := ns.TPNameValuePairs( hash );
-      RETURN TRUE;
-   END Child;
+      RETURN _Pairs^.Value;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Value SET( CONST value : iovalue.Value );
+   BEGIN
+      _Pairs^.Value := value;
+   END Value;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
    VAR
-      hash : ns.TPHash;
+      hash : ns.THash;
    BEGIN
-      RETURN NameToHash( Name, OUT hash );
+      RETURN Get( Name, OUT hash );
    END Contains;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST Name : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE GetFullName( CONST Value : ns.TPNameValuePairs; OUT FullName : StringsO.IString ) : BOOLEAN;
+   VAR
+      dot : StringsO.CString;
+      name : StringsO.CString;
+      pairs : ns.TPNameValuePairs;
    BEGIN
-      StringsO.TPString( _Pairs^.Name )^.Assign( Name );
-   END Init;
+      IF Value = NIL THEN
+         RETURN FALSE;
+      END;
+
+      dot := StringsO.FromOA( L"." );
+      pairs := Value;
+
+      REPEAT
+         // construct
+         IF name.Empty THEN
+            name := pairs^.Name;
+         ELSE
+            name.Prepend( dot );
+            name.Prepend( pairs^.Name );
+         END;
+         // move up
+         pairs := pairs^.Parent;
+      UNTIL pairs = ADR( _Pairs^.INameValuePairs ); // me as a Hash
+
+      FullName.Assign( name );
+      RETURN TRUE;
+   END GetFullName;
 
 (*---------------------------------------------------------------------------*)
 
@@ -153,17 +129,40 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DefineLink( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Link, Data : PTR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN;
    VAR
       leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
       IF LookupAndDefine( Name, OUT pairs, OUT leaf ) THEN
-         RETURN nsinternal.TPNameValuePairs( ns.TPNameValuePairs( pairs ))^.DefineLink( leaf, Flags, Link, Data );
+         RETURN pairs^.Link( leaf, Child );
       ELSE
          RETURN FALSE;
       END;
-   END DefineLink;
+   END Link;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY InitializeName SET( CONST Value : StringsO.CString );
+   BEGIN
+      _Pairs^.InitializeName := Value;
+   END InitializeName;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;
+   VAR
+      iv : iovalue.Value;
+      leaf : StringsO.CString;
+      pairs : ns.TPNameValuePairs := NIL;
+   BEGIN
+      IF LookupAndDefine( Name, OUT pairs, OUT leaf ) THEN
+         iv.Reference := Reference;
+         RETURN pairs^.DefineValue( leaf, iovalue.vtReference, Flags, Data, ADR( iv ), OUT pairs );
+      ELSE
+         RETURN FALSE;
+      END;
+   END DefineReference;
 
 (*---------------------------------------------------------------------------*)
 
@@ -184,9 +183,9 @@ CLASS IMPLEMENTATION Namespace;
             EXIT;
          ELSIF toTest.Empty THEN // Empty string before Name end detected, likely ".." appeared in the Name. This is disallowed.
             RETURN FALSE;
-         ELSIF pairs^.Child( toTest, OUT pairs ) THEN
+         ELSIF pairs^.Get( toTest, OUT pairs ) THEN
             // OK, fall down
-         ELSIF NOT pairs^.DefineValue( toTest, iovalue.vtObject, nsinternal.flagsDefaultName, 0, NIL, OUT pairs ) THEN // strange, but ok
+         ELSIF NOT pairs^.DefineValue( toTest, iovalue.vtObject, iovalue.TFlags{ iovalue.vfReadOnly }, 0, NIL, OUT pairs ) THEN // strange, but ok
             RETURN FALSE;
          END;
       END; // LOOP

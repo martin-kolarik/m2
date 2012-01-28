@@ -78,11 +78,11 @@
     <None Include="Test\TNameValuePair.mod">
       <Filter>Test</Filter>
     </None>
-    <None Include="Source\nsinternal.mod">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="Source\nsinternal.def">
+    <None Include="Source\namevaluepairsbase.def">
       <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\namevaluepairsbase.mod">
+      <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
 </Project>

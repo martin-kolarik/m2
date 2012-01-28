@@ -1,0 +1,100 @@
+DEFINITION MODULE namevaluepairsbase;
+// the module is partially visible to allow its usage in test
+
+(*===========================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   avltree,
+   iovalue,
+   ns,
+   StringsO;
+
+(*===========================================================================*)
+// predefined implementations, mostly for structurals
+
+ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( baseobject.CDisposable ) // not synchronized
+
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // INameValuePairs
+   PUBLIC VIRTUAL PROCEDURE Get( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Name : StringsO.CString;
+      Parent : ns.TPNameValuePairs;
+
+   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN; // Name and Child^.Name HAS TO be the same
+
+   // SELF
+   PUBLIC WRITEONLY PROPERTY
+      InitializeName : StringsO.CString;
+
+   LOCAL VAR
+      _Name : StringsO.CString;
+      _Parent : ns.TPNameValuePairs := NIL;
+      _Children : avltree.TPAVLTree := NIL;
+
+END ANameValuePairsStructurals;
+
+(*---------------------------------------------------------------------------*)
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPNameValuePairsDelegate = POINTER TO NameValuePairsDelegate;
+   TPValueDelegate = POINTER TO IValueDelegate;
+
+INTERFACE IValueDelegate;
+   
+   PROPERTY
+      Value : iovalue.Value;
+
+END IValueDelegate;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS NameValuePairsDelegate( ANameValuePairsStructurals );
+
+   // INameValuePairs
+   PUBLIC VIRTUAL PROPERTY
+      Value : iovalue.Value;
+
+   PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+
+   // SELF
+   PUBLIC PROPERTY
+      Delegate : TPValueDelegate;
+
+   PRIVATE VAR
+      _Delegate : TPValueDelegate := NIL;
+
+END NameValuePairsDelegate;
+
+(*---------------------------------------------------------------------------*)
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPNameValuePairsStorage = POINTER TO NameValuePairsStorage;
+
+CLASS NameValuePairsStorage( ANameValuePairsStructurals );
+
+   // INameValuePairs
+   PUBLIC VIRTUAL PROPERTY
+      Value : iovalue.Value;
+
+   PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+
+   // SELF
+   PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;
+
+   LOCAL VAR
+      _Value : iovalue.Value;
+
+END NameValuePairsStorage;
+
+(*===========================================================================*)
+
+END namevaluepairsbase.

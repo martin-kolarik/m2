@@ -7,6 +7,7 @@ IMPORT
    IOO,
    iovalue,
    log,
+   namevaluepairsbase,
    ns,
    nsimpl,
    Strings,
@@ -38,73 +39,32 @@ CLASS IMPLEMENTATION CTest;
    VAR
       children, children2 : ns.TPNameValuePairs;
       Failure, SumFailure : BOOLEAN := FALSE;
-      hash : ns.THash;
       is : StringsO.CString;
       iv : iovalue.Value;
       name : StringsO.CString;
       nss : nsimpl.Namespace;
       pairs : ns.TPNameValuePairs;
       ps : StringsO.TPString;
-      pvalue : iovalue.TPValue;
       s : StringsO.CString;
+      subnvp : namevaluepairsbase.NameValuePairsStorage;
    BEGIN
       SELF.Host := Host;
 
       //----------
 
-      Host^.StartPhase( L"NameValuePairs.Emptyclass/IMapper" );
-
-      nss.Dispose();
-
-      s.FromOA( L"Test" );
-      Failure := nss.NameToHash( s, OUT hash ) OR Failure;
-      s.Clear();
-      Failure := nss.NameToHash( s, OUT hash ) OR Failure;
-
-      Failure := nss.HashToName( 0, OUT name ) OR Failure;
-
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-      SumFailure := SumFailure OR Failure;
-      Failure := FALSE;
-
-      //----------
-
       Host^.StartPhase( L"NameValuePairs.Emptyclass/INameValuePairs" );
 
-      s.FromOA( L"Test" );
-      Failure := nss.Map( s, OUT pvalue ) OR Failure;
-      s.FromOA( L"" );
-      Failure := nss.Map( s, OUT pvalue ) OR Failure;
-      s.FromOA( L"2" );
-      Failure := nss.Map( s, OUT pvalue ) OR Failure;
-
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-      SumFailure := SumFailure OR Failure;
-      Failure := FALSE;
-
-      //----------
-
-      Host^.StartPhase( L"NameValuePairs.Emptyclass/CNameValuePair" );
-
-      ps := nss.Name;
-      Failure := ( ps = NIL ) OR NOT ps^.Empty OR Failure;
+      s := nss.Name;
+      Failure := NOT s.Empty OR Failure;
       pairs := nss.Parent;
       Failure := ( pairs <> NIL ) OR Failure;
 
       s.FromOA( L"Test" );
-      Failure := nss.Child( s, OUT pairs ) OR Failure;
+      Failure := nss.Get( s, OUT pairs ) OR Failure;
       s.FromOA( L"" );
-      Failure := nss.Child( s, OUT pairs ) OR Failure;
-      s.FromOA( L"0" );
-      Failure := nss.Child( s, OUT pairs ) OR Failure;
+      Failure := nss.Get( s, OUT pairs ) OR Failure;
+      s.FromOA( L"2" );
+      Failure := nss.Get( s, OUT pairs ) OR Failure;
 
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -150,35 +110,9 @@ CLASS IMPLEMENTATION CTest;
       Failure := children^.DefineValue( s, iovalue.vtInteger, iovalue.flagsDefaultRW, ADR( s ), ADR( iv ), OUT children2 ) OR Failure;
       //---
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-      SumFailure := SumFailure OR Failure;
-      Failure := FALSE;
-
-      //----------
-
-      Host^.StartPhase( L"NameValuePairs.FilledClass/IMapper" );
-
-      s.FromOA( L"Test" );
-      Failure := nss.NameToHash( s, OUT hash ) OR Failure;
-      s.Clear();
-      Failure := nss.NameToHash( s, OUT hash ) OR Failure;
-      s.FromOA( L"ArrayOfValues" );
-      Failure := NOT nss.NameToHash( s, OUT hash ) OR Failure;
-      Failure := NOT nss.Child( s, OUT children ) OR Failure;
-
-      Failure := nss.HashToName( 0, OUT name ) OR Failure;
-      Failure := NOT nss.HashToName( hash, OUT name ) OR NOT name.Equals( StringsO.FromOA( L"ArrayOfValues" )) OR Failure;
-
-      Failure := nsimpl.HashToValue( 0, OUT pvalue ) OR Failure;
-      Failure := NOT nsimpl.HashToValue( hash, OUT pvalue ) OR Failure;
-
-      s.FromOA( L"1" );
-      Failure := NOT children^.Child( s, OUT children2 ) OR Failure;
-      Failure := ( children2^.Name = NIL ) OR NOT StringsO.FromOA( L"1" ).Equals( children2^.Name^ ) OR Failure;
+      subnvp.InitializeName := StringsO.FromOA( L"SubValues" );
+      Failure := NOT nss.Link( subnvp.Name, ADR( subnvp )) OR Failure;
+      Failure := nss.Link( subnvp.Name, ADR( subnvp )) OR Failure;
 
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -193,17 +127,17 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"NameValuePairs.FilledClass/INameValuePairs" );
 
       s.Clear();
-      Failure := nss.Map( s, OUT pvalue ) OR Failure;
+      Failure := nss.Get( s, OUT pairs ) OR Failure;
       s.FromOA( L"Member" );
-      Failure := NOT nss.Map( s, OUT pvalue ) OR ( pvalue^.Long <> 2 ) OR Failure;
+      Failure := NOT nss.Get( s, OUT pairs ) OR ( pairs^.Value.Long <> 2 ) OR Failure;
 
-      ps := nss.Name;
-      Failure := ( ps = NIL ) OR NOT ps^.Empty OR Failure;
+      s := nss.Name;
+      Failure := NOT s.Empty OR Failure;
       Failure := ( nss.Parent <> NIL ) OR Failure;
       s.FromOA( L"ArrayOfValues" );
-      Failure := NOT nss.Child( s, OUT children ) OR Failure;
-      ps := children^.Name;
-      Failure := ( ps = NIL ) OR NOT ps^.Equals( StringsO.FromOA( L"ArrayOfValues" )) OR Failure;
+      Failure := NOT nss.Get( s, OUT children ) OR Failure;
+      s := children^.Name;
+      Failure := NOT s.Equals( StringsO.FromOA( L"ArrayOfValues" )) OR Failure;
       Failure := ( children^.Parent = NIL ) OR Failure;
 
       IF Failure THEN
@@ -219,17 +153,83 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"NameValuePairs.FilledClass/NameValuePairs" );
 
       s.FromOA( L"ALink" );
-      Failure := NOT nss.DefineLink( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nss ), 0 ) OR Failure;
-      Failure := nss.DefineLink( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nss ), 0 ) OR Failure;
-      Failure := NOT nss.Map( s, OUT pvalue ) OR ( pvalue = NIL ) OR ( pvalue^.Type <> iovalue.vtLink ) OR ( pvalue^.Link <> PTR( ADR( nss ))) OR Failure;
+      Failure := NOT nss.DefineReference( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nss ), 0 ) OR Failure;
+      Failure := nss.DefineReference( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nss ), 0 ) OR Failure;
+      Failure := NOT nss.Get( s, OUT pairs ) OR ( pairs = NIL ) OR ( pairs^.Value.Type <> iovalue.vtReference ) OR ( pairs^.Value.Reference <> PTR( ADR( nss ))) OR Failure;
+
+      IF Failure THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+      SumFailure := SumFailure OR Failure;
+      Failure := FALSE;
 
       //----------
 
-      Host^.StartPhase( L"Namespace.FilledClass/Namespace" );
+      Host^.StartPhase( L"Namespace.FilledClass/INameValuePairs" );
 
-      // Contains
-      // Init
+      s := StringsO.FromOA( L"NSS" );
+      nss.InitializeName := s;
+      Failure := NOT nss.Name.Equals( StringsO.FromOA( L"NSS" )) OR Failure;
+
+      s.FromOA( L"ArrayOfValues" );
+      Failure := NOT nss.Contains( s ) OR Failure;
+
       // hierarchical names
+      s.FromOA( L"Class.SubClass.Method.ParameterA" );
+      iv.Dispose();
+      iv.Long := 3141592653589;
+      Failure := NOT nss.DefineValue( s, iovalue.vtLong, iovalue.flagsDefaultRW - iovalue.TFlags{iovalue.vfUndefined}, NIL, ADR( iv ), OUT children ) OR Failure;
+
+      s.FromOA( L"Class.SubClass.Method.ParameterB" );
+      iv.Dispose();
+      iv.Integer := -10000;
+      Failure := NOT nss.DefineValue( s, iovalue.vtInteger, iovalue.flagsDefaultRW - iovalue.TFlags{iovalue.vfUndefined}, NIL, ADR( iv ), OUT children ) OR Failure;
+
+      s.FromOA( L"Class.SubClass.Prototype" );
+      iv.Dispose();
+      iv.Reference := 1415;
+      Failure := NOT nss.DefineValue( s, iovalue.vtReference, iovalue.flagsDefaultRW - iovalue.TFlags{iovalue.vfUndefined}, NIL, ADR( iv ), OUT children ) OR Failure;
+
+      s.FromOA( L"Class.Prototype" );
+      Failure := NOT nss.DefineReference( s, iovalue.flagsDefaultRW - iovalue.TFlags{iovalue.vfUndefined}, ADR( iv ), NIL ) OR Failure;
+
+      s.FromOA( L"Class.Prototype.Some" );
+      Failure := nss.Contains( s ) OR Failure;
+
+      s.FromOA( L"Class.SubClass.Method.ParameterB" );
+      Failure := NOT nss.Contains( s ) OR Failure;
+
+      Failure := NOT nss.Get( s, OUT pairs ) OR Failure;
+      Failure := ( pairs = NIL ) OR ( pairs^.Value.Type <> iovalue.vtInteger ) OR ( pairs^.Value.Integer <> -10000 ) OR Failure;
+
+      s.FromOA( L"Class.SubClass" );
+      Failure := NOT nss.Get( s, OUT children ) OR Failure;
+      s.FromOA( L"Prototype" );
+      Failure := NOT children^.Get( s, OUT pairs ) OR Failure;
+      Failure := ( pairs = NIL ) OR ( pairs^.Value.Type <> iovalue.vtReference ) OR ( pairs^.Value.Reference <> 1415 ) OR Failure;
+
+      s.FromOA( L"Class.SubClass.Method.ParameterB.Specification" );
+      Failure := nss.Get( s, OUT pairs ) OR Failure;
+
+      s.FromOA( L"Class.SubClass.Method.ParameterB" );
+      Failure := NOT nss.Get( s, OUT pairs ) OR Failure;
+      Failure := NOT nss.GetFullName( pairs, OUT s ) OR Failure;
+      Failure := NOT s.Equals( StringsO.FromOA( L"Class.SubClass.Method.ParameterB" )) OR Failure;
+
+      s.FromOA( L"Class.SubClass.Method" );
+      Failure := NOT nss.Get( s, OUT pairs ) OR Failure;
+      Failure := NOT nss.GetFullName( pairs, OUT s ) OR Failure;
+      Failure := NOT s.Equals( StringsO.FromOA( L"Class.SubClass.Method" )) OR Failure;
+
+      IF Failure THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+      SumFailure := SumFailure OR Failure;
+      Failure := FALSE;
 
       //----------
 

@@ -7,9 +7,9 @@ IMPORT
    IOO,
    iovalue,
    log,
+   namevaluepairsbase,
    ns,
    nsimpl,
-   nsinternal,
    Strings,
    StringsO,
    sync,
@@ -39,74 +39,30 @@ CLASS IMPLEMENTATION CTest;
    VAR
       children, children2 : ns.TPNameValuePairs;
       Failure, SumFailure : BOOLEAN := FALSE;
-      hash : ns.THash;
       is : StringsO.CString;
       iv : iovalue.Value;
-      name : StringsO.CString;
-      nvp : nsinternal.NameValuePairs;
+      nvp : namevaluepairsbase.NameValuePairsStorage;
       pairs : ns.TPNameValuePairs;
-      ps : StringsO.TPString;
-      pvalue : iovalue.TPValue;
       s : StringsO.CString;
+      subnvp : namevaluepairsbase.NameValuePairsStorage;
    BEGIN
       SELF.Host := Host;
 
       //----------
 
-      Host^.StartPhase( L"Emptyclass/IMapper" );
-
-      nvp.Dispose();
-
-      s.FromOA( L"Test" );
-      Failure := nvp.NameToHash( s, OUT hash ) OR Failure;
-      s.Clear();
-      Failure := nvp.NameToHash( s, OUT hash ) OR Failure;
-
-      Failure := nvp.HashToName( 0, OUT name ) OR Failure;
-      Failure := NOT nvp.HashToName( ADR( nvp ), OUT name ) OR Failure;
-
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-      SumFailure := SumFailure OR Failure;
-      Failure := FALSE;
-
-      //----------
-
       Host^.StartPhase( L"Emptyclass/INameValuePairs" );
 
-      s.FromOA( L"Test" );
-      Failure := nvp.Map( s, OUT pvalue ) OR Failure;
-      s.FromOA( L"" );
-      Failure := nvp.Map( s, OUT pvalue ) OR Failure;
-      s.FromOA( L"2" );
-      Failure := nvp.Map( s, OUT pvalue ) OR Failure;
-
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-      SumFailure := SumFailure OR Failure;
-      Failure := FALSE;
-
-      //----------
-
-      Host^.StartPhase( L"Emptyclass/CNameValuePair" );
-
-      ps := nvp.Name;
-      Failure := ( ps = NIL ) OR NOT ps^.Empty OR Failure;
+      s := nvp.Name;
+      Failure := NOT s.Empty OR Failure;
       pairs := nvp.Parent;
       Failure := ( pairs <> NIL ) OR Failure;
 
       s.FromOA( L"Test" );
-      Failure := nvp.Child( s, OUT pairs ) OR Failure;
+      Failure := nvp.Get( s, OUT pairs ) OR Failure;
       s.FromOA( L"" );
-      Failure := nvp.Child( s, OUT pairs ) OR Failure;
+      Failure := nvp.Get( s, OUT pairs ) OR Failure;
       s.FromOA( L"0" );
-      Failure := nvp.Child( s, OUT pairs ) OR Failure;
+      Failure := nvp.Get( s, OUT pairs ) OR Failure;
 
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -152,37 +108,9 @@ CLASS IMPLEMENTATION CTest;
       Failure := children^.DefineValue( s, iovalue.vtInteger, iovalue.flagsDefaultRW, ADR( s ), ADR( iv ), OUT children2 ) OR Failure;
       //---
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-      SumFailure := SumFailure OR Failure;
-      Failure := FALSE;
-
-      //----------
-
-      Host^.StartPhase( L"FilledClass/IMapper" );
-
-      s.FromOA( L"Test" );
-      Failure := nvp.NameToHash( s, OUT hash ) OR Failure;
-      s.Clear();
-      Failure := nvp.NameToHash( s, OUT hash ) OR Failure;
-      s.FromOA( L"ArrayOfValues" );
-      Failure := NOT nvp.NameToHash( s, OUT hash ) OR Failure;
-      Failure := NOT nvp.Child( s, OUT children ) OR Failure;
-
-      Failure := nvp.HashToName( 0, OUT name ) OR Failure;
-      Failure := NOT nvp.HashToName( ADR( nvp ), OUT name ) OR NOT name.Empty OR Failure;
-      Failure := NOT nvp.HashToName( hash, OUT name ) OR NOT name.Equals( StringsO.FromOA( L"ArrayOfValues" )) OR Failure;
-
-      Failure := nsimpl.HashToValue( 0, OUT pvalue ) OR Failure;
-      Failure := NOT nsimpl.HashToValue( ADR( nvp ), OUT pvalue ) OR Failure;
-      Failure := NOT nsimpl.HashToValue( hash, OUT pvalue ) OR Failure;
-
-      s.FromOA( L"1" );
-      Failure := NOT children^.Child( s, OUT children2 ) OR Failure;
-      Failure := ( children2^.Name = NIL ) OR NOT StringsO.FromOA( L"1" ).Equals( children2^.Name^ ) OR Failure;
+      subnvp.InitializeName := StringsO.FromOA( L"SubValues" );
+      Failure := NOT nvp.Link( subnvp.Name, ADR( subnvp )) OR Failure;
+      Failure := nvp.Link( subnvp.Name, ADR( subnvp )) OR Failure;
 
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -197,18 +125,18 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"FilledClass/INameValuePairs" );
 
       s.Clear();
-      Failure := nvp.Map( s, OUT pvalue ) OR Failure;
+      Failure := nvp.Get( s, OUT pairs ) OR Failure;
       s.FromOA( L"Member" );
-      Failure := NOT nvp.Map( s, OUT pvalue ) OR ( pvalue^.Long <> 2 ) OR Failure;
+      Failure := NOT nvp.Get( s, OUT pairs ) OR ( pairs^.Value.Long <> 2 ) OR Failure;
 
-      ps := nvp.Name;
-      Failure := ( ps = NIL ) OR NOT ps^.Empty OR Failure;
+      s := nvp.Name;
+      Failure := NOT s.Empty OR Failure;
       Failure := ( nvp.Parent <> NIL ) OR Failure;
       s.FromOA( L"ArrayOfValues" );
-      Failure := NOT nvp.Child( s, OUT children ) OR Failure;
-      ps := children^.Name;
-      Failure := ( ps = NIL ) OR NOT ps^.Equals( StringsO.FromOA( L"ArrayOfValues" )) OR Failure;
-      Failure := ( children^.Parent = NIL ) OR ( children^.Parent <> ADR( nvp.INameValuePairs )) OR Failure;
+      Failure := NOT nvp.Get( s, OUT children ) OR Failure;
+      s := children^.Name;
+      Failure := NOT s.Equals( StringsO.FromOA( L"ArrayOfValues" )) OR Failure;
+      Failure := ( children^.Parent = NIL ) OR Failure;
 
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -223,9 +151,9 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"FilledClass/NameValuePairs" );
 
       s.FromOA( L"ALink" );
-      Failure := NOT nvp.DefineLink( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nvp ), 0 ) OR Failure;
-      Failure := nvp.DefineLink( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nvp ), 0 ) OR Failure;
-      Failure := NOT nvp.Map( s, OUT pvalue ) OR ( pvalue = NIL ) OR ( pvalue^.Type <> iovalue.vtLink ) OR ( pvalue^.Link <> PTR( ADR( nvp ))) OR Failure;
+      Failure := NOT nvp.DefineReference( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nvp ), 0 ) OR Failure;
+      Failure := nvp.DefineReference( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nvp ), 0 ) OR Failure;
+      Failure := NOT nvp.Get( s, OUT pairs ) OR ( pairs = NIL ) OR ( pairs^.Value.Type <> iovalue.vtReference ) OR ( pairs^.Value.Reference <> PTR( ADR( nvp ))) OR Failure;
 
       //----------
 

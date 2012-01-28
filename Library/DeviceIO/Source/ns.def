@@ -22,8 +22,8 @@ INTERFACE INameValuePairs;
       Value : iovalue.Value;
 
    // creation
-   PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : TPNameValuePairs ) : BOOLEAN;
-   PROCEDURE Link( CONST Child : TPNameValuePairs ) : BOOLEAN; // creates child, name is taken from Child^.Name
+   PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN; // need not necessarily exist
+   PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : TPNameValuePairs ) : BOOLEAN; // creates child, although Name can be taken from Child^.Name separating the parameter is more free -- e.g. it allows using of hierarchical names in INamespace implementors
 
    // TODO iterator in "default" branch
 
@@ -45,10 +45,23 @@ END INamespace;
 (*---------------------------------------------------------------------------*)
 
 TYPE
-   THash = TPNameValuePairs;
+   THash = PTR; // means TPNameValuePairs;
    
 CONST
    hashINVALID = THash( NIL );
+
+(*---------------------------------------------------------------------------*)
+
+// TEMPORARY until its users move to INameValuePairs/INamespace
+TYPE
+   TPMapper = POINTER TO IMapper;
+
+INTERFACE IMapper;
+
+   PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
+   PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+
+END IMapper;
 
 (*===========================================================================*)
 
