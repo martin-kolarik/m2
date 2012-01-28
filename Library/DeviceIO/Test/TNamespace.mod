@@ -41,10 +41,8 @@ CLASS IMPLEMENTATION CTest;
       Failure, SumFailure : BOOLEAN := FALSE;
       is : StringsO.CString;
       iv : iovalue.Value;
-      name : StringsO.CString;
       nss : nsimpl.Namespace;
       pairs : ns.TPNameValuePairs;
-      ps : StringsO.TPString;
       s : StringsO.CString;
       subnvp : namevaluepairsbase.NameValuePairsStorage;
    BEGIN

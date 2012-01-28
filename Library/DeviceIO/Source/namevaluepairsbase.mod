@@ -155,6 +155,20 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Data GET : PTR;
+   BEGIN
+      RETURN _Data;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Data SET( Value : PTR );
+   BEGIN
+      _Data := Value;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY InitializeName SET( CONST Value : StringsO.CString );
    BEGIN
       _Name.Assign( Value );
@@ -193,30 +207,39 @@ END ANameValuePairsStructurals;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION NameValuePairsDelegate;
+CLASS IMPLEMENTATION NameValuePairsIO;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   BEGIN
+      IF _ValueIODelegate = NIL THEN
+         ASSERT( FALSE );
+         RETURN Sync.arCannotStart;
+      ELSE
+         RETURN _ValueIODelegate^.ValueIO( Originator, Direction, NameValuePairs, REF Value );
+      END;
+   END ValueIO;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Value GET : iovalue.Value;
    VAR
-      empty : iovalue.Value;
+      value : iovalue.Value;
    BEGIN
-      IF _Delegate = NIL THEN
+      IF ValueIO( NIL, IOO.dirRead, ADR( SELF ), REF value ) NOT IN Sync.arsCompletions THEN
          ASSERT( FALSE );
-         RETURN empty;
-      ELSE
-         RETURN _Delegate^.Value;
+         value.Dispose();
       END;
+      RETURN value;
    END Value;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Value SET( CONST value : iovalue.Value );
    BEGIN
-      IF _Delegate = NIL THEN
+      IF ValueIO( NIL, IOO.dirWrite, ADR( SELF ), REF iovalue.TPValue( ADR( value ))^ ) NOT IN Sync.arsCompletions THEN
          ASSERT( FALSE );
-      ELSE
-         _Delegate^.Value := value;
       END;
    END Value;
 
@@ -229,26 +252,42 @@ CLASS IMPLEMENTATION NameValuePairsDelegate;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Delegate GET : TPValueDelegate;
+   PUBLIC PROPERTY ValueIODelegate GET : ns.TPValueIO;
    BEGIN
-      RETURN _Delegate;
-   END Delegate;
+      RETURN _ValueIODelegate;
+   END ValueIODelegate;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Delegate SET( Value : TPValueDelegate );
+   PUBLIC PROPERTY ValueIODelegate SET( Value : ns.TPValueIO );
    BEGIN
-      _Delegate := Value;
-   END Delegate;
+      _ValueIODelegate := Value;
+   END ValueIODelegate;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-END NameValuePairsDelegate;
+END NameValuePairsIO;
 
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION NameValuePairsStorage;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   BEGIN
+      CASE Direction OF
+      | IOO.dirRead :
+         Value := _Value;
+      | IOO.dirWrite :
+         _Value := Value;
+      ELSE
+         ASSERT( FALSE );
+         RETURN Sync.arCannotStart;
+      END;
+      RETURN Sync.arCompleted;
+   END ValueIO;
 
 (*---------------------------------------------------------------------------*)
 
@@ -290,7 +329,7 @@ CLASS IMPLEMENTATION NameValuePairsStorage;
       // fill value part
       pairs^._Value.InitializeFlags := Flags - iovalue.TFlags{iovalue.vfReadOnly};
       pairs^._Value.Type := Type;
-      pairs^._Value.Tag := Data;
+      pairs^.Data := Data;
       IF InitialValue <> NIL THEN
          pairs^._Value := InitialValue^;
       END;

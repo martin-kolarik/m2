@@ -179,17 +179,17 @@ CLASS IMPLEMENTATION AItemizedIO;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROPERTY Capabilities GET : TCapabilities;
-	BEGIN
-		RETURN TCapabilities{};
-	END Capabilities;
+   PUBLIC VIRTUAL PROPERTY Capabilities GET : TCapabilities;
+   BEGIN
+      RETURN TCapabilities{};
+   END Capabilities;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
-	BEGIN
-		RETURN Sync.arCannotStart;
-	END IOha;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN Sync.arCannotStart;
+   END IOha;
 
 (*---------------------------------------------------------------------------*)
 

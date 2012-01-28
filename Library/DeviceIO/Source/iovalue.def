@@ -85,7 +85,6 @@ CLASS Value;
       Date : datetime.TJD; // JD * 86400 * 10000 = count of 100 ns
       // TODO
       // Data : StorageO.CMemoryBuffer;
-      Tag : PTR; // user data
    PUBLIC READONLY PROPERTY
       PString : StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
 
@@ -131,7 +130,6 @@ CLASS Value;
       _Flags : TFlags;
       _Type : TType;
       _Storage : TStorage;
-      _Tag : PTR; // user data
 
 END Value;
 

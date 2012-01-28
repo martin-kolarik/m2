@@ -23,6 +23,9 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
    // CDisposable
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
+   // INamespace/INameValuePairs/IValueIO
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+
    // INamespace/INameValuePairs -- looks inside whole namespace, names are separated with '.'
    PUBLIC VIRTUAL PROCEDURE Get( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
 
@@ -31,7 +34,7 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
       Parent : ns.TPNameValuePairs;
    PUBLIC VIRTUAL PROPERTY
       Value : iovalue.Value;
-
+      Data : PTR; // user data
    PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN;
 

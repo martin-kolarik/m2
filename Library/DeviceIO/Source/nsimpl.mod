@@ -15,6 +15,13 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN _Pairs^.ValueIO( Originator, Direction, NameValuePairs, REF Value );
+   END ValueIO;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Get( CONST Name : StringsO.IString; OUT child : ns.TPNameValuePairs ) : BOOLEAN;
    VAR
       i : CARDINAL := 0;
@@ -72,6 +79,20 @@ CLASS IMPLEMENTATION Namespace;
    BEGIN
       _Pairs^.Value := value;
    END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Data GET : PTR;
+   BEGIN
+      RETURN _Pairs^.Data;
+   END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Data SET( Value : PTR );
+   BEGIN
+      _Pairs^.Data := Value;
+   END Data;
 
 (*---------------------------------------------------------------------------*)
 

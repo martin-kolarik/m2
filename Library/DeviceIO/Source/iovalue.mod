@@ -528,13 +528,6 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Tag GET : PTR;
-   BEGIN
-      RETURN _Tag;
-   END Tag;   
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROPERTY Reference SET( Value : PTR );
    BEGIN
       IF vfReadOnly IN _Flags THEN
@@ -929,13 +922,6 @@ CLASS IMPLEMENTATION Value;
          ASSERT( FALSE );
       END; // CASE
    END Date;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Tag SET( Value : PTR );
-   BEGIN
-      _Tag := Value;
-   END Tag;   
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1517,7 +1503,6 @@ BEGIN
    _Flags := TFlags{};
    _Type := vtUnknown;
    _Storage.Long := 0;
-   _Tag := 0;
 FINALLY
    Dispose();
 END Value;

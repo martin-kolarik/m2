@@ -8,9 +8,11 @@ FROM Storage IMPORT
 
 IMPORT
    avltree,
+   IOO,
    iovalue,
    ns,
-   StringsO;
+   StringsO,
+   Sync;
 
 (*===========================================================================*)
 // predefined implementations, mostly for structurals
@@ -26,6 +28,8 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
    PUBLIC VIRTUAL READONLY PROPERTY
       Name : StringsO.CString;
       Parent : ns.TPNameValuePairs;
+   PUBLIC VIRTUAL PROPERTY
+      Data : PTR;
 
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN; // Name and Child^.Name HAS TO be the same
 
@@ -37,6 +41,7 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
       _Name : StringsO.CString;
       _Parent : ns.TPNameValuePairs := NIL;
       _Children : avltree.TPAVLTree := NIL;
+      _Data : PTR := 0;
 
 END ANameValuePairsStructurals;
 
@@ -44,19 +49,14 @@ END ANameValuePairsStructurals;
 (*---------------------------------------------------------------------------*)
 
 TYPE
-   TPNameValuePairsDelegate = POINTER TO NameValuePairsDelegate;
-   TPValueDelegate = POINTER TO IValueDelegate;
-
-INTERFACE IValueDelegate;
-   
-   PROPERTY
-      Value : iovalue.Value;
-
-END IValueDelegate;
+   TPNameValuePairsIO = POINTER TO NameValuePairsIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS NameValuePairsDelegate( ANameValuePairsStructurals );
+CLASS NameValuePairsIO( ANameValuePairsStructurals );
+
+   // IValueIO
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
 
    // INameValuePairs
    PUBLIC VIRTUAL PROPERTY
@@ -66,12 +66,12 @@ CLASS NameValuePairsDelegate( ANameValuePairsStructurals );
 
    // SELF
    PUBLIC PROPERTY
-      Delegate : TPValueDelegate;
+      ValueIODelegate : ns.TPValueIO;
 
    PRIVATE VAR
-      _Delegate : TPValueDelegate := NIL;
+      _ValueIODelegate : ns.TPValueIO := NIL;
 
-END NameValuePairsDelegate;
+END NameValuePairsIO;
 
 (*---------------------------------------------------------------------------*)
 (*---------------------------------------------------------------------------*)
@@ -80,6 +80,9 @@ TYPE
    TPNameValuePairsStorage = POINTER TO NameValuePairsStorage;
 
 CLASS NameValuePairsStorage( ANameValuePairsStructurals );
+
+   // IValueIO
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
 
    // INameValuePairs
    PUBLIC VIRTUAL PROPERTY

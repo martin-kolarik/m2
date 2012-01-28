@@ -299,7 +299,6 @@ CLASS IMPLEMENTATION CSDAPServer;
       count, prevcount : CARDINAL;
       data : StringsO.CString; // data
       error : ARRAY [0..511] OF WCHAR;
-      Hash : ns.THash;
       i : CARDINAL;
       ia : inetaddr.INETADDR;
       IOValue : iovalue.Value;
@@ -309,6 +308,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       p : ARRAY [0..1] OF StringsO.CString; // parameters
       parametersCount : CARDINAL;
       parametersFound : CARDINAL;
+      pvalue : ns.TPNameValuePairs;
       Result : Sync.TAsyncResult;
       s : ARRAY [0..1] OF StringsO.CString; // sub parameters
       sd : ARRAY [0..63] OF WCHAR;
@@ -485,7 +485,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          IF ( Command = sdapSET ) AND NOT Device^.IO()^.Running THEN
             ACK( PConnection, sdap501 );
 
-         ELSIF NOT Device^.Mapper()^.NameToHash( p[1], OUT Hash ) THEN
+         ELSIF NOT Device^.NS()^.Get( p[1], OUT pvalue ) THEN
             ACKs( PConnection, sdap405, 1 );
 
          ELSE
@@ -498,7 +498,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             IF Command = sdapSET THEN // expect data.name (aka data.x/x/x)
                IOValue.String := data;
 
-               Result := Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF IOValue, NIL );
+               Result := pvalue^.ValueIO( ADR( Originator ), IOO.dirWrite, pvalue, REF IOValue );
                CASE Result OF
                | Sync.arCompleted :
                   ACK( PConnection, sdap200 );
@@ -510,7 +510,7 @@ CLASS IMPLEMENTATION CSDAPServer;
        
             ELSE
         
-               Result := Device^.IO()^.IOh( ADR( Originator ), IOO.dirRead, Hash, REF IOValue, NIL );
+               Result := pvalue^.ValueIO( ADR( Originator ), IOO.dirRead, pvalue, REF IOValue );
                CASE Result OF
                | Sync.arCompleted :
                   ACKd( PConnection, sdap200, p[1], IOValue );
@@ -540,7 +540,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             IF allFlag THEN
                _Device^.AdviseAll( Client );
                ACK( PConnection, sdap200 );
-            ELSIF NOT Device^.Mapper()^.NameToHash( p[1], OUT Hash ) THEN
+            ELSIF NOT Device^.NS()^.Contains( p[1] ) THEN
                ACKs( PConnection, sdap405, 1 );
             ELSE
                _Device^.Advise( Client, p[1] );
@@ -551,7 +551,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             IF allFlag THEN
                _Device^.UnadviseAll( Client );
                ACK( PConnection, sdap200 );
-            ELSIF NOT Device^.Mapper()^.NameToHash( p[1], OUT Hash ) THEN
+            ELSIF NOT Device^.NS()^.Contains( p[1] ) THEN
                ACKs( PConnection, sdap405, 1 );
             ELSE
                _Device^.Unadvise( Client, p[1] );
@@ -716,7 +716,7 @@ CLASS IMPLEMENTATION CClient;
    
       FOR i := 0 TO HIGH( Item ) DO
          IF Result[i] IN Sync.arsCompletions THEN
-            Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
+            Server^.Device^.NS()^.GetFullName( Item[i], OUT n );
             s := n;
             s.AppendOA( L" " ); s.Append( Value[i].String );
 

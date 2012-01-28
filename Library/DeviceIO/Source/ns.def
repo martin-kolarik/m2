@@ -1,15 +1,38 @@
 DEFINITION MODULE ns;
 
 IMPORT
+   IOO,
    iovalue,
    StringsO;
 
 (*===========================================================================*)
 
 TYPE
-   TPNameValuePairs = POINTER TO INameValuePairs;
+   TPOriginator = POINTER TO IOriginator;
 
-INTERFACE INameValuePairs;
+INTERFACE IOriginator; // should be refactored? see #141
+
+   READONLY PROPERTY
+      Description : StringsO.CString;
+
+END IOriginator;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPNameValuePairs = POINTER TO INameValuePairs;
+   TPValueIO = POINTER TO IValueIO;
+
+INTERFACE IValueIO;
+
+   PROCEDURE ValueIO( CONST Originator : TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+      // allows full access, including result resolution and originator
+
+END IValueIO;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE INameValuePairs( IValueIO );
 
    // map interface
    PROCEDURE Get( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
@@ -20,6 +43,8 @@ INTERFACE INameValuePairs;
       Parent : TPNameValuePairs;
    PROPERTY
       Value : iovalue.Value;
+      Data : PTR; // user data
+      // allows simple value access, no result and originator available, can use IValueIO.IO
 
    // creation
    PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN; // need not necessarily exist
@@ -29,6 +54,7 @@ INTERFACE INameValuePairs;
 
 END INameValuePairs;
 
+(*---------------------------------------------------------------------------*)
 (*---------------------------------------------------------------------------*)
 
 TYPE

@@ -516,19 +516,18 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
    PRIVATE PROCEDURE HandleRead( CONST NameOA : ARRAY OF WCHAR; REF readRequests : arrays.TPPtrArray );
    VAR
-      Hash : ns.THash;
-      io : iovalue.Value;
       Name : StringsO.CString;
+      pvalue : ns.TPNameValuePairs;
    BEGIN
       Name.FromOA( NameOA );
       _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "GET ", NameOA );
 
-      IF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
+      IF NOT Device^.NS()^.Get( Name, OUT pvalue ) THEN
          _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing GET: ", NameOA );
          RETURN;
 
       ELSE
-         readRequests^.Add( Hash );
+         readRequests^.Add( pvalue );
 
       END;         
    END HandleRead;
@@ -538,10 +537,10 @@ CLASS IMPLEMENTATION CXMLSocketServer;
    PRIVATE PROCEDURE HandleWrite( CONST ia : inetaddr.INETADDR; CONST NameOA, Value : ARRAY OF WCHAR );
    VAR
       d : StringsO.CString;
-      Hash : ns.THash;
       inetaddr : ARRAY [0..63] OF WCHAR;
       Name : StringsO.CString;
       Originator : io.CSimpleOriginator;
+      pvalue : ns.TPNameValuePairs;
       value : iovalue.Value;
    BEGIN
       Name.FromOA( NameOA );
@@ -551,7 +550,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          _CommonLogger^.LogS( log.ldDebug, 0, LOG_XMLS, "  device is not running, nothing SET" );
          RETURN;
 
-      ELSIF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
+      ELSIF NOT Device^.NS()^.Get( Name, OUT pvalue ) THEN
          _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing SET: ", NameOA );
          RETURN;
 
@@ -561,7 +560,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          Originator.SetDescription( d );
 
          value.FromString( StringsO.FromOA( Value ), FALSE );
-         Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF value, NIL );
+         pvalue^.ValueIO( ADR( Originator ), IOO.dirWrite, pvalue, REF value );
       END;         
    END HandleWrite;
 
@@ -625,7 +624,7 @@ CLASS IMPLEMENTATION CClient;
       FOR i := 0 TO HIGH( Item ) DO
 
          IF NOT Server^.CommonLogger^.FilteredFastCheck( log.ldTrace, 0 ) THEN
-            Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
+            Server^.Device^.NS()^.GetFullName( Item[i], OUT n );
             s := Value[i].String;
             Server^.CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "ADV ", OA( n.Length-1, n.Data ), L" ", OA( s.Length-1, s.Data ));
          END;
@@ -657,7 +656,7 @@ CLASS IMPLEMENTATION CClient;
       WBuffer.AppendOA( OA( SIZE( LEAD_NOTIFY )-2, ADR( LEAD_NOTIFY ))); WBuffer.AppendByte( TRAIL );
 
       WBuffer.AppendOA( OA( SIZE( LEAD_NAME )-2, ADR( LEAD_NAME ))); WBuffer.AppendByte( TRAIL );
-      Server^.Device^.Mapper()^.HashToName( Item, OUT S );
+      Server^.Device^.NS()^.GetFullName( Item, OUT S );
       S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_NAME )-2, ADR( TRAIL_NAME ))); WBuffer.AppendByte( TRAIL );

@@ -3,12 +3,12 @@ DEFINITION MODULE device;
 IMPORT
    INIFile,
    iobject,
-	io,
-	IOO,
-	log,
-	ns,
-	StringsO,
-	TextReader;
+   io,
+   IOO,
+   log,
+   ns,
+   StringsO,
+   TextReader;
 
 (*---------------------------------------------------------------------------*)
 
@@ -44,7 +44,7 @@ TYPE
    TPIConfigurable = POINTER TO IConfigurable;                     
                      
 INTERFACE IConfigurable;
-	PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
+   PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
 END IConfigurable;
 
 (*---------------------------------------------------------------------------*)
@@ -60,15 +60,16 @@ TYPE
    TPDevice = POINTER TO IDevice;
 
 INTERFACE IDevice( iobject.IObject ); // aka device driver
+
    PUBLIC READONLY PROPERTY
       DeviceCapabilities : TCapabilities;
 
-	PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
 
-	PROCEDURE Mapper() : ns.TPMapper; // required
-	PROCEDURE NS() : ns.TPNamespace; // optional
+   PROCEDURE NS() : ns.TPNamespace; // optional, handles both naming and IO
 
-	PROCEDURE IO() : io.TPIO; // optional
+   PROCEDURE Mapper() : ns.TPMapper; // required
+   PROCEDURE IO() : io.TPIO; // required if NS() is not used, not useful for complex devices (with nested namespaces). Complex devices should rather use IValueIO linked to ns.TPNamespace's values.
 
 END IDevice;
 
@@ -76,7 +77,7 @@ END IDevice;
 
 TYPE
 #save, call( convention => cdecl )
-	TGetDevice = PROCEDURE( OUT ADDRESS ) : BOOLEAN;
+   TGetDevice = PROCEDURE( OUT ADDRESS ) : BOOLEAN;
 #restore
 
 (*---------------------------------------------------------------------------*)

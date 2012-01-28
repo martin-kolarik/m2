@@ -271,7 +271,7 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData := _ClientData;
    BEGIN
       IF Name <> NIL THEN // want advise by name, find it it
-         IF NOT _Device^.Mapper()^.NameToHash( Name^, OUT Hash ) THEN
+         IF NOT _Device^.NS()^.Get( Name^, OUT Hash ) THEN
             RETURN FALSE;
          END;
       END;
@@ -295,7 +295,7 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData := _ClientData;
    BEGIN
       IF Name <> NIL THEN // want unadvise by name, do it
-         IF NOT _Device^.Mapper()^.NameToHash( Name^, OUT Hash ) THEN
+         IF NOT _Device^.NS()^.Get( Name^, OUT Hash ) THEN
             RETURN FALSE;
          END;
       END;
@@ -377,61 +377,61 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
    PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
    BEGIN
-	   IF _Device = NIL THEN
-	      ASSERT( FALSE );
-	      RETURN device.TCapabilities{};
-	   ELSE
-	      RETURN _Device^.DeviceCapabilities;
-	   END;
+      IF _Device = NIL THEN
+         ASSERT( FALSE );
+         RETURN device.TCapabilities{};
+      ELSE
+         RETURN _Device^.DeviceCapabilities;
+      END;
    END DeviceCapabilities;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-	BEGIN
-	   IF _Device = NIL THEN
-	      ASSERT( FALSE );
-	      RETURN Sync.arCannotStart;
-	   ELSE
-	      RETURN _Device^.Configure( Source, Log );
-	   END;
-	END Configure;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   BEGIN
+      IF _Device = NIL THEN
+         ASSERT( FALSE );
+         RETURN Sync.arCannotStart;
+      ELSE
+         RETURN _Device^.Configure( Source, Log );
+      END;
+   END Configure;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
    BEGIN
-	   IF _Device = NIL THEN
-	      ASSERT( FALSE );
-	      RETURN NIL;
-	   ELSE
-	      RETURN _Device^.Mapper();
-	   END;
-	END Mapper;
+      IF _Device = NIL THEN
+         ASSERT( FALSE );
+         RETURN NIL;
+      ELSE
+         RETURN _Device^.Mapper();
+      END;
+   END Mapper;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
-	BEGIN
-	   IF _Device = NIL THEN
-	      ASSERT( FALSE );
-	      RETURN NIL;
-	   ELSE
-	      RETURN _Device^.NS();
-	   END;
-	END NS;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
+   BEGIN
+      IF _Device = NIL THEN
+         ASSERT( FALSE );
+         RETURN NIL;
+      ELSE
+         RETURN _Device^.NS();
+      END;
+   END NS;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-	BEGIN
-	   IF _Device = NIL THEN
-	      ASSERT( FALSE );
-	      RETURN NIL;
-	   ELSE
-	      RETURN _Device^.IO();
-	   END;
-	END IO;
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   BEGIN
+      IF _Device = NIL THEN
+         ASSERT( FALSE );
+         RETURN NIL;
+      ELSE
+         RETURN _Device^.IO();
+      END;
+   END IO;
 
 (*---------------------------------------------------------------------------*)
 

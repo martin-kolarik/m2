@@ -28,7 +28,7 @@ IMPORT
       v1, v2, v3 : iovalue.Value;
       s : StringsO.CString;
    BEGIN
-      FOR t := iovalue.vtLink TO iovalue.vtDate DO
+      FOR t := iovalue.vtReference TO iovalue.vtDate DO
          IF t <> iovalue.vtObject THEN
             v1.Type := t;
             TryAll( REF v1 );
