@@ -47,6 +47,14 @@ END CNS;
 
 (*---------------------------------------------------------------------------*)
 
+TYPE
+   TConnectState = (
+      csDisconnected,
+      csConnecting,
+      csWaitAuthorization,
+      csConnected
+   );
+
 CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
 
 	LOCAL VAR
@@ -57,7 +65,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
       _AppenderList : lists.CPtrList;
       _Running : BOOLEAN := FALSE;
       _Lock : Sync.LOCK;
-      _State : TRISTATE := 0; // 0 = disconnected, -1 = connected wait auth, 1 = connected with auth
+      _State : TConnectState := csDisconnected; // 0 = disconnected, -1 = connected wait auth, 1 = connected with auth
       _AuthRequested : BOOLEAN := FALSE;
       _AuthKey : StringsO.CString;
 		_HostAddress : StringsO.CString;

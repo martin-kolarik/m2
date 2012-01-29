@@ -217,10 +217,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
          StartTimeout( CONNECTION_DISCONNECT_TIMEOUT, TRUE, REF _ConnectionCloseTimeoutHandle );
          _Reader.StartReading();
-         _State := -1;
+         _State := csWaitAuthorization;
 
       ELSE
          Logger.LogSC( log.ldTrace, 0, LOG_NAME, L"Connect failed:", Result );
+
+         _State := csDisconnected;
 
          // empty queue
          WHILE _Queue.Dequeue( OUT request, OUT d ) DO
@@ -250,12 +252,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
                   Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Connect response:", OA( response.Length-1, response.Data ));
 
                   _Lock.Lock(); // TODO safety
-                  _State := 1;
+                  _State := csConnected;
                   FlushQueue();
                   _Lock.Unlock();
                END;
 
-            ELSIF _State = 1 THEN
+            ELSIF _State = csConnected THEN
                PIO^.OnResponse( response );
 
             ELSE
@@ -263,7 +265,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
                _Lock.Lock(); // TODO safety
                StopTimeout( REF _ConnectionCloseTimeoutHandle );
-               _State := 0;
+               _State := csDisconnected;
                _Connection.Close();
                _Lock.Unlock();
             END;
@@ -312,7 +314,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (stop)" );
 
       StopTimeout( REF _ConnectionCloseTimeoutHandle );
-      _State := 0;
+      _State := csDisconnected;
       _Connection.Close();
 
       Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Stopped" );
@@ -328,7 +330,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          al.TakeSafe( REF _Lock, L"Unable to lock communicator (timeout)" );
 
          _ConnectionCloseTimeoutHandle := NIL; // can be StopTimeout, but calling Abort is not necessary here
-         _State := 0;
+         _State := csDisconnected;
          _Connection.Close();
 
          Logger.LogS( log.ldDebug, 0, LOG_NAME, L"Connection closed" );
@@ -392,7 +394,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    PUBLIC PROCEDURE Dispose();
    BEGIN
       _Password.Clear();
-      _State := 0;
+      _State := csDisconnected;
       _AuthRequested := FALSE;
 
       LogConfig.DisposeAppenderList( REF _AppenderList );
@@ -407,9 +409,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (request)" );
 
       _Queue.Enqueue( request, 0 );
-      IF _State = 1 THEN
+      IF _State = csConnecting THEN
+         // do nothing, wait connected
+      ELSIF _State = csConnected THEN
          FlushQueue();
-      ELSIF _State = 0 THEN
+      ELSIF _State = csDisconnected THEN
+         _State := csConnecting;
+
          Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Connecting to:", OA( _HostAddress.Length-1, _HostAddress.Data ));
          _Connection.OpenS( _HostAddress, DEFAULT_PORT, FALSE, 0 );
       END;
@@ -454,7 +460,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF Writer.WriteTimeout( request, FALSE, CONNECTION_DISCONNECT_TIMEOUT DIV 2 ) = Sync.arTimeout THEN
             // disconnect
             StopTimeout( REF _ConnectionCloseTimeoutHandle );
-            _State := 0;
+            _State := csDisconnected;
             _Connection.Close();
             // requeue the request
             _Queue.Enqueue( request, 0 );
