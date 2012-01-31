@@ -11,6 +11,8 @@ FROM Storage IMPORT
 IMPORT
    adviser,
    cllv,
+   compositedevice,
+   Debug,
    device,
    EquithermicCurve,
    FIO,
@@ -25,6 +27,8 @@ IMPORT
    LogConfig,
    msgqueuethread,
    netinit,
+   ns,
+   nsimpl,
    PersistentStorage,
    Registry,
    scinit,
@@ -58,7 +62,7 @@ CONST
 TYPE
    TControlledDeviceInfo = RECORD
                               Names : ARRAY [0..4] OF PWCHAR;
-                              Devices : ARRAY [0..4] OF io.TPIStartStopControl;
+                              Devices : ARRAY [0..4] OF io.TPStartStopControl;
                            END; // RECORD
 
 (*================================================================================*)
@@ -82,8 +86,9 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       LogAppenders : lists.CPtrList;
       ConfigLogger : Log.CBufferedLogger;
       DataLogger : Log.CBufferedLogger; 
-      HttpLogger : Log.CLogger; 
+      HttpLogger : Log.CLogger;
       NetworkLogger : Log.CLogger; 
+      Device : compositedevice.TPCompositeDevice := NIL;
       KNX : knxcore.TPKNXServer := NIL;
       Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
@@ -102,7 +107,7 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
    
    // IThreadProcedureCallTarget
    PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
-   
+
    // self message thread
    PRIVATE PROCEDURE _OnStart();
    PRIVATE PROCEDURE _OnPause();
@@ -203,6 +208,10 @@ CLASS IMPLEMENTATION CKnxSvc;
       sdapPort : CARDINAL := 6007;
       xmlsPort : CARDINAL := 6006;
    BEGIN
+      Debug.WaitUsingLoop();
+      ASSERT( FALSE );
+
+      // CONFIGURATION
       // get confiuration file path
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
@@ -254,6 +263,11 @@ CLASS IMPLEMENTATION CKnxSvc;
       NetworkLogger.LocalTime := TRUE;
       NetworkLogger.SeparateTimeBrackets := TRUE;
       
+      // CONSTRUCTION
+      ASSERT( Device = NIL );
+      NEW( Device );
+      Device^.Init( StringsO.FromOA( L"SmartServer" ));
+
       ASSERT( KNX = NIL );
       NEW( KNX );
       KNX^.Init( TRUE );
@@ -267,10 +281,11 @@ CLASS IMPLEMENTATION CKnxSvc;
       IF GlobalResult = Sync.arCompleted THEN
          GlobalResult := LocalResult;
       END;
+      Device^.JoinDevice( KNX ); // SmartServer.KNX.1/5/8
       
       ASSERT( Adviser = NIL );
       NEW( Adviser );
-      Adviser^.Device := KNX;
+      Adviser^.Device := Device;
       Adviser^.Start();
 
       ASSERT( SDAP = NIL );
@@ -332,6 +347,7 @@ CLASS IMPLEMENTATION CKnxSvc;
          GlobalResult := LocalResult;
       END;
 
+      // WEB & GLOBAL START
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
       CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
       CDI.Names[2] := PWCHAR( ADR( nameStorage ));
@@ -416,7 +432,9 @@ CLASS IMPLEMENTATION CKnxSvc;
       END;
    
       IF KNX <> NIL THEN
-         Adviser^.Device := NIL;
+         IF Device <> NIL THEN
+            Device^.LeaveDevice( KNX );
+         END;
          KNX^.Stop();
          KNX^.Dispose();
          DISPOSE( KNX );
@@ -435,8 +453,14 @@ CLASS IMPLEMENTATION CKnxSvc;
       END;
 
       IF Adviser <> NIL THEN
+         Adviser^.Device := NIL;
          Adviser^.Stop();
          DISPOSE( Adviser );
+      END;
+
+      IF Device <> NIL THEN
+         Device^.Dispose();
+         DISPOSE( Device );
       END;
 
       ConfigLogger.BufferClear();      
