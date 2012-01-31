@@ -49,6 +49,7 @@ INTERFACE INameValuePairs( IValueIO );
    // creation
    PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN; // need not necessarily exist
    PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : TPNameValuePairs ) : BOOLEAN; // creates child, although Name can be taken from Child^.Name separating the parameter is more free -- e.g. it allows using of hierarchical names in INamespace implementors
+   PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN; // removes child
 
    // TODO iterator in "default" branch
 

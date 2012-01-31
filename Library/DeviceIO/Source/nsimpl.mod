@@ -141,7 +141,7 @@ CLASS IMPLEMENTATION Namespace;
       leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
-      IF LookupAndDefine( Name, OUT pairs, OUT leaf ) THEN
+      IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
          RETURN pairs^.DefineValue( leaf, Type, Flags, Data, InitialValue, OUT Children );
       ELSE
          RETURN FALSE;
@@ -155,12 +155,26 @@ CLASS IMPLEMENTATION Namespace;
       leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
-      IF LookupAndDefine( Name, OUT pairs, OUT leaf ) THEN
+      IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
          RETURN pairs^.Link( leaf, Child );
       ELSE
          RETURN FALSE;
       END;
    END Link;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+   VAR
+      leaf : StringsO.CString;
+      pairs : ns.TPNameValuePairs := NIL;
+   BEGIN
+      IF LookupAndDefine( FALSE, Name, OUT pairs, OUT leaf ) THEN
+         RETURN pairs^.Unlink( leaf, OUT Child );
+      ELSE
+         RETURN FALSE;
+      END;
+   END Unlink;
 
 (*---------------------------------------------------------------------------*)
 
@@ -177,7 +191,7 @@ CLASS IMPLEMENTATION Namespace;
       leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
-      IF LookupAndDefine( Name, OUT pairs, OUT leaf ) THEN
+      IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
          iv.Reference := Reference;
          RETURN pairs^.DefineValue( leaf, iovalue.vtReference, Flags, Data, ADR( iv ), OUT pairs );
       ELSE
@@ -187,7 +201,7 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LookupAndDefine( CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs; OUT LeafName : StringsO.IString ) : BOOLEAN;
+   PRIVATE PROCEDURE LookupAndDefine( AllowCreation : BOOLEAN; CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs; OUT LeafName : StringsO.IString ) : BOOLEAN;
    VAR
       i : CARDINAL := 0;
       pairs : ns.TPNameValuePairs := NIL;
@@ -206,6 +220,8 @@ CLASS IMPLEMENTATION Namespace;
             RETURN FALSE;
          ELSIF pairs^.Get( toTest, OUT pairs ) THEN
             // OK, fall down
+         ELSIF NOT AllowCreation THEN
+            RETURN FALSE;
          ELSIF NOT pairs^.DefineValue( toTest, iovalue.vtObject, iovalue.TFlags{ iovalue.vfReadOnly }, 0, NIL, OUT pairs ) THEN // strange, but ok
             RETURN FALSE;
          END;

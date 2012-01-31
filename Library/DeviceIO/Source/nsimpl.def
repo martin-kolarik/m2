@@ -7,7 +7,7 @@ IMPORT
    avltree,
    IOO,
    iovalue,
-   namevaluepairsbase,
+   namevaluepairsimpl,
    ns,
    StringsO,
    Sync;
@@ -37,6 +37,7 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
       Data : PTR; // user data
    PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
 
    // INamespace
    PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
@@ -49,8 +50,8 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
    PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;
 
    PRIVATE VAR
-      _Pairs : namevaluepairsbase.TPNameValuePairsStorage;
-   PRIVATE PROCEDURE LookupAndDefine( CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs; OUT LeafName : StringsO.IString ) : BOOLEAN;
+      _Pairs : namevaluepairsimpl.TPNameValuePairsStorage;
+   PRIVATE PROCEDURE LookupAndDefine( AllowCreation : BOOLEAN; CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs; OUT LeafName : StringsO.IString ) : BOOLEAN;
 
 END Namespace;
 
