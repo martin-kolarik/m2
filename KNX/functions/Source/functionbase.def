@@ -16,7 +16,7 @@ FROM Storage IMPORT
 
 (*================================================================================*)
 
-ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS io.IOriginator, io.IStartStopControl;
+ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS ns.IOriginator, io.IStartStopControl;
 
    // IOriginator
    PUBLIC VIRTUAL READONLY PROPERTY

@@ -109,7 +109,7 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       _Controller : mvc.TPController;
       _DeviceCount : CARDINAL;
       _DeviceNames : POINTER TO ARRAY [0..0] OF PWCHAR;
-      _Devices : POINTER TO ARRAY [0..0] OF io.TPIStartStopControl;
+      _Devices : POINTER TO ARRAY [0..0] OF io.TPStartStopControl;
       _ConfigLogger : Log.TPBufferedLogger;
       _DataLogger : Log.TPBufferedLogger;
       _HttpLogger : Log.TPILogger;
@@ -132,7 +132,7 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE Init(
       CONST ContextName : ARRAY OF WCHAR;
       CONST cfg : INIfile.CINIFile;
-      KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl;
+      KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPStartStopControl;
       ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    
    PUBLIC READONLY PROPERTY

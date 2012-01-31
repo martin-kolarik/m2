@@ -219,10 +219,10 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          IF NOT SplitOutputAndCondition( key, OUT key, OUT conditionFound, OUT condition ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectOutputConditionFormat ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
-         ELSIF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
+         ELSIF NOT Device^.NS()^.Get( key, OUT hash ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
-         ELSIF conditionFound AND NOT Device^.Mapper()^.NameToHash( condition, OUT conditionHash ) THEN
+         ELSIF conditionFound AND NOT Device^.NS()^.Get( condition, OUT conditionHash ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ConditionGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
          END;
@@ -269,7 +269,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
                   days := days + Days{ Saturday };
                ELSIF values[i].StartsWithOA( L"su" ) THEN
                   days := days + Days{ Sunday };
-               ELSIF values[i].StartsWithOA( L"wee" ) THEN // week
+               ELSIF values[i].StartsWithOA( L"wee" ) THEN // weekend
                   days := days + Days{ Saturday, Sunday };
                ELSIF values[i].StartsWithOA( L"wo" ) THEN // work
                   days := days + Days{ Monday, Tuesday, Wednesday, Thursday, Friday };

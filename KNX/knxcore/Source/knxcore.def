@@ -20,6 +20,7 @@ IMPORT
    log,
    msghandler,
    ns,
+   nsimpl,
    Resources,
    StringsO;
 
@@ -157,7 +158,7 @@ CLASS KNXServerEvent( Event.AEvent ) IMPLEMENTS IKNXServerSink;
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 END KNXServerEvent;
 
-CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMapper, io.IIO;
+CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IValueIO, io.IAdviseSource, io.IIO;
    RStatus                  : TRStatus;
    ConfigurationPath        : StringsO.CString;
 
@@ -169,7 +170,7 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    Logger                   : log.CLogger;
    R                        : Resources.CResources;
    _Advise                  : io.TAdvise;
-   _AdviseListener          : io.TPIAdviseInfo;
+   _AdviseListener          : io.TPAdviseInfo;
    _DataLogger              : log.TPLogger;
 
    Result                   : CSuspendableResult;
@@ -204,6 +205,7 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    ObjectTypes              : lists.CStringList;
 
    ObjectLock               : Sync.LOCK;
+   Namespace                : nsimpl.Namespace;
    Groups                   : ARRAY CARD16 OF CARD16; // maps group addresses to object indexes
    Objects                  : arrays.CPtrArray;
    prObjects                : ARRAY knx_def.TKNXType OF CObject; // promiscuous objects
@@ -231,39 +233,34 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
 
-   // IObject
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC VIRTUAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // here meant also as a Command
-
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
       DeviceCapabilities : device.TCapabilities;
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-	PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
+   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
 
-   // IMapper
-   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
-	
-	// IIO
+   // IAdviseSource
+   PUBLIC VIRTUAL PROPERTY
+      Advise : io.TAdvise;
+      AdviseListener : io.TPAdviseInfo;
+
+   // IValueIO
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   
+   // IIO
    PUBLIC VIRTUAL READONLY PROPERTY
       IOCapabilities : io.TCapabilities;
       Pending : BOOLEAN;
       Running : BOOLEAN;
-   PUBLIC VIRTUAL PROPERTY
-      Advise : io.TAdvise;
-      AdviseListener : io.TPIAdviseInfo;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
 
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE AbortAll();
 
    // self

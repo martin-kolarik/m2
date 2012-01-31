@@ -178,7 +178,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       ES := 0;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
          // key/output = wish/input, outer/input [, slope/parameter [, offset/parameter]]
-         IF NOT Device^.Mapper()^.NameToHash( key, OUT hash[0] ) THEN
+         IF NOT Device^.NS()^.Get( key, OUT hash[0] ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputGroupAddressNotFound ] ), OA( s.Length-1, s.Data ));
             CONTINUE;
          END;
@@ -192,10 +192,10 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          IF pieces < 2 THEN
 	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
             CONTINUE;
-         ELSIF NOT Device^.Mapper()^.NameToHash( values[0], OUT hash[1] ) THEN
+         ELSIF NOT Device^.NS()^.Get( values[0], OUT hash[1] ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SetpointGroupAddressNotFound ] ), OA( values[0].Length-1, values[0].Data ));
             CONTINUE;
-         ELSIF NOT Device^.Mapper()^.NameToHash( values[1], OUT hash[2] ) THEN
+         ELSIF NOT Device^.NS()^.Get( values[1], OUT hash[2] ) THEN
 	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OuterGroupAddressNotFound ] ), OA( values[1].Length-1, values[1].Data ));
             CONTINUE;
          END;

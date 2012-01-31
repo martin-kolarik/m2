@@ -335,7 +335,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          END;
 
          // key/output = value
-         IF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
+         IF NOT Device^.NS()^.Get( key, OUT hash ) THEN
 	         Log^.LogSSSS( log.lcError, 0, LOGNAME, LOGNAME, OAsz( R^[ Texts._GroupAddressNotFound ] ), OA( key.Length-1, key.Data ), L"" );
             CONTINUE;
          END;

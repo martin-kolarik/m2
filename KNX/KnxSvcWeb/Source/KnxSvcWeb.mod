@@ -478,14 +478,14 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    PUBLIC PROCEDURE SetValue( CONST originator : inetaddr.INETADDR; CONST name, value : StringsO.IString ) : BOOLEAN;
    VAR
       d : StringsO.CString;
-      hash : ns.THash;
       ia : ARRAY [0..63] OF WCHAR;
       Originator : io.CSimpleOriginator;
+      pvalue : ns.TPNameValuePairs;
       s : StringsO.CString;
       Value : iovalue.Value;
    BEGIN
-      // no need to sync, NameToHash is be thread safe
-      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
+      // no need to sync, Get must be thread safe
+      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       s.Assign( value );
@@ -496,23 +496,23 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       Originator.SetDescription( d );
 
       // no need to sync, IOh is be thread safe
-      RETURN _KNX^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) IN Sync.arsCompletions;
+      RETURN pvalue^.ValueIO( ADR( Originator ), IOO.dirWrite, pvalue, REF Value ) IN Sync.arsCompletions;
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    VAR
-      hash : ns.THash;
       io : iovalue.Value;
+      pvalue : ns.TPNameValuePairs;
       s : StringsO.CString;
    BEGIN
-      // no need to sync, NameToHash is be thread safe
-      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
+      // no need to sync, Get must be thread safe
+      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
-      IF _KNX^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+      IF pvalue^.ValueIO( NIL, IOO.dirRead, pvalue, REF io ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
       s := io.String;
@@ -524,16 +524,16 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
    PUBLIC PROCEDURE GetWixValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    VAR
-      hash : ns.THash;
       io : iovalue.Value;
+      pvalue : ns.TPNameValuePairs;
       s : StringsO.CString;
    BEGIN
       // no need to sync, NameToHash is be thread safe
-      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
+      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
-      IF _KNX^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+      IF pvalue^.ValueIO( NIL, IOO.dirRead, pvalue, REF io ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
       
@@ -880,7 +880,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
       snProject = L"project";
          knName = L"name";

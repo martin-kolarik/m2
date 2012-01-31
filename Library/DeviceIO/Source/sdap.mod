@@ -430,8 +430,12 @@ CLASS IMPLEMENTATION CSDAPServer;
          _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "LOAD: ", OA( data.Length-1, data.Data ));
 
          // stop, load
-         b := Device^.IO()^.Running;
-         Device^.IO()^.Stop();
+         IF device.capStartStop IN Device^.DeviceCapabilities THEN
+            b := Device^.StartStop()^.Running;
+            Device^.StartStop()^.Stop();
+         ELSE
+            b := FALSE;
+         END;
          
          prevcount := _ConfigurationLogger^.BufferCount;
          configuration[0].Type := device.citIString;
@@ -471,7 +475,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       | sdapSTOP :
          _CommonLogger^.LogS( log.ldTrace, 0, LOG_SDAP, "STOP" );
 
-         Device^.IO()^.Stop();
+         IF device.capStartStop IN Device^.DeviceCapabilities THEN
+            Device^.StartStop()^.Stop();
+         END;
          ACK( PConnection, sdap200 );
 
       //-----
@@ -482,7 +488,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "GET ", OA( p[1].Length-1, p[1].Data ));
          END;
 
-         IF ( Command = sdapSET ) AND NOT Device^.IO()^.Running THEN
+         IF ( Command = sdapSET ) AND ( device.capStartStop IN Device^.DeviceCapabilities ) AND NOT Device^.StartStop()^.Running THEN
             ACK( PConnection, sdap501 );
 
          ELSIF NOT Device^.NS()^.Get( p[1], OUT pvalue ) THEN
@@ -570,7 +576,7 @@ CLASS IMPLEMENTATION CSDAPServer;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := Device^.IO()^.Start();
+      Result := Device^.StartStop()^.Start();
       CASE Result OF
       | Sync.arPending :
          ACK( Connection, sdap300 );

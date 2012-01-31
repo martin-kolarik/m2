@@ -6,6 +6,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   device,
    io,
    IOO,
    iovalue,
@@ -312,16 +313,9 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Client : TPClient;
       Connection : netconndispatch.TConnectionHandle;
       i, l : CARDINAL;
-      IO : io.TPIO;
       name : StringsO.CString;
-      value : iovalue.Value;
+      pvalue : ns.TPNameValuePairs;
    BEGIN
-      IO := Device^.IO();
-      IF IO = NIL THEN
-         ASSERT( FALSE );
-         RETURN;
-      END; // IF
-
       // client's presence must be recheck, because scheduled send can arrive after client disconnect
       Connection := Items^[0];
       IF NOT _Clients.Get( Connection, OUT Client ) THEN
@@ -334,8 +328,8 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       i := 1;
       l := Items^.Count;
       WHILE i < l DO
-         IO^.IOh( NIL, IOO.dirRead, Items^[i], REF value, NIL );
-         Client^.AddItem( Items^[i], value );
+         pvalue := Items^[i];
+         Client^.AddItem( Items^[i], pvalue^.Value );
          INC( i );
       END; // WHILE
       
@@ -546,7 +540,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name.FromOA( NameOA );
       _CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "SET ", NameOA, L" ", Value );
 
-      IF NOT Device^.IO()^.Running THEN
+      IF ( device.capStartStop IN Device^.DeviceCapabilities ) AND NOT Device^.StartStop()^.Running THEN
          _CommonLogger^.LogS( log.ldDebug, 0, LOG_XMLS, "  device is not running, nothing SET" );
          RETURN;
 
