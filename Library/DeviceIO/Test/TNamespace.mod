@@ -7,7 +7,7 @@ IMPORT
    IOO,
    iovalue,
    log,
-   namevaluepairsbase,
+   namevaluepairsimpl,
    ns,
    nsimpl,
    Strings,
@@ -44,7 +44,7 @@ CLASS IMPLEMENTATION CTest;
       nss : nsimpl.Namespace;
       pairs : ns.TPNameValuePairs;
       s : StringsO.CString;
-      subnvp : namevaluepairsbase.NameValuePairsStorage;
+      subnvp : namevaluepairsimpl.NameValuePairsStorage;
    BEGIN
       SELF.Host := Host;
 

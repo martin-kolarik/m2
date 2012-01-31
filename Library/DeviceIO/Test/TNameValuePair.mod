@@ -7,7 +7,7 @@ IMPORT
    IOO,
    iovalue,
    log,
-   namevaluepairsbase,
+   namevaluepairsimpl,
    ns,
    nsimpl,
    Strings,
@@ -41,10 +41,10 @@ CLASS IMPLEMENTATION CTest;
       Failure, SumFailure : BOOLEAN := FALSE;
       is : StringsO.CString;
       iv : iovalue.Value;
-      nvp : namevaluepairsbase.NameValuePairsStorage;
+      nvp : namevaluepairsimpl.NameValuePairsStorage;
       pairs : ns.TPNameValuePairs;
       s : StringsO.CString;
-      subnvp : namevaluepairsbase.NameValuePairsStorage;
+      subnvp : namevaluepairsimpl.NameValuePairsStorage;
    BEGIN
       SELF.Host := Host;
 
