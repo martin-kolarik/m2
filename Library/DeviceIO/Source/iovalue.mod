@@ -1509,4 +1509,44 @@ END Value;
 
 (*================================================================================*)
 
+PROCEDURE FromInteger( CONST value : INT32 ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Integer := value;
+   RETURN v;
+END FromInteger;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromLong( CONST value : INT64 ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Long := value;
+   RETURN v;
+END FromLong;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromFloat( CONST value : LONGREAL ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Float := value;
+   RETURN v;
+END FromFloat;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromString( CONST value : StringsO.CString ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.String := value;
+   RETURN v;
+END FromString;
+
+(*================================================================================*)
+
 END iovalue.
