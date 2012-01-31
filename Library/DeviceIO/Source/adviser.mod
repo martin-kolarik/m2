@@ -15,7 +15,7 @@ TYPE
 
 CLASS CClientData;
    LOCAL VAR
-      Client : io.TPIAdviseInfo := NIL;
+      Client : io.TPAdviseInfo := NIL;
       Advise : io.TAdvise := io.advNone;
 END CClientData;
 
@@ -84,6 +84,42 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
+   BEGIN
+      RETURN _StartStopHandler.Running;
+   END Running;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   BEGIN
+      RETURN _StartStopHandler.Start();
+   END Start;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+      _StartStopHandler.Stop();
+   END Stop;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnStart() : Sync.TAsyncResult;
+   BEGIN
+      _Advising.Signal();
+      RETURN Sync.arCompleted;
+   END OnStart;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnStop();
+   BEGIN
+      _Advising.Reset();
+   END OnStop;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Device GET : device.TPDevice;
    BEGIN
       RETURN _Device;
@@ -97,16 +133,16 @@ CLASS IMPLEMENTATION CAdviser;
          RETURN;
       END;
       
-      IF _Device <> NIL THEN
-         _Device^.IO()^.AdviseListener := NIL;
+      IF ( _Device <> NIL ) AND ( device.capAdviseSource IN _Device^.DeviceCapabilities ) THEN
+         _Device^.AdviseSource()^.AdviseListener := NIL;
       END;
       
       _Device := Value;
       
       IF _Device <> NIL THEN
-         IF io.capAdvise IN _Device^.IO()^.IOCapabilities THEN
-            _Device^.IO()^.Advise := io.advWithData;
-            _Device^.IO()^.AdviseListener := ADR( SELF );
+         IF device.capAdviseSource IN _Device^.DeviceCapabilities THEN
+            _Device^.AdviseSource()^.Advise := io.advWithData;
+            _Device^.AdviseSource()^.AdviseListener := ADR( SELF );
          ELSE // not implemented, the adviser class should not do it
             ASSERT( FALSE );
          END;
@@ -122,7 +158,7 @@ CLASS IMPLEMENTATION CAdviser;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE JoinClient( Client : io.TPIAdviseInfo; Advise : io.TAdvise );
+   PUBLIC PROCEDURE JoinClient( Client : io.TPAdviseInfo; Advise : io.TAdvise );
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -139,7 +175,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LeaveClient( Client : io.TPIAdviseInfo );
+   PUBLIC PROCEDURE LeaveClient( Client : io.TPAdviseInfo );
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -153,7 +189,7 @@ CLASS IMPLEMENTATION CAdviser;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Advise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN;
+   PUBLIC PROCEDURE Advise( Client : io.TPAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -166,7 +202,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AdviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN;
+   PUBLIC PROCEDURE AdviseHash( Client : io.TPAdviseInfo; Hash : ns.THash ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -179,7 +215,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AdviseAll( Client : io.TPIAdviseInfo );
+   PUBLIC PROCEDURE AdviseAll( Client : io.TPAdviseInfo );
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -190,7 +226,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Unadvise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN;
+   PUBLIC PROCEDURE Unadvise( Client : io.TPAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -203,7 +239,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE UnadviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN;
+   PUBLIC PROCEDURE UnadviseHash( Client : io.TPAdviseInfo; Hash : ns.THash ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -216,7 +252,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE UnadviseAll( Client : io.TPIAdviseInfo );
+   PUBLIC PROCEDURE UnadviseAll( Client : io.TPAdviseInfo );
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -225,20 +261,6 @@ CLASS IMPLEMENTATION CAdviser;
       END;
    END UnadviseAll;
    
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Start();
-   BEGIN
-      _Advising.Signal();
-   END Start;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Stop();
-   BEGIN
-      _Advising.Reset();
-   END Stop;
-
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Dispose();
@@ -331,50 +353,6 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
-   BEGIN
-      IF _Device = NIL THEN
-         ASSERT( FALSE );
-         RETURN iobject.otSingleton;
-      ELSE
-         RETURN _Device^.Type;
-      END;
-   END Type;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
-   BEGIN
-      IF _Device = NIL THEN
-         ASSERT( FALSE );
-         RETURN NIL;
-      ELSE
-         RETURN _Device^.Library;
-      END;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
-   BEGIN
-      IF _Device = NIL THEN
-         ASSERT( FALSE );
-      ELSE
-         _Device^.Library := Value;
-      END;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
-   BEGIN
-      IF _Device <> NIL THEN
-         _Device^.OnDispose();
-      END;
-   END OnDispose;
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
    BEGIN
       IF _Device = NIL THEN
@@ -399,18 +377,6 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-   BEGIN
-      IF _Device = NIL THEN
-         ASSERT( FALSE );
-         RETURN NIL;
-      ELSE
-         RETURN _Device^.Mapper();
-      END;
-   END Mapper;
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
    BEGIN
       IF _Device = NIL THEN
@@ -423,6 +389,18 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
+   BEGIN
+      IF _Device = NIL THEN
+         ASSERT( FALSE );
+         RETURN NIL;
+      ELSE
+         RETURN _Device^.StartStop();
+      END;
+   END StartStop;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
    BEGIN
       IF _Device = NIL THEN
@@ -432,6 +410,18 @@ CLASS IMPLEMENTATION CAdvisedDevice;
          RETURN _Device^.IO();
       END;
    END IO;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
+   BEGIN
+      IF _Device = NIL THEN
+         ASSERT( FALSE );
+         RETURN NIL;
+      ELSE
+         RETURN _Device^.AdviseSource();
+      END;
+   END AdviseSource;
 
 (*---------------------------------------------------------------------------*)
 

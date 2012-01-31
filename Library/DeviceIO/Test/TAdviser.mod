@@ -29,14 +29,7 @@ TYPE
 CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
 
    PRIVATE VAR
-      _AdviseListener : io.TPIAdviseInfo := NIL;
-
-   // IObject
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC VIRTUAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+      _AdviseListener : io.TPAdviseInfo := NIL;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -44,10 +37,11 @@ CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
 
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
 
-   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper; // required
-   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // optional
-
-   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO; // required
+   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // required
+   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl; // optional
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO; // optional
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource; // optional
    
    // IIO
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -56,7 +50,7 @@ CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
       Running : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Advise : io.TAdvise;
-      AdviseListener : io.TPIAdviseInfo; // for Advise <> advNone
+      AdviseListener : io.TPAdviseInfo; // for Advise <> advNone
 
    PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
@@ -102,32 +96,6 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
-   BEGIN
-      RETURN iobject.otSingleton;
-   END Type;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
-   BEGIN
-      RETURN NIL;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
-   BEGIN
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
-   BEGIN
-   END OnDispose;
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
    BEGIN
       RETURN device.TCapabilities{};
@@ -156,6 +124,20 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
+   BEGIN
+      RETURN ADR( SELF );
+   END StartStop;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
+   BEGIN
+      RETURN NIL;
+   END AdviseSource;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
    BEGIN
       RETURN ADR( SELF );
@@ -165,7 +147,7 @@ CLASS IMPLEMENTATION CSimulator;
 
    PUBLIC VIRTUAL PROPERTY IOCapabilities GET : io.TCapabilities;
    BEGIN
-      RETURN io.TCapabilities{io.capAdvise};
+      RETURN io.TCapabilities{};
    END IOCapabilities;
 
 (*---------------------------------------------------------------------------*)
@@ -197,14 +179,14 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPIAdviseInfo;
+   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPAdviseInfo;
    BEGIN
       RETURN _AdviseListener;
    END AdviseListener;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPIAdviseInfo );
+   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPAdviseInfo );
    BEGIN
       _AdviseListener := Value;
    END AdviseListener;

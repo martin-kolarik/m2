@@ -48,7 +48,7 @@ END CClient;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CTest IMPLEMENTS test.ITest, device.IDevice, io.IIO, ns.IMapper;
+CLASS CTest IMPLEMENTS test.ITest, device.IDevice, io.IIO;
 
    PUBLIC VAR
       Host : test.TPHost := NIL;
@@ -60,40 +60,30 @@ CLASS CTest IMPLEMENTS test.ITest, device.IDevice, io.IIO, ns.IMapper;
    // ITest
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 
-   // IDevice.IObject
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC VIRTUAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
-   
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
       DeviceCapabilities : device.TCapabilities;
 
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
 
-   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
-
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-	
-	// IStartStopControl
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
+   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
+   
+   // IStartStopControl
    PUBLIC VIRTUAL READONLY PROPERTY
       Running : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
-	
-	// IIO
+   
+   // IIO
    PUBLIC VIRTUAL READONLY PROPERTY
       IOCapabilities : io.TCapabilities;
       Pending : BOOLEAN;
-   PUBLIC VIRTUAL PROPERTY
-      Advise : io.TAdvise;
-      AdviseListener : io.TPIAdviseInfo; // for Advise <> advNone
 
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE AbortAll();
    
@@ -213,32 +203,6 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
-   BEGIN
-      RETURN iobject.otSingleton;
-   END Type;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
-   BEGIN
-      RETURN NIL;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
-   BEGIN
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
-   BEGIN
-   END OnDispose;
-   
-(*---------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
    BEGIN
       RETURN device.TCapabilities{};
@@ -246,31 +210,38 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
-	BEGIN
-	   RETURN sync.arCannotStart;
-	END Configure;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
    BEGIN
-      RETURN ADR( SELF );
-   END Mapper;
+      RETURN sync.arCannotStart;
+   END Configure;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
    BEGIN
       RETURN NIL;
    END NS;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
+   BEGIN
+      RETURN ADR( SELF );
+   END StartStop;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
    BEGIN
       RETURN ADR( SELF );
    END IO;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
+   BEGIN
+      RETURN NIL;
+   END AdviseSource;
 
 (*---------------------------------------------------------------------------*)
 
@@ -291,12 +262,12 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
    END Stop;
-	
+   
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY IOCapabilities GET : io.TCapabilities;
    BEGIN
-      RETURN io.TCapabilities{io.capAdvise};
+      RETURN io.TCapabilities{};
    END IOCapabilities;
 
 (*---------------------------------------------------------------------------*)
@@ -308,33 +279,7 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
-   BEGIN
-      RETURN io.advNone;
-   END Advise;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
-   BEGIN
-   END Advise;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPIAdviseInfo;
-   BEGIN
-      RETURN NIL;
-   END AdviseListener;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPIAdviseInfo );
-   BEGIN
-   END AdviseListener;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
    BEGIN
       Value.Boolean := TRUE;
       RETURN sync.arCompleted;
@@ -342,7 +287,7 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
    BEGIN
       RETURN sync.arPending;
    END IOha;

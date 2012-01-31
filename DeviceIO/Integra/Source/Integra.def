@@ -178,7 +178,7 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS iobject.IObject, device.IDevice;
 
    // IObject
    PUBLIC FINAL READONLY PROPERTY

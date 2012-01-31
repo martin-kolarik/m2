@@ -44,7 +44,9 @@ TYPE
    TPIConfigurable = POINTER TO IConfigurable;                     
                      
 INTERFACE IConfigurable;
+
    PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
+
 END IConfigurable;
 
 (*---------------------------------------------------------------------------*)
@@ -52,33 +54,26 @@ END IConfigurable;
 TYPE
    TCapability = (
       capMultipleConfiguration,
-      capNamespace
+      capStartStop, // if the device is not capable the device is always RUNNING
+      capIO,
+      capAdviseSource
    );
    TCapabilities = SET OF TCapability;
 
 TYPE
    TPDevice = POINTER TO IDevice;
 
-INTERFACE IDevice( iobject.IObject ); // aka device driver
+INTERFACE IDevice( IConfigurable );
 
    PUBLIC READONLY PROPERTY
       DeviceCapabilities : TCapabilities;
 
-   PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-
-   PROCEDURE NS() : ns.TPNamespace; // optional, handles both naming and IO
-
-   PROCEDURE Mapper() : ns.TPMapper; // required
-   PROCEDURE IO() : io.TPIO; // required if NS() is not used, not useful for complex devices (with nested namespaces). Complex devices should rather use IValueIO linked to ns.TPNamespace's values.
+   PROCEDURE NS() : ns.TPNamespace; // required, handles both naming and IO
+   PROCEDURE StartStop() : io.TPStartStopControl; // optional, NS items itself can be able to use IO
+   PROCEDURE IO() : io.TPIO; // optional, NS items itself can be able to use IO
+   PROCEDURE AdviseSource() : io.TPAdviseSource; // optional
 
 END IDevice;
-
-(*---------------------------------------------------------------------------*)
-
-TYPE
-#save, call( convention => cdecl )
-   TGetDevice = PROCEDURE( OUT ADDRESS ) : BOOLEAN;
-#restore
 
 (*---------------------------------------------------------------------------*)
 
