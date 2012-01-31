@@ -1,4 +1,4 @@
-DEFINITION MODULE namevaluepairsbase;
+DEFINITION MODULE namevaluepairsimpl;
 // the module is partially visible to allow its usage in test
 
 (*===========================================================================*)
@@ -32,6 +32,7 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
       Data : PTR;
 
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN; // Name and Child^.Name HAS TO be the same
+   PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN; // removes child
 
    // SELF
    PUBLIC WRITEONLY PROPERTY
@@ -100,4 +101,4 @@ END NameValuePairsStorage;
 
 (*===========================================================================*)
 
-END namevaluepairsbase.
+END namevaluepairsimpl.

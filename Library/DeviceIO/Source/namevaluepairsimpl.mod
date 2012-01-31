@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE namevaluepairsbase;
+IMPLEMENTATION MODULE namevaluepairsimpl;
 
 FROM Debug IMPORT
    AssertionW;
@@ -202,6 +202,30 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+   VAR
+      elem : TPNameValuePairsElem;
+      helper : CSearchHelper;
+   BEGIN
+      IF _Children = NIL THEN
+         RETURN FALSE;
+      END;
+
+      helper.Init( Name );
+      IF NOT _Children^.SearchI( 0, ADR( helper ), OUT elem ) THEN
+         RETURN FALSE;
+      ELSIF ( elem^ IS NameValuePairsStorage ) OR ( elem^ IS NameValuePairsIO ) THEN // only link is possible to remove
+         RETURN FALSE;
+      END;
+
+      Child := elem^._Pairs;
+      _Children^.Delete( ADR( helper ));
+
+      RETURN TRUE;
+   END Unlink;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
 END ANameValuePairsStructurals;
 
@@ -364,4 +388,4 @@ END NameValuePairsStorage;
 
 (*===========================================================================*)
 
-END namevaluepairsbase.
+END namevaluepairsimpl.
