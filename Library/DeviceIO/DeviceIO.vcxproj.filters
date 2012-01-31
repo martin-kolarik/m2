@@ -78,10 +78,16 @@
     <None Include="Test\TNameValuePair.mod">
       <Filter>Test</Filter>
     </None>
-    <None Include="Source\namevaluepairsbase.def">
+    <None Include="Source\namevaluepairsimpl.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\namevaluepairsbase.mod">
+    <None Include="Source\namevaluepairsimpl.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\compositedevice.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\compositedevice.mod">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

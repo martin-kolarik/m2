@@ -63,10 +63,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="Source\adviser.mod" />
+    <None Include="Source\compositedevice.def" />
+    <None Include="Source\compositedevice.mod" />
     <None Include="Source\io.mod" />
     <None Include="Source\iovalue.mod" />
-    <None Include="Source\namevaluepairsbase.def" />
-    <None Include="Source\namevaluepairsbase.mod" />
+    <None Include="Source\namevaluepairsimpl.def" />
+    <None Include="Source\namevaluepairsimpl.mod" />
     <None Include="Source\ns.mod" />
     <None Include="Source\nsimpl.def" />
     <None Include="Source\nsimpl.mod" />
