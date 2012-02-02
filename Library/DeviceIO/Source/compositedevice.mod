@@ -1,11 +1,11 @@
-IMPLEMENTATION MODULE compositedevice;
+IMPLEMENTATION MODULE compositedatasource;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CCompositeDevice;
+CLASS IMPLEMENTATION CCompositeDataSource;
 
 (*---------------------------------------------------------------------------*)
 
@@ -28,10 +28,10 @@ CLASS IMPLEMENTATION CCompositeDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
       IF _AdviseListener <> NIL THEN
-         _AdviseListener^.OnAdvise( Source, Result, Item, Value );
+         _AdviseListener^.OnAdvise( Originator, Result, Item, Value );
       END;
    END OnAdvise;
 
@@ -122,10 +122,10 @@ CLASS IMPLEMENTATION CCompositeDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
+   PUBLIC VIRTUAL PROPERTY DataSourceCapabilities GET : device.TCapabilities;
    BEGIN
       RETURN device.TCapabilities{ device.capAdviseSource };
-   END DeviceCapabilities;
+   END DataSourceCapabilities;
 
 (*---------------------------------------------------------------------------*)
 
@@ -133,21 +133,6 @@ CLASS IMPLEMENTATION CCompositeDevice;
    BEGIN
       RETURN ADR( _Namespace );
    END NS;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl; // optional
-   BEGIN
-      RETURN NIL;
-      // TODO -- start and stop all devices RETURN ADR( _StartStopHandler );
-   END StartStop;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO; // optional, NS items itself can be able to use IO
-   BEGIN
-      RETURN NIL;
-   END IO;
 
 (*---------------------------------------------------------------------------*)
 
@@ -220,8 +205,8 @@ CLASS IMPLEMENTATION CCompositeDevice;
 BEGIN
 FINALLY
    Dispose();
-END CCompositeDevice;
+END CCompositeDataSource;
 
 (*===========================================================================*)
 
-END compositedevice.
+END compositedatasource.
