@@ -11,17 +11,20 @@ FROM Storage IMPORT
 IMPORT
    adviser,
    cllv,
-   compositedevice,
+   compositedatasource,
    Debug,
    device,
    EquithermicCurve,
    FIO,
    FIOO,
-   io,
    INIfile,
    inetaddr,
+   io,
+   IOO,
+   iovalue,
    knxcore,
    KnxSvcWeb,
+   lec,
    lists,
    Log,
    LogConfig,
@@ -65,7 +68,7 @@ TYPE
                               Devices : ARRAY [0..4] OF io.TPStartStopControl;
                            END; // RECORD
 
-(*================================================================================*)
+(*--------------------------------------------------------------------------------*)
 
 TYPE  
    TCommand = (
@@ -75,7 +78,197 @@ TYPE
       cmdStop
    );
 
-(*---------------------------------------------------------------------------*)
+(*================================================================================*)
+
+CONST
+   itemSystemSerialNumber = 1;
+
+   itemSystemSuspend = 2;
+   suspendKey = L"suspend";
+   suspendValue = L"true";
+
+
+CLASS CSuspendableResult( lec.CResult ) IMPLEMENTS ns.IValueIO, device.IDataSource;
+
+   // IValueIO
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+
+   // IDataSource
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST log : Log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DataSourceCapabilities : device.TCapabilities;
+
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // required, handles both naming and IO
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource; // optional
+
+   // SELF
+   PUBLIC READONLY PROPERTY
+      Expired : BOOLEAN;
+      Suspended : BOOLEAN;
+   PUBLIC PROCEDURE QuerySuspension();
+
+   // private
+   PRIVATE PROCEDURE CreateNamespace();
+   PRIVATE PROCEDURE LoadData();
+
+   PRIVATE VAR
+      _Namespace : nsimpl.Namespace;
+      _Suspended : BOOLEAN;
+
+END CSuspendableResult;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CSuspendableResult;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   VAR
+      key : StringsO.CString;
+      licences : lists.CStringList;
+      p : PTR;
+      s : FIO.PathStrW;
+      value : StringsO.CString;
+   BEGIN
+      //-----
+      IF NameValuePairs^.Data = itemSystemSerialNumber THEN
+         IF Direction = IOO.dirWrite THEN
+            RETURN Sync.arUnsupportedDirection;
+         ELSE
+            GetLicences( OUT licences );
+            IF NOT licences.GetFirst( OUT value, OUT p ) THEN
+               value.Clear();
+            END;
+            Value.String := value;
+            RETURN Sync.arCompleted;
+         END;
+
+      //-----
+      ELSIF NameValuePairs^.Data = itemSystemSuspend THEN
+         IF Direction = IOO.dirRead THEN
+            RETURN Sync.arUnsupportedDirection;
+         ELSE
+            // TODO
+            FIO.GetModuleDirW( L"", OUT s );
+            key.FromOA( suspendKey );
+            value := Value.String;
+            lec.StoreInfo( s, ADR( cllv.data ), cllv.length, key, value );
+            lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF SELF );
+            QuerySuspension();
+            RETURN Sync.arCompleted;
+         END;
+
+      //-----
+      ELSE
+         RETURN Sync.arCannotStart;
+      END;
+   END ValueIO;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST log : Log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
+   BEGIN
+      RETURN Sync.arCompleted;
+   END Configure;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY DataSourceCapabilities GET : device.TCapabilities;
+   BEGIN
+      RETURN device.TCapabilities{};
+   END DataSourceCapabilities;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // required, handles both naming and IO
+   BEGIN
+      RETURN ADR( _Namespace );
+   END NS;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource; // optional
+   BEGIN
+      RETURN NIL;
+   END AdviseSource;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Expired GET : BOOLEAN;
+   BEGIN
+      IF _Suspended THEN
+         RETURN TRUE;
+      ELSE
+         RETURN SUPER.Expired;
+      END;
+   END Expired;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Suspended GET : BOOLEAN;
+   BEGIN
+      RETURN _Suspended;
+   END Suspended;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE QuerySuspension();
+   VAR
+      value : StringsO.CString;
+   BEGIN
+      ProductsLock();
+      ProductsReset();
+      WHILE ProductsMoveNext() DO
+         IF CurrentProduct^.Info^.GetOA( suspendKey, OUT value ) THEN
+            _Suspended := value.EqualsOA( suspendValue );
+         END;
+      END;
+      ProductsUnlock();
+   END QuerySuspension;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE CreateNamespace();
+   CONST
+      nameSystem = L"System";
+      nameSystemSuspend = L"Licensing.Suspend";
+      nameSystemSerialNumber = L"Licensing.SerialNumber";
+   VAR
+      pairs : ns.TPNameValuePairs;
+   BEGIN
+      _Namespace.InitializeName := StringsO.FromOA( nameSystem );
+      _Namespace.DefineIOValue( StringsO.FromOA( nameSystemSerialNumber ), REF SELF, itemSystemSerialNumber, NIL, OUT pairs );
+      _Namespace.DefineIOValue( StringsO.FromOA( nameSystemSuspend ), REF SELF, itemSystemSuspend, NIL, OUT pairs );
+   END CreateNamespace;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE LoadData();
+   VAR
+      s : FIO.PathStrW;
+   BEGIN
+      Reset( lec.bhBestCase );
+      FIO.GetModuleDirW( L"", OUT s );
+      lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF SELF );
+      QuerySuspension();
+   END LoadData;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _Suspended := FALSE;
+   CreateNamespace();
+   LoadData();
+FINALLY
+   _Namespace.Dispose();
+END CSuspendableResult;
+
+(*================================================================================*)
+
+CONST
+   ServiceName = ProductId;
 
 CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    LOCAL VIRTUAL READONLY PROPERTY
@@ -83,14 +276,15 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       Configuration : StringsO.TPString;
       
    PRIVATE VAR
+      Result : POINTER TO CSuspendableResult := NIL;
       LogAppenders : lists.CPtrList;
       ConfigLogger : Log.CBufferedLogger;
       DataLogger : Log.CBufferedLogger; 
       HttpLogger : Log.CLogger;
       NetworkLogger : Log.CLogger; 
-      Device : compositedevice.TPCompositeDevice := NIL;
+      RootDataSource : compositedatasource.TPCompositeDataSource := NIL;
       KNX : knxcore.TPKNXServer := NIL;
-      Adviser : adviser.TPAdvisedDevice := NIL;
+      Adviser : adviser.TPAdvisedDataSource := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
       XMLS : xmlsocket.TPXMLSocketServer := NIL;
       Web : KnxSvcWeb.CKnxSvcWeb;
@@ -115,10 +309,7 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
    PRIVATE PROCEDURE _OnStop();
 END CKnxSvc;
 
-(*================================================================================*)
-
-CONST
-   ServiceName = ProductId;
+(*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CKnxSvc;
 
@@ -264,33 +455,37 @@ CLASS IMPLEMENTATION CKnxSvc;
       NetworkLogger.SeparateTimeBrackets := TRUE;
       
       // CONSTRUCTION
-      ASSERT( Device = NIL );
-      NEW( Device );
-      Device^.Init( StringsO.FromOA( L"SmartServer" ));
+      ASSERT( Result = NIL );
+      NEW( Result );
+
+      ASSERT( RootDataSource = NIL );
+      NEW( RootDataSource );
+      RootDataSource^.Init( StringsO.FromOA( L"SmartServer" ));
+
+      RootDataSource^.JoinDataSource( Result );
 
       ASSERT( KNX = NIL );
       NEW( KNX );
       KNX^.Init( TRUE );
       KNX^.EXEFlag := TRUE;
-      KNX^.cllvData := ADR( cllv.data );
-      KNX^.cllvLength := cllv.length;
       KNX^.DataLogger := ADR( DataLogger );
+      KNX^.Result := Result;
       configuration[0].Type := device.citIString;
       configuration[0].iString := ADR( s1 );
       LocalResult := KNX^.Configure( configuration, ADR( ConfigLogger ));
       IF GlobalResult = Sync.arCompleted THEN
          GlobalResult := LocalResult;
       END;
-      Device^.JoinDevice( KNX ); // SmartServer.KNX.1/5/8
+      RootDataSource^.JoinDataSource( KNX ); // SmartServer.KNX.1/5/8
       
       ASSERT( Adviser = NIL );
       NEW( Adviser );
-      Adviser^.Device := Device;
+      Adviser^.DataSource := RootDataSource;
       Adviser^.Start();
 
       ASSERT( SDAP = NIL );
       NEW( SDAP );
-      SDAP^.Device := Adviser;
+      SDAP^.DataSource := Adviser;
       IA.Port := sdapPort;
       SDAP^.ListenAddress := IA;
       SDAP^.Init( TRUE );
@@ -300,7 +495,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       
       ASSERT( XMLS = NIL );
       NEW( XMLS );
-      XMLS^.Device := Adviser;
+      XMLS^.DataSource := Adviser;
       IA.Port := xmlsPort;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
@@ -310,7 +505,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       ASSERT( Storage = NIL );
       NEW( Storage );
       Storage^.Init( TRUE );
-      Storage^.Device := Adviser;
+      Storage^.DataSource := Adviser;
       Storage^.Logger := Log.logger();
       Storage^.DefaultStorageFolder := StringsO.FromOA( defaultStorageName );
       KNX^.EventSinks.Subscribe( ADR( Storage^.IKNXServerSink ));
@@ -324,7 +519,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       ASSERT( EqCurve = NIL );
       NEW( EqCurve );
       EqCurve^.Init( TRUE );
-      EqCurve^.Device := Adviser;
+      EqCurve^.DataSource := Adviser;
       EqCurve^.Logger := Log.logger();
       LocalResult := EqCurve^.Configure( configuration, ADR( ConfigLogger ));
       IF LocalResult = Sync.arCompleted THEN
@@ -337,7 +532,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       ASSERT( WeekCal = NIL );
       NEW( WeekCal );
       WeekCal^.Init( TRUE );
-      WeekCal^.Device := Adviser;
+      WeekCal^.DataSource := Adviser;
       WeekCal^.Logger := Log.logger();
       LocalResult := WeekCal^.Configure( configuration, ADR( ConfigLogger ));
       IF LocalResult = Sync.arCompleted THEN
@@ -359,7 +554,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       CDI.Devices[3] := EqCurve;
       CDI.Devices[4] := WeekCal;
 
-      IF Web.Init( L"/SmartServer", cfg, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
+      IF Web.Init( L"/SmartServer", cfg, Result, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
       END;
       IF GlobalResult = Sync.arCompleted THEN
@@ -432,8 +627,8 @@ CLASS IMPLEMENTATION CKnxSvc;
       END;
    
       IF KNX <> NIL THEN
-         IF Device <> NIL THEN
-            Device^.LeaveDevice( KNX );
+         IF RootDataSource <> NIL THEN
+            RootDataSource^.LeaveDataSource( KNX );
          END;
          KNX^.Stop();
          KNX^.Dispose();
@@ -453,14 +648,18 @@ CLASS IMPLEMENTATION CKnxSvc;
       END;
 
       IF Adviser <> NIL THEN
-         Adviser^.Device := NIL;
+         Adviser^.DataSource := NIL;
          Adviser^.Stop();
          DISPOSE( Adviser );
       END;
 
-      IF Device <> NIL THEN
-         Device^.Dispose();
-         DISPOSE( Device );
+      IF RootDataSource <> NIL THEN
+         RootDataSource^.Dispose();
+         DISPOSE( RootDataSource );
+      END;
+
+      IF Result <> NIL THEN
+         Result^.Release();
       END;
 
       ConfigLogger.BufferClear();      

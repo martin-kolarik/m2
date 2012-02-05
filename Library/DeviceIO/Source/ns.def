@@ -25,12 +25,42 @@ TYPE
 
 INTERFACE IValueIO;
 
-   PROCEDURE ValueIO( CONST Originator : TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   PROCEDURE ValueIO( CONST Originator : TPOriginator; CONST NameValuePairs : TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
       // allows full access, including result resolution and originator
+      // SHALL call Advise if IAdviseSource is assigned
 
 END IValueIO;
 
 (*---------------------------------------------------------------------------*)
+
+TYPE
+   TPAdviseInfo = POINTER TO IAdviseInfo;
+   TPAdviseSource = POINTER TO IAdviseSource;
+
+   TAdvise = (
+      advNone,
+      advWithoutData,
+      advWithData
+   );
+
+INTERFACE IAdviseInfo;
+
+   // notification from device
+   PROCEDURE OnAdvise( CONST Originator : TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
+
+END IAdviseInfo;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IAdviseSource;
+
+   PROPERTY
+      Advise : TAdvise;
+      AdviseListener : TPAdviseInfo; // for Advise <> advNone
+
+END IAdviseSource;
+
+(*===========================================================================*)
 
 INTERFACE INameValuePairs( IValueIO );
 
@@ -41,13 +71,16 @@ INTERFACE INameValuePairs( IValueIO );
    READONLY PROPERTY
       Name : StringsO.CString;
       Parent : TPNameValuePairs;
+      AdviseSource : TPAdviseSource;
    PROPERTY
-      Value : iovalue.Value;
+      Value : iovalue.Value; // SHALL call Advise if IAdviseSource is assigned
       Data : PTR; // user data
       // allows simple value access, no result and originator available, can use IValueIO.IO
 
    // creation
-   PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN; // need not necessarily exist
+   PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : IValueIO; Data : PTR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+
    PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : TPNameValuePairs ) : BOOLEAN; // creates child, although Name can be taken from Child^.Name separating the parameter is more free -- e.g. it allows using of hierarchical names in INamespace implementors
    PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN; // removes child
 

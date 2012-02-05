@@ -23,13 +23,13 @@ TYPE
    TPPersistentStorageFunction = POINTER TO CPersistentStorageFunction;
    TPItem = POINTER TO CItem;
 
-CLASS CPersistentStorageFunction( functionbase.CFunctionBase ) IMPLEMENTS io.IAdviseInfo, knxcore.IKNXServerSink;
+CLASS CPersistentStorageFunction( functionbase.CFunctionBase ) IMPLEMENTS ns.IAdviseInfo, knxcore.IKNXServerSink;
 
    // MessageHandler
    INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
    // IAdviseInfo
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
 
    // IKNXServerSink;
    PUBLIC VIRTUAL PROCEDURE OnConnect();

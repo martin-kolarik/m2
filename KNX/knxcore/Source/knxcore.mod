@@ -71,18 +71,10 @@ CONST // object type names
    otnLoggedESFIgnore       = L"logged_esf_ignore";
    
 CONST
-   // itemSystemSuspend = 1;
-   // itemSystemSerialNumber = 2;
-   // nameSystemSuspend = L".System.Licensing.Suspend";
-   // nameSystemSerialNumber = L"System.Licensing.SerialNumber";
-
    itemConnected = 1;
    nameNamespace = L"KNX";
    nameConnected = L"Connected";
    namePathConnected = L"Control." + nameConnected;
-
-   suspendKey = L"suspend";
-   suspendValue = L"true";
 
 //================================================================================
 
@@ -209,6 +201,20 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC PROPERTY Pairs GET : ns.TPNameValuePairs;
+   BEGIN
+      RETURN _Pairs;
+   END Pairs;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY Pairs SET( Value : ns.TPNameValuePairs );
+   BEGIN
+      _Pairs := Value;
+   END Pairs;
+
+//--------------------------------------------------------------------------------
+
    INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState );
    BEGIN
       RSStatus := Status;
@@ -291,6 +297,7 @@ BEGIN
    Server := NIL;
    _ObjectType := TObjectType{};
    _ChangedOnWrite := -1;
+   _Pairs := NIL;
    RSStatus := knx_status.essOK;
    WSStatus := knx_status.essOK;
    ReadRepeatCount := 1;
@@ -327,50 +334,6 @@ CLASS IMPLEMENTATION CStackSink;
 BEGIN
    Server := NIL;
 END CStackSink;
-
-//================================================================================
-
-CLASS IMPLEMENTATION CSuspendableResult;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY Expired GET : BOOLEAN;
-   BEGIN
-      IF _Suspended THEN
-         RETURN TRUE;
-      ELSE
-         RETURN SUPER.Expired;
-      END;
-   END Expired;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY Suspended GET : BOOLEAN;
-   BEGIN
-      RETURN _Suspended;
-   END Suspended;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE QuerySuspension();
-   VAR
-      value : StringsO.CString;
-   BEGIN
-      ProductsLock();
-      ProductsReset();
-      WHILE ProductsMoveNext() DO
-         IF CurrentProduct^.Info^.GetOA( suspendKey, OUT value ) THEN
-            _Suspended := value.EqualsOA( suspendValue );
-         END;
-      END;
-      ProductsUnlock();
-   END QuerySuspension;
-
-//--------------------------------------------------------------------------------
-
-BEGIN
-   _Suspended := FALSE;
-END CSuspendableResult;
 
 //================================================================================
 
@@ -456,25 +419,10 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROPERTY PResult GET : POINTER TO CSuspendableResult;
+   PUBLIC PROPERTY Result SET( Value : lec.TPResult );
    BEGIN
-      RETURN ADR( Result );
-   END PResult;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY cllvData SET( Value : ADDRESS );
-   BEGIN
-      cllvdata := Value;
-   END cllvData;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY cllvLength SET( Value : CARDINAL );
-   BEGIN
-      cllvlength := Value;
-   END cllvLength;
-
+      _Result := Value;
+   END Result;
 //--------------------------------------------------------------------------------
 
    PUBLIC PROPERTY EXEFlag GET : BOOLEAN;
@@ -522,10 +470,10 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
+   PUBLIC VIRTUAL PROPERTY DataSourceCapabilities GET : device.TCapabilities;
    BEGIN
       RETURN device.TCapabilities{device.capAdviseSource};
-   END DeviceCapabilities;
+   END DataSourceCapabilities;
 
 //--------------------------------------------------------------------------------
 
@@ -556,6 +504,13 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
+   BEGIN
+      RETURN ADR( _AdviseSource );
+   END AdviseSource;
+
+//--------------------------------------------------------------------------------
+
    PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
    BEGIN
       RETURN ADR( SELF );
@@ -570,58 +525,23 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
+   PUBLIC VIRTUAL PROPERTY Description GET : StringsO.CString;
    BEGIN
-      RETURN ADR( SELF );
-   END AdviseSource;
+      RETURN StringsO.FromOA( nameNamespace );
+   END Description;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
    VAR
       address : ARRAY [0..63] OF WCHAR;
       description : StringsO.CString;
       EV : knx_def.CValue;
       changed : BOOLEAN;
       connected : BOOLEAN;
-      key, value : StringsO.CString;
-      licences : lists.CStringList;
       PObject : TPObject;
-      ptrType : PTR;
-      s : FIO.PathStrW;
    BEGIN
-      // system suspend must be processed before expiration check
-      (* // TODO all items to SmartServer namespace
-      IF Item = itemSystemSuspend THEN
-         IF rsEXEFlag IN RStatus THEN
-            FIO.GetModuleDirW( L"", OUT s );
-         ELSE
-            FIO.GetModuleDirW( EMITW( %dll ), OUT s );
-         END;
-         ASSERT( cllvdata <> NIL );
-         IF cllvdata <> NIL THEN
-            key.FromOA( suspendKey );
-            value := Value.String;
-            lec.StoreInfo( s, cllvdata, cllvlength, key, value );
-            ASSERT( cllvdata <> NIL );
-            IF cllvdata <> NIL THEN
-               lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
-               Result.QuerySuspension();
-            END;
-         END;
-         RETURN Sync.arCompleted;
-
-      ELSIF Item = itemSystemSerialNumber THEN
-         Result.GetLicences( OUT licences );
-         IF NOT licences.GetFirst( OUT value, OUT ptrType ) THEN
-            value.Clear();
-         END;
-         Value.String := value;
-         RETURN Sync.arCompleted;
-      END;
-      *)
-      
-      IF Result.Counted OR Result.Expired THEN
+      IF _Result^.Counted OR _Result^.Expired THEN
          RETURN Sync.arCannotStart;
       END;
       
@@ -705,34 +625,6 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
-   BEGIN
-      RETURN _Advise;
-   END Advise;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
-   BEGIN
-      _Advise := Value;
-   END Advise;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPAdviseInfo;
-   BEGIN
-      RETURN _AdviseListener;
-   END AdviseListener;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPAdviseInfo );
-   BEGIN
-      _AdviseListener := Value;
-   END AdviseListener;
-
-//--------------------------------------------------------------------------------
-
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    VAR
       s : FIO.PathStrW := L"";
@@ -743,18 +635,6 @@ CLASS IMPLEMENTATION CKNXServer;
          RETURN Sync.arCannotStart;
       ELSE
          INCL( RStatus, rsRunning );
-      END;
-   
-      Result.Reset( lec.bhBestCase );
-      IF rsEXEFlag IN RStatus THEN
-         FIO.GetModuleDirW( L"", OUT s );
-      ELSE
-         FIO.GetModuleDirW( EMITW( %dll ), OUT s );
-      END;
-      ASSERT( cllvdata <> NIL );
-      IF cllvdata <> NIL THEN
-         lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
-         Result.QuerySuspension();
       END;
 
       IF _CacheOnlyMode THEN
@@ -798,7 +678,7 @@ CLASS IMPLEMENTATION CKNXServer;
 
    PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    BEGIN
-      RETURN ValueIO( Originator, Direction, Item, REF Value );
+      RETURN ValueIO( Originator, Item, Direction, REF Value );
    END IOh;
 
 //--------------------------------------------------------------------------------
@@ -1886,21 +1766,11 @@ CLASS IMPLEMENTATION CKNXServer;
       FOR i := 0 TO Objects.Count - 1 DO
          PObject := TPObject( Objects[i] );
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT s );
-
-         NEW( pairs );
-         pairs^.InitializeName := StringsO.FromOA( s );
-         pairs^.ValueIODelegate := ADR( SELF );
-         pairs^.Data := PObject;
-
-         Namespace.Link( pairs^.Name, pairs );
+         Namespace.DefineIOValue( StringsO.FromOA( s ), REF SELF, PObject, NIL, OUT pairs );
       END; // FOR
 
       // connection info/control
-      NEW( pairs );
-      pairs^.InitializeName := StringsO.FromOA( nameConnected );
-      pairs^.ValueIODelegate := ADR( SELF );
-      pairs^.Data := itemConnected;
-      Namespace.Link( StringsO.FromOA( namePathConnected ), pairs );
+      Namespace.DefineIOValue( StringsO.FromOA( nameConnected ), REF SELF, itemConnected, NIL, OUT pairs );
       
       ConfigurationPath.Assign( ConfigurationFile ); // store sucessfully read configuration
       RETURN TRUE;
@@ -1946,11 +1816,11 @@ CLASS IMPLEMENTATION CKNXServer;
          DoPushDateAndTime();
       END;
       
-      IF _AdviseListener <> NIL THEN
+      IF _AdviseSource.AdviseListener <> NIL THEN
          Namespace.Get( StringsO.FromOA( namePathConnected ), OUT pairs );
          result := Sync.arCompleted;
          value.Boolean := TRUE;
-         _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( pairs )), OA( 0, ADR( value )) );
+         _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( pairs )), OA( 0, ADR( value )) );
       END;
    END OnDeviceConnect;
 
@@ -1967,11 +1837,11 @@ CLASS IMPLEMENTATION CKNXServer;
       StopTimer( tiDateAndTime );
       StopTimer( tiForceRead );
 
-      IF _AdviseListener <> NIL THEN
+      IF _AdviseSource.AdviseListener <> NIL THEN
          Namespace.Get( StringsO.FromOA( namePathConnected ), OUT pairs );
          result := Sync.arCompleted;
          value.Boolean := FALSE;
-         _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( pairs )), OA( 0, ADR( value )) );
+         _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( pairs )), OA( 0, ADR( value )) );
       END;
    END OnDeviceDisconnect;
 
@@ -2231,7 +2101,7 @@ CLASS IMPLEMENTATION CKNXServer;
       ELSIF PObject^.RSStatus = knx_status.essOK THEN
          INCL( PObject^.Flags, knx_def.aofKNXValue );
       END;
-      IF Result.Counted OR Result.Expired THEN
+      IF _Result^.Counted OR _Result^.Expired THEN
          RETURN;
       END;
 
@@ -2271,12 +2141,12 @@ CLASS IMPLEMENTATION CKNXServer;
             EnqueuePromiscuous( knx_status.essOK, PObject );
          END;
 
-         IF _AdviseListener <> NIL THEN
+         IF _AdviseSource.AdviseListener <> NIL THEN
             IF NOT valuesConverted THEN
                PObject^.GetValue( OUT EValue, TRUE, FALSE );
                KNXValue2IOValue( EValue, PObject^.StringValue, OUT io );
             END;
-            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
+            _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject^.Pairs )), OA( 0, ADR( io )) );
          END;
 
       ELSE // oobData promiscuous mode queueing
@@ -2302,8 +2172,8 @@ CLASS IMPLEMENTATION CKNXServer;
             EventSinks.OnInputQueueAdd( TRUE, FALSE );
          END;
 
-         IF _AdviseListener <> NIL THEN
-            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
+         IF _AdviseSource.AdviseListener <> NIL THEN
+            _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject^.Pairs )), OA( 0, ADR( io )) );
          END;
 
       END;
@@ -2827,8 +2697,7 @@ BEGIN
    KNX := NIL;
    Sink.Server := ADR( SELF );
    EventSinks.SinkType := RTTI( IKNXServerSink );
-   _Advise := io.advWithData;
-   _AdviseListener := NIL;
+   _Result := NIL;
    _DataLogger := NIL;
 
    Logger.Level := Log.ldDebug;
@@ -2844,9 +2713,6 @@ BEGIN
    ObjectLock.Init( Sync.ltCS, L"", FALSE );
    QueueLock.Init( Sync.ltSpin, L"", FALSE );
    
-   cllvdata := NIL;
-   cllvlength := 0;
-
    InitReadItems := 0;
    oobData.ItemType := lists.blitSlot32;
    prData.ItemType := lists.blitSlot64;

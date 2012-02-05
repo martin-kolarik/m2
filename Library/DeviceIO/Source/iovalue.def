@@ -40,8 +40,10 @@ TYPE
 CONST
    flagsDefaultObject = TFlags{};
    flagsDefaultReference = TFlags{vfReadOnly,vfHidden};
-   flagsDefaultRO = TFlags{vfReadOnly, vfUndefined, vfSaturate}; // intended for values
-   flagsDefaultRW = TFlags{vfUndefined, vfSaturate}; // intended for values
+   flagsDefaultIORO = TFlags{vfReadOnly, vfUndefined, vfSaturate}; // intended for values
+   flagsDefaultIORW = TFlags{vfUndefined, vfSaturate}; // intended for values
+   flagsDefaultSWRO = TFlags{vfReadOnly, vfSaturate}; // intended for values
+   flagsDefaultSWRW = TFlags{vfSaturate}; // intended for values
    
 (*---------------------------------------------------------------------------*)
 

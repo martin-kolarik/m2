@@ -54,24 +54,34 @@ END IConfigurable;
 TYPE
    TCapability = (
       capMultipleConfiguration,
-      capStartStop, // if the device is not capable the device is always RUNNING
-      capIO,
-      capAdviseSource
+      capAdviseSource,
+      capStartStop, // valid for IDevice, if the device is not capable the device is always RUNNING
+      capIO // valid for IDevice
    );
    TCapabilities = SET OF TCapability;
 
 TYPE
-   TPDevice = POINTER TO IDevice;
+   TPDataSource = POINTER TO IDataSource;
 
-INTERFACE IDevice( IConfigurable );
+INTERFACE IDataSource( IConfigurable );
 
    PUBLIC READONLY PROPERTY
-      DeviceCapabilities : TCapabilities;
+      DataSourceCapabilities : TCapabilities;
 
    PROCEDURE NS() : ns.TPNamespace; // required, handles both naming and IO
+   PROCEDURE AdviseSource() : ns.TPAdviseSource; // optional
+
+END IDataSource;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPDevice = POINTER TO IDevice;
+
+INTERFACE IDevice( IDataSource );
+
    PROCEDURE StartStop() : io.TPStartStopControl; // optional, NS items itself can be able to use IO
    PROCEDURE IO() : io.TPIO; // optional, NS items itself can be able to use IO
-   PROCEDURE AdviseSource() : io.TPAdviseSource; // optional
 
 END IDevice;
 

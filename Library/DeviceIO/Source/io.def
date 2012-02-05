@@ -17,27 +17,16 @@ IMPORT
 #save, option( dll_export => on )
 
 TYPE
-  TPAdviseInfo = POINTER TO IAdviseInfo;
   TPIDataInfo = POINTER TO IDataInfo;
   TPDataInfo = POINTER TO CDataInfo;
   TPCompletionDataInfo = POINTER TO CCompletionDataInfo;
-  TPAdviseSource = POINTER TO IAdviseSource;
   TPStartStopControl = POINTER TO IStartStopControl;
   TPIO = POINTER TO IIO;
   TPStartStopHandler = POINTER TO IStartStopHandler;
 
 (*===========================================================================*)
 
-INTERFACE IAdviseInfo;
-
-   // notification from device
-   PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
-
-END IAdviseInfo;
-
-(*---------------------------------------------------------------------------*)
-
-INTERFACE IDataInfo( IAdviseInfo );
+INTERFACE IDataInfo( ns.IAdviseInfo );
 
    // called in case of any error (so for operations which has not started it is called too), for started operation OnError is called together with OnIOCompleted
    PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
@@ -54,11 +43,11 @@ CLASS CDataInfo( Delegate.ADelegate ) IMPLEMENTS IDataInfo;
    // IDataInfo
    PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
    PUBLIC VIRTUAL PROCEDURE OnIOCompleted( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
 
    // SELF
    PUBLIC VAR
-      AdviseSink : TPAdviseInfo;
+      AdviseSink : ns.TPAdviseInfo;
       DataInfoSink : TPIDataInfo;
 
 END CDataInfo;
@@ -72,23 +61,6 @@ CLASS CCompletionDataInfo( CDataInfo ); // for single IO operation
    PUBLIC PROCEDURE WaitCompletion( TimeoutMS : CARDINAL; OUT Value : iovalue.Value ) : Sync.TAsyncResult;
 
 END CCompletionDataInfo;
-
-(*===========================================================================*)
-
-TYPE
-   TAdvise = (
-      advNone,
-      advWithoutData,
-      advWithData
-   );
-
-INTERFACE IAdviseSource;
-
-   PROPERTY
-      Advise : TAdvise;
-      AdviseListener : TPAdviseInfo; // for Advise <> advNone
-
-END IAdviseSource;
 
 (*===========================================================================*)
 

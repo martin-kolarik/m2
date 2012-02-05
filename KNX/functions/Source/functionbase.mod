@@ -39,7 +39,7 @@ CLASS IMPLEMENTATION CFunctionBase;
    BEGIN
       IF _Running THEN
          RETURN Sync.arAlreadyCompleted;
-      ELSIF _Device = NIL THEN
+      ELSIF _DataSource = NIL THEN
          RETURN Sync.arCannotStart;
       END;
       _Running := TRUE;
@@ -53,7 +53,7 @@ CLASS IMPLEMENTATION CFunctionBase;
    BEGIN
       IF NOT _Running THEN
          RETURN;
-      ELSIF _Device = NIL THEN
+      ELSIF _DataSource = NIL THEN
          RETURN;
       END;
       _Running := FALSE;
@@ -62,18 +62,18 @@ CLASS IMPLEMENTATION CFunctionBase;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Device GET : adviser.TPAdvisedDevice;
+   PUBLIC PROPERTY DataSource GET : adviser.TPAdvisedDataSource;
    BEGIN
-      RETURN _Device;
-   END Device;
+      RETURN _DataSource;
+   END DataSource;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Device SET( Value : adviser.TPAdvisedDevice );
+   PUBLIC PROPERTY DataSource SET( Value : adviser.TPAdvisedDataSource );
    BEGIN
       Dispose();
-      _Device := Value;
-   END Device;
+      _DataSource := Value;
+   END DataSource;
 
 (*--------------------------------------------------------------------------------*)
 

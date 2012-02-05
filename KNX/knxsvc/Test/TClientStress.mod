@@ -48,12 +48,12 @@ END CClient;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CTest IMPLEMENTS test.ITest, device.IDevice, io.IIO;
+CLASS CTest IMPLEMENTS test.ITest, device.IDataSource;
 
    PUBLIC VAR
       Host : test.TPHost := NIL;
       Server : sdap.CSDAPServer;
-      Device : adviser.CAdvisedDevice;
+      DataSource : adviser.CAdvisedDataSource;
       Clients : ARRAY [0..9] OF CClient;
       Threads : ARRAY [0..9] OF thread.Thread;
 
@@ -62,30 +62,12 @@ CLASS CTest IMPLEMENTS test.ITest, device.IDevice, io.IIO;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
-      DeviceCapabilities : device.TCapabilities;
+      DataSourceCapabilities : device.TCapabilities;
 
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
-   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
-   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
-   
-   // IStartStopControl
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Running : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE Stop();
-   
-   // IIO
-   PUBLIC VIRTUAL READONLY PROPERTY
-      IOCapabilities : io.TCapabilities;
-      Pending : BOOLEAN;
-
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-
-   PUBLIC VIRTUAL PROCEDURE AbortAll();
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
    
    // IMapper
    PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
@@ -164,12 +146,12 @@ CLASS IMPLEMENTATION CTest;
 
       scinit.Startup();
 
-      Device.Device := ADR( SELF );
+      DataSource.DataSource := ADR( SELF );
       
       ia.FromOA( L"0.0.0.0:3007", 0 );
       Server.Init( TRUE );      
       Server.ListenAddress := ia;
-      Server.Device := ADR( Device );
+      Server.DataSource := ADR( DataSource );
       Server.Start();
       
       Host^.StartPhase( L"Stress connections to SDAP port" );
@@ -203,10 +185,10 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
+   PUBLIC VIRTUAL PROPERTY DataSourceCapabilities GET : device.TCapabilities;
    BEGIN
       RETURN device.TCapabilities{};
-   END DeviceCapabilities;
+   END DataSourceCapabilities;
 
 (*---------------------------------------------------------------------------*)
 
@@ -224,79 +206,10 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
-   BEGIN
-      RETURN ADR( SELF );
-   END StartStop;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-   BEGIN
-      RETURN ADR( SELF );
-   END IO;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
    BEGIN
       RETURN NIL;
    END AdviseSource;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
-   BEGIN
-      RETURN TRUE;
-   END Running;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
-   BEGIN
-      RETURN sync.arCompleted;
-   END Start;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Stop();
-   BEGIN
-   END Stop;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY IOCapabilities GET : io.TCapabilities;
-   BEGIN
-      RETURN io.TCapabilities{};
-   END IOCapabilities;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Pending GET : BOOLEAN;
-   BEGIN
-      RETURN FALSE;
-   END Pending;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-   BEGIN
-      Value.Boolean := TRUE;
-      RETURN sync.arCompleted;
-   END IOh;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-   BEGIN
-      RETURN sync.arPending;
-   END IOha;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AbortAll();
-   BEGIN
-   END AbortAll;
 
 (*---------------------------------------------------------------------------*)
 

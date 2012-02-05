@@ -2,6 +2,43 @@ IMPLEMENTATION MODULE nsimpl;
 
 (*===========================================================================*)
 
+CLASS IMPLEMENTATION SimpleAdviseSource;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Advise GET : ns.TAdvise;
+   BEGIN
+      RETURN _Advise;
+   END Advise;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Advise SET( Value : ns.TAdvise );
+   BEGIN
+      _Advise := Value;
+   END Advise;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AdviseListener GET : ns.TPAdviseInfo;
+   BEGIN
+      RETURN _AdviseListener;
+   END AdviseListener;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : ns.TPAdviseInfo );
+   BEGIN
+      _AdviseListener := Value;
+   END AdviseListener;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+END SimpleAdviseSource;
+
+(*===========================================================================*)
+
 CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
@@ -15,9 +52,9 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
    BEGIN
-      RETURN _Pairs^.ValueIO( Originator, Direction, NameValuePairs, REF Value );
+      RETURN _Pairs^.ValueIO( Originator, NameValuePairs, Direction, REF Value );
    END ValueIO;
 
 (*---------------------------------------------------------------------------*)
@@ -65,6 +102,13 @@ CLASS IMPLEMENTATION Namespace;
    BEGIN
       RETURN _Pairs^.Parent;
    END Parent;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AdviseSource GET : ns.TPAdviseSource;
+   BEGIN
+      RETURN _Pairs^.AdviseSource;
+   END AdviseSource;
 
 (*---------------------------------------------------------------------------*)
 
@@ -136,17 +180,31 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    VAR
       leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
       IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
-         RETURN pairs^.DefineValue( leaf, Type, Flags, Data, InitialValue, OUT Children );
+         RETURN pairs^.DefineStorageValue( leaf, Type, Flags, InitialValue, Data, AdviseSource, OUT Children );
       ELSE
          RETURN FALSE;
       END;
-   END DefineValue;
+   END DefineStorageValue;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   VAR
+      leaf : StringsO.CString;
+      pairs : ns.TPNameValuePairs := NIL;
+   BEGIN
+      IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
+         RETURN pairs^.DefineIOValue( leaf, REF ValueIO, Data, AdviseSource, OUT Children );
+      ELSE
+         RETURN FALSE;
+      END;
+   END DefineIOValue;
 
 (*---------------------------------------------------------------------------*)
 
@@ -193,7 +251,7 @@ CLASS IMPLEMENTATION Namespace;
    BEGIN
       IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
          iv.Reference := Reference;
-         RETURN pairs^.DefineValue( leaf, iovalue.vtReference, Flags, Data, ADR( iv ), OUT pairs );
+         RETURN pairs^.DefineStorageValue( leaf, iovalue.vtReference, Flags, ADR( iv ), Data, NIL, OUT pairs );
       ELSE
          RETURN FALSE;
       END;
@@ -222,7 +280,7 @@ CLASS IMPLEMENTATION Namespace;
             // OK, fall down
          ELSIF NOT AllowCreation THEN
             RETURN FALSE;
-         ELSIF NOT pairs^.DefineValue( toTest, iovalue.vtObject, iovalue.TFlags{ iovalue.vfReadOnly }, 0, NIL, OUT pairs ) THEN // strange, but ok
+         ELSIF NOT pairs^.DefineStorageValue( toTest, iovalue.vtObject, iovalue.TFlags{ iovalue.vfReadOnly }, NIL, 0, NIL, OUT pairs ) THEN // strange, but ok
             RETURN FALSE;
          END;
       END; // LOOP

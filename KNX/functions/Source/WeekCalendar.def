@@ -23,13 +23,13 @@ TYPE
    TPWeekCalendarFunction = POINTER TO CWeekCalendarFunction;
    TPItem = POINTER TO CItem;
 
-CLASS CWeekCalendarFunction( functionbase.CFunctionBase ) IMPLEMENTS io.IAdviseInfo, threadpool.ITimeoutSink;
+CLASS CWeekCalendarFunction( functionbase.CFunctionBase ) IMPLEMENTS ns.IAdviseInfo, threadpool.ITimeoutSink;
 
    // MessageHandler
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
 
    // IAdviseInfo
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
 
    // ITimeoutSink
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );

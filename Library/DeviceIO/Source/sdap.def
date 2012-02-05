@@ -60,7 +60,7 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
 
    // SELF
    PRIVATE VAR
-      _Device : adviser.TPAdvisedDevice := NIL;
+      _DataSource : adviser.TPAdvisedDataSource := NIL;
       _CommonLogger : log.TPILogger := NIL;
       _NetworkLogger : log.TPILogger := NIL;
       _ConfigurationLogger : log.TPBufferedLogger := NIL;
@@ -74,7 +74,7 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
 
    PUBLIC PROPERTY
-      Device : adviser.TPAdvisedDevice;
+      DataSource : adviser.TPAdvisedDataSource;
       CommonLogger : log.TPILogger;
       NetworkLogger : log.TPILogger;
       ConfigurationLogger : log.TPBufferedLogger;
@@ -84,7 +84,6 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
    INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
 
-   PRIVATE PROCEDURE DoRun( Connection : netconndispatch.TConnectionHandle );
    PRIVATE PROCEDURE ACK( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK );
    PRIVATE PROCEDURE ACKS( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST S : StringsO.CString );
    PRIVATE PROCEDURE ACKs( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );

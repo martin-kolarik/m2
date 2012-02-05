@@ -15,8 +15,8 @@ TYPE
 
 CLASS CClientData;
    LOCAL VAR
-      Client : io.TPAdviseInfo := NIL;
-      Advise : io.TAdvise := io.advNone;
+      Client : ns.TPAdviseInfo := NIL;
+      Advise : ns.TAdvise := ns.advNone;
 END CClientData;
 
 (*---------------------------------------------------------------------------*)
@@ -31,7 +31,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC FINAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    VAR
       ClientData : TPClientData;
       Clients : lists.TPPtrList;
@@ -50,10 +50,10 @@ CLASS IMPLEMENTATION CAdviser;
             WHILE Clients^.MoveNext() DO
                ClientData := Clients^.Current;
                CASE ClientData^.Advise OF
-               | io.advWithData :
-                  ClientData^.Client^.OnAdvise( Source, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( 0, ADR( Value[i] )));
-               | io.advWithoutData :
-                  ClientData^.Client^.OnAdvise( Source, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( -1, iovalue.TPValue( NIL )));
+               | ns.advWithData :
+                  ClientData^.Client^.OnAdvise( Originator, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( 0, ADR( Value[i] )));
+               | ns.advWithoutData :
+                  ClientData^.Client^.OnAdvise( Originator, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( -1, iovalue.TPValue( NIL )));
                END;
             END; // WHILE
 
@@ -69,10 +69,10 @@ CLASS IMPLEMENTATION CAdviser;
 
             FOR i := 0 TO HIGH( Item ) DO
                CASE ClientData^.Advise OF
-               | io.advWithData :
-                  ClientData^.Client^.OnAdvise( Source, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( 0, ADR( Value[i] )));
-               | io.advWithoutData :
-                  ClientData^.Client^.OnAdvise( Source, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( -1, iovalue.TPValue( NIL )));
+               | ns.advWithData :
+                  ClientData^.Client^.OnAdvise( Originator, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( 0, ADR( Value[i] )));
+               | ns.advWithoutData :
+                  ClientData^.Client^.OnAdvise( Originator, OA( 0, ADR( Result[i] )), OA( 0, ADR( Item[i] )), OA( -1, iovalue.TPValue( NIL )));
                END;
             END; // FOR
 
@@ -120,34 +120,34 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Device GET : device.TPDevice;
+   PUBLIC PROPERTY DataSource GET : device.TPDataSource;
    BEGIN
-      RETURN _Device;
-   END Device;
+      RETURN _DataSource;
+   END DataSource;
       
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Device SET( Value : device.TPDevice );
+   PUBLIC PROPERTY DataSource SET( Value : device.TPDataSource );
    BEGIN
-      IF _Device = Value THEN
+      IF _DataSource = Value THEN
          RETURN;
       END;
       
-      IF ( _Device <> NIL ) AND ( device.capAdviseSource IN _Device^.DeviceCapabilities ) THEN
-         _Device^.AdviseSource()^.AdviseListener := NIL;
+      IF ( _DataSource <> NIL ) AND ( device.capAdviseSource IN _DataSource^.DataSourceCapabilities ) THEN
+         _DataSource^.AdviseSource()^.AdviseListener := NIL;
       END;
       
-      _Device := Value;
+      _DataSource := Value;
       
-      IF _Device <> NIL THEN
-         IF device.capAdviseSource IN _Device^.DeviceCapabilities THEN
-            _Device^.AdviseSource()^.Advise := io.advWithData;
-            _Device^.AdviseSource()^.AdviseListener := ADR( SELF );
+      IF _DataSource <> NIL THEN
+         IF device.capAdviseSource IN _DataSource^.DataSourceCapabilities THEN
+            _DataSource^.AdviseSource()^.Advise := ns.advWithData;
+            _DataSource^.AdviseSource()^.AdviseListener := ADR( SELF );
          ELSE // not implemented, the adviser class should not do it
             ASSERT( FALSE );
          END;
       END;
-   END Device;
+   END DataSource;
       
 (*---------------------------------------------------------------------------*)
 
@@ -158,7 +158,7 @@ CLASS IMPLEMENTATION CAdviser;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE JoinClient( Client : io.TPAdviseInfo; Advise : io.TAdvise );
+   PUBLIC PROCEDURE JoinClient( Client : ns.TPAdviseInfo; Advise : ns.TAdvise );
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -175,7 +175,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LeaveClient( Client : io.TPAdviseInfo );
+   PUBLIC PROCEDURE LeaveClient( Client : ns.TPAdviseInfo );
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -189,7 +189,7 @@ CLASS IMPLEMENTATION CAdviser;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Advise( Client : io.TPAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN;
+   PUBLIC PROCEDURE Advise( Client : ns.TPAdviseInfo; CONST Name : StringsO.IString ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -202,7 +202,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AdviseHash( Client : io.TPAdviseInfo; Hash : ns.THash ) : BOOLEAN;
+   PUBLIC PROCEDURE AdviseHash( Client : ns.TPAdviseInfo; Hash : ns.THash ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -215,7 +215,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AdviseAll( Client : io.TPAdviseInfo );
+   PUBLIC PROCEDURE AdviseAll( Client : ns.TPAdviseInfo );
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -226,7 +226,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Unadvise( Client : io.TPAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN;
+   PUBLIC PROCEDURE Unadvise( Client : ns.TPAdviseInfo; CONST Name : StringsO.IString ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -239,7 +239,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE UnadviseHash( Client : io.TPAdviseInfo; Hash : ns.THash ) : BOOLEAN;
+   PUBLIC PROCEDURE UnadviseHash( Client : ns.TPAdviseInfo; Hash : ns.THash ) : BOOLEAN;
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -252,7 +252,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE UnadviseAll( Client : io.TPAdviseInfo );
+   PUBLIC PROCEDURE UnadviseAll( Client : ns.TPAdviseInfo );
    VAR
       ClientData : TPClientData;
    BEGIN
@@ -268,7 +268,7 @@ CLASS IMPLEMENTATION CAdviser;
       Advised : lists.TPPtrList;
       ClientData : TPClientData;
    BEGIN
-      Device := NIL;
+      DataSource := NIL;
 
       _Clients.Dispose();
       WHILE _Clients.MoveNext() DO
@@ -293,7 +293,7 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData := _ClientData;
    BEGIN
       IF Name <> NIL THEN // want advise by name, find it it
-         IF NOT _Device^.NS()^.Get( Name^, OUT Hash ) THEN
+         IF NOT _DataSource^.NS()^.Get( Name^, OUT Hash ) THEN
             RETURN FALSE;
          END;
       END;
@@ -317,7 +317,7 @@ CLASS IMPLEMENTATION CAdviser;
       ClientData : TPClientData := _ClientData;
    BEGIN
       IF Name <> NIL THEN // want unadvise by name, do it
-         IF NOT _Device^.NS()^.Get( Name^, OUT Hash ) THEN
+         IF NOT _DataSource^.NS()^.Get( Name^, OUT Hash ) THEN
             RETURN FALSE;
          END;
       END;
@@ -342,36 +342,36 @@ CLASS IMPLEMENTATION CAdviser;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   _Device := NIL;
+   _DataSource := NIL;
 FINALLY
    Dispose();
 END CAdviser;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CAdvisedDevice;
+CLASS IMPLEMENTATION CAdvisedDataSource;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
+   PUBLIC VIRTUAL PROPERTY DataSourceCapabilities GET : device.TCapabilities;
    BEGIN
-      IF _Device = NIL THEN
+      IF _DataSource = NIL THEN
          ASSERT( FALSE );
          RETURN device.TCapabilities{};
       ELSE
-         RETURN _Device^.DeviceCapabilities;
+         RETURN _DataSource^.DataSourceCapabilities;
       END;
-   END DeviceCapabilities;
+   END DataSourceCapabilities;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    BEGIN
-      IF _Device = NIL THEN
+      IF _DataSource = NIL THEN
          ASSERT( FALSE );
          RETURN Sync.arCannotStart;
       ELSE
-         RETURN _Device^.Configure( Source, Log );
+         RETURN _DataSource^.Configure( Source, Log );
       END;
    END Configure;
 
@@ -379,53 +379,29 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
    PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
    BEGIN
-      IF _Device = NIL THEN
+      IF _DataSource = NIL THEN
          ASSERT( FALSE );
          RETURN NIL;
       ELSE
-         RETURN _Device^.NS();
+         RETURN _DataSource^.NS();
       END;
    END NS;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
    BEGIN
-      IF _Device = NIL THEN
+      IF _DataSource = NIL THEN
          ASSERT( FALSE );
          RETURN NIL;
       ELSE
-         RETURN _Device^.StartStop();
-      END;
-   END StartStop;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-   BEGIN
-      IF _Device = NIL THEN
-         ASSERT( FALSE );
-         RETURN NIL;
-      ELSE
-         RETURN _Device^.IO();
-      END;
-   END IO;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
-   BEGIN
-      IF _Device = NIL THEN
-         ASSERT( FALSE );
-         RETURN NIL;
-      ELSE
-         RETURN _Device^.AdviseSource();
+         RETURN _DataSource^.AdviseSource();
       END;
    END AdviseSource;
 
 (*---------------------------------------------------------------------------*)
 
-END CAdvisedDevice;
+END CAdvisedDataSource;
 
 (*===========================================================================*)
 

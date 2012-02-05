@@ -58,10 +58,12 @@ CLASS CObject( knx_user.CUserObject );
    RecoveryExpiration : CARDINAL;
    _ObjectType        : TObjectType;
    _ChangedOnWrite    : TRISTATE;
+   _Pairs             : ns.TPNameValuePairs;
    
    PUBLIC PROPERTY
       ObjectType : TObjectType;
       ChangedOnWrite : TRISTATE;
+      Pairs : ns.TPNameValuePairs;
 
    PUBLIC PROCEDURE LogNumber() : CARDINAL;
 
@@ -94,17 +96,6 @@ CLASS PromiscuousData;
    Address : knx_def.CAddress;
    Value   : knx_def.CValue;
 END PromiscuousData;
-
-//--------------------------------------------------------------------------------
-
-CLASS CSuspendableResult( lec.CResult );
-   PRIVATE VAR
-      _Suspended : BOOLEAN;
-   PUBLIC READONLY PROPERTY
-      Expired : BOOLEAN;
-      Suspended : BOOLEAN;
-   PUBLIC PROCEDURE QuerySuspension();
-END CSuspendableResult;
 
 //--------------------------------------------------------------------------------
 
@@ -158,7 +149,7 @@ CLASS KNXServerEvent( Event.AEvent ) IMPLEMENTS IKNXServerSink;
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 END KNXServerEvent;
 
-CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IValueIO, io.IAdviseSource, io.IIO;
+CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IOriginator, ns.IValueIO, io.IIO;
    RStatus                  : TRStatus;
    ConfigurationPath        : StringsO.CString;
 
@@ -169,13 +160,9 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IVal
    EventSinks               : KNXServerEvent;
    Logger                   : log.CLogger;
    R                        : Resources.CResources;
-   _Advise                  : io.TAdvise;
-   _AdviseListener          : io.TPAdviseInfo;
+   _Result                  : lec.TPResult;
+   _AdviseSource            : nsimpl.SimpleAdviseSource;
    _DataLogger              : log.TPLogger;
-
-   Result                   : CSuspendableResult;
-   cllvdata                 : ADDRESS;
-   cllvlength               : CARDINAL;
 
    DeviceId                 : LONGWORD;
    PromiscuousMode          : BOOLEAN;
@@ -221,34 +208,32 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IVal
    // promiscuous data management
    prData                   : lists.CBufferList;
 
-   PUBLIC READONLY PROPERTY
-     PResult                : POINTER TO CSuspendableResult;
    PUBLIC WRITEONLY PROPERTY
-     cllvData               : ADDRESS;
-     cllvLength             : CARDINAL;
+     Result                 : lec.TPResult;
    PUBLIC PROPERTY
-     EXEFlag                : BOOLEAN;
      DataLogger             : log.TPLogger;
+     EXEFlag                : BOOLEAN;
 
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
 
-   // IDevice
+   // IDataSource
    PUBLIC VIRTUAL READONLY PROPERTY
-      DeviceCapabilities : device.TCapabilities;
+      DataSourceCapabilities : device.TCapabilities;
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
+
+   // IDevice
    PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
    PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource;
 
-   // IAdviseSource
-   PUBLIC VIRTUAL PROPERTY
-      Advise : io.TAdvise;
-      AdviseListener : io.TPAdviseInfo;
+   // IOriginator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Description : StringsO.CString;
 
    // IValueIO
-   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
    
    // IIO
    PUBLIC VIRTUAL READONLY PROPERTY

@@ -21,18 +21,15 @@ END CNameValuePairsElem;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CSearchHelper( avltree.CAVLTreeElem );
+CLASS CNameValuePairsIOElem( CNameValuePairsElem );
 
    // CAVLTreeElem
    PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
-   // SELF
-   LOCAL PROCEDURE Init( CONST Source : StringsO.IString );
+   LOCAL VAR
+      _Storage : NameValuePairsIO;
 
-   PRIVATE VAR
-      Source : POINTER TO CONST StringsO.IString := NIL;
-
-END CSearchHelper;
+END CNameValuePairsIOElem;
 
 (*---------------------------------------------------------------------------*)
 
@@ -45,6 +42,21 @@ CLASS CNameValuePairsStorageElem( CNameValuePairsElem );
       _Storage : NameValuePairsStorage;
 
 END CNameValuePairsStorageElem;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CSearchHelper( avltree.CAVLTreeElem );
+
+   // CAVLTreeElem
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+
+   // SELF
+   LOCAL PROCEDURE Init( CONST Source : StringsO.IString );
+
+   PRIVATE VAR
+      Source : POINTER TO CONST StringsO.IString := NIL;
+
+END CSearchHelper;
 
 (*===========================================================================*)
 
@@ -61,6 +73,44 @@ CLASS IMPLEMENTATION CNameValuePairsElem;
 
 BEGIN
 END CNameValuePairsElem;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CNameValuePairsIOElem;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   BEGIN
+      RETURN SUPER.Compare( i, pelem );
+   END Compare;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   _Pairs := ADR( _Storage );
+FINALLY
+   _Storage.Dispose();
+END CNameValuePairsIOElem;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CNameValuePairsStorageElem;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   BEGIN
+      RETURN SUPER.Compare( i, pelem );
+   END Compare;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   _Pairs := ADR( _Storage );
+FINALLY
+   _Storage.Dispose();
+END CNameValuePairsStorageElem;
 
 (*===========================================================================*)
 
@@ -84,25 +134,6 @@ CLASS IMPLEMENTATION CSearchHelper;
 
 BEGIN
 END CSearchHelper;
-
-(*===========================================================================*)
-
-CLASS IMPLEMENTATION CNameValuePairsStorageElem;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-   BEGIN
-      RETURN SUPER.Compare( i, pelem );
-   END Compare;
-
-(*---------------------------------------------------------------------------*)
-
-BEGIN
-   _Pairs := ADR( _Storage );
-FINALLY
-   _Storage.Dispose();
-END CNameValuePairsStorageElem;
 
 (*===========================================================================*)
 
@@ -141,28 +172,57 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Name GET : StringsO.CString;
+   PUBLIC FINAL PROPERTY Name GET : StringsO.CString;
    BEGIN
       RETURN _Name;
    END Name;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Parent GET : ns.TPNameValuePairs;
+   PUBLIC FINAL PROPERTY Parent GET : ns.TPNameValuePairs;
    BEGIN
       RETURN _Parent;
    END Parent;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Data GET : PTR;
+   PUBLIC VIRTUAL PROPERTY AdviseSource GET : ns.TPAdviseSource;
+   BEGIN
+      RETURN _AdviseSource;
+   END AdviseSource;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Value GET : iovalue.Value;
+   VAR
+      value : iovalue.Value;
+   BEGIN
+      IF ValueIO( NIL, ADR( SELF ), IOO.dirRead, REF value ) NOT IN Sync.arsCompletions THEN
+         ASSERT( FALSE );
+         value.Dispose();
+      END;
+      RETURN value;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Value SET( CONST value : iovalue.Value );
+   BEGIN
+      IF ValueIO( NIL, ADR( SELF ), IOO.dirWrite, REF iovalue.TPValue( ADR( value ))^ ) NOT IN Sync.arsCompletions THEN
+         ASSERT( FALSE );
+      END;
+   END Value;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Data GET : PTR;
    BEGIN
       RETURN _Data;
    END Data;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Data SET( Value : PTR );
+   PUBLIC FINAL PROPERTY Data SET( Value : PTR );
    BEGIN
       _Data := Value;
    END Data;
@@ -173,6 +233,87 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
    BEGIN
       _Name.Assign( Value );
    END InitializeName;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY InitializeAdviseSource SET( Value : ns.TPAdviseSource );
+   BEGIN
+      _AdviseSource := Value;
+   END InitializeAdviseSource;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   VAR
+      child : ns.TPNameValuePairs;
+      elem : POINTER TO CNameValuePairsStorageElem;
+      pairs : TPNameValuePairsStorage;
+   BEGIN
+      IF _Children = NIL THEN
+         NEW( _Children );
+      ELSIF Name.Empty THEN
+         RETURN FALSE;
+      ELSIF Get( Name, OUT child ) THEN // cannot define two items with same names
+         RETURN FALSE;
+      END;
+      
+      // create it
+      NEW( elem );
+      pairs := ADR( elem^._Storage );
+      // name
+      pairs^._Name.Assign( Name );
+      // value part
+      pairs^._Value.InitializeFlags := Flags - iovalue.TFlags{iovalue.vfReadOnly};
+      pairs^._Value.Type := Type;
+      IF InitialValue <> NIL THEN
+         pairs^._Value := InitialValue^;
+      END;
+      pairs^._Value.InitializeFlags := Flags;
+      // infos
+      pairs^._Data := Data;
+      pairs^._AdviseSource := AdviseSource;
+      // structurals
+      pairs^._Parent := ADR( SELF );
+      Children := elem^._Pairs;
+      // add it
+      _Children^.Insert( elem );
+
+      RETURN TRUE;
+   END DefineStorageValue;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   VAR
+      child : ns.TPNameValuePairs;
+      elem : POINTER TO CNameValuePairsIOElem;
+      pairs : TPNameValuePairsIO;
+   BEGIN
+      IF _Children = NIL THEN
+         NEW( _Children );
+      ELSIF Name.Empty THEN
+         RETURN FALSE;
+      ELSIF Get( Name, OUT child ) THEN // cannot define two items with same names
+         RETURN FALSE;
+      END;
+      
+      // create it
+      NEW( elem );
+      pairs := ADR( elem^._Storage );
+      // name
+      pairs^._Name.Assign( Name );
+      // infos
+      pairs^._Data := Data;
+      pairs^._AdviseSource := AdviseSource;
+      pairs^.ValueIODelegate := ADR( ValueIO );
+      // structurals
+      pairs^._Parent := ADR( SELF );
+      Children := elem^._Pairs;
+      // add it
+      _Children^.Insert( elem );
+
+      RETURN TRUE;
+   END DefineIOValue;
 
 (*---------------------------------------------------------------------------*)
 
@@ -235,44 +376,27 @@ CLASS IMPLEMENTATION NameValuePairsIO;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
       IF _ValueIODelegate = NIL THEN
          ASSERT( FALSE );
          RETURN Sync.arCannotStart;
-      ELSE
-         RETURN _ValueIODelegate^.ValueIO( Originator, Direction, NameValuePairs, REF Value );
       END;
+
+      Result := _ValueIODelegate^.ValueIO( Originator, NameValuePairs, Direction, REF Value );
+      IF _AdviseSource <> NIL THEN
+         CASE _AdviseSource^.Advise OF
+         | ns.advWithoutData :
+            _AdviseSource^.AdviseListener^.OnAdvise( Originator, OA( 0, ADR( Result )), OA( 0, ADR( NameValuePairs )), OA( -1, iovalue.TPValue( NIL )));
+         | ns.advWithData :
+            _AdviseSource^.AdviseListener^.OnAdvise( Originator, OA( 0, ADR( Result )), OA( 0, ADR( NameValuePairs )), OA( 0, ADR( Value )));
+         END;
+      END;
+      
+      RETURN Result;
    END ValueIO;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Value GET : iovalue.Value;
-   VAR
-      value : iovalue.Value;
-   BEGIN
-      IF ValueIO( NIL, IOO.dirRead, ADR( SELF ), REF value ) NOT IN Sync.arsCompletions THEN
-         ASSERT( FALSE );
-         value.Dispose();
-      END;
-      RETURN value;
-   END Value;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Value SET( CONST value : iovalue.Value );
-   BEGIN
-      IF ValueIO( NIL, IOO.dirWrite, ADR( SELF ), REF iovalue.TPValue( ADR( value ))^ ) NOT IN Sync.arsCompletions THEN
-         ASSERT( FALSE );
-      END;
-   END Value;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
-   BEGIN
-      RETURN FALSE;
-   END DefineValue;
 
 (*---------------------------------------------------------------------------*)
 
@@ -299,13 +423,25 @@ CLASS IMPLEMENTATION NameValuePairsStorage;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN
       CASE Direction OF
       | IOO.dirRead :
          Value := _Value;
       | IOO.dirWrite :
          _Value := Value;
+
+         IF _AdviseSource <> NIL THEN
+            CASE _AdviseSource^.Advise OF
+            | ns.advWithoutData :
+               _AdviseSource^.AdviseListener^.OnAdvise( Originator, OA( 0, ADR( Result )), OA( 0, ADR( NameValuePairs )), OA( -1, iovalue.TPValue( NIL )));
+            | ns.advWithData :
+               _AdviseSource^.AdviseListener^.OnAdvise( Originator, OA( 0, ADR( Result )), OA( 0, ADR( NameValuePairs )), OA( 0, ADR( Value )));
+            END;
+         END;
+
       ELSE
          ASSERT( FALSE );
          RETURN Sync.arCannotStart;
@@ -315,68 +451,13 @@ CLASS IMPLEMENTATION NameValuePairsStorage;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Value GET : iovalue.Value;
-   BEGIN
-      RETURN _Value;
-   END Value;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Value SET( CONST value : iovalue.Value );
-   BEGIN
-      _Value := value;
-   END Value;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
-   VAR
-      child : ns.TPNameValuePairs;
-      elem : POINTER TO CNameValuePairsStorageElem;
-      pairs : TPNameValuePairsStorage;
-   BEGIN
-      IF _Children = NIL THEN
-         NEW( _Children );
-      END;
-
-      // check input parameters
-      IF Name.Empty THEN
-         RETURN FALSE;
-      ELSIF Get( Name, OUT child ) THEN // cannot define two items with same names
-         RETURN FALSE;
-      END;
-
-      NEW( elem );
-      pairs := ADR( elem^._Storage );
-      // fill name
-      pairs^._Name.Assign( Name );
-      // fill value part
-      pairs^._Value.InitializeFlags := Flags - iovalue.TFlags{iovalue.vfReadOnly};
-      pairs^._Value.Type := Type;
-      pairs^.Data := Data;
-      IF InitialValue <> NIL THEN
-         pairs^._Value := InitialValue^;
-      END;
-      pairs^._Value.InitializeFlags := Flags;
-      // structurals
-      pairs^._Parent := ADR( SELF );
-      Children := elem^._Pairs;
-      // add it
-      _Children^.Insert( elem );
-
-      // return value
-      RETURN TRUE;
-   END DefineValue;
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;
    VAR
       iv : iovalue.Value;
       pairs : TPNameValuePairsStorage;
    BEGIN
       iv.Reference := Reference;
-      RETURN DefineValue( Name, iovalue.vtReference, Flags, Data, ADR( iv ), OUT pairs );
+      RETURN DefineStorageValue( Name, iovalue.vtReference, Flags, ADR( iv ), Data, NIL, OUT pairs );
    END DefineReference;
 
 (*---------------------------------------------------------------------------*)

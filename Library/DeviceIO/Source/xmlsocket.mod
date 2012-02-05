@@ -29,7 +29,7 @@ CONST
 TYPE
    TPClient = POINTER TO CClient;
 
-CLASS CClient IMPLEMENTS io.IAdviseInfo;
+CLASS CClient IMPLEMENTS ns.IAdviseInfo;
    PRIVATE VAR
       BatchLock : Sync.LOCK;
    LOCAL VAR
@@ -39,7 +39,7 @@ CLASS CClient IMPLEMENTS io.IAdviseInfo;
       WBuffer : StorageO.CMemoryBuffer;
 
    // IAdviseInfo
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    
    // SELF
    PUBLIC PROCEDURE StartBatch();
@@ -60,10 +60,6 @@ CONST
   TRAIL_NAME = C'</name';
   LEAD_VALUE = C'<value';
   TRAIL_VALUE = C'</value';
-  LEAD_CONNECT = C'<connect';
-  TRAIL_CONNECT = C'/>';
-  LEAD_DISCONNECT = C'<disconnect';
-  TRAIL_DISCONNECT = C'/>';
   TRAIL = C'>';
   
 CONST
@@ -97,17 +93,17 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Device GET : adviser.TPAdvisedDevice;
+   PUBLIC PROPERTY DataSource GET : adviser.TPAdvisedDataSource;
    BEGIN
-      RETURN _Device;
-   END Device;
+      RETURN _DataSource;
+   END DataSource;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Device SET( Value : adviser.TPAdvisedDevice );
+   PUBLIC PROPERTY DataSource SET( Value : adviser.TPAdvisedDataSource );
    BEGIN
-      _Device := Value;
-   END Device;
+      _DataSource := Value;
+   END DataSource;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -223,8 +219,8 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Client^.Server := ADR( SELF );
       Client^.Connection := Connection;
 
-      _Device^.JoinClient( Client, io.advWithData );
-      _Device^.AdviseAll( Client );
+      _DataSource^.JoinClient( Client, ns.advWithData );
+      _DataSource^.AdviseAll( Client );
 
       _Clients.Add( Connection, Client );
    END OnConnect;
@@ -244,8 +240,8 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       IF _Clients.Get( Connection, OUT Client ) THEN
          _Clients.Remove( Connection );
 
-         _Device^.UnadviseAll( Client );
-         _Device^.LeaveClient( Client );
+         _DataSource^.UnadviseAll( Client );
+         _DataSource^.LeaveClient( Client );
 
          DISPOSE( Client );
       END;
@@ -340,11 +336,11 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
    PRIVATE PROCEDURE Parse( Connection : netconndispatch.TConnectionHandle; Client : ADDRESS; Data : ARRAY OF CHAR );
    TYPE
-      TOperation = ( opAsk, opConnect, opDisconnect, opNotify );
+      TOperation = ( opAsk, opNotify );
    VAR
       iaddr : inetaddr.INETADDR;
       high : INTEGER;
-      ia, ic, id, in, i, j, current : INTEGER;
+      ia, in, i, j, current : INTEGER;
       Name, Value : ARRAY [0..511] OF WCHAR;
       operation : TOperation;
       pos, nextpos : INTEGER := 0;
@@ -359,19 +355,11 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          END;
 
          ia := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_ASK, pos );
-         ic := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_CONNECT, pos );
-         id := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_DISCONNECT, pos );
          in := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_NOTIFY, pos );
-         IF ( ia = -1 ) AND ( ic = -1 ) AND ( id = -1 ) AND ( in = -1 ) THEN
+         IF ( ia = -1 ) AND ( in = -1 ) THEN
             EXIT; // done
          END;
-         IF ic <> -1 THEN
-            operation := opConnect;
-            i := ic;
-         ELSIF id <> -1 THEN
-            operation := opDisconnect;
-            i := id;
-         ELSIF in <> -1 THEN
+         IF in <> -1 THEN
             operation := opNotify;
             i := in;
          ELSIF ia <> -1 THEN
@@ -388,30 +376,6 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             END;
             current := i + SIZE( LEAD_ASK )-1;
             nextpos := j + SIZE( TRAIL_ASK )-1;
-
-         //-----
-         | opConnect :
-            j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_CONNECT, ic );
-            IF j = -1 THEN
-               EXIT; // done
-            END;
-            nextpos := j + SIZE( TRAIL_CONNECT )-1;
-
-            // handle connect in a short way
-            HandleConnect();
-            CONTINUE;
-
-         //-----
-         | opDisconnect :
-            j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_DISCONNECT, id );
-            IF j = -1 THEN
-               EXIT; // done
-            END;
-            nextpos := j + SIZE( TRAIL_DISCONNECT )-1;
-
-            // handle disconnect in a short way
-            HandleDisconnect();
-            CONTINUE;
 
          //-----
          | opNotify :
@@ -494,20 +458,6 @@ CLASS IMPLEMENTATION CXMLSocketServer;
   
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE HandleConnect();
-   BEGIN
-      Device^.IO()^.Start();
-   END HandleConnect;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE HandleDisconnect();
-   BEGIN
-      Device^.IO()^.Stop();
-   END HandleDisconnect;
-
-(*--------------------------------------------------------------------------------*)
-
    PRIVATE PROCEDURE HandleRead( CONST NameOA : ARRAY OF WCHAR; REF readRequests : arrays.TPPtrArray );
    VAR
       Name : StringsO.CString;
@@ -516,7 +466,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name.FromOA( NameOA );
       _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "GET ", NameOA );
 
-      IF NOT Device^.NS()^.Get( Name, OUT pvalue ) THEN
+      IF NOT _DataSource^.NS()^.Get( Name, OUT pvalue ) THEN
          _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing GET: ", NameOA );
          RETURN;
 
@@ -540,11 +490,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name.FromOA( NameOA );
       _CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "SET ", NameOA, L" ", Value );
 
-      IF ( device.capStartStop IN Device^.DeviceCapabilities ) AND NOT Device^.StartStop()^.Running THEN
-         _CommonLogger^.LogS( log.ldDebug, 0, LOG_XMLS, "  device is not running, nothing SET" );
-         RETURN;
-
-      ELSIF NOT Device^.NS()^.Get( Name, OUT pvalue ) THEN
+      IF NOT _DataSource^.NS()^.Get( Name, OUT pvalue ) THEN
          _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing SET: ", NameOA );
          RETURN;
 
@@ -554,7 +500,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          Originator.SetDescription( d );
 
          value.FromString( StringsO.FromOA( Value ), FALSE );
-         pvalue^.ValueIO( ADR( Originator ), IOO.dirWrite, pvalue, REF value );
+         pvalue^.ValueIO( ADR( Originator ), pvalue, IOO.dirWrite, REF value );
       END;         
    END HandleWrite;
 
@@ -588,8 +534,8 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       _Clients.Reset();
       WHILE _Clients.MoveNext() DO
          Client := _Clients.CurrentData;
-         _Device^.UnadviseAll( Client );
-         _Device^.LeaveClient( Client );
+         _DataSource^.UnadviseAll( Client );
+         _DataSource^.LeaveClient( Client );
          DISPOSE( Client );
       END; // WHILE
       _Clients.Dispose();
@@ -607,7 +553,7 @@ CLASS IMPLEMENTATION CClient;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    VAR
       i : INTEGER;
       n : StringsO.CString;
@@ -618,7 +564,7 @@ CLASS IMPLEMENTATION CClient;
       FOR i := 0 TO HIGH( Item ) DO
 
          IF NOT Server^.CommonLogger^.FilteredFastCheck( log.ldTrace, 0 ) THEN
-            Server^.Device^.NS()^.GetFullName( Item[i], OUT n );
+            Server^.DataSource^.NS()^.GetFullName( Item[i], OUT n );
             s := Value[i].String;
             Server^.CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "ADV ", OA( n.Length-1, n.Data ), L" ", OA( s.Length-1, s.Data ));
          END;
@@ -650,7 +596,7 @@ CLASS IMPLEMENTATION CClient;
       WBuffer.AppendOA( OA( SIZE( LEAD_NOTIFY )-2, ADR( LEAD_NOTIFY ))); WBuffer.AppendByte( TRAIL );
 
       WBuffer.AppendOA( OA( SIZE( LEAD_NAME )-2, ADR( LEAD_NAME ))); WBuffer.AppendByte( TRAIL );
-      Server^.Device^.NS()^.GetFullName( Item, OUT S );
+      Server^.DataSource^.NS()^.GetFullName( Item, OUT S );
       S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_NAME )-2, ADR( TRAIL_NAME ))); WBuffer.AppendByte( TRAIL );

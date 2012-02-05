@@ -24,7 +24,7 @@ CLASS CItem;
 
    LOCAL VAR
       Address : StringsO.CString;
-      Hash : ns.THash := NIL;
+      Pairs : ns.TPNameValuePairs := NIL;
       Value : iovalue.Value;
 
    PRIVATE VAR
@@ -77,7 +77,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    VAR
       item : TPItem;
       i : CARDINAL;
@@ -94,7 +94,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
             _Items.Reset();
             WHILE _Items.MoveNext() DO
                item := _Items.Current;
-               IF item^.Hash = Item[i] THEN
+               IF item^.Pairs = Item[i] THEN
                   Mark( item );
                END;
             END; // WHILE
@@ -133,7 +133,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          value := item^.Value.String;
          Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Pushing value:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
 
-         result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirWrite, item^.Hash, REF item^.Value, NIL );
+         result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirWrite, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
             Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write persisted value:", OA( item^.Address.Length-1, item^.Address.Data ));
          END;
@@ -188,7 +188,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       storageFile : INIFile.CINIFile;
       storagePathOA : FIO.PathStrW;
    BEGIN
-      IF Device = NIL THEN
+      IF DataSource = NIL THEN
 	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
          RETURN Sync.arCannotStart;
       
@@ -246,9 +246,9 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    BEGIN
       StopTimer( WRITE_DELAY_TIMER );
 
-      IF Device <> NIL THEN
-         Device^.UnadviseAll( ADR( SELF ));
-         Device^.LeaveClient( ADR( SELF ));
+      IF DataSource <> NIL THEN
+         DataSource^.UnadviseAll( ADR( SELF ));
+         DataSource^.LeaveClient( ADR( SELF ));
       END;
    
       _Items.Reset();
@@ -265,12 +265,12 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    VAR
       item : TPItem;
    BEGIN
-      Device^.JoinClient( ADR( SELF ), io.advWithData );
+      DataSource^.JoinClient( ADR( SELF ), ns.advWithData );
       
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
-         Device^.AdviseHash( ADR( SELF ), item^.Hash );
+         DataSource^.AdviseHash( ADR( SELF ), item^.Pairs );
       END; // WHILE
 
       // values are written into KNX after init read phase
@@ -280,8 +280,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
    INTERNAL VIRTUAL PROCEDURE OnStop();
    BEGIN
-      Device^.UnadviseAll( ADR( SELF ));
-      Device^.LeaveClient( ADR( SELF ));
+      DataSource^.UnadviseAll( ADR( SELF ));
+      DataSource^.LeaveClient( ADR( SELF ));
    END OnStop;
    
 (*--------------------------------------------------------------------------------*)
@@ -292,10 +292,10 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       keyStoragePath = L"storage_file_path";
    VAR
       ES : PTR;
-      hash : ns.THash;
       item : TPItem;
       Line : CARDINAL;
       key : StringsO.CString;
+      pairs : ns.TPNameValuePairs;
       s : StringsO.CString;
       storagePath : StringsO.CString;
       value : StringsO.CString;
@@ -335,7 +335,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          END;
 
          // key/output = value
-         IF NOT Device^.NS()^.Get( key, OUT hash ) THEN
+         IF NOT DataSource^.NS()^.Get( key, OUT pairs ) THEN
 	         Log^.LogSSSS( log.lcError, 0, LOGNAME, LOGNAME, OAsz( R^[ Texts._GroupAddressNotFound ] ), OA( key.Length-1, key.Data ), L"" );
             CONTINUE;
          END;
@@ -343,7 +343,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          // everything OK, create item in _Items
          NEW( item );
          item^.Address := key;
-         item^.Hash := hash;
+         item^.Pairs := pairs;
          item^.Value := iovalue.FromString( value );
          _Items.Add( item, 0 );
       END; // WHILE
@@ -386,7 +386,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       WHILE _WriteQueue.Dequeue( OUT item ) DO
          item^.Dequeue();
 
-         result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirRead, item^.Hash, REF item^.Value, NIL );
+         result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirRead, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
 	         Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read value from device:", OA( item^.Address.Length-1, item^.Address.Data ));
 	         Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );

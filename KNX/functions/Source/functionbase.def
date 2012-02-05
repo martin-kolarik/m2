@@ -30,7 +30,7 @@ ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS ns.IOrigina
    
    // SELF
    PUBLIC PROPERTY
-      Device : adviser.TPAdvisedDevice; // setting Device requires calling Configure to follow
+      DataSource : adviser.TPAdvisedDataSource; // setting Device requires calling Configure to follow
       Logger : log.TPILogger;
 
    INTERNAL VIRTUAL PROCEDURE OnStart(); // called from Start
@@ -48,7 +48,7 @@ ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS ns.IOrigina
    PRIVATE VAR
       _R : Resources.CResources;
       _Description : StringsO.CString;
-      _Device : adviser.TPAdvisedDevice := NIL;
+      _DataSource : adviser.TPAdvisedDataSource := NIL;
       _Logger : log.TPILogger := log.logger();
       _Running : BOOLEAN := FALSE;
 

@@ -25,11 +25,16 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
    // INameValuePairs
    PUBLIC VIRTUAL PROCEDURE Get( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
 
-   PUBLIC VIRTUAL READONLY PROPERTY
+   PUBLIC FINAL READONLY PROPERTY
       Name : StringsO.CString;
       Parent : ns.TPNameValuePairs;
-   PUBLIC VIRTUAL PROPERTY
+      AdviseSource : ns.TPAdviseSource;
+   PUBLIC FINAL PROPERTY
+      Value : iovalue.Value;
       Data : PTR;
+
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN; // Name and Child^.Name HAS TO be the same
    PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN; // removes child
@@ -37,12 +42,14 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
    // SELF
    PUBLIC WRITEONLY PROPERTY
       InitializeName : StringsO.CString;
+      InitializeAdviseSource : ns.TPAdviseSource;
 
    LOCAL VAR
       _Name : StringsO.CString;
       _Parent : ns.TPNameValuePairs := NIL;
       _Children : avltree.TPAVLTree := NIL;
       _Data : PTR := 0;
+      _AdviseSource : ns.TPAdviseSource := NIL;
 
 END ANameValuePairsStructurals;
 
@@ -52,18 +59,10 @@ END ANameValuePairsStructurals;
 TYPE
    TPNameValuePairsIO = POINTER TO NameValuePairsIO;
 
-(*---------------------------------------------------------------------------*)
-
 CLASS NameValuePairsIO( ANameValuePairsStructurals );
 
    // IValueIO
-   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
-
-   // INameValuePairs
-   PUBLIC VIRTUAL PROPERTY
-      Value : iovalue.Value;
-
-   PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
 
    // SELF
    PUBLIC PROPERTY
@@ -75,7 +74,6 @@ CLASS NameValuePairsIO( ANameValuePairsStructurals );
 END NameValuePairsIO;
 
 (*---------------------------------------------------------------------------*)
-(*---------------------------------------------------------------------------*)
 
 TYPE
    TPNameValuePairsStorage = POINTER TO NameValuePairsStorage;
@@ -83,13 +81,7 @@ TYPE
 CLASS NameValuePairsStorage( ANameValuePairsStructurals );
 
    // IValueIO
-   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; CONST NameValuePairs : ns.TPNameValuePairs; REF Value : iovalue.Value ) : Sync.TAsyncResult;
-
-   // INameValuePairs
-   PUBLIC VIRTUAL PROPERTY
-      Value : iovalue.Value;
-
-   PUBLIC VIRTUAL PROCEDURE DefineValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; Data : PTR; CONST InitialValue : iovalue.TPValue; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
 
    // SELF
    PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;

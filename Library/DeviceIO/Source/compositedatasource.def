@@ -44,16 +44,16 @@ CLASS CCompositeDataSource IMPLEMENTS ns.IAdviseInfo, ns.IAdviseSource, device.I
    // SELF
    PUBLIC PROCEDURE Init( CONST Name : StringsO.IString );
 
-   PUBLIC PROCEDURE JoinDevice( CONST Device : device.TPDevice );
-   PUBLIC PROCEDURE LeaveDevice( CONST Device : device.TPDevice );
+   PUBLIC PROCEDURE JoinDataSource( CONST Device : device.TPDataSource );
+   PUBLIC PROCEDURE LeaveDataSource( CONST Device : device.TPDataSource );
 
    // callbacks from Join/LeaveDevice
-   INTERNAL VIRTUAL PROCEDURE OnJoinDevice( CONST Device : device.TPDevice );
-   INTERNAL VIRTUAL PROCEDURE OnLeaveDevice( CONST Device : device.TPDevice );
+   INTERNAL VIRTUAL PROCEDURE OnJoinDataSource( CONST Device : device.TPDataSource );
+   INTERNAL VIRTUAL PROCEDURE OnLeaveDataSource( CONST Device : device.TPDataSource );
 
    PRIVATE VAR
       _Namespace : nsimpl.Namespace;
-      _Devices : lists.CPtrList;
+      _DataSources : lists.CPtrList;
       _Advise : ns.TAdvise := ns.advWithData;
       _AdviseListener : ns.TPAdviseInfo := NIL;
 

@@ -11,24 +11,24 @@ CLASS IMPLEMENTATION CCompositeDataSource;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
-      d : device.TPDevice;
+      d : device.TPDataSource;
    BEGIN
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         d := _Devices.Current;
-         IF device.capAdviseSource IN d^.DeviceCapabilities THEN
-            d^.AdviseSource()^.Advise := io.advNone;
+      _DataSources.Reset();
+      WHILE _DataSources.MoveNext() DO
+         d := _DataSources.Current;
+         IF device.capAdviseSource IN d^.DataSourceCapabilities THEN
+            d^.AdviseSource()^.Advise := ns.advNone;
             d^.AdviseSource()^.AdviseListener := NIL;
          END;
       END; // WHILE
 
       _Namespace.Dispose();
-      _Devices.Dispose();
+      _DataSources.Dispose();
    END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
       IF _AdviseListener <> NIL THEN
          _AdviseListener^.OnAdvise( Originator, Result, Item, Value );
@@ -37,24 +37,24 @@ CLASS IMPLEMENTATION CCompositeDataSource;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
+   PUBLIC VIRTUAL PROPERTY Advise GET : ns.TAdvise;
    BEGIN
       RETURN _Advise;
    END Advise;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
+   PUBLIC VIRTUAL PROPERTY Advise SET( Value : ns.TAdvise );
    VAR
-      d : device.TPDevice;
+      d : device.TPDataSource;
    BEGIN
       _Advise := Value;
 
       // update advising in nested devices
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         d := _Devices.Current;
-         IF device.capAdviseSource IN d^.DeviceCapabilities THEN
+      _DataSources.Reset();
+      WHILE _DataSources.MoveNext() DO
+         d := _DataSources.Current;
+         IF device.capAdviseSource IN d^.DataSourceCapabilities THEN
             d^.AdviseSource()^.Advise := _Advise;
          END;
       END; // WHILE
@@ -62,30 +62,30 @@ CLASS IMPLEMENTATION CCompositeDataSource;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPAdviseInfo;
+   PUBLIC VIRTUAL PROPERTY AdviseListener GET : ns.TPAdviseInfo;
    BEGIN
       RETURN _AdviseListener;
    END AdviseListener;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPAdviseInfo );
+   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : ns.TPAdviseInfo );
    VAR
-      d : device.TPDevice;
+      d : device.TPDataSource;
    BEGIN
       _AdviseListener := Value;
 
       // update advising in nested devices
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         d := _Devices.Current;
-         IF device.capAdviseSource IN d^.DeviceCapabilities THEN
+      _DataSources.Reset();
+      WHILE _DataSources.MoveNext() DO
+         d := _DataSources.Current;
+         IF device.capAdviseSource IN d^.DataSourceCapabilities THEN
             IF _AdviseListener = NIL THEN
                d^.AdviseSource()^.AdviseListener := NIL;
-               d^.AdviseSource()^.Advise := io.advNone;
+               d^.AdviseSource()^.Advise := ns.advNone;
             ELSE
                d^.AdviseSource()^.AdviseListener := ADR( SELF );
-               d^.AdviseSource()^.Advise := io.advWithData;
+               d^.AdviseSource()^.Advise := ns.advWithData;
             END;
          END;
       END; // WHILE
@@ -95,7 +95,7 @@ CLASS IMPLEMENTATION CCompositeDataSource;
 
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
    VAR
-      d : device.TPDevice;
+      d : device.TPDataSource;
       deviceName : ARRAY [0..127] OF WCHAR;
       name : ARRAY [0..127] OF WCHAR;
       result : Sync.TAsyncResult;
@@ -103,9 +103,9 @@ CLASS IMPLEMENTATION CCompositeDataSource;
    BEGIN
       _Namespace.Name.ToOA( OUT name );
 
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         d := _Devices.Current;
+      _DataSources.Reset();
+      WHILE _DataSources.MoveNext() DO
+         d := _DataSources.Current;
          d^.NS()^.Name.ToOA( OUT deviceName );
 
          Log^.LogSS( log.lcError, 0, name, L"Configuring device: ", deviceName );
@@ -136,7 +136,7 @@ CLASS IMPLEMENTATION CCompositeDataSource;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AdviseSource() : io.TPAdviseSource; // optional
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource; // optional
    BEGIN
       RETURN ADR( SELF );
    END AdviseSource;
@@ -153,52 +153,52 @@ CLASS IMPLEMENTATION CCompositeDataSource;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE JoinDevice( CONST Device : device.TPDevice );
+   PUBLIC PROCEDURE JoinDataSource( CONST DataSource : device.TPDataSource );
    BEGIN
-      IF _Devices.Contains( Device ) THEN
+      IF _DataSources.Contains( DataSource ) THEN
          RETURN;
       END;
-      OnJoinDevice( Device );
-      _Devices.Add( Device, 0 );
-   END JoinDevice;
+      OnJoinDataSource( DataSource );
+      _DataSources.Add( DataSource, 0 );
+   END JoinDataSource;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LeaveDevice( CONST Device : device.TPDevice );
+   PUBLIC PROCEDURE LeaveDataSource( CONST DataSource : device.TPDataSource );
    BEGIN
-      IF _Devices.Contains( Device ) THEN
-         _Devices.Remove( Device );
-         OnLeaveDevice( Device );
+      IF _DataSources.Contains( DataSource ) THEN
+         _DataSources.Remove( DataSource );
+         OnLeaveDataSource( DataSource );
       END;
-   END LeaveDevice;
+   END LeaveDataSource;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnJoinDevice( CONST Device : device.TPDevice );
+   INTERNAL VIRTUAL PROCEDURE OnJoinDataSource( CONST DataSource : device.TPDataSource );
    BEGIN
       // connect to namespace
-      _Namespace.Link( Device^.NS()^.Name, Device^.NS());
+      _Namespace.Link( DataSource^.NS()^.Name, DataSource^.NS());
       // link advising
-      IF device.capAdviseSource IN Device^.DeviceCapabilities THEN
-         Device^.AdviseSource()^.Advise := _Advise;
-         Device^.AdviseSource()^.AdviseListener := ADR( SELF );
+      IF device.capAdviseSource IN DataSource^.DataSourceCapabilities THEN
+         DataSource^.AdviseSource()^.Advise := _Advise;
+         DataSource^.AdviseSource()^.AdviseListener := ADR( SELF );
       END;
-   END OnJoinDevice;
+   END OnJoinDataSource;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnLeaveDevice( CONST Device : device.TPDevice );
+   INTERNAL VIRTUAL PROCEDURE OnLeaveDataSource( CONST DataSource : device.TPDataSource );
    VAR
       child : ns.TPNameValuePairs;
    BEGIN
       // disconnect from namespace
-      _Namespace.Unlink( Device^.NS()^.Name, OUT child );
+      _Namespace.Unlink( DataSource^.NS()^.Name, OUT child );
       // unlink advising
-      IF device.capAdviseSource IN Device^.DeviceCapabilities THEN
-         Device^.AdviseSource()^.Advise := io.advNone;
-         Device^.AdviseSource()^.AdviseListener := NIL;
+      IF device.capAdviseSource IN DataSource^.DataSourceCapabilities THEN
+         DataSource^.AdviseSource()^.Advise := ns.advNone;
+         DataSource^.AdviseSource()^.AdviseListener := NIL;
       END;
-   END OnLeaveDevice;
+   END OnLeaveDataSource;
 
 (*---------------------------------------------------------------------------*)
 
