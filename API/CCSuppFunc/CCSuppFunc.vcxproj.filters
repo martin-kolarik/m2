@@ -36,9 +36,6 @@
     <ClCompile Include="Source\purecall.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\stackprobe.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\atexit.h">
