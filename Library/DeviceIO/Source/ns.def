@@ -73,9 +73,11 @@ INTERFACE INameValuePairs( IValueIO );
       Parent : TPNameValuePairs;
       AdviseSource : TPAdviseSource;
    PROPERTY
-      Value : iovalue.Value; // SHALL call Advise if IAdviseSource is assigned
+      Value : iovalue.Value; // allows simple value access, no result and originator available, can use IValueIO.IO, SHALL call Advise if IAdviseSource is assigned
       Data : PTR; // user data
-      // allows simple value access, no result and originator available, can use IValueIO.IO
+   READONLY PROPERTY
+      VisibleToUser : BOOLEAN;
+      HasValue : BOOLEAN;
 
    // creation
    PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;

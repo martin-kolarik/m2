@@ -376,6 +376,20 @@ CLASS IMPLEMENTATION NameValuePairsIO;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC FINAL PROPERTY VisibleToUser GET : BOOLEAN;
+   BEGIN
+      RETURN TRUE;
+   END VisibleToUser;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY HasValue GET : BOOLEAN;
+   BEGIN
+      RETURN TRUE;
+   END HasValue;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
    VAR
       Result : Sync.TAsyncResult;
@@ -420,6 +434,20 @@ END NameValuePairsIO;
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION NameValuePairsStorage;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY VisibleToUser GET : BOOLEAN;
+   BEGIN
+      RETURN _Value.VisibleToUser;
+   END VisibleToUser;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY HasValue GET : BOOLEAN;
+   BEGIN
+      RETURN _Value.HasValue;
+   END HasValue;
 
 (*---------------------------------------------------------------------------*)
 

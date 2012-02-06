@@ -455,8 +455,11 @@ CLASS IMPLEMENTATION CSDAPServer;
             _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "GET ", OA( p[1].Length-1, p[1].Data ));
          END;
 
-         IF NOT _DataSource^.NS()^.Get( p[1], OUT pvalue ) THEN
+         IF NOT _DataSource^.NS()^.Get( p[1], OUT pvalue ) OR NOT pvalue^.VisibleToUser THEN
             ACKs( PConnection, sdap405, 1 );
+
+         ELSIF NOT pvalue^.HasValue THEN
+            ACKs( PConnection, sdap406, 1 );
 
          ELSE
 

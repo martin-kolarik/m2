@@ -62,6 +62,9 @@ TYPE
 CLASS NameValuePairsIO( ANameValuePairsStructurals );
 
    // IValueIO
+   PUBLIC FINAL READONLY PROPERTY
+      VisibleToUser : BOOLEAN;
+      HasValue : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
 
    // SELF
@@ -81,6 +84,9 @@ TYPE
 CLASS NameValuePairsStorage( ANameValuePairsStructurals );
 
    // IValueIO
+   PUBLIC FINAL READONLY PROPERTY
+      VisibleToUser : BOOLEAN;
+      HasValue : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
 
    // SELF

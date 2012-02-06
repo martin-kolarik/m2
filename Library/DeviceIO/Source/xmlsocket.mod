@@ -466,8 +466,12 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name.FromOA( NameOA );
       _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "GET ", NameOA );
 
-      IF NOT _DataSource^.NS()^.Get( Name, OUT pvalue ) THEN
+      IF NOT _DataSource^.NS()^.Get( Name, OUT pvalue ) OR NOT pvalue^.VisibleToUser THEN
          _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing GET: ", NameOA );
+         RETURN;
+
+      ELSIF NOT pvalue^.HasValue THEN
+         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  element without value, nothing GET: ", NameOA );
          RETURN;
 
       ELSE
@@ -490,8 +494,12 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name.FromOA( NameOA );
       _CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "SET ", NameOA, L" ", Value );
 
-      IF NOT _DataSource^.NS()^.Get( Name, OUT pvalue ) THEN
+      IF NOT _DataSource^.NS()^.Get( Name, OUT pvalue ) OR NOT pvalue^.VisibleToUser THEN
          _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing SET: ", NameOA );
+         RETURN;
+
+      ELSIF NOT pvalue^.HasValue THEN
+         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  element without value, nothing SET: ", NameOA );
          RETURN;
 
       ELSE

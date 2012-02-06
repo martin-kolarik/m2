@@ -54,6 +54,9 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
    PUBLIC VIRTUAL PROPERTY
       Value : iovalue.Value;
       Data : PTR; // user data
+   PUBLIC VIRTUAL READONLY PROPERTY
+      VisibleToUser : BOOLEAN;
+      HasValue : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
@@ -74,6 +77,8 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
       _Pairs : namevaluepairsimpl.TPNameValuePairsStorage;
    PRIVATE PROCEDURE LookupAndDefine( AllowCreation : BOOLEAN; CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs; OUT LeafName : StringsO.IString ) : BOOLEAN;
 
+   INITIALLY Namespace();
+   FINALLY Namespace();
 END Namespace;
 
 (*---------------------------------------------------------------------------*)

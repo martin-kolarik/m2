@@ -936,6 +936,20 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY VisibleToUser GET : BOOLEAN;
+   BEGIN
+      RETURN ( vfHidden NOT IN _Flags ) AND ( _Type <> vtReference );
+   END VisibleToUser;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY HasValue GET : BOOLEAN;
+   BEGIN
+      RETURN ( vfUndefined NOT IN _Flags ) AND ( _Type <> vtObject );
+   END HasValue;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC OPERATOR :=( CONST Source : Value );
    BEGIN
       _Flags := Source._Flags;

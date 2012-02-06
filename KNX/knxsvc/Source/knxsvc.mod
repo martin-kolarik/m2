@@ -400,7 +400,6 @@ CLASS IMPLEMENTATION CKnxSvc;
       xmlsPort : CARDINAL := 6006;
    BEGIN
       Debug.WaitUsingLoop();
-      ASSERT( FALSE );
 
       // CONFIGURATION
       // get confiuration file path

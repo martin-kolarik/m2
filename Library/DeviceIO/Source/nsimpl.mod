@@ -140,6 +140,20 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC FINAL PROPERTY VisibleToUser GET : BOOLEAN;
+   BEGIN
+      RETURN _Pairs^.VisibleToUser;
+   END VisibleToUser;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY HasValue GET : BOOLEAN;
+   BEGIN
+      RETURN _Pairs^.HasValue;
+   END HasValue;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
    VAR
       hash : ns.THash;
@@ -293,13 +307,27 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-BEGIN
-   NEW( _Pairs );
-FINALLY
-   Dispose();
-   IF _Pairs <> NIL THEN
-      DISPOSE( _Pairs );
-   END;
+   INITIALLY Namespace();
+   VAR
+      value : iovalue.Value;
+   BEGIN
+      NEW( _Pairs );
+      value.Type := iovalue.vtObject;
+      _Pairs^.Value := value;
+   END Namespace;
+
+(*---------------------------------------------------------------------------*)
+
+   FINALLY Namespace();
+   BEGIN
+      Dispose();
+      IF _Pairs <> NIL THEN
+         DISPOSE( _Pairs );
+      END;
+   END Namespace;
+
+(*---------------------------------------------------------------------------*)
+
 END Namespace;
 
 (*===========================================================================*)

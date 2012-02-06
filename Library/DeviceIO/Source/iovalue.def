@@ -15,7 +15,7 @@ TYPE
    TType = (
       vtUnknown,
       vtReference, // link to internal native world, not visible for user
-      vtObject,
+      vtObject, // structural node, visible to user, has no value
       vtBoolean,
       vtTristate,
       vtInteger,
@@ -89,6 +89,8 @@ CLASS Value;
       // Data : StorageO.CMemoryBuffer;
    PUBLIC READONLY PROPERTY
       PString : StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
+      VisibleToUser : BOOLEAN;
+      HasValue : BOOLEAN;
 
    PUBLIC OPERATOR :=( CONST Source : Value ); // respects type
 
