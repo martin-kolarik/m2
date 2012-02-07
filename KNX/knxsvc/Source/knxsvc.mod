@@ -102,9 +102,12 @@ CLASS CSuspendableResult( lec.CResult ) IMPLEMENTS ns.IValueIO, device.IDataSour
    PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // required, handles both naming and IO
    PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource; // optional
 
+   // CResult
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Expired : BOOLEAN;
+
    // SELF
    PUBLIC READONLY PROPERTY
-      Expired : BOOLEAN;
       Suspended : BOOLEAN;
    PUBLIC PROCEDURE QuerySuspension();
 
