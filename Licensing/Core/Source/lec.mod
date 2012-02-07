@@ -56,20 +56,7 @@ CLASS IMPLEMENTATION CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY StateInfo GET : TStateInfo;
-   BEGIN
-      IF _StateInfo = siUnknown THEN
-         RETURN siDemo;
-      ELSIF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( _StateInfo )) >> 3 ) MOD 317 ) THEN
-         RETURN TStateInfo( CARDINAL( LOPTRLONGWORD( PTR( ADR( _StateInfo )) >> 3 )) MOD 2 + 1 );
-      ELSE
-         RETURN _StateInfo;
-      END;
-   END StateInfo;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Expires GET : datetime.DateTime;
+   PUBLIC VIRTUAL PROPERTY Expires GET : datetime.DateTime;
    VAR
       TExpires : datetime.DateTime;
    BEGIN
@@ -95,10 +82,23 @@ CLASS IMPLEMENTATION CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Expired GET : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY Expired GET : BOOLEAN;
    BEGIN
       RETURN datetime.NowUTC().Greater( Expires );
    END Expired;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY StateInfo GET : TStateInfo;
+   BEGIN
+      IF _StateInfo = siUnknown THEN
+         RETURN siDemo;
+      ELSIF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( _StateInfo )) >> 3 ) MOD 317 ) THEN
+         RETURN TStateInfo( CARDINAL( LOPTRLONGWORD( PTR( ADR( _StateInfo )) >> 3 )) MOD 2 + 1 );
+      ELSE
+         RETURN _StateInfo;
+      END;
+   END StateInfo;
 
 (*--------------------------------------------------------------------------------*)
 
