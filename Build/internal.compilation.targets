@@ -7,11 +7,10 @@
         <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
         <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
 
-        <!-- VCD Condition="$(VCD)==''">$(MSD)\</VCD -->
-        <CL>&quot;$(VCD)cl&quot; /nologo /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
-        <LINK>&quot;$(VCD)link&quot; /nologo /map /nodefaultlib</LINK>
-        <LIB>&quot;$(VCD)lib&quot; /nodefaultlib</LIB>
-        <RC>&quot;$(VCD)rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
+        <CL>&quot;$(CompilerBin)\cl&quot; /nologo /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
+        <LINK>&quot;$(CompilerBin)\link&quot; /nologo /map /nodefaultlib</LINK>
+        <LIB>&quot;$(CompilerBin)\lib&quot; /nodefaultlib</LIB>
+        <RC>&quot;$(CompilerBin)\rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
 
         <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
         <MTT>mt -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
@@ -98,10 +97,11 @@
     <!-- INPUTS -->
     <PropertyGroup>
         <M2INPUTS>@(GrabbedSources -> '-I&quot;..\%(Identity)\$(SourceDir)&quot;', ' ')</M2INPUTS>
-        <CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS>
+        <CLINPUTS>-I&quot;$(SDKInclude)&quot; -I&quot;$(HeaderDir)&quot;</CLINPUTS>
         <CLINPUTS>$(CLINPUTS) @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</CLINPUTS>
         <CLINPUTS>$(CLINPUTS) @(GrabbedHeaders -> '-I&quot;..\%(Identity)\Header&quot;', ' ')</CLINPUTS>
-        <RCINPUTS>-i&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
+        <RCINPUTS>-I&quot;$(SDKInclude)&quot; -I&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
+        <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot;</LINKCTRL>
     </PropertyGroup>
 
     <!-- OUTPUT -->
