@@ -7,14 +7,9 @@
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
     <!-- 2 -->
-    <!-- ItemGroup Condition="$(M2Compiler)=='Old'">
-        <Definitions Include="wtypes;rpcdce;rpcdcep;rpcndr;rpcnsi;rpc;unknwn;oaidl"/>
-    </ItemGroup -->
-
-    <!-- 3 -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>
 
-    <!-- 4 -->
+    <!-- 3 -->
     <ItemGroup>
         <Interface Include="kernel32;user32;shell32"/>
         <InterfaceWithDelayLoad Include="dbghelp"/>

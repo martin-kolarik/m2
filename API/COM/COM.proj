@@ -7,14 +7,9 @@
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
     <!-- 2 -->
-    <ItemGroup Condition="$(M2Compiler)=='Old'">
-        <Definitions Include="wtypes;rpcdce;rpcdcep;rpcndr;rpcnsi;rpc;unknwn;oaidl"/>
-    </ItemGroup>
-
-    <!-- 3 -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>
 
-    <!-- 4 -->
+    <!-- 3 -->
     <ItemGroup>
         <InterfaceWithDelayLoad Include="oleaut32;ole32;uuid"/>
     </ItemGroup>

@@ -3,14 +3,6 @@
 
     <PropertyGroup>
         <Manufacturer Condition="$(InheritedManufacturer)!=''">$(InheritedManufacturer)</Manufacturer>
-        
-        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
-        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
-        <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
-        <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Private</CLib>
-        <Licensing>off</Licensing>
-        <LeakChecking>off</LeakChecking>
         <PublishExports>on</PublishExports>
     </PropertyGroup>
 
