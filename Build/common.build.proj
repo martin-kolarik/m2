@@ -12,8 +12,8 @@
         <ResourceFile Condition="!Exists('$(ResourceFile)')"></ResourceFile>
         <SetupDir>Install</SetupDir>
 
-        <OutputDirName>#$(ConfigurationName).$(PlatformName)</OutputDirName>
-        <IntermediateDirName>#Build.$(OutputDirName)</IntermediateDirName>
+        <OutputDirName>#$(Configuration).$(Platform)</OutputDirName>
+        <IntermediateDirName>#Build.$(Configuration).$(Platform)</IntermediateDirName>
         <HeaderDirName>$(IntermediateDirName)</HeaderDirName>
 
         <OutputDir>$(OutputDirName)</OutputDir>
@@ -194,10 +194,10 @@
     </Target>
 
     <!-- resources default -->
-    <UsingTask TaskName="SvnVersion" AssemblyFile="BuildTasks.dll"/>
-    <UsingTask TaskName="HgVersion" AssemblyFile="BuildTasks.dll"/>
-    <UsingTask TaskName="MinMax" AssemblyFile="BuildTasks.dll"/>
-    <UsingTask TaskName="Item" AssemblyFile="BuildTasks.dll"/>
+    <UsingTask TaskName="SvnVersion" AssemblyFile="$(BuildTask)"/>
+    <UsingTask TaskName="HgVersion" AssemblyFile="$(BuildTask)"/>
+    <UsingTask TaskName="MinMax" AssemblyFile="$(BuildTask)"/>
+    <UsingTask TaskName="Item" AssemblyFile="$(BuildTask)"/>
     <Import Project="internal.resource.targets"/>
 
 
@@ -376,7 +376,7 @@
                        )"
             DependsOnTargets="ComponentCode">
         <Exec Condition="$(Result)=='Program' Or $(Result)=='Dynamic'"
-              Command="signtool sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"
+              Command="&quot;$(SDKBin)\signtool&quot; sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"
               ContinueOnError="true"/>
     </Target>
 
@@ -460,15 +460,15 @@
 
     <!-- deploy tasks -->
     <Target Name="DeployDebug">
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="ConfigurationName=Debug" StopOnFirstFailure="true" />
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Debug;Language=Czech" StopOnFirstFailure="true" />
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Debug;Language=English" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="Configuration=Debug" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Debug;Language=Czech" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Debug;Language=English" StopOnFirstFailure="true" />
     </Target>
 
     <Target Name="DeployRelease">
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="ConfigurationName=Release" StopOnFirstFailure="true" />
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Release;Language=Czech" StopOnFirstFailure="true" />
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Release;Language=English" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="Configuration=Release" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Release;Language=Czech" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Release;Language=English" StopOnFirstFailure="true" />
     </Target>
 
     <Target Name="Deploy" DependsOnTargets="DeployRelease;DeployDebug" />

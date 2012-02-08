@@ -37,7 +37,7 @@
         </RCVarFileInfo>
 
         <RCFileContents>
-#include &quot;winres.h&quot;
+#include &quot;winresrc.h&quot;
 #pragma code_page($(OriginalCodePageDec))
         
 VS_VERSION_INFO VERSIONINFO
@@ -61,9 +61,9 @@ LANGUAGE $(LangName), $(SubLangName)
         </RCFileContents>
     </PropertyGroup>
 
-    <UsingTask TaskName="WriteLinesToEncodedFile" AssemblyFile="BuildTasks.dll"/>
-    <!-- UsingTask TaskName="BuildNumber" AssemblyFile="BuildTasks.dll"/ -->
-    <UsingTask TaskName="Patch" AssemblyFile="BuildTasks.dll"/>
+    <UsingTask TaskName="WriteLinesToEncodedFile" AssemblyFile="$(BuildTask)"/>
+    <!-- UsingTask TaskName="BuildNumber" AssemblyFile="$(BuildTask)"/ -->
+    <UsingTask TaskName="Patch" AssemblyFile="$(BuildTask)"/>
 
     <PropertyGroup>
         <RCFile>$(IntermediateDir)\$(MSBuildProjectName).generated.rc</RCFile>

@@ -10,10 +10,10 @@
         <CL>&quot;$(CompilerBin)\cl&quot; /nologo /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
         <LINK>&quot;$(CompilerBin)\link&quot; /nologo /map /nodefaultlib</LINK>
         <LIB>&quot;$(CompilerBin)\lib&quot; /nodefaultlib</LIB>
-        <RC>&quot;$(CompilerBin)\rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
+        <RC>&quot;$(SDKBin)\rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
 
-        <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
-        <MTT>mt -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
+        <MT>&quot;$(SDKBin)\mt&quot; -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
+        <MTT>&quot;$(SDKBin)\mt&quot; -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
 
         <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2>
         <M2D>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2D>
@@ -33,7 +33,7 @@
 
     <!-- CONTROLS -->
     <PropertyGroup>
-        <M2CTRL>-DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName) -DLicenceMachineId:$(LicenceMachineId)</M2CTRL>
+        <M2CTRL>-DManufacturer:$(Manufacturer) -DConfiguration:$(Configuration) -DPlatform:$(Platform) -DLicenceMachineId:$(LicenceMachineId)</M2CTRL>
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug)</M2CTRL>
         <M2CTRL Condition="$(CPPExceptions)=='on'">$(M2CTRL) -SE</M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
@@ -59,13 +59,13 @@
         <MT Condition="$(CLib)=='Dynamic' And $(Result)=='Dynamic'">$(MT);#2</MT>
     </PropertyGroup>
 
-    <!-- ConfigurationName -->
-    <PropertyGroup Condition ="$(ConfigurationName)=='Release'">
+    <!-- Configuration -->
+    <PropertyGroup Condition ="$(Configuration)=='Release'">
         <RCCTRL>-DRELEASE</RCCTRL>
         <LINKCTRL>$(LINKCTRL) /RELEASE /LTCG</LINKCTRL>
         <LIBDEF>/LTCG</LIBDEF>
     </PropertyGroup>
-    <PropertyGroup Condition ="$(ConfigurationName)!='Release'">
+    <PropertyGroup Condition ="$(Configuration)!='Release'">
         <RCCTRL></RCCTRL>
         <LIBDEF></LIBDEF>
     </PropertyGroup>
@@ -97,11 +97,13 @@
     <!-- INPUTS -->
     <PropertyGroup>
         <M2INPUTS>@(GrabbedSources -> '-I&quot;..\%(Identity)\$(SourceDir)&quot;', ' ')</M2INPUTS>
-        <CLINPUTS>-I&quot;$(SDKInclude)&quot; -I&quot;$(HeaderDir)&quot;</CLINPUTS>
+        <CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS>
         <CLINPUTS>$(CLINPUTS) @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</CLINPUTS>
         <CLINPUTS>$(CLINPUTS) @(GrabbedHeaders -> '-I&quot;..\%(Identity)\Header&quot;', ' ')</CLINPUTS>
-        <RCINPUTS>-I&quot;$(SDKInclude)&quot; -I&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
-        <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot;</LINKCTRL>
+        <CLINPUTS>$(CLINPUTS) -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</CLINPUTS>
+        <RCINPUTS>-I&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
+        <RCINPUTS>$(RCINPUTS) -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</RCINPUTS>
+        <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot; /LIBPATH:&quot;$(CompilerLib)&quot;</LINKCTRL>
     </PropertyGroup>
 
     <!-- OUTPUT -->
