@@ -105,6 +105,12 @@ typedef CARD64                 LONGSET;
 # define INCFO_(t,a,b)         ((t)((ORDINAL)(a) + (ORDINAL)(b)))
 # define INCFA_(t,a,b)         ((t)((PTR)(a) + (PTR)(b)))
 
+# ifdef _WIN64
+__forceinline bool __fastcall DEBUGGED_() throw() {
+    extern LONGINT IsDebuggerPresent();
+    return IsDebuggerPresent() == TRUE;
+}
+# else
 __forceinline bool __fastcall DEBUGGED_() throw() {
   __asm {
     mov eax, dword ptr fs:[0x18]
@@ -112,6 +118,8 @@ __forceinline bool __fastcall DEBUGGED_() throw() {
     movzx eax, byte ptr [eax+2]
   }
 }
+# endif
+  
 
 // bytes, words, longwords, ...
 #pragma pack(push, 1)

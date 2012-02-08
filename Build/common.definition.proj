@@ -2,8 +2,8 @@
 
     <!-- environment definition -->
     <PropertyGroup>
-        <SDKPath>$(PROGRAMFILES)\Microsoft SDKs\Windows\v7.1</SDKPath>
-        <CompilerPath>$(PROGRAMFILES) %28x86%29\Microsoft Visual Studio 10.0\VC</CompilerPath>
+        <SDKPath>C:\Program Files\Microsoft SDKs\Windows\v7.1</SDKPath>
+        <CompilerPath>C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC</CompilerPath>
         <!-- particular directories are constructed at the file end -->
         <!-- the latter properties depends on MSBuildBittness, not on Platform settings -->
         <BuildTask Condition="$(PROCESSOR_ARCHITECTURE)=='AMD64'">BuildTasks.x64.dll</BuildTask>

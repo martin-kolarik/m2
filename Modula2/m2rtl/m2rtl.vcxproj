@@ -58,12 +58,12 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">~$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build.$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">~Build.$(Configuration)\</IntDir>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild  /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeReBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild  /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean  /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeCleanCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean  /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeCleanCommandLine>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
@@ -80,12 +80,12 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\__interm\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\__interm\</IntDir>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild  /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeReBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild  /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean  /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeCleanCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean  /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeCleanCommandLine>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
@@ -152,6 +152,7 @@
     <None Include="Test\Match.mod" />
     <None Include="Test\RingBuffer.mod" />
     <None Include="Test\RingBufferPeek.mod" />
+    <None Include="Test\SpeedOfBCD.mod" />
     <None Include="Test\StringReplaceInsert.mod" />
     <None Include="Test\StringsProc.mod" />
     <None Include="Test\TASSERT.mod" />
