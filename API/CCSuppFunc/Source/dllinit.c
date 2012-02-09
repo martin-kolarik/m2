@@ -9,8 +9,14 @@
 #define DLL_PROCESS_ATTACH 1
 
 /* DefaultDllMain replaces DllMain if it does not exists */
-#pragma comment(linker, "/alternatename:DllMain=_DefaultDllMain")
+#ifdef _WIN64
+    #pragma comment(linker, "/alternatename:DllMain=_DefaultDllMain")
+#else
+    #pragma comment(linker, "/alternatename:_DllMain=__DefaultDllMain")
+#endif
+
 extern unsigned char __cdecl DllMain( unsigned long reason );
+
 unsigned char __cdecl _DefaultDllMain( unsigned long reason )
 {
     reason;
