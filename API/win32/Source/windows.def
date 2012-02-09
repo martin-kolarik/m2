@@ -3748,14 +3748,14 @@ PROCEDURE HeapDestroy(
 PROCEDURE HeapAlloc(
     hHeap : HANDLE;
     dwFlags : DWORD;
-    dwBytes : DWORD
+    dwBytes : TSIZE
     ): PVOID;
 
 PROCEDURE HeapReAlloc(
     hHeap : HANDLE;
     dwFlags : DWORD;
     lpMem : PVOID;
-    dwBytes : DWORD
+    dwBytes : TSIZE
     ): PVOID;
 
 PROCEDURE HeapFree(
@@ -3768,7 +3768,7 @@ PROCEDURE HeapSize(
     hHeap : HANDLE;
     dwFlags : DWORD;
     lpMem : LPCVOID
-    ): DWORD;
+    ): TSIZE;
 
 PROCEDURE HeapValidate(
     hHeap : HANDLE;

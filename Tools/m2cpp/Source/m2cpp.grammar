@@ -2112,11 +2112,7 @@ ntStatement<RequestedReturnType : DOM.TPType; VAR R : TReturn> // !C.5
   | ntForStatement<RequestedReturnType> // *
   | ntGotoStatement                                        (. R := retGOTO; .) // *
   | ntStructuralExceptionHandlingStatement<RequestedReturnType, R> // ?
-  | ntThrowStatement                                       (. IF c^.TStack.Empty OR NOT DOM.TPSTRY( c^.TStack.Peek())^.LocalThrowEnabled THEN
-                                                                 R := retOK;
-                                                              ELSE
-                                                                 R := retGOTO;
-                                                              END; .) // *
+  | ntThrowStatement<OUT R>
   | ntAsmStatement                                         (. R := retUncertain; .) // ?
   )
 .
@@ -2855,11 +2851,13 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
   
 /* ---------- */
 
-ntThrowStatement                                             (. E : DOM.TPExpression;
+ntThrowStatement<OUT ret : TReturn>
+                                                             (. E : DOM.TPExpression;
                                                                 P : DOM.TPProcedureType := c^.CurrentP();
                                                                 R : DOM.TPSReturn;
                                                                 S : DOM.TPSTHROW := NEW( DOM.CSTHROW ); .)
-  = "THROW"                                                  (. IF ( DOM.eoCPPExceptions NOT IN c^.Options ) AND ( c^.OD^.MEnv.MIID[DOM.miidStoreException] = NIL ) THEN
+  = "THROW"                                                  (. ret := retUnknown;
+                                                                IF ( DOM.eoCPPExceptions NOT IN c^.Options ) AND ( c^.OD^.MEnv.MIID[DOM.miidStoreException] = NIL ) THEN
                                                                    SemErr( err._MissingStoreException );
                                                                 END;
                                                                 IF DOM.eoInsideCPPTry IN P^.Options THEN
@@ -2868,6 +2866,9 @@ ntThrowStatement                                             (. E : DOM.TPExpres
                                                                 ELSIF DOM.eoInsideCPPCatch IN P^.Options THEN
                                                                    S^.UnitKind := DOM.ukSThrowInCatch;
                                                                    S^.Label := c^.TStack.PeekData();
+                                                                   ret := retOK;
+                                                                ELSE
+                                                                   ret := retOK;
                                                                 END;
                                                                 c^.AddUnit( S );
                                                                 c^.EnterUnit( S ); .)
@@ -4273,6 +4274,15 @@ ntSingleTypeConstructedValue<T : DOM.TPType; VR : TValueReq; VAR VI : DOM.TValue
                                                                       ( T^.OccupiedMemory() < SIZE( CARD64 )) THEN
                                                                   Warning( wrn._UnsafePointerCast );
                                                                 END;
+                                                              ELSIF T = Types.TTSIZE THEN
+                                                                IF ET^.OccupiedMemory() > SIZE( CARD32 ) THEN
+                                                                  Warning( wrn._UnsafeSizeCast );
+                                                                END;
+                                                              ELSIF ET = Types.TTSIZE THEN
+                                                                IF NOT Types.TTSIZE^.Compatible( DOM.cmOperation, T ) AND
+                                                                      ( T^.OccupiedMemory() < SIZE( CARD64 )) THEN
+                                                                  Warning( wrn._UnsafeSizeCast );
+                                                                END;
                                                               END;
                                                               ET := ET^.UnwrapToBaseType(); 
                                                               IF ( ET^.TypeKind = DOM.tkClass ) AND ( DOM.imCOM IN DOM.TPClass( ET )^.IM ) THEN
@@ -5209,7 +5219,7 @@ ntEmbeddedLeakALLOCATE<VAR D : DOM.TPDesignator>           (. E : DOM.TPExpressi
       ntExpression<E>                                      (. D^.r.U1 := E;
                                                               c^.ExpectType( Types.TADDRESS, E^.T, -1 ); .)
       comma ntExpression<E>                                (. D^.r.U2 := E;
-                                                              c^.ExpectType( Types.TSIZE, E^.T, -1 ); .)
+                                                              c^.ExpectType( Types.TTSIZE, E^.T, -1 ); .)
     rpar
 .
 
@@ -5221,7 +5231,7 @@ ntEmbeddedLeakREALLOCATE<VAR D : DOM.TPDesignator>         (. E : DOM.TPExpressi
       comma ntExpression<E>                                (. D^.r.U2 := E;
                                                               c^.ExpectType( Types.TADDRESS, E^.T, -1 ); .)
       comma ntExpression<E>                                (. D^.r.D1 := E;
-                                                              c^.ExpectType( Types.TSIZE, E^.T, -1 ); .)
+                                                              c^.ExpectType( Types.TTSIZE, E^.T, -1 ); .)
     rpar
 .
 
@@ -5637,6 +5647,7 @@ ntFloatAndProcBaseType<VAR IdType : DOM.TPType>
   | "REAL"                                                 (. IdType := Types.TREAL; .)
   | "LONGREAL"                                             (. IdType := Types.TLONGREAL; .)
   | "PROC"                                                 (. IdType := Types.TPROC; .)
+  | "TSIZE"                                                (. IdType := Types.TTSIZE; .)
 .
 
 ntNonOrdinalBaseType<VAR IdType : DOM.TPType>

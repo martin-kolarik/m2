@@ -79,7 +79,9 @@
     <None Include="Source\Project.def" />
     <None Include="Source\Scanner.def" />
     <None Include="Source\Types.def" />
-    <None Include="Source\err.xrs" />
+    <None Include="Source\err.xrs">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Source\wrn.xrs" />
     <None Include="Test\accessingstructuredconsts.mod" />
     <None Include="Test\accessingstructuredconsts2.mod" />

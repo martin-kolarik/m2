@@ -71,8 +71,10 @@ typedef double                 LONGREAL;
 
 # ifdef _WIN64
 typedef __w64 CARD64           PTR;
+typedef __w64 CARD64           TSIZE;
 # else
 typedef __w64 CARD32           PTR;
+typedef __w64 CARD32           TSIZE;
 # endif
 
 typedef char                   ORD8;
@@ -102,8 +104,10 @@ typedef CARD64                 LONGSET;
 
 # define DECFO_(t,a,b)         ((t)((ORDINAL)(a) - (ORDINAL)(b)))
 # define DECFA_(t,a,b)         ((t)((PTR)(a) - (PTR)(b)))
+# define DECFS_(t,a,b)         ((t)((TSIZE)(a) - (TSIZE)(b)))
 # define INCFO_(t,a,b)         ((t)((ORDINAL)(a) + (ORDINAL)(b)))
 # define INCFA_(t,a,b)         ((t)((PTR)(a) + (PTR)(b)))
+# define INCFS_(t,a,b)         ((t)((TSIZE)(a) + (TSIZE)(b)))
 
 # ifdef _WIN64
 __forceinline bool __fastcall DEBUGGED_() throw() {

@@ -25,8 +25,8 @@ TYPE
 # save, call( convention => stdcall ) *)
 CLASS CMalloc( com.CIUnknown ) IMPLEMENTS objidl.IMalloc;
    LOCAL VAR
-      Commit : CARDINAL;
-      Limit : CARDINAL;
+      Commit : TSIZE;
+      Limit : TSIZE;
 
    // IUnknown
    PUBLIC VIRTUAL PROCEDURE QueryInterface( CONST riid : guiddef.IID; ppvObject : PADDRESS ) : wtypes.HRESULT;
