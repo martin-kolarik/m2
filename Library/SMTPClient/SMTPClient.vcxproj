@@ -35,8 +35,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Makefile</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <OutDir>^$(Configuration).$(Platform)\</OutDir>
-    <IntDir>^Build.$(Configuration).$(Platform)\</IntDir>
+    <OutDir>!$(Configuration).$(Platform)\</OutDir>
+    <IntDir>!Build.$(Configuration).$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Makefile</ConfigurationType>

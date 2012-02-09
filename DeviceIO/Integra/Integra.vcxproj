@@ -33,8 +33,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">^$(Configuration).x86\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">^Build.$(Configuration).x86\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">!$(Configuration).x86\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">!Build.$(Configuration).x86\</IntDir>
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=x86 /p:ProductVariant=IBS</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=x86</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=x86</NMakeCleanCommandLine>
@@ -44,8 +44,8 @@
     <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
     <NMakeAssemblySearchPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeAssemblySearchPath)</NMakeAssemblySearchPath>
     <NMakeForcedUsingAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeForcedUsingAssemblies)</NMakeForcedUsingAssemblies>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">^$(Configuration).x86\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">^Build.$(Configuration).x86\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">!$(Configuration).x86\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">!Build.$(Configuration).x86\</IntDir>
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />

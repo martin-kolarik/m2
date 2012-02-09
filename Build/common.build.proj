@@ -12,8 +12,8 @@
         <ResourceFile Condition="!Exists('$(ResourceFile)')"></ResourceFile>
         <SetupDir>Install</SetupDir>
 
-        <OutputDirName>#$(Configuration).$(Platform)</OutputDirName>
-        <IntermediateDirName>#Build.$(Configuration).$(Platform)</IntermediateDirName>
+        <OutputDirName>!$(Configuration).$(Platform)</OutputDirName>
+        <IntermediateDirName>!Build.$(Configuration).$(Platform)</IntermediateDirName>
         <HeaderDirName>$(IntermediateDirName)</HeaderDirName>
 
         <OutputDir>$(OutputDirName)</OutputDir>
