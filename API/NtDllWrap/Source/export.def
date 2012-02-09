@@ -1,0 +1,4 @@
+EXPORTS
+    _fltused = ntdll._fltused
+    _chkstk  = ntdll._chkstk
+    pow      = ntdll.pow
