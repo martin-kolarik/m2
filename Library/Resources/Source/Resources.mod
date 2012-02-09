@@ -23,12 +23,13 @@ CONST
 CONST
   fallback = L'?unknown text';
 
+#save, option( pack => 8 )
 TYPE
   TText         = RECORD
-                    Length : CARDINAL;
+                    Length : CARD32;
                     CASE : CARDINAL OF
                     | 0 : Text   : PWCHAR;
-                    | 1 : Offset : CARDINAL;
+                    | 1 : Offset : CARD64;
                     END; // CASE
                   END;
   TPTexts       = POINTER TO ARRAY [0..0] OF TText;
@@ -37,26 +38,27 @@ TYPE
                     LangWithoutSublang : Languages.TLanguage;
                     CASE : CARDINAL OF
                     | 0 : Texts  : TPTexts;
-                    | 1 : Offset : CARDINAL;
+                    | 1 : Offset : CARD64;
                     END;
                   END;
   TPSlots       = POINTER TO ARRAY [0..0] OF TLanguageSlot;
   TResourceData = RECORD
-                    BinMagic        : CARDINAL;
-                    BinLength       : CARDINAL; // over all block
-                    BinVersion      : CARDINAL;
+                    BinMagic        : CARD32;
+                    BinLength       : CARD64; // over all block
+                    BinVersion      : CARD32;
                     DataVersion     : ARRAY [0..31] OF WCHAR;
-                    DefaultLanguage : CARDINAL;
-                    SlotCount       : CARDINAL;
-                    TextCount       : CARDINAL;
+                    DefaultLanguage : CARD32;
+                    SlotCount       : CARD32;
+                    TextCount       : CARD32;
                     CASE : CARDINAL OF
                     | 0 : Slots   : TPSlots;
                           Strings : PWCHAR;
-                    | 1 : OffsetL : CARDINAL;
-                          OffsetS : CARDINAL;
+                    | 1 : OffsetL : CARD64;
+                          OffsetS : CARD64;
                     END; // CASE
                   END;
   TResource     = POINTER TO TResourceData;
+#restore
 
 //---------------------------------------------------------------------------
 
@@ -542,7 +544,8 @@ CLASS IMPLEMENTATION CResources;
   INTERNAL PROCEDURE ResToStub(); 
   VAR
     _CurrentLang : Languages.TLanguage;
-    i, j, l : INTEGER;
+    i, j : INTEGER;
+    l : TSIZE;
   BEGIN
     l := SIZE( TResourceData ) + _Resource^.SlotCount * ( SIZE( TLanguageSlot ) + _Resource^.TextCount * SIZE( TText ));
     REALLOCATE( REF _Stub, l );
@@ -607,8 +610,8 @@ CLASS IMPLEMENTATION CPlainResources;
     _DefaultLanguage : Languages.TLanguage := 0;
     _Langs : lists.CIntegerList;
     _Pool : ADDRESS := NIL;
-    _PoolAllocated : CARDINAL := 0;
-    _PoolBytes : CARDINAL := 0;
+    _PoolAllocated : CARD64 := 0;
+    _PoolBytes : CARD64 := 0;
     _TextsAllocated : CARDINAL := 0;
     _Version : com.BSTR := NIL;
 
@@ -641,7 +644,7 @@ CLASS IMPLEMENTATION CPlainResources;
 
     PROCEDURE AddStringItem( Lang : Languages.TLanguage; CONST String : ARRAY OF WCHAR );
     VAR
-      L : CARDINAL;
+      L : TSIZE;
       Texts : TPTexts;
     BEGIN
       IF NOT _Langs.Get( Lang, OUT Texts ) THEN
@@ -652,8 +655,8 @@ CLASS IMPLEMENTATION CPlainResources;
       END;
 
       // store String itself
-      L := LENGTH( String ) + 1;
-      IF _PoolBytes + L << 1 > _PoolAllocated THEN
+      L := TSIZE( LENGTH( String ) + 1 );
+      IF _PoolBytes + CARD64( L ) << 1 > _PoolAllocated THEN
         _PoolAllocated := ( _PoolBytes + L << 1 + 4095 ) DIV 4096 * 4096;
         REALLOCATE( REF _Pool, _PoolAllocated << 1 );
       END;
@@ -671,7 +674,8 @@ CLASS IMPLEMENTATION CPlainResources;
     PROCEDURE CreateResource();
     VAR
       at : ADDRESS;
-      al, c, cl, l : CARDINAL;
+      al : CARD64;
+      c, cl, l : CARDINAL;
       diff : PTR;
       i, j : INTEGER;
       lang : Languages.TLanguage;
@@ -974,7 +978,7 @@ CLASS IMPLEMENTATION CResourcesCreator;
     f : FIO.File;
   BEGIN
     f := FIO.CreateW( Path, FIO.TFileShare{} );
-    FIO.WrBin( f, _Resource^, _Resource^.BinLength );
+    FIO.WrBin( f, _Resource^, CARD32( _Resource^.BinLength )); // TODO
     FIO.Close( f );
   END SaveBIN;
 
