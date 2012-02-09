@@ -151,6 +151,7 @@
         <SDKInclude>$(SDKPath)\Include</SDKInclude>
         <SDKLib>$(SDKPath)\Lib</SDKLib>
         <SDKBin>$(SDKPath)\Bin</SDKBin>
+        <SDKCommonBin>$(SDKPath)\Bin</SDKCommonBin>
         <CompilerInclude>$(CompilerPath)\Include</CompilerInclude>
         <CompilerLib>$(CompilerPath)\Lib</CompilerLib>
         <CompilerBin>$(CompilerPath)\Bin</CompilerBin>
@@ -159,6 +160,7 @@
         <SDKInclude>$(SDKPath)\Include</SDKInclude>
         <SDKLib>$(SDKPath)\Lib\x64</SDKLib>
         <SDKBin>$(SDKPath)\Bin\x64</SDKBin>
+        <SDKCommonBin>$(SDKPath)\Bin</SDKCommonBin>
         <CompilerInclude>$(CompilerPath)\Include</CompilerInclude>
         <CompilerLib>$(CompilerPath)\Lib\amd64</CompilerLib>
         <CompilerBin>$(CompilerPath)\Bin\amd64</CompilerBin>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -173,13 +173,15 @@
     <ClCompile Include="Source\math.c" />
     <ClCompile Include="Source\memory.c" />
     <ClCompile Include="Source\purecall.c" />
-    <ClCompile Include="Source\stackprobe.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\atexit.h" />
     <ClInclude Include="Source\cdtor.h" />
     <ClInclude Include="Source\initterm.h" />
     <ClInclude Include="Source\math.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CCSuppFunc.proj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

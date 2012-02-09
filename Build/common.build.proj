@@ -122,7 +122,7 @@
         <RESFile Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='')"
                  Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
 
-        <SelfInterface Condition="$(Result)!='Program' And (@(ExportToInterface)!='' Or @(MODFiles)!='')" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
+        <SelfInterface Condition="$(Result)!='Program' And (@(ExportToInterface)!='' Or @(MODFiles)!='' Or $(LIBEXPORT)!='')" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
         <!-- SelfInterface/Interface: Interface could be extended by project to export some interfaces, e.g. Ws32, msxml, etc. -->
         <Interface Include="@(SelfInterface)"/>
 
@@ -334,19 +334,19 @@
     </Target>
 
     <Target Name="ComponentCode"
-            Condition="@(ExportToInterface)!='' Or @(Objects)!=''"
+            Condition="@(ExportToInterface)!='' Or @(Objects)!='' Or $(LIBEXPORT)!=''"
             DependsOnTargets="Resources;$(UserPostRES);Objects;$(UserPostOBJ)"
-            Inputs="@(Objects);@(ExportToInterfaceObjects);@(RESFile);@(LinkDependencyLibraries)"
+            Inputs="@(Objects);@(ExportToInterfaceObjects);@(RESFile);@(LinkDependencyLibraries);$(LIBEXPORT)"
             Outputs="$(OutputFile)">
         <Exec Condition="$(Result)=='Dynamic'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) /dll $(LINKDEF) $(LINKEXPORT) @(ExportToInterfaceObjects, ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) /dll $(LINKDEF) $(LIBEXPORT) @(ExportToInterfaceObjects, ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Condition="$(Result)=='Static'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LIB) $(LIBDEF) @(Objects -> '%(Filename).obj', ' ')"/>
+              Command="$(LIB) $(LIBDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ')"/>
         <Exec Condition="$(Result)=='Program'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) $(LINKDEF) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) $(LINKDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Condition="$(Result)=='Program' Or ($(Result)=='Dynamic' And $(CLib)=='Dynamic')"
               Command="$(MT)"/>
     </Target>
@@ -376,7 +376,7 @@
                        )"
             DependsOnTargets="ComponentCode">
         <Exec Condition="$(Result)=='Program' Or $(Result)=='Dynamic'"
-              Command="&quot;$(SDKBin)\signtool&quot; sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"
+              Command="&quot;$(SDKCommonBin)\signtool&quot; sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"
               ContinueOnError="true"/>
     </Target>
 

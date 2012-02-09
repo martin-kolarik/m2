@@ -4,7 +4,7 @@
     <PropertyGroup>
         <ComponentDir></ComponentDir>
         <ComponentPath>$(MSBuildProjectDirectory)</ComponentPath>
-        <ComponentType Condition="$(ComponentType)==''">Generic</ComponentType>
+        <ComponentType Condition="$(ComponentType)==''">Generic</ComponentType><!-- Generic Library External Product Bundle -->
 
         <!-- RootDir>$(ComponentDir)\..\..</RootDir -->
         <RootDir Condition="$(RootDir)==''">..\..</RootDir>

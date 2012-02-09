@@ -46,6 +46,8 @@
         <LINKCTRL Condition="$(ResultSubsystem)=='Console'">$(LINKCTRL) /SUBSYSTEM:CONSOLE</LINKCTRL>
         <LINKCTRL Condition="$(ResultSubsystem)=='GUI'">$(LINKCTRL) /SUBSYSTEM:WINDOWS</LINKCTRL>
         <LINKCTRL Condition="$(CLib)=='Private'">$(LINKCTRL) /SAFESEH:NO</LINKCTRL>
+        <LINKCTRL>$(LINKCTRL) /MACHINE:$(Platform)</LINKCTRL>
+        <LIBDEF>/MACHINE:$(Platform)</LIBDEF>
     </PropertyGroup>
 
     <!-- Manifests: CRT and UAC -->
@@ -63,11 +65,10 @@
     <PropertyGroup Condition ="$(Configuration)=='Release'">
         <RCCTRL>-DRELEASE</RCCTRL>
         <LINKCTRL>$(LINKCTRL) /RELEASE /LTCG</LINKCTRL>
-        <LIBDEF>/LTCG</LIBDEF>
+        <LIBDEF>$(LIBDEF) /LTCG</LIBDEF>
     </PropertyGroup>
     <PropertyGroup Condition ="$(Configuration)!='Release'">
         <RCCTRL></RCCTRL>
-        <LIBDEF></LIBDEF>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(Debug)=='on'">
@@ -109,8 +110,7 @@
     <!-- OUTPUT -->
     <PropertyGroup>
         <BUILDOUTPUT>/out:..\$(OutputFile)</BUILDOUTPUT>
-        <LINKEXPORT Condition="$(Export)!=''">/def:..\$(SourceDir)\$(Export).def</LINKEXPORT>
-        <LINKEXPORTTOINTERFACE>/def:..\$(SourceDir)\$(ExportToInterfaceFile)</LINKEXPORTTOINTERFACE>
+        <LIBEXPORT Condition="$(Export)!=''">/def:..\$(SourceDir)\$(Export).def</LIBEXPORT>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(ProductLinkMapFilePath)==''">

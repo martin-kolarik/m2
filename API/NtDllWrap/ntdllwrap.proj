@@ -16,7 +16,13 @@
         <Export>export</Export>
     </PropertyGroup>
 
-    <!-- 4 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <!-- 4 INCLUDE COMPILATION CODE ITSELF -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+    <!-- DEFINE API -->
+    <ItemGroup>
+        <Interface Condition="$(Platform)=='x86'" Include="$(ComponentPath)\Library\ntdll32"/>
+        <!-- Interface Condition="$(Platform)=='x64'" Include="$(ComponentPath)\Library\ntdll64"/--><!-- NtDll64 is not used as all symbols are covered with ntdllwrap.lib. The library itself is left in source, what if it was useful. -->
+    </ItemGroup>
 
 </Project>

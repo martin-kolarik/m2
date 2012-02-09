@@ -66,6 +66,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Event", "..\..\Library\Even
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CCSuppFunc", "..\..\API\CCSuppFunc\CCSuppFunc.vcxproj", "{70BDC764-6FA8-4CA8-B728-C0C999747851}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SCCore", "..\..\Component\sccore\SCCore.vcxproj", "{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -538,6 +540,18 @@ Global
 		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|Win32.ActiveCfg = Release|x64
 		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|x64.ActiveCfg = Release|x64
 		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|x64.Build.0 = Release|x64
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Debug|Win32.Build.0 = Debug|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Debug|x64.ActiveCfg = Debug|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|Any CPU.ActiveCfg = Release|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|Win32.ActiveCfg = Release|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|Win32.Build.0 = Release|Win32
+		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

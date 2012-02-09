@@ -36,9 +36,6 @@
     <ClCompile Include="Source\purecall.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\stackprobe.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\atexit.h">
@@ -53,5 +50,8 @@
     <ClInclude Include="Source\math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CCSuppFunc.proj" />
   </ItemGroup>
 </Project>
