@@ -53,16 +53,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~$(Configuration)\</OutDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">~$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build.$(Configuration)\</IntDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">~Build.$(Configuration)\</IntDir>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(Configuration)</NMakeBuildCommandLine>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(Configuration)</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(Configuration)</NMakeReBuildCommandLine>
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(Configuration)</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(Configuration)</NMakeCleanCommandLine>
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(Configuration)</NMakeCleanCommandLine>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">^$(Configuration).x86\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">^$(Configuration).$(Platform)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">^Build.$(Configuration).x86\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">^Build.$(Configuration).$(Platform)\</IntDir>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=x86</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=x86</NMakeReBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=x86</NMakeCleanCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeCleanCommandLine>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">busmon.exe</NMakeOutput>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">busmon.exe</NMakeOutput>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
@@ -75,16 +75,16 @@
     <NMakeAssemblySearchPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(NMakeAssemblySearchPath)</NMakeAssemblySearchPath>
     <NMakeForcedUsingAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeForcedUsingAssemblies)</NMakeForcedUsingAssemblies>
     <NMakeForcedUsingAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(NMakeForcedUsingAssemblies)</NMakeForcedUsingAssemblies>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">~$(Configuration)\</OutDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">~$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">~Build.$(Configuration)\</IntDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">~Build.$(Configuration)\</IntDir>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(Configuration)</NMakeBuildCommandLine>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(Configuration)</NMakeBuildCommandLine>
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(Configuration)</NMakeReBuildCommandLine>
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(Configuration)</NMakeReBuildCommandLine>
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(Configuration)</NMakeCleanCommandLine>
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(Configuration)</NMakeCleanCommandLine>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">^$(Configuration).x86\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">^$(Configuration).$(Platform)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">^Build.$(Configuration).x86\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">^Build.$(Configuration).$(Platform)\</IntDir>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=x86</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=x86</NMakeReBuildCommandLine>
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=x86</NMakeCleanCommandLine>
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeCleanCommandLine>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">busmon.exe</NMakeOutput>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">busmon.exe</NMakeOutput>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
