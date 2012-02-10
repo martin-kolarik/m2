@@ -159,7 +159,7 @@ CLASS IMPLEMENTATION CPtrArray;
 
   PRIVATE PROCEDURE Init();
   BEGIN
-    SUPER.Init( array.astrgSparseArray, SIZE( INTEGER ));
+    SUPER.Init( array.astrgSparseArray, SIZE( PTR ));
   END Init;
 
 (*-----------------------------------------------------------------------------*)
