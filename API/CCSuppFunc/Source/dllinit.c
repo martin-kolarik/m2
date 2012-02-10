@@ -29,17 +29,17 @@ int __stdcall _DllMainCRTStartup( void* hInst, unsigned long reason, void* imp )
     hInst;
     imp;
 
-	if( reason == DLL_PROCESS_ATTACH )
-	{
+    if( reason == DLL_PROCESS_ATTACH )
+    {
         __initcrtl();
-	}
+    }
 
-	ret = (int)DllMain( reason );
+    ret = (int)DllMain( reason );
 
-	if( reason == DLL_PROCESS_DETACH )
-	{
+    if( reason == DLL_PROCESS_DETACH )
+    {
         __donecrtl();
-	}
+    }
 
-	return ret;
+    return ret;
 }
