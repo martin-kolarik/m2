@@ -68,7 +68,6 @@ LANGUAGE $(LangName), $(SubLangName)
     <PropertyGroup>
         <RCFile>$(IntermediateDir)\$(MSBuildProjectName).generated.rc</RCFile>
         <RCFileDependency>$(ResourceFile);$(TLBFile);@(GrabbedMessages);@(MessagesBin)</RCFileDependency>
-        <RCFileDependency Condition="!Exists('$(RCFile)')">$(RCFile);$(RCFileDependency)</RCFileDependency>
     </PropertyGroup>
 
     <Target Name="AppendSpecificRC">
@@ -79,6 +78,12 @@ LANGUAGE $(LangName), $(SubLangName)
         <WriteLinesToEncodedFile File="$(RCFile)" Lines="@(SourceLines)" Encoding="$(OriginalCodePageDec)"/>
     </Target>
 
+    <Target Name="CreateRCFileInput">
+        <CreateProperty Condition="!Exists('$(RCFile)')" Value="$(RCFile);$(RCFileDependency)">
+            <Output TaskParameter="Value" PropertyName="RCFileDependency"/>
+        </CreateProperty>
+    </Target>
+    
     <Target Name="CreateRCFile"
             Condition="@(RESFile)!=''"
             Inputs="$(RCFileDependency)"

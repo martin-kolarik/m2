@@ -314,7 +314,7 @@
                           Overwrite="true"/>
     </Target>
 
-    <Target Name="Resources" DependsOnTargets="MessagesBin;CheckRevision;BuildResources" />
+    <Target Name="Resources" DependsOnTargets="MessagesBin;CheckRevision;CreateRCFileInput;BuildResources" />
 
 
     <Target Name="ComponentInterface"
