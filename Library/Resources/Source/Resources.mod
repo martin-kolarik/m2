@@ -52,9 +52,11 @@ TYPE
                     TextCount       : CARD32;
                     CASE : CARDINAL OF
                     | 0 : Slots   : TPSlots;
-                          Strings : PWCHAR;
                     | 1 : OffsetL : CARD64;
-                          OffsetS : CARD64;
+                    END; // CASE
+                    CASE : CARDINAL OF
+                    | 0 : Strings : PWCHAR;
+                    | 1 : OffsetS : CARD64;
                     END; // CASE
                   END;
   TResource     = POINTER TO TResourceData;
@@ -633,7 +635,7 @@ CLASS IMPLEMENTATION CPlainResources;
         _Langs.Reset();
         WHILE _Langs.MoveNext() DO
           REALLOCATE( REF _Langs.CurrentData, L * SIZE( TText ));
-          Storage.Fill( INC( _Langs.CurrentData, _TextsAllocated * SIZE( TText )), ( L - _TextsAllocated ) * SIZE( TText ), 0 );
+          Storage.Zero( INC( _Langs.CurrentData, _TextsAllocated * SIZE( TText )), ( L - _TextsAllocated ) * SIZE( TText ));
         END; // END
         _TextsAllocated := L;
       END;
@@ -650,7 +652,7 @@ CLASS IMPLEMENTATION CPlainResources;
       IF NOT _Langs.Get( Lang, OUT Texts ) THEN
         L := _TextsAllocated * SIZE( TText );
         ALLOCATE( OUT Texts, L );
-        Storage.Fill( Texts, L, 0 );
+        Storage.Zero( Texts, L );
         _Langs.Add( Lang, Texts );
       END;
 
@@ -696,6 +698,7 @@ CLASS IMPLEMENTATION CPlainResources;
       ALLOCATE( OUT _Resource, al );
 
       // main record
+      Storage.Zero( _Resource, SIZE( _Resource^ ));
       WITH _Resource^ DO
         BinMagic := binMagic;
         BinLength := al;
@@ -716,6 +719,7 @@ CLASS IMPLEMENTATION CPlainResources;
       _Langs.Reset();
       WHILE _Langs.MoveNext() DO WITH _Resource^ DO
         // slot
+        Slots^[i].Offset := 0; // clear the memory
         Slots^[i].Texts := at;
         Slots^[i].LangBySource := _Langs.Current;
         Slots^[i].LangWithoutSublang := _Langs.Current;
