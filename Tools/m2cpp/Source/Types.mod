@@ -207,6 +207,8 @@ CLASS IMPLEMENTATION COrdinalNumber;
       RETURN TRUE;
     ELSIF PWith = TPTR THEN
       RETURN TRUE;
+    ELSIF PWith = TTSIZE THEN
+      RETURN TRUE;
     ELSIF PWith^.TypeKind <> DOM.tkPrimitive THEN
       RETURN FALSE;
     END;
@@ -604,7 +606,7 @@ CLASS IMPLEMENTATION CPTR;
     PWith := PWith^.Unwrap();
     IF ( CM = DOM.cmExact ) AND ( PWith <> TPTR ) THEN
       RETURN FALSE;
-    ELSIF ( PWith = TPTR ) OR ( PWith = TOrdinalNumber ) THEN
+    ELSIF ( PWith = TPTR ) OR ( PWith = TOrdinalNumber ) OR ( PWith = TTSIZE ) THEN
       RETURN TRUE;
     ELSIF TADDRESS^.Compatible( CM, PWith ) THEN
       RETURN TRUE;
@@ -633,7 +635,9 @@ CLASS IMPLEMENTATION CSIZE;
     PT : DOM.TPrimitiveType;
   BEGIN
     PWith := PWith^.Unwrap();
-    IF ( PWith = TSIZE ) OR ( PWith = TOrdinalNumber ) THEN
+    IF ( CM = DOM.cmExact ) AND ( PWith <> TTSIZE ) THEN
+      RETURN FALSE;
+    ELSIF ( PWith = TTSIZE ) OR ( PWith = TOrdinalNumber ) OR ( PWith = TPTR ) THEN
       RETURN TRUE;
     ELSE
       PT := PWith^.PrimitiveType;
@@ -648,7 +652,7 @@ CLASS IMPLEMENTATION CSIZE;
 BEGIN
   TypeKind := DOM.tkPrimitive;
   PrimitiveType := DOM.ptSIZE;
-  N.FromOA( L'size_t' );
+  N.FromOA( L'TSIZE' );
 END CSIZE;
 
 //============================================================
@@ -809,9 +813,9 @@ BEGIN
        TREFADDRESS^.T := TADDRESS;
        TREFADDRESS^.TypeModifier := DOM.tmREF;
   NEW( TPPTR( TPTR ));
-  NEW( TPSIZE( TSIZE )); 
+  NEW( TPSIZE( TTSIZE )); 
   NEW( TFormalSIZE );
-    TFormalSIZE^.T := TSIZE;
+    TFormalSIZE^.T := TTSIZE;
 
   NEW( TREAL );     TREAL^.        Init3( L'REAL',        DOM.tkPrimitive,     DOM.ptREAL );
   NEW( TLONGREAL ); TLONGREAL^.    Init3( L'LONGREAL',    DOM.tkPrimitive,     DOM.ptLONGREAL );
@@ -894,8 +898,8 @@ BEGIN
        TpADDRESS^.T := TADDRESS;
   NEW( TpPTR );       TpPTR^.      Init3( L'PPTR',       DOM.tkReference, DOM.ptUnknown );
        TpPTR^.T := TPTR;
-  NEW( TpSIZE );       TpSIZE^.    Init3( L'PSIZE',      DOM.tkReference, DOM.ptUnknown );
-       TpSIZE^.T := TSIZE;
+  NEW( TpTSIZE );     TpTSIZE^.    Init3( L'PTSIZE',     DOM.tkReference, DOM.ptUnknown );
+       TpTSIZE^.T := TTSIZE;
 
   NEW( TpREAL );      TpREAL^.     Init3( L'PREAL',      DOM.tkReference, DOM.ptUnknown );
        TpREAL^.T := TREAL;

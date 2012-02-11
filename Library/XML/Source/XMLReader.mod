@@ -10,12 +10,12 @@ IMPORT
    guiddef,
    com,
    objidl,
-	Strings,
-	Sync,
-	windows,
-	winerror,
-	wtypes,
-	xmlLITE;
+   Strings,
+   Sync,
+   windows,
+   winerror,
+   wtypes,
+   xmlLITE;
 
 (*===========================================================================*)
 
@@ -25,8 +25,8 @@ TYPE
 # save, call( convention => stdcall ) *)
 CLASS CMalloc( com.CIUnknown ) IMPLEMENTS objidl.IMalloc;
    LOCAL VAR
-      Commit : CARDINAL;
-      Limit : CARDINAL;
+      Commit : TSIZE;
+      Limit : TSIZE;
 
    // IUnknown
    PUBLIC VIRTUAL PROCEDURE QueryInterface( CONST riid : guiddef.IID; ppvObject : PADDRESS ) : wtypes.HRESULT;
@@ -34,10 +34,10 @@ CLASS CMalloc( com.CIUnknown ) IMPLEMENTS objidl.IMalloc;
    PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
 
    // IMalloc
-   PUBLIC VIRTUAL PROCEDURE Alloc( cb : windows.ULONG ): windows.PVOID;
-   PUBLIC VIRTUAL PROCEDURE Realloc( pv : windows.PVOID; cb : windows.ULONG ): windows.PVOID;
+   PUBLIC VIRTUAL PROCEDURE Alloc( cb : windows.ULONG_PTR ): windows.PVOID;
+   PUBLIC VIRTUAL PROCEDURE Realloc( pv : windows.PVOID; cb : windows.ULONG_PTR ): windows.PVOID;
    PUBLIC VIRTUAL PROCEDURE Free( pv : windows.PVOID );
-   PUBLIC VIRTUAL PROCEDURE GetSize( pv : windows.PVOID ) : windows.ULONG;
+   PUBLIC VIRTUAL PROCEDURE GetSize( pv : windows.PVOID ) : windows.ULONG_PTR;
    PUBLIC VIRTUAL PROCEDURE DidAlloc( pv : windows.PVOID ) : windows.INT;
    PUBLIC VIRTUAL PROCEDURE HeapMinimize();
 
@@ -55,7 +55,7 @@ CLASS IMPLEMENTATION CMalloc;
       IF ppvObject = NIL THEN
          RETURN winerror.E_INVALIDARG;
       ELSIF riid = IID THEN
-			AddRef();
+         AddRef();
          ppvObject^ := ADR( SELF.IMalloc );
          RETURN winerror.S_OK;
       ELSE
@@ -79,7 +79,7 @@ CLASS IMPLEMENTATION CMalloc;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Alloc( cb : windows.ULONG ): windows.PVOID;
+   PUBLIC VIRTUAL PROCEDURE Alloc( cb : windows.ULONG_PTR ): windows.PVOID;
    VAR
       a : ADDRESS;
    BEGIN
@@ -94,7 +94,7 @@ CLASS IMPLEMENTATION CMalloc;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Realloc( pv : windows.PVOID; cb : windows.ULONG ): windows.PVOID;
+   PUBLIC VIRTUAL PROCEDURE Realloc( pv : windows.PVOID; cb : windows.ULONG_PTR ): windows.PVOID;
    BEGIN
       REALLOCATE( REF pv, cb );
       RETURN pv;
@@ -109,7 +109,7 @@ CLASS IMPLEMENTATION CMalloc;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetSize( pv : windows.PVOID ) : windows.ULONG;
+   PUBLIC VIRTUAL PROCEDURE GetSize( pv : windows.PVOID ) : windows.ULONG_PTR;
    BEGIN
       RETURN 0;
    END GetSize;
@@ -169,7 +169,7 @@ CLASS IMPLEMENTATION CStream;
       IF ppvObject = NIL THEN
          RETURN winerror.E_INVALIDARG;
       ELSIF riid = IID THEN
-			AddRef();
+         AddRef();
          ppvObject^ := ADR( SELF.ISequentialStream );
          RETURN winerror.S_OK;
       ELSE
@@ -249,31 +249,31 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY Stream GET : IOO.TPStream;
-	BEGIN
-		RETURN _Stream;
-	END Stream;
+   PUBLIC PROPERTY Stream GET : IOO.TPStream;
+   BEGIN
+      RETURN _Stream;
+   END Stream;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY Stream SET( Value : IOO.TPStream );
-	BEGIN
-		_Stream := Value;
-		Reset();
-	END Stream;
+   PUBLIC PROPERTY Stream SET( Value : IOO.TPStream );
+   BEGIN
+      _Stream := Value;
+      Reset();
+   END Stream;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY EOF GET : BOOLEAN;
+   PUBLIC PROPERTY EOF GET : BOOLEAN;
    BEGIN
       RETURN ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True );
    END EOF;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY CurrentType GET : TNodeType;
-	VAR
-	   nt : xmlLITE.XmlNodeType;
+   PUBLIC PROPERTY CurrentType GET : TNodeType;
+   VAR
+      nt : xmlLITE.XmlNodeType;
    BEGIN
       IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
          RETURN xntUnknown;
@@ -309,7 +309,7 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY CurrentEmpty GET : BOOLEAN;
+   PUBLIC PROPERTY CurrentEmpty GET : BOOLEAN;
    BEGIN
       IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
          RETURN FALSE;
@@ -319,22 +319,22 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY CurrentLine GET : CARDINAL;
-	BEGIN
-	   IF _IReader = NIL THEN
-	      RETURN 0;
-	   ELSE
+   PUBLIC PROPERTY CurrentLine GET : CARDINAL;
+   BEGIN
+      IF _IReader = NIL THEN
+         RETURN 0;
+      ELSE
          RETURN xmlLITE.TPIXmlReader( _IReader )^.GetLineNumber();
       END;
-	END CurrentLine;
+   END CurrentLine;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY CurrentName GET : StringsO.CString;	
-	VAR
-	   l : windows.UINT;
-	   pch : windows.PCWSTR;
-	   s : StringsO.CString;
+   PUBLIC PROPERTY CurrentName GET : StringsO.CString;	
+   VAR
+      l : windows.UINT;
+      pch : windows.PCWSTR;
+      s : StringsO.CString;
    BEGIN
       IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
          RETURN s;
@@ -347,11 +347,11 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY CurrentNamespace GET : StringsO.CString;	
-	VAR
-	   l : windows.UINT;
-	   pch : windows.PCWSTR;
-	   s : StringsO.CString;
+   PUBLIC PROPERTY CurrentNamespace GET : StringsO.CString;	
+   VAR
+      l : windows.UINT;
+      pch : windows.PCWSTR;
+      s : StringsO.CString;
    BEGIN
       IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
          RETURN s;
@@ -364,11 +364,11 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY CurrentPrefix GET : StringsO.CString;	
-	VAR
-	   l : windows.UINT;
-	   pch : windows.PCWSTR;
-	   s : StringsO.CString;
+   PUBLIC PROPERTY CurrentPrefix GET : StringsO.CString;	
+   VAR
+      l : windows.UINT;
+      pch : windows.PCWSTR;
+      s : StringsO.CString;
    BEGIN
       IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
          RETURN s;
@@ -381,11 +381,11 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY CurrentQualifiedName GET : StringsO.CString;	
-	VAR
-	   l : CARDINAL;
-	   pch : windows.PCWSTR;
-	   s : StringsO.CString;
+   PUBLIC PROPERTY CurrentQualifiedName GET : StringsO.CString;	
+   VAR
+      l : CARDINAL;
+      pch : windows.PCWSTR;
+      s : StringsO.CString;
    BEGIN
       IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
          RETURN s;
@@ -398,11 +398,11 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY CurrentValue GET : StringsO.CString;
-	VAR
-	   l : CARDINAL;
-	   pch : windows.PCWSTR;
-	   s : StringsO.CString;
+   PUBLIC PROPERTY CurrentValue GET : StringsO.CString;
+   VAR
+      l : CARDINAL;
+      pch : windows.PCWSTR;
+      s : StringsO.CString;
    BEGIN
       IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
          RETURN s;
@@ -412,7 +412,7 @@ CLASS IMPLEMENTATION CXMLReader;
       END;
       RETURN s;
    END CurrentValue;
-	   
+      
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY CurrentDepth GET : CARDINAL;
@@ -426,44 +426,44 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE Reset();
-	VAR
-	   loadSuccess : BOOLEAN;
-	   malloc : TPMalloc;
-	   stream : TPStream;
-	BEGIN
-	   IF _Stream <> NIL THEN
-	      _Stream^.Position := 0;
-	   END;
+   PUBLIC PROCEDURE Reset();
+   VAR
+      loadSuccess : BOOLEAN;
+      malloc : TPMalloc;
+      stream : TPStream;
+   BEGIN
+      IF _Stream <> NIL THEN
+         _Stream^.Position := 0;
+      END;
 
-	   IF _IMalloc = NIL THEN
-	      NEW( malloc );
+      IF _IMalloc = NIL THEN
+         NEW( malloc );
          _IMalloc := malloc;
-	   END;
-	   IF _IStream = NIL THEN
-	      NEW( stream );
+      END;
+      IF _IStream = NIL THEN
+         NEW( stream );
          _IStream := stream;
       ELSE
          stream := TPStream( _IStream );
-	   END;
-	   stream^.Stream := _Stream;
+      END;
+      stream^.Stream := _Stream;
 
-	   IF _IReader <> NIL THEN
-	      xmlLITE.TPIXmlReader( _IReader )^.Release();
-	      _IReader := NIL;
-	   END;
+      IF _IReader <> NIL THEN
+         xmlLITE.TPIXmlReader( _IReader )^.Release();
+         _IReader := NIL;
+      END;
 
-	   TRY // xmllite is delayed load
-	      IF xmlLITE.CreateXmlReader( xmlLITE.IID_IXmlReader, OUT _IReader, TPMalloc( _IMalloc )) = winerror.S_OK THEN
-	         xmlLITE.TPIXmlReader( _IReader )^.SetInput( ADR( stream^.CIUnknown ));
-	         xmlLITE.TPIXmlReader( _IReader )^.SetProperty( CARDINAL( xmlLITE.XmlReaderProperty_DtdProcessing ), PTR( xmlLITE.DtdProcessing_Parse ));
-	      ELSE
-	         _IReader := NIL;
-	      END;
-	   EXCEPT TRISTATE( 1 ) DO
-	      _IReader := NIL;
-	   END;
-	END Reset;
+      TRY // xmllite is delayed load
+         IF xmlLITE.CreateXmlReader( xmlLITE.IID_IXmlReader, OUT _IReader, TPMalloc( _IMalloc )) = winerror.S_OK THEN
+            xmlLITE.TPIXmlReader( _IReader )^.SetInput( ADR( stream^.CIUnknown ));
+            xmlLITE.TPIXmlReader( _IReader )^.SetProperty( CARDINAL( xmlLITE.XmlReaderProperty_DtdProcessing ), PTR( xmlLITE.DtdProcessing_Parse ));
+         ELSE
+            _IReader := NIL;
+         END;
+      EXCEPT TRISTATE( 1 ) DO
+         _IReader := NIL;
+      END;
+   END Reset;
 
 (*---------------------------------------------------------------------------*)
 
@@ -644,7 +644,7 @@ CLASS IMPLEMENTATION CXMLReader;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-	_Stream := NIL;
+   _Stream := NIL;
    _IMalloc := NIL;
    _IStream := NIL;
    _IReader := NIL;

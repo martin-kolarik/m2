@@ -83,7 +83,7 @@ TYPE
   PULARGE_INTEGER = POINTER TO ULARGE_INTEGER;
 
 // from BASETSD.H
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
   INT_PTR         = PTR;
   PINT_PTR        = POINTER TO INT_PTR;
   UINT_PTR        = PTR;
@@ -2297,7 +2297,7 @@ TYPE
   END;
   PMESSAGE_RESOURCE_DATA = POINTER TO MESSAGE_RESOURCE_DATA;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 TYPE
   CRITICAL_SECTION  = RECORD
                         LockCount   : CARDINAL; //* Nesting count on critical section */
@@ -3570,7 +3570,7 @@ PROCEDURE DisableThreadLibraryCalls(
     hLibModule : HMODULE
     ): BOOL;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 PROCEDURE GetProcAddress(
     hModule : HMODULE;
     lpProcName : PCWSTR
@@ -3748,14 +3748,14 @@ PROCEDURE HeapDestroy(
 PROCEDURE HeapAlloc(
     hHeap : HANDLE;
     dwFlags : DWORD;
-    dwBytes : DWORD
+    dwBytes : TSIZE
     ): PVOID;
 
 PROCEDURE HeapReAlloc(
     hHeap : HANDLE;
     dwFlags : DWORD;
     lpMem : PVOID;
-    dwBytes : DWORD
+    dwBytes : TSIZE
     ): PVOID;
 
 PROCEDURE HeapFree(
@@ -3768,7 +3768,7 @@ PROCEDURE HeapSize(
     hHeap : HANDLE;
     dwFlags : DWORD;
     lpMem : LPCVOID
-    ): DWORD;
+    ): TSIZE;
 
 PROCEDURE HeapValidate(
     hHeap : HANDLE;
@@ -5149,7 +5149,7 @@ CONST
 
 TYPE
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
   WIN32_FIND_DATAA = RECORD         // only due to prototypes compilation
     dwFileAttributes  : DWORD;
     ftCreationTime    : FILETIME;
@@ -5378,7 +5378,7 @@ PROCEDURE CreateProcessA(
     bInheritHandles : BOOL;
     dwCreationFlags : DWORD;
     lpEnvironment : PVOID;
-  #if PlatformName #startswith L"WinCE" #then
+  #if Platform #startswith L"WinCE" #then
     lpCurrentDirectory : PSTR;
   #else
     lpCurrentDirectory : PCSTR;
@@ -5395,7 +5395,7 @@ PROCEDURE CreateProcessW(
     bInheritHandles : BOOL;
     dwCreationFlags : DWORD;
     lpEnvironment : PVOID;
-  #if PlatformName #startswith L"WinCE" #then
+  #if Platform #startswith L"WinCE" #then
     lpCurrentDirectory : PWSTR;
   #else
     lpCurrentDirectory : PCWSTR;
@@ -6969,7 +6969,7 @@ PROCEDURE SetSystemPowerState(
     ): BOOL;
 
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 // This is an extension to 'winbase.h' header.
 // Original 'winver.h' header is not present in any WinCE SDK platform.
 // Some functions are replaced by the same prototypes from 'winbase.h'.
@@ -10704,7 +10704,7 @@ TYPE
 
   WNDPROC           = PROCEDURE( HWND, UINT, WPARAM, LPARAM ): LRESULT;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
   DLGPROC           = PROCEDURE( HWND, UINT, WPARAM, LPARAM ): BOOL;
   GRAYSTRINGPROC    = PROCEDURE( HDC, LPARAM, INTEGER ): BOOL;
   WNDENUMPROC       = PROCEDURE( HWND, LPARAM ): BOOL;
@@ -11468,13 +11468,13 @@ CONST
 (*
  * Window field offsets for GetWindowLong()
  *)
-  GWL_WNDPROC         = -4;
-  GWL_HINSTANCE       = -6;
-  GWL_HWNDPARENT      = -8;
+  GWLP_WNDPROC         = -4;
+  GWLP_HINSTANCE       = -6;
+  GWLP_HWNDPARENT      = -8;
   GWL_STYLE           = -16;
   GWL_EXSTYLE         = -20;
-  GWL_USERDATA        = -21;
-  GWL_ID              = -12;
+  GWLP_USERDATA        = -21;
+  GWLP_ID              = -12;
 
 (*
  * Class field offsets for GetClassLong()
@@ -13765,7 +13765,7 @@ PROCEDURE DrawMenuBar(
     hWnd : HWND
     ): BOOL;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 // #define GetSystemMenu(hwnd, bRevert)    ((HMENU)(hwnd))
 (*# save, call( macro => on ) *)
 PROCEDURE GetSystemMenu( hWns : HWND; bRevert : BOOL ): HMENU;

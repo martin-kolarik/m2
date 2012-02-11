@@ -26,7 +26,7 @@ int __fastcall __CRTStartup()
         argc = 0;
     }
 
-	ret = Main( argc, argv );
+    ret = Main( argc, argv );
     
     if( argv != 0 )
     {
