@@ -157,7 +157,7 @@ CLASS IMPLEMENTATION CSuspendableResult;
             FIO.GetModuleDirW( L"", OUT s );
             key.FromOA( suspendKey );
             value := Value.String;
-            lec.StoreInfo( s, ADR( cllv.data ), cllv.length, key, value );
+            lec.StoreInfo( s, ADR( cllv.data ), cllv.length, key, value ); // shall be synchronized???
             lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF SELF );
             QuerySuspension();
             RETURN Sync.arCompleted;

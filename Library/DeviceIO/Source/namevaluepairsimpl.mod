@@ -243,7 +243,13 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   INTERNAL VIRTUAL PROPERTY InitializeAccessLock SET( Value : Sync.PIRLock );
+   BEGIN
+   END InitializeAccessLock;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    VAR
       child : ns.TPNameValuePairs;
       elem : POINTER TO CNameValuePairsStorageElem;
@@ -272,6 +278,7 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
       // infos
       pairs^._Data := Data;
       pairs^._AdviseSource := AdviseSource;
+      pairs^.InitializeAccessLock := AccessLock;
       // structurals
       pairs^._Parent := ADR( SELF );
       Children := elem^._Pairs;
@@ -457,9 +464,21 @@ CLASS IMPLEMENTATION NameValuePairsStorage;
    BEGIN
       CASE Direction OF
       | IOO.dirRead :
+         IF ( _RLock <> NIL ) AND ( _RLock^.LockRead( Sync.FORSAFETY ) NOT IN Sync.arsCompletions ) THEN
+            ASSERTLOG( FALSE, L"Unable to lock ValueStorage for reading" );
+         END;
          Value := _Value;
+         IF _RLock <> NIL THEN
+            _RLock^.UnlockRead();
+         END;
       | IOO.dirWrite :
+         IF ( _RLock <> NIL ) AND ( _RLock^.LockTimeout( Sync.FORSAFETY ) NOT IN Sync.arsCompletions ) THEN
+            ASSERTLOG( FALSE, L"Unable to lock ValueStorage for writing" );
+         END;
          _Value := Value;
+         IF _RLock <> NIL THEN
+            _RLock^.Unlock();
+         END;
 
          IF _AdviseSource <> NIL THEN
             CASE _AdviseSource^.Advise OF
@@ -479,18 +498,26 @@ CLASS IMPLEMENTATION NameValuePairsStorage;
 
 (*---------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROPERTY InitializeAccessLock SET( Value : Sync.PIRLock );
+   BEGIN
+      _RLock := Value;
+   END InitializeAccessLock;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;
    VAR
       iv : iovalue.Value;
       pairs : TPNameValuePairsStorage;
    BEGIN
       iv.Reference := Reference;
-      RETURN DefineStorageValue( Name, iovalue.vtReference, Flags, ADR( iv ), Data, NIL, OUT pairs );
+      RETURN DefineStorageValue( Name, iovalue.vtReference, Flags, ADR( iv ), Data, NIL, NIL, OUT pairs );
    END DefineReference;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   _RLock := NIL;
 FINALLY
    _Value.Dispose();
 END NameValuePairsStorage;

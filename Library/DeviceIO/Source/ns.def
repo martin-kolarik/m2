@@ -80,7 +80,7 @@ INTERFACE INameValuePairs( IValueIO );
       HasValue : BOOLEAN;
 
    // creation
-   PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : IValueIO; Data : PTR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
    PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : TPNameValuePairs ) : BOOLEAN; // creates child, although Name can be taken from Child^.Name separating the parameter is more free -- e.g. it allows using of hierarchical names in INamespace implementors

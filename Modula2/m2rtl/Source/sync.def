@@ -78,7 +78,7 @@ END ILock;
 TYPE
    PIRLock = POINTER TO IRLock;
 
-INTERFACE IRLock;
+INTERFACE IRLock( ILock );
    PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
    PROCEDURE UnlockRead();
 END IRLock;
@@ -210,7 +210,7 @@ PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
 TYPE
    PRWLOCK = POINTER TO RWLOCK;
 
-CLASS RWLOCK IMPLEMENTS ILock, IRLock; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
+CLASS RWLOCK IMPLEMENTS IRLock; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
 
    // ILock, locks for writing
    PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
@@ -244,7 +244,7 @@ END RWLOCK;
 // continuation of locking
 // automatic lock
 
-CLASS AutoLock IMPLEMENTS ILock, IRLock; // gets outer ILock, locks it inside Take, unlocks it inside FINALLY
+CLASS AutoLock IMPLEMENTS IRLock; // gets outer ILock, locks it inside Take, unlocks it inside FINALLY
 
    // ILock, locks for writing
    PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;

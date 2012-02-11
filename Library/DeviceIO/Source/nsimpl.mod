@@ -194,13 +194,13 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    VAR
       leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
       IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
-         RETURN pairs^.DefineStorageValue( leaf, Type, Flags, InitialValue, Data, AdviseSource, OUT Children );
+         RETURN pairs^.DefineStorageValue( leaf, Type, Flags, InitialValue, Data, AccessLock, AdviseSource, OUT Children );
       ELSE
          RETURN FALSE;
       END;
@@ -265,11 +265,18 @@ CLASS IMPLEMENTATION Namespace;
    BEGIN
       IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
          iv.Reference := Reference;
-         RETURN pairs^.DefineStorageValue( leaf, iovalue.vtReference, Flags, ADR( iv ), Data, NIL, OUT pairs );
+         RETURN pairs^.DefineStorageValue( leaf, iovalue.vtReference, Flags, ADR( iv ), Data, NIL, NIL, OUT pairs );
       ELSE
          RETURN FALSE;
       END;
    END DefineReference;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY AccessLock GET : Sync.PIRLock;
+   BEGIN
+      RETURN ADR( _Lock );
+   END AccessLock;
 
 (*---------------------------------------------------------------------------*)
 
@@ -294,7 +301,7 @@ CLASS IMPLEMENTATION Namespace;
             // OK, fall down
          ELSIF NOT AllowCreation THEN
             RETURN FALSE;
-         ELSIF NOT pairs^.DefineStorageValue( toTest, iovalue.vtObject, iovalue.TFlags{ iovalue.vfReadOnly }, NIL, 0, NIL, OUT pairs ) THEN // strange, but ok
+         ELSIF NOT pairs^.DefineStorageValue( toTest, iovalue.vtObject, iovalue.TFlags{ iovalue.vfReadOnly }, NIL, 0, NIL, NIL, OUT pairs ) THEN // strange, but ok
             RETURN FALSE;
          END;
       END; // LOOP

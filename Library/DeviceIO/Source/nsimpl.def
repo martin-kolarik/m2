@@ -57,7 +57,7 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
    PUBLIC VIRTUAL READONLY PROPERTY
       VisibleToUser : BOOLEAN;
       HasValue : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN;
@@ -73,8 +73,12 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
 
    PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;
 
+   PUBLIC READONLY PROPERTY
+      AccessLock : Sync.PIRLock;
+
    PRIVATE VAR
       _Pairs : namevaluepairsimpl.TPNameValuePairsStorage;
+      _Lock : Sync.RWLOCK;
    PRIVATE PROCEDURE LookupAndDefine( AllowCreation : BOOLEAN; CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs; OUT LeafName : StringsO.IString ) : BOOLEAN;
 
    INITIALLY Namespace();

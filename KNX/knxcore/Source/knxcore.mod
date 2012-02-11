@@ -1985,6 +1985,7 @@ CLASS IMPLEMENTATION CKNXServer;
       i : CARDINAL;
       PObject : TPObject;
    BEGIN
+      Namespace.Dispose();
       FOR i := 0 TO Objects.Count - 1 DO
          PObject := TPObject( Objects[i] );
          IF NILExecutive THEN
