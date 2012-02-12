@@ -15,6 +15,7 @@ IMPORT
    INIFile,
    maps,
    ns,
+   nsimpl,
    Texts;
 
 (*================================================================================*)
@@ -97,6 +98,7 @@ CONST
    CALENDAR_PERIOD = 20000; // 20 second
    MSG_WRITE = msghandler.MSG_BASE;
    CFG_SECTION = L"week_calendar";
+   CFG_CONTEXT = L"context";
 
 CLASS IMPLEMENTATION CWeekCalendarFunction;
 
@@ -164,6 +166,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       condition : StringsO.CString;
       conditionFound : BOOLEAN;
       conditionPairs : ns.TPNameValuePairs;
+      context : StringsO.CString;
       day : Day;
       days : Days;
       dt : datetime.DateTime;
@@ -182,11 +185,11 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       weekStart : datetime.DateTime;
    BEGIN
       IF DataSource = NIL THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
          RETURN Sync.arCannotStart;
       
       ELSIF HIGH( Source ) < 0 THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
 
       ELSIF Source[0].Type = device.citINIFile THEN
@@ -198,12 +201,12 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          section.Assign( Source[0].section^ ); // load ordered section
 
       ELSE
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
       END;
 
       IF NOT iniFile^.SetSection( OA( section.Length-1, section.Data )) THEN
-	      Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
+         Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
          RETURN Sync.arCompleted;
       END;
       // here the inifile has proper section set
@@ -214,15 +217,24 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       ES := 0;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
 
+         IF key.EqualsOA( CFG_CONTEXT ) THEN
+            IF DataSource^.NS()^.Contains( nsimpl.AddContext( context, value )) THEN
+               context := value;
+            ELSE
+               Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+            END;
+            CONTINUE;
+         END;
+
          // key/output = value, hh:mm [, days]
          IF NOT SplitOutputAndCondition( key, OUT key, OUT conditionFound, OUT condition ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectOutputConditionFormat ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
-         ELSIF NOT DataSource^.NS()^.Get( key, OUT pairs ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
+         ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputAddressNotFound ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
-         ELSIF conditionFound AND NOT DataSource^.NS()^.Get( condition, OUT conditionPairs ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ConditionGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
+         ELSIF conditionFound AND NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, condition ), OUT conditionPairs ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ConditionAddressNotFound ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
          END;
          
@@ -233,7 +245,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          
          // check mandatory parameters (value, time)
          IF pieces < 2 THEN
-	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
+            Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
             CONTINUE;
          END;
 
@@ -339,8 +351,8 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
             result := item^.ConditionPairs^.ValueIO( ADR( SELF ), item^.ConditionPairs, IOO.dirRead, REF conditionValue );
             IF result NOT IN Sync.arsCompletions THEN // log error
                DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
-	            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read condition value:", OA( name.Length-1, name.Data ));
-	            Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
+               Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read condition value:", OA( name.Length-1, name.Data ));
+               Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
                CONTINUE;
             END;
             item^.Condition := conditionValue.Boolean;
@@ -454,8 +466,8 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirWrite, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
             DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
-	         Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write value to device:", OA( name.Length-1, name.Data ));
-	         Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write value to device:", OA( name.Length-1, name.Data ));
+            Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
             CONTINUE;
          END;
 

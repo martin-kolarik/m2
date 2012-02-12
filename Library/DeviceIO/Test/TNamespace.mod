@@ -80,32 +80,32 @@ CLASS IMPLEMENTATION CTest;
       s.FromOA( L"Function" );
       is.FromOA( L"someInitialName" );
       iv.String := is;
-      Failure := NOT nss.DefineStorageValue( s, iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( iv ), ADR( s ), NIL, OUT children ) OR Failure;
-      Failure := nss.DefineStorageValue( s, iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( iv ), ADR( s ), NIL, OUT children ) OR Failure;
+      Failure := NOT nss.DefineStorageValue( s, iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( iv ), ADR( s ), NIL, NIL, OUT children ) OR Failure;
+      Failure := nss.DefineStorageValue( s, iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( iv ), ADR( s ), NIL, NIL, OUT children ) OR Failure;
 
       s.FromOA( L"Member" );
       iv.Long := 2;
-      Failure := NOT nss.DefineStorageValue( s, iovalue.vtLong, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, OUT children ) OR Failure;
-      Failure := nss.DefineStorageValue( s, iovalue.vtString, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, OUT children ) OR Failure;
+      Failure := NOT nss.DefineStorageValue( s, iovalue.vtLong, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, NIL, OUT children ) OR Failure;
+      Failure := nss.DefineStorageValue( s, iovalue.vtString, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, NIL, OUT children ) OR Failure;
 
       s.FromOA( L"ArrayOfValues" );
-      Failure := NOT nss.DefineStorageValue( s, iovalue.vtObject, iovalue.flagsDefaultObject, NIL, ADR( s ), NIL, OUT children ) OR Failure;
-      Failure := nss.DefineStorageValue( s, iovalue.vtString, iovalue.flagsDefaultSWRW, NIL, ADR( s ), NIL, OUT children ) OR Failure;
+      Failure := NOT nss.DefineStorageValue( s, iovalue.vtObject, iovalue.flagsDefaultObject, NIL, ADR( s ), NIL, NIL, OUT children ) OR Failure;
+      Failure := nss.DefineStorageValue( s, iovalue.vtString, iovalue.flagsDefaultSWRW, NIL, ADR( s ), NIL, NIL, OUT children ) OR Failure;
       //---
       s.FromOA( L"0" );
       iv.Integer := 0;
-      Failure := NOT children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, OUT children2 ) OR Failure;
-      Failure := children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, OUT children2 ) OR Failure;
+      Failure := NOT children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, NIL, OUT children2 ) OR Failure;
+      Failure := children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, NIL, OUT children2 ) OR Failure;
       //---
       s.FromOA( L"1" );
       iv.Integer := 10;
-      Failure := NOT children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, OUT children2 ) OR Failure;
-      Failure := children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, OUT children2 ) OR Failure;
+      Failure := NOT children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, NIL, OUT children2 ) OR Failure;
+      Failure := children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, NIL, OUT children2 ) OR Failure;
       //---
       s.FromOA( L"2" );
       iv.Integer := 20;
-      Failure := NOT children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, OUT children2 ) OR Failure;
-      Failure := children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, OUT children2 ) OR Failure;
+      Failure := NOT children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, NIL, OUT children2 ) OR Failure;
+      Failure := children^.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, ADR( iv ), ADR( s ), NIL, NIL, OUT children2 ) OR Failure;
       //---
 
       subnvp.InitializeName := StringsO.FromOA( L"SubValues" );
@@ -178,17 +178,17 @@ CLASS IMPLEMENTATION CTest;
       s.FromOA( L"Class.SubClass.Method.ParameterA" );
       iv.Dispose();
       iv.Long := 3141592653589;
-      Failure := NOT nss.DefineStorageValue( s, iovalue.vtLong, iovalue.flagsDefaultSWRW, NIL, ADR( iv ), NIL, OUT children ) OR Failure;
+      Failure := NOT nss.DefineStorageValue( s, iovalue.vtLong, iovalue.flagsDefaultSWRW, NIL, ADR( iv ), NIL, NIL, OUT children ) OR Failure;
 
       s.FromOA( L"Class.SubClass.Method.ParameterB" );
       iv.Dispose();
       iv.Integer := -10000;
-      Failure := NOT nss.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, NIL, ADR( iv ), NIL, OUT children ) OR Failure;
+      Failure := NOT nss.DefineStorageValue( s, iovalue.vtInteger, iovalue.flagsDefaultSWRW, NIL, ADR( iv ), NIL, NIL, OUT children ) OR Failure;
 
       s.FromOA( L"Class.SubClass.Prototype" );
       iv.Dispose();
       iv.Reference := 1415;
-      Failure := NOT nss.DefineStorageValue( s, iovalue.vtReference, iovalue.flagsDefaultSWRW, NIL, ADR( iv ), NIL, OUT children ) OR Failure;
+      Failure := NOT nss.DefineStorageValue( s, iovalue.vtReference, iovalue.flagsDefaultSWRW, NIL, ADR( iv ), NIL, NIL, OUT children ) OR Failure;
 
       s.FromOA( L"Class.Prototype" );
       Failure := NOT nss.DefineReference( s, iovalue.flagsDefaultSWRW, ADR( iv ), NIL ) OR Failure;

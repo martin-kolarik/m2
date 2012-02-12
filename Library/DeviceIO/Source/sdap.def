@@ -69,6 +69,7 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
       _Clients : maps.CPtrMap;
       _SendLock : Sync.LOCK;
       _SendQueue : lists.CStringList;
+      _DefaultContext : StringsO.CString;
 
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
@@ -79,6 +80,7 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
       NetworkLogger : log.TPILogger;
       ConfigurationLogger : log.TPBufferedLogger;
       ListenAddress : inetaddr.INETADDR;
+      DefaultContext : StringsO.CString;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );

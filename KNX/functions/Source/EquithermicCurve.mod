@@ -11,6 +11,7 @@ IMPORT
    iovalue,
    INIFile,
    Mathematics,
+   nsimpl,
    StringsO,
    Texts;
 
@@ -65,6 +66,7 @@ END CCurve;
 CONST
    LOGNAME = L"Equithermic";
    CFG_SECTION = L"equithermic_curve";
+   CFG_CONTEXT = L"context";
    DEFAULT_SLOPE = 1.3;
    DEFAULT_OFFSET = 0.0;
    MSG_SEND = msghandler.MSG_BASE;
@@ -133,6 +135,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
 
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    VAR
+      context : StringsO.CString;
       curve : TPCurve;
       ES : PTR;
       i : CARDINAL;
@@ -149,11 +152,11 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       values : ARRAY [0..3] OF StringsO.CString;
    BEGIN
       IF DataSource = NIL THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
          RETURN Sync.arCannotStart;
       
       ELSIF HIGH( Source ) < 0 THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
 
       ELSIF Source[0].Type = device.citINIFile THEN
@@ -165,21 +168,31 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          section.Assign( Source[0].section^ ); // load ordered section
 
       ELSE
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
       END;
       
       IF NOT iniFile^.SetSection( OA( section.Length-1, section.Data )) THEN
-	      Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
+         Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
          RETURN Sync.arCompleted;
       END;
       // here the inifile has proper section set
       
       ES := 0;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
+
+         IF key.EqualsOA( CFG_CONTEXT ) THEN
+            IF DataSource^.NS()^.Contains( nsimpl.AddContext( context, value )) THEN
+               context := value;
+            ELSE
+               Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+            END;
+            CONTINUE;
+         END;
+
          // key/output = wish/input, outer/input [, slope/parameter [, offset/parameter]]
-         IF NOT DataSource^.NS()^.Get( key, OUT pairs[0] ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputGroupAddressNotFound ] ), OA( s.Length-1, s.Data ));
+         IF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs[0] ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputAddressNotFound ] ), OA( s.Length-1, s.Data ));
             CONTINUE;
          END;
          
@@ -190,13 +203,13 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          
          // check mandatory parameters (wish, outer)
          IF pieces < 2 THEN
-	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
+            Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
             CONTINUE;
-         ELSIF NOT DataSource^.NS()^.Get( values[0], OUT pairs[1] ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SetpointGroupAddressNotFound ] ), OA( values[0].Length-1, values[0].Data ));
+         ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, values[0] ), OUT pairs[1] ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SetpointAddressNotFound ] ), OA( values[0].Length-1, values[0].Data ));
             CONTINUE;
-         ELSIF NOT DataSource^.NS()^.Get( values[1], OUT pairs[2] ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OuterGroupAddressNotFound ] ), OA( values[1].Length-1, values[1].Data ));
+         ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, values[1] ), OUT pairs[2] ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OuterAddressNotFound ] ), OA( values[1].Length-1, values[1].Data ));
             CONTINUE;
          END;
          
@@ -204,16 +217,16 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          slope := DEFAULT_SLOPE;
          IF pieces > 2 THEN
             IF NOT values[2].ToLONGREAL( OUT slope ) THEN
-	            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SlopeIsNotANumber ] ), OA( values[2].Length-1, values[2].Data ));
+               Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SlopeIsNotANumber ] ), OA( values[2].Length-1, values[2].Data ));
                CONTINUE;
             ELSIF ( slope < 0.2 ) OR ( slope > 3.5 ) THEN
-	            Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SlopeOutOfRange ] ));
+               Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SlopeOutOfRange ] ));
                CONTINUE;
             END;
          END;
          offset := DEFAULT_OFFSET;
          IF ( pieces > 3 ) AND NOT values[3].ToLONGREAL( OUT offset ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OffsetIsNotANumber ] ), OA( values[3].Length-1, values[3].Data ));
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OffsetIsNotANumber ] ), OA( values[3].Length-1, values[3].Data ));
             CONTINUE;
          END;
          

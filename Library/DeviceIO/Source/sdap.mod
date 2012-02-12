@@ -12,6 +12,7 @@ IMPORT
    netsocket,
    netsrv,
    ns,
+   nsimpl,
    Strings,
    Sync;
 
@@ -25,13 +26,16 @@ TYPE
    TPClient = POINTER TO CClient;
 
 CLASS CClient IMPLEMENTS ns.IAdviseInfo;
+
+   // IAdviseInfo
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
+
    // SELF
    LOCAL VAR
       Server : TPSDAPServer;
       Connection : netconndispatch.TConnectionHandle;
+      Context : StringsO.CString;
 
-   // IAdviseInfo
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
 END CClient;
 
 (*================================================================================*)
@@ -44,8 +48,7 @@ TYPE
       sdapGET,
       sdapRUN,
       sdapSTOP,
-      sdapLOCK,
-      sdapUNLOCK,
+      sdapCONTEXT,
       sdapADVISE, // advise <N> or advise all
       sdapUNADVISE
    );
@@ -199,6 +202,25 @@ CLASS IMPLEMENTATION CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY DefaultContext GET : StringsO.CString;
+   BEGIN
+      RETURN _DefaultContext;
+   END DefaultContext;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DefaultContext SET( CONST Value : StringsO.CString );
+   VAR
+      dot : StringsO.CString := StringsO.FromOA( L"." );
+   BEGIN
+      _DefaultContext := Value;
+      WHILE _DefaultContext.EndsWith( dot ) DO
+         DEC( _DefaultContext.Length );
+      END;
+   END DefaultContext;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Running GET : BOOLEAN;
    BEGIN
       RETURN _Running;
@@ -248,6 +270,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       NEW( Client );
       Client^.Server := ADR( SELF );
       Client^.Connection := Connection;
+      Client^.Context := DefaultContext;
 
       _DataSource^.JoinClient( Client, ns.advWithData );
       // done on request only
@@ -318,9 +341,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       IF in.EndsWithOA( 13W + 10W ) THEN
          in.Length := in.Length - 2;
       END;
-      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "RCV: ", OA( in.Length-1, in.Data ));
+      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "RCV:", OA( in.Length-1, in.Data ));
       PConnection^.RemoteAddress.ToOA( TRUE, OUT sd );
-      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "from: ", sd );
+      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "from:", sd );
 
       i := in.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p ); // i contains position, where splitting should continue if called again
       IF i < in.Length THEN // splitting is not finished
@@ -354,10 +377,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       ELSIF s[0].EqualsOA( L"stop" ) THEN
          Command := sdapSTOP;
          parametersCount := 1;
-      ELSIF s[0].EqualsOA( L"lock" ) THEN
-         Command := sdapLOCK;
-      ELSIF s[0].EqualsOA( L"unlock" ) THEN
-         Command := sdapUNLOCK;
+      ELSIF s[0].EqualsOA( L"context" ) THEN
+         Command := sdapCONTEXT;
+         parametersCount := 1;
       ELSIF s[0].EqualsOA( L"advise" ) THEN
          Command := sdapADVISE;
       ELSIF s[0].EqualsOA( L"unadvise" ) THEN
@@ -393,8 +415,10 @@ CLASS IMPLEMENTATION CSDAPServer;
             ACK( PConnection, sdap402 );
             RETURN;
          END;
-       //-----
+      //-----
       | sdapADVISE, sdapUNADVISE :
+      //-----
+      | sdapCONTEXT :
       ELSE
          ACK( PConnection, sdap502 ); // not supported
          RETURN;
@@ -412,7 +436,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapEXIT :
          PConnection^.RemoteAddress.ToOA( TRUE, OUT sd );
-         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "EXIT from: ", sd );
+         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "EXIT from:", sd );
 
          ACK( PConnection, sdap200 );
          Disconnect( NIL, PConnection );
@@ -422,7 +446,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          // recode parameters
          in.Substring( p[0].Length + 1, -1, OUT data );
 
-         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "LOAD: ", OA( data.Length-1, data.Data ));
+         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "LOAD:", OA( data.Length-1, data.Data ));
 
          // stop, load
          prevcount := _ConfigurationLogger^.BufferCount;
@@ -440,7 +464,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             WHILE _ConfigurationLogger^.BufferGetItem( i, OUT error ) DO
                Strings.TrimAccentsW( REF error );
 
-               _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "  406: ", error );
+               _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "  406:", error );
                SUPER.Send( NIL, PConnection, 0, ADR( error ), LENGTH( error ) << 1 );
                
                INC( i );
@@ -449,13 +473,18 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapSET, sdapGET :
-         IF Command = sdapSET THEN
-            _CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_SDAP, "SET ", OA( p[1].Length-1, p[1].Data ), L" ", OA( data.Length-1, data.Data ));
-         ELSE
-            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "GET ", OA( p[1].Length-1, p[1].Data ));
+         IF NOT _Clients.Get( PConnection, OUT Client ) THEN // unexpected client
+            ACK( PConnection, sdap500 );
+            RETURN;
          END;
 
-         IF NOT _DataSource^.NS()^.Get( p[1], OUT pvalue ) OR NOT pvalue^.VisibleToUser THEN
+         IF Command = sdapSET THEN
+            _CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_SDAP, "SET", OA( p[1].Length-1, p[1].Data ), OA( data.Length-1, data.Data ), L"" );
+         ELSE
+            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "GET", OA( p[1].Length-1, p[1].Data ));
+         END;
+
+         IF NOT _DataSource^.NS()^.Get( nsimpl.AddContext( Client^.Context, p[1] ), OUT pvalue ) OR NOT pvalue^.VisibleToUser THEN
             ACKs( PConnection, sdap405, 1 );
 
          ELSIF NOT pvalue^.HasValue THEN
@@ -499,21 +528,23 @@ CLASS IMPLEMENTATION CSDAPServer;
          
       //-----
       | sdapADVISE, sdapUNADVISE :
+         IF NOT _Clients.Get( PConnection, OUT Client ) THEN // unexpected client
+            ACK( PConnection, sdap500 );
+            RETURN;
+         END;
+
          IF Command = sdapADVISE THEN
-            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ADVISE ", OA( p[1].Length-1, p[1].Data ));
+            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ADVISE", OA( p[1].Length-1, p[1].Data ));
          ELSE
-            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "UNADVISE ", OA( p[1].Length-1, p[1].Data ));
+            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "UNADVISE", OA( p[1].Length-1, p[1].Data ));
          END;
          
          allFlag := p[1].EqualsOA( L"all" );
-         IF NOT _Clients.Get( PConnection, OUT Client ) THEN
-            ACK( PConnection, sdap500 );
-
-         ELSIF Command = sdapADVISE THEN         
+         IF Command = sdapADVISE THEN         
             IF allFlag THEN
                _DataSource^.AdviseAll( Client );
                ACK( PConnection, sdap200 );
-            ELSIF NOT _DataSource^.NS()^.Contains( p[1] ) THEN
+            ELSIF NOT _DataSource^.NS()^.Contains( nsimpl.AddContext( Client^.Context, p[1] )) THEN
                ACKs( PConnection, sdap405, 1 );
             ELSE
                _DataSource^.Advise( Client, p[1] );
@@ -524,7 +555,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             IF allFlag THEN
                _DataSource^.UnadviseAll( Client );
                ACK( PConnection, sdap200 );
-            ELSIF NOT _DataSource^.NS()^.Contains( p[1] ) THEN
+            ELSIF NOT _DataSource^.NS()^.Contains( nsimpl.AddContext( Client^.Context, p[1] )) THEN
                ACKs( PConnection, sdap405, 1 );
             ELSE
                _DataSource^.Unadvise( Client, p[1] );
@@ -532,7 +563,30 @@ CLASS IMPLEMENTATION CSDAPServer;
             END;
 
          END;
-         
+
+      //-----
+      | sdapCONTEXT :
+         IF NOT _Clients.Get( PConnection, OUT Client ) THEN // unexpected client
+            ACK( PConnection, sdap500 );
+            RETURN;
+         END;
+
+         IF p[1].Empty THEN
+            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "CONTEXT", L". (reset)" );
+         ELSE
+            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "CONTEXT", OA( p[1].Length-1, p[1].Data ));
+         END;
+
+         IF p[1].Empty THEN
+            Client^.Context.Clear();
+            ACK( PConnection, sdap200 );
+         ELSIF _DataSource^.NS()^.Contains( nsimpl.AddContext( Client^.Context, p[1] )) THEN
+            Client^.Context := p[1];
+            ACK( PConnection, sdap200 );
+         ELSE
+            ACKs( PConnection, sdap405, 1 );
+         END;
+
       //-----
       END; // CASE
   END OnReceive;
@@ -673,7 +727,7 @@ CLASS IMPLEMENTATION CClient;
       FOR i := 0 TO HIGH( Item ) DO
          IF Result[i] IN Sync.arsCompletions THEN
             Server^.DataSource^.NS()^.GetFullName( Item[i], OUT n );
-            s := n;
+            s := nsimpl.RemoveContext( Context, n );
             s.AppendOA( L" " ); s.Append( Value[i].String );
 
             IF NOT Server^.CommonLogger^.FilteredFastCheck( log.ldTrace, 0 ) THEN

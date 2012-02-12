@@ -13,6 +13,7 @@ IMPORT
    iovalue,
    INIFile,
    ns,
+   nsimpl,
    Texts;
 
 (*================================================================================*)
@@ -61,6 +62,7 @@ END CItem;
 CONST
    LOGNAME = L"Storage";
    CFG_SECTION = L"storage";
+   CFG_CONTEXT = L"context";
    WRITE_DELAY_TIMER = 1;
    STORAGE_FILE = L'PersistingStorage.ini';
 
@@ -189,11 +191,11 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       storagePathOA : FIO.PathStrW;
    BEGIN
       IF DataSource = NIL THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
          RETURN Sync.arCannotStart;
       
       ELSIF HIGH( Source ) < 0 THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
 
       ELSIF Source[0].Type = device.citINIFile THEN
@@ -205,7 +207,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          section.Assign( Source[0].section^ ); // load ordered section
 
       ELSE
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
       END;
       
@@ -217,7 +219,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
       IF _StoragePath.Empty THEN // nothing was read, set up default
          IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT storagePathOA ) THEN
-	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._AppDataStorageUnavailable ] ));
+            Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._AppDataStorageUnavailable ] ));
             RETURN Sync.arCannotStart;
          END;
          FIO.PathAddW( REF storagePathOA, OA( _DefaultStorageFolder.Length-1, _DefaultStorageFolder.Data ));
@@ -291,6 +293,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       keyWriteDelay = L"write_delay";
       keyStoragePath = L"storage_file_path";
    VAR
+      context : StringsO.CString;
       ES : PTR;
       item : TPItem;
       Line : CARDINAL;
@@ -302,7 +305,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       writeDelay : INTEGER;
    BEGIN
       IF NOT iniFile^.SetSection( section ) THEN
-	      Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), section );
+         Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), section );
          RETURN Sync.arCompleted;
       END;
       // here the inifile has proper section set
@@ -311,7 +314,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          // get optional write delay
          IF iniFile^.GetKeyInt( keyWriteDelay, OUT Line, OUT writeDelay ) THEN
             IF writeDelay < 1 THEN
-	            Log^.LogSC( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._WriteDelayCannotBeZeroOrLessThanZeroIgnoring ] ), writeDelay );
+               Log^.LogSC( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._WriteDelayCannotBeZeroOrLessThanZeroIgnoring ] ), writeDelay );
             ELSE
                _WriteDelay := 1000 * writeDelay;
             END;
@@ -326,17 +329,27 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       ES := 0;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
 
+         // context is valid everywhere, both CFG and INI must be able to do so
+         IF key.EqualsOA( CFG_CONTEXT ) THEN
+            IF DataSource^.NS()^.Contains( nsimpl.AddContext( context, value )) THEN
+               context := value;
+            ELSE
+               Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+            END;
+            CONTINUE;
+         END;
+
          // skip keys already read
          IF NOT acceptConfigurationKeys THEN
             // fall down, do not test for special configuration keys
-         ELSIF value.EqualsOA( keyWriteDelay ) OR
-            value.EqualsOA( keyStoragePath ) THEN
+         ELSIF key.EqualsOA( keyWriteDelay ) OR
+               key.EqualsOA( keyStoragePath ) THEN
             CONTINUE;
          END;
 
          // key/output = value
-         IF NOT DataSource^.NS()^.Get( key, OUT pairs ) THEN
-	         Log^.LogSSSS( log.lcError, 0, LOGNAME, LOGNAME, OAsz( R^[ Texts._GroupAddressNotFound ] ), OA( key.Length-1, key.Data ), L"" );
+         IF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs ) THEN
+            Log^.LogSSSS( log.lcError, 0, LOGNAME, LOGNAME, OAsz( R^[ Texts._AddressNotFound ] ), OA( key.Length-1, key.Data ), L"" );
             CONTINUE;
          END;
          
@@ -388,8 +401,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
          result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirRead, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
-	         Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read value from device:", OA( item^.Address.Length-1, item^.Address.Data ));
-	         Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read value from device:", OA( item^.Address.Length-1, item^.Address.Data ));
+            Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
             CONTINUE;
          END;
 

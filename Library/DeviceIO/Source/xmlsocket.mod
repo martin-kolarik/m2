@@ -16,6 +16,7 @@ IMPORT
    netsocket,
    netsrv,
    ns,
+   nsimpl,
    StorageO,
    Strings,
    StringsO,
@@ -37,6 +38,7 @@ CLASS CClient IMPLEMENTS ns.IAdviseInfo;
       Connection : netconndispatch.TConnectionHandle;
       RBuffer : StorageO.CMemoryBuffer;
       WBuffer : StorageO.CMemoryBuffer;
+      Context : StringsO.CString;
 
    // IAdviseInfo
    PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
@@ -170,6 +172,25 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY DefaultContext GET : StringsO.CString;
+   BEGIN
+      RETURN _DefaultContext;
+   END DefaultContext;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DefaultContext SET( CONST Value : StringsO.CString );
+   VAR
+      dot : StringsO.CString := StringsO.FromOA( L"." );
+   BEGIN
+      _DefaultContext := Value;
+      WHILE _DefaultContext.EndsWith( dot ) DO
+         DEC( _DefaultContext.Length );
+      END;
+   END DefaultContext;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
    BEGIN
       RETURN _Running;
@@ -218,6 +239,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       NEW( Client );
       Client^.Server := ADR( SELF );
       Client^.Connection := Connection;
+      Client^.Context := DefaultContext;
 
       _DataSource^.JoinClient( Client, ns.advWithData );
       _DataSource^.AdviseAll( Client );
@@ -443,7 +465,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             IF readRequests = NIL THEN
                NEW( readRequests );
             END;
-            HandleRead( Name, REF readRequests );
+            HandleRead( Name, Client, REF readRequests );
          ELSE
             iaddr := GetRemoteAddress( Connection );
             HandleWrite( iaddr, Name, Value );
@@ -458,7 +480,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
   
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE HandleRead( CONST NameOA : ARRAY OF WCHAR; REF readRequests : arrays.TPPtrArray );
+   PRIVATE PROCEDURE HandleRead( CONST NameOA : ARRAY OF WCHAR; Client : ADDRESS; REF readRequests : arrays.TPPtrArray );
    VAR
       Name : StringsO.CString;
       pvalue : ns.TPNameValuePairs;
@@ -466,7 +488,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name.FromOA( NameOA );
       _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "GET ", NameOA );
 
-      IF NOT _DataSource^.NS()^.Get( Name, OUT pvalue ) OR NOT pvalue^.VisibleToUser THEN
+      IF NOT _DataSource^.NS()^.Get( nsimpl.AddContext( TPClient( Client )^.Context, Name ), OUT pvalue ) OR NOT pvalue^.VisibleToUser THEN
          _CommonLogger^.LogSS( log.ldTrace, 0, LOG_XMLS, "  unknown name, nothing GET: ", NameOA );
          RETURN;
 
@@ -572,7 +594,8 @@ CLASS IMPLEMENTATION CClient;
       FOR i := 0 TO HIGH( Item ) DO
 
          IF NOT Server^.CommonLogger^.FilteredFastCheck( log.ldTrace, 0 ) THEN
-            Server^.DataSource^.NS()^.GetFullName( Item[i], OUT n );
+            Server^.DataSource^.NS()^.GetFullName( Item[i], OUT s );
+            n := nsimpl.RemoveContext( Context, s );
             s := Value[i].String;
             Server^.CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_XMLS, "ADV ", OA( n.Length-1, n.Data ), L" ", OA( s.Length-1, s.Data ));
          END;
@@ -599,12 +622,13 @@ CLASS IMPLEMENTATION CClient;
 
    PUBLIC PROCEDURE AddItem( CONST Item : ns.THash; CONST Value : iovalue.Value );
    VAR
-      S : StringsO.CString;
+      N, S : StringsO.CString;
    BEGIN
       WBuffer.AppendOA( OA( SIZE( LEAD_NOTIFY )-2, ADR( LEAD_NOTIFY ))); WBuffer.AppendByte( TRAIL );
 
       WBuffer.AppendOA( OA( SIZE( LEAD_NAME )-2, ADR( LEAD_NAME ))); WBuffer.AppendByte( TRAIL );
-      Server^.DataSource^.NS()^.GetFullName( Item, OUT S );
+      Server^.DataSource^.NS()^.GetFullName( Item, OUT N );
+      S := nsimpl.RemoveContext( Context, N );
       S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_NAME )-2, ADR( TRAIL_NAME ))); WBuffer.AppendByte( TRAIL );

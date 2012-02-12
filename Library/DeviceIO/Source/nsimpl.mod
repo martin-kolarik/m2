@@ -74,6 +74,8 @@ CLASS IMPLEMENTATION Namespace;
          i := Name.ItemS( StringsO.WCHARS{L'.'}, i, 0, TRUE, OUT toTest );
          IF i = -1 THEN
             EXIT;
+         ELSIF i = 0 THEN // ok, leading dot is allowed
+            CONTINUE;
          ELSIF toTest.Empty THEN // Empty string before Name end detected, likely ".." appeared in the Name. This is disallowed.
             RETURN FALSE;
          ELSIF NOT pairs^.Get( toTest, OUT pairs ) THEN
@@ -336,6 +338,37 @@ CLASS IMPLEMENTATION Namespace;
 (*---------------------------------------------------------------------------*)
 
 END Namespace;
+
+(*===========================================================================*)
+
+PROCEDURE AddContext( CONST Context, Name : StringsO.IString ) : StringsO.CString;
+VAR
+   s : StringsO.CString;
+BEGIN
+   IF Name.Empty THEN
+      // fall down
+   ELSIF ( Name[0] = L"." ) OR Context.Empty THEN
+      s.Assign( Name ); // the name is absolute, do not append context
+   ELSE
+      s.Assign( Context );
+      s.AppendOA( L"." );
+      s.Append( Name );
+   END;
+   RETURN s;
+END AddContext;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE RemoveContext( CONST Context, Input : StringsO.IString ) : StringsO.CString;
+VAR
+   s : StringsO.CString;
+BEGIN
+   s.Assign( Input );
+   IF NOT Context.Empty AND Input.StartsWith( Context ) THEN
+      s.Remove( 0, Context.Length + 1 ); // with DOT
+   END;
+   RETURN s;
+END RemoveContext;
 
 (*===========================================================================*)
 

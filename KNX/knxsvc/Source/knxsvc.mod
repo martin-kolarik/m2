@@ -494,6 +494,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       SDAP^.CommonLogger := Log.logger();
       SDAP^.ConfigurationLogger := ADR( ConfigLogger );
       SDAP^.NetworkLogger := ADR( NetworkLogger );
+      SDAP^.DefaultContext := StringsO.FromOA( L"KNX" );
       
       ASSERT( XMLS = NIL );
       NEW( XMLS );
@@ -503,6 +504,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       XMLS^.Init( TRUE );
       XMLS^.CommonLogger := Log.logger();
       XMLS^.NetworkLogger := ADR( NetworkLogger );
+      XMLS^.DefaultContext := StringsO.FromOA( L"KNX" );
       
       ASSERT( Storage = NIL );
       NEW( Storage );
