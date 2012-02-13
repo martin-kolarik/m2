@@ -1766,7 +1766,7 @@ CLASS IMPLEMENTATION CKNXServer;
       FOR i := 0 TO Objects.Count - 1 DO
          PObject := TPObject( Objects[i] );
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT s );
-         Namespace.DefineIOValue( StringsO.FromOA( s ), REF SELF, PObject, NIL, OUT pairs );
+         Namespace.DefineIOValue( StringsO.FromOA( s ), REF SELF, PObject, NIL, OUT PObject^.Pairs );
       END; // FOR
 
       // connection info/control

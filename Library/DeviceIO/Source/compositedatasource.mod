@@ -177,7 +177,7 @@ CLASS IMPLEMENTATION CCompositeDataSource;
    INTERNAL VIRTUAL PROCEDURE OnJoinDataSource( CONST DataSource : device.TPDataSource );
    BEGIN
       // connect to namespace
-      _Namespace.Link( DataSource^.NS()^.Name, DataSource^.NS());
+      _Namespace.Link( DataSource^.NS()^.Name, DataSource^.NS(), TRUE );
       // link advising
       IF device.capAdviseSource IN DataSource^.DataSourceCapabilities THEN
          DataSource^.AdviseSource()^.Advise := _Advise;

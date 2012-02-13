@@ -109,8 +109,8 @@ CLASS IMPLEMENTATION CTest;
       //---
 
       subnvp.InitializeName := StringsO.FromOA( L"SubValues" );
-      Failure := NOT nss.Link( subnvp.Name, ADR( subnvp )) OR Failure;
-      Failure := nss.Link( subnvp.Name, ADR( subnvp )) OR Failure;
+      Failure := NOT nss.Link( subnvp.Name, ADR( subnvp ), TRUE ) OR Failure;
+      Failure := nss.Link( subnvp.Name, ADR( subnvp ), TRUE ) OR Failure;
 
       IF Failure THEN
          Host^.StopPhaseWithResult( test.trFailure );

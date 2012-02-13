@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE nsimpl;
 
+FROM Debug IMPORT
+   AssertionW;
+
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION SimpleAdviseSource;
@@ -100,6 +103,13 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY AdviseSource GET : ns.TPAdviseSource;
+   BEGIN
+      RETURN _Pairs^.AdviseSource;
+   END AdviseSource;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY Parent GET : ns.TPNameValuePairs;
    BEGIN
       RETURN _Pairs^.Parent;
@@ -107,10 +117,10 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AdviseSource GET : ns.TPAdviseSource;
+   PUBLIC VIRTUAL PROPERTY Parent SET( Value : ns.TPNameValuePairs );
    BEGIN
-      RETURN _Pairs^.AdviseSource;
-   END AdviseSource;
+      _Pairs^.Parent := Value;
+   END Parent;
 
 (*---------------------------------------------------------------------------*)
 
@@ -187,6 +197,10 @@ CLASS IMPLEMENTATION Namespace;
             name.Prepend( pairs^.Name );
          END;
          // move up
+         IF pairs^.Parent = NIL THEN
+            ASSERTLOG( FALSE, L"Unexpected NIL in namespace hierarchy" ); // this means badly constructed namespace
+            EXIT;
+         END;
          pairs := pairs^.Parent;
       UNTIL pairs = ADR( _Pairs^.INameValuePairs ); // me as a Hash
 
@@ -224,13 +238,13 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; Child : ns.TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN;
    VAR
       leaf : StringsO.CString;
       pairs : ns.TPNameValuePairs := NIL;
    BEGIN
       IF LookupAndDefine( TRUE, Name, OUT pairs, OUT leaf ) THEN
-         RETURN pairs^.Link( leaf, Child );
+         RETURN pairs^.Link( leaf, Child, SetParent );
       ELSE
          RETURN FALSE;
       END;

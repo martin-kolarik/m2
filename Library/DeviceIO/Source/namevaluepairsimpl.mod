@@ -179,6 +179,13 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY AdviseSource GET : ns.TPAdviseSource;
+   BEGIN
+      RETURN _AdviseSource;
+   END AdviseSource;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC FINAL PROPERTY Parent GET : ns.TPNameValuePairs;
    BEGIN
       RETURN _Parent;
@@ -186,10 +193,10 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AdviseSource GET : ns.TPAdviseSource;
+   PUBLIC FINAL PROPERTY Parent SET( Value : ns.TPNameValuePairs );
    BEGIN
-      RETURN _AdviseSource;
-   END AdviseSource;
+      _Parent := Value;
+   END Parent;
 
 (*---------------------------------------------------------------------------*)
 
@@ -324,7 +331,7 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; Child : ns.TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN;
    VAR
       child : ns.TPNameValuePairs;
       elem : TPNameValuePairsElem;
@@ -343,6 +350,9 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
       NEW( elem );
       elem^._Pairs := Child;
+      IF SetParent THEN
+         Child^.Parent := ADR( SELF );
+      END;
       _Children^.Insert( elem );
 
       RETURN TRUE;

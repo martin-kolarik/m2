@@ -27,16 +27,16 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
 
    PUBLIC FINAL READONLY PROPERTY
       Name : StringsO.CString;
-      Parent : ns.TPNameValuePairs;
       AdviseSource : ns.TPAdviseSource;
    PUBLIC FINAL PROPERTY
+      Parent : ns.TPNameValuePairs;
       Value : iovalue.Value;
       Data : PTR;
 
    PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : ns.TPNameValuePairs ) : BOOLEAN; // Name and Child^.Name HAS TO be the same
+   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; Child : ns.TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN; // Name and Child^.Name HAS TO be the same
    PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN; // removes child
 
    // SELF

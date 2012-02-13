@@ -70,9 +70,9 @@ INTERFACE INameValuePairs( IValueIO );
    // information and structurals
    READONLY PROPERTY
       Name : StringsO.CString;
-      Parent : TPNameValuePairs;
       AdviseSource : TPAdviseSource;
    PROPERTY
+      Parent : TPNameValuePairs; // items are linkable, so Parent must be writable too. On the other side, normal ns SHALL NOT change parents inside items.
       Value : iovalue.Value; // allows simple value access, no result and originator available, can use IValueIO.IO, SHALL call Advise if IAdviseSource is assigned
       Data : PTR; // user data
    READONLY PROPERTY
@@ -83,8 +83,11 @@ INTERFACE INameValuePairs( IValueIO );
    PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : IValueIO; Data : PTR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
-   PROCEDURE Link( CONST Name : StringsO.IString; CONST Child : TPNameValuePairs ) : BOOLEAN; // creates child, although Name can be taken from Child^.Name separating the parameter is more free -- e.g. it allows using of hierarchical names in INamespace implementors
-   PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN; // removes child
+   PROCEDURE Link( CONST Name : StringsO.IString; Child : TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN;
+      // creates child, although Name can be taken from Child^.Name separating the parameter is more free -- e.g. it allows using of hierarchical names in INamespace implementors
+      // use SetParent = TRUE for creating a combined ns structure, FALSE for creating a reference elsewhere into the ns. Each element can only have single parent and, also, the parent has to be set.
+   PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
+      // removes child
 
    // TODO iterator in "default" branch
 
