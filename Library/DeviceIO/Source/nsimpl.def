@@ -1,0 +1,96 @@
+DEFINITION MODULE nsimpl;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   avltree,
+   IOO,
+   iovalue,
+   namevaluepairsimpl,
+   ns,
+   StringsO,
+   Sync;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPSimpleAdviseSource = POINTER TO SimpleAdviseSource;
+
+// storage implementation, no function
+CLASS SimpleAdviseSource IMPLEMENTS ns.IAdviseSource;
+
+   PUBLIC VIRTUAL PROPERTY
+      Advise : ns.TAdvise;
+      AdviseListener : ns.TPAdviseInfo; // for Advise <> advNone
+
+   PRIVATE VAR
+      _Advise : ns.TAdvise := ns.advWithData;
+      _AdviseListener : ns.TPAdviseInfo := NIL;
+
+END SimpleAdviseSource;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPNamespace = POINTER TO Namespace;
+
+// all Name parameters are/can be hierachical
+CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
+
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // INamespace/INameValuePairs/IValueIO
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+
+   // INamespace/INameValuePairs -- looks inside whole namespace, names are separated with '.'
+   PUBLIC VIRTUAL PROCEDURE Get( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Name : StringsO.CString;
+      AdviseSource : ns.TPAdviseSource;
+   PUBLIC VIRTUAL PROPERTY
+      Parent : ns.TPNameValuePairs;
+      Value : iovalue.Value;
+      Data : PTR; // user data
+   PUBLIC VIRTUAL READONLY PROPERTY
+      VisibleToUser : BOOLEAN;
+      HasValue : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; Child : ns.TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+
+   // INamespace
+   PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetFullName( CONST Value : ns.TPNameValuePairs; OUT FullName : StringsO.IString ) : BOOLEAN;
+
+   // SELF
+   PUBLIC WRITEONLY PROPERTY
+      InitializeName : StringsO.CString;
+
+   PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;
+
+   PUBLIC READONLY PROPERTY
+      AccessLock : Sync.PIRLock;
+
+   PRIVATE VAR
+      _Pairs : namevaluepairsimpl.TPNameValuePairsStorage;
+      _Lock : Sync.RWLOCK;
+   PRIVATE PROCEDURE LookupAndDefine( AllowCreation : BOOLEAN; CONST Name : StringsO.IString; OUT Children : ns.TPNameValuePairs; OUT LeafName : StringsO.IString ) : BOOLEAN;
+
+   INITIALLY Namespace();
+   FINALLY Namespace();
+END Namespace;
+
+(*---------------------------------------------------------------------------*)
+// STATIC
+
+PROCEDURE AddContext( CONST Context, Name : StringsO.IString ) : StringsO.CString;
+PROCEDURE RemoveContext( CONST Context, Input : StringsO.IString ) : StringsO.CString;
+
+(*---------------------------------------------------------------------------*)
+
+END nsimpl.

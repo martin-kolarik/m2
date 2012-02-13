@@ -23,11 +23,15 @@
             <item lang="en-US">Incorrect output with condition format. The valid one is &lt;output&gt;[&lt;condition&gt;], where square bracket part is optional:</item>
             <item lang="cs-CZ">Nesprávný formát výstupu s podmínkou. Správný zápis je &lt;output&gt;[&lt;condition&gt;], přičemž blok v hranatých závorkách je volitelný:</item>
         </string>
-        <string name="_OutputGroupAddressNotFound">
+        <string name="_ContextNotFound">
+            <item lang="en-US">Context is not known:</item>
+            <item lang="cs-CZ">Konext není známý:</item>
+        </string>
+        <string name="_OutputAddressNotFound">
             <item lang="en-US">An item coresponding to given output address does not exist:</item>
             <item lang="cs-CZ">Prvek (výstup) s uvedenou adresou neexistuje:</item>
         </string>
-        <string name="_ConditionGroupAddressNotFound">
+        <string name="_ConditionAddressNotFound">
             <item lang="en-US">An item coresponding to given condition address does not exist:</item>
             <item lang="cs-CZ">Prvek (podmínka) s uvedenou adresou neexistuje:</item>
         </string>
@@ -35,11 +39,11 @@
             <item lang="en-US">Missing input values addresses (inner setpoint, outer actual)</item>
             <item lang="cs-CZ">Chybí adresy vstupních prvků (žádaná hodnota, venkovní teplota)</item>
         </string>
-        <string name="_SetpointGroupAddressNotFound">
+        <string name="_SetpointAddressNotFound">
             <item lang="en-US">An item coresponding to given setpoint address does not exist:</item>
             <item lang="cs-CZ">Prvek (žádaná hodnota) s uvedenou adresou neexistuje:</item>
         </string>
-        <string name="_OuterGroupAddressNotFound">
+        <string name="_OuterAddressNotFound">
             <item lang="en-US">An item coresponding to given outer temperature address does not exist:</item>
             <item lang="cs-CZ">Prvek (venkovní teplota) s uvedenou adresou neexistuje:</item>
         </string>
@@ -64,7 +68,7 @@
             <item lang="en-US">Write delay must be at least 1 (second)</item>
             <item lang="cs-CZ">Zpoždění zápisu musí být nejméně 1 (sekunda)</item>
         </string>
-        <string name="_GroupAddressNotFound">
+        <string name="_AddressNotFound">
             <item lang="en-US">An item corresponding to given address does not exist:</item>
             <item lang="cs-CZ">Prvek s uvedenou adresou neexistuje:</item>
         </string>

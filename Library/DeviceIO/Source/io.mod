@@ -6,7 +6,19 @@ CLASS IMPLEMENTATION CDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
+   BEGIN
+      IF AdviseSink <> NIL THEN
+         AdviseSink^.OnAdvise( Originator, Result, Item, Value );
+      END;
+      IF DataInfoSink <> NIL THEN
+         DataInfoSink^.OnAdvise( Originator, Result, Item, Value );
+      END;
+   END OnAdvise;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
    BEGIN
       IF DataInfoSink <> NIL THEN
          DataInfoSink^.OnError( Direction, Source, Result, Item, DeviceSpecificError );
@@ -15,24 +27,12 @@ CLASS IMPLEMENTATION CDataInfo;
   
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnIOCompleted( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
       IF DataInfoSink <> NIL THEN
-         DataInfoSink^.OnIO( Direction, Source, Result, Item, DeviceSpecificError, Value );
+         DataInfoSink^.OnIOCompleted( Direction, Source, Result, Item, DeviceSpecificError, Value );
       END;
-   END OnIO;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
-   BEGIN
-      IF AdviseSink <> NIL THEN
-         AdviseSink^.OnAdvise( Source, Result, Item, Value );
-      END;
-      IF DataInfoSink <> NIL THEN
-         DataInfoSink^.OnAdvise( Source, Result, Item, Value );
-      END;
-   END OnAdvise;
+   END OnIOCompleted;
 
 (*---------------------------------------------------------------------------*)
 
@@ -54,9 +54,9 @@ CLASS CCompletionDataInfoSink IMPLEMENTS IDataInfo;
       _Value : iovalue.Value;
 
    // IDataInfo      
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnIOCompleted( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
 
    // SELF
    PUBLIC PROCEDURE Reset();
@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CCompletionDataInfoSink;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
       // dummy
    END OnAdvise;
@@ -83,14 +83,14 @@ CLASS IMPLEMENTATION CCompletionDataInfoSink;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnIOCompleted( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
       _Result := Result[0];
       IF ( _Result = Sync.arCompleted ) AND ( Direction = IOO.dirRead ) THEN
          _Value := Value[0];
       END;
       _Signal.Signal();
-   END OnIO;
+   END OnIOCompleted;
 
 (*---------------------------------------------------------------------------*)
 
@@ -179,21 +179,67 @@ CLASS IMPLEMENTATION AItemizedIO;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROPERTY Capabilities GET : TCapabilities;
-	BEGIN
-		RETURN TCapabilities{};
-	END Capabilities;
+   PUBLIC VIRTUAL PROPERTY Capabilities GET : TCapabilities;
+   BEGIN
+      RETURN TCapabilities{};
+   END Capabilities;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
-	BEGIN
-		RETURN Sync.arCannotStart;
-	END IOha;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN Sync.arCannotStart;
+   END IOha;
 
 (*---------------------------------------------------------------------------*)
 
 END AItemizedIO;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CSimpleStartStopHandler;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Running GET : BOOLEAN;
+   BEGIN
+      RETURN _Running.State;
+   END Running;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE Start() : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
+   BEGIN
+      IF NOT _Running.Signal() THEN
+         RETURN Sync.arAlreadyCompleted;
+      ELSIF StartStopSink = NIL THEN
+         RETURN Sync.arCompleted;
+      END;
+      Result := StartStopSink^.OnStart();
+      IF Result NOT IN Sync.arsCompletions THEN // in case of error revert signal back
+         _Running.Reset();
+      END;
+      RETURN Result;
+   END Start;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE Stop();
+   BEGIN
+      IF NOT _Running.Reset() THEN
+         RETURN;
+      ELSIF StartStopSink = NIL THEN
+         RETURN;
+      END;
+      StartStopSink^.OnStop();
+   END Stop;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+END CSimpleStartStopHandler;
 
 (*===========================================================================*)
 

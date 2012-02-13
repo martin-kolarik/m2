@@ -15,6 +15,7 @@ IMPORT
    INIFile,
    maps,
    ns,
+   nsimpl,
    Texts;
 
 (*================================================================================*)
@@ -26,10 +27,9 @@ CLASS CItem;
    LOCAL PROCEDURE ToString() : StringsO.CString; // for debugging purposes, returns next tick time
 
    LOCAL VAR
-      Address : StringsO.CString;
-      Hash : ns.THash := ns.hashINVALID;
       Condition : BOOLEAN := TRUE;
-      ConditionHash : ns.THash := ns.hashINVALID;
+      ConditionPairs : ns.TPNameValuePairs := NIL;
+      Pairs : ns.TPNameValuePairs := NIL;
       Value : iovalue.Value;
       ShouldTickAt : datetime.DateTime;
 
@@ -98,6 +98,7 @@ CONST
    CALENDAR_PERIOD = 20000; // 20 second
    MSG_WRITE = msghandler.MSG_BASE;
    CFG_SECTION = L"week_calendar";
+   CFG_CONTEXT = L"context";
 
 CLASS IMPLEMENTATION CWeekCalendarFunction;
 
@@ -119,7 +120,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    VAR
       item : TPItem;
       i : CARDINAL;
@@ -136,7 +137,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
             _Items.Reset();
             WHILE _Items.MoveNext() DO
                item := _Items.Current;
-               IF item^.ConditionHash = Item[i] THEN
+               IF item^.ConditionPairs = Item[i] THEN
                   item^.Condition := Value[i].Boolean;
                   Reanalyze( item );
                END;
@@ -164,17 +165,18 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
    VAR
       condition : StringsO.CString;
       conditionFound : BOOLEAN;
-      conditionHash : ns.THash;
+      conditionPairs : ns.TPNameValuePairs;
+      context : StringsO.CString;
       day : Day;
       days : Days;
       dt : datetime.DateTime;
       ES : PTR;
-      hash : ns.THash;
       i : CARDINAL;
       iniFile : INIFile.TPINIFile;
       item : TPItem;
       key : StringsO.CString;
       Line : CARDINAL;
+      pairs : ns.TPNameValuePairs;
       pieces : CARDINAL;
       section : StringsO.CString;
       valueTime : ARRAY [0..15] OF WCHAR;
@@ -182,12 +184,12 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       values : ARRAY [0..11] OF StringsO.CString;
       weekStart : datetime.DateTime;
    BEGIN
-      IF Device = NIL THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
+      IF DataSource = NIL THEN
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
          RETURN Sync.arCannotStart;
       
       ELSIF HIGH( Source ) < 0 THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
 
       ELSIF Source[0].Type = device.citINIFile THEN
@@ -199,12 +201,12 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          section.Assign( Source[0].section^ ); // load ordered section
 
       ELSE
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
       END;
 
       IF NOT iniFile^.SetSection( OA( section.Length-1, section.Data )) THEN
-	      Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
+         Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
          RETURN Sync.arCompleted;
       END;
       // here the inifile has proper section set
@@ -215,15 +217,24 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       ES := 0;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
 
+         IF key.EqualsOA( CFG_CONTEXT ) THEN
+            IF DataSource^.NS()^.Contains( nsimpl.AddContext( context, value )) THEN
+               context := value;
+            ELSE
+               Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+            END;
+            CONTINUE;
+         END;
+
          // key/output = value, hh:mm [, days]
          IF NOT SplitOutputAndCondition( key, OUT key, OUT conditionFound, OUT condition ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectOutputConditionFormat ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
-         ELSIF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
+         ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputAddressNotFound ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
-         ELSIF conditionFound AND NOT Device^.Mapper()^.NameToHash( condition, OUT conditionHash ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ConditionGroupAddressNotFound ] ), OA( key.Length-1, key.Data ));
+         ELSIF conditionFound AND NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, condition ), OUT conditionPairs ) THEN
+            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ConditionAddressNotFound ] ), OA( key.Length-1, key.Data ));
             CONTINUE;
          END;
          
@@ -234,7 +245,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          
          // check mandatory parameters (value, time)
          IF pieces < 2 THEN
-	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
+            Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
             CONTINUE;
          END;
 
@@ -269,7 +280,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
                   days := days + Days{ Saturday };
                ELSIF values[i].StartsWithOA( L"su" ) THEN
                   days := days + Days{ Sunday };
-               ELSIF values[i].StartsWithOA( L"wee" ) THEN // week
+               ELSIF values[i].StartsWithOA( L"wee" ) THEN // weekend
                   days := days + Days{ Saturday, Sunday };
                ELSIF values[i].StartsWithOA( L"wo" ) THEN // work
                   days := days + Days{ Monday, Tuesday, Wednesday, Thursday, Friday };
@@ -284,11 +295,10 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
             IF day IN days THEN
                NEW( item );
                item^.Initialize( weekStart, CARDINAL( day ), dt.Hour, dt.Minute );
-               item^.Address := key;
-               item^.Hash := hash;
+               item^.Pairs := pairs;
                item^.Value.String := values[0];
                IF conditionFound THEN
-                  item^.ConditionHash := conditionHash;
+                  item^.ConditionPairs := conditionPairs;
                END;
                _Items.Add( item, 0 );
             END;
@@ -307,8 +317,8 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
    BEGIN
       StopTimeout( REF _CalendarPeriod );
 
-      IF Device <> NIL THEN
-         Device^.UnadviseAll( ADR( SELF ));
+      IF DataSource <> NIL THEN
+         DataSource^.UnadviseAll( ADR( SELF ));
       END;
    
       _Items.Reset();
@@ -325,6 +335,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
    VAR
       conditionValue : iovalue.Value;
       item, furthest : TPItem;
+      name : StringsO.CString;
       now : datetime.DateTime := datetime.NowLocal();
       outputs : maps.CPtrMap;
       result : Sync.TAsyncResult;
@@ -336,11 +347,12 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          item^.ShouldTick( now );
 
          // first evaluate condition
-         IF item^.ConditionHash <> ns.hashINVALID THEN
-            result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirRead, item^.ConditionHash, REF conditionValue, NIL );
+         IF item^.ConditionPairs <> NIL THEN
+            result := item^.ConditionPairs^.ValueIO( ADR( SELF ), item^.ConditionPairs, IOO.dirRead, REF conditionValue );
             IF result NOT IN Sync.arsCompletions THEN // log error
-	            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read condition value:", OA( item^.Address.Length-1, item^.Address.Data ));
-	            Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
+               DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
+               Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read condition value:", OA( name.Length-1, name.Data ));
+               Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
                CONTINUE;
             END;
             item^.Condition := conditionValue.Boolean;
@@ -351,8 +363,8 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
-         IF NOT outputs.Contains( item^.Hash ) THEN
-            outputs.Add( item^.Hash, 0 );
+         IF NOT outputs.Contains( item^.Pairs ) THEN
+            outputs.Add( item^.Pairs, 0 );
          END;
       END; // WHILE
 
@@ -360,7 +372,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
-         outputs.Get( item^.Hash, OUT furthest );
+         outputs.Get( item^.Pairs, OUT furthest );
          IF furthest = NIL THEN
             furthest := item;
          ELSIF furthest^.ShouldTickAt >= item^.ShouldTickAt THEN
@@ -370,8 +382,8 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          END;
          // take new furthest item
          furthest := item;
-         outputs.Remove( item^.Hash ); // slow!!, but there is no way how to change DATA of some item in the map
-         outputs.Add( item^.Hash, furthest );
+         outputs.Remove( item^.Pairs ); // slow!!, but there is no way how to change DATA of some item in the map
+         outputs.Add( item^.Pairs, furthest );
       END; // WHILE
 
       // emit current values from outputs
@@ -385,13 +397,13 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       StartTimeout( CALENDAR_PERIOD, FALSE, REF _CalendarPeriod );
 
       // register advises from condition addresses
-      Device^.JoinClient( ADR( SELF ), io.advWithData );
+      DataSource^.JoinClient( ADR( SELF ), ns.advWithData );
       
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
-         IF item^.ConditionHash <> ns.hashINVALID THEN
-            Device^.AdviseHash( ADR( SELF ), item^.ConditionHash );
+         IF item^.ConditionPairs <> NIL THEN
+            DataSource^.AdviseHash( ADR( SELF ), item^.ConditionPairs );
          END;
       END; // WHILE
    END OnStart;
@@ -403,8 +415,8 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       _PoolDelegate.TimeoutSink := NIL;
       StopTimeout( REF _CalendarPeriod );
 
-      Device^.UnadviseAll( ADR( SELF ));
-      Device^.LeaveClient( ADR( SELF ));
+      DataSource^.UnadviseAll( ADR( SELF ));
+      DataSource^.LeaveClient( ADR( SELF ));
    END OnStop;
    
 (*--------------------------------------------------------------------------------*)
@@ -427,10 +439,15 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
    PRIVATE PROCEDURE Enqueue( item : TPItem );
    VAR
+      name : StringsO.CString;
       s : StringsO.CString;
    BEGIN
       s := item^.ToString();
-      Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Marking item for write:", OA( item^.Address.Length-1, item^.Address.Data ), L"at", OA( s.Length-1, s.Data ));
+
+      IF NOT Logger^.FilteredFastCheck( log.lcInfo, 0 ) THEN
+         DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
+         Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Marking item for write:", OA( name.Length-1, name.Data ), L"at", OA( s.Length-1, s.Data ));
+      END;
 
       _WriteQueue.Enqueue( item );
    END Enqueue;
@@ -440,20 +457,25 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
    PRIVATE PROCEDURE Write();
    VAR
       item : TPItem;
+      name : StringsO.CString;
       result : Sync.TAsyncResult;
       value : StringsO.CString;
    BEGIN
       WHILE _WriteQueue.Dequeue( OUT item ) DO
 
-         result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirWrite, item^.Hash, REF item^.Value, NIL );
+         result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirWrite, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
-	         Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write value to device:", OA( item^.Address.Length-1, item^.Address.Data ));
-	         Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
+            DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write value to device:", OA( name.Length-1, name.Data ));
+            Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
             CONTINUE;
          END;
 
-         value := item^.Value.String;
-         Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value written:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
+         IF NOT Logger^.FilteredFastCheck( log.lcInfo, 0 ) THEN
+            DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
+            value := item^.Value.String;
+            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value written:", OA( name.Length-1, name.Data ), L"=", OA( value.Length-1, value.Data ));
+         END;
       END; // _WriteQueue
    END Write;
 
@@ -469,7 +491,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
-         IF item^.Hash <> analyzedItem^.Hash THEN
+         IF item^.Pairs <> analyzedItem^.Pairs THEN
             CONTINUE;
          END;
 

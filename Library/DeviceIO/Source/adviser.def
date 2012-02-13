@@ -19,72 +19,73 @@ IMPORT
 
 TYPE
    TPAdviser = POINTER TO CAdviser;
-   TPAdvisedDevice = POINTER TO CAdvisedDevice; // wrapper around device with CAdviser functionality
+   TPAdvisedDataSource = POINTER TO CAdvisedDataSource; // wrapper around data source with CAdviser functionality
    
 (*---------------------------------------------------------------------------*)
 
-CLASS CAdviser IMPLEMENTS io.IAdviseInfo;
+CLASS CAdviser IMPLEMENTS ns.IAdviseInfo, io.IStartStopControl, io.IStartStopHandler;
+
+   // IDisposable
+   PUBLIC PROCEDURE Dispose();
+   
+   // IAdviseInfo
+   PUBLIC FINAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
+
+   // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+
+   // IStartStopHandler
+   PUBLIC VIRTUAL PROCEDURE OnStart() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE OnStop();
+
+   // SELF
+   PUBLIC PROPERTY
+      DataSource : device.TPDataSource; // this datasource will be advised
+   PUBLIC READONLY PROPERTY
+      Empty : BOOLEAN;
+      
+   PUBLIC PROCEDURE JoinClient( Client : ns.TPAdviseInfo; Advise : ns.TAdvise );
+   PUBLIC PROCEDURE LeaveClient( Client : ns.TPAdviseInfo );
+   
+   PUBLIC PROCEDURE Advise( Client : ns.TPAdviseInfo; CONST Name : StringsO.IString ) : BOOLEAN; // returns if Name is known
+   PUBLIC PROCEDURE AdviseHash( Client : ns.TPAdviseInfo; Hash : ns.THash ) : BOOLEAN; // does not checks for Hash validity, if the Hash is invalid, nothing will be advised
+   PUBLIC PROCEDURE AdviseAll( Client : ns.TPAdviseInfo );
+   PUBLIC PROCEDURE Unadvise( Client : ns.TPAdviseInfo; CONST Name : StringsO.IString ) : BOOLEAN; // returns if Name is known
+   PUBLIC PROCEDURE UnadviseHash( Client : ns.TPAdviseInfo; Hash : ns.THash ) : BOOLEAN; // does not checks for Hash validity
+   PUBLIC PROCEDURE UnadviseAll( Client : ns.TPAdviseInfo );
+   
+   // helpers
+   PRIVATE PROCEDURE DoAdvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; Hash : ns.THash ) : BOOLEAN;
+   PRIVATE PROCEDURE DoUnadvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; Hash : ns.THash; UnadviseCompletely : BOOLEAN ) : BOOLEAN;
 
    PRIVATE VAR
+      _StartStopHandler : io.CSimpleStartStopHandler;
       _Advising : Sync.SIGNAL;
       _OnAdviseLock : Sync.LOCK; // to serialize OnAdvise processing, it uses loops over lists and trees and if device sends advises from more threads it could fail
       _Clients : maps.CPtrMap; // map of client/PtrList of joined clients
       _Advised : maps.CPtrMap; // map of item/PtrArray of clients/client data
    INTERNAL VAR
-      _Device : device.TPDevice;
-   
-   // IAdviseInfo
-   PUBLIC FINAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+      _DataSource : device.TPDataSource;
 
-   // SELF
-   PUBLIC PROPERTY
-      Device : device.TPDevice; // this device will be advised
-   PUBLIC READONLY PROPERTY
-      Empty : BOOLEAN;
-      
-   PUBLIC PROCEDURE JoinClient( Client : io.TPIAdviseInfo; Advise : io.TAdvise );
-   PUBLIC PROCEDURE LeaveClient( Client : io.TPIAdviseInfo );
-   
-   PUBLIC PROCEDURE Advise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN; // returns if Name is known
-   PUBLIC PROCEDURE AdviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN; // does not checks for Hash validity, if the Hash is invalid, nothing will be advised
-   PUBLIC PROCEDURE AdviseAll( Client : io.TPIAdviseInfo );
-   PUBLIC PROCEDURE Unadvise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN; // returns if Name is known
-   PUBLIC PROCEDURE UnadviseHash( Client : io.TPIAdviseInfo; Hash : ns.THash ) : BOOLEAN; // does not checks for Hash validity
-   PUBLIC PROCEDURE UnadviseAll( Client : io.TPIAdviseInfo );
-   
-   PUBLIC PROCEDURE Start();
-   PUBLIC PROCEDURE Stop();
-
-   PUBLIC PROCEDURE Dispose();
-
-   // helpers
-   PRIVATE PROCEDURE DoAdvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; Hash : ns.THash ) : BOOLEAN;
-   PRIVATE PROCEDURE DoUnadvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; Hash : ns.THash; UnadviseCompletely : BOOLEAN ) : BOOLEAN;
 END CAdviser;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CAdvisedDevice( CAdviser ) IMPLEMENTS device.IDevice; // wrapper around device with CAdviser functionality
+CLASS CAdvisedDataSource( CAdviser ) IMPLEMENTS device.IDataSource; // wrapper around data source with CAdviser functionality
 
-   // IObject
+   // IDataSource
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+
    PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC VIRTUAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+      DataSourceCapabilities : device.TCapabilities;
 
-   // IDevice
-   PUBLIC VIRTUAL READONLY PROPERTY
-      DeviceCapabilities : device.TCapabilities;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
 
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-
-   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
-
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-
-END CAdvisedDevice;
+END CAdvisedDataSource;
 
 (*---------------------------------------------------------------------------*)
 

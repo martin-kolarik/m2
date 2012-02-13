@@ -263,16 +263,8 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY LicenceExpires GET : datetime.DateTime;
-   VAR
-      startTime : datetime.DateTime;
    BEGIN
-      // no need to sync
-      IF _KNX^.PResult^.Suspended THEN
-         startTime.FromJD( _StartedTime, 0, 0 );
-         RETURN startTime;
-      ELSE
-         RETURN _KNX^.PResult^.Expires;
-      END;
+      RETURN _Result^.Expires;
    END LicenceExpires;
 
 (*--------------------------------------------------------------------------------*)
@@ -284,7 +276,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       s : StringsO.CString;
    BEGIN
       // no need to sync
-      _KNX^.PResult^.GetLicences( OUT licences );
+      _Result^.GetLicences( OUT licences );
       IF licences.GetFirst( OUT s, OUT ptrType ) THEN
          RETURN lec.TLicenceType( LOPTRLONGWORD( ptrType ));
       ELSE
@@ -301,7 +293,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       s : StringsO.CString;
    BEGIN
       // no need to sync
-      _KNX^.PResult^.GetLicences( OUT licences );
+      _Result^.GetLicences( OUT licences );
       IF NOT licences.GetFirst( OUT s, OUT ptrType ) THEN
          s.Clear();
       END;
@@ -478,14 +470,14 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    PUBLIC PROCEDURE SetValue( CONST originator : inetaddr.INETADDR; CONST name, value : StringsO.IString ) : BOOLEAN;
    VAR
       d : StringsO.CString;
-      hash : ns.THash;
       ia : ARRAY [0..63] OF WCHAR;
       Originator : io.CSimpleOriginator;
+      pvalue : ns.TPNameValuePairs;
       s : StringsO.CString;
       Value : iovalue.Value;
    BEGIN
-      // no need to sync, NameToHash is be thread safe
-      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
+      // no need to sync, Get must be thread safe
+      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       s.Assign( value );
@@ -496,23 +488,23 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       Originator.SetDescription( d );
 
       // no need to sync, IOh is be thread safe
-      RETURN _KNX^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) IN Sync.arsCompletions;
+      RETURN pvalue^.ValueIO( ADR( Originator ), pvalue, IOO.dirWrite, REF Value ) IN Sync.arsCompletions;
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    VAR
-      hash : ns.THash;
       io : iovalue.Value;
+      pvalue : ns.TPNameValuePairs;
       s : StringsO.CString;
    BEGIN
-      // no need to sync, NameToHash is be thread safe
-      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
+      // no need to sync, Get must be thread safe
+      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
-      IF _KNX^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+      IF pvalue^.ValueIO( NIL, pvalue, IOO.dirRead, REF io ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
       s := io.String;
@@ -524,16 +516,16 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
    PUBLIC PROCEDURE GetWixValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    VAR
-      hash : ns.THash;
       io : iovalue.Value;
+      pvalue : ns.TPNameValuePairs;
       s : StringsO.CString;
    BEGIN
       // no need to sync, NameToHash is be thread safe
-      IF NOT _KNX^.NameToHash( name, OUT hash ) THEN
+      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
-      IF _KNX^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+      IF pvalue^.ValueIO( NIL, pvalue, IOO.dirRead, REF io ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
       
@@ -880,7 +872,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; Result : lec.TPResult; KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
       snProject = L"project";
          knName = L"name";
@@ -908,6 +900,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       Stop();
 
       _Context.FromOA( ContextName );
+      _Result := Result;
       _KNX := KNX;
       _DeviceCount := MIN2( HIGH( DeviceNames ), HIGH( Devices )) + 1;
       _DeviceNames := ADR( DeviceNames );

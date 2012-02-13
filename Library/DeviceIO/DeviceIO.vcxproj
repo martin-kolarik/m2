@@ -110,11 +110,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="Source\adviser.mod" />
+    <None Include="Source\compositedatasource.def" />
+    <None Include="Source\compositedatasource.mod" />
     <None Include="Source\io.mod" />
     <None Include="Source\iovalue.mod" />
+    <None Include="Source\namevaluepairsimpl.def" />
+    <None Include="Source\namevaluepairsimpl.mod" />
     <None Include="Source\ns.mod" />
-    <None Include="Source\nsitem.mod" />
-    <None Include="Source\nslookup.mod" />
+    <None Include="Source\nsimpl.def" />
+    <None Include="Source\nsimpl.mod" />
     <None Include="Source\sdap.mod" />
     <None Include="Source\xmlsocket.mod" />
     <None Include="Source\adviser.def" />
@@ -124,11 +128,11 @@
     <None Include="Source\iocached.def" />
     <None Include="Source\iovalue.def" />
     <None Include="Source\ns.def" />
-    <None Include="Source\nsitem.def" />
-    <None Include="Source\nslookup.def" />
     <None Include="Source\sdap.def" />
     <None Include="Source\xmlsocket.def" />
     <None Include="Test\TAdviser.mod" />
+    <None Include="Test\TNamespace.mod" />
+    <None Include="Test\TNameValuePair.mod" />
     <None Include="Test\TSDValue.mod" />
     <None Include="DeviceIO.proj" />
   </ItemGroup>

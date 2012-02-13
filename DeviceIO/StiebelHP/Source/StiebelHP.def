@@ -141,7 +141,7 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS iobject.IObject, device.IDevice;
    PRIVATE VAR
       _NS : CNS;
       _IO : CIO;
