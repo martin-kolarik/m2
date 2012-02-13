@@ -343,6 +343,7 @@ CLASS IMPLEMENTATION CAdviser;
 
 BEGIN
    _DataSource := NIL;
+   _StartStopHandler.StartStopSink := ADR( SELF );
 FINALLY
    Dispose();
 END CAdviser;
