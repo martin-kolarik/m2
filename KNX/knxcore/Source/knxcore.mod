@@ -778,23 +778,23 @@ CLASS IMPLEMENTATION CKNXServer;
          kvPHigh             = L'high';
          kvPAlarm            = L'alarm';
       // knObjectType
-        kvLogNoChange        = L"log_always";
-        kvLogOnChange        = L"log_on_change";
-        kvMultipleAddresses  = L"multiple_addresses";
-        kvESFStrict          = L'esf_strict';
-        kvESFIgnore          = L'esf_ignore';
-        kvESFAdapt           = L'esf_adapt';
+         kvLogNoChange       = L"log_always";
+         kvLogOnChange       = L"log_on_change";
+         kvMultipleAddresses = L"multiple_addresses";
+         kvESFStrict         = L'esf_strict';
+         kvESFIgnore         = L'esf_ignore';
+         kvESFAdapt          = L'esf_adapt';
       knBlock                = L'block';
       knType                 = L'type';
       snFormats              = L'formats';
-      knDateAsString         = L'date_as_string';
-      knDateFormat           = L'date_format';
-      knTimeAsString         = L'time_as_string';               
-      knTimeFormat           = L'time_format';
+         knDateAsString      = L'date_as_string';
+         knDateFormat        = L'date_format';
+         knTimeAsString      = L'time_as_string';               
+         knTimeFormat        = L'time_format';
       snControl              = L'control';
-      knDate                 = L'date';
-      knTime                 = L'time';
-      knDateAndTimePeriod    = L'date_time_push_period';
+         knDate              = L'date';
+         knTime              = L'time';
+         knDateAndTimePeriod = L'date_time_push_period';
 
    //----------
 
@@ -1690,27 +1690,44 @@ CLASS IMPLEMENTATION CKNXServer;
       
       // read control
       IF TS.SetSection( snControl ) THEN
-         IF NOT FindBehaviour( StringsO.FromOA( bnSource ), Priority, BFlags ) THEN
-            Priority := knx_def.priorityNormal;
-            BFlags := knx_def.TA_ObjectFlags{};
-         END;
-         IF TS.GetKeyStr( knDate, OUT ErrorLine, OUT so ) THEN
-            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitDate, TObjectType{ objtDate } ) THEN
-               GOTO Fail;
-            END;
-         END;
-         IF TS.GetKeyStr( knTime, OUT ErrorLine, OUT so ) THEN
-            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitTime, TObjectType{ objtTime } ) THEN
-               GOTO Fail;
-            END;
-         END;
+          _DateAndTimePushPeriod := 1800000; // default
 
          IF NOT TS.GetKeyInt( knDateAndTimePeriod, OUT ErrorLine, OUT _DateAndTimePushPeriod ) THEN
             _DateAndTimePushPeriod := 1800000;
          ELSIF _DateAndTimePushPeriod < 600000 THEN // _ForceReadPeriod cannot be smaller than 10 minute
             _DateAndTimePushPeriod := 600000;
          END;
-      END;
+
+         IF NOT FindBehaviour( StringsO.FromOA( bnSource ), Priority, BFlags ) THEN
+            Priority := knx_def.priorityNormal;
+            BFlags := knx_def.TA_ObjectFlags{};
+         END;
+
+         // read date/time outputs themselves
+         ES := 0;
+         WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT so, OUT p ) DO
+
+            IF p.EqualsOA( knDate ) THEN
+               IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitDate, TObjectType{ objtDate } ) THEN
+                  GOTO Fail;
+               END;
+
+            ELSIF p.EqualsOA( knTime ) THEN
+               IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitTime, TObjectType{ objtTime } ) THEN
+                  GOTO Fail;
+               END;
+
+            ELSIF so.EqualsOA( knDateAndTimePeriod ) THEN
+               CONTINUE; // already read
+
+            ELSE
+               ErrorMessage.AppendOA( OAsz( R[ Texts._ControlDefinesDateTimeAndPushPeriodOnly ] ));
+               AppendErrorId( REF ErrorMessage, so );
+               GOTO Fail;
+            END;
+
+         END; // WHILE
+      END; // IF snControl
 
       // handle connection and promiscuous mode
       IF NOT _CacheOnlyMode THEN

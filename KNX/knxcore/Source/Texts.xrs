@@ -150,6 +150,10 @@
             <item lang="en-US">Bad adjacent group address</item>
             <item lang="cs-CZ">Chybná doplňková skupinová adresa</item>
         </string>
+        <string name="_ControlDefinesDateTimeAndPushPeriodOnly">
+            <item lang="en-US">[control] section can contain only date/time outputs and date_time_push_period parameter</item>
+            <item lang="cs-CZ">Sekce [control] může obsahovat pouze definice výstupů a parametr date_time_push_period</item>
+        </string>
 
     </strings>
 </resources>
