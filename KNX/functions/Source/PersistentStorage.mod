@@ -300,6 +300,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       key : StringsO.CString;
       pairs : ns.TPNameValuePairs;
       s : StringsO.CString;
+      someError : BOOLEAN := FALSE;
       storagePath : StringsO.CString;
       value : StringsO.CString;
       writeDelay : INTEGER;
@@ -335,6 +336,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
                context := value;
             ELSE
                Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+               someError := TRUE;
             END;
             CONTINUE;
          END;
@@ -349,7 +351,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
          // key/output = value
          IF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs ) THEN
-            Log^.LogSSSS( log.lcError, 0, LOGNAME, LOGNAME, OAsz( R^[ Texts._AddressNotFound ] ), OA( key.Length-1, key.Data ), L"" );
+            Log^.LogSSSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._AddressNotFound ] ), OA( key.Length-1, key.Data ), L"", L"" );
+            someError := TRUE;
             CONTINUE;
          END;
          
@@ -361,7 +364,11 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          _Items.Add( item, 0 );
       END; // WHILE
 
-      RETURN Sync.arCompleted;
+      IF someError THEN
+         RETURN Sync.arCannotStart;
+      ELSE
+         RETURN Sync.arCompleted;
+      END;
    END LoadData;
 
 (*--------------------------------------------------------------------------------*)

@@ -148,6 +148,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       s : StringsO.CString;
       section : StringsO.CString;
       slope : LONGREAL;
+      someError : BOOLEAN := FALSE;
       value : StringsO.CString;
       values : ARRAY [0..3] OF StringsO.CString;
    BEGIN
@@ -186,6 +187,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
                context := value;
             ELSE
                Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+               someError := TRUE;
             END;
             CONTINUE;
          END;
@@ -193,6 +195,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          // key/output = wish/input, outer/input [, slope/parameter [, offset/parameter]]
          IF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs[0] ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputAddressNotFound ] ), OA( s.Length-1, s.Data ));
+            someError := TRUE;
             CONTINUE;
          END;
          
@@ -204,12 +207,15 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          // check mandatory parameters (wish, outer)
          IF pieces < 2 THEN
             Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
+            someError := TRUE;
             CONTINUE;
          ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, values[0] ), OUT pairs[1] ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SetpointAddressNotFound ] ), OA( values[0].Length-1, values[0].Data ));
+            someError := TRUE;
             CONTINUE;
          ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, values[1] ), OUT pairs[2] ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OuterAddressNotFound ] ), OA( values[1].Length-1, values[1].Data ));
+            someError := TRUE;
             CONTINUE;
          END;
          
@@ -218,15 +224,18 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          IF pieces > 2 THEN
             IF NOT values[2].ToLONGREAL( OUT slope ) THEN
                Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SlopeIsNotANumber ] ), OA( values[2].Length-1, values[2].Data ));
+               someError := TRUE;
                CONTINUE;
             ELSIF ( slope < 0.2 ) OR ( slope > 3.5 ) THEN
                Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SlopeOutOfRange ] ));
+               someError := TRUE;
                CONTINUE;
             END;
          END;
          offset := DEFAULT_OFFSET;
          IF ( pieces > 3 ) AND NOT values[3].ToLONGREAL( OUT offset ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OffsetIsNotANumber ] ), OA( values[3].Length-1, values[3].Data ));
+            someError := TRUE;
             CONTINUE;
          END;
          
@@ -240,8 +249,12 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          curve^.OuterActualTemperature := pairs[2];
          _Curves.Add( curve, 0 );
       END; // WHILE
-      
-      RETURN Sync.arCompleted;
+
+      IF someError THEN
+         RETURN Sync.arCannotStart;
+      ELSE      
+         RETURN Sync.arCompleted;
+      END;
    END Configure; 
    
 (*--------------------------------------------------------------------------------*)

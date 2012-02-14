@@ -179,6 +179,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       pairs : ns.TPNameValuePairs;
       pieces : CARDINAL;
       section : StringsO.CString;
+      someError : BOOLEAN := FALSE;
       valueTime : ARRAY [0..15] OF WCHAR;
       value : StringsO.CString;
       values : ARRAY [0..11] OF StringsO.CString;
@@ -222,6 +223,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
                context := value;
             ELSE
                Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+               someError := TRUE;
             END;
             CONTINUE;
          END;
@@ -229,12 +231,15 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          // key/output = value, hh:mm [, days]
          IF NOT SplitOutputAndCondition( key, OUT key, OUT conditionFound, OUT condition ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectOutputConditionFormat ] ), OA( key.Length-1, key.Data ));
+            someError := TRUE;
             CONTINUE;
          ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputAddressNotFound ] ), OA( key.Length-1, key.Data ));
+            someError := TRUE;
             CONTINUE;
          ELSIF conditionFound AND NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, condition ), OUT conditionPairs ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ConditionAddressNotFound ] ), OA( key.Length-1, key.Data ));
+            someError := TRUE;
             CONTINUE;
          END;
          
@@ -246,6 +251,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
          // check mandatory parameters (value, time)
          IF pieces < 2 THEN
             Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
+            someError := TRUE;
             CONTINUE;
          END;
 
@@ -255,6 +261,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
             NOT dt.FromStringOA( valueTime, L"H:m" ) AND
             NOT dt.FromStringOA( valueTime, L"HH:m" ) THEN
             Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectTimeFormat ] ), OA( values[1].Length-1, values[1].Data ));
+            someError := TRUE;
             CONTINUE;
          END;
          
@@ -286,6 +293,7 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
                   days := days + Days{ Monday, Tuesday, Wednesday, Thursday, Friday };
                ELSE // error
                   Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._IncorrectDaySpecification ] ), OA( values[i].Length-1, values[i].Data ));
+                  someError := TRUE;
                END; // what has been found
             END; // FOR
 
@@ -306,7 +314,11 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
       END; // WHILE line/key
 
-      RETURN Sync.arCompleted;
+      IF someError THEN
+         RETURN Sync.arCannotStart;
+      ELSE
+         RETURN Sync.arCompleted;
+      END;
    END Configure; 
    
 (*--------------------------------------------------------------------------------*)

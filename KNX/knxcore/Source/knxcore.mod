@@ -1690,11 +1690,9 @@ CLASS IMPLEMENTATION CKNXServer;
       
       // read control
       IF TS.SetSection( snControl ) THEN
-          _DateAndTimePushPeriod := 1800000; // default
-
          IF NOT TS.GetKeyInt( knDateAndTimePeriod, OUT ErrorLine, OUT _DateAndTimePushPeriod ) THEN
             _DateAndTimePushPeriod := 1800000;
-         ELSIF _DateAndTimePushPeriod < 600000 THEN // _ForceReadPeriod cannot be smaller than 10 minute
+         ELSIF _DateAndTimePushPeriod * 1000 < 600000 THEN // _ForceReadPeriod cannot be smaller than 10 minute
             _DateAndTimePushPeriod := 600000;
          END;
 
