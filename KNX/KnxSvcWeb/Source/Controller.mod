@@ -452,6 +452,7 @@ CLASS IMPLEMENTATION CController;
 
             // handle authentication
             IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
+               View^.Release();
                RETURN FALSE;
             END;
             // authMethodInfo is ignored now, method is always native
