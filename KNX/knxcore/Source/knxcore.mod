@@ -540,6 +540,7 @@ CLASS IMPLEMENTATION CKNXServer;
       changed : BOOLEAN;
       connected : BOOLEAN;
       PObject : TPObject;
+      s : StringsO.CString;
    BEGIN
       IF _Result^.Counted OR _Result^.Expired THEN
          RETURN Sync.arCannotStart;
@@ -576,8 +577,11 @@ CLASS IMPLEMENTATION CKNXServer;
             ( objtLogNoChange IN PObject^.ObjectType ) OR // log always
             ( objtLogOnChange IN PObject^.ObjectType ) AND changed THEN // always allow log failures
             description := Originator^.Description;
+            description.PrependOA( L"(from " );
+            description.AppendOA( L")" );
+            s := Value.String;
             PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
-            _DataLogger^.LogSSS( log.ldMessage, 0, L"srv", "SET RQ", address, OA( description.Length-1, description.Data ));
+            _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET RQ", address, OA( s.Length-1, s.Data ), OA( description.Length-1, description.Data ));
          END;         
       
          IF changed THEN
