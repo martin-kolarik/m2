@@ -81,7 +81,7 @@ CLASS IMPLEMENTATION Namespace;
             CONTINUE;
          ELSIF toTest.Empty THEN // Empty string before Name end detected, likely ".." appeared in the Name. This is disallowed.
             RETURN FALSE;
-         ELSIF NOT pairs^.Get( toTest, OUT pairs ) THEN
+         ELSIF NOT pairs^.GetSingleLevel( toTest, OUT pairs ) THEN
             RETURN FALSE;
          END;
       END; // LOOP
@@ -163,6 +163,13 @@ CLASS IMPLEMENTATION Namespace;
    BEGIN
       RETURN _Pairs^.HasValue;
    END HasValue;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY SourceValue SET( CONST Value : iovalue.Value );
+   BEGIN
+      _Pairs^.SourceValue := Value;
+   END SourceValue;
 
 (*---------------------------------------------------------------------------*)
 
@@ -266,6 +273,13 @@ CLASS IMPLEMENTATION Namespace;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE GetSingleLevel( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+   BEGIN
+      RETURN _Pairs^.GetSingleLevel( Name, OUT Child );
+   END GetSingleLevel;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY InitializeName SET( CONST Value : StringsO.CString );
    BEGIN
       _Pairs^.InitializeName := Value;
@@ -313,7 +327,7 @@ CLASS IMPLEMENTATION Namespace;
             EXIT;
          ELSIF toTest.Empty THEN // Empty string before Name end detected, likely ".." appeared in the Name. This is disallowed.
             RETURN FALSE;
-         ELSIF pairs^.Get( toTest, OUT pairs ) THEN
+         ELSIF pairs^.GetSingleLevel( toTest, OUT pairs ) THEN
             // OK, fall down
          ELSIF NOT AllowCreation THEN
             RETURN FALSE;

@@ -78,6 +78,8 @@ INTERFACE INameValuePairs( IValueIO );
    READONLY PROPERTY
       VisibleToUser : BOOLEAN;
       HasValue : BOOLEAN;
+   WRITEONLY PROPERTY
+      SourceValue : iovalue.Value; // intended for overwriting vfReadOnly -- the property MUST be called inside code only, no USER CAN have access to it.
 
    // creation
    PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
@@ -90,6 +92,9 @@ INTERFACE INameValuePairs( IValueIO );
       // removes child
 
    // TODO iterator in "default" branch
+
+   // implementation dependent helper, not intended for user usage, rather not to call
+   PROCEDURE GetSingleLevel( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
 
 END INameValuePairs;
 

@@ -113,7 +113,9 @@
     <None Include="Source\knxcore.mod" />
     <None Include="Source\knxcore.def" />
     <None Include="knxcore.proj" />
-    <None Include="Source\Texts.xrs" />
+    <None Include="Source\Texts.xrs">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

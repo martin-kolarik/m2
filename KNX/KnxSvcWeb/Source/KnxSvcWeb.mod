@@ -192,13 +192,6 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Configuration GET : StringsO.TPString;
-   BEGIN
-      RETURN _KNX^.Configuration;
-   END Configuration;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROPERTY Connected GET : BOOLEAN;
    VAR
       connected : BOOLEAN;
@@ -283,22 +276,6 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
          RETURN lec.TLicenceType{};
       END;
    END LicenceType;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Licence GET : StringsO.CString;
-   VAR
-      licences : lists.CStringList;
-      ptrType : PTR;
-      s : StringsO.CString;
-   BEGIN
-      // no need to sync
-      _Result^.GetLicences( OUT licences );
-      IF NOT licences.GetFirst( OUT s, OUT ptrType ) THEN
-         s.Clear();
-      END;
-      RETURN s;
-   END Licence;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -388,13 +365,6 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Project GET : StringsO.TPString;
-   BEGIN
-      RETURN ADR( _Project );
-   END Project;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE ConnectKNX();
    VAR
       Result : Sync.TAsyncResult;
@@ -477,7 +447,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       Value : iovalue.Value;
    BEGIN
       // no need to sync, Get must be thread safe
-      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
+      IF NOT _DataSource^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       s.Assign( value );
@@ -500,7 +470,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       s : StringsO.CString;
    BEGIN
       // no need to sync, Get must be thread safe
-      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
+      IF NOT _DataSource^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
@@ -521,7 +491,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       s : StringsO.CString;
    BEGIN
       // no need to sync, NameToHash is be thread safe
-      IF NOT _KNX^.NS()^.Get( name, OUT pvalue ) THEN
+      IF NOT _DataSource^.NS()^.Get( name, OUT pvalue ) THEN
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
@@ -872,10 +842,8 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; Result : lec.TPResult; KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; Result : lec.TPResult; DataSource : device.TPDataSource; KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
-      snProject = L"project";
-         knName = L"name";
       snServer = L"server";
       snUsers = L"users";
       snAccessList = L"http_access_list";
@@ -901,6 +869,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
 
       _Context.FromOA( ContextName );
       _Result := Result;
+      _DataSource := DataSource;
       _KNX := KNX;
       _DeviceCount := MIN2( HIGH( DeviceNames ), HIGH( Devices )) + 1;
       _DeviceNames := ADR( DeviceNames );
@@ -909,11 +878,6 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       _DataLogger := DataLogger;
       _HttpLogger := HttpLogger;
       
-      IF NOT cfg.SetSection( snProject ) OR
-         NOT cfg.GetKeyStr( knName, OUT line, OUT _Project ) THEN
-         _Project.FromOA( L"SmartServer Project" );
-      END;
-
       ExeDirFound := FIO.GetModuleDirW( L"", OUT Path );
 
       IF cfg.SetSection( snServer ) AND ExeDirFound THEN // EXE dir

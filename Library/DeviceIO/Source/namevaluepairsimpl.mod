@@ -384,6 +384,13 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE GetSingleLevel( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+   BEGIN
+      RETURN Get( Name, OUT Child );
+   END GetSingleLevel;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
 END ANameValuePairsStructurals;
 
@@ -404,6 +411,13 @@ CLASS IMPLEMENTATION NameValuePairsIO;
    BEGIN
       RETURN TRUE;
    END HasValue;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY SourceValue SET( CONST value : iovalue.Value );
+   BEGIN
+      Value := value;
+   END SourceValue;
 
 (*---------------------------------------------------------------------------*)
 
@@ -468,6 +482,31 @@ CLASS IMPLEMENTATION NameValuePairsStorage;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC FINAL PROPERTY SourceValue SET( CONST Value : iovalue.Value );
+   VAR
+      Result : Sync.TAsyncResult := Sync.arCompleted;
+      pairs : ns.TPNameValuePairs := ADR( SELF );
+   BEGIN
+      IF ( _RLock <> NIL ) AND ( _RLock^.LockTimeout( Sync.FORSAFETY ) NOT IN Sync.arsCompletions ) THEN
+         ASSERTLOG( FALSE, L"Unable to lock ValueStorage for writing" );
+      END;
+      _Value.AssignSource( Value );
+      IF _RLock <> NIL THEN
+         _RLock^.Unlock();
+      END;
+
+      IF _AdviseSource <> NIL THEN
+         CASE _AdviseSource^.Advise OF
+         | ns.advWithoutData :
+            _AdviseSource^.AdviseListener^.OnAdvise( NIL, OA( 0, ADR( Result )), OA( 0, ADR( pairs )), OA( -1, iovalue.TPValue( NIL )));
+         | ns.advWithData :
+            _AdviseSource^.AdviseListener^.OnAdvise( NIL, OA( 0, ADR( Result )), OA( 0, ADR( pairs )), OA( 0, ADR( Value )));
+         END;
+      END;
+   END SourceValue;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
    VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
@@ -482,7 +521,9 @@ CLASS IMPLEMENTATION NameValuePairsStorage;
             _RLock^.UnlockRead();
          END;
       | IOO.dirWrite :
-         IF ( _RLock <> NIL ) AND ( _RLock^.LockTimeout( Sync.FORSAFETY ) NOT IN Sync.arsCompletions ) THEN
+         IF Value.ReadOnly THEN
+            RETURN Sync.arUnsupportedDirection;
+         ELSIF ( _RLock <> NIL ) AND ( _RLock^.LockTimeout( Sync.FORSAFETY ) NOT IN Sync.arsCompletions ) THEN
             ASSERTLOG( FALSE, L"Unable to lock ValueStorage for writing" );
          END;
          _Value := Value;

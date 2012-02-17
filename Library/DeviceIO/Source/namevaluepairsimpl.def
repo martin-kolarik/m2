@@ -39,6 +39,8 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; Child : ns.TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN; // Name and Child^.Name HAS TO be the same
    PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN; // removes child
 
+   PUBLIC VIRTUAL PROCEDURE GetSingleLevel( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+
    // SELF
    PUBLIC WRITEONLY PROPERTY
       InitializeName : StringsO.CString;
@@ -67,6 +69,8 @@ CLASS NameValuePairsIO( ANameValuePairsStructurals );
    PUBLIC FINAL READONLY PROPERTY
       VisibleToUser : BOOLEAN;
       HasValue : BOOLEAN;
+   PUBLIC FINAL WRITEONLY PROPERTY
+      SourceValue : iovalue.Value;
    PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
 
    // SELF
@@ -89,6 +93,8 @@ CLASS NameValuePairsStorage( ANameValuePairsStructurals );
    PUBLIC FINAL READONLY PROPERTY
       VisibleToUser : BOOLEAN;
       HasValue : BOOLEAN;
+   PUBLIC FINAL WRITEONLY PROPERTY
+      SourceValue : iovalue.Value;
    PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
 
    // ANameValuePairsStructurals

@@ -936,6 +936,13 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY ReadOnly GET : BOOLEAN;
+   BEGIN
+      RETURN vfReadOnly IN _Flags;
+   END ReadOnly;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY VisibleToUser GET : BOOLEAN;
    BEGIN
       RETURN ( vfHidden NOT IN _Flags ) AND ( _Type <> vtReference );
@@ -952,7 +959,10 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC OPERATOR :=( CONST Source : Value );
    BEGIN
-      _Flags := Source._Flags;
+      IF vfUndefined NOT IN Source._Flags THEN
+         EXCL( _Flags, vfUndefined ); // other flags are respected
+      END;
+
       IF _Type = vtUnknown THEN
          _Type := Source._Type;
       END;
@@ -993,6 +1003,17 @@ CLASS IMPLEMENTATION Value;
          ASSERT( FALSE );
       END; // CASE
    END :=;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE AssignSource( CONST Source : Value ); // overrides read only flag, not for outer users
+   VAR
+      flags : TFlags := _Flags;
+   BEGIN
+      EXCL( _Flags, vfReadOnly );
+      SELF := Source;
+      _Flags := flags;
+   END AssignSource;
 
 (*--------------------------------------------------------------------------------*)
 

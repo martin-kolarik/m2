@@ -151,7 +151,6 @@ END KNXServerEvent;
 
 CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IOriginator, ns.IValueIO, io.IIO;
    RStatus                  : TRStatus;
-   ConfigurationPath        : StringsO.CString;
 
    Stack                    : TStack;
    KNX                      : knx_stack.TPKNXStack;
@@ -250,7 +249,6 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IOri
 
    // self
    PUBLIC READONLY PROPERTY
-      Configuration : StringsO.TPString;
       Connection : StringsO.CString; // information about device connection, read from configuration
       CacheOnlyMode : BOOLEAN;
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;

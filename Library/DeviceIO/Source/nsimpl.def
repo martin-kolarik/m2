@@ -57,11 +57,15 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
    PUBLIC VIRTUAL READONLY PROPERTY
       VisibleToUser : BOOLEAN;
       HasValue : BOOLEAN;
+   PUBLIC VIRTUAL WRITEONLY PROPERTY
+      SourceValue : iovalue.Value;
    PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; Child : ns.TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE GetSingleLevel( CONST Name : StringsO.IString; OUT Child : ns.TPNameValuePairs ) : BOOLEAN;
 
    // INamespace
    PUBLIC VIRTUAL PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
@@ -76,6 +80,7 @@ CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
    PUBLIC READONLY PROPERTY
       AccessLock : Sync.PIRLock;
 
+   // internals
    PRIVATE VAR
       _Pairs : namevaluepairsimpl.TPNameValuePairsStorage;
       _Lock : Sync.RWLOCK;

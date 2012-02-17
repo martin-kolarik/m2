@@ -727,7 +727,7 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddStringOA( STATUS_UPTIME, cs );
 
       // get licence
-      licence := _Web^.Licence;
+      _Web^.GetValue( StringsO.FromOA( L".System.Licensing.SerialNumber" ), OUT licence );
       // prepare expiration string
       dt := _Web^.LicenceExpires;
       IF licence.Empty OR ( dt.Day > 0 ) THEN // no or expiring licence
@@ -772,9 +772,11 @@ CLASS IMPLEMENTATION CController;
       cs.FromCARD32( c, 10 );
       Request.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
  
-      Request.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, _Web^.Configuration^ );
+      _Web^.GetValue( StringsO.FromOA( L".System.Configuration.File" ), OUT cs );
+      Request.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, cs );
       
-      Request.ModelContainer^.AddStringOA( STATUS_PROJECT, _Web^.Project^ );
+      _Web^.GetValue( StringsO.FromOA( L".System.Project" ), OUT cs );
+      Request.ModelContainer^.AddStringOA( STATUS_PROJECT, cs );
  
       View := GetPageTemplateView( Request, STATUS_VIEW );
       RETURN TRUE;
@@ -786,6 +788,7 @@ CLASS IMPLEMENTATION CController;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
+      file : StringsO.CString;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
       listDevices : lists.TPStringStringList;
@@ -800,6 +803,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
+
       ELSIF uriParameters^.GetOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
@@ -808,6 +812,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
+
       ELSIF uriParameters^.GetOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
@@ -816,9 +821,17 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF uriParameters^.GetOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.Data ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
-         RETURN TRUE;
+
+      ELSE
+         IF NOT _Web^.GetValue( StringsO.FromOA( L".System.Configuration.File" ), OUT file ) THEN
+            ASSERTLOG( FALSE ); // this is unexpected
+            RETURN FALSE;
+         END;
+
+         IF uriParameters^.GetOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( file.Length-1, file.Data ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+            RETURN TRUE;
+         END;
       END;
 
       Request.ModelContainer^.AddListOA( CONTROL_DEVICES_NAME, OUT listDevices ); listDevices^.Dispose();
@@ -843,7 +856,7 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-      Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, _Web^.Configuration^ );
+      Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, file );
       
       count := _Web^.ConfigLogger^.BufferCount;
       cs.Clear();

@@ -28,12 +28,12 @@ TYPE
    
 TYPE
    TFlagItem = (
-      vfReadOnly,
+      vfReadOnly, // means outer, client access. Internal access can be enforced with some means (property, ...).
       vfHidden,
       vfUndefined,
       vfFunction, // children carries call parameters
       vfSaturate,
-      vfUser // can be cleared, values without the flag can be removed from the pairs
+      vfUser // can be cleared, values with the flag can be removed from the pairs
    );
    TFlags = SET OF TFlagItem;
 
@@ -89,10 +89,12 @@ CLASS Value;
       // Data : StorageO.CMemoryBuffer;
    PUBLIC READONLY PROPERTY
       PString : StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
+      ReadOnly : BOOLEAN;
       VisibleToUser : BOOLEAN;
       HasValue : BOOLEAN;
 
    PUBLIC OPERATOR :=( CONST Source : Value ); // respects type
+   PUBLIC PROCEDURE AssignSource( CONST Source : Value ); // overrided vfReadOnly, MUST be used for users
 
    PUBLIC OPERATOR = ( CONST Source : Value ) : BOOLEAN; // hard, binary comparing
    PUBLIC OPERATOR <>( CONST Source : Value ) : BOOLEAN; // hard, binary comparing

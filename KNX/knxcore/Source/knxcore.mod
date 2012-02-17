@@ -696,13 +696,6 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROPERTY Configuration GET : StringsO.TPString;
-   BEGIN
-      RETURN ADR( ConfigurationPath );
-   END Configuration;
-   
-//--------------------------------------------------------------------------------
-
    PUBLIC PROPERTY Connection GET : StringsO.CString;
    VAR
       connection : ARRAY [0..255] OF WCHAR;
@@ -1787,7 +1780,6 @@ CLASS IMPLEMENTATION CKNXServer;
       // connection info/control
       Namespace.DefineIOValue( StringsO.FromOA( nameConnected ), REF SELF, itemConnected, NIL, OUT pairs );
       
-      ConfigurationPath.Assign( ConfigurationFile ); // store sucessfully read configuration
       RETURN TRUE;
 
    Fail:
@@ -2282,7 +2274,6 @@ CLASS IMPLEMENTATION CKNXServer;
 
    PROCEDURE InitToDefault();
    BEGIN
-      ConfigurationPath.Clear();
       DeviceId := MAX( CARDINAL );
       PromiscuousMode := FALSE;
       InputQueueLength := 256;

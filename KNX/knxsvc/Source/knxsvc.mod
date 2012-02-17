@@ -14,6 +14,7 @@ IMPORT
    compositedatasource,
    Debug,
    device,
+   deviceimpl,
    EquithermicCurve,
    FIO,
    FIOO,
@@ -61,7 +62,15 @@ CONST
    nameStorage = L'name.Storage';
    nameEqCurve = L'name.EqCurve';
    nameWeekCalendar = L'name.WeekCalendar';
-   
+
+CONST
+   nameSystem = L"System";
+      nameLicensingSuspend = L"Licensing.Suspend";
+      nameLicensingSerialNumber = L"Licensing.SerialNumber";
+      nameConfigurationError = L"Configuration.Error";
+      nameConfigurationFile = L"Configuration.File";
+      nameProject = L"Project";
+
 TYPE
    TControlledDeviceInfo = RECORD
                               Names : ARRAY [0..4] OF PWCHAR;
@@ -82,25 +91,15 @@ TYPE
 
 CONST
    itemSystemSerialNumber = 1;
-
    itemSystemSuspend = 2;
-   suspendKey = L"suspend";
-   suspendValue = L"true";
+      suspendKey = L"suspend";
+      suspendValue = L"true";
 
 
-CLASS CSuspendableResult( lec.CResult ) IMPLEMENTS ns.IValueIO, device.IDataSource;
+CLASS CSuspendableResult( lec.CResult ) IMPLEMENTS ns.IValueIO;
 
    // IValueIO
    PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
-
-   // IDataSource
-   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST log : Log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
-
-   PUBLIC VIRTUAL READONLY PROPERTY
-      DataSourceCapabilities : device.TCapabilities;
-
-   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // required, handles both naming and IO
-   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource; // optional
 
    // CResult
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -112,11 +111,9 @@ CLASS CSuspendableResult( lec.CResult ) IMPLEMENTS ns.IValueIO, device.IDataSour
    PUBLIC PROCEDURE QuerySuspension();
 
    // private
-   PRIVATE PROCEDURE CreateNamespace();
    PRIVATE PROCEDURE LoadData();
 
    PRIVATE VAR
-      _Namespace : nsimpl.Namespace;
       _Suspended : BOOLEAN;
 
 END CSuspendableResult;
@@ -171,34 +168,6 @@ CLASS IMPLEMENTATION CSuspendableResult;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST log : Log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
-   BEGIN
-      RETURN Sync.arCompleted;
-   END Configure;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY DataSourceCapabilities GET : device.TCapabilities;
-   BEGIN
-      RETURN device.TCapabilities{};
-   END DataSourceCapabilities;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // required, handles both naming and IO
-   BEGIN
-      RETURN ADR( _Namespace );
-   END NS;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource; // optional
-   BEGIN
-      RETURN NIL;
-   END AdviseSource;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROPERTY Expired GET : BOOLEAN;
    BEGIN
       IF _Suspended THEN
@@ -233,21 +202,6 @@ CLASS IMPLEMENTATION CSuspendableResult;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE CreateNamespace();
-   CONST
-      nameSystem = L"System";
-      nameSystemSuspend = L"Licensing.Suspend";
-      nameSystemSerialNumber = L"Licensing.SerialNumber";
-   VAR
-      pairs : ns.TPNameValuePairs;
-   BEGIN
-      _Namespace.InitializeName := StringsO.FromOA( nameSystem );
-      _Namespace.DefineIOValue( StringsO.FromOA( nameSystemSerialNumber ), REF SELF, itemSystemSerialNumber, NIL, OUT pairs );
-      _Namespace.DefineIOValue( StringsO.FromOA( nameSystemSuspend ), REF SELF, itemSystemSuspend, NIL, OUT pairs );
-   END CreateNamespace;
-
-(*--------------------------------------------------------------------------------*)
-
    PRIVATE PROCEDURE LoadData();
    VAR
       s : FIO.PathStrW;
@@ -262,10 +216,7 @@ CLASS IMPLEMENTATION CSuspendableResult;
 
 BEGIN
    _Suspended := FALSE;
-   CreateNamespace();
    LoadData();
-FINALLY
-   _Namespace.Dispose();
 END CSuspendableResult;
 
 (*================================================================================*)
@@ -276,7 +227,6 @@ CONST
 CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    LOCAL VIRTUAL READONLY PROPERTY
       Name : PWCHAR;
-      Configuration : StringsO.TPString;
       
    PRIVATE VAR
       Result : POINTER TO CSuspendableResult := NIL;
@@ -286,6 +236,7 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       HttpLogger : Log.CLogger;
       NetworkLogger : Log.CLogger; 
       RootDataSource : compositedatasource.TPCompositeDataSource := NIL;
+      SystemDataSource : compositedatasource.TPCompositeDataSource := NIL;
       KNX : knxcore.TPKNXServer := NIL;
       Adviser : adviser.TPAdvisedDataSource := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
@@ -322,17 +273,6 @@ CLASS IMPLEMENTATION CKnxSvc;
    BEGIN
       RETURN PWCHAR( ADR( ServiceName ));
    END Name;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROPERTY Configuration GET : StringsO.TPString;
-   BEGIN
-      IF KNX = NIL THEN
-         RETURN NIL;
-      ELSE
-         RETURN KNX^.Configuration;
-      END;
-   END Configuration;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -384,9 +324,11 @@ CLASS IMPLEMENTATION CKnxSvc;
 
    PRIVATE PROCEDURE _OnStart();
    CONST
+      snProject = L"project";
+         knName = L"name";
       snClientInterface = L"client_interface";
-      knSdapPort = L"sdap_port";
-      knXmlsPort = L"xml_socket_port";
+         knSdapPort = L"sdap_port";
+         knXmlsPort = L"xml_socket_port";
    VAR
       cfg : INIfile.CINIFile;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
@@ -395,11 +337,14 @@ CLASS IMPLEMENTATION CKnxSvc;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
       LocalResult : Sync.TAsyncResult := Sync.arCompleted;
+      pairs : ns.TPNameValuePairs;
       Path : ARRAY [0..260] OF WCHAR;
       port : CARDINAL;
+      project : StringsO.CString;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
       sdapPort : CARDINAL := 6007;
+      v : iovalue.Value;
       xmlsPort : CARDINAL := 6006;
    BEGIN
       Debug.WaitUsingLoop();
@@ -426,7 +371,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       END;
       FIOO.PathAdd( REF s1, s2 );
       cfg.LoadPath( OA( s1.Length-1, s1.Data ));
-      
+
       // load listening ports
       IF cfg.SetSection( snClientInterface ) THEN
          IF cfg.GetKeyInt( knSdapPort, OUT line, OUT port ) THEN
@@ -436,6 +381,11 @@ CLASS IMPLEMENTATION CKnxSvc;
             xmlsPort := port;
          END;
       END; // client interface configuration
+
+      // load project name
+      IF NOT cfg.SetSection( snProject ) OR NOT cfg.GetKeyStr( knName, OUT line, OUT project ) THEN
+         project.FromOA( L"SmartServer Project" );
+      END;
 
       LogConfig.ConfigureLog( cfg, L"", REF Log.logger()^, REF LogAppenders, OUT line );
       Log.logger()^.LocalTime := TRUE;
@@ -464,8 +414,6 @@ CLASS IMPLEMENTATION CKnxSvc;
       NEW( RootDataSource );
       RootDataSource^.Init( StringsO.FromOA( L"SmartServer" ));
 
-      RootDataSource^.JoinDataSource( Result );
-
       ASSERT( KNX = NIL );
       NEW( KNX );
       KNX^.Init( TRUE );
@@ -478,7 +426,6 @@ CLASS IMPLEMENTATION CKnxSvc;
       IF GlobalResult = Sync.arCompleted THEN
          GlobalResult := LocalResult;
       END;
-      RootDataSource^.JoinDataSource( KNX ); // SmartServer.KNX.1/5/8
       
       ASSERT( Adviser = NIL );
       NEW( Adviser );
@@ -558,7 +505,30 @@ CLASS IMPLEMENTATION CKnxSvc;
       CDI.Devices[3] := EqCurve;
       CDI.Devices[4] := WeekCal;
 
-      IF Web.Init( L"/SmartServer", cfg, Result, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
+      // NAMESPACE
+      ASSERT( SystemDataSource = NIL );
+      NEW( SystemDataSource );
+      SystemDataSource^.Init( StringsO.FromOA( nameSystem ));
+      v.Dispose();
+      v.Boolean := GlobalResult <> Sync.arCompleted;
+      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameConfigurationError ), iovalue.vtBoolean, iovalue.flagsDefaultSWRO, ADR( v ), 0, NIL, NIL, OUT pairs );
+
+      v.Dispose();
+      v.String := s1;
+      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameConfigurationFile ), iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( v ), 0, NIL, NIL, OUT pairs );
+
+      v.Dispose();
+      v.String := project;
+      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameProject ), iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( v ), 0, NIL, NIL, OUT pairs );
+
+      SystemDataSource^.NS()^.DefineIOValue( StringsO.FromOA( nameLicensingSerialNumber ), REF Result^, itemSystemSerialNumber, NIL, OUT pairs );
+      SystemDataSource^.NS()^.DefineIOValue( StringsO.FromOA( nameLicensingSuspend ), REF Result^, itemSystemSuspend, NIL, OUT pairs );
+
+      RootDataSource^.JoinDataSource( SystemDataSource );
+      RootDataSource^.JoinDataSource( KNX ); // SmartServer.KNX.1/5/8
+
+      // START
+      IF Web.Init( L"/SmartServer", cfg, Result, RootDataSource, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
       END;
       IF GlobalResult = Sync.arCompleted THEN
@@ -629,7 +599,7 @@ CLASS IMPLEMENTATION CKnxSvc;
          Storage^.Stop();
          DISPOSE( Storage );
       END;
-   
+
       IF KNX <> NIL THEN
          IF RootDataSource <> NIL THEN
             RootDataSource^.LeaveDataSource( KNX );
@@ -655,6 +625,14 @@ CLASS IMPLEMENTATION CKnxSvc;
          Adviser^.DataSource := NIL;
          Adviser^.Stop();
          DISPOSE( Adviser );
+      END;
+
+      IF SystemDataSource <> NIL THEN
+         IF RootDataSource <> NIL THEN
+            RootDataSource^.LeaveDataSource( SystemDataSource );
+         END;
+         SystemDataSource^.Dispose();
+         DISPOSE( SystemDataSource );
       END;
 
       IF RootDataSource <> NIL THEN
