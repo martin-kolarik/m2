@@ -24,7 +24,6 @@ CLASS CItem;
    LOCAL PROCEDURE Dequeue();
 
    LOCAL VAR
-      Address : StringsO.CString;
       Pairs : ns.TPNameValuePairs := NIL;
       Value : iovalue.Value;
 
@@ -122,6 +121,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
    VAR
       item : TPItem;
+      name : StringsO.CString;
       result : Sync.TAsyncResult;
       value : StringsO.CString;
    BEGIN
@@ -131,13 +131,14 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       _Items.Reset();
       WHILE _Items.MoveNext() DO
          item := _Items.Current;
+         DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
 
          value := item^.Value.String;
-         Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Pushing value:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
+         Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Pushing value:", OA( name.Length-1, name.Data ), L"=", OA( value.Length-1, value.Data ));
 
          result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirWrite, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
-            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write persisted value:", OA( item^.Address.Length-1, item^.Address.Data ));
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write persisted value:", OA( name.Length-1, name.Data ));
          END;
 
       END; // WHILE      
@@ -358,7 +359,6 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          
          // everything OK, create item in _Items
          NEW( item );
-         item^.Address := key;
          item^.Pairs := pairs;
          item^.Value := iovalue.FromString( value );
          _Items.Add( item, 0 );
@@ -374,12 +374,15 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE Mark( item : TPItem );
+   VAR
+      name : StringsO.CString;
    BEGIN
       IF NOT item^.Enqueue() THEN // smart queueuing, the item is already inside the queue
          RETURN;
       END;
 
-      Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Marking item for write:", OA( item^.Address.Length-1, item^.Address.Data ));
+      DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
+      Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Marking item for write:", OA( name.Length-1, name.Data ));
       _WriteQueue.Enqueue( item );
 
       IF TimerRunning( WRITE_DELAY_TIMER ) THEN
@@ -395,6 +398,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    PRIVATE PROCEDURE Write();
    VAR
       item : TPItem;
+      name : StringsO.CString;
       result : Sync.TAsyncResult;
       value : StringsO.CString;
    BEGIN
@@ -405,19 +409,20 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
       WHILE _WriteQueue.Dequeue( OUT item ) DO
          item^.Dequeue();
+         DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
 
          result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirRead, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
-            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read value from device:", OA( item^.Address.Length-1, item^.Address.Data ));
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read value from device:", OA( name.Length-1, name.Data ));
             Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
             CONTINUE;
          END;
 
          value := item^.Value.String;
-         IF _Storage.SetKeyStr( OA( item^.Address.Length-1, item^.Address.Data ), value, FALSE ) THEN
-            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value stored:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
+         IF _Storage.SetKeyStr( OA( name.Length-1, name.Data ), value, FALSE ) THEN
+            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value stored:", OA( name.Length-1, name.Data ), L"=", OA( value.Length-1, value.Data ));
          ELSE // log error
-            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to store value:", OA( item^.Address.Length-1, item^.Address.Data ));
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to store value:", OA( name.Length-1, name.Data ));
          END;
 
       END; // _SendQueue

@@ -407,26 +407,13 @@ CLASS IMPLEMENTATION CKnxSvc;
       NetworkLogger.SeparateTimeBrackets := TRUE;
       
       // CONSTRUCTION
-      ASSERT( Result = NIL );
-      NEW( Result );
-
       ASSERT( RootDataSource = NIL );
       NEW( RootDataSource );
       RootDataSource^.Init( StringsO.FromOA( L"SmartServer" ));
 
-      ASSERT( KNX = NIL );
-      NEW( KNX );
-      KNX^.Init( TRUE );
-      KNX^.EXEFlag := TRUE;
-      KNX^.DataLogger := ADR( DataLogger );
-      KNX^.Result := Result;
-      configuration[0].Type := device.citIString;
-      configuration[0].iString := ADR( s1 );
-      LocalResult := KNX^.Configure( configuration, ADR( ConfigLogger ));
-      IF GlobalResult = Sync.arCompleted THEN
-         GlobalResult := LocalResult;
-      END;
-      
+      ASSERT( Result = NIL );
+      NEW( Result );
+
       ASSERT( Adviser = NIL );
       NEW( Adviser );
       Adviser^.DataSource := RootDataSource;
@@ -453,6 +440,40 @@ CLASS IMPLEMENTATION CKnxSvc;
       XMLS^.NetworkLogger := ADR( NetworkLogger );
       XMLS^.DefaultContext := StringsO.FromOA( L"KNX" );
       
+      ASSERT( KNX = NIL );
+      NEW( KNX );
+      KNX^.Init( TRUE );
+      KNX^.EXEFlag := TRUE;
+      KNX^.DataLogger := ADR( DataLogger );
+      KNX^.Result := Result;
+      configuration[0].Type := device.citIString;
+      configuration[0].iString := ADR( s1 );
+      LocalResult := KNX^.Configure( configuration, ADR( ConfigLogger ));
+      IF GlobalResult = Sync.arCompleted THEN
+         GlobalResult := LocalResult;
+      END;
+      
+      // NAMESPACE
+      ASSERT( SystemDataSource = NIL );
+      NEW( SystemDataSource );
+      SystemDataSource^.Init( StringsO.FromOA( nameSystem ));
+
+      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameConfigurationError ), iovalue.vtBoolean, iovalue.flagsDefaultSWRO, NIL, 0, NIL, NIL, OUT pairs );
+
+      v.Dispose();
+      v.String := s1;
+      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameConfigurationFile ), iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( v ), 0, NIL, NIL, OUT pairs );
+
+      v.Dispose();
+      v.String := project;
+      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameProject ), iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( v ), 0, NIL, NIL, OUT pairs );
+
+      SystemDataSource^.NS()^.DefineIOValue( StringsO.FromOA( nameLicensingSerialNumber ), REF Result^, itemSystemSerialNumber, NIL, OUT pairs );
+      SystemDataSource^.NS()^.DefineIOValue( StringsO.FromOA( nameLicensingSuspend ), REF Result^, itemSystemSuspend, NIL, OUT pairs );
+
+      RootDataSource^.JoinDataSource( SystemDataSource );
+      RootDataSource^.JoinDataSource( KNX ); // SmartServer.KNX.1/5/8
+
       ASSERT( Storage = NIL );
       NEW( Storage );
       Storage^.Init( TRUE );
@@ -505,27 +526,11 @@ CLASS IMPLEMENTATION CKnxSvc;
       CDI.Devices[3] := EqCurve;
       CDI.Devices[4] := WeekCal;
 
-      // NAMESPACE
-      ASSERT( SystemDataSource = NIL );
-      NEW( SystemDataSource );
-      SystemDataSource^.Init( StringsO.FromOA( nameSystem ));
+      // fill results
+      SystemDataSource^.NS()^.Get( StringsO.FromOA( nameSystem + L"." + nameConfigurationError ), OUT pairs );
       v.Dispose();
       v.Boolean := GlobalResult <> Sync.arCompleted;
-      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameConfigurationError ), iovalue.vtBoolean, iovalue.flagsDefaultSWRO, ADR( v ), 0, NIL, NIL, OUT pairs );
-
-      v.Dispose();
-      v.String := s1;
-      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameConfigurationFile ), iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( v ), 0, NIL, NIL, OUT pairs );
-
-      v.Dispose();
-      v.String := project;
-      SystemDataSource^.NS()^.DefineStorageValue( StringsO.FromOA( nameProject ), iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( v ), 0, NIL, NIL, OUT pairs );
-
-      SystemDataSource^.NS()^.DefineIOValue( StringsO.FromOA( nameLicensingSerialNumber ), REF Result^, itemSystemSerialNumber, NIL, OUT pairs );
-      SystemDataSource^.NS()^.DefineIOValue( StringsO.FromOA( nameLicensingSuspend ), REF Result^, itemSystemSuspend, NIL, OUT pairs );
-
-      RootDataSource^.JoinDataSource( SystemDataSource );
-      RootDataSource^.JoinDataSource( KNX ); // SmartServer.KNX.1/5/8
+      pairs^.SourceValue := v;
 
       // START
       IF Web.Init( L"/SmartServer", cfg, Result, RootDataSource, KNX, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
