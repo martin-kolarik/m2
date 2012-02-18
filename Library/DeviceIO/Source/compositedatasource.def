@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
    device,
    iovalue,
    lists,
@@ -18,9 +19,9 @@ IMPORT
 TYPE
    TPCompositeDataSource = POINTER TO CCompositeDataSource;
 
-CLASS CCompositeDataSource IMPLEMENTS ns.IAdviseInfo, ns.IAdviseSource, device.IDataSource;
+CLASS CCompositeDataSource( baseobject.CDisposable ) IMPLEMENTS ns.IAdviseInfo, ns.IAdviseSource, device.IDataSource;
 
-   // IDisposable
+   // CDisposable
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // IAdviseInfo

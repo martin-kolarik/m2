@@ -5,6 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
    avltree,
+   baseobject,
    IOO,
    iovalue,
    namevaluepairsimpl,
@@ -18,7 +19,7 @@ TYPE
    TPSimpleAdviseSource = POINTER TO SimpleAdviseSource;
 
 // storage implementation, no function
-CLASS SimpleAdviseSource IMPLEMENTS ns.IAdviseSource;
+CLASS SimpleAdviseSource( baseobject.BASE ) IMPLEMENTS ns.IAdviseSource;
 
    PUBLIC VIRTUAL PROPERTY
       Advise : ns.TAdvise;
@@ -36,7 +37,7 @@ TYPE
    TPNamespace = POINTER TO Namespace;
 
 // all Name parameters are/can be hierachical
-CLASS Namespace IMPLEMENTS ns.INamespace; // CDisposable
+CLASS Namespace( baseobject.CDisposable ) IMPLEMENTS ns.INamespace; // CDisposable
 
    // CDisposable
    PUBLIC VIRTUAL PROCEDURE Dispose();

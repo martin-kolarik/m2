@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
    delegate,
    StringsO,
    Sync,
@@ -107,7 +108,7 @@ END IIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CSimpleOriginator IMPLEMENTS ns.IOriginator;
+CLASS CSimpleOriginator( baseobject.BASE ) IMPLEMENTS ns.IOriginator;
 
    // IOriginator
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -143,7 +144,7 @@ END IStartStopHandler;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CSimpleStartStopHandler IMPLEMENTS IStartStopControl;
+CLASS CSimpleStartStopHandler( baseobject.BASE ) IMPLEMENTS IStartStopControl;
 
    PUBLIC FINAL READONLY PROPERTY
       Running : BOOLEAN;

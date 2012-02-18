@@ -8,6 +8,7 @@ FROM Storage IMPORT
 
 IMPORT
    avltree,
+   baseobject,
    IOO,
    iovalue,
    ns,
@@ -17,7 +18,7 @@ IMPORT
 (*===========================================================================*)
 // predefined implementations, mostly for structurals
 
-ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( baseobject.CDisposable ) // not synchronized
+ABSTRACT CLASS ANameValuePairsStructurals( baseobject.CDisposable ) IMPLEMENTS ns.INameValuePairs; // ( baseobject.CDisposable ) // not synchronized
 
    // CDisposable
    PUBLIC VIRTUAL PROCEDURE Dispose();

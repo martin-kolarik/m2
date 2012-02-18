@@ -6,6 +6,17 @@ CLASS IMPLEMENTATION CSimpleDataSource;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   BEGIN
+      _Namespace.Dispose();
+      IF _AdviseSource <> NIL THEN
+         // _AdviseSource^.Dispose();
+         DISPOSE( _AdviseSource );
+      END;
+   END Dispose;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
    BEGIN
       RETURN Sync.arCompleted;
@@ -51,17 +62,6 @@ CLASS IMPLEMENTATION CSimpleDataSource;
          NEW( _AdviseSource );
       END;
    END Init;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Dispose();
-   BEGIN
-      _Namespace.Dispose();
-      IF _AdviseSource <> NIL THEN
-         // _AdviseSource^.Dispose();
-         DISPOSE( _AdviseSource );
-      END;
-   END Dispose;
 
 (*--------------------------------------------------------------------------------*)
 
