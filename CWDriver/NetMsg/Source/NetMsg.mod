@@ -585,7 +585,7 @@ CLASS IMPLEMENTATION CDriver;
                         GOTO Fail;
                      END;
                      Value := NEW( iovalue.Value );
-                     Value^.Type := iovalue.TValueType( TypeListIterator.Value );
+                     Value^.Type := iovalue.TType( TypeListIterator.Value );
                      ValueList^.Add( Value, 0 );
                      FieldToValue.Add( ChannelIndex, Value, 0 );
                      INC( ChannelIndex );
@@ -960,29 +960,29 @@ CLASS IMPLEMENTATION CDriver;
           | evDataReceived2Success, evStructReceived2Success :
             CASE PELE^.Event.PPacket^.TR OF
             | trString :
-					c := PELE^.Event.PacketLen - hdr;
-					IF c = 0 THEN
-						SW.Clear();
-					ELSE
-						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
-					END;
-			   | trStruct :
-					c := PELE^.Event.PacketLen - hdr;
-					IF c = 0 THEN
-						SW.Clear();
-					ELSE
-						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
-					END;
+               c := PELE^.Event.PacketLen - hdr;
+               IF c = 0 THEN
+                  SW.Clear();
+               ELSE
+                  SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
+               END;
+            | trStruct :
+               c := PELE^.Event.PacketLen - hdr;
+               IF c = 0 THEN
+                  SW.Clear();
+               ELSE
+                  SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
+               END;
 
-					// detach data, name of record will become data
-					i := SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
-					IF S.Empty THEN
-					   SW.FromOA( L"$empty" );
-					ELSIF NOT Records.Get( S, OUT List, OUT d ) THEN
-					   SW.FromOA( L"$unknown " );
-					   SW.Append( S );
-					ELSE // decompose data
-					   
+               // detach data, name of record will become data
+               i := SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
+               IF S.Empty THEN
+                  SW.FromOA( L"$empty" );
+               ELSIF NOT Records.Get( S, OUT List, OUT d ) THEN
+                  SW.FromOA( L"$unknown " );
+                  SW.Append( S );
+               ELSE // decompose data
+                  
                   ListIterator.Init( List^, collection.dirForward );
                   i := SW.ItemS( structItemSep, i, 0, FALSE, OUT S );
                   WHILE ( i <> -1 ) AND ListIterator.MoveNext() DO
@@ -991,8 +991,8 @@ CLASS IMPLEMENTATION CDriver;
                   END; // WHILE
                   SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
                   SW := S;
-					  
-		         END;
+                 
+               END;
             END;
 
           //-----

@@ -27,7 +27,7 @@ IMPORT
   drv_wrapper_;
 
 CONST
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
   // ANSI-procedure names
   procVersionA                   = L'Version';
   procCheckA                     = L'Check';
@@ -184,8 +184,8 @@ CONST
 (*============================================================*)
 
 CONST
-	CZECH = TRUE;
-	ENGLISH = FALSE;
+   CZECH = TRUE;
+   ENGLISH = FALSE;
 
 (*%T CZECH *)
   _DLLHasBadInterface     = 'DLL ovladaè nevyváží požadované rozhraní: ';

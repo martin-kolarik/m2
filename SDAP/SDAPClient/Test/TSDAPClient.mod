@@ -83,12 +83,7 @@ CLASS IMPLEMENTATION CTest;
       Client := NIL;
       
       Failure1 := ReceiveCount <> COUNT-1;
-
-      IF Failure1 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 );
 
       scinit.Cleanup();
 

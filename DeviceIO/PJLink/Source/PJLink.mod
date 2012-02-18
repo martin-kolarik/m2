@@ -72,7 +72,7 @@ CLASS IMPLEMENTATION CNS;
       DataRoot := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
       Root^.AddChild( DataRoot );
 
-		item := CreateNewItem( L"Power", ns.ntValue, iovalue.vtBoolean, PTR( cmdPower )); DataRoot^.AddChild( item );
+      item := CreateNewItem( L"Power", ns.ntValue, iovalue.vtBoolean, PTR( cmdPower )); DataRoot^.AddChild( item );
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -647,7 +647,7 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
-	LOCAL PROCEDURE OnResponse( response : StringsO.CString );
+   LOCAL PROCEDURE OnResponse( response : StringsO.CString );
    VAR
       al : Sync.AutoLock;
       command : TCommand;

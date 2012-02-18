@@ -27,6 +27,7 @@ IMPORT
   iovalue,
   msghandler,
   Storage,
+  StringsO,
   list,
   lists;
 
@@ -70,9 +71,9 @@ CONST
                                  04DB3H,
                                  0B8H, 04FH, 0B2H, 03EH, 0CEH, 098H, 02BH, 06DH );
 
-	// uuid(5D8864F7-4F93-4379-BE5A-4F832B39D1C6),
-	// version(1.0),
-	// helpstring("Control Web Driver ActiveX Control 1.0 Type Library")
+   // uuid(5D8864F7-4F93-4379-BE5A-4F832B39D1C6),
+   // version(1.0),
+   // helpstring("Control Web Driver ActiveX Control 1.0 Type Library")
   IID_DrvAx_TypeLib   = TMyGUID( 05D8864F7H,
                                  04F93H,
                                  04379H,
@@ -89,8 +90,8 @@ TYPE
 TYPE
   TCommunicationState = (
     csSuccess = 0,
-  	 csPending = 1,
-	 csFailure = 2,
+    csPending = 1,
+    csFailure = 2,
     csNotRunning = 3,
     csBadIndex = 4,
     csBadDirection = 5
@@ -719,7 +720,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
         // not needed, POutput^.Value is filled with 0 here -- POutput^.Value.ValDString := NIL;
         Outputs.Add( POutput );
 
-        POutput^.Value.FromStringOA( Value, FALSE );
+        POutput^.Value.FromString( StringsO.FromOA( Value ), FALSE );
 
       ELSIF POutput^.Pending THEN
         CommunicationState := csPending;
@@ -727,7 +728,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
       ELSE // found and not pending yet
         CommunicationState := csSuccess;
 
-        POutput^.Value.FromStringOA( Value, FALSE );
+        POutput^.Value.FromString( StringsO.FromOA( Value ), FALSE );
 
       END;
     END;   

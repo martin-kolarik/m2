@@ -170,7 +170,7 @@ CLASS IMPLEMENTATION CTest;
          Threads[i].WaitStop( sync.FOREVER );
       END;
 
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhaseWithResult( TRUE );
 
       Server.Stop();
 

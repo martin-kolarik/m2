@@ -30,6 +30,7 @@ IMPORT
    INIFile,
    IOO,
    iovalue,
+   lec,
    lists,
    log,
    LogConfig,
@@ -172,6 +173,7 @@ CLASS CEIBDriver( knxcore.CKNXServer ) IMPLEMENTS diface.ICWDriver, knxcore.IKNX
    LogAppenders             : lists.CPtrList;
    oobIterator              : lists.CBufferListIterator;
 
+   LicenceResult            : lec.CResult;
    StatusChannel            : CARDINAL;
    WatchDogChannel          : CARDINAL;
    InputQueueLengthChannel  : CARDINAL;
@@ -499,13 +501,13 @@ CLASS IMPLEMENTATION CEIBDriver;
       EV : knx_def.TValue;
       PObject : knxcore.TPObject;
    BEGIN
-      Result.Inc();
+      LicenceResult.Inc();
       IF ( DriverIndex = StatusChannel ) OR
          ( DriverIndex = InputQueueLengthChannel ) OR
          ( DriverIndex = OutputQueueLengthChannel ) OR
          ( DriverIndex = WriteQueueLengthChannel ) THEN
          // pass down
-      ELSIF Result.Counted OR Result.Expired THEN
+      ELSIF LicenceResult.Counted OR LicenceResult.Expired THEN
          // pass down
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          // pass down
@@ -539,7 +541,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          ( DriverIndex = OutputQueueLengthChannel ) OR
          ( DriverIndex = WriteQueueLengthChannel ) THEN
          ErrorCode := drv_def.ecSuccess;
-      ELSIF Result.Counted OR Result.Expired THEN
+      ELSIF LicenceResult.Counted OR LicenceResult.Expired THEN
          RETURN FALSE;
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          ErrorCode := drv_def.ecUnknownElement;
@@ -560,7 +562,7 @@ CLASS IMPLEMENTATION CEIBDriver;
    PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
    BEGIN
       QueueLock.Lock();
-      IF ( CARDINAL( EnumerateState ) >= oobData.Count ) OR Result.Counted OR Result.Expired THEN
+      IF ( CARDINAL( EnumerateState ) >= oobData.Count ) OR LicenceResult.Counted OR LicenceResult.Expired THEN
          EXCL( RStatus, knxcore.rsProcessingOOB );
          oobData.Dispose();
          QueueLock.Unlock();
@@ -617,7 +619,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF NOT( knxcore.rsInitReadFinished IN RStatus ) THEN
             INCL( Status, schiInitReadPending );
          END;
-         IF Result.Counted OR Result.Expired THEN
+         IF LicenceResult.Counted OR LicenceResult.Expired THEN
             EXCL( Status, schiValid );
          ELSE
             INCL( Status, schiValid );
@@ -683,14 +685,14 @@ CLASS IMPLEMENTATION CEIBDriver;
       PObject : knxcore.TPObject;
       s : StringsO.CString;
    BEGIN
-      Result.Inc();
+      LicenceResult.Inc();
 
       IF DriverIndex = WatchDogChannel THEN
          WatchDogLock.Lock();
          WatchDogLeft := 1000 * OutValue.Integer;
          WatchDogLock.Unlock();
 
-      ELSIF Result.Counted OR Result.Expired THEN
+      ELSIF LicenceResult.Counted OR LicenceResult.Expired THEN
          // do nothing
 
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
@@ -720,7 +722,7 @@ CLASS IMPLEMENTATION CEIBDriver;
    BEGIN
       IF DriverIndex = WatchDogChannel THEN
          ErrorCode := drv_def.ecSuccess;
-      ELSIF Result.Counted OR Result.Expired THEN
+      ELSIF LicenceResult.Counted OR LicenceResult.Expired THEN
          RETURN FALSE;
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          ErrorCode := drv_def.ecUnknownElement;
@@ -796,7 +798,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             END;
 
             // check licensing           
-            IF Result.Counted OR Result.Expired THEN
+            IF LicenceResult.Counted OR LicenceResult.Expired THEN
                prData.Dispose();
                EXCL( RStatus, knxcore.rsPromiscuousInQueue );
 
@@ -849,7 +851,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             GOTO Error;
          END;
 
-         IF Result.Counted THEN
+         IF LicenceResult.Counted THEN
             CS.Clear();
             GOTO Error;
          ELSIF NOT knx_def.StringToType( s, EIT ) THEN
@@ -862,7 +864,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             CS.AppendOA( N );
             CS.AppendOA( L')' );
             GOTO Error;
-         ELSIF Result.Expired THEN
+         ELSIF LicenceResult.Expired THEN
             CS.Clear();
             GOTO Error;
          END;
@@ -888,7 +890,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             GOTO Error;
          END;
 
-         IF Result.Counted THEN
+         IF LicenceResult.Counted THEN
             CS.Clear();
             GOTO Error;
          ELSIF NOT knx_def.StringToType( s, EIT ) THEN
@@ -901,7 +903,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             CS.AppendOA( N );
             CS.AppendOA( L')' );
             GOTO Error;
-         ELSIF Result.Expired THEN
+         ELSIF LicenceResult.Expired THEN
             CS.Clear();
             GOTO Error;
          END;
@@ -909,7 +911,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF EIT = knx_def.eitDate THEN
             IO.Type := iovalue.vtFloat;
          END;
-         IO.FromStringOA( V, FALSE );
+         IO.FromString( StringsO.FromOA( V ), FALSE );
          IOValue2KNXValue( IO, EIT, OUT EV, OUT so );
          prObjects[EIT].InitiateTransmit( Address, EV );
 
@@ -919,7 +921,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    Error:
       OutValue.String := CS;
-      Result.Inc();
+      LicenceResult.Inc();
    END QueryProc;
 
 //--------------------------------------------------------------------------------
@@ -978,12 +980,21 @@ CLASS IMPLEMENTATION CEIBDriver;
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+   VAR
+      s : FIO.PathStrW;
    BEGIN
       CASE Operation OF
       //-----
       | OP_RUN :
+         // licence
+         LicenceResult.Reset( lec.bhBestCase );
+         FIO.GetModuleDirW( EMITW( %dll ), OUT s );
+         lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF LicenceResult );
+
+         // KNX
          SUPER.Start();
 
+         // watchdog
          IF WatchDogChannel <> MAX( CARDINAL ) THEN
             WatchDogLock.Lock();
             WatchDogLeft := 10 * WD_TICK;
@@ -1097,6 +1108,7 @@ BEGIN
    CallbackProc := NIL;
    ClientName := L"";
 
+   Result := ADR( LicenceResult );
    EventSinks.Subscribe( ADR( SELF ));
    
    StatusChannel := MAX( CARDINAL );
@@ -1106,9 +1118,6 @@ BEGIN
    WriteQueueLengthChannel := MAX( CARDINAL );
 
    WatchDogLeft := MAX( CARDINAL );
-
-   cllvData := ADR( cllv.data );
-   cllvLength := cllv.length;
 
 FINALLY
    EventSinks.Unsubscribe( ADR( SELF ));

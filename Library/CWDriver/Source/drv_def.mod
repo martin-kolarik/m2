@@ -61,7 +61,7 @@ END ValueDataLength;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
+PROCEDURE IOTypeToCWType( IOType : iovalue.TType ) : TValueType;
 BEGIN
    CASE IOType OF
    | iovalue.vtBoolean :
@@ -84,7 +84,7 @@ END IOTypeToCWType;
 
 (*================================================================================*)
 
-PROCEDURE CWTypeToIOType( CWType : TValueType ) : iovalue.TValueType;
+PROCEDURE CWTypeToIOType( CWType : TValueType ) : iovalue.TType;
 BEGIN
    CASE CWType OF
    | vtBoolean :

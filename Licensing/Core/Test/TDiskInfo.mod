@@ -57,14 +57,14 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
       
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhaseWithResult( TRUE );
 
       #if #contains( LicenceMachineId, L"M" ) #then
       Host^.StartPhase( L"MAC Source" );
 
       uid := MACSource.UId;      
       
-      Host^.StopPhaseWithResult( test.trSuccess );
+      Host^.StopPhaseWithResult( TRUE );
       #endif
 
       RETURN test.trSuccess;
