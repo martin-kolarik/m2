@@ -38,6 +38,7 @@ TYPE
       sdap405 = 405, // resource not found
       sdap406 = 406, // resource error
       sdap407 = 407, // resource readonly
+      sdap408 = 408, // resource has no value
 
       // server problems
       sdap500 = 500, // internal server error

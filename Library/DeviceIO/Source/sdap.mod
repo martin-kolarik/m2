@@ -488,7 +488,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             ACKs( PConnection, sdap405, 1 );
 
          ELSIF NOT pvalue^.HasValue THEN
-            ACKs( PConnection, sdap406, 1 );
+            ACKs( PConnection, sdap408, 1 );
 
          ELSE
 
