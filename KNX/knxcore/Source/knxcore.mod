@@ -6,73 +6,6 @@ FROM Exceptions IMPORT
 (*# call( o_a_copy => off ) *)
 
 //================================================================================
-(*/* changes:
-
-21.10.2007 -- started to split to core/svc/driver
-01.09.2007 -- started with SDAP/Server
---.08.2007 -- checked operations, KNX network code complete
-26.07.2007 -- first alpha, unchanged sources, started removing abundant code
-12.07.2007 -- started to connect EIBNetStack
- 4.07.2007 -- changes to EIBServer and new m2
-10.03.2007 -- mii V2.7, build >= ???, added promiscuos mode and groups handling  
-18.06.2006 -- started falcon
- 3.05.2006 -- V2.6, build >= 498
-                -- corrected eis4 (date) bug, see knx_def
- 2.06.2005 -- V2.5, build >= 496
-                -- added WriteQueueLength, SendDelay, WriteDelay parameters
-                -- added WriteDelay handling code
-                -- added GetChannelDescription
-                -- added reading comment and id from PAR
-18.05.2005 -- V2.4, build >= 454
-                -- corrected status channel schiInitReadPending bit -- it was not cleared
-15.03.2005 -- V2.3, build >
-                -- in stack, added clearing of osReading into errornenous ValueReadRequestSent -- such request stops reading
-                -- updated ActiveX to be more friendly if ReadInputs/WriteOutputs returns csPending -- it continues after Notify* itself
-24.02.2005 -- V2.2, build >= 437
-                -- ActiveX control enhanced, OOB data handling addition
-17.02.2005 -- V2.1, build >= 420
-16.02.2005 -- added watchdog handling
-11.02.2005 -- corrected eitChar, eitString -- they did not work for ANSI driver interface
- 7.02.2005 -- V2.0, build >= 368
-                -- eibusb: corrected sending of LL_Config -- the device can be in rBusy state after init and this
-                     response MUST be handled as correct
- 3.02.2005 -- corrected T_Connect/T_Disconnect bug -- this occurred if duplicite PH address appeared in network or
-                     if somebody tried to connect me
-                -- changed behaviour of reception of repeated packets -- they are accepted, even if they are repeated and repeat
-                     packet are filtered, if the new packet carries new (yet unknown) data
-                -- added delaying of transmission/retransmission of packets not accepted by device due to rBusy
-                -- added Input/OutputQueueLengthChannels
-                -- added repeating of unread init_read objects
-                -- corrected behaviour of NAK read requests -- they were never repeated nor they were never detected as unread init_read item
-20.12.2004 -- V1.8. build >= 302
-                -- corrected bug caused that status channel was not enumerated
-10.12.2004 -- V1.7, build >= 282
-                -- modified eibusb.mod to report F0: errors
-30.11.2004 -- V1.6, build >= 268
-                -- modified StringToSingleObject to store in PGroups only the first address of an object
-19.11.2004 -- V1.5, build >= 267
-                -- removed QChecks, added ActiveX support, added CW2K API (version 30000H and dummy exported symbols)
- 2.11.2004 -- V1.4, build >= 237
-                -- added LineBusy, TransceiverFault errors and OutputQueueLength parameter
-27.10.2004 -- added delays between read operations
-19.10.2004 -- V1.3, build
-                -- added remap of status L_Con_Timeout to LCON error code
-17.10.2004 -- modified HWConnected, but it should be analyzed more...
-15.10.2004 -- added RSStatus handling into ValueWritten
- 4.10.2004 -- added INCL( aofKNXValue ) into ValueUpdated for success
-23.09.2004 -- removed RSStatus = essOK from input OOBData. The place is bad,
-                     OOB data must be read without changing error -- error during init
-                     read must be reported too.
-                -- changed Driver.ValueRead to notify init read error using OOB (osInitReadPending)
-19.09.2004 -- V1.2, build
-                -- added RSStatus = essOK into input OOBData. This allows continuing of communication
-                     of element, which was not properly read during init_read phase. Without
-                     setting essOK the driver does not read the element anymore.
-                -- removed duplicity of errors of explicit reading -- UNACKED and TIMEOUT errors
-                     appeared both. After change in EIBSTACK this dissapeared.
-
-*/*)
-//================================================================================
 
 FROM Debug IMPORT
    AssertionW;
@@ -83,6 +16,7 @@ IMPORT
    FIOO,
    IOO,
    Log,
+   namevaluepairsimpl,
    Storage,
    Strings,
    StringsO,
@@ -137,14 +71,10 @@ CONST // object type names
    otnLoggedESFIgnore       = L"logged_esf_ignore";
    
 CONST
-   itemSystemSuspend = 1;
-   itemSystemSerialNumber = 2;
-   itemConnected = 3;
-   nameSystemSuspend = L".System.Licensing.Suspend";
-   nameSystemSerialNumber = L"System.Licensing.SerialNumber";
-   nameConnected = L"Control.Connected";
-   suspendKey = L"suspend";
-   suspendValue = L"true";
+   itemConnected = 1;
+   nameNamespace = L"KNX";
+   nameConnected = L"Connected";
+   namePathConnected = L"Control." + nameConnected;
 
 //================================================================================
 
@@ -271,6 +201,20 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC PROPERTY Pairs GET : ns.TPNameValuePairs;
+   BEGIN
+      RETURN _Pairs;
+   END Pairs;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY Pairs SET( Value : ns.TPNameValuePairs );
+   BEGIN
+      _Pairs := Value;
+   END Pairs;
+
+//--------------------------------------------------------------------------------
+
    INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TKNXStackStatus; CurrentState : knx_user.TObjectState );
    BEGIN
       RSStatus := Status;
@@ -353,6 +297,7 @@ BEGIN
    Server := NIL;
    _ObjectType := TObjectType{};
    _ChangedOnWrite := -1;
+   _Pairs := NIL;
    RSStatus := knx_status.essOK;
    WSStatus := knx_status.essOK;
    ReadRepeatCount := 1;
@@ -389,50 +334,6 @@ CLASS IMPLEMENTATION CStackSink;
 BEGIN
    Server := NIL;
 END CStackSink;
-
-//================================================================================
-
-CLASS IMPLEMENTATION CSuspendableResult;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY Expired GET : BOOLEAN;
-   BEGIN
-      IF _Suspended THEN
-         RETURN TRUE;
-      ELSE
-         RETURN SUPER.Expired;
-      END;
-   END Expired;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY Suspended GET : BOOLEAN;
-   BEGIN
-      RETURN _Suspended;
-   END Suspended;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE QuerySuspension();
-   VAR
-      value : StringsO.CString;
-   BEGIN
-      ProductsLock();
-      ProductsReset();
-      WHILE ProductsMoveNext() DO
-         IF CurrentProduct^.Info^.GetOA( suspendKey, OUT value ) THEN
-            _Suspended := value.EqualsOA( suspendValue );
-         END;
-      END;
-      ProductsUnlock();
-   END QuerySuspension;
-
-//--------------------------------------------------------------------------------
-
-BEGIN
-   _Suspended := FALSE;
-END CSuspendableResult;
 
 //================================================================================
 
@@ -518,25 +419,10 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROPERTY PResult GET : POINTER TO CSuspendableResult;
+   PUBLIC PROPERTY Result SET( Value : lec.TPResult );
    BEGIN
-      RETURN ADR( Result );
-   END PResult;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY cllvData SET( Value : ADDRESS );
-   BEGIN
-      cllvdata := Value;
-   END cllvData;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY cllvLength SET( Value : CARDINAL );
-   BEGIN
-      cllvlength := Value;
-   END cllvLength;
-
+      _Result := Value;
+   END Result;
 //--------------------------------------------------------------------------------
 
    PUBLIC PROPERTY EXEFlag GET : BOOLEAN;
@@ -584,138 +470,143 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL READONLY PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC VIRTUAL PROPERTY DataSourceCapabilities GET : device.TCapabilities;
    BEGIN
-      RETURN iobject.otEphemeral
-   END Type;
+      RETURN device.TCapabilities{device.capAdviseSource};
+   END DataSourceCapabilities;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
-   BEGIN
-      RETURN NIL;
-   END Library;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
-   BEGIN
-   END Library;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose(); // here meant also as a Command
-   BEGIN
-      Dispose();
-   END OnDispose;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
-   BEGIN
-      RETURN device.TCapabilities{};
-   END DeviceCapabilities;
-
-//--------------------------------------------------------------------------------
-
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-	VAR
-	   line : CARDINAL;
-	   message : StringsO.CString;
-	BEGIN
-	   IF ( HIGH( Source ) = -1 ) OR ( Source[0].Type <> device.citIString ) THEN
-	      RETURN Sync.arCannotStart;
-	   END;
-	   IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
-	      Log^.LogSS( log.ldMessage, 0, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
-	      RETURN Sync.arCompleted;
-	   ELSE
-         Log^.LogFilePos( log.lcError, 0, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.Data ), OA( message.Length-1, message.Data ), line, 0 );
-	      Log^.LogSS( log.lcInfo, 0, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
-	      RETURN Sync.arCannotStart;
-	   END;
-	END Configure;
-	
-//--------------------------------------------------------------------------------
-
-	PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-	BEGIN
-	   RETURN ADR( SELF );
-	END Mapper;
-
-//--------------------------------------------------------------------------------
-
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
-	BEGIN
-	   RETURN NIL;
-	END NS;
-
-//--------------------------------------------------------------------------------
-
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-	BEGIN
-	   RETURN ADR( SELF );
-	END IO;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    VAR
-      address : knx_def.TAddress;
-      PObject : TPObject;
+      line : CARDINAL;
+      message : StringsO.CString;
    BEGIN
-      IF Name.EqualsOA( nameSystemSuspend ) THEN
-         Hash := itemSystemSuspend;
-         RETURN TRUE;
-      ELSIF Name.EqualsOA( nameConnected ) THEN
-         Hash := itemConnected;
-         RETURN TRUE;
-      ELSIF Name.EqualsOA( nameSystemSerialNumber ) THEN
-         Hash := itemSystemSerialNumber;
-         RETURN TRUE;
+      IF ( HIGH( Source ) = -1 ) OR ( Source[0].Type <> device.citIString ) THEN
+         RETURN Sync.arCannotStart;
       END;
-      address.SetGroupAddress3( OA( Name.Length-1, Name.Data ));
-      IF NOT GetObject( address, OUT PObject ) THEN
-         RETURN FALSE;
-      END;
-      Hash := PObject;
-      RETURN TRUE;
-   END NameToHash;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
-   VAR
-      address : knx_def.TAddress;
-      PObject : TPObject;
-      s : ARRAY [0..31] OF WCHAR;
-   BEGIN
-      IF Hash = NIL THEN
-         RETURN FALSE;
-      ELSIF Hash = itemSystemSuspend THEN
-         RETURN FALSE;
-      ELSIF Hash = itemConnected THEN
-         Name.FromOA( nameConnected );
-         RETURN TRUE;
-      ELSIF Hash = itemSystemSerialNumber THEN
-         Name.FromOA( nameSystemSerialNumber );
-         RETURN TRUE;
-      END;
-      address := TPObject( Hash )^.SendAddress;
-      IF GetObject( address, OUT PObject ) THEN
-         address.GetGroupAddress3( TRUE, OUT s );
-         Name.FromOA( s );
-         RETURN TRUE;
+      IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
+         Log^.LogSS( log.ldMessage, 0, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
+         RETURN Sync.arCompleted;
       ELSE
-         RETURN FALSE;
+         Log^.LogFilePos( log.lcError, 0, L"KNX", L"", OA( message.Length-1, message.Data ), line, 0 );
+         Log^.LogSS( log.lcInfo, 0, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
+         RETURN Sync.arCannotStart;
       END;
-   END HashToName;
+   END Configure;
+   
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
+   BEGIN
+      RETURN ADR( Namespace );
+   END NS;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
+   BEGIN
+      RETURN ADR( _AdviseSource );
+   END AdviseSource;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
+   BEGIN
+      RETURN ADR( SELF );
+   END StartStop;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   BEGIN
+      RETURN ADR( SELF );
+   END IO;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Description GET : StringsO.CString;
+   BEGIN
+      RETURN StringsO.FromOA( nameNamespace );
+   END Description;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   VAR
+      address : ARRAY [0..63] OF WCHAR;
+      description : StringsO.CString;
+      EV : knx_def.CValue;
+      changed : BOOLEAN;
+      connected : BOOLEAN;
+      PObject : TPObject;
+      s : StringsO.CString;
+   BEGIN
+      IF _Result^.Counted OR _Result^.Expired THEN
+         RETURN Sync.arCannotStart;
+      END;
+      
+      IF NameValuePairs^.Data = itemConnected THEN
+         connected := ( _CacheOnlyMode AND Running ) OR ( KNX <> NIL ) AND KNX^.KNXConnected();
+         IF Direction = IOO.dirRead THEN
+            Value.Boolean := connected;
+            RETURN Sync.arCompleted;
+         ELSIF connected = Value.Boolean THEN
+            RETURN Sync.arCompleted;
+         ELSE
+            IF connected THEN
+               Stop();
+               RETURN Sync.arCompleted;
+            ELSE
+               RETURN Start();
+            END;
+         END;
+      END;
+      
+      PObject := TPObject( NameValuePairs^.Data );
+      IF Direction = IOO.dirRead THEN
+         PObject^.GetValue( OUT EV, TRUE, FALSE );
+         KNXValue2IOValue( EV, PObject^.StringValue, OUT Value );
+
+      ELSE // dirWrite
+         IOValue2KNXValue( Value, PObject^.Type, OUT EV, OUT PObject^.StringValue );
+         PObject^.SetValue( EV, OUT changed );
+
+         // log operation originator
+         IF ( Originator <> NIL ) AND
+            ( objtLogNoChange IN PObject^.ObjectType ) OR // log always
+            ( objtLogOnChange IN PObject^.ObjectType ) AND changed THEN // always allow log failures
+            description := Originator^.Description;
+            description.PrependOA( L"(from " );
+            description.AppendOA( L")" );
+            s := Value.String;
+            PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
+            _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET RQ", address, OA( s.Length-1, s.Data ), OA( description.Length-1, description.Data ));
+         END;         
+      
+         IF changed THEN
+            PObject^.ChangedOnWrite := 1;
+            // for notification using EventSink, if it exists
+            ValueUpdated( IOO.dirWrite, PObject, PObject^.CommunicationState + knx_user.TObjectState{knx_user.osChanged} );
+         ELSE
+            PObject^.ChangedOnWrite := 0;
+            // for notification using EventSink, if it exists
+            ValueUpdated( IOO.dirWrite, PObject, PObject^.CommunicationState );
+         END;
+      END;
+
+      IF KNX^.DeviceConnected() THEN
+         RETURN Sync.arCompleted;
+      ELSE
+         RETURN Sync.arCompletedFromCache;
+      END;
+   END ValueIO;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROPERTY IOCapabilities GET : io.TCapabilities;
    BEGIN
-      RETURN io.TCapabilities{io.capAdvise};
+      RETURN io.TCapabilities{};
    END IOCapabilities;
 
 //--------------------------------------------------------------------------------
@@ -738,34 +629,6 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
-   BEGIN
-      RETURN _Advise;
-   END Advise;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
-   BEGIN
-      _Advise := Value;
-   END Advise;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPIAdviseInfo;
-   BEGIN
-      RETURN _AdviseListener;
-   END AdviseListener;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPIAdviseInfo );
-   BEGIN
-      _AdviseListener := Value;
-   END AdviseListener;
-
-//--------------------------------------------------------------------------------
-
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    VAR
       s : FIO.PathStrW := L"";
@@ -776,18 +639,6 @@ CLASS IMPLEMENTATION CKNXServer;
          RETURN Sync.arCannotStart;
       ELSE
          INCL( RStatus, rsRunning );
-      END;
-   
-      Result.Reset( lec.bhBestCase );
-      IF rsEXEFlag IN RStatus THEN
-         FIO.GetModuleDirW( L"", OUT s );
-      ELSE
-         FIO.GetModuleDirW( EMITW( %dll ), OUT s );
-      END;
-      ASSERT( cllvdata <> NIL );
-      IF cllvdata <> NIL THEN
-         lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
-         Result.QuerySuspension();
       END;
 
       IF _CacheOnlyMode THEN
@@ -829,100 +680,14 @@ CLASS IMPLEMENTATION CKNXServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
-   VAR
-      address : ARRAY [0..63] OF WCHAR;
-      description : StringsO.CString;
-      EV : knx_def.CValue;
-      changed : BOOLEAN;
-      key, value : StringsO.CString;
-      licences : lists.CStringList;
-      PObject : TPObject;
-      ptrType : PTR;
-      s : FIO.PathStrW;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    BEGIN
-      // system suspend must be processed before expiration check
-      IF Item = itemSystemSuspend THEN
-         IF rsEXEFlag IN RStatus THEN
-            FIO.GetModuleDirW( L"", OUT s );
-         ELSE
-            FIO.GetModuleDirW( EMITW( %dll ), OUT s );
-         END;
-         ASSERT( cllvdata <> NIL );
-         IF cllvdata <> NIL THEN
-            key.FromOA( suspendKey );
-            value := Value.String;
-            lec.StoreInfo( s, cllvdata, cllvlength, key, value );
-            ASSERT( cllvdata <> NIL );
-            IF cllvdata <> NIL THEN
-               lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
-               Result.QuerySuspension();
-            END;
-         END;
-         RETURN Sync.arCompleted;
-
-      ELSIF Item = itemSystemSerialNumber THEN
-         Result.GetLicences( OUT licences );
-         IF NOT licences.GetFirst( OUT value, OUT ptrType ) THEN
-            value.Clear();
-         END;
-         Value.String := value;
-         RETURN Sync.arCompleted;
-      END;
-      
-      IF Result.Counted OR Result.Expired THEN
-         RETURN Sync.arCannotStart;
-      END;
-      
-      IF Item = itemConnected THEN
-         IF Direction = IOO.dirRead THEN
-            Value.Boolean := _CacheOnlyMode OR ( KNX <> NIL ) AND KNX^.KNXConnected();
-            RETURN Sync.arCompleted;
-         ELSE
-            RETURN Sync.arCannotStart;
-         END;
-      END;
-      
-      PObject := TPObject( Item );
-      IF Direction = IOO.dirRead THEN
-         PObject^.GetValue( OUT EV, TRUE, FALSE );
-         KNXValue2IOValue( EV, PObject^.StringValue, OUT Value );
-
-      ELSE // dirWrite
-      
-         IOValue2KNXValue( Value, PObject^.Type, OUT EV, OUT PObject^.StringValue );
-         PObject^.SetValue( EV, OUT changed );
-
-         // log operation originator
-         IF ( Originator <> NIL ) AND
-            ( objtLogNoChange IN PObject^.ObjectType ) OR // log always
-            ( objtLogOnChange IN PObject^.ObjectType ) AND changed THEN // always allow log failures
-            description := Originator^.Description;
-            PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
-            _DataLogger^.LogSSS( log.ldMessage, 0, L"srv", "SET RQ", address, OA( description.Length-1, description.Data ));
-         END;         
-      
-         IF changed THEN
-            PObject^.ChangedOnWrite := 1;
-            // for notification using EventSink, if it exists
-            ValueUpdated( IOO.dirWrite, PObject, PObject^.CommunicationState + knx_user.TObjectState{knx_user.osChanged} );
-         ELSE
-            PObject^.ChangedOnWrite := 0;
-            // for notification using EventSink, if it exists
-            ValueUpdated( IOO.dirWrite, PObject, PObject^.CommunicationState );
-         END;
-      END;
-
-      IF KNX^.DeviceConnected() THEN
-         RETURN Sync.arCompleted;
-      ELSE
-         RETURN Sync.arCompletedFromCache;
-      END;
+      RETURN ValueIO( Originator, Item, Direction, REF Value );
    END IOh;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    BEGIN
       RETURN Sync.arCannotStart;
    END IOha;
@@ -933,13 +698,6 @@ CLASS IMPLEMENTATION CKNXServer;
    BEGIN
    END AbortAll;
 
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY Configuration GET : StringsO.TPString;
-   BEGIN
-      RETURN ADR( ConfigurationPath );
-   END Configuration;
-   
 //--------------------------------------------------------------------------------
 
    PUBLIC PROPERTY Connection GET : StringsO.CString;
@@ -1017,23 +775,23 @@ CLASS IMPLEMENTATION CKNXServer;
          kvPHigh             = L'high';
          kvPAlarm            = L'alarm';
       // knObjectType
-        kvLogNoChange        = L"log_always";
-        kvLogOnChange        = L"log_on_change";
-        kvMultipleAddresses  = L"multiple_addresses";
-        kvESFStrict          = L'esf_strict';
-        kvESFIgnore          = L'esf_ignore';
-        kvESFAdapt           = L'esf_adapt';
+         kvLogNoChange       = L"log_always";
+         kvLogOnChange       = L"log_on_change";
+         kvMultipleAddresses = L"multiple_addresses";
+         kvESFStrict         = L'esf_strict';
+         kvESFIgnore         = L'esf_ignore';
+         kvESFAdapt          = L'esf_adapt';
       knBlock                = L'block';
       knType                 = L'type';
       snFormats              = L'formats';
-      knDateAsString         = L'date_as_string';
-      knDateFormat           = L'date_format';
-      knTimeAsString         = L'time_as_string';               
-      knTimeFormat           = L'time_format';
+         knDateAsString      = L'date_as_string';
+         knDateFormat        = L'date_format';
+         knTimeAsString      = L'time_as_string';               
+         knTimeFormat        = L'time_format';
       snControl              = L'control';
-      knDate                 = L'date';
-      knTime                 = L'time';
-      knDateAndTimePeriod    = L'date_time_push_period';
+         knDate              = L'date';
+         knTime              = L'time';
+         knDateAndTimePeriod = L'date_time_push_period';
 
    //----------
 
@@ -1497,7 +1255,9 @@ CLASS IMPLEMENTATION CKNXServer;
       Name : StringsO.CString;
       objectType : TObjectType;
       p : StringsO.CString;
+      pairs : namevaluepairsimpl.TPNameValuePairsIO;
       PBehaviour : TPBehaviour;
+      PObject : TPObject;
       Priority : knx_def.TPriority;
       s : ARRAY [0..4095] OF WCHAR;
       so : StringsO.CString;
@@ -1505,7 +1265,7 @@ CLASS IMPLEMENTATION CKNXServer;
       b : BOOLEAN;
       logged : BOOLEAN;
    BEGIN
-	   IF EXEFlag THEN
+      IF EXEFlag THEN
          R.LoadRES2( L"", L"knxcore.Texts" );
       ELSE
          R.LoadRES2( EMITW( %dll ), L"knxcore.Texts" );
@@ -1927,27 +1687,42 @@ CLASS IMPLEMENTATION CKNXServer;
       
       // read control
       IF TS.SetSection( snControl ) THEN
+         IF NOT TS.GetKeyInt( knDateAndTimePeriod, OUT ErrorLine, OUT _DateAndTimePushPeriod ) THEN
+            _DateAndTimePushPeriod := 1800000;
+         ELSIF _DateAndTimePushPeriod * 1000 < 600000 THEN // _ForceReadPeriod cannot be smaller than 10 minute
+            _DateAndTimePushPeriod := 600000;
+         END;
+
          IF NOT FindBehaviour( StringsO.FromOA( bnSource ), Priority, BFlags ) THEN
             Priority := knx_def.priorityNormal;
             BFlags := knx_def.TA_ObjectFlags{};
          END;
-         IF TS.GetKeyStr( knDate, OUT ErrorLine, OUT so ) THEN
-            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitDate, TObjectType{ objtDate } ) THEN
-               GOTO Fail;
-            END;
-         END;
-         IF TS.GetKeyStr( knTime, OUT ErrorLine, OUT so ) THEN
-            IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitTime, TObjectType{ objtTime } ) THEN
-               GOTO Fail;
-            END;
-         END;
 
-         IF NOT TS.GetKeyInt( knDateAndTimePeriod, OUT ErrorLine, OUT _DateAndTimePushPeriod ) THEN
-            _DateAndTimePushPeriod := 1800000;
-         ELSIF _DateAndTimePushPeriod < 600000 THEN // _ForceReadPeriod cannot be smaller than 10 minute
-            _DateAndTimePushPeriod := 600000;
-         END;
-      END;
+         // read date/time outputs themselves
+         ES := 0;
+         WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT so, OUT p ) DO
+
+            IF p.EqualsOA( knDate ) THEN
+               IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitDate, TObjectType{ objtDate } ) THEN
+                  GOTO Fail;
+               END;
+
+            ELSIF p.EqualsOA( knTime ) THEN
+               IF NOT StringToMultipleObjects( REF ErrorMessage, so, 0, Priority, BFlags, knx_def.eitTime, TObjectType{ objtTime } ) THEN
+                  GOTO Fail;
+               END;
+
+            ELSIF so.EqualsOA( knDateAndTimePeriod ) THEN
+               CONTINUE; // already read
+
+            ELSE
+               ErrorMessage.AppendOA( OAsz( R[ Texts._ControlDefinesDateTimeAndPushPeriodOnly ] ));
+               AppendErrorId( REF ErrorMessage, so );
+               GOTO Fail;
+            END;
+
+         END; // WHILE
+      END; // IF snControl
 
       // handle connection and promiscuous mode
       IF NOT _CacheOnlyMode THEN
@@ -1979,8 +1754,36 @@ CLASS IMPLEMENTATION CKNXServer;
             knx_stack.TPKNXStackApplicationLayer( KNX^.Layers[ knx_stack.kltApplication ] )^.Update_L_Layer();
          END;
       END; // IF NOT _CacheOnlyMode
+
+      // fill namespace
+      // compute line name (1.5.156 -> 1-5)
+      // UNTIL there are more lines in the code, no line-address-specific namespace is needed
+      // Address.GetPhysicalAddress3( OUT s );
+      // IF EQUALS( s, L"" ) THEN
+      //    s := L"0-0";
+      // ELSE
+      //    i := Strings.LastIndexOfCharW( s, L".", 0 );
+      //    IF i <> -1 THEN
+      //       s[i] := 0W;
+      //    END;
+      //    i := Strings.IndexOfCharW( s, L".", 0 );
+      //    IF i <> -1 THEN
+      //       s[i] := L"-";
+      //    END;
+      // END;
+      // Namespace.InitializeName := StringsO.FromOA( s );
+      Namespace.InitializeName := StringsO.FromOA( nameNamespace );
+
+      // group addresses
+      FOR i := 0 TO Objects.Count - 1 DO
+         PObject := TPObject( Objects[i] );
+         PObject^.SendAddress.GetGroupAddress3( TRUE, OUT s );
+         Namespace.DefineIOValue( StringsO.FromOA( s ), REF SELF, PObject, NIL, OUT PObject^.Pairs );
+      END; // FOR
+
+      // connection info/control
+      Namespace.DefineIOValue( StringsO.FromOA( nameConnected ), REF SELF, itemConnected, NIL, OUT pairs );
       
-      ConfigurationPath.Assign( ConfigurationFile ); // store sucessfully read configuration
       RETURN TRUE;
 
    Fail:
@@ -2000,9 +1803,9 @@ CLASS IMPLEMENTATION CKNXServer;
 
    PUBLIC PROCEDURE OnDeviceConnect();
    VAR
-      hash : ns.THash;
       result : Sync.TAsyncResult;
       value : iovalue.Value;
+      pairs : ns.TPNameValuePairs;
    BEGIN
       EventSinks.OnConnect();
 
@@ -2024,11 +1827,11 @@ CLASS IMPLEMENTATION CKNXServer;
          DoPushDateAndTime();
       END;
       
-      IF _AdviseListener <> NIL THEN
-         hash := itemConnected;
+      IF _AdviseSource.AdviseListener <> NIL THEN
+         Namespace.Get( StringsO.FromOA( namePathConnected ), OUT pairs );
          result := Sync.arCompleted;
          value.Boolean := TRUE;
-         _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( hash )), OA( 0, ADR( value )) );
+         _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( pairs )), OA( 0, ADR( value )) );
       END;
    END OnDeviceConnect;
 
@@ -2036,20 +1839,20 @@ CLASS IMPLEMENTATION CKNXServer;
 
    PUBLIC PROCEDURE OnDeviceDisconnect();
    VAR
-      hash : ns.THash;
       result : Sync.TAsyncResult;
       value : iovalue.Value;
+      pairs : ns.TPNameValuePairs;
    BEGIN
       EventSinks.OnDisconnect();
 
       StopTimer( tiDateAndTime );
       StopTimer( tiForceRead );
 
-      IF _AdviseListener <> NIL THEN
-         hash := itemConnected;
+      IF _AdviseSource.AdviseListener <> NIL THEN
+         Namespace.Get( StringsO.FromOA( namePathConnected ), OUT pairs );
          result := Sync.arCompleted;
          value.Boolean := FALSE;
-         _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( hash )), OA( 0, ADR( value )) );
+         _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( pairs )), OA( 0, ADR( value )) );
       END;
    END OnDeviceDisconnect;
 
@@ -2177,7 +1980,7 @@ CLASS IMPLEMENTATION CKNXServer;
       PObject^.ObjectType := ObjectType;
       
       Objects.Add( PObject );
-      
+
       IF ObjectType * TObjectType{ objtDate, objtTime } <> TObjectType{} THEN
          DateAndTimeObjects.Add( PObject );
       END;
@@ -2193,6 +1996,7 @@ CLASS IMPLEMENTATION CKNXServer;
       i : CARDINAL;
       PObject : TPObject;
    BEGIN
+      Namespace.Dispose();
       FOR i := 0 TO Objects.Count - 1 DO
          PObject := TPObject( Objects[i] );
          IF NILExecutive THEN
@@ -2309,7 +2113,7 @@ CLASS IMPLEMENTATION CKNXServer;
       ELSIF PObject^.RSStatus = knx_status.essOK THEN
          INCL( PObject^.Flags, knx_def.aofKNXValue );
       END;
-      IF Result.Counted OR Result.Expired THEN
+      IF _Result^.Counted OR _Result^.Expired THEN
          RETURN;
       END;
 
@@ -2349,12 +2153,12 @@ CLASS IMPLEMENTATION CKNXServer;
             EnqueuePromiscuous( knx_status.essOK, PObject );
          END;
 
-         IF _AdviseListener <> NIL THEN
+         IF _AdviseSource.AdviseListener <> NIL THEN
             IF NOT valuesConverted THEN
                PObject^.GetValue( OUT EValue, TRUE, FALSE );
                KNXValue2IOValue( EValue, PObject^.StringValue, OUT io );
             END;
-            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
+            _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject^.Pairs )), OA( 0, ADR( io )) );
          END;
 
       ELSE // oobData promiscuous mode queueing
@@ -2380,8 +2184,8 @@ CLASS IMPLEMENTATION CKNXServer;
             EventSinks.OnInputQueueAdd( TRUE, FALSE );
          END;
 
-         IF _AdviseListener <> NIL THEN
-            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
+         IF _AdviseSource.AdviseListener <> NIL THEN
+            _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject^.Pairs )), OA( 0, ADR( io )) );
          END;
 
       END;
@@ -2474,7 +2278,6 @@ CLASS IMPLEMENTATION CKNXServer;
 
    PROCEDURE InitToDefault();
    BEGIN
-      ConfigurationPath.Clear();
       DeviceId := MAX( CARDINAL );
       PromiscuousMode := FALSE;
       InputQueueLength := 256;
@@ -2814,9 +2617,9 @@ CLASS IMPLEMENTATION CKNXServer;
                b1 := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.Data ), FALSE, TRUE, OUT s );
             END;
             IF b1 THEN
-               Value.FromStringOA( s, FALSE );
+               Value.String := StringsO.FromOA( s );
             ELSE
-               Value.FromStringOA( L"", FALSE );
+               Value.String := StringsO.Empty();
             END;
          ELSE
             Value.Integer := CARDINAL( Day ) * 100000 + ( H * 60 + M ) * 60 + S;
@@ -2834,9 +2637,9 @@ CLASS IMPLEMENTATION CKNXServer;
                b1 := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.Data ), TRUE, FALSE, OUT s );
             END;
             IF b1 THEN
-               Value.FromStringOA( s, FALSE );
+               Value.String := StringsO.FromOA( s );
             ELSE
-               Value.FromStringOA( L"", FALSE );
+               Value.String := StringsO.Empty();
             END;
          ELSE
             Value.Date := DateTime.JD( Y, M, D, 0 );
@@ -2868,7 +2671,7 @@ CLASS IMPLEMENTATION CKNXServer;
 
       | knx_def.eitChar :
          Value.Type := iovalue.vtString;
-         Value.FromStringOA( EV.GetChar(), FALSE );
+         Value.String := StringsO.FromOA( EV.GetChar());
 
       | knx_def.eit8bit :
          Value.Integer := EV.Get8bit();
@@ -2905,8 +2708,7 @@ BEGIN
    KNX := NIL;
    Sink.Server := ADR( SELF );
    EventSinks.SinkType := RTTI( IKNXServerSink );
-   _Advise := io.advWithData;
-   _AdviseListener := NIL;
+   _Result := NIL;
    _DataLogger := NIL;
 
    Logger.Level := Log.ldDebug;
@@ -2922,9 +2724,6 @@ BEGIN
    ObjectLock.Init( Sync.ltCS, L"", FALSE );
    QueueLock.Init( Sync.ltSpin, L"", FALSE );
    
-   cllvdata := NIL;
-   cllvlength := 0;
-
    InitReadItems := 0;
    oobData.ItemType := lists.blitSlot32;
    prData.ItemType := lists.blitSlot64;

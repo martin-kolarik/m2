@@ -18,7 +18,7 @@ TYPE
   TPParamStringArray = POINTER TO TParamStringArray;
 
   # save, call( convention => cdecl )
-  PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
+  PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
   VAR
     DefIdPrefix : ARRAY [0..63] OF WCHAR := L'';
     ErrF : windows.HANDLE := windows.GetStdHandle( windows.STD_ERROR_HANDLE );
@@ -107,7 +107,7 @@ TYPE
     ELSE
       RETURN 0;
     END;
-  END wmain;
+  END Main;
   # restore
   
 BEGIN

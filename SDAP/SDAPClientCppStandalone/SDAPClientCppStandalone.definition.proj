@@ -3,15 +3,7 @@
 
     <PropertyGroup>
         <Manufacturer>NeNo</Manufacturer>
-
-        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
-        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
-        <LanguageStyle>UNICODE</LanguageStyle>
-        <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Static</CLib>
-        <Licensing>off</Licensing>
-        <LeakChecking>off</LeakChecking>
-        <PublishExports>off</PublishExports>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='SDAPClientCPPStandalone'">

@@ -1,5 +1,15 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+    <!-- environment definition -->
+    <PropertyGroup>
+        <SDKPath>C:\Program Files\Microsoft SDKs\Windows\v7.1</SDKPath>
+        <CompilerPath>C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC</CompilerPath>
+        <!-- particular directories are constructed at the file end -->
+        <!-- the latter properties depends on MSBuildBittness, not on Platform settings -->
+        <BuildTask Condition="$(PROCESSOR_ARCHITECTURE)=='AMD64'">BuildTasks.x64.dll</BuildTask>
+        <BuildTask Condition="$(PROCESSOR_ARCHITECTURE)!='AMD64'">BuildTasks.x86.dll</BuildTask>
+    </PropertyGroup>
+
     <!-- compiler -->
     <PropertyGroup>
         <LicensingComponent>Licensing\Core</LicensingComponent>
@@ -89,11 +99,11 @@
 
     <!-- default compilation control, CAN BE MODIFIED here as GLOBAL, or in product $(ComponentDefinitions) file -->
     <PropertyGroup>
-        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
-        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName><!-- Release Debug -->
+        <Platform Condition="$(Platform)==''">x86</Platform><!-- x86 x64 -->
+        <Configuration Condition="$(Configuration)==''">Debug</Configuration><!-- Release Debug -->
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle><!-- ANSI UNICODE -->
         <Language Condition="$(Language)==''">English</Language><!-- English Czech German Japanese -->
-        <CLib Condition="$(CLib)==''">Private</CLib><!-- Static Dynamic Private --><!-- Static = LIBC, Dynamic = MSVCRT, Private = CRtl -->
+        <CLib Condition="$(CLib)==''">Private</CLib><!-- Static Dynamic Private --><!-- Static = LIBC, Dynamic = MSVCRT, Private = CCppSupp -->
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
         <ResultSubsystem Condition="$(ResultSubsystem)==''">Console</ResultSubsystem><!-- Console GUI -->
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
@@ -123,17 +133,37 @@
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->
-    <PropertyGroup Condition ="$(ConfigurationName)=='Release'">
+    <PropertyGroup Condition ="$(Configuration)=='Release'">
         <Licensing Condition="$(Licensing)==''">off</Licensing>
         <Debug Condition="$(Debug)==''">off</Debug>
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->
-    <PropertyGroup Condition ="$(ConfigurationName)!='Release'">
+    <PropertyGroup Condition ="$(Configuration)!='Release'">
         <Licensing Condition="$(Licensing)==''">off</Licensing>
         <Debug Condition="$(Debug)==''">on</Debug>
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
     </PropertyGroup>
 
+    <!-- (constructed properties, modify only SUBDIRECTORIES, if needed) -->
+    <PropertyGroup Condition="$(Platform)=='x86'">
+        <SDKInclude>$(SDKPath)\Include</SDKInclude>
+        <SDKLib>$(SDKPath)\Lib</SDKLib>
+        <SDKBin>$(SDKPath)\Bin</SDKBin>
+        <SDKCommonBin>$(SDKPath)\Bin</SDKCommonBin>
+        <CompilerInclude>$(CompilerPath)\Include</CompilerInclude>
+        <CompilerLib>$(CompilerPath)\Lib</CompilerLib>
+        <CompilerBin>$(CompilerPath)\Bin</CompilerBin>
+    </PropertyGroup>
+    <PropertyGroup Condition="$(Platform)=='x64'">
+        <SDKInclude>$(SDKPath)\Include</SDKInclude>
+        <SDKLib>$(SDKPath)\Lib\x64</SDKLib>
+        <SDKBin>$(SDKPath)\Bin\x64</SDKBin>
+        <SDKCommonBin>$(SDKPath)\Bin</SDKCommonBin>
+        <CompilerInclude>$(CompilerPath)\Include</CompilerInclude>
+        <CompilerLib>$(CompilerPath)\Lib\amd64</CompilerLib>
+        <CompilerBin>$(CompilerPath)\Bin\amd64</CompilerBin>
+    </PropertyGroup>
+    
 </Project>

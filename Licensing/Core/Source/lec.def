@@ -26,16 +26,16 @@ TYPE
    );
 
    // copy of Items.TLicenceTypeItem, keep this synchronized
-	TLicenceTypeItem = (
-		ltUnnamed,
-		ltUpgrade,
-		ltEducational,
-		ltTrial, // without activation runs as DEMO not as unregistered
-		
-		ltActivated,
-		ltExpired
-	);
-	TLicenceType = SET OF TLicenceTypeItem;
+   TLicenceTypeItem = (
+      ltUnnamed,
+      ltUpgrade,
+      ltEducational,
+      ltTrial, // without activation runs as DEMO not as unregistered
+      
+      ltActivated,
+      ltExpired
+   );
+   TLicenceType = SET OF TLicenceTypeItem;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -68,6 +68,9 @@ END CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
+TYPE
+   TPResult = POINTER TO CResult;
+
 CLASS CResult( Delegate.ADelegate );
    PRIVATE VAR
       _Lock : sync.LOCK;
@@ -85,10 +88,11 @@ CLASS CResult( Delegate.ADelegate );
    PUBLIC VAR
       Behaviour : TBehaviour := bhBestCase;
    // summarized data
-   PUBLIC READONLY PROPERTY
-      StateInfo : TStateInfo;
+   PUBLIC VIRTUAL READONLY PROPERTY
       Expires : datetime.DateTime;
       Expired : BOOLEAN;
+   PUBLIC READONLY PROPERTY
+      StateInfo : TStateInfo;
       NextCheck : CARDINAL;
       Counted : BOOLEAN;
 

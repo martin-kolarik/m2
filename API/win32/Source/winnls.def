@@ -697,7 +697,7 @@ PROCEDURE WideCharToMultiByte(CodePage       : CARDINAL;
  *  Locale Dependent APIs.
  *)
 
-#if #not( PlatformName #startswith L"WinCE" ) #then
+#if #not( Platform #startswith L"WinCE" ) #then
 PROCEDURE CompareStringA( Locale      : LCID;
                           dwCmpFlags  : CARDINAL;
                           PString1    : windows.PCSTR;
@@ -715,7 +715,7 @@ PROCEDURE CompareStringW( Locale      : LCID;
                           cchCount2   : INTEGER
                         ) : INTEGER;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 CONST
   CompareString ::= CompareStringW;
 #else
@@ -745,7 +745,7 @@ PROCEDURE GetLocaleInfoW(Locale : LCID;
                          lpLCData : windows.PWSTR;
                          cchData : INTEGER) : INTEGER;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 CONST
   GetLocaleInfo ::= GetLocaleInfoW;
 #else

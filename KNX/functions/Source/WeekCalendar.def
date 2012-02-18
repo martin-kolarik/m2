@@ -23,10 +23,13 @@ TYPE
    TPWeekCalendarFunction = POINTER TO CWeekCalendarFunction;
    TPItem = POINTER TO CItem;
 
-CLASS CWeekCalendarFunction( functionbase.CFunctionBase ) IMPLEMENTS threadpool.ITimeoutSink;
+CLASS CWeekCalendarFunction( functionbase.CFunctionBase ) IMPLEMENTS ns.IAdviseInfo, threadpool.ITimeoutSink;
 
    // MessageHandler
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+
+   // IAdviseInfo
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
 
    // ITimeoutSink
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
@@ -48,6 +51,7 @@ CLASS CWeekCalendarFunction( functionbase.CFunctionBase ) IMPLEMENTS threadpool.
    PRIVATE PROCEDURE EvaluateItems();
    PRIVATE PROCEDURE Enqueue( item : TPItem );
    PRIVATE PROCEDURE Write();
+   PRIVATE PROCEDURE Reanalyze( item : TPItem );
 
    PRIVATE PROCEDURE DetermineLastPassedWeekStart() : datetime.DateTime;
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; REF Handle : threadpool.TPoolHandle );

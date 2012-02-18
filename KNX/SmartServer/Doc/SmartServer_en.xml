@@ -15,24 +15,30 @@
       <title>SmartServer</title>
 
       <text>
-        <p>SmartServer for KNX is a product which allows to remote clients (to visualization programs) to read and write
-        data from KNX bus. SmartServer is designed for continuous running, it is present in the operating system as a
-        service. SmartServer KNX keeps data in the cache, so their current values are available for clients continually.
+        <p>SmartServer for KNX is a product which allows to remote clients (to
+        visualization programs) to read and write data from KNX bus.
+        SmartServer is designed for continuous running, it is present in the
+        operating system as a service. SmartServer KNX keeps data in the
+        cache, so their current values are available for clients continually.
         Server can be remotely administrated by web interface (HTTP/HTML).</p>
 
-        <p>Server provides for clients two interfaces: XMLSocket and line-oriented text TCP/IP interface.</p>
+        <p>Server provides for clients two interfaces: XMLSocket and
+        line-oriented text TCP/IP interface.</p>
 
         <il>
           <caption>Software and hardware requirements:</caption>
 
-          <li><p>operating system Windows XP SP2 and higher, XP Embedded SP2, Vista RTM and higher, Windows Server 2003 RTM and
-          higer, Windows Server 2008 RTM and higher,</p></li>
+          <li><p>operating system Windows XP SP2 and higher, XP Embedded SP2,
+          Vista RTM and higher, Windows Server 2003 RTM and higer, Windows
+          Server 2008 RTM and higher,</p></li>
 
           <li><p>10 megabytes of free disk space,</p></li>
 
-          <li><p>an active network connection for connection with clients and KNX/KNX,</p></li>
+          <li><p>an active network connection for connection with clients and
+          KNX/KNX,</p></li>
 
-          <li><p>on the KNX devices KNXnet/IP (it is part of a KNX standard).</p></li>
+          <li><p>on the KNX devices KNXnet/IP (it is part of a KNX
+          standard).</p></li>
         </il>
 
         <p>Version of the documentation: 1.2.1550</p>
@@ -45,17 +51,22 @@
           <title>Installation and licence</title>
 
           <text>
-            <p>The SmartServer installation packet (in the form of MSI file, MSI = Microsoft Installer) is installed after
-            start-up automatically to <file>Program Files\NeNo\KNXSrv</file> folder. During the installation, it is necessary to
-            enter proper licence data (from licence certificate), or it is possible to install the SmartServer as a demo
-            version.</p>
+            <p>The SmartServer installation packet (in the form of MSI file,
+            MSI = Microsoft Installer) is installed after start-up
+            automatically to <file>Program Files\NeNo\KNXSrv</file> folder.
+            During the installation, it is necessary to enter proper licence
+            data (from licence certificate), or it is possible to install the
+            SmartServer as a demo version.</p>
 
             <il>
-              <caption>Compared to the full version, the demo version is limited as follows:</caption>
+              <caption>Compared to the full version, the demo version is
+              limited as follows:</caption>
 
-              <li><p>it allows to clients to perform only about <number>10000</number> clients operations collectively,</p></li>
+              <li><p>it allows to clients to perform only about
+              <number>10000</number> clients operations collectively,</p></li>
 
-              <li><p>it provides data to clients only about 30 minutes after start-up,</p></li>
+              <li><p>it provides data to clients only about 30 minutes after
+              start-up,</p></li>
 
               <li><p>the limitation does not stop the service and does not
               terminate connection with clients; the clients will stay
@@ -63,10 +74,13 @@
               them.</p></li>
             </il>
 
-            <p>Installed SmartServer must be activated till 35 days after the installation. The activation can be performed
-            remotely (with connection to Internet) or from the command line, but always with help of the tool (<type>activate</type>),
-            which is installed together with the SmartServer. If the SmartServer is not activated during the above shown 35
-            days, it will run as the demo version after lapse of this time.</p>
+            <p>Installed SmartServer must be activated till 35 days after the
+            installation. The activation can be performed remotely (with
+            connection to Internet) or from the command line, but always with
+            help of the tool (<type>activate</type>), which is installed
+            together with the SmartServer. If the SmartServer is not activated
+            during the above shown 35 days, it will run as the demo version
+            after lapse of this time.</p>
 
             <section incontent="hidden" level="3">
               <title>Licence activation</title>
@@ -80,8 +94,8 @@
                 second step of activation<c.special what="dash" />the
                 activation number is applied.</p>
 
-                <p>The registration number is obtained with help of <type>activate</type> tool as follows (record of operations
-                in command line):</p>
+                <p>The registration number is obtained with help of <type>activate</type>
+                tool as follows (record of operations in command line):</p>
 
                 <p.type>C:\&gt;cd "Program Files\Neno\KNXSrv
 C:\Program Files\NeNo\KNXSrv&gt;activate -Q *
@@ -117,7 +131,8 @@ Licence support tool
   processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
   processing product "NeNo.KNXSrv"</p.type>
 
-                <p>A fruitfulness of activation can be verified again with help of <type>activate</type>:</p>
+                <p>A fruitfulness of activation can be verified again with
+                help of <type>activate</type>:</p>
 
                 <p.type>C:\Program Files\NeNo\KNXSrv&gt;activate -I
 Licence support tool
@@ -131,9 +146,11 @@ Licence support tool
     type "----"
       activated permanently</p.type>
 
-                <p>Caution: After the activation the SmartServer service (KNX/KNXServer) must be restarted. In computers with
-                embedded operation system (Windows XP Embedded), it is further necessary to record changes of computer set-up on
-                the disc and to restart the computer.</p>
+                <p>Caution: After the activation the SmartServer service
+                (KNX/KNXServer) must be restarted. In computers with embedded
+                operation system (Windows XP Embedded), it is further
+                necessary to record changes of computer set-up on the disc and
+                to restart the computer.</p>
               </text>
             </section>
           </text>
@@ -143,16 +160,21 @@ Licence support tool
           <title>Configuration files</title>
 
           <text>
-            <p>The SmartServer runs as a service of operation system and it starts immediately after installation. It loads all
-            its settings (KNX objects, communication, KNXnet/IPinterface) from a text file on the disc (description, see
-            bellow), which is allotted to the server with help of administrative web interface. The configuration file cannot be
-            modified with help of the administrative interface, the file must be recorded on the disc by another way (locally,
-            with help of RDP, VNC, etc.).</p>
+            <p>The SmartServer runs as a service of operation system and it
+            starts immediately after installation. It loads all its settings
+            (KNX objects, communication, KNXnet/IPinterface) from a text file
+            on the disc (description, see bellow), which is allotted to the
+            server with help of administrative web interface. The
+            configuration file cannot be modified with help of the
+            administrative interface, the file must be recorded on the disc by
+            another way (locally, with help of RDP, VNC, etc.).</p>
 
-            <p>Without modification by the administrative interface, the server searches and loads, as starting file,
-            <file>default.cfg</file> configuration file, which is located in the same folder, as the server program
-            (<file>KNXSrv.exe</file>). This starting configuration file is installed and contains also a list of all available
-            settings also with brief comments.</p>
+            <p>Without modification by the administrative interface, the
+            server searches and loads, as starting file,
+            <file>default.cfg</file> configuration file, which is located in
+            the same folder, as the server program (<file>KNXSrv.exe</file>).
+            This starting configuration file is installed and contains also a
+            list of all available settings also with brief comments.</p>
 
             <p>Program running as the service has limited possibilities of
             interaction with user, therefore it is not possible to find out
@@ -162,22 +184,26 @@ Licence support tool
             setting with help of tool of <file>checkcfg.exe</file> command
             line, which is delivered as a part of server installation.</p>
 
-            <p>Configuration files for server are text ones, structured to sections ones (section names are between <type>[</type>
-            a <type>]</type> characters) and line oriented ones (parameters are recorded inside sections on independent
-            lines).</p>
+            <p>Configuration files for server are text ones, structured to
+            sections ones (section names are between <type>[</type> a <type>]</type>
+            characters) and line oriented ones (parameters are recorded inside
+            sections on independent lines).</p>
 
-            <p>Sample configuration files are stored in <file>Examples</file> folder with the server program.</p>
+            <p>Sample configuration files are stored in <file>Examples</file>
+            folder with the server program.</p>
 
             <section label="secDevice" level="3">
               <title><type>[project]</type></title>
 
               <text>
                 <dl class="dlParameter">
-                  <caption><type>[device]</type> section contains following parameters:</caption>
+                  <caption><type>[device]</type> section contains following
+                  parameters:</caption>
 
                   <dt><type>name</type></dt>
 
-                  <dd><p>for definition of project logical name. The name is displayed on status page of administration web
+                  <dd><p>for definition of project logical name. The name is
+                  displayed on status page of administration web
                   interface.</p><p>Example:</p><p.type>name = Really Big Government Building</p.type></dd>
                 </dl>
               </text>
@@ -188,33 +214,47 @@ Licence support tool
 
               <text>
                 <dl class="dlParameter">
-                  <caption><type>[device]</type> section contains following parameters:</caption>
+                  <caption><type>[device]</type> section contains following
+                  parameters:</caption>
 
                   <dt><type>id</type></dt>
 
-                  <dd><p>for definition of IP address and KNXnet/IP port of equipment; according to kind of communication, IP
-                  address must be either multicast (for <type>mode = routing</type>), or unicast (for <type>mode = tunnelling</type>
-                  or <type>mode = tunnelling-ACK</type>).Record of parameter consists from three parts, the parameter can be
-                  found in all examples:</p><p.type>id = KNXnet:192.168.0.100:3671</p.type><p>whereas the last part
-                  (<number>3671</number>, port number) is optional. If a port is not recorded, the initial port according to KNX
-                  standard (i.e. just <number>3671</number>) is used.</p><p>In routing mode, a multicast address must be used.
-                  For proper communication of server with KNXnet/IP routers, the same multicast address must be recorded as in
-                  id parameter, as in configurations of single routers. The initial address according to KNX: 224.0.23.12
-                  standard offers itself as a good choice. Then the configuration looks, e.g.:</p><p.type>id = KNXnet:224.0.23.12</p.type></dd>
+                  <dd><p>for definition of IP address and KNXnet/IP port of
+                  equipment; according to kind of communication, IP address
+                  must be either multicast (for <type>mode = routing</type>),
+                  or unicast (for <type>mode = tunnelling</type> or <type>mode = tunnelling-ACK</type>).Record
+                  of parameter consists from three parts, the parameter can be
+                  found in all examples:</p><p.type>id = KNXnet:192.168.0.100:3671</p.type><p>whereas
+                  the last part (<number>3671</number>, port number) is
+                  optional. If a port is not recorded, the initial port
+                  according to KNX standard (i.e. just <number>3671</number>)
+                  is used.</p><p>In routing mode, a multicast address must be
+                  used. For proper communication of server with KNXnet/IP
+                  routers, the same multicast address must be recorded as in
+                  id parameter, as in configurations of single routers. The
+                  initial address according to KNX: 224.0.23.12 standard
+                  offers itself as a good choice. Then the configuration
+                  looks, e.g.:</p><p.type>id = KNXnet:224.0.23.12</p.type></dd>
 
                   <dt><type>mode</type></dt>
 
-                  <dd><p>For definition of kind of connection with KNXnet/IP equipment. Possible values of the parameter are
-                  displayed in the table <in label="tblMode"></in>.</p></dd>
+                  <dd><p>For definition of kind of connection with KNXnet/IP
+                  equipment. Possible values of the parameter are displayed in
+                  the table <in label="tblMode"></in>.</p></dd>
 
                   <dt><type>cache_only</type></dt>
 
-                  <dd><p>For allowing access to data objects without connection to KNX data bus. If parametr valus is <type>false</type>
-                  (defaut value), SmartServer requires connection to KNX to be established. If the connection is broken (or
-                  if it did not succeeded to establish), SmartServer does not provide data to clients either it does not
-                  displays it in web interface (there error message appears). If the parameter is set to value <type>true</type>,
-                  SmartServer will not connect the bus and data will be provided to clients continuously (but data will never be
-                  passed to the bus).</p><p>Example:</p><p.type>cache_only = false</p.type></dd>
+                  <dd><p>For allowing access to data objects without
+                  connection to KNX data bus. If parametr valus is <type>false</type>
+                  (defaut value), SmartServer requires connection to KNX to be
+                  established. If the connection is broken (or if it did not
+                  succeeded to establish), SmartServer does not provide data
+                  to clients either it does not displays it in web interface
+                  (there error message appears). If the parameter is set to
+                  value <type>true</type>, SmartServer will not connect the
+                  bus and data will be provided to clients continuously (but
+                  data will never be passed to the
+                  bus).</p><p>Example:</p><p.type>cache_only = false</p.type></dd>
                 </dl>
 
                 <f.table label="tblMode">
@@ -232,7 +272,8 @@ Licence support tool
                     <tr>
                       <td><type>tunneling</type></td>
 
-                      <td>point-point communication with equipment is exclusive one (KNX Std. 3.8.4)</td>
+                      <td>point-point communication with equipment is
+                      exclusive one (KNX Std. 3.8.4)</td>
 
                       <td><file>01 test-direct.cfg</file></td>
                     </tr>
@@ -267,12 +308,14 @@ Licence support tool
 
               <text>
                 <dl class="dlParameter">
-                  <caption><type>[interface]</type> section defines following parameters:</caption>
+                  <caption><type>[interface]</type> section defines following
+                  parameters:</caption>
 
                   <dt><type>address</type></dt>
 
-                  <dd><p>for definition of KNX physical address, which is used by server for sending of data to KNX data
-                  bus. The parameter is present in all examples. Example:</p><p.type>address = 1.2.1</p.type></dd>
+                  <dd><p>for definition of KNX physical address, which is used
+                  by server for sending of data to KNX data bus. The parameter
+                  is present in all examples. Example:</p><p.type>address = 1.2.1</p.type></dd>
 
                   <dt><type>read_on_start_repeat_count</type></dt>
 
@@ -299,7 +342,8 @@ Licence support tool
 
               <text>
                 <dl class="dlParameter">
-                  <caption><type>[client_interface]</type> defines the following parameters:</caption>
+                  <caption><type>[client_interface]</type> defines the
+                  following parameters:</caption>
 
                   <dt><type>xml_socket_port</type></dt>
 
@@ -325,7 +369,8 @@ Licence support tool
 
               <text>
                 <dl class="dlParameter">
-                  <caption><type>[behaviours]</type> section defines following parameters:</caption>
+                  <caption><type>[behaviours]</type> section defines following
+                  parameters:</caption>
 
                   <dt><type>readers_period</type></dt>
 
@@ -363,20 +408,29 @@ Licence support tool
                 definition of several data items, whereas <type>[blocks]</type>
                 allows larger structuring of the configuration.</p>
 
-                <p>In both sections, the data objects can be defined with help of <type>objects</type>, <type>object</type>,
-                <type>logged_objects</type>, <type>logged_object</type>, <type>logged_on_change_objects</type> and <type>logged_on_change_object</type>
-                parameters. Their distinguishing is simple: <type>objects</type>, <type>logged_objects</type> and <type>logged_on_change_objects</type>
-                allow common definition of more data objects (each with one group address); <type>object</type>, <type>logged_object</type>
-                and <type>logged_on_change_object</type> define one data object eventually connected with more group addresses
-                (the model is the same as at connection of communication objects with group addresses at current KNX programming
-                in ETS).</p>
+                <p>In both sections, the data objects can be defined with help
+                of <type>objects</type>, <type>object</type>, <type>logged_objects</type>,
+                <type>logged_object</type>, <type>logged_on_change_objects</type>
+                and <type>logged_on_change_object</type> parameters. Their
+                distinguishing is simple: <type>objects</type>, <type>logged_objects</type>
+                and <type>logged_on_change_objects</type> allow common
+                definition of more data objects (each with one group address);
+                <type>object</type>, <type>logged_object</type> and <type>logged_on_change_object</type>
+                define one data object eventually connected with more group
+                addresses (the model is the same as at connection of
+                communication objects with group addresses at current KNX
+                programming in ETS).</p>
 
-                <p><type>logged_on_change_object</type>, <type>logged_objects</type> and <type>logged_object</type> parameters
-                serve for definition of data objects, which changes in time will be recorded in administrative part of web
-                interface (in <gui>Data history</gui> part). E.g. example configuration file <file>12 test-logged.cfg</file>
-                contains an example of use of monitored data objects.</p>
+                <p><type>logged_on_change_object</type>, <type>logged_objects</type>
+                and <type>logged_object</type> parameters serve for definition
+                of data objects, which changes in time will be recorded in
+                administrative part of web interface (in <gui>Data
+                history</gui> part). E.g. example configuration file <file>12
+                test-logged.cfg</file> contains an example of use of monitored
+                data objects.</p>
 
-                <p>In definition of data items, keywords according to the table <in label="tblDataTypes"></in> are used.</p>
+                <p>In definition of data items, keywords according to the
+                table <in label="tblDataTypes"></in> are used.</p>
 
                 <f.table label="tblDataTypes">
                   <caption>Data types</caption>
@@ -453,7 +507,8 @@ Licence support tool
                     </tr>
 
                     <tr>
-                      <td>EIS<c.special what="thinspace" />7 Drive Control</td>
+                      <td>EIS<c.special what="thinspace" />7 Drive
+                      Control</td>
 
                       <td><type>eis7</type></td>
 
@@ -463,7 +518,8 @@ Licence support tool
                     </tr>
 
                     <tr>
-                      <td>EIS<c.special what="thinspace" />8 Priority (2-bit)</td>
+                      <td>EIS<c.special what="thinspace" />8 Priority
+                      (2-bit)</td>
 
                       <td><type>eis8</type></td>
 
@@ -523,7 +579,8 @@ Licence support tool
                     </tr>
 
                     <tr>
-                      <td>EIS<c.special what="thinspace" />15 ASCII String</td>
+                      <td>EIS<c.special what="thinspace" />15 ASCII
+                      String</td>
 
                       <td><type>eis15</type></td>
 
@@ -560,43 +617,51 @@ Licence support tool
                     <tr>
                       <td><type>tracker</type></td>
 
-                      <td>Data item is not written to KNX, it contains the last value flown through the data bus.</td>
+                      <td>Data item is not written to KNX, it contains the
+                      last value flown through the data bus.</td>
                     </tr>
 
                     <tr>
                       <td><em><type>tracker_init</type></em></td>
 
-                      <td>As <type>tracker</type>, but at start of server, or at restoration of connection with KNX/KNX, it
-                      reads out by forced way the current value from KNX. An equipment must exist in KNX, which will respond
-                      this requirement.</td>
+                      <td>As <type>tracker</type>, but at start of server, or
+                      at restoration of connection with KNX/KNX, it reads out
+                      by forced way the current value from KNX. An equipment
+                      must exist in KNX, which will respond this
+                      requirement.</td>
                     </tr>
 
                     <tr>
                       <td><em><type>transmitter</type></em></td>
 
-                      <td>Data item is written to KNX, it contains the last value written by some of clients, it does not accept
+                      <td>Data item is written to KNX, it contains the last
+                      value written by some of clients, it does not accept
                       values from KNX.</td>
                     </tr>
 
                     <tr>
                       <td><type>transmitter_with_status</type></td>
 
-                      <td>Data item is written to KNX and accepts values from KNX. It contains the last value either from KNX or
-                      from clients.</td>
+                      <td>Data item is written to KNX and accepts values from
+                      KNX. It contains the last value either from KNX or from
+                      clients.</td>
                     </tr>
 
                     <tr>
                       <td><type><em>transmitter_with_status_init</em></type></td>
 
-                      <td>As <type>transmitter_with_status</type>, but at starting or at restoration of connection it reads out
+                      <td>As <type>transmitter_with_status</type>, but at
+                      starting or at restoration of connection it reads out
                       the value from KNX by forced way as well as <type>tracker_init</type>.</td>
                     </tr>
 
                     <tr>
                       <td><type>reader</type></td>
 
-                      <td>As <type>tracker</type>, but moreover server reads item value in the period defined by <type>readers_period</type>
-                      parameter. Communication object in the KNX device must have R (read) flag set. There is an example in file
+                      <td>As <type>tracker</type>, but moreover server reads
+                      item value in the period defined by <type>readers_period</type>
+                      parameter. Communication object in the KNX device must
+                      have R (read) flag set. There is an example in file
                       <file>13 reader.cfg</file> installed.</td>
                     </tr>
                   </table>
@@ -608,7 +673,8 @@ Licence support tool
                 group addresses (interval is denoted with two
                 periods<c.special what="dash" /><type>..</type>).</p>
 
-                <p>Example of records of data items with help of <type>[objects]</type> section:</p>
+                <p>Example of records of data items with help of <type>[objects]</type>
+                section:</p>
 
                 <p.type>[objects]
 objects = tracker, switch, 3/0/0..3/0/19
@@ -618,7 +684,8 @@ object = transmitter_with_status_init, switch, 3/3/10, 3/5/10
 logged_objects = tracker, switch, 1/1/0..1/1/29
 logged_on_change_objects = tracker, switch, 7/1/0..7/1/9</p.type>
 
-                <p>Example of records of data items with help of <type>[blocks]</type> section:</p>
+                <p>Example of records of data items with help of <type>[blocks]</type>
+                section:</p>
 
                 <p.type>[blocks]
 block = statuses
@@ -644,9 +711,10 @@ logged_on_change_objects = 1/7/0..1/7/9</p.type>
                 parameters. The second example defines the same objects, as
                 the first two lines in example of use <type>[objects]</type>.</p>
 
-                <p>There can be written a short description enclosed in quotes before each data object (group address). The
-                description will appear in data log (in <gui>Data history</gui> web interface page). Example of description
-                written to data object:</p>
+                <p>There can be written a short description enclosed in quotes
+                before each data object (group address). The description will
+                appear in data log (in <gui>Data history</gui> web interface
+                page). Example of description written to data object:</p>
 
                 <p.type>[objects]
 object = tracker_init, value, "Outer temperature", 2/0/0
@@ -687,11 +755,14 @@ object = "Bedroom light", 5/2/0</p.type>
                 <type>[interface]</type> <type>read_on_start_repeat_count</type>,
                 see the chapter <in label="secInterface"></in>).</p>
 
-                <p>If no problems occur in communication at starting, there is recommended to leave the initial values of
-                parameters (e.g., not to enter <type>read_start</type> section to the configuration file).</p>
+                <p>If no problems occur in communication at starting, there is
+                recommended to leave the initial values of parameters (e.g.,
+                not to enter <type>read_start</type> section to the
+                configuration file).</p>
 
                 <dl class="dlParameter">
-                  <caption><type>read_start</type> section contains following parameters::</caption>
+                  <caption><type>read_start</type> section contains following
+                  parameters::</caption>
 
                   <dt><type>repeat_count</type></dt>
 
@@ -738,7 +809,8 @@ object = "Bedroom light", 5/2/0</p.type>
 
               <text>
                 <dl class="dlParameter">
-                  <caption><type>[formats]</type> section defines following parameters:</caption>
+                  <caption><type>[formats]</type> section defines following
+                  parameters:</caption>
 
                   <dt><type>time_as_string</type> and <type>date_as_string</type></dt>
 
@@ -764,7 +836,8 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
                 </dl>
 
                 <f.table label="tblDateTimeFormat">
-                  <caption>Format signs of <type>time_format</type> and <type>date_format</type> parameters.</caption>
+                  <caption>Format signs of <type>time_format</type> and <type>date_format</type>
+                  parameters.</caption>
 
                   <table class="tblCommon">
                     <tr>
@@ -774,15 +847,19 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
                     </tr>
 
                     <tr>
-                      <td><type>h</type>, <type>hh</type>, <type>H</type>, <type>HH</type></td>
+                      <td><type>h</type>, <type>hh</type>, <type>H</type>,
+                      <type>HH</type></td>
 
-                      <td>12-hours time without and with leading zero, 24-hours time without and with leading zero</td>
+                      <td>12-hours time without and with leading zero,
+                      24-hours time without and with leading zero</td>
                     </tr>
 
                     <tr>
-                      <td><type>m</type>, <type>mm</type>, <type>s</type>, <type>ss</type></td>
+                      <td><type>m</type>, <type>mm</type>, <type>s</type>,
+                      <type>ss</type></td>
 
-                      <td>minutes without and with leading zero, seconds without and with leading zero</td>
+                      <td>minutes without and with leading zero, seconds
+                      without and with leading zero</td>
                     </tr>
 
                     <tr>
@@ -792,9 +869,11 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
                     </tr>
 
                     <tr>
-                      <td><type>M</type>, <type>MM</type>, <type>MMM</type>, <type>MMMM</type></td>
+                      <td><type>M</type>, <type>MM</type>, <type>MMM</type>,
+                      <type>MMMM</type></td>
 
-                      <td>month number without and with leading zero, abbreviation of month name, month name</td>
+                      <td>month number without and with leading zero,
+                      abbreviation of month name, month name</td>
                     </tr>
 
                     <tr>
@@ -812,7 +891,8 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
 
               <text>
                 <dl class="dlParameter">
-                  <caption><type>[control]</type> section defines the parameters:</caption>
+                  <caption><type>[control]</type> section defines the
+                  parameters:</caption>
 
                   <dt><type>time</type></dt>
 
@@ -830,15 +910,20 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
 
                   <dt><type>date_time_push_period</type></dt>
 
-                  <dd><p>Specifies period for sending date and time items defined with <type>date</type> and <type>time</type>
-                  parameters. The parameter is optional, its initial value is <number>1800000</number> (a half of an hour). The
-                  parameter's unit is millisecond, so for example <number>600000</number> mean 10 minutes. Example:</p><p.type>date_time_push_period = 3600000</p.type></dd>
+                  <dd><p>Specifies period for sending date and time items
+                  defined with <type>date</type> and <type>time</type>
+                  parameters. The parameter is optional, its initial value is
+                  <number>1800000</number> (a half of an hour). The
+                  parameter's unit is millisecond, so for example
+                  <number>600000</number> mean 10 minutes.
+                  Example:</p><p.type>date_time_push_period = 3600000</p.type></dd>
                 </dl>
               </text>
             </section>
 
             <section label="secLog" level="3">
-              <title><type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> and <type>[networklog]</type></title>
+              <title><type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type>
+              and <type>[networklog]</type></title>
 
               <text>
                 <p><type>[log]</type> section determines the kind of listing
@@ -854,11 +939,15 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
                 by number. In initial setting, the storage of data history,
                 except of web interface, is not switched-on.</p>
 
-                <p><type>[httplog]</type> section determines the place, where the server will record web access messages.
-                Default settings of the <type>[httplog]</type> section is to use settings of <type>[log]</type> section.
-                Recorded messages are in <diff>Common Log Format</diff>, which is the format broadly shared by all web servers.
-                <type>[httplog]</type> log will contain access messages only, error messages (processing errors, etc.) are
-                recorded according to <type>[log]</type> section settings.</p>
+                <p><type>[httplog]</type> section determines the place, where
+                the server will record web access messages. Default settings
+                of the <type>[httplog]</type> section is to use settings of
+                <type>[log]</type> section. Recorded messages are in
+                <diff>Common Log Format</diff>, which is the format broadly
+                shared by all web servers. <type>[httplog]</type> log will
+                contain access messages only, error messages (processing
+                errors, etc.) are recorded according to <type>[log]</type>
+                section settings.</p>
 
                 <p>The last <type>[networklog]</type> section offers separated
                 logging of SDAP and XMLSocket client connecting and
@@ -866,7 +955,8 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
                 section is to use settings of <type>[log]</type> section.</p>
 
                 <dl class="dlParameter">
-                  <caption>Following parameters are defined by sections:</caption>
+                  <caption>Following parameters are defined by
+                  sections:</caption>
 
                   <dt><type>target</type></dt>
 
@@ -879,8 +969,10 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
 
                   <dt><type>level</type></dt>
 
-                  <dd><p>The rate of content of debugging listings is determined in four levels according to the table <in
-                  label="tblLevel"></in>.</p><p>The starting value of this parameter is <type>error</type>. Example:</p><p.type>level = warning</p.type></dd>
+                  <dd><p>The rate of content of debugging listings is
+                  determined in four levels according to the table <in
+                  label="tblLevel"></in>.</p><p>The starting value of this
+                  parameter is <type>error</type>. Example:</p><p.type>level = warning</p.type></dd>
 
                   <dt><type>file</type></dt>
 
@@ -893,7 +985,8 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
                   Flash, etc.).</p><p>Example of record of the
                   parameter:</p><p.type>file = z:\smartserver.log</p.type></dd>
 
-                  <dt><type>cached</type> (only for <type>[log]</type> and <type>[datalog]</type> sections)</dt>
+                  <dt><type>cached</type> (only for <type>[log]</type> and
+                  <type>[datalog]</type> sections)</dt>
 
                   <dd><p>Length of history (number of records), which server
                   stores for web interfaces purposes. The number should not be
@@ -903,15 +996,21 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs
                   approximately).</p><p>The default value of the parameter is
                   <number>1000</number>.</p></dd>
 
-                  <dt><type>fiter</type> (only for <type>[log]</type> and <type>[networklog]</type> sections)</dt>
+                  <dt><type>fiter</type> (only for <type>[log]</type> and
+                  <type>[networklog]</type> sections)</dt>
 
-                  <dd><p>List of rules restricting log records. Each of <type>filter</type> line defines single rule, allowing
-                  or denying. The server comes through all rules, when recording, and the message is recorded only if all rules
-                  together allows it. On the start of applying rules the server assumes recording is allowed.</p><p>Rules have
-                  the format:</p><p.type>filter = allow | deny, &lt;mask&gt;</p.type><p>where <type>allow</type> or <type>deny</type>
-                  specifies allowing or denying rule and <type>&lt;mask&gt;</type> defines text mask, which the server matches
-                  the second part of message source against (see the chapter <in.about label="secDebug"></in.about>). For
-                  example, following rules allow recording of KNX connection messages only:</p><p.type>...
+                  <dd><p>List of rules restricting log records. Each of <type>filter</type>
+                  line defines single rule, allowing or denying. The server
+                  comes through all rules, when recording, and the message is
+                  recorded only if all rules together allows it. On the start
+                  of applying rules the server assumes recording is
+                  allowed.</p><p>Rules have the format:</p><p.type>filter = allow | deny, &lt;mask&gt;</p.type><p>where
+                  <type>allow</type> or <type>deny</type> specifies allowing
+                  or denying rule and <type>&lt;mask&gt;</type> defines text
+                  mask, which the server matches the second part of message
+                  source against (see the chapter <in.about
+                  label="secDebug"></in.about>). For example, following rules
+                  allow recording of KNX connection messages only:</p><p.type>...
 filter = deny, *
 filter = allow, KNXnet.Connection</p.type></dd>
                 </dl>
@@ -935,15 +1034,18 @@ filter = allow, KNXnet.Connection</p.type></dd>
                     <tr>
                       <td><type>kernel</type></td>
 
-                      <td>Listings will be forwarded to the operation system. These listings can be read with help of diagnostic
-                      tools, as e.g. DbgView application (<uri>http://technet.microsoft.com/enus/
+                      <td>Listings will be forwarded to the operation system.
+                      These listings can be read with help of diagnostic
+                      tools, as e.g. DbgView application
+                      (<uri>http://technet.microsoft.com/enus/
                       sysinternals/bb896647.aspx</uri>).</td>
                     </tr>
 
                     <tr>
                       <td><type>file</type></td>
 
-                      <td>Listings are recorded to the file determined by the <type>file</type> parameter.</td>
+                      <td>Listings are recorded to the file determined by the
+                      <type>file</type> parameter.</td>
                     </tr>
                   </table>
                 </f.table>
@@ -977,15 +1079,18 @@ filter = allow, KNXnet.Connection</p.type></dd>
                     <tr>
                       <td><type>error</type></td>
 
-                      <td>Basic information, recommended for permanent run. Only reports marked as <type>error</type> or <type>fatal</type>
-                      ones, i.e. the reports, by which the server informs about data error, communication or protocol, are
+                      <td>Basic information, recommended for permanent run.
+                      Only reports marked as <type>error</type> or <type>fatal</type>
+                      ones, i.e. the reports, by which the server informs
+                      about data error, communication or protocol, are
                       listed.</td>
                     </tr>
 
                     <tr>
                       <td><type>fatal</type></td>
 
-                      <td>Minimum information. Only information about internal error statuses of the server will be listed.</td>
+                      <td>Minimum information. Only information about internal
+                      error statuses of the server will be listed.</td>
                     </tr>
                   </table>
                 </f.table>
@@ -994,7 +1099,8 @@ filter = allow, KNXnet.Connection</p.type></dd>
                 <file>11 debug-all.cfg</file> showing configuration of debug
                 outputs.</p>
 
-                <p>Description of debugging and diagnostic reports format is shown in the chapter <in.about
+                <p>Description of debugging and diagnostic reports format is
+                shown in the chapter <in.about
                 label="secDebug"></in.about>.</p>
               </text>
             </section>
@@ -1009,15 +1115,19 @@ filter = allow, KNXnet.Connection</p.type></dd>
                 place, the contents of the configuration section <type>[web]</type>
                 corresponds to this place.</p>
 
-                <p>It is recommended to leave the settings of this section without modifications.</p>
+                <p>It is recommended to leave the settings of this section
+                without modifications.</p>
 
                 <dl class="dlParameter">
-                  <caption>This section defines following parameters:</caption>
+                  <caption>This section defines following
+                  parameters:</caption>
 
                   <dt><type>port</type></dt>
 
-                  <dd><p>TCP port on which web (http) server will listen. The parameter is optional, its default value is
-                  <number>6005</number>.</p><p>Example of defining standard IANA http port:</p><p.type>port = 80</p.type></dd>
+                  <dd><p>TCP port on which web (http) server will listen. The
+                  parameter is optional, its default value is
+                  <number>6005</number>.</p><p>Example of defining standard
+                  IANA http port:</p><p.type>port = 80</p.type></dd>
 
                   <dt><type>web_root</type></dt>
 
@@ -1058,9 +1168,11 @@ filter = allow, KNXnet.Connection</p.type></dd>
 &lt;/resources&gt;</p.type></dd>
                 </dl>
 
-                <p>Both parameters of the section may contain text <type>%exedir%</type>, which substitutes the folder with the
-                server program (<file>KNXSrv.exe</file>). This substitution text need not be used, nevertheless, there must be
-                set the full path to the root and to the file with texts.</p>
+                <p>Both parameters of the section may contain text <type>%exedir%</type>,
+                which substitutes the folder with the server program
+                (<file>KNXSrv.exe</file>). This substitution text need not be
+                used, nevertheless, there must be set the full path to the
+                root and to the file with texts.</p>
               </text>
             </section>
 
@@ -1100,7 +1212,8 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
 
                 <p.type>allow | deny = &lt;ipaddress&gt;[/&lt;prefix length&gt;]</p.type>
 
-                <p>Example of access allowed from localhost only (the computer with server installed):</p>
+                <p>Example of access allowed from localhost only (the computer
+                with server installed):</p>
 
                 <p.type>[http_access_list]
 deny = 0.0.0.0/0
@@ -1122,9 +1235,11 @@ allow = 127.0.0.1</p.type>
                 necessary information, nevertheless, the server can deal with
                 missing data (according to the setting, see below).</p>
 
-                <p>The server will accept the data objects from ESF file inside <type>[objects]</type> section with help of
-                <type>esf_adapt</type>, <type>esf_strict</type> and <type>esf_ignore</type> parameters with the meaning
-                according to table <in label="tblESFConvert"></in>.</p>
+                <p>The server will accept the data objects from ESF file
+                inside <type>[objects]</type> section with help of <type>esf_adapt</type>,
+                <type>esf_strict</type> and <type>esf_ignore</type> parameters
+                with the meaning according to table <in
+                label="tblESFConvert"></in>.</p>
 
                 <f.table label="tblESFConvert">
                   <caption>Kinds of ESF file conversions</caption>
@@ -1133,22 +1248,26 @@ allow = 127.0.0.1</p.type>
                     <tr>
                       <td><type>esf_adapt</type></td>
 
-                      <td>Data items without accurate data type will be accepted, their type will be modified according to
+                      <td>Data items without accurate data type will be
+                      accepted, their type will be modified according to
                       typical use and the configuration will be loaded.</td>
                     </tr>
 
                     <tr>
                       <td><type>esf_strict</type></td>
 
-                      <td>Data items without accurate data type will be refused and the configuration will not be loaded (errors
+                      <td>Data items without accurate data type will be
+                      refused and the configuration will not be loaded (errors
                       will be reported).</td>
                     </tr>
 
                     <tr>
                       <td><type>esf_ignore</type></td>
 
-                      <td>Data items without accurate data type will be ignored and the configuration will be loaded (the server
-                      will not know the data ones, without types of items).</td>
+                      <td>Data items without accurate data type will be
+                      ignored and the configuration will be loaded (the server
+                      will not know the data ones, without types of
+                      items).</td>
                     </tr>
                   </table>
                 </f.table>
@@ -1162,11 +1281,14 @@ allow = 127.0.0.1</p.type>
                 not successful, then the loading of configuration will finish
                 with error message.</p>
 
-                <p>At loading of <type>esf_adapt</type> configuration, the server will convert inaccurate types to accurate ones
-                according to table <in label="tblESFTypeApproximation"></in>.</p>
+                <p>At loading of <type>esf_adapt</type> configuration, the
+                server will convert inaccurate types to accurate ones
+                according to table <in
+                label="tblESFTypeApproximation"></in>.</p>
 
                 <f.table label="tblESFTypeApproximation">
-                  <caption>Replacement of inaccurately determined types in ESF file</caption>
+                  <caption>Replacement of inaccurately determined types in ESF
+                  file</caption>
 
                   <table class="tblCommon" width="1.8cm">
                     <tr>
@@ -1203,7 +1325,8 @@ allow = 127.0.0.1</p.type>
                   </table>
                 </f.table>
 
-                <p>An example of the server configuration with help of ESF is stored in <file>09 ETS-Opc.cfg</file> and <file>09
+                <p>An example of the server configuration with help of ESF is
+                stored in <file>09 ETS-Opc.cfg</file> and <file>09
                 test.esf</file> files.</p>
               </text>
             </section>
@@ -1253,7 +1376,8 @@ allow = 127.0.0.1</p.type>
 
                   <dt>d</dt>
 
-                  <dd><p>debugging report, the second level of details</p></dd>
+                  <dd><p>debugging report, the second level of
+                  details</p></dd>
 
                   <dt>I</dt>
 
@@ -1265,7 +1389,8 @@ allow = 127.0.0.1</p.type>
 
                   <dt>W</dt>
 
-                  <dd><p>common report, warning against possible troubles at certain situation</p></dd>
+                  <dd><p>common report, warning against possible troubles at
+                  certain situation</p></dd>
 
                   <dt>m</dt>
 
@@ -1273,16 +1398,19 @@ allow = 127.0.0.1</p.type>
 
                   <dt>E</dt>
 
-                  <dd><p>common report, error of the protocol, status or program, the server is able to continue in
+                  <dd><p>common report, error of the protocol, status or
+                  program, the server is able to continue in
                   operation</p></dd>
 
                   <dt>e</dt>
 
-                  <dd><p>debugging report, information about the error</p></dd>
+                  <dd><p>debugging report, information about the
+                  error</p></dd>
 
                   <dt>F</dt>
 
-                  <dd><p>common report, fatal error of the program, the server is not able to continue in operation</p></dd>
+                  <dd><p>common report, fatal error of the program, the server
+                  is not able to continue in operation</p></dd>
                 </dl>
 
                 <dl class="dlCommon">
@@ -1292,11 +1420,13 @@ allow = 127.0.0.1</p.type>
 
                   <dt>KNX/KNXnet.Connection</dt>
 
-                  <dd><p>Connection with KNX interface, information about KNXnet/IP protocol.</p></dd>
+                  <dd><p>Connection with KNX interface, information about
+                  KNXnet/IP protocol.</p></dd>
 
                   <dt>sys/HTTP</dt>
 
-                  <dd><p>Web server, information about page transfers to clients.</p></dd>
+                  <dd><p>Web server, information about page transfers to
+                  clients.</p></dd>
 
                   <dt>sys/Net.Dispatcher</dt>
 
@@ -1306,25 +1436,32 @@ allow = 127.0.0.1</p.type>
 
                   <dt>sys/sdap</dt>
 
-                  <dd><p>SDAP server, information about commands and responses received through SDAP.</p></dd>
+                  <dd><p>SDAP server, information about commands and responses
+                  received through SDAP.</p></dd>
 
                   <dt>sys/xmls</dt>
 
-                  <dd><p>XMLSocket server, information about commands and responses received through XMLSocket.</p></dd>
+                  <dd><p>XMLSocket server, information about commands and
+                  responses received through XMLSocket.</p></dd>
                 </dl>
 
                 <p>Behind the third part in the debugging report there follows
                 a text, which is not longer formalised and which contains any
                 data (such ones, which the origin wants to show).</p>
 
-                <p>The most frequent reason for use of debugging reports is the communication with help of KNXnet/IP protocol,
-                i.e. the communication with KNX interface. The interface is an independent element outside the server control,
-                which may be switched on or off independently, or which may be used by somebody else for connection with KNX. In
-                every such case, the server has not connection with KNX and it is necessary to switch on the debugging listings
-                for diagnostics of troubles.</p>
+                <p>The most frequent reason for use of debugging reports is
+                the communication with help of KNXnet/IP protocol, i.e. the
+                communication with KNX interface. The interface is an
+                independent element outside the server control, which may be
+                switched on or off independently, or which may be used by
+                somebody else for connection with KNX. In every such case, the
+                server has not connection with KNX and it is necessary to
+                switch on the debugging listings for diagnostics of
+                troubles.</p>
 
-                <p>The chapter <in.about label="secCommunicationProblems"></in.about> is addressed to diagnostics and debugging
-                listings as well.</p>
+                <p>The chapter <in.about
+                label="secCommunicationProblems"></in.about> is addressed to
+                diagnostics and debugging listings as well.</p>
               </text>
             </section>
           </text>
@@ -1353,7 +1490,8 @@ allow = 127.0.0.1</p.type>
 
                   <dt>Does the interface support tunnelling only?</dt>
 
-                  <dd><p>This is valid practically for all interfaces available on the market. <type>tunnelling</type> or <type>tunnelling-NAT</type>
+                  <dd><p>This is valid practically for all interfaces
+                  available on the market. <type>tunnelling</type> or <type>tunnelling-NAT</type>
                   must be used.</p></dd>
 
                   <dt>Does the interface support routing?</dt>
@@ -1366,11 +1504,14 @@ allow = 127.0.0.1</p.type>
                   communication from KNX to IP network and back, it is
                   recommended to select the kind of <type>routing</type>.</p></dd>
 
-                  <dt>Does the server or interface occur behind the router?</dt>
+                  <dt>Does the server or interface occur behind the
+                  router?</dt>
 
-                  <dd><p>The only variant will be <type>tunnelling-NAT</type> probably.</p></dd>
+                  <dd><p>The only variant will be <type>tunnelling-NAT</type>
+                  probably.</p></dd>
 
-                  <dt>Is the interface produced by other manufacturer than Siemens?</dt>
+                  <dt>Is the interface produced by other manufacturer than
+                  Siemens?</dt>
 
                   <dd><p>There may be problems with <type>tunnelling-NAT</type>
                   connection. Transfer through NAT is Siemens design, which
@@ -1392,9 +1533,11 @@ allow = 127.0.0.1</p.type>
               <title>Switches, routers and NAT</title>
 
               <text>
-                <p>Routers in IP communications are located always between networks and logically connect them. Properly set
-                router transmits all KNX operation between networks without problems, nevertheless, KNXnet/IP character may
-                cause troubles in real cases.</p>
+                <p>Routers in IP communications are located always between
+                networks and logically connect them. Properly set router
+                transmits all KNX operation between networks without problems,
+                nevertheless, KNXnet/IP character may cause troubles in real
+                cases.</p>
 
                 <dl>
                   <caption>Problem issues for KNXnet/IP may be:</caption>
@@ -1414,39 +1557,64 @@ allow = 127.0.0.1</p.type>
 
                   <dt>NAT traversal</dt>
 
-                  <dd><p>NAT is a technology allowing exchanging of addresses and ports of senders and recipients in
-                  communication. The most frequent use of NAT is currently highly single-purpose one<c.special what="dash" />in
-                  home and office routers<c.special what="dash" />for connection of smaller network to Internet. To allow
-                  transfer between the SmartServer and interface through such KNXnet/IP communication router, it is always
-                  necessary to adjust setting of the router (of course, the router must be able to do it). </p><p>KNXnet/IP
-                  communication is UDP, a permanent connection is not established between elements, therefore the router must
-                  know, which data should be forwarded and where. For successful transfer through NAT router there must be
-                  assured that the external packet (from Internet, from WAN interface of the router) will direct the router
-                  inside to real equipment (to computer with the SmartServer or KNX interface). Routers usually decide about
-                  routing according to the protocol type (UDP) and the port number (if port is not changed, then number
-                  <number>3671</number> is valid for KNXnet/IP). In their configuration then there will exist a rule (port
-                  forwarding, for triggering, server inside, etc.), which will perform the UDP communication on selected port of
-                  the equipment with internal IP address. An accurate configuration differs router from router, nevertheless,
-                  the router configuration can be managed by any network specialist.</p><p>The transfer of data packages with
-                  help of NAT from inside of the network out (to Internet) usually need not be configured by any way. </p><p>To
-                  allow the operation of KNXnet/IP communication between the SmartServer a the KNX interface, all NAT routers on
-                  the route must be set properly. Typical case is, e.g., an interconnection of two smaller networks through
-                  Internet, when both networks have NAT routers on their interfaces. Both these routers must have configured
-                  transfer of external KNXnet/IP packages to internal network.</p></dd>
+                  <dd><p>NAT is a technology allowing exchanging of addresses
+                  and ports of senders and recipients in communication. The
+                  most frequent use of NAT is currently highly single-purpose
+                  one<c.special what="dash" />in home and office
+                  routers<c.special what="dash" />for connection of smaller
+                  network to Internet. To allow transfer between the
+                  SmartServer and interface through such KNXnet/IP
+                  communication router, it is always necessary to adjust
+                  setting of the router (of course, the router must be able to
+                  do it). </p><p>KNXnet/IP communication is UDP, a permanent
+                  connection is not established between elements, therefore
+                  the router must know, which data should be forwarded and
+                  where. For successful transfer through NAT router there must
+                  be assured that the external packet (from Internet, from WAN
+                  interface of the router) will direct the router inside to
+                  real equipment (to computer with the SmartServer or KNX
+                  interface). Routers usually decide about routing according
+                  to the protocol type (UDP) and the port number (if port is
+                  not changed, then number <number>3671</number> is valid for
+                  KNXnet/IP). In their configuration then there will exist a
+                  rule (port forwarding, for triggering, server inside, etc.),
+                  which will perform the UDP communication on selected port of
+                  the equipment with internal IP address. An accurate
+                  configuration differs router from router, nevertheless, the
+                  router configuration can be managed by any network
+                  specialist.</p><p>The transfer of data packages with help of
+                  NAT from inside of the network out (to Internet) usually
+                  need not be configured by any way. </p><p>To allow the
+                  operation of KNXnet/IP communication between the SmartServer
+                  a the KNX interface, all NAT routers on the route must be
+                  set properly. Typical case is, e.g., an interconnection of
+                  two smaller networks through Internet, when both networks
+                  have NAT routers on their interfaces. Both these routers
+                  must have configured transfer of external KNXnet/IP packages
+                  to internal network.</p></dd>
 
                   <dt>Computer with more network cards, routers</dt>
 
-                  <dd><p>The tunnel communication in KNXnet/IP requires the client to announce to the server (KNX interface) its
-                  IP address (SmartServer) inside the data packet. The server will consequently send the response to this IP
-                  address. If a computer has more network cards (two Ethernet interface, Ethernet+WiFi, etc.), or if data pass
-                  through the router to another networks, then the communication by the way of <type>tunnelling</type> need not
-                  be successful. </p><p>In the first case (more network cards), an interface may get an address of improper
-                  interface in the data package, so its response may be sent on improper route and it will not reach the client
-                  (SmartServer).</p><p>In the second case (transfer through router), a local address may be stored to the data
-                  package in target network (where KNX interface has no sense, or is duplicated one, respectively). In such
-                  case, the interface either is not able to send the response at all, or will send it to another
-                  equipment.</p><p>If the above-mentioned troubles occur, it is recommended to use <type>tunnelling-NAT</type>
-                  or <type>routing</type> kind of communication.</p></dd>
+                  <dd><p>The tunnel communication in KNXnet/IP requires the
+                  client to announce to the server (KNX interface) its IP
+                  address (SmartServer) inside the data packet. The server
+                  will consequently send the response to this IP address. If a
+                  computer has more network cards (two Ethernet interface,
+                  Ethernet+WiFi, etc.), or if data pass through the router to
+                  another networks, then the communication by the way of
+                  <type>tunnelling</type> need not be successful. </p><p>In
+                  the first case (more network cards), an interface may get an
+                  address of improper interface in the data package, so its
+                  response may be sent on improper route and it will not reach
+                  the client (SmartServer).</p><p>In the second case (transfer
+                  through router), a local address may be stored to the data
+                  package in target network (where KNX interface has no sense,
+                  or is duplicated one, respectively). In such case, the
+                  interface either is not able to send the response at all, or
+                  will send it to another equipment.</p><p>If the
+                  above-mentioned troubles occur, it is recommended to use
+                  <type>tunnelling-NAT</type> or <type>routing</type> kind of
+                  communication.</p></dd>
                 </dl>
               </text>
             </section>
@@ -1461,11 +1629,16 @@ allow = 127.0.0.1</p.type>
                 Debugging listings will provide information, based on which it
                 is possible to determine the reason of troubles easier.</p>
 
-                <p>Listings connected with KNX interface originate from KNX/KNXnet.Connection source and they cover establishing
-                and disconnection of connection, data transfer (in all modes) and control information. Listings with word <type>CONNECT</type>
-                and <type>LISTENING</type> relate to establishing of connection, listings with word <type>DISCONNECT</type>
-                relate to disconnection of the connection. Data transferred by tunnel connection contain words <type>SEND</type>
-                or <type>RECEIVE</type>, data transferred with help of routing contain words <type>ROUTED IN</type> or <type>ROUTED OUT</type>.</p>
+                <p>Listings connected with KNX interface originate from
+                KNX/KNXnet.Connection source and they cover establishing and
+                disconnection of connection, data transfer (in all modes) and
+                control information. Listings with word <type>CONNECT</type>
+                and <type>LISTENING</type> relate to establishing of
+                connection, listings with word <type>DISCONNECT</type> relate
+                to disconnection of the connection. Data transferred by tunnel
+                connection contain words <type>SEND</type> or <type>RECEIVE</type>,
+                data transferred with help of routing contain words <type>ROUTED IN</type>
+                or <type>ROUTED OUT</type>.</p>
 
                 <p>During its duration, each connection with KNX interface is
                 designated by number. An interface assigns the number of
@@ -1518,7 +1691,8 @@ allow = 127.0.0.1</p.type>
 
                   <dt>35</dt>
 
-                  <dd><p>Interface does not support requested setting of connection. Presently not used.</p></dd>
+                  <dd><p>Interface does not support requested setting of
+                  connection. Presently not used.</p></dd>
 
                   <dt>36</dt>
 
@@ -1536,7 +1710,8 @@ allow = 127.0.0.1</p.type>
                 </dl>
 
                 <dl>
-                  <caption>A simple procedure for finding out of problems with connection may be, e.g., as follows:</caption>
+                  <caption>A simple procedure for finding out of problems with
+                  connection may be, e.g., as follows:</caption>
 
                   <dt>Attempt for connection finishes with error <type>timeout</type></dt>
 
@@ -1577,14 +1752,15 @@ allow = 127.0.0.1</p.type>
               <title>Examples of diagnostic messages</title>
 
               <text>
-                <p>All examples contain real data, including time stamps. The length of operations or waiting is thus easily
-                readable.</p>
+                <p>All examples contain real data, including time stamps. The
+                length of operations or waiting is thus easily readable.</p>
 
                 <p>T_CON = KNX interface acknowledge, R_CON = target KNX
                 device acknowledge, seq = sequence number of sent or received
                 packets.</p>
 
-                <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface responded to it:</p>
+                <p>Periodic test of connection No.<c.special
+                what="thinspace" />90, KNX interface responded to it:</p>
 
                 <p.type>[12:03:27.789] t KNX/KNXnet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
 [12:03:27.794] t KNX/KNXnet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
@@ -1601,7 +1777,8 @@ allow = 127.0.0.1</p.type>
 [12:05:07.825] t KNX/KNXnet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
 [12:05:07.825] t KNX/KNXnet.Connection: Stop LISTENing on port:  60561</p.type>
 
-                <p>Successfull establishing of connection No.<c.special what="thinspace" />91 followed by initial reading:</p>
+                <p>Successfull establishing of connection No.<c.special
+                what="thinspace" />91 followed by initial reading:</p>
 
                 <p.type>[12:05:37.841] t KNX/KNXnet.Connection: LISTENing on port:  61829 
 [12:05:37.841] t KNX/KNXnet.Connection: CONNECT request:  10.0.0.6:3671 
@@ -1611,7 +1788,8 @@ allow = 127.0.0.1</p.type>
 [12:05:37.921] d KNX/srv: INIT:  2/0/21
 ...</p.type>
 
-                <p>Unsuccessfull establishing of connection, KNX interface did not respond.</p>
+                <p>Unsuccessfull establishing of connection, KNX interface did
+                not respond.</p>
 
                 <p.type>[12:05:17.826] t KNX/KNXnet.Connection: LISTENing on port:  58083 
 [12:05:17.826] t KNX/KNXnet.Connection: CONNECT request:  10.0.0.6:3671 
@@ -1619,8 +1797,8 @@ allow = 127.0.0.1</p.type>
 [12:05:27.841] t KNX/KNXnet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
 [12:05:27.841] t KNX/KNXnet.Connection: Stop LISTENing on port:  58083</p.type>
 
-                <p>Unsuccessfull establishing of connection, error number 36 means that KNX interface is connected to another
-                client:</p>
+                <p>Unsuccessfull establishing of connection, error number 36
+                means that KNX interface is connected to another client:</p>
 
                 <p.type>[13:12:29.708] t KNX/KNXnet.Connection: CONNECT timeout 
 [13:12:29.723] t KNX/KNXnet.Connection: LISTENing on port:  55123 
@@ -1629,7 +1807,8 @@ allow = 127.0.0.1</p.type>
 [13:12:29.740] t KNX/KNXnet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
 [13:12:29.740] t KNX/KNXnet.Connection: Stop LISTENing on port:  55123</p.type>
 
-                <p>Successfull writing to KNX (T_CON status = 0, R_CON status = 0)</p>
+                <p>Successfull writing to KNX (T_CON status = 0, R_CON status
+                = 0)</p>
 
                 <p.type>[13:00:46.566] d KNX/KNXnet.Connection: SEND seq:  8 
 [13:00:46.566] d KNX/KNXnet.Connection: SEND data: [06 ...] 
@@ -1640,8 +1819,8 @@ allow = 127.0.0.1</p.type>
 [13:00:46.588] d KNX/KNXnet.Connection: SEND R_CON ok data: [06 ...] 
 [13:00:46.588] d KNX/KNXnet.Connection: SEND R_CON status:  92 0</p.type>
 
-                <p>Unsuccessfull writing to KNX, KNX interface did not acknowledge the data (T_CON timeout), writing
-                repeats:</p>
+                <p>Unsuccessfull writing to KNX, KNX interface did not
+                acknowledge the data (T_CON timeout), writing repeats:</p>
 
                 <p.type>[13:07:02.741] t KNX/KNXnet.Connection: SEND 94 group:  3/0/128 
 [13:07:02.742] d KNX/KNXnet.Connection: SEND seq:  2 
@@ -1652,13 +1831,15 @@ allow = 127.0.0.1</p.type>
 [13:07:03.746] d KNX/KNXnet.Connection: SEND data: [06 ...] 
 [13:07:04.760] t KNX/KNXnet.Connection: T_CON timeout, kill SEND:  94</p.type>
 
-                <p>Incoming KNX data, connection No.<c.special what="thinspace" />92:</p>
+                <p>Incoming KNX data, connection No.<c.special
+                what="thinspace" />92:</p>
 
                 <p.type>[12:59:28.089] t KNX/KNXnet.Connection: RECEIVE 92 group:  2/0/30 
 [12:59:28.089] d KNX/KNXnet.Connection: RECEIVE seq:  67 
 [12:59:28.089] d KNX/KNXnet.Connection: RECEIVE data: [06 ...]</p.type>
 
-                <p>End of connection No.<c.special what="thinspace" />91 (e.g. when server is stopped):</p>
+                <p>End of connection No.<c.special what="thinspace" />91 (e.g.
+                when server is stopped):</p>
 
                 <p.type>[12:54:46.964] t KNX/KNXnet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
 [12:54:46.965] t KNX/KNXnet.Connection: DISCONNECT forced as abortive 
@@ -1701,16 +1882,22 @@ allow = 127.0.0.1</p.type>
               <title>Administrative interface</title>
 
               <text>
-                <p>Administrative interface is distributed to several pages protected by name and password. After insertion URL
-                <uri>http://[server]:6005/SmartServer</uri> to the address line of Internet browser and clicking on <gui>Private
-                pages</gui> link the SmartServer enters to the administrative interface. Following page <gui>Login</gui>
-                requires input of login data. After the SmartServer installation, the name <gui>admin</gui> and the password
-                <gui>admin</gui> is the valid couple.</p>
+                <p>Administrative interface is distributed to several pages
+                protected by name and password. After insertion URL
+                <uri>http://[server]:6005/SmartServer</uri> to the address
+                line of Internet browser and clicking on <gui>Private
+                pages</gui> link the SmartServer enters to the administrative
+                interface. Following page <gui>Login</gui> requires input of
+                login data. After the SmartServer installation, the name
+                <gui>admin</gui> and the password <gui>admin</gui> is the
+                valid couple.</p>
 
-                <p>The login to the administrative interface is timely limited and expires after 30 minutes of inactivity.</p>
+                <p>The login to the administrative interface is timely limited
+                and expires after 30 minutes of inactivity.</p>
 
                 <dl>
-                  <caption>The administrative interface consists from following pages:</caption>
+                  <caption>The administrative interface consists from
+                  following pages:</caption>
 
                   <dt><gui>Overview</gui></dt>
 
@@ -1787,14 +1974,21 @@ allow = 127.0.0.1</p.type>
 
                   <dt><gui>Direct IO</gui></dt>
 
-                  <dd><p>Simple page allowing directly record and load the server data objects.</p><p><gui>Read value from
-                  KNX</gui> requires insertion of the group address (e.g. <gui>3/2/3</gui>) to the field on the left from
-                  <gui>Load</gui> push-button and its press. The SmartServer will write the value or information about loading
-                  error. </p><p><gui>Write value to KNX</gui> works analogously, nevertheless, there is further requested an
-                  insertion of recorded value in the second field. E.g., if logic one should be recorded to the bit address
-                  <gui>3/1/1</gui>, it is set to the field with value <gui>true</gui>. After press of <gui>Write</gui>
-                  push-button, the SmartServer will announce the result of the record (and on <gui>Data history</gui> page one
-                  can check the feature of the writing).</p></dd>
+                  <dd><p>Simple page allowing directly record and load the
+                  server data objects.</p><p><gui>Read value from KNX</gui>
+                  requires insertion of the group address (e.g.
+                  <gui>3/2/3</gui>) to the field on the left from
+                  <gui>Load</gui> push-button and its press. The SmartServer
+                  will write the value or information about loading error.
+                  </p><p><gui>Write value to KNX</gui> works analogously,
+                  nevertheless, there is further requested an insertion of
+                  recorded value in the second field. E.g., if logic one
+                  should be recorded to the bit address <gui>3/1/1</gui>, it
+                  is set to the field with value <gui>true</gui>. After press
+                  of <gui>Write</gui> push-button, the SmartServer will
+                  announce the result of the record (and on <gui>Data
+                  history</gui> page one can check the feature of the
+                  writing).</p></dd>
 
                   <dt><gui>Users</gui></dt>
 
@@ -1826,14 +2020,17 @@ allow = 127.0.0.1</p.type>
                       create anything) using link <gui>Go back to users
                       list</gui>.</p></dd>
 
-                      <dt>Delete role/user <figure file="Trash32"></figure></dt>
+                      <dt>Delete role/user <figure
+                      file="Trash32"></figure></dt>
 
                       <dd><p>Deletes particular role or user.</p></dd>
 
                       <dt>Edit role/user <figure file="Edit32"></figure></dt>
 
-                      <dd><p>The same form as for creating user/role is opened. After data modification, changes again can be
-                      accepted using <gui>Accept</gui> button or revoked by using back link.</p></dd>
+                      <dd><p>The same form as for creating user/role is
+                      opened. After data modification, changes again can be
+                      accepted using <gui>Accept</gui> button or revoked by
+                      using back link.</p></dd>
                     </dl></dd>
                 </dl>
               </text>
@@ -1850,25 +2047,35 @@ allow = 127.0.0.1</p.type>
                 local computer as
                 <uri>http://127.0.0.1:6005/SmartServer/User/index.html</uri>.</p>
 
-                <p>Among files (current static HTML, figures, styles), there may be located files with <file>pt.xml</file>
-                extension (e.g. <file>example.pt.xml</file>, which is a part of installation), which the SmartServer processes
-                dynamically and thus allows to input live data of data objects from KNX inside their contents.
-                <file>pt.xml</file> files are XML, therefore they must be well formed and for use in the SmartServer they must
-                have defined XML namespace <uri>http://www.smartcontrol.cz/2008/XML/Web/PageTemplate</uri>. If it will have
-                proper suffix and wrong namespace, the Smart-Server will not process it as dynamical one and will not input live
-                data to it.</p>
+                <p>Among files (current static HTML, figures, styles), there
+                may be located files with <file>pt.xml</file> extension (e.g.
+                <file>example.pt.xml</file>, which is a part of installation),
+                which the SmartServer processes dynamically and thus allows to
+                input live data of data objects from KNX inside their
+                contents. <file>pt.xml</file> files are XML, therefore they
+                must be well formed and for use in the SmartServer they must
+                have defined XML namespace
+                <uri>http://www.smartcontrol.cz/2008/XML/Web/PageTemplate</uri>.
+                If it will have proper suffix and wrong namespace, the
+                Smart-Server will not process it as dynamical one and will not
+                input live data to it.</p>
 
                 <p>For creation of own user’s pages with live data there is
                 recommended for all cases to create a copy of the example file
                 and modify this copy.</p>
 
-                <p>Live data get to the page with help of get function closed to signs <type>${</type> a <type>}</type>. The
-                SmartServer searches these signs and replaces them with actual value. Similarly it is possible to record a value
-                to KNX using <type>set</type> function. The record of value requires the user’s activity (press of push-button,
-                reference), therefore the SmartServer in user’s dynamic (<file>pt.xml</file>) pages accepts set function as
-                parameter of reference on page (on another one or on itself). It is also possible to use a selection command
-                (<type>pt :choose</type>) inside dynamic pages, which allows to create the different contents of the page
-                according to different values of logic data objects.</p>
+                <p>Live data get to the page with help of get function closed
+                to signs <type>${</type> a <type>}</type>. The SmartServer
+                searches these signs and replaces them with actual value.
+                Similarly it is possible to record a value to KNX using <type>set</type>
+                function. The record of value requires the user’s activity
+                (press of push-button, reference), therefore the SmartServer
+                in user’s dynamic (<file>pt.xml</file>) pages accepts set
+                function as parameter of reference on page (on another one or
+                on itself). It is also possible to use a selection command
+                (<type>pt :choose</type>) inside dynamic pages, which allows
+                to create the different contents of the page according to
+                different values of logic data objects.</p>
 
                 <p><type>get</type> function is completed with similar
                 function <type>getwix</type>, which is, before all, intended
@@ -1883,7 +2090,8 @@ allow = 127.0.0.1</p.type>
                   examples, which the SmartServer produces from patterns and
                   which sends to the client:</caption>
 
-                  <dt>Display of value of the data object (<file>01 get.pt.xml</file>)</dt>
+                  <dt>Display of value of the data object (<file>01
+                  get.pt.xml</file>)</dt>
 
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
 &lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
@@ -1934,7 +2142,8 @@ allow = 127.0.0.1</p.type>
       &lt;a href="?set(3/1/21,true)"&gt;on&lt;/a&gt; or 
       &lt;a href="?set(3/1/21,false)"&gt;off&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
 
-                  <dt>Change of style according to the object value (<file>03 style.pt.xml</file>)</dt>
+                  <dt>Change of style according to the object value (<file>03
+                  style.pt.xml</file>)</dt>
 
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
 &lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
@@ -1965,7 +2174,8 @@ allow = 127.0.0.1</p.type>
     &lt;h1&gt;Change style by get example&lt;/h1&gt;
     &lt;p style="color: red;"&gt;Red text.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
 
-                  <dt>Combination of the record with condition (<file>04 set.pt.xml</file>)</dt>
+                  <dt>Combination of the record with condition (<file>04
+                  set.pt.xml</file>)</dt>
 
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
 &lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
@@ -2001,16 +2211,20 @@ allow = 127.0.0.1</p.type>
     &lt;p style="color: green;"&gt;OK, 
       &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
 
-                  <dt>Repeated page loading (<file>05 get refresh.pt.xml</file>)</dt>
+                  <dt>Repeated page loading (<file>05 get
+                  refresh.pt.xml</file>)</dt>
 
-                  <dd><p>The page is loaded repeatedly thanks to <type>&lt;meta&gt;</type> tag written inside <type>&lt;head&gt;</type>
+                  <dd><p>The page is loaded repeatedly thanks to <type>&lt;meta&gt;</type>
+                  tag written inside <type>&lt;head&gt;</type>
                   tag:</p><p.type>&lt;head&gt;  
   &lt;meta http-equiv="refresh" content="5"/&gt;
   ...</p.type></dd>
 
-                  <dt>Writing of user-entered value (<file>06 input.pt.xml</file>)</dt>
+                  <dt>Writing of user-entered value (<file>06
+                  input.pt.xml</file>)</dt>
 
-                  <dd><p>The value of edit box is written to server. To write data (and to reload the page), <type>setValue</type>
+                  <dd><p>The value of edit box is written to server. To write
+                  data (and to reload the page), <type>setValue</type>
                   function (in JavaScript) is used:</p><p.type>function setValue( address, value )
 {
     try
@@ -2022,17 +2236,20 @@ allow = 127.0.0.1</p.type>
     {
         // intentionaly do nothing
     }
-}</p.type><p>The edit box itself is bound to the function using <type>onchange</type> attribute:</p><p.type>&lt;input type="text" value="${get(3/3/21)}"
+}</p.type><p>The edit box itself is bound to the function using <type>onchange</type>
+                  attribute:</p><p.type>&lt;input type="text" value="${get(3/3/21)}"
        onchange="setValue( '3/3/21', this.value )" size="3" maxlength="3" /&gt;</p.type></dd>
 
-                  <dt>Writing of value after pressing a button (<file>07 dimming.pt.xml</file>)</dt>
+                  <dt>Writing of value after pressing a button (<file>07
+                  dimming.pt.xml</file>)</dt>
 
                   <dd><p>The example uses the same <type>setValue</type>
                   function as the example no. 6, the difference is only in
                   values used.</p><p.type>&lt;input type="button" value="Increase" onclick="setValue( '3/2/21', 10 )"/&gt;
 &lt;input type="button" value="Decrease" onclick="setValue( '3/2/21', -10 )"/&gt;</p.type></dd>
 
-                  <dt>Writing of value when a button is pressed (<file>08 push button.pt.xml</file>)</dt>
+                  <dt>Writing of value when a button is pressed (<file>08 push
+                  button.pt.xml</file>)</dt>
 
                   <dd><p>Communication a value during button press requires to
                   not to reload page when the button is pressed. This behavior
@@ -2060,11 +2277,14 @@ allow = 127.0.0.1</p.type>
     {
         // intentionaly do nothing
     }
-}</p.type><p>Next part of the example, <type>setValue</type> function call, is the same as in previous examples.</p></dd>
+}</p.type><p>Next part of the example, <type>setValue</type> function call, is
+                  the same as in previous examples.</p></dd>
 
-                  <dt>Iteration and variable example (<file>09 table.pt.xml</file>)</dt>
+                  <dt>Iteration and variable example (<file>09
+                  table.pt.xml</file>)</dt>
 
-                  <dd><p>Sample of <type>pt:for</type> and <type>pt:variable</type> usage:</p><p.type>&lt;pt:for from="30" to="39" index="index" order="order" odd="odd"&gt;
+                  <dd><p>Sample of <type>pt:for</type> and <type>pt:variable</type>
+                  usage:</p><p.type>&lt;pt:for from="30" to="39" index="index" order="order" odd="odd"&gt;
     &lt;pt:variable model="status" source="3/0/${index}" /&gt;
     &lt;pt:variable model="brightness" source="3/3/${index}" /&gt;
     &lt;tr&gt;
@@ -2074,9 +2294,11 @@ allow = 127.0.0.1</p.type>
     &lt;/tr&gt;
 &lt;/pt:for&gt;</p.type></dd>
 
-                  <dt>Relational operators (<file>10 relations.pt.xml</file>)</dt>
+                  <dt>Relational operators (<file>10
+                  relations.pt.xml</file>)</dt>
 
-                  <dd><p>Example of relational functions available, functions are useful for comparing values:</p><p.type>&lt;p pt:condition="${equal(ementál,chleba)}"&gt;
+                  <dd><p>Example of relational functions available, functions
+                  are useful for comparing values:</p><p.type>&lt;p pt:condition="${equal(ementál,chleba)}"&gt;
     ementál = chleba
 &lt;/p&gt;
 &lt;p pt:condition="${notEqual(ementál,chleba)}"&gt;
@@ -2108,11 +2330,13 @@ allow = 127.0.0.1</p.type>
               <title>Restricting an access to user pages</title>
 
               <text>
-                <p>SmartServer allows restricting of access to all user pages rendered from <file>pt.xml</file> files.
-                Restricting of access to, e.g., text files or images is not supported.</p>
+                <p>SmartServer allows restricting of access to all user pages
+                rendered from <file>pt.xml</file> files. Restricting of access
+                to, e.g., text files or images is not supported.</p>
 
                 <il>
-                  <caption>Model of access control mechanism is simple:</caption>
+                  <caption>Model of access control mechanism is
+                  simple:</caption>
 
                   <li><p><file>pt.xml</file> file (aka page) determines, which
                   user roles will be allowed to access. Typically each
@@ -2130,15 +2354,18 @@ allow = 127.0.0.1</p.type>
                   first.</p><p>If user with correct role logs in, SmartServer
                   displays requested page.</p></li>
 
-                  <li><p>Administrator (user with <gui>sysadmin</gui> role) is allowed to access all pages.</p></li>
+                  <li><p>Administrator (user with <gui>sysadmin</gui> role) is
+                  allowed to access all pages.</p></li>
                 </il>
 
                 <il>
                   <caption>There are two kind of roles:</caption>
 
-                  <li><p>role, which requires full user login (both name and password),</p></li>
+                  <li><p>role, which requires full user login (both name and
+                  password),</p></li>
 
-                  <li><p>role, which allows login using password (code, usually numerical) only.</p></li>
+                  <li><p>role, which allows login using password (code,
+                  usually numerical) only.</p></li>
                 </il>
 
                 <p>Users are always defined fully, including both name and
@@ -2155,9 +2382,11 @@ allow = 127.0.0.1</p.type>
                 determined and any of them sharing the same password (key)
                 will be logged in.</p></warning>
 
-                <p>The role, which is required to access particular <file>pt.xml</file> file can be specified by two ways
-                depending on number of allowed roles. Single allowed role can be entered to attribute <type>role</type> of
-                <type>pt:access</type> tag in the following way:</p>
+                <p>The role, which is required to access particular
+                <file>pt.xml</file> file can be specified by two ways
+                depending on number of allowed roles. Single allowed role can
+                be entered to attribute <type>role</type> of <type>pt:access</type>
+                tag in the following way:</p>
 
                 <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
 &lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
@@ -2168,7 +2397,8 @@ allow = 127.0.0.1</p.type>
     &lt;html&gt;
 ...</p.type>
 
-                <p>If more roles are allowed to access the page, more complex form must be used:</p>
+                <p>If more roles are allowed to access the page, more complex
+                form must be used:</p>
 
                 <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
 &lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
@@ -2192,7 +2422,8 @@ allow = 127.0.0.1</p.type>
                 their particular users just after installing the
                 SmartServer.</p>
 
-                <p>To use access control safely and reliably it is recommended to have only a single role for a single page.</p>
+                <p>To use access control safely and reliably it is recommended
+                to have only a single role for a single page.</p>
               </text>
             </section>
 
@@ -2254,7 +2485,8 @@ allow = 127.0.0.1</p.type>
             </section>
 
             <section label="secGetWix" level="3">
-              <title>Wix<c.special what="dash" />the measuring software</title>
+              <title>Wix<c.special what="dash" />the measuring
+              software</title>
 
               <text>
                 <p>Wix is a product of Papouch, s.r.o. company
@@ -2275,8 +2507,8 @@ allow = 127.0.0.1</p.type>
                 can be replaced with <type>${getwix(...)}</type> in all
                 previously described examples).</p>
 
-                <p>The simplest wix data message looks like (more about Wix message format you can see in Wix
-                documentation):</p>
+                <p>The simplest wix data message looks like (more about Wix
+                message format you can see in Wix documentation):</p>
 
                 <p.type>&lt;thermometer&gt; 
   &lt;temperature&gt;235&lt;/temperature&gt; 
@@ -2297,14 +2529,18 @@ allow = 127.0.0.1</p.type>
 
 &lt;/pageTemplate&gt;</p.type>
 
-                <p>Wix can be downloaded from the page <uri>http://www.papouch.com/<c.special what="breakhint" />shop/<c.special
-                what="breakhint" />scripts/<c.special what="break" />_ruzne.asp?<c.special
+                <p>Wix can be downloaded from the page
+                <uri>http://www.papouch.com/<c.special
+                what="breakhint" />shop/<c.special
+                what="breakhint" />scripts/<c.special
+                what="break" />_ruzne.asp?<c.special
                 what="breakhint" />clanek=wix</uri>.</p>
 
-                <warning><p>Wix is not a product of NeNo company. NeNo company helds no warranty for it.</p></warning>
+                <warning><p>Wix is not a product of NeNo company. NeNo company
+                helds no warranty for it.</p></warning>
 
-                <p>SmartServer installation contains an example of Wix setting, see the chapter <in
-                label="secWixExample"></in>.</p>
+                <p>SmartServer installation contains an example of Wix
+                setting, see the chapter <in label="secWixExample"></in>.</p>
               </text>
             </section>
           </text>
@@ -2365,8 +2601,9 @@ allow = 127.0.0.1</p.type>
 
                   <dt>201</dt>
 
-                  <dd><p>The request was processed, nevertheless, the server has no connection with KNX and data were only
-                  stored in the cache server.</p></dd>
+                  <dd><p>The request was processed, nevertheless, the server
+                  has no connection with KNX and data were only stored in the
+                  cache server.</p></dd>
 
                   <dt>202</dt>
 
@@ -2386,7 +2623,8 @@ allow = 127.0.0.1</p.type>
 
                   <dt>402</dt>
 
-                  <dd><p>The command is known, but its subcommand is not known.</p></dd>
+                  <dd><p>The command is known, but its subcommand is not
+                  known.</p></dd>
 
                   <dt>403</dt>
 
@@ -2398,15 +2636,21 @@ allow = 127.0.0.1</p.type>
 
                   <dt>405</dt>
 
-                  <dd><p>Unknown, non-existing source (e.g. non-existing data item).</p></dd>
+                  <dd><p>Unknown, non-existing source (e.g. non-existing data
+                  item).</p></dd>
 
                   <dt>406</dt>
 
-                  <dd><p>Error during loading parameters (configuration).</p></dd>
+                  <dd><p>Error during loading parameters
+                  (configuration).</p></dd>
 
                   <dt>407</dt>
 
                   <dd><p>Data item is read only.</p></dd>
+
+                  <dt>408</dt>
+
+                  <dd><p>Resource has no value.</p></dd>
 
                   <dt>500</dt>
 
@@ -2414,11 +2658,13 @@ allow = 127.0.0.1</p.type>
 
                   <dt>501</dt>
 
-                  <dd><p>The service is not available (e.g. server is not running, etc.).</p></dd>
+                  <dd><p>The service is not available (e.g. server is not
+                  running, etc.).</p></dd>
 
                   <dt>502</dt>
 
-                  <dd><p>Non-supported requirement or command. The command is allowed in SDAP, but the server does not support
+                  <dd><p>Non-supported requirement or command. The command is
+                  allowed in SDAP, but the server does not support
                   it.</p></dd>
                 </dl>
 
@@ -2427,8 +2673,8 @@ allow = 127.0.0.1</p.type>
 
                   <dt><type>exit</type></dt>
 
-                  <dd><p>The server terminates the connection with the client (but continues in activity). No return
-                  code.</p></dd>
+                  <dd><p>The server terminates the connection with the client
+                  (but continues in activity). No return code.</p></dd>
 
                   <dt><type>set</type></dt>
 
@@ -2437,8 +2683,8 @@ allow = 127.0.0.1</p.type>
                   is the data item of the server (some group address) and the
                   <type>value</type> is the value corresponding to the data
                   type of the item. Example: <type>set 3/1/0 true</type>.</p><p>Possible
-                  return codes are: 200, 201, 405 a 5XX.</p><p>Example of
-                  communication to server:</p><p.type>set 3/1/0 false
+                  return codes are: 200, 201, 405, 407, 408 a
+                  5XX.</p><p>Example of communication to server:</p><p.type>set 3/1/0 false
 201</p.type></dd>
 
                   <dt><type>get</type></dt>
@@ -2446,8 +2692,8 @@ allow = 127.0.0.1</p.type>
                   <dd><p>Loads data from the server. The command format is
                   <type>get group</type>, where the <type>group</type> is the
                   server data item (some group address). Example: <type>get 3/1/1</type>.</p><p>The
-                  server responds with return code 200 N, 201 N, 405 and 5XX,
-                  whereas N designates the number of following lines with
+                  server responds with return code 200 N, 201 N, 405, 408 and
+                  5XX, whereas N designates the number of following lines with
                   values of data items in the form of the <type>group value</type>.
                   The <type>value</type> is the value loaded from the server
                   data item.</p><p>Example of communication to
@@ -2457,11 +2703,13 @@ allow = 127.0.0.1</p.type>
 
                   <dt><type>run</type></dt>
 
-                  <dd><p>The server starts, possible return codes are 200, 300 and 5XX.</p></dd>
+                  <dd><p>The server starts, possible return codes are 200, 300
+                  and 5XX.</p></dd>
 
                   <dt><type>stop</type></dt>
 
-                  <dd><p>The server stops (is disconnected from KNX), possible return codes are 200 and 5XX.</p></dd>
+                  <dd><p>The server stops (is disconnected from KNX), possible
+                  return codes are 200 and 5XX.</p></dd>
 
                   <dt><type>advise</type></dt>
 
@@ -2507,7 +2755,8 @@ allow = 127.0.0.1</p.type>
 Control.Connected true</p.type>
 
                 <dl>
-                  <caption>SmartServer supports the following status objects:</caption>
+                  <caption>SmartServer supports the following status
+                  objects:</caption>
 
                   <dt><type>Control.Connected</type> (switch)</dt>
 
@@ -2537,7 +2786,8 @@ Control.Connected true</p.type>
                 the server will complete the connection to 2 minutes,
                 approximately.</p>
 
-                <p>XML in the protocol has following format (example of real XML):</p>
+                <p>XML in the protocol has following format (example of real
+                XML):</p>
 
                 <p.type>&lt;xmlsocket&gt;
   &lt;notify&gt;
@@ -2569,9 +2819,11 @@ Control.Connected true</p.type>
                 <type>xmlsocket</type> one, so the client may ask for more
                 data together by one communication.</p>
 
-                <p>The last option of XMLSocket interface is driving of KNX connection. There are tags <type>&lt;connect/&gt;</type>
-                and <type>&lt;disconnect/&gt;</type> which connect or disconnect the server and the KNX interface. Examples
-                of connect and disconnect request are:</p>
+                <p>The last option of XMLSocket interface is driving of KNX
+                connection. There are tags <type>&lt;connect/&gt;</type> and
+                <type>&lt;disconnect/&gt;</type> which connect or disconnect
+                the server and the KNX interface. Examples of connect and
+                disconnect request are:</p>
 
                 <p.type>&lt;xmlsocket&gt;
   &lt;connect/&gt;
@@ -2581,8 +2833,9 @@ Control.Connected true</p.type>
   &lt;disconnect/&gt;
 &lt;/xmlsocket&gt;</p.type>
 
-                <p>XMLSocket is able to detect KNX connection status similarly as SDAP, if name of special logical data object
-                <type>Control.Connected</type> is used. Example of advise message from server:</p>
+                <p>XMLSocket is able to detect KNX connection status similarly
+                as SDAP, if name of special logical data object <type>Control.Connected</type>
+                is used. Example of advise message from server:</p>
 
                 <p.type>&lt;xmlsocket&gt;
   &lt;notify&gt;
@@ -2599,19 +2852,24 @@ Control.Connected true</p.type>
           <title>Examples of clients</title>
 
           <text>
-            <p>In the SmartServer installation there are included three examples of clients. The first client
-            (<file>Examples\Philips Pronto</file>) uses SDAP for communication, the second client (<file>Examples\Adobe
-            Flash</file>) uses XMLSocket for communication and the third one (<file>Examples\Wix</file>) uses pure web interface
-            of SmartServer.</p>
+            <p>In the SmartServer installation there are included three
+            examples of clients. The first client (<file>Examples\Philips
+            Pronto</file>) uses SDAP for communication, the second client
+            (<file>Examples\Adobe Flash</file>) uses XMLSocket for
+            communication and the third one (<file>Examples\Wix</file>) uses
+            pure web interface of SmartServer.</p>
 
             <section level="3">
               <title>Philips Pronto</title>
 
               <text>
-                <p>Philips Pronto is an universal remote controller with support of graphics, touch display, WiFi communication
-                and full support of programming. The support for general programs allows to create in Pronto the communication
-                interface for SDAP, with which information from KNX will get inside the Pronto application and vice versa, and
-                with help of which the program (user) may remotely control KNX.</p>
+                <p>Philips Pronto is an universal remote controller with
+                support of graphics, touch display, WiFi communication and
+                full support of programming. The support for general programs
+                allows to create in Pronto the communication interface for
+                SDAP, with which information from KNX will get inside the
+                Pronto application and vice versa, and with help of which the
+                program (user) may remotely control KNX.</p>
 
                 <p>JavaScript is the programming language of Pronto (the same
                 language is used for client programming in Internet pages),
@@ -2625,14 +2883,19 @@ Control.Connected true</p.type>
 
                   <dt><file>Template.xcf</file></dt>
 
-                  <dd><p>A file with frame of application for Pronto. The application can be directly loaded to ProntoEdit and
-                  further modified. The application contains several displays for the A/V control and two displays (inside KNX
-                  equipment), which allow to control lights and blinds.</p><p>In the example, there is immediately obvious the
-                  kind of communication with KNX: The main JavaScript connected with the KNX equipment assures the communication
-                  with help of SDAP; what and how should be communicated<c.special what="dash" />this complies each of both
-                  immersed screens at its display to the main JavaScript and it itself then reach on incoming values. </p><p>The
-                  main communication script is stored in <gui>KNX Properties</gui> branch in <gui>Advanced</gui>
-                  tab.</p></dd>
+                  <dd><p>A file with frame of application for Pronto. The
+                  application can be directly loaded to ProntoEdit and further
+                  modified. The application contains several displays for the
+                  A/V control and two displays (inside KNX equipment), which
+                  allow to control lights and blinds.</p><p>In the example,
+                  there is immediately obvious the kind of communication with
+                  KNX: The main JavaScript connected with the KNX equipment
+                  assures the communication with help of SDAP; what and how
+                  should be communicated<c.special what="dash" />this complies
+                  each of both immersed screens at its display to the main
+                  JavaScript and it itself then reach on incoming values.
+                  </p><p>The main communication script is stored in <gui>KNX
+                  Properties</gui> branch in <gui>Advanced</gui> tab.</p></dd>
 
                   <dt><file>Main.js</file></dt>
 
@@ -2652,9 +2915,11 @@ Control.Connected true</p.type>
 
                   <dt><file>Page.js</file></dt>
 
-                  <dd><p>JavaScript from the page for control of lights. In <file>Template.xcf</file>, the script is recorded in
-                  <gui>KNX/Lights</gui> branch in <gui>Advanced</gui> tab. </p><p>The above-mentioned methods from
-                  <file>Main.js</file> script are clearly used in the script.</p></dd>
+                  <dd><p>JavaScript from the page for control of lights. In
+                  <file>Template.xcf</file>, the script is recorded in
+                  <gui>KNX/Lights</gui> branch in <gui>Advanced</gui> tab.
+                  </p><p>The above-mentioned methods from <file>Main.js</file>
+                  script are clearly used in the script.</p></dd>
 
                   <dt><file>ButtonSwitch.js</file></dt>
 
@@ -2689,8 +2954,10 @@ Control.Connected true</p.type>
                   <type>CentralStep</type> object.</p></dd>
                 </dl>
 
-                <p>The following example shows page script (similar to <file>Page.js</file>) with explanation of its parts. For
-                better understanding it is good to know ProntoScript and JavaScript language in common:</p>
+                <p>The following example shows page script (similar to
+                <file>Page.js</file>) with explanation of its parts. For
+                better understanding it is good to know ProntoScript and
+                JavaScript language in common:</p>
 
                 <p.type>// 1.
 deviceState = new CO( "3/0/12", "switch", widget( "DeviceDisplay" ));
@@ -2728,11 +2995,15 @@ System.PageUpdate = function( CO ) {
                 <il numbered="yes">
                   <caption>Meaning of the parts:</caption>
 
-                  <li><p>Here data object (= communication object = CO) with help of three-parameter constructor (<type>CO</type>)
-                  allowing store of user interface widget (function <type>widget</type> of ProntoScript, see ProntoScript
-                  documentation) is created. The object with group address <type>3/0/12</type> and of type <type>switch</type>
-                  is created, moreover, the object remembers reference to user interface widget named <gui>DeviceDisplay</gui>.
-                  The reference will be used later (in the <type>PageUpdate</type> function).</p></li>
+                  <li><p>Here data object (= communication object = CO) with
+                  help of three-parameter constructor (<type>CO</type>)
+                  allowing store of user interface widget (function <type>widget</type>
+                  of ProntoScript, see ProntoScript documentation) is created.
+                  The object with group address <type>3/0/12</type> and of
+                  type <type>switch</type> is created, moreover, the object
+                  remembers reference to user interface widget named
+                  <gui>DeviceDisplay</gui>. The reference will be used later
+                  (in the <type>PageUpdate</type> function).</p></li>
 
                   <li><p>Two-parameter constructor <type>CO</type> does not
                   store any user interface reference. This is typical for data
@@ -2791,7 +3062,8 @@ System.SetReadObjects( null );
 // 5.
 System.PageUpdate = null;</p.type>
 
-                <p>In the page with both shown scripts there can be for example the button containing the following script:</p>
+                <p>In the page with both shown scripts there can be for
+                example the button containing the following script:</p>
 
                 <p.type>deviceControl.Write( "true" );</p.type>
 
@@ -2811,7 +3083,8 @@ var IP_PORT = "6007";</p.type>
 
                   <dt><type>DEBUG</type></dt>
 
-                  <dd><p>Settings of debugging information flag, example scripts use the flag rarely.</p></dd>
+                  <dd><p>Settings of debugging information flag, example
+                  scripts use the flag rarely.</p></dd>
 
                   <dt><type>CORE_PERIOD</type></dt>
 
@@ -2833,7 +3106,8 @@ var IP_PORT = "6007";</p.type>
 
                   <dt><type>IP_PORT</type></dt>
 
-                  <dd><p>IP port on which SmartServer listens for incoming connections.</p></dd>
+                  <dd><p>IP port on which SmartServer listens for incoming
+                  connections.</p></dd>
                 </dl>
               </text>
             </section>
@@ -2850,7 +3124,8 @@ var IP_PORT = "6007";</p.type>
                 is easy (it lies in break and assembling of XML).</p>
 
                 <dl>
-                  <caption>Following files are in the example for Adobe Flash:</caption>
+                  <caption>Following files are in the example for Adobe
+                  Flash:</caption>
 
                   <dt><file>SmartServerConnector.as</file></dt>
 
@@ -2885,7 +3160,8 @@ var IP_PORT = "6007";</p.type>
                   and uses them.</p></dd>
                 </dl>
 
-                <p>Example scripts can be inserted to application for Adobe Flash, e.g. using clipboard.</p>
+                <p>Example scripts can be inserted to application for Adobe
+                Flash, e.g. using clipboard.</p>
               </text>
             </section>
 
@@ -2894,16 +3170,21 @@ var IP_PORT = "6007";</p.type>
 
               <text>
                 <il>
-                  <caption>To get Wix examples working, there are two steps which must be done:</caption>
+                  <caption>To get Wix examples working, there are two steps
+                  which must be done:</caption>
 
-                  <li><p>User web pages of SmartServer must be prepared.</p></li>
+                  <li><p>User web pages of SmartServer must be
+                  prepared.</p></li>
 
-                  <li><p>Wix must be set up in way to read data from SmartServer.</p></li>
+                  <li><p>Wix must be set up in way to read data from
+                  SmartServer.</p></li>
                 </il>
 
                 <dl>
-                  <caption>The first step, setting up of SmartServer, is the same as preparation of any other user web page
-                  (<file>pt.xml</file>) . The example (in the folder <file>Examples\Wix</file>) contains:</caption>
+                  <caption>The first step, setting up of SmartServer, is the
+                  same as preparation of any other user web page
+                  (<file>pt.xml</file>) . The example (in the folder
+                  <file>Examples\Wix</file>) contains:</caption>
 
                   <dt><file>default.cfg</file></dt>
 
@@ -2921,7 +3202,8 @@ var IP_PORT = "6007";</p.type>
                 </dl>
 
                 <il>
-                  <caption>The second step, setting up of Wix, can be done:</caption>
+                  <caption>The second step, setting up of Wix, can be
+                  done:</caption>
 
                   <li><p>Using the file <file>wx.core.cfg.xml</file> of the
                   example. This Wix configuration file contains setting up of
@@ -2971,22 +3253,26 @@ var IP_PORT = "6007";</p.type>
 
                   <dt><file>ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll</file></dt>
 
-                  <dd><p>should be placed to <file>C:\Program Files\RcWare\SoftPLC\Drivers</file>.</p></dd>
+                  <dd><p>should be placed to <file>C:\Program
+                  Files\RcWare\SoftPLC\Drivers</file>.</p></dd>
 
                   <dt><file>ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll</file></dt>
 
-                  <dd><p>should be placed to <file>C:\Program Files\RcWare\SoftPLC\Editors</file>.</p></dd>
+                  <dd><p>should be placed to <file>C:\Program
+                  Files\RcWare\SoftPLC\Editors</file>.</p></dd>
                 </dl>
 
-                <p>RCWare itself is not a part of SmartServer installation, it must be downloaded from vendor's web pages.</p>
+                <p>RCWare itself is not a part of SmartServer installation, it
+                must be downloaded from vendor's web pages.</p>
 
                 <dl>
-                  <caption>Examples of RCWare cooperation with SmartServer are placed in <file>Examples\RCWare</file>
-                  folder:</caption>
+                  <caption>Examples of RCWare cooperation with SmartServer are
+                  placed in <file>Examples\RCWare</file> folder:</caption>
 
                   <dt><file>AirConditioning</file></dt>
 
-                  <dd><p>There is simple air quality control created in RCWare.</p></dd>
+                  <dd><p>There is simple air quality control created in
+                  RCWare.</p></dd>
 
                   <dt><file>ModbusWago</file></dt>
 
@@ -2996,7 +3282,8 @@ var IP_PORT = "6007";</p.type>
                   PLC realizes a simple control algorithm.</p></dd>
                 </dl>
 
-                <warning><p>RCWare is not a product of NeNo company. NeNo company helds no warranty for it and does not support
+                <warning><p>RCWare is not a product of NeNo company. NeNo
+                company helds no warranty for it and does not support
                 it.</p></warning>
               </text>
             </section>
@@ -3006,8 +3293,10 @@ var IP_PORT = "6007";</p.type>
 
               <text>
                 <dl>
-                  <caption>The example of iPhone (iPad) client; the example is created in iWebKit development tool
-                  (<uri>http://www.iwebkit.net</uri>). There are two files in <file>Examples\iWebKit</file> folder:</caption>
+                  <caption>The example of iPhone (iPad) client; the example is
+                  created in iWebKit development tool
+                  (<uri>http://www.iwebkit.net</uri>). There are two files in
+                  <file>Examples\iWebKit</file> folder:</caption>
 
                   <dt><file>iWebKit5.04.zip</file></dt>
 
@@ -3017,7 +3306,8 @@ var IP_PORT = "6007";</p.type>
 
                   <dt><file>iphone.zip</file></dt>
 
-                  <dd><p>containing sample application displaying and setting values.</p></dd>
+                  <dd><p>containing sample application displaying and setting
+                  values.</p></dd>
                 </dl>
 
                 <p>iWebKit uses HTML/HTTP, so it uses web browser (Safari on
@@ -3043,27 +3333,34 @@ var IP_PORT = "6007";</p.type>
 
               <dt><file>activate.exe</file></dt>
 
-              <dd><p>Program for activation of licences. Its usage is described in chapter <in.about
+              <dd><p>Program for activation of licences. Its usage is
+              described in chapter <in.about
               label="secInstallation"></in.about>.</p></dd>
 
               <dt><file>discover.exe</file></dt>
 
-              <dd><p>A tool for browsing of local network, the result of work is the list of found KNX-Net/IP devices. The
-              program will find interfaces and routers. Example of the program output:</p><p.type>C:\Program Files\NeNo\KNXSrv&gt;discover
+              <dd><p>A tool for browsing of local network, the result of work
+              is the list of found KNX-Net/IP devices. The program will find
+              interfaces and routers. Example of the program
+              output:</p><p.type>C:\Program Files\NeNo\KNXSrv&gt;discover
   Searching...........................................
   It was found 2 KNXnet/IP devices
      1. IP Interface N148
         MAC: 00-0E-8C-00-13-E8, IP: 10.0.0.6:3671
      2. Internal Interface
-        MAC: 00-0E-8C-00-15-07, IP: 10.0.0.7:3671</p.type><p>Two devices were found, the devices have provided information about
+        MAC: 00-0E-8C-00-15-07, IP: 10.0.0.7:3671</p.type><p>Two devices were
+              found, the devices have provided information about
               self.</p></dd>
 
               <dt><file>checkcfg.exe</file></dt>
 
-              <dd><p>Program for test of correctness of configuration file. The program loads configuration as the server and
-              writes found errors to the command line. In its output, the program may have more files (and can verify them
-              together then).</p><p>Example with right configuration:</p><p.type>C:\Program Files\NeNo\KNXSrv&gt;checkcfg default.cfg
-  default.cfg   OK      240 object/s</p.type><p>Example with wrong configuration:</p><p.type>C:\Program files\NeNo\KNXSrv&gt;checkcfg default.cfg
+              <dd><p>Program for test of correctness of configuration file.
+              The program loads configuration as the server and writes found
+              errors to the command line. In its output, the program may have
+              more files (and can verify them together then).</p><p>Example
+              with right configuration:</p><p.type>C:\Program Files\NeNo\KNXSrv&gt;checkcfg default.cfg
+  default.cfg   OK      240 object/s</p.type><p>Example with wrong
+              configuration:</p><p.type>C:\Program files\NeNo\KNXSrv&gt;checkcfg default.cfg
   default.cfg   ERROR
     line 43: Unknown behaviour name (trac)</p.type></dd>
             </dl>

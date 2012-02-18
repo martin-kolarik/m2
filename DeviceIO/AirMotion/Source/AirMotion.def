@@ -205,7 +205,7 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CAirMotionDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CAirMotionDevice( helper.AObject ) IMPLEMENTS iobject.IObject, device.IDevice;
 	PRIVATE VAR
 		_NS : CNS;
 		_IO : CIO;

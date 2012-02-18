@@ -74,6 +74,9 @@
         <string name="_ImportedModuleIsNewer">
             <item>Imported module "{0}" is newer than me. The component should be rebuilt.</item>
         </string>
+        <string name="_UnsafeSizeCast">
+            <item>Possible unsafe type cast, TSIZE type length is variable.</item>
+        </string>
 
     </strings>
 </resources>

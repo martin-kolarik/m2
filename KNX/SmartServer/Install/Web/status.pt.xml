@@ -4,6 +4,7 @@
       <head>
           <title>NeNo KNXSrv</title>
           <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+          <link rel="shortcut icon" href="SmartServer.ico" />
       </head>
       <body>
           <div class="shell">
@@ -35,6 +36,9 @@
                           <tr>
                             <td>${msg.status.KNXconnection}</td><td class="spare"> </td>
                             <pt:choose>
+                              <pt:when condition="${get(.System.Configuration.Error)}">
+                                <td><span class="red">${msg.status.notConfigured}</span></td>
+                              </pt:when>
                               <pt:when condition="${connected}">
                                 <td><span class="green">${connection}, ${msg.status.connectedFrom}${connectionTime}</span>
                                     <span pt:condition="${isAdmin}"><a href="?disconnect=true"><span class="red">[${msg.status.disconnect}]</span></a></span></td>

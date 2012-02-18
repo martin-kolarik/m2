@@ -92,7 +92,7 @@ END CTestOutput;
 CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    PRIVATE VAR
       _Progress : CARDINAL := 0;
-      _Logger : log.CPlainLogger;
+      _Logger : log.CLogger;
       _Output : CTestOutput;
       _FastEvaluation : BOOLEAN := FALSE;
       _Test : test.TPTest := NIL;
@@ -111,7 +111,7 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
    
    // IRunnable
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    
    // self
    PUBLIC READONLY PROPERTY
@@ -194,7 +194,7 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    TYPE
       PPWCHAR = POINTER TO PWCHAR;
    BEGIN

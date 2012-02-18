@@ -35,6 +35,8 @@ BEGIN
       Name := L"already pending (busy)";
    | arCannotStart :
       Name := L"cannot start";
+   | arUnsupportedDirection :
+      Name := L"unsupported direction";
    ELSE
       RETURN FALSE;
    END; // CASE

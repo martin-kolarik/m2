@@ -16,7 +16,7 @@ FROM Storage IMPORT
 
 (*================================================================================*)
 
-ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS io.IOriginator, io.IStartStopControl;
+ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS ns.IOriginator, io.IStartStopControl;
 
    // IOriginator
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -30,7 +30,7 @@ ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS io.IOrigina
    
    // SELF
    PUBLIC PROPERTY
-      Device : adviser.TPAdvisedDevice; // setting Device requires calling Configure to follow
+      DataSource : adviser.TPAdvisedDataSource; // setting Device requires calling Configure to follow
       Logger : log.TPILogger;
 
    INTERNAL VIRTUAL PROCEDURE OnStart(); // called from Start
@@ -43,11 +43,13 @@ ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS io.IOrigina
       R : Resources.TPResources;
    INTERNAL WRITEONLY PROPERTY
       DescriptionSet : StringsO.CString;
+   INTERNAL PROCEDURE SplitOutputAndCondition( CONST composite : StringsO.IString; OUT output : StringsO.IString; OUT conditionFound : BOOLEAN; OUT condition : StringsO.IString ) : BOOLEAN;
+   INTERNAL PROCEDURE AppendLineNumber( CONST prefix : ARRAY OF WCHAR; line : CARDINAL; OUT result : ARRAY OF WCHAR );
 
    PRIVATE VAR
       _R : Resources.CResources;
       _Description : StringsO.CString;
-      _Device : adviser.TPAdvisedDevice := NIL;
+      _DataSource : adviser.TPAdvisedDataSource := NIL;
       _Logger : log.TPILogger := log.logger();
       _Running : BOOLEAN := FALSE;
 

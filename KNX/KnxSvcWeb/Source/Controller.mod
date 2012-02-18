@@ -452,6 +452,7 @@ CLASS IMPLEMENTATION CController;
 
             // handle authentication
             IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
+               View^.Release();
                RETURN FALSE;
             END;
             // authMethodInfo is ignored now, method is always native
@@ -652,6 +653,7 @@ CLASS IMPLEMENTATION CController;
       cs : StringsO.CString;
       currentDT : datetime.DateTime;
       currentTime : datetime.TJD;
+      expiration : StringsO.CString;
       dt : datetime.DateTime;
       language : Languages.TLanguage;
       LangName : ARRAY[0..15] OF WCHAR;
@@ -661,6 +663,7 @@ CLASS IMPLEMENTATION CController;
       starttime : datetime.TJD;
       uptime : datetime.TJDC;
       uriParameters : lists.TPStringStringList := Request.URIParameters;
+      valid : BOOLEAN;
    BEGIN
       // check actions to do
       IF uriParameters^.GetOA( STATUS_CONNECT, OUT cs ) AND mvc.uriParameterValueToBoolean( cs ) THEN
@@ -723,32 +726,32 @@ CLASS IMPLEMENTATION CController;
       cs.AppendOA( L"m " );
       Request.ModelContainer^.AddStringOA( STATUS_UPTIME, cs );
 
-      licence := _Web^.Licence;
+      // get licence
+      _Web^.GetValue( StringsO.FromOA( L".System.Licensing.SerialNumber" ), OUT licence );
+      // prepare expiration string
+      dt := _Web^.LicenceExpires;
+      IF licence.Empty OR ( dt.Day > 0 ) THEN // no or expiring licence
+         valid := currentDT < dt;
+         dt.SetZoneToLocal();
+         IF Strings.StartsWithW( LangName, L"cs" ) THEN
+            dt.ToLanguageStringOA( language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
+         ELSE
+            dt.ToLanguageStringOA( language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
+         END;
+         Request.MessageSource^.GetMessageOA( language, STATUS_TEXT_VALID_UNTIL, OUT expiration );
+         expiration.AppendOA( s );
+      ELSE
+         valid := TRUE;
+         Request.MessageSource^.GetMessageOA( Language( Request ), STATUS_TEXT_PERMANENT, OUT expiration );
+      END;
+      Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, valid );
+      Request.ModelContainer^.AddStringOA( STATUS_LICENCE, expiration );
+
       IF licence.Empty THEN // surely invalid
-         Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, FALSE );
-         Request.MessageSource^.GetMessageOA( language, STATUS_TEXT_LICENCE_INVALID, OUT licence );
-         Request.ModelContainer^.AddStringOA( STATUS_LICENCE, licence );
          cs.Clear();
          Request.ModelContainer^.AddStringOA( STATUS_LICENCE_NUMBER, cs );
          Request.ModelContainer^.AddStringOA( STATUS_LICENCE_TYPE, cs );
-
       ELSE // licence is not empty
-         dt := _Web^.LicenceExpires;
-         IF dt.Day = 0 THEN
-            Request.MessageSource^.GetMessageOA( Language( Request ), STATUS_TEXT_PERMANENT, OUT cs );
-         ELSE
-            dt.SetZoneToLocal();
-            IF Strings.StartsWithW( LangName, L"cs" ) THEN
-               dt.ToLanguageStringOA( language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
-            ELSE
-               dt.ToLanguageStringOA( language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
-            END;
-            Request.MessageSource^.GetMessageOA( language, STATUS_TEXT_VALID_UNTIL, OUT cs );
-            cs.AppendOA( s );
-         END;
-         Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR ( currentDT < dt ));
-         Request.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
-
          Request.ModelContainer^.AddStringOA( STATUS_LICENCE_NUMBER, licence );
          cs.Clear();
          lt := _Web^.LicenceType;
@@ -769,9 +772,11 @@ CLASS IMPLEMENTATION CController;
       cs.FromCARD32( c, 10 );
       Request.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
  
-      Request.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, _Web^.Configuration^ );
+      _Web^.GetValue( StringsO.FromOA( L".System.Configuration.File" ), OUT cs );
+      Request.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, cs );
       
-      Request.ModelContainer^.AddStringOA( STATUS_PROJECT, _Web^.Project^ );
+      _Web^.GetValue( StringsO.FromOA( L".System.Project" ), OUT cs );
+      Request.ModelContainer^.AddStringOA( STATUS_PROJECT, cs );
  
       View := GetPageTemplateView( Request, STATUS_VIEW );
       RETURN TRUE;
@@ -783,6 +788,7 @@ CLASS IMPLEMENTATION CController;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
+      file : StringsO.CString;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
       listDevices : lists.TPStringStringList;
@@ -797,6 +803,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
+
       ELSIF uriParameters^.GetOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
@@ -805,6 +812,7 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
+
       ELSIF uriParameters^.GetOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          IF i > MAX( INTEGER ) THEN
             // do nothing
@@ -813,9 +821,17 @@ CLASS IMPLEMENTATION CController;
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF uriParameters^.GetOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.Data ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
-         RETURN TRUE;
+
+      ELSE
+         IF NOT _Web^.GetValue( StringsO.FromOA( L".System.Configuration.File" ), OUT file ) THEN
+            ASSERTLOG( FALSE ); // this is unexpected
+            RETURN FALSE;
+         END;
+
+         IF uriParameters^.GetOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( file.Length-1, file.Data ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+            RETURN TRUE;
+         END;
       END;
 
       Request.ModelContainer^.AddListOA( CONTROL_DEVICES_NAME, OUT listDevices ); listDevices^.Dispose();
@@ -840,7 +856,7 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-      Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, _Web^.Configuration^ );
+      Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, file );
       
       count := _Web^.ConfigLogger^.BufferCount;
       cs.Clear();
