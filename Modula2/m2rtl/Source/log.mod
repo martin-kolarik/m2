@@ -1208,29 +1208,34 @@ CLASS IMPLEMENTATION CBaseLogger;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE LogExc( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.Exception );
-	VAR
-		S : TString;
-	BEGIN
+   VAR
+      S : TString;
+   BEGIN
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-	   e.ToString( OUT S );
+      e.ToString( OUT S );
       Append( Level, FilterData, _Name, Prefix, S );
-	END LogExc;
+   END LogExc;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
-	VAR
-	   colFlag, lineFlag : BOOLEAN;
-		S : TString;
+   VAR
+      colFlag, lineFlag : BOOLEAN;
+      S : TString;
       N : TNum;
+      pathEmpty : BOOLEAN := EQUALS( Path, L"" );
    BEGIN
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
 
-      S := Path;
+      IF pathEmpty THEN
+         S := Prefix;
+      ELSE
+         S := Path;
+      END;
       lineFlag := ( Line <> 0 ) AND ( Line <> -1 );
       colFlag := ( Col <> 0 ) AND ( Col <> -1 );
       IF colFlag OR lineFlag THEN
@@ -1246,13 +1251,16 @@ CLASS IMPLEMENTATION CBaseLogger;
             Strings.FromCARD32W( Col, 10, OUT N );
             Strings.AppendW( REF S, N );
          END;
-         Strings.AppendW( REF S, L"): " );
+         Strings.AppendW( REF S, L")" );
+      END;
+      
+      IF pathEmpty THEN
+         Append( Level, FilterData, _Name, S, S1 );
       ELSE
          Strings.AppendW( REF S, L": " );
+         Strings.AppendW( REF S, S1 );
+         Append( Level, FilterData, _Name, Prefix, S );
       END;
-      Strings.AppendW( REF S, S1 );
-      
-      Append( Level, FilterData, _Name, Prefix, S );
    END LogFilePos;
 
 (*---------------------------------------------------------------------------*)

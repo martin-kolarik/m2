@@ -25,7 +25,6 @@ CLASS CCurve;
    LOCAL VAR
       Slope : LONGREAL := 0.0;
       Offset : LONGREAL := 0.0;
-      OutputAddress : StringsO.CString;
       InnerSetpointTemperature : ns.TPNameValuePairs := NIL;
       HaveInnerSetpointTemperature : BOOLEAN := FALSE;
       OuterActualTemperature : ns.TPNameValuePairs := NIL;
@@ -140,8 +139,9 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
       ES : PTR;
       i : CARDINAL;
       iniFile : INIFile.TPINIFile;
-      Line : CARDINAL;
       key : StringsO.CString;
+      Line : CARDINAL;
+      lineString : ARRAY [0..63] OF WCHAR;
       offset : LONGREAL;
       pairs : ARRAY [0..2] OF ns.TPNameValuePairs;
       pieces : CARDINAL;
@@ -186,7 +186,8 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
             IF DataSource^.NS()^.Contains( nsimpl.AddContext( context, value )) THEN
                context := value;
             ELSE
-               Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+               AppendLineNumber( LOGNAME, Line, OUT lineString );
+               Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
                someError := TRUE;
             END;
             CONTINUE;
@@ -194,7 +195,8 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
 
          // key/output = wish/input, outer/input [, slope/parameter [, offset/parameter]]
          IF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs[0] ) THEN
-            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OutputAddressNotFound ] ), OA( s.Length-1, s.Data ));
+            AppendLineNumber( LOGNAME, Line, OUT lineString );
+            Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._OutputAddressNotFound ] ), OA( s.Length-1, s.Data ));
             someError := TRUE;
             CONTINUE;
          END;
@@ -206,15 +208,18 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          
          // check mandatory parameters (wish, outer)
          IF pieces < 2 THEN
-            Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._InputValuesAreMissing ] ));
+            AppendLineNumber( LOGNAME, Line, OUT lineString );
+            Log^.LogS( log.lcError, 0, lineString, OAsz( R^[ Texts._InputValuesAreMissing ] ));
             someError := TRUE;
             CONTINUE;
          ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, values[0] ), OUT pairs[1] ) THEN
-            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SetpointAddressNotFound ] ), OA( values[0].Length-1, values[0].Data ));
+            AppendLineNumber( LOGNAME, Line, OUT lineString );
+            Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._SetpointAddressNotFound ] ), OA( values[0].Length-1, values[0].Data ));
             someError := TRUE;
             CONTINUE;
          ELSIF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, values[1] ), OUT pairs[2] ) THEN
-            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OuterAddressNotFound ] ), OA( values[1].Length-1, values[1].Data ));
+            AppendLineNumber( LOGNAME, Line, OUT lineString );
+            Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._OuterAddressNotFound ] ), OA( values[1].Length-1, values[1].Data ));
             someError := TRUE;
             CONTINUE;
          END;
@@ -223,18 +228,21 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          slope := DEFAULT_SLOPE;
          IF pieces > 2 THEN
             IF NOT values[2].ToLONGREAL( OUT slope ) THEN
-               Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SlopeIsNotANumber ] ), OA( values[2].Length-1, values[2].Data ));
+               AppendLineNumber( LOGNAME, Line, OUT lineString );
+               Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._SlopeIsNotANumber ] ), OA( values[2].Length-1, values[2].Data ));
                someError := TRUE;
                CONTINUE;
             ELSIF ( slope < 0.2 ) OR ( slope > 3.5 ) THEN
-               Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._SlopeOutOfRange ] ));
+               AppendLineNumber( LOGNAME, Line, OUT lineString );
+               Log^.LogS( log.lcError, 0, lineString, OAsz( R^[ Texts._SlopeOutOfRange ] ));
                someError := TRUE;
                CONTINUE;
             END;
          END;
          offset := DEFAULT_OFFSET;
          IF ( pieces > 3 ) AND NOT values[3].ToLONGREAL( OUT offset ) THEN
-            Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._OffsetIsNotANumber ] ), OA( values[3].Length-1, values[3].Data ));
+            AppendLineNumber( LOGNAME, Line, OUT lineString );
+            Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._OffsetIsNotANumber ] ), OA( values[3].Length-1, values[3].Data ));
             someError := TRUE;
             CONTINUE;
          END;
@@ -243,7 +251,6 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          NEW( curve );
          curve^.Slope := slope;
          curve^.Offset := offset;
-         curve^.OutputAddress := key;
          curve^.OutputTemperature := pairs[0];
          curve^.InnerSetpointTemperature := pairs[1];
          curve^.OuterActualTemperature := pairs[2];
@@ -302,9 +309,12 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE Enqueue( curve : TPCurve );
+   VAR
+      name : StringsO.CString;
    BEGIN
       IF curve^.Enqueue() THEN // smart queueuing, the item has just put to the queue
-         Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Enquing item for computation:", OA( curve^.OutputAddress.Length-1, curve^.OutputAddress.Data ));
+         DataSource^.NS()^.GetFullName( curve^.OutputTemperature, OUT name );
+         Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Enquing item for computation:", OA( name.Length-1, name.Data ));
          _SendQueue.Enqueue( curve );
       END;
    END Enqueue;
@@ -313,6 +323,7 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
 
    PRIVATE PROCEDURE Compute( curve : TPCurve );
    VAR
+      name : StringsO.CString;
       outer : iovalue.Value;
       output : LONGREAL;
       result : Sync.TAsyncResult;
@@ -343,7 +354,8 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
 
          result := OutputTemperature^.ValueIO( ADR( SELF ), OutputTemperature, IOO.dirWrite, REF value );
          IF result IN Sync.arsCompletions THEN
-            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Item computed:", OA( curve^.OutputAddress.Length-1, curve^.OutputAddress.Data ), L"=", OA( value.String.Length-1, value.String.Data ));
+            DataSource^.NS()^.GetFullName( curve^.OutputTemperature, OUT name );
+            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Item computed:", OA( name.Length-1, name.Data ), L"=", OA( value.String.Length-1, value.String.Data ));
          ELSE
             ASSERTLOG( FALSE, L"Unable to write output temperature" );
             RETURN;

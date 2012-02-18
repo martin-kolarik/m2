@@ -44,6 +44,7 @@ ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS ns.IOrigina
    INTERNAL WRITEONLY PROPERTY
       DescriptionSet : StringsO.CString;
    INTERNAL PROCEDURE SplitOutputAndCondition( CONST composite : StringsO.IString; OUT output : StringsO.IString; OUT conditionFound : BOOLEAN; OUT condition : StringsO.IString ) : BOOLEAN;
+   INTERNAL PROCEDURE AppendLineNumber( CONST prefix : ARRAY OF WCHAR; line : CARDINAL; OUT result : ARRAY OF WCHAR );
 
    PRIVATE VAR
       _R : Resources.CResources;

@@ -13,6 +13,7 @@ IMPORT
    iovalue,
    INIFile,
    ns,
+   Strings,
    Texts;
 
 (*================================================================================*)
@@ -154,11 +155,29 @@ CLASS IMPLEMENTATION CFunctionBase;
       END;
       RETURN TRUE;
    END SplitOutputAndCondition;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL PROCEDURE AppendLineNumber( CONST prefix : ARRAY OF WCHAR; line : CARDINAL; OUT result : ARRAY OF WCHAR );
+   VAR
+      n : ARRAY [0..15] OF WCHAR;
+   BEGIN
+      result := prefix;
+      IF line = -1 THEN
+         result := prefix;
+      ELSE
+         Strings.FromCARD32W( line, 10, OUT n );
+         Strings.AppendW( REF result, L"(" );
+         Strings.AppendW( REF result, n );
+         Strings.AppendW( REF result, L")" );
+      END;
+   END AppendLineNumber;
+
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-	IF NOT _R.LoadRES2( EMITW( %dll ), L"functions.Texts" ) THEN
-	   _R.LoadRES2( L"", L"functions.Texts" );
+   IF NOT _R.LoadRES2( EMITW( %dll ), L"functions.Texts" ) THEN
+      _R.LoadRES2( L"", L"functions.Texts" );
    END;
    _Description.FromOA( L"Function Base" );
 FINALLY

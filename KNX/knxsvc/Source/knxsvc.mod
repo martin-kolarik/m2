@@ -527,7 +527,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       CDI.Devices[4] := WeekCal;
 
       // fill results
-      SystemDataSource^.NS()^.Get( StringsO.FromOA( nameSystem + L"." + nameConfigurationError ), OUT pairs );
+      SystemDataSource^.NS()^.Get( StringsO.FromOA( nameConfigurationError ), OUT pairs );
       v.Dispose();
       v.Boolean := GlobalResult <> Sync.arCompleted;
       pairs^.SourceValue := v;
@@ -664,6 +664,7 @@ CLASS IMPLEMENTATION CKnxSvc;
 BEGIN
    CDI.Names[0] := NIL;
    
+   // Log.logger()^.SetName( L"SS" );
    Log.logger()^.BufferSize := 1000;
 
    DataLogger.TimeStamps := TRUE;
@@ -672,12 +673,13 @@ BEGIN
    DataLogger.Output := Log.outsNone;
    DataLogger.BufferSize := 1000;
 
+   ConfigLogger.SetName( L"cfg" );
    ConfigLogger.TimeStamps := TRUE;
    ConfigLogger.Levels := FALSE;
-   ConfigLogger.Names := FALSE;
+   ConfigLogger.Names := TRUE;
    ConfigLogger.Output := Log.outsNone;
    ConfigLogger.Level := Log.ldTrace;
-   ConfigLogger.BufferSize := 16;
+   ConfigLogger.BufferSize := 100;
    ConfigLogger.BufferMode := Log.bmStoreFirst;
 END CKnxSvc;
 

@@ -297,8 +297,9 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       context : StringsO.CString;
       ES : PTR;
       item : TPItem;
-      Line : CARDINAL;
       key : StringsO.CString;
+      Line : CARDINAL;
+      lineString : ARRAY [0..63] OF WCHAR;
       pairs : ns.TPNameValuePairs;
       s : StringsO.CString;
       someError : BOOLEAN := FALSE;
@@ -316,7 +317,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          // get optional write delay
          IF iniFile^.GetKeyInt( keyWriteDelay, OUT Line, OUT writeDelay ) THEN
             IF writeDelay < 1 THEN
-               Log^.LogSC( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._WriteDelayCannotBeZeroOrLessThanZeroIgnoring ] ), writeDelay );
+               AppendLineNumber( LOGNAME, Line, OUT lineString );
+               Log^.LogSC( log.lcError, 0, lineString, OAsz( R^[ Texts._WriteDelayCannotBeZeroOrLessThanZeroIgnoring ] ), writeDelay );
             ELSE
                _WriteDelay := 1000 * writeDelay;
             END;
@@ -336,7 +338,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
             IF DataSource^.NS()^.Contains( nsimpl.AddContext( context, value )) THEN
                context := value;
             ELSE
-               Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+               AppendLineNumber( LOGNAME, Line, OUT lineString );
+               Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
                someError := TRUE;
             END;
             CONTINUE;
@@ -352,7 +355,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
          // key/output = value
          IF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs ) THEN
-            Log^.LogSSSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._AddressNotFound ] ), OA( key.Length-1, key.Data ), L"", L"" );
+            AppendLineNumber( LOGNAME, Line, OUT lineString );
+            Log^.LogSSSS( log.lcError, 0, lineString, OAsz( R^[ Texts._AddressNotFound ] ), OA( key.Length-1, key.Data ), L"", L"" );
             someError := TRUE;
             CONTINUE;
          END;
