@@ -61,12 +61,16 @@ CLASS IMPLEMENTATION CItem;
 (*-------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE ShouldTick( CONST Now : datetime.DateTime ) : BOOLEAN;
+   VAR
+      week : datetime.TJDC := datetime.DaysToJDC( 7 );
    BEGIN
       IF ShouldTickAt > Now THEN
          RETURN FALSE;
       END;
 
-      ShouldTickAt.Add( datetime.DaysToJDC( 7 )); // move forward is done always, notwithstanding the condition
+      WHILE ShouldTickAt <= Now DO // WHILE allows to skip all missed moments
+         ShouldTickAt.Add( week ); // move forward is done always, notwithstanding the condition
+      END; // WHILE
 
       RETURN Condition;
    END ShouldTick;
