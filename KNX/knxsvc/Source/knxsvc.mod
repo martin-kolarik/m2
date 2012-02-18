@@ -35,6 +35,7 @@ IMPORT
    nsimpl,
    PersistentStorage,
    Registry,
+   Scene,
    scinit,
    sdap,
    Service,
@@ -62,6 +63,7 @@ CONST
    nameStorage = L'name.Storage';
    nameEqCurve = L'name.EqCurve';
    nameWeekCalendar = L'name.WeekCalendar';
+   nameScenes = L'name.Scenes';
 
 CONST
    nameSystem = L"System";
@@ -73,8 +75,8 @@ CONST
 
 TYPE
    TControlledDeviceInfo = RECORD
-                              Names : ARRAY [0..4] OF PWCHAR;
-                              Devices : ARRAY [0..4] OF io.TPStartStopControl;
+                              Names : ARRAY [0..5] OF PWCHAR;
+                              Devices : ARRAY [0..5] OF io.TPStartStopControl;
                            END; // RECORD
 
 (*--------------------------------------------------------------------------------*)
@@ -246,6 +248,7 @@ CLASS CKnxSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       Storage : PersistentStorage.TPPersistentStorageFunction := NIL;
       EqCurve : EquithermicCurve.TPEquithermicCurveFunction := NIL;
       WeekCal : WeekCalendar.TPWeekCalendarFunction := NIL;
+      Scenes : Scene.TPSceneFunction := NIL;
 
    // service, OS thread
    LOCAL VIRTUAL PROCEDURE OnStart();
@@ -514,17 +517,32 @@ CLASS IMPLEMENTATION CKnxSvc;
          GlobalResult := LocalResult;
       END;
 
+      ASSERT( Scenes = NIL );
+      NEW( Scenes );
+      Scenes^.Init( TRUE );
+      Scenes^.DataSource := Adviser;
+      Scenes^.Logger := Log.logger();
+      LocalResult := Scenes^.Configure( configuration, ADR( ConfigLogger ));
+      IF LocalResult = Sync.arCompleted THEN
+         Scenes^.Start();
+      END;
+      IF GlobalResult = Sync.arCompleted THEN
+         GlobalResult := LocalResult;
+      END;
+
       // WEB & GLOBAL START
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
       CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
       CDI.Names[2] := PWCHAR( ADR( nameStorage ));
       CDI.Names[3] := PWCHAR( ADR( nameEqCurve ));
       CDI.Names[4] := PWCHAR( ADR( nameWeekCalendar ));
+      CDI.Names[5] := PWCHAR( ADR( nameScenes ));
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       CDI.Devices[2] := Storage;
       CDI.Devices[3] := EqCurve;
       CDI.Devices[4] := WeekCal;
+      CDI.Devices[5] := Scenes;
 
       // fill results
       SystemDataSource^.NS()^.Get( StringsO.FromOA( nameConfigurationError ), OUT pairs );
@@ -560,6 +578,7 @@ CLASS IMPLEMENTATION CKnxSvc;
          Storage^.Stop();
          KNX^.Stop();
          EqCurve^.Stop();
+         Scenes^.Stop();
       END;
 
       SetServiceState( Service.ssPaused, 0 );
@@ -572,6 +591,7 @@ CLASS IMPLEMENTATION CKnxSvc;
       IF KNX = NIL THEN
          LogEvent( -1, L"Svc.OnContinue called for KNX = NIL" );
       ELSE
+         Scenes^.Start();
          EqCurve^.Start();
          KNX^.Start();
          Storage^.Start();
@@ -612,6 +632,12 @@ CLASS IMPLEMENTATION CKnxSvc;
          KNX^.Stop();
          KNX^.Dispose();
          DISPOSE( KNX );
+      END;
+
+      IF Scenes <> NIL THEN
+         Scenes^.Stop();
+         Scenes^.Dispose();
+         DISPOSE( Scenes );
       END;
 
       IF WeekCal <> NIL THEN

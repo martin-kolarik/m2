@@ -355,10 +355,9 @@ CLASS IMPLEMENTATION CEquithermicCurveFunction;
          result := OutputTemperature^.ValueIO( ADR( SELF ), OutputTemperature, IOO.dirWrite, REF value );
          IF result IN Sync.arsCompletions THEN
             DataSource^.NS()^.GetFullName( curve^.OutputTemperature, OUT name );
-            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Item computed:", OA( name.Length-1, name.Data ), L"=", OA( value.String.Length-1, value.String.Data ));
+            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Item written:", OA( name.Length-1, name.Data ), L"=", OA( value.String.Length-1, value.String.Data ));
          ELSE
-            ASSERTLOG( FALSE, L"Unable to write output temperature" );
-            RETURN;
+            Logger^.LogSSSS( log.lcWarning, 0, LOGNAME, L"Unable to write output:", OA( name.Length-1, name.Data ), L"=", OA( value.String.Length-1, value.String.Data ));
          END;
 
       END; // WITH
