@@ -477,7 +477,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapSET, sdapGET :
-         IF NOT _Clients.Get( PConnection, OUT Client ) THEN // unexpected client
+         IF NOT _Clients.Get( PConnection, OUT Client, OUT d ) THEN // unexpected client
             ACK( PConnection, sdap500 );
             RETURN;
          END;
@@ -532,7 +532,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          
       //-----
       | sdapADVISE, sdapUNADVISE :
-         IF NOT _Clients.Get( PConnection, OUT Client ) THEN // unexpected client
+         IF NOT _Clients.Get( PConnection, OUT Client, OUT d ) THEN // unexpected client
             ACK( PConnection, sdap500 );
             RETURN;
          END;
@@ -570,7 +570,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapCONTEXT :
-         IF NOT _Clients.Get( PConnection, OUT Client ) THEN // unexpected client
+         IF NOT _Clients.Get( PConnection, OUT Client, OUT d ) THEN // unexpected client
             ACK( PConnection, sdap500 );
             RETURN;
          END;

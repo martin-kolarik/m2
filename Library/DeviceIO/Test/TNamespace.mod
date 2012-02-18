@@ -64,11 +64,7 @@ CLASS IMPLEMENTATION CTest;
       s.FromOA( L"2" );
       Failure := nss.Get( s, OUT pairs ) OR Failure;
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
       SumFailure := SumFailure OR Failure;
       Failure := FALSE;
 
@@ -112,11 +108,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := NOT nss.Link( subnvp.Name, ADR( subnvp ), TRUE ) OR Failure;
       Failure := nss.Link( subnvp.Name, ADR( subnvp ), TRUE ) OR Failure;
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
       SumFailure := SumFailure OR Failure;
       Failure := FALSE;
 
@@ -138,11 +130,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := NOT s.Equals( StringsO.FromOA( L"ArrayOfValues" )) OR Failure;
       Failure := ( children^.Parent = NIL ) OR Failure;
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
       SumFailure := SumFailure OR Failure;
       Failure := FALSE;
 
@@ -155,11 +143,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := nss.DefineReference( s, iovalue.TFlags{iovalue.vfHidden}, ADR( nss ), 0 ) OR Failure;
       Failure := NOT nss.Get( s, OUT pairs ) OR ( pairs = NIL ) OR ( pairs^.Value.Type <> iovalue.vtReference ) OR ( pairs^.Value.Reference <> PTR( ADR( nss ))) OR Failure;
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
       SumFailure := SumFailure OR Failure;
       Failure := FALSE;
 
@@ -221,11 +205,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := NOT nss.GetFullName( pairs, OUT s ) OR Failure;
       Failure := NOT s.Equals( StringsO.FromOA( L"Class.SubClass.Method" )) OR Failure;
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
       SumFailure := SumFailure OR Failure;
       Failure := FALSE;
 

@@ -127,8 +127,9 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
 
    PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    VAR
-      item : TPItem;
       i : CARDINAL;
+      it : lists.CPtrListIterator;
+      item : TPItem;
    BEGIN
       // check validity of input
       IF HIGH( Item ) < 0 THEN
@@ -139,9 +140,9 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       FOR i := 0 TO HIGH( Item ) DO
          IF Result[i] IN Sync.arsCompletions THEN
             
-            _Items.Reset();
-            WHILE _Items.MoveNext() DO
-               item := _Items.Current;
+            it.Init( _Items, collection.dirForward );
+            WHILE it.MoveNext() DO
+               item := it.Value;
                IF item^.ConditionPairs = Item[i] THEN
                   item^.Condition := Value[i].Boolean;
                   Reanalyze( item );
@@ -426,9 +427,9 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
       // register advises from condition addresses
       DataSource^.JoinClient( ADR( SELF ), ns.advWithData );
       
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Reset();
+      WHILE it.MoveNext() DO
+         item := it.Value;
          IF item^.ConditionPairs <> NIL THEN
             DataSource^.AdviseHash( ADR( SELF ), item^.ConditionPairs );
          END;
@@ -513,12 +514,13 @@ CLASS IMPLEMENTATION CWeekCalendarFunction;
    // look for last previous item, the item keeps value which should be set to KNX just now
    VAR
       furthest : TPItem := NIL;
+      it : lists.CPtrListIterator;
       item : TPItem;
    BEGIN
       // for each item store the furthest time in the map
-      _Items.Reset();
-      WHILE _Items.MoveNext() DO
-         item := _Items.Current;
+      it.Init( _Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         item := it.Value;
          IF item^.Pairs <> analyzedItem^.Pairs THEN
             CONTINUE;
          END;

@@ -33,7 +33,7 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
       Value : iovalue.Value;
       Data : PTR;
 
-   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.TPILockR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : ns.IValueIO; Data : PTR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE Link( CONST Name : StringsO.IString; Child : ns.TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN; // Name and Child^.Name HAS TO be the same
@@ -46,7 +46,7 @@ ABSTRACT CLASS ANameValuePairsStructurals IMPLEMENTS ns.INameValuePairs; // ( ba
       InitializeName : StringsO.CString;
       InitializeAdviseSource : ns.TPAdviseSource;
    LOCAL VIRTUAL WRITEONLY PROPERTY
-      InitializeAccessLock : Sync.PIRLock;
+      InitializeAccessLock : Sync.TPILockR;
 
    LOCAL VAR
       _Name : StringsO.CString;
@@ -99,14 +99,14 @@ CLASS NameValuePairsStorage( ANameValuePairsStructurals );
 
    // ANameValuePairsStructurals
    LOCAL VIRTUAL WRITEONLY PROPERTY
-      InitializeAccessLock : Sync.PIRLock;
+      InitializeAccessLock : Sync.TPILockR;
 
    // SELF
    PUBLIC PROCEDURE DefineReference( CONST Name : StringsO.IString; Flags : iovalue.TFlags; Reference, Data : PTR ) : BOOLEAN;
 
    LOCAL VAR
       _Value : iovalue.Value;
-      _RLock : Sync.PIRLock;
+      _RLock : Sync.TPILockR;
 
 END NameValuePairsStorage;
 

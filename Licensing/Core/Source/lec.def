@@ -71,7 +71,7 @@ END CProduct;
 TYPE
    TPResult = POINTER TO CResult;
 
-CLASS CResult( delegate.ADelegate );
+CLASS CResult( delegate.Delegate );
    PRIVATE VAR
       _Lock : sync.LOCK;
       _Info : TStateInfo;

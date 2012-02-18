@@ -162,7 +162,7 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
          RETURN FALSE;
       END;
       helper.Init( Name );
-      IF _Children^.SearchI( 0, ADR( helper ), OUT elem ) THEN
+      IF _Children^.Get( 0, ADR( helper ), OUT elem ) THEN
          Child := elem^._Pairs;
          RETURN TRUE;
       ELSE
@@ -250,13 +250,13 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROPERTY InitializeAccessLock SET( Value : Sync.PIRLock );
+   INTERNAL VIRTUAL PROPERTY InitializeAccessLock SET( Value : Sync.TPILockR );
    BEGIN
    END InitializeAccessLock;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.TPILockR; CONST AdviseSource : ns.TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    VAR
       child : ns.TPNameValuePairs;
       elem : POINTER TO CNameValuePairsStorageElem;
@@ -290,7 +290,7 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
       pairs^._Parent := ADR( SELF );
       Children := elem^._Pairs;
       // add it
-      _Children^.Insert( elem );
+      _Children^.Add( elem );
 
       RETURN TRUE;
    END DefineStorageValue;
@@ -324,7 +324,7 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
       pairs^._Parent := ADR( SELF );
       Children := elem^._Pairs;
       // add it
-      _Children^.Insert( elem );
+      _Children^.Add( elem );
 
       RETURN TRUE;
    END DefineIOValue;
@@ -353,7 +353,7 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
       IF SetParent THEN
          Child^.Parent := ADR( SELF );
       END;
-      _Children^.Insert( elem );
+      _Children^.Add( elem );
 
       RETURN TRUE;
    END Link;
@@ -370,14 +370,14 @@ CLASS IMPLEMENTATION ANameValuePairsStructurals;
       END;
 
       helper.Init( Name );
-      IF NOT _Children^.SearchI( 0, ADR( helper ), OUT elem ) THEN
+      IF NOT _Children^.Get( 0, ADR( helper ), OUT elem ) THEN
          RETURN FALSE;
       ELSIF ( elem^ IS NameValuePairsStorage ) OR ( elem^ IS NameValuePairsIO ) THEN // only link is possible to remove
          RETURN FALSE;
       END;
 
       Child := elem^._Pairs;
-      _Children^.Delete( ADR( helper ));
+      _Children^.Delete( 0, ADR( helper ));
 
       RETURN TRUE;
    END Unlink;
@@ -549,7 +549,7 @@ CLASS IMPLEMENTATION NameValuePairsStorage;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROPERTY InitializeAccessLock SET( Value : Sync.PIRLock );
+   INTERNAL VIRTUAL PROPERTY InitializeAccessLock SET( Value : Sync.TPILockR );
    BEGIN
       _RLock := Value;
    END InitializeAccessLock;

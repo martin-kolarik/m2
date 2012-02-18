@@ -11,6 +11,7 @@ FROM Storage IMPORT
 IMPORT
    adviser,
    cllv,
+   collection,
    compositedatasource,
    Debug,
    device,
@@ -128,9 +129,9 @@ CLASS IMPLEMENTATION CSuspendableResult;
 
    PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
    VAR
+      it : lists.CStringListIterator;
       key : StringsO.CString;
       licences : lists.CStringList;
-      p : PTR;
       s : FIO.PathStrW;
       value : StringsO.CString;
    BEGIN
@@ -140,10 +141,11 @@ CLASS IMPLEMENTATION CSuspendableResult;
             RETURN Sync.arUnsupportedDirection;
          ELSE
             GetLicences( OUT licences );
-            IF NOT licences.GetFirst( OUT value, OUT p ) THEN
-               value.Clear();
+            it.Init( licences, collection.dirForward );
+            IF it.MoveNext() THEN
+               value.Assign( it.Value^ );
+               Value.String := value;
             END;
-            Value.String := value;
             RETURN Sync.arCompleted;
          END;
 
@@ -190,16 +192,15 @@ CLASS IMPLEMENTATION CSuspendableResult;
 
    PUBLIC PROCEDURE QuerySuspension();
    VAR
+      it : lists.CPtrListIterator;
       value : StringsO.CString;
    BEGIN
-      ProductsLock();
-      ProductsReset();
-      WHILE ProductsMoveNext() DO
-         IF CurrentProduct^.Info^.GetOA( suspendKey, OUT value ) THEN
+      it.Init( Products^, collection.dirForward );
+      WHILE it.MoveNext() DO
+         IF lec.TPProduct( it.Value )^.Info^.Get( StringsO.FromOA( suspendKey ), OUT value ) THEN
             _Suspended := value.EqualsOA( suspendValue );
          END;
       END;
-      ProductsUnlock();
    END QuerySuspension;
 
 (*--------------------------------------------------------------------------------*)

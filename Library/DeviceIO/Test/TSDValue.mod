@@ -48,28 +48,28 @@ CLASS IMPLEMENTATION CTest;
          v.Long := -257;
          v.Float := 14.0;
          v.String := S;
-         v.Date := datetime.GetCurrentJD();
+         v.Date := datetime.NowDC();
       END TryAll;
 
    VAR
       Failure : BOOLEAN := FALSE;
-	   s : StringsO.CString;
-	   t : iovalue.TValueType;
-	   v1, v2, v3 : iovalue.Value;
+      s : StringsO.CString;
+      t : iovalue.TType;
+      v1, v2, v3 : iovalue.Value;
    BEGIN
       SELF.Host := Host;
 
       Host^.StartPhase( L"Construction & getters" );
 
-	   FOR t := iovalue.vt ReferenceTO iovalue.vtDate DO
-	      IF t <> iovalue.vtObject THEN
-	         v1.Type := t;
+      FOR t := iovalue.vtReference TO iovalue.vtDate DO
+         IF t <> iovalue.vtObject THEN
+            v1.Type := t;
 
             TryAll( REF v1 );
 
-	         v1.Undefined := FALSE;
-	      END;
-	   END; // FOR
+            v1.Undefined := FALSE;
+         END;
+      END; // FOR
 
       v2 := v1;
 

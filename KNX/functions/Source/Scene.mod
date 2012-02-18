@@ -6,6 +6,7 @@ FROM Debug IMPORT
    AssertionW;
 
 IMPORT
+   collection,
    io,
    IOO,
    iovalue,
@@ -98,6 +99,7 @@ CLASS IMPLEMENTATION CSceneFunction;
    VAR
       output : TPOutput;
       i : CARDINAL;
+      it : lists.CPtrListIterator;
    BEGIN
       // check validity of input
       IF HIGH( Item ) < 0 THEN
@@ -108,9 +110,9 @@ CLASS IMPLEMENTATION CSceneFunction;
       FOR i := 0 TO HIGH( Item ) DO
          IF Result[i] IN Sync.arsCompletions THEN
             
-            _Outputs.Reset();
-            WHILE _Outputs.MoveNext() DO
-               output := _Outputs.Current;
+            it.Init( _Outputs, collection.dirForward );
+            WHILE it.MoveNext() DO
+               output := it.Value;
                IF output^.Input = Item[i] THEN
                   Enqueue( output );
                END;
@@ -139,6 +141,7 @@ CLASS IMPLEMENTATION CSceneFunction;
       s : StringsO.CString;
       section : StringsO.CString;
       sections : lists.CStringList; // section name = pairs
+      sit : lists.CStringListIterator;
       someError : BOOLEAN := FALSE;
       value : StringsO.CString;
    BEGIN
@@ -198,10 +201,10 @@ CLASS IMPLEMENTATION CSceneFunction;
       END; // WHILE over sections
 
       // LOOP OVER OUTPUTS IN SECTIONS
-      sections.Reset();
-      WHILE sections.MoveNext() DO
+      sit.Init( sections, collection.dirForward );
+      WHILE sit.MoveNext() DO
 
-         section.Assign( sections.Current^ );
+         section.Assign( sit.Value^ );
          section.Prepend( StringsO.FromOA( CFG_SCENE_PREFIX ));
          IF NOT iniFile^.SetSection( OA( section.Length-1, section.Data )) THEN
             AppendLineNumber( LOGNAME, Line, OUT lineString );
@@ -253,7 +256,7 @@ CLASS IMPLEMENTATION CSceneFunction;
 
             // everything OK, create item in _Outputs
             NEW( output );
-            output^.Input := sections.CurrentData;
+            output^.Input := sit.Data;
             output^.Output := pairs;
             output^.OutputValue.String := s;
             IF conditionFound THEN
@@ -283,15 +286,16 @@ CLASS IMPLEMENTATION CSceneFunction;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      it : lists.CPtrListIterator;
       output : TPOutput;
    BEGIN
       IF DataSource <> NIL THEN
          DataSource^.UnadviseAll( ADR( SELF ));
       END;
    
-      _Outputs.Reset();
-      WHILE _Outputs.MoveNext() DO
-         output := _Outputs.Current;
+      it.Init( _Outputs, collection.dirForward );
+      WHILE it.MoveNext() DO
+         output := it.Value;
          DISPOSE( output );
       END; // WHILE
       _Outputs.Dispose();
@@ -301,13 +305,14 @@ CLASS IMPLEMENTATION CSceneFunction;
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
    VAR
+      it : lists.CPtrListIterator;
       output : TPOutput;
    BEGIN
       DataSource^.JoinClient( ADR( SELF ), ns.advWithData );
       
-      _Outputs.Reset();
-      WHILE _Outputs.MoveNext() DO
-         output := _Outputs.Current;
+      it.Init( _Outputs, collection.dirForward );
+      WHILE it.MoveNext() DO
+         output := it.Value;
          DataSource^.AdviseHash( ADR( SELF ), output^.Input );
       END; // WHILE
    END OnStart;
@@ -354,6 +359,7 @@ CLASS IMPLEMENTATION CSceneFunction;
    PRIVATE PROCEDURE Write( output : TPOutput );
    VAR
       found : BOOLEAN := FALSE;
+      it : lists.CStringListIterator;
       name : StringsO.CString;
       result : Sync.TAsyncResult;
       value : iovalue.Value;
@@ -371,9 +377,9 @@ CLASS IMPLEMENTATION CSceneFunction;
 
          // compute
          found := FALSE;
-         InputValues.Reset();
-         WHILE InputValues.MoveNext() DO
-            IF InputValues.Current^.Equals( valueString ) THEN
+         it.Init( InputValues, collection.dirForward );
+         WHILE it.MoveNext() DO
+            IF it.Value^.Equals( valueString ) THEN
                found := TRUE;
                EXIT;
             END;

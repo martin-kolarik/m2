@@ -273,23 +273,24 @@ CLASS IMPLEMENTATION CAdviser;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       Advised : lists.TPPtrList;
       ClientData : TPClientData;
+      it : maps.CPtrPtrMapIterator;
    BEGIN
       DataSource := NIL;
 
-      _Clients.Dispose();
-      WHILE _Clients.MoveNext() DO
-         ClientData := _Clients.Current;
+      it.Init( _Clients, collection.dirForward ); 
+      WHILE it.MoveNext() DO
+         ClientData := it.Key;
          DISPOSE( ClientData );
       END; // WHILE      
       _Clients.Dispose();
 
-      _Advised.Reset();
-      WHILE _Advised.MoveNext() DO
-         Advised := _Advised.CurrentData;
+      it.Init( _Advised, collection.dirForward ); 
+      WHILE it.MoveNext() DO
+         Advised := it.Value;
          DISPOSE( Advised );
       END; // WHILE      
       _Advised.Dispose();

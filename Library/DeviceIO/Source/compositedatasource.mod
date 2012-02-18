@@ -3,6 +3,9 @@ IMPLEMENTATION MODULE compositedatasource;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
+IMPORT
+   collection;
+
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION CCompositeDataSource;
@@ -12,10 +15,11 @@ CLASS IMPLEMENTATION CCompositeDataSource;
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       d : device.TPDataSource;
+      it : lists.CPtrListIterator;
    BEGIN
-      _DataSources.Reset();
-      WHILE _DataSources.MoveNext() DO
-         d := _DataSources.Current;
+      it.Init( _DataSources, collection.dirForward );
+      WHILE it.MoveNext() DO
+         d := it.Value;
          IF device.capAdviseSource IN d^.DataSourceCapabilities THEN
             d^.AdviseSource()^.Advise := ns.advNone;
             d^.AdviseSource()^.AdviseListener := NIL;
@@ -47,13 +51,14 @@ CLASS IMPLEMENTATION CCompositeDataSource;
    PUBLIC VIRTUAL PROPERTY Advise SET( Value : ns.TAdvise );
    VAR
       d : device.TPDataSource;
+      it : lists.CPtrListIterator;
    BEGIN
       _Advise := Value;
 
       // update advising in nested devices
-      _DataSources.Reset();
-      WHILE _DataSources.MoveNext() DO
-         d := _DataSources.Current;
+      it.Init( _DataSources, collection.dirForward );
+      WHILE it.MoveNext() DO
+         d := it.Value;
          IF device.capAdviseSource IN d^.DataSourceCapabilities THEN
             d^.AdviseSource()^.Advise := _Advise;
          END;
@@ -72,13 +77,14 @@ CLASS IMPLEMENTATION CCompositeDataSource;
    PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : ns.TPAdviseInfo );
    VAR
       d : device.TPDataSource;
+      it : lists.CPtrListIterator;
    BEGIN
       _AdviseListener := Value;
 
       // update advising in nested devices
-      _DataSources.Reset();
-      WHILE _DataSources.MoveNext() DO
-         d := _DataSources.Current;
+      it.Init( _DataSources, collection.dirForward );
+      WHILE it.MoveNext() DO
+         d := it.Value;
          IF device.capAdviseSource IN d^.DataSourceCapabilities THEN
             IF _AdviseListener = NIL THEN
                d^.AdviseSource()^.AdviseListener := NIL;
@@ -97,15 +103,16 @@ CLASS IMPLEMENTATION CCompositeDataSource;
    VAR
       d : device.TPDataSource;
       deviceName : ARRAY [0..127] OF WCHAR;
+      it : lists.CPtrListIterator;
       name : ARRAY [0..127] OF WCHAR;
       result : Sync.TAsyncResult;
       totalResult : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN
       _Namespace.Name.ToOA( OUT name );
 
-      _DataSources.Reset();
-      WHILE _DataSources.MoveNext() DO
-         d := _DataSources.Current;
+      it.Init( _DataSources, collection.dirForward );
+      WHILE it.MoveNext() DO
+         d := it.Value;
          d^.NS()^.Name.ToOA( OUT deviceName );
 
          Log^.LogSS( log.lcError, 0, name, L"Configuring device: ", deviceName );

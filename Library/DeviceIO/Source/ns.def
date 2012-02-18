@@ -82,7 +82,7 @@ INTERFACE INameValuePairs( IValueIO );
       SourceValue : iovalue.Value; // intended for overwriting vfReadOnly -- the property MUST be called inside code only, no USER CAN have access to it.
 
    // creation
-   PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.PIRLock; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.TPILockR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
    PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : IValueIO; Data : PTR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
 
    PROCEDURE Link( CONST Name : StringsO.IString; Child : TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN;

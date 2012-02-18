@@ -111,7 +111,7 @@ CLASS IMPLEMENTATION CArray;
 
    PUBLIC PROCEDURE Add( CONST Item : ARRAY OF BYTE ) : INTEGER; // returns index
    VAR
-      insertSize : INTEGER := HIGH( Item ) + 1;
+      insertSize : TSIZE := HIGH( Item ) + 1;
    BEGIN
       IF insertSize < 0 THEN
          insertSize := 0;
@@ -133,7 +133,7 @@ CLASS IMPLEMENTATION CArray;
    PUBLIC PROCEDURE Remove( CONST Item : ARRAY OF BYTE );
    VAR
       i : CARDINAL;
-      lookupSize : INTEGER := HIGH( Item ) + 1;
+      lookupSize : TSIZE := HIGH( Item ) + 1;
    BEGIN
       IF lookupSize <= 0 THEN
          RETURN;
@@ -156,7 +156,7 @@ CLASS IMPLEMENTATION CArray;
    PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Item : ARRAY OF BYTE ) : BOOLEAN;
    VAR
       i : CARDINAL := DEC( Index, _LowBound );
-      itemSize : INTEGER := HIGH( Item ) + 1;
+      itemSize : TSIZE := HIGH( Item ) + 1;
    BEGIN
       IF ( i < 0 ) OR ( i >= _Count ) THEN
          RETURN FALSE;
@@ -173,7 +173,7 @@ CLASS IMPLEMENTATION CArray;
    PUBLIC PROCEDURE Insert( ToIndex : INTEGER; CONST Item : ARRAY OF BYTE );
    VAR
       i : CARDINAL := DEC( ToIndex, _LowBound );
-      insertSize : INTEGER := HIGH( Item ) + 1;
+      insertSize : TSIZE := HIGH( Item ) + 1;
    BEGIN
       Sync.IInc( REF _Sequence );
       IF insertSize < 0 THEN
@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION CArray;
    PUBLIC PROCEDURE IndexOf( CONST Item : ARRAY OF BYTE ) : INTEGER; // if not found returns LowBound-1
    VAR
       i : CARDINAL;
-      lookupSize : INTEGER := HIGH( Item ) + 1;
+      lookupSize : TSIZE := HIGH( Item ) + 1;
    BEGIN
       IF lookupSize < 0 THEN
          RETURN _LowBound - 1;
