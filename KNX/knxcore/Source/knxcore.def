@@ -20,6 +20,7 @@ IMPORT
    log,
    msghandler,
    ns,
+   nsimpl,
    Resources,
    StringsO;
 
@@ -57,10 +58,12 @@ CLASS CObject( knx_user.CUserObject );
    RecoveryExpiration : CARDINAL;
    _ObjectType        : TObjectType;
    _ChangedOnWrite    : TRISTATE;
+   _Pairs             : ns.TPNameValuePairs;
    
    PUBLIC PROPERTY
       ObjectType : TObjectType;
       ChangedOnWrite : TRISTATE;
+      Pairs : ns.TPNameValuePairs;
 
    PUBLIC PROCEDURE LogNumber() : CARDINAL;
 
@@ -93,17 +96,6 @@ CLASS PromiscuousData;
    Address : knx_def.CAddress;
    Value   : knx_def.CValue;
 END PromiscuousData;
-
-//--------------------------------------------------------------------------------
-
-CLASS CSuspendableResult( lec.CResult );
-   PRIVATE VAR
-      _Suspended : BOOLEAN;
-   PUBLIC READONLY PROPERTY
-      Expired : BOOLEAN;
-      Suspended : BOOLEAN;
-   PUBLIC PROCEDURE QuerySuspension();
-END CSuspendableResult;
 
 //--------------------------------------------------------------------------------
 
@@ -157,9 +149,8 @@ CLASS KNXServerEvent( Event.AEvent ) IMPLEMENTS IKNXServerSink;
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 END KNXServerEvent;
 
-CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMapper, io.IIO;
+CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IOriginator, ns.IValueIO, io.IIO;
    RStatus                  : TRStatus;
-   ConfigurationPath        : StringsO.CString;
 
    Stack                    : TStack;
    KNX                      : knx_stack.TPKNXStack;
@@ -168,13 +159,9 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    EventSinks               : KNXServerEvent;
    Logger                   : log.CLogger;
    R                        : Resources.CResources;
-   _Advise                  : io.TAdvise;
-   _AdviseListener          : io.TPIAdviseInfo;
+   _Result                  : lec.TPResult;
+   _AdviseSource            : nsimpl.SimpleAdviseSource;
    _DataLogger              : log.TPLogger;
-
-   Result                   : CSuspendableResult;
-   cllvdata                 : ADDRESS;
-   cllvlength               : CARDINAL;
 
    DeviceId                 : LONGWORD;
    PromiscuousMode          : BOOLEAN;
@@ -204,6 +191,7 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    ObjectTypes              : lists.CStringList;
 
    ObjectLock               : Sync.LOCK;
+   Namespace                : nsimpl.Namespace;
    Groups                   : ARRAY CARD16 OF CARD16; // maps group addresses to object indexes
    Objects                  : arrays.CPtrArray;
    prObjects                : ARRAY knx_def.TKNXType OF CObject; // promiscuous objects
@@ -219,14 +207,11 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    // promiscuous data management
    prData                   : lists.CBufferList;
 
-   PUBLIC READONLY PROPERTY
-     PResult                : POINTER TO CSuspendableResult;
    PUBLIC WRITEONLY PROPERTY
-     cllvData               : ADDRESS;
-     cllvLength             : CARDINAL;
+     Result                 : lec.TPResult;
    PUBLIC PROPERTY
-     EXEFlag                : BOOLEAN;
      DataLogger             : log.TPLogger;
+     EXEFlag                : BOOLEAN;
 
    // CDisposable
    PUBLIC VIRTUAL PROCEDURE Dispose();
@@ -234,43 +219,39 @@ CLASS CKNXServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
 
-   // IDevice/IObject
+   // IDataSource
    PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iplugin.TObjectType;
-      OfPlugin : iplugin.TPPlugin;
-      OwnerHandle : PTR;
+      DataSourceCapabilities : device.TCapabilities;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
 
    // IDevice
-   PUBLIC VIRTUAL READONLY PROPERTY
-      DeviceCapabilities : device.TCapabilities;
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-	PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   PUBLIC VIRTUAL PROCEDURE StartStop() : io.TPStartStopControl;
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 
-   // IMapper
-   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
-	
-	// IIO
+   // IOriginator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Description : StringsO.CString;
+
+   // IValueIO
+   PUBLIC VIRTUAL PROCEDURE ValueIO( CONST Originator : ns.TPOriginator; CONST NameValuePairs : ns.TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+   
+   // IIO
    PUBLIC VIRTUAL READONLY PROPERTY
       IOCapabilities : io.TCapabilities;
       Pending : BOOLEAN;
       Running : BOOLEAN;
-   PUBLIC VIRTUAL PROPERTY
-      Advise : io.TAdvise;
-      AdviseListener : io.TPIAdviseInfo;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
 
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE AbortAll();
 
    // self
    PUBLIC READONLY PROPERTY
-      Configuration : StringsO.TPString;
       Connection : StringsO.CString; // information about device connection, read from configuration
       CacheOnlyMode : BOOLEAN;
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;

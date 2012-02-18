@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+    &lt;DOCTYPE html&gt;
     <html>
         <head>
             <title>NeNo KNXSrv</title>
             <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+            <link rel="shortcut icon" href="SmartServer.ico" />
         </head>
         <body>
             <div class="shell">

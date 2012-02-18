@@ -26,48 +26,29 @@ TYPE
 
 (*===========================================================================*)
 
-CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
+CLASS CSimulator IMPLEMENTS ns.IMapper, ns.IAdviseSource, device.IDataSource;
 
    PRIVATE VAR
-      _AdviseListener : io.TPIAdviseInfo := NIL;
+      _AdviseListener : ns.TPAdviseInfo := NIL;
 
-   // IPluginObject
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Type : iplugin.TObjectType;
-      OfPlugin : iplugin.TPPlugin;
-      OwnerHandle : PTR;
-
-   // IDevice
-   PUBLIC VIRTUAL READONLY PROPERTY
-      DeviceCapabilities : device.TCapabilities;
-
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
-
-   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper; // required
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns; // optional
-
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO; // required
-	
-	// IIO
-   PUBLIC VIRTUAL READONLY PROPERTY
-      IOCapabilities : io.TCapabilities;
-      Pending : BOOLEAN;
-      Running : BOOLEAN;
+   // IAdviseSource
    PUBLIC VIRTUAL PROPERTY
-      Advise : io.TAdvise;
-      AdviseListener : io.TPIAdviseInfo; // for Advise <> advNone
+      Advise : ns.TAdvise;
+      AdviseListener : ns.TPAdviseInfo; // for Advise <> advNone
 
-   PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE Stop();
+   // IDataSource
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
 
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DataSourceCapabilities : device.TCapabilities;
 
-   PUBLIC VIRTUAL PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
-	
-	// IMapper
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace; // required
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource; // optional
+   
+   // IMapper
    PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
    
    // SELF
    LOCAL PROCEDURE Simulate();
@@ -76,22 +57,22 @@ END CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CTest IMPLEMENTS test.ITest, io.IAdviseInfo;
+CLASS CTest IMPLEMENTS test.ITest, ns.IAdviseInfo;
    PUBLIC VAR
       Host : test.TPHost := NIL;
       Count : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
 END CTest;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CClient IMPLEMENTS io.IAdviseInfo;
+CLASS CClient IMPLEMENTS ns.IAdviseInfo;
    LOCAL VAR
       Test : TPTest := NIL;
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
 END CClient;
 
 (*===========================================================================*)
@@ -100,140 +81,58 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : iplugin.TObjectType;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
    BEGIN
-      RETURN iplugin.otSingleton;
-   END Type;
-
+      RETURN sync.arCompleted;
+   END Configure;
+   
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
+   PUBLIC VIRTUAL PROPERTY DataSourceCapabilities GET : device.TCapabilities;
    BEGIN
-      RETURN NIL;
-   END OfPlugin;
+      RETURN device.TCapabilities{ device.capAdviseSource };
+   END DataSourceCapabilities;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY OwnerHandle GET : PTR;
-   BEGIN
-      RETURN NIL;
-   END OwnerHandle;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
-   BEGIN
-      RETURN device.TCapabilities{};
-   END DeviceCapabilities;
-
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : sync.TAsyncResult;
-	BEGIN
-	   RETURN sync.arCompleted;
-	END Configure;
-	
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-   BEGIN
-      RETURN ADR( SELF );
-   END Mapper;
-
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPNamespace;
    BEGIN
       RETURN NIL;
    END NS;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   PUBLIC VIRTUAL PROCEDURE AdviseSource() : ns.TPAdviseSource;
    BEGIN
       RETURN ADR( SELF );
-   END IO;
+   END AdviseSource;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY IOCapabilities GET : io.TCapabilities;
+   PUBLIC VIRTUAL PROPERTY Advise GET : ns.TAdvise;
    BEGIN
-      RETURN io.TCapabilities{io.capAdvise};
-   END IOCapabilities;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Pending GET : BOOLEAN;
-   BEGIN
-      RETURN FALSE;
-   END Pending;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
-   BEGIN
-      RETURN TRUE;
-   END Running;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
-   BEGIN
-      RETURN io.advWithData;
+      RETURN ns.advWithData;
    END Advise;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
+   PUBLIC VIRTUAL PROPERTY Advise SET( Value : ns.TAdvise );
    BEGIN
    END Advise;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPIAdviseInfo;
+   PUBLIC VIRTUAL PROPERTY AdviseListener GET : ns.TPAdviseInfo;
    BEGIN
       RETURN _AdviseListener;
    END AdviseListener;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPIAdviseInfo );
+   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : ns.TPAdviseInfo );
    BEGIN
       _AdviseListener := Value;
    END AdviseListener;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
-   BEGIN
-      RETURN sync.arCompleted;
-   END Start;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Stop();
-   BEGIN
-   END Stop;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-   BEGIN
-      RETURN sync.arCannotStart;
-   END IOh;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-   BEGIN
-      RETURN sync.arCannotStart;
-   END IOha;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
-   BEGIN
-   END AbortAll;
 
 (*---------------------------------------------------------------------------*)
 
@@ -282,6 +181,13 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE HashToValue( CONST Hash : ns.THash; OUT Value : iovalue.TPValue ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END HashToValue;
+
+(*---------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE Simulate();
    VAR
       ios : ARRAY [0..3] OF iovalue.Value;
@@ -302,14 +208,14 @@ CLASS IMPLEMENTATION CSimulator;
       Items[2] := 3;
       Items[3] := 1002;
 
-      ios[0].FromStringOA( L"simval1", FALSE );
-      ios[1].FromStringOA( L"simval2", FALSE );
-      ios[2].FromStringOA( L"simval3", FALSE );
-      ios[3].FromStringOA( L"simval4", FALSE );
+      ios[0].FromString( StringsO.FromOA( L"simval1" ), FALSE );
+      ios[1].FromString( StringsO.FromOA( L"simval2" ), FALSE );
+      ios[2].FromString( StringsO.FromOA( L"simval3" ), FALSE );
+      ios[3].FromString( StringsO.FromOA( L"simval4" ), FALSE );
       
-      _AdviseListener^.OnAdvise( ADR( SELF ), Results, Items, OA( 3, ADR( ios[0] )));
+      _AdviseListener^.OnAdvise( NIL, Results, Items, OA( 3, ADR( ios[0] )));
 
-      _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( Results[0] )), OA( 0, ADR( Items[0] )), OA( 0, ADR( ios[0] )));
+      _AdviseListener^.OnAdvise( NIL, OA( 0, ADR( Results[0] )), OA( 0, ADR( Items[0] )), OA( 0, ADR( ios[0] )));
    END Simulate;
 
 (*---------------------------------------------------------------------------*)
@@ -323,10 +229,10 @@ CLASS IMPLEMENTATION CClient;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
       IF Test <> NIL THEN
-         Test^.OnAdvise( Source, Result, Item, Value );
+         Test^.OnAdvise( Originator, Result, Item, Value );
       END;
    END OnAdvise;
 
@@ -361,15 +267,15 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Register single client more times" );
       
       NEW( Adviser );
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
       Adviser^.LeaveClient( ADR( SELF )); // should stay empty
       Failure1 := NOT Adviser^.Empty;
       
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
       Adviser^.LeaveClient( ADR( SELF ));
       Failure2 := NOT Adviser^.Empty;
 
@@ -385,15 +291,15 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Repeated registration" );
       
       NEW( Adviser );
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
       Adviser^.LeaveClient( ADR( SELF ));
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
       Adviser^.LeaveClient( ADR( SELF ));
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
       Adviser^.LeaveClient( ADR( SELF ));
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
       Adviser^.LeaveClient( ADR( SELF ));
-      Adviser^.JoinClient( ADR( SELF ), io.advWithData );
+      Adviser^.JoinClient( ADR( SELF ), ns.advWithData );
       Adviser^.LeaveClient( ADR( SELF ));
       
       Failure1 := NOT Adviser^.Empty;
@@ -412,11 +318,11 @@ CLASS IMPLEMENTATION CTest;
       NEW( c4 );
       NEW( c5 );
       NEW( Adviser );
-      Adviser^.JoinClient( c1, io.advWithData );
-      Adviser^.JoinClient( c2, io.advWithData );
-      Adviser^.JoinClient( c3, io.advWithData );
-      Adviser^.JoinClient( c4, io.advWithData );
-      Adviser^.JoinClient( c5, io.advWithData );
+      Adviser^.JoinClient( c1, ns.advWithData );
+      Adviser^.JoinClient( c2, ns.advWithData );
+      Adviser^.JoinClient( c3, ns.advWithData );
+      Adviser^.JoinClient( c4, ns.advWithData );
+      Adviser^.JoinClient( c5, ns.advWithData );
       Adviser^.LeaveClient( c3 );
       Adviser^.LeaveClient( c1 );
       Adviser^.LeaveClient( c5 );
@@ -438,15 +344,15 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Two clients, advise all, no unadvise" );
       
       NEW( Adviser );
-      Adviser^.Device := ADR( Simulator );
+      Adviser^.DataSource := ADR( Simulator );
 
       NEW( c1 );
       NEW( c2 );
       c1^.Test := ADR( SELF );
       c2^.Test := ADR( SELF );
 
-      Adviser^.JoinClient( c1, io.advWithData );
-      Adviser^.JoinClient( c2, io.advWithData );
+      Adviser^.JoinClient( c1, ns.advWithData );
+      Adviser^.JoinClient( c2, ns.advWithData );
       Adviser^.AdviseAll( c1 );
       Adviser^.AdviseAll( c2 );
       
@@ -472,15 +378,15 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Two clients, advise all, unadvise all" );
       
       NEW( Adviser );
-      Adviser^.Device := ADR( Simulator );
+      Adviser^.DataSource := ADR( Simulator );
 
       NEW( c1 );
       NEW( c2 );
       c1^.Test := ADR( SELF );
       c2^.Test := ADR( SELF );
 
-      Adviser^.JoinClient( c1, io.advWithData );
-      Adviser^.JoinClient( c2, io.advWithData );
+      Adviser^.JoinClient( c1, ns.advWithData );
+      Adviser^.JoinClient( c2, ns.advWithData );
       Adviser^.AdviseAll( c1 );
       Adviser^.AdviseAll( c2 );
       
@@ -509,15 +415,15 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Two clients, advise some, no unadvise" );
       
       NEW( Adviser );
-      Adviser^.Device := ADR( Simulator );
+      Adviser^.DataSource := ADR( Simulator );
 
       NEW( c1 );
       NEW( c2 );
       c1^.Test := ADR( SELF );
       c2^.Test := ADR( SELF );
 
-      Adviser^.JoinClient( c1, io.advWithData );
-      Adviser^.JoinClient( c2, io.advWithData );
+      Adviser^.JoinClient( c1, ns.advWithData );
+      Adviser^.JoinClient( c2, ns.advWithData );
 
       s.FromOA( L"N1" ); Adviser^.Advise( c1, s );
       s.FromOA( L"N2" ); Adviser^.Advise( c1, s ); // 2x
@@ -549,15 +455,15 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Two clients, advise some, unadvise some" );
       
       NEW( Adviser );
-      Adviser^.Device := ADR( Simulator );
+      Adviser^.DataSource := ADR( Simulator );
 
       NEW( c1 );
       NEW( c2 );
       c1^.Test := ADR( SELF );
       c2^.Test := ADR( SELF );
 
-      Adviser^.JoinClient( c1, io.advWithData );
-      Adviser^.JoinClient( c2, io.advWithData );
+      Adviser^.JoinClient( c1, ns.advWithData );
+      Adviser^.JoinClient( c2, ns.advWithData );
 
       s.FromOA( L"N1" ); Adviser^.Advise( c1, s );
       s.FromOA( L"N4" ); Adviser^.Advise( c1, s );
@@ -607,7 +513,7 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
       INC( Count );
    END OnAdvise;

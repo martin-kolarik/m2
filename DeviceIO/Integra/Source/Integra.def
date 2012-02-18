@@ -179,7 +179,7 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIntegraDevice( helper.APluginObject ) IMPLEMENTS device.IDevice;
+CLASS CIntegraDevice( helper.AObject ) IMPLEMENTS iplugin.IPlugin, device.IDevice;
 
    // APluginObject
    PUBLIC VIRTUAL PROCEDURE Dispose();

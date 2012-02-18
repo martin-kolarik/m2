@@ -75,6 +75,7 @@ typedef __w64 ORD64            ORDINAL;
 typedef __w64 BITSET64         BITSET;
 typedef __w64 CARD64           CARDINAL;
 typedef __w64 INT64            INTEGER;
+typedef __w64 CARD64           TSIZE;
 # else
 # define      OA_MAX           2147483647
 typedef __w64 CARD32           PTR;
@@ -82,6 +83,7 @@ typedef __w64 ORD32            ORDINAL;
 typedef __w64 BITSET32         BITSET;
 typedef __w64 CARD32           CARDINAL;
 typedef __w64 INT32            INTEGER;
+typedef __w64 CARD32           TSIZE;
 # endif
 
 typedef CARD32                 SET;
@@ -106,9 +108,17 @@ typedef CARD64                 LONGSET;
 
 # define DECFO_(t,a,b)         ((t)(a) - (t)(b))
 # define DECFA_(t,a,b)         ((t)((PTR)(a) - (PTR)(b)))
+# define DECFS_(t,a,b)         ((t)((TSIZE)(a) - (TSIZE)(b)))
 # define INCFO_(t,a,b)         ((t)(a) + (t)(b))
 # define INCFA_(t,a,b)         ((t)((PTR)(a) + (PTR)(b)))
+# define INCFS_(t,a,b)         ((t)((TSIZE)(a) + (TSIZE)(b)))
 
+# ifdef _WIN64
+__forceinline bool __fastcall DEBUGGED_() throw() {
+    extern LONGINT IsDebuggerPresent();
+    return IsDebuggerPresent() == TRUE;
+}
+# else
 __forceinline bool __fastcall DEBUGGED_() throw() {
   __asm {
     mov eax, dword ptr fs:[0x18]
@@ -116,6 +126,8 @@ __forceinline bool __fastcall DEBUGGED_() throw() {
     movzx eax, byte ptr [eax+2]
   }
 }
+# endif
+  
 
 // bytes, words, longwords, ...
 #pragma pack(push, 1)

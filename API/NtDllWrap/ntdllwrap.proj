@@ -1,0 +1,28 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ProjectDescription>NtDll symbol wrapper</ProjectDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <PropertyGroup>
+        <Export>export</Export>
+    </PropertyGroup>
+
+    <!-- 4 INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+    <!-- DEFINE API -->
+    <ItemGroup>
+        <Interface Condition="$(Platform)=='x86'" Include="$(ComponentPath)\Library\ntdll32"/>
+        <!-- Interface Condition="$(Platform)=='x64'" Include="$(ComponentPath)\Library\ntdll64"/--><!-- NtDll64 is not used as all symbols are covered with ntdllwrap.lib. The library itself is left in source, what if it was useful. -->
+    </ItemGroup>
+
+</Project>

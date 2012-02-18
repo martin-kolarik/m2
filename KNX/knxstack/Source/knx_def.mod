@@ -1542,8 +1542,8 @@ CLASS IMPLEMENTATION cEMIPacket;
       Data[1] := CARD8( CARD16( EMI.TransportControl ) >> 8 );
 
       data := EMI.Data;
-      FOR i := 2 TO INTEGER( ACPILength )-3 DO
-         Data[i] := data[i-2];
+      FOR i := 0 TO INTEGER( ACPILength )-1-1 DO // length is measured from the byte after NCPI, what means Data[1], which are already filled
+         Data[i+2] := data[i];
       END;
    END FromEMI;
 
@@ -1564,8 +1564,8 @@ CLASS IMPLEMENTATION cEMIPacket;
          EMI.NetworkControl := BITSET8( DAFAndRouting );
       ELSE
          EMI.NetworkControl := BITSET8( DAFAndRouting OR ACPILength );
-         FOR i := 2 TO INTEGER( ACPILength )-3 DO
-            data[i-2] := Data[i];
+         FOR i := 0 TO INTEGER( ACPILength )-1-1 DO // length is measured from the byte after NCPI, what means Data[1], which are already filled
+            data[i] := Data[i+2];
          END;
          EMI.Data := data;
       END;

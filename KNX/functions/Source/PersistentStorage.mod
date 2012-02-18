@@ -14,6 +14,7 @@ IMPORT
    iovalue,
    INIFile,
    ns,
+   nsimpl,
    Texts;
 
 (*================================================================================*)
@@ -24,8 +25,7 @@ CLASS CItem;
    LOCAL PROCEDURE Dequeue();
 
    LOCAL VAR
-      Address : StringsO.CString;
-      Hash : ns.THash := NIL;
+      Pairs : ns.TPNameValuePairs := NIL;
       Value : iovalue.Value;
 
    PRIVATE VAR
@@ -62,6 +62,7 @@ END CItem;
 CONST
    LOGNAME = L"Storage";
    CFG_SECTION = L"storage";
+   CFG_CONTEXT = L"context";
    WRITE_DELAY_TIMER = 1;
    STORAGE_FILE = L'PersistingStorage.ini';
 
@@ -78,7 +79,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    VAR
       item : TPItem;
       i : CARDINAL;
@@ -96,7 +97,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
             it.Init( _Items, collection.dirForward );
             WHILE it.MoveNext() DO
                item := it.Value;
-               IF item^.Hash = Item[i] THEN
+               IF item^.Pairs = Item[i] THEN
                   Mark( item );
                END;
             END; // WHILE
@@ -123,6 +124,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    VAR
       it : lists.CPtrListIterator;
       item : TPItem;
+      name : StringsO.CString;
       result : Sync.TAsyncResult;
       value : StringsO.CString;
    BEGIN
@@ -132,13 +134,14 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       it.Init( _Items, collection.dirForward );
       WHILE it.MoveNext() DO
          item := it.Value;
+         DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
 
          value := item^.Value.String;
-         Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Pushing value:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
+         Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Pushing value:", OA( name.Length-1, name.Data ), L"=", OA( value.Length-1, value.Data ));
 
-         result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirWrite, item^.Hash, REF item^.Value, NIL );
+         result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirWrite, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
-            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write persisted value:", OA( item^.Address.Length-1, item^.Address.Data ));
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to write persisted value:", OA( name.Length-1, name.Data ));
          END;
 
       END; // WHILE      
@@ -191,12 +194,12 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       storageFile : INIFile.CINIFile;
       storagePathOA : FIO.PathStrW;
    BEGIN
-      IF Device = NIL THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
+      IF DataSource = NIL THEN
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._DeviceIsNotInitialized ] ));
          RETURN Sync.arCannotStart;
       
       ELSIF HIGH( Source ) < 0 THEN
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._BadParameterMissingSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
 
       ELSIF Source[0].Type = device.citINIFile THEN
@@ -208,7 +211,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          section.Assign( Source[0].section^ ); // load ordered section
 
       ELSE
-	      Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
+         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._UnsupportedSourceOfConfiguration ] ));
          RETURN Sync.arCannotStart;
       END;
       
@@ -220,7 +223,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
       IF _StoragePath.Empty THEN // nothing was read, set up default
          IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT storagePathOA ) THEN
-	         Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._AppDataStorageUnavailable ] ));
+            Log^.LogS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._AppDataStorageUnavailable ] ));
             RETURN Sync.arCannotStart;
          END;
          FIO.PathAddW( REF storagePathOA, OA( _DefaultStorageFolder.Length-1, _DefaultStorageFolder.Data ));
@@ -250,8 +253,9 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    BEGIN
       StopTimer( WRITE_DELAY_TIMER );
 
-      IF Device <> NIL THEN
-         Device^.UnadviseAll( ADR( SELF ));
+      IF DataSource <> NIL THEN
+         DataSource^.UnadviseAll( ADR( SELF ));
+         DataSource^.LeaveClient( ADR( SELF ));
       END;
    
       it.Init( _Items, collection.dirForward );
@@ -269,12 +273,12 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       it : lists.CPtrListIterator;
       item : TPItem;
    BEGIN
-      Device^.JoinClient( ADR( SELF ), io.advWithData );
+      DataSource^.JoinClient( ADR( SELF ), ns.advWithData );
       
       it.Init( _Items, collection.dirForward );
       WHILE it.MoveNext() DO
          item := it.Value;
-         Device^.AdviseHash( ADR( SELF ), item^.Hash );
+         DataSource^.AdviseHash( ADR( SELF ), item^.Pairs );
       END; // WHILE
 
       // values are written into KNX after init read phase
@@ -284,8 +288,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
    INTERNAL VIRTUAL PROCEDURE OnStop();
    BEGIN
-      Device^.UnadviseAll( ADR( SELF ));
-      Device^.LeaveClient( ADR( SELF ));
+      DataSource^.UnadviseAll( ADR( SELF ));
+      DataSource^.LeaveClient( ADR( SELF ));
    END OnStop;
    
 (*--------------------------------------------------------------------------------*)
@@ -295,18 +299,21 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       keyWriteDelay = L"write_delay";
       keyStoragePath = L"storage_file_path";
    VAR
+      context : StringsO.CString;
       ES : PTR;
-      hash : ns.THash;
       item : TPItem;
-      Line : CARDINAL;
       key : StringsO.CString;
+      Line : CARDINAL;
+      lineString : ARRAY [0..63] OF WCHAR;
+      pairs : ns.TPNameValuePairs;
       s : StringsO.CString;
+      someError : BOOLEAN := FALSE;
       storagePath : StringsO.CString;
       value : StringsO.CString;
       writeDelay : INTEGER;
    BEGIN
       IF NOT iniFile^.SetSection( section ) THEN
-	      Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), section );
+         Log^.LogSS( log.lcInfo, 0, LOGNAME, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), section );
          RETURN Sync.arCompleted;
       END;
       // here the inifile has proper section set
@@ -315,7 +322,8 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
          // get optional write delay
          IF iniFile^.GetKeyInt( keyWriteDelay, OUT Line, OUT writeDelay ) THEN
             IF writeDelay < 1 THEN
-	            Log^.LogSC( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._WriteDelayCannotBeZeroOrLessThanZeroIgnoring ] ), writeDelay );
+               AppendLineNumber( LOGNAME, Line, OUT lineString );
+               Log^.LogSC( log.lcError, 0, lineString, OAsz( R^[ Texts._WriteDelayCannotBeZeroOrLessThanZeroIgnoring ] ), writeDelay );
             ELSE
                _WriteDelay := 1000 * writeDelay;
             END;
@@ -330,40 +338,60 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
       ES := 0;
       WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
 
+         // context is valid everywhere, both CFG and INI must be able to do so
+         IF key.EqualsOA( CFG_CONTEXT ) THEN
+            IF DataSource^.NS()^.Contains( nsimpl.AddContext( context, value )) THEN
+               context := value;
+            ELSE
+               AppendLineNumber( LOGNAME, Line, OUT lineString );
+               Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._ContextNotFound ] ), OA( value.Length-1, value.Data ));
+               someError := TRUE;
+            END;
+            CONTINUE;
+         END;
+
          // skip keys already read
          IF NOT acceptConfigurationKeys THEN
             // fall down, do not test for special configuration keys
-         ELSIF value.EqualsOA( keyWriteDelay ) OR
-            value.EqualsOA( keyStoragePath ) THEN
+         ELSIF key.EqualsOA( keyWriteDelay ) OR
+               key.EqualsOA( keyStoragePath ) THEN
             CONTINUE;
          END;
 
          // key/output = value
-         IF NOT Device^.Mapper()^.NameToHash( key, OUT hash ) THEN
-	         Log^.LogSS( log.lcError, 0, LOGNAME, OAsz( R^[ Texts._GroupAddressNotFound ] ), OA( s.Length-1, s.Data ));
+         IF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, key ), OUT pairs ) THEN
+            AppendLineNumber( LOGNAME, Line, OUT lineString );
+            Log^.LogSSSS( log.lcError, 0, lineString, OAsz( R^[ Texts._AddressNotFound ] ), OA( key.Length-1, key.Data ), L"", L"" );
+            someError := TRUE;
             CONTINUE;
          END;
          
          // everything OK, create item in _Items
          NEW( item );
-         item^.Address := key;
-         item^.Hash := hash;
+         item^.Pairs := pairs;
          item^.Value := iovalue.FromString( value );
          _Items.Add( item, 0 );
       END; // WHILE
 
-      RETURN Sync.arCompleted;
+      IF someError THEN
+         RETURN Sync.arCannotStart;
+      ELSE
+         RETURN Sync.arCompleted;
+      END;
    END LoadData;
 
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE Mark( item : TPItem );
+   VAR
+      name : StringsO.CString;
    BEGIN
       IF NOT item^.Enqueue() THEN // smart queueuing, the item is already inside the queue
          RETURN;
       END;
 
-      Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Marking item for write:", OA( item^.Address.Length-1, item^.Address.Data ));
+      DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
+      Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Marking item for write:", OA( name.Length-1, name.Data ));
       _WriteQueue.Enqueue( item );
 
       IF TimerRunning( WRITE_DELAY_TIMER ) THEN
@@ -379,6 +407,7 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
    PRIVATE PROCEDURE Write();
    VAR
       item : TPItem;
+      name : StringsO.CString;
       result : Sync.TAsyncResult;
       value : StringsO.CString;
    BEGIN
@@ -389,19 +418,20 @@ CLASS IMPLEMENTATION CPersistentStorageFunction;
 
       WHILE _WriteQueue.Dequeue( OUT item ) DO
          item^.Dequeue();
+         DataSource^.NS()^.GetFullName( item^.Pairs, OUT name );
 
-         result := Device^.IO()^.IOh( ADR( SELF ), IOO.dirRead, item^.Hash, REF item^.Value, NIL );
+         result := item^.Pairs^.ValueIO( ADR( SELF ), item^.Pairs, IOO.dirRead, REF item^.Value );
          IF result NOT IN Sync.arsCompletions THEN // log error
-	         Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read value from device:", OA( item^.Address.Length-1, item^.Address.Data ));
-	         Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to read value from device:", OA( name.Length-1, name.Data ));
+            Logger^.LogSR( log.lcInfo, 0, LOGNAME, L"    result", result );
             CONTINUE;
          END;
 
          value := item^.Value.String;
-         IF _Storage.SetKeyStr( OA( item^.Address.Length-1, item^.Address.Data ), value, FALSE ) THEN
-            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value stored:", OA( item^.Address.Length-1, item^.Address.Data ), L"=", OA( value.Length-1, value.Data ));
+         IF _Storage.SetKeyStr( OA( name.Length-1, name.Data ), value, FALSE ) THEN
+            Logger^.LogSSSS( log.lcInfo, 0, LOGNAME, L"Value stored:", OA( name.Length-1, name.Data ), L"=", OA( value.Length-1, value.Data ));
          ELSE // log error
-            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to store value:", OA( item^.Address.Length-1, item^.Address.Data ));
+            Logger^.LogSS( log.lcError, 0, LOGNAME, L"Unable to store value:", OA( name.Length-1, name.Data ));
          END;
 
       END; // _SendQueue

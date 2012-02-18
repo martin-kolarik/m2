@@ -5,12 +5,12 @@ DEFINITION MODULE Storage;
 //================================================================================
 // Memory allocation/deallocation module
 
-PROCEDURE PageSize() : CARDINAL;
+PROCEDURE PageSize() : TSIZE;
 
 #save, option( leak_info => on )
-PROCEDURE M2ALLOCATE( OUT a : ADDRESS; size : CARDINAL );
+PROCEDURE M2ALLOCATE( OUT a : ADDRESS; size : TSIZE );
 PROCEDURE M2DEALLOCATE( REF a : ADDRESS );
-PROCEDURE M2REALLOCATE( REF a : ADDRESS; size : CARDINAL );
+PROCEDURE M2REALLOCATE( REF a : ADDRESS; size : TSIZE );
 #restore
 
 CONST
@@ -25,17 +25,17 @@ PROCEDURE CreateHeap( OUT Heap : PTR ) : BOOLEAN;
 PROCEDURE DisposeHeap( REF Heap : PTR );
 
 #save, option( leak_info => on )
-PROCEDURE HeapAllocate( Heap : PTR; OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+PROCEDURE HeapAllocate( Heap : PTR; OUT a : ADDRESS; size : TSIZE ) : BOOLEAN;
 PROCEDURE HeapDeallocate( Heap : PTR; REF a : ADDRESS ) : BOOLEAN;
-PROCEDURE HeapReallocate( Heap : PTR; REF a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+PROCEDURE HeapReallocate( Heap : PTR; REF a : ADDRESS; size : TSIZE ) : BOOLEAN;
 #restore
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE Move( CONST Source : ADDRESS; Destination : ADDRESS; Length : CARDINAL );
-PROCEDURE Fill( Destination : ADDRESS; Length : CARDINAL; Value : BYTE );
-PROCEDURE Zero( Destination : ADDRESS; Length : CARDINAL );
-PROCEDURE Equals( CONST Source, Destination : ADDRESS; Length : CARDINAL ) : BOOLEAN;
+PROCEDURE Move( CONST Source : ADDRESS; Destination : ADDRESS; Length : TSIZE );
+PROCEDURE Fill( Destination : ADDRESS; Length : TSIZE; Value : BYTE );
+PROCEDURE Zero( Destination : ADDRESS; Length : TSIZE );
+PROCEDURE Equals( CONST Source, Destination : ADDRESS; Length : TSIZE ) : BOOLEAN;
 
 //--------------------------------------------------------------------------------
 

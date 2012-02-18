@@ -12,10 +12,10 @@ IMPORT
 #save, option( dll_export => on )
 
 TYPE
-   TValueType = (
+   TType = (
       vtUnknown,
-      vtVoid,
-      vtObject, // has class
+      vtReference, // link to internal native world, not visible for user
+      vtObject, // structural node, visible to user, has no value
       vtBoolean,
       vtTristate,
       vtInteger,
@@ -28,30 +28,41 @@ TYPE
    
 TYPE
    TFlagItem = (
-     vfUndefined,
-     vfSaturate
+      vfReadOnly, // means outer, client access. Internal access can be enforced with some means (property, ...).
+      vfHidden,
+      vfUndefined,
+      vfFunction, // children carries call parameters
+      vfSaturate,
+      vfUser // can be cleared, values with the flag can be removed from the pairs
    );
    TFlags = SET OF TFlagItem;
+
+CONST
+   flagsDefaultObject = TFlags{};
+   flagsDefaultReference = TFlags{vfReadOnly,vfHidden};
+   flagsDefaultIORO = TFlags{vfReadOnly, vfUndefined, vfSaturate}; // intended for values
+   flagsDefaultIORW = TFlags{vfUndefined, vfSaturate}; // intended for values
+   flagsDefaultSWRO = TFlags{vfReadOnly, vfSaturate}; // intended for values
+   flagsDefaultSWRW = TFlags{vfSaturate}; // intended for values
    
 (*---------------------------------------------------------------------------*)
 
 TYPE
    #save, option( pack => 1 )
    TStorage  = RECORD
-                  CASE : TValueType OF
-                  | vtUnknown  :
-                  | vtVoid     : QW       : QUADWORD;
-                  | vtObject   : Object   : ADDRESS;
-                  | vtBoolean  : Boolean  : BOOLEAN;
-                  | vtTristate : Tristate : TRISTATE;
-                  | vtInteger  : Integer  : INT32;
-                  | vtLong     : Long     : INT64;
-                  | vtFloat    : Float    : LONGREAL;
-                  | vtString   : String   : POINTER TO StringsO.CString;
-                  | vtDate     : Date     : datetime.DayCount;
+                  CASE : TType OF
+                  | vtUnknown   :
+                  | vtReference : Reference : PTR;
+                  | vtObject    : // children contains members, the value is pure object
+                  | vtBoolean   : Boolean   : BOOLEAN;
+                  | vtTristate  : Tristate  : TRISTATE;
+                  | vtInteger   : Integer   : INT32;
+                  | vtLong      : Long      : INT64;
+                  | vtFloat     : Float     : LONGREAL;
+                  | vtString    : String    : POINTER TO StringsO.CString;
+                  | vtDate      : Date      : datetime.DayCount;
                   END;
-               END; // RECORD
-   TPStorage = POINTER TO TStorage;
+                END; // RECORD
    #restore
    
 (*---------------------------------------------------------------------------*)
@@ -60,17 +71,13 @@ TYPE
    TPValue = POINTER TO Value;
 
 CLASS Value;
-   INTERNAL VAR
-      _Flags : TFlags;
-      _Type : TValueType;
-      _Storage : TStorage;
 
    PUBLIC PROPERTY
-      Type : TValueType;
+      Type : TType;
       Undefined : BOOLEAN;
       Saturate : BOOLEAN;
    PUBLIC PROPERTY
-      // Object : ADDRESS; // will be object
+      Reference : PTR;
       Boolean : BOOLEAN;
       Tristate : TRISTATE;
       Integer : INT32;
@@ -82,8 +89,12 @@ CLASS Value;
       // Data : StorageO.CMemoryBuffer;
    PUBLIC READONLY PROPERTY
       PString : StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
+      ReadOnly : BOOLEAN;
+      VisibleToUser : BOOLEAN;
+      HasValue : BOOLEAN;
 
    PUBLIC OPERATOR :=( CONST Source : Value ); // respects type
+   PUBLIC PROCEDURE AssignSource( CONST Source : Value ); // overrided vfReadOnly, MUST be used for users
 
    PUBLIC OPERATOR = ( CONST Source : Value ) : BOOLEAN; // hard, binary comparing
    PUBLIC OPERATOR <>( CONST Source : Value ) : BOOLEAN; // hard, binary comparing
@@ -98,26 +109,34 @@ CLASS Value;
 
    PUBLIC PROCEDURE Dispose();
    PUBLIC PROCEDURE Clone( OUT New : Value ); // New has the same type
-   PUBLIC PROCEDURE Equals( CONST Source : Value ) : BOOLEAN; // soft, respects different types
+   PUBLIC PROCEDURE Equals( CONST Source : Value ) : BOOLEAN; // soft, casts, respects different types
    PUBLIC PROCEDURE EqualsS( CONST S : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE EqualsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
 
    PUBLIC PROCEDURE ToString( OUT String : StringsO.IString; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
-   PUBLIC PROCEDURE ToStringOA( OUT String : ARRAY OF WCHAR; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
    PUBLIC PROCEDURE FromString( CONST String : StringsO.IString; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
-   PUBLIC PROCEDURE FromStringOA( CONST String : ARRAY OF WCHAR; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
 
    // TODO
    // PUBLIC PROCEDURE ToBuffer( OUT Buffer : StorageO.AMemoryBuffer );
    // PUBLIC PROCEDURE ToOA( OUT Data : ARRAY OF BYTE );
    // PUBLIC PROCEDURE FromBuffer( CONST Buffer : StorageO.AMemoryBuffer );
    // PUBLIC PROCEDURE FromSOA( CONST Data : ARRAY OF BYTE );
-   
+
    PUBLIC PROCEDURE Limit( Bits : CARDINAL; Signed, Saturate : BOOLEAN ); // e.g. Limit( 8, TRUE, FALSE ) saturates to CARD8, limites IN PLACE only numbers (Integer, Long, Float)
 
    PUBLIC PROCEDURE LimitedInteger( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : INT32; // limites all types
    PUBLIC PROCEDURE LimitedLong( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : INT64; // limites all types
    PUBLIC PROCEDURE LimitedFloat( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : LONGREAL; // limites all types
+
+   // SELF
+   PUBLIC WRITEONLY PROPERTY // meant for group initialization only (in namespaces etc.)
+      InitializeFlags : TFlags;
+
+   INTERNAL VAR
+      _Flags : TFlags;
+      _Type : TType;
+      _Storage : TStorage;
+
 END Value;
 
 (*---------------------------------------------------------------------------*)

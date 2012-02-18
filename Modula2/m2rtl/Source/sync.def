@@ -37,7 +37,8 @@ TYPE
       arAlreadyPending, // not started -- something is pending now (= busy)
          arBusy = arAlreadyPending,
       arCannotStart, // not started, no resources
-         arFailed = arCannotStart
+         arFailed = arCannotStart,
+      arUnsupportedDirection // e.g. read only
    );
    TAsyncResults = SET OF TAsyncResult;
 

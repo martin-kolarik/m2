@@ -1,0 +1,23 @@
+LIBRARY ntdll
+
+EXPORTS ;x86
+    _chkstk              = ntdll._chkstk
+    ;_except_handler3     = ntdll._except_handler3 -- unused, the handles resides in OBJ, which is nut-redirectable. Linker unwraps it and uses it as being on the file. Redirection does not do so, it simply creates link to unexistent (filtered out by linker) symbol.
+    memcpy               = ntdll.memcpy
+    memset               = ntdll.memset
+    _fltused             = ntdll._fltused
+    _allmul              = ntdll._allmul
+    _alldiv              = ntdll._alldiv
+    _allrem              = ntdll._allrem
+    _allshl              = ntdll._allshl
+    _allshr              = ntdll._allshr
+    _aulldiv             = ntdll._aulldiv
+    _aullrem             = ntdll._aullrem
+    _aullshl             = ntdll._aullshl
+    _aullshr             = ntdll._aullshr
+    _CIpow               = ntdll._CIpow
+
+EXPORTS ;x64
+    __chkstk             = ntdll.__chkstk
+    __C_specific_handler = ntdll.__C_specific_handler
+    pow                  = ntdll.pow

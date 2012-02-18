@@ -142,7 +142,7 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStiebelHPDevice( helper.APluginObject ) IMPLEMENTS device.IDevice;
+CLASS CStiebelHPDevice( helper.APluginObject ) IMPLEMENTS iplugin.IPlugin, device.IDevice;
    PRIVATE VAR
       _NS : CNS;
       _IO : CIO;

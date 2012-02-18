@@ -51,7 +51,6 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
    // Client interface
    PUBLIC READONLY PROPERTY
       RootDir : StringsO.TPString;
-      Configuration : StringsO.TPString;
       Connected : BOOLEAN;
       CacheOnlyMode : BOOLEAN;
       StartedTime : datetime.DayCount;
@@ -59,7 +58,6 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       DisconnectedTime : datetime.DayCount;
       LicenceExpires : datetime.DateTime;
       LicenceType : lec.TLicenceType;
-      Licence : StringsO.CString;
       Connection : StringsO.CString;
       WrittenByHour : CARDINAL;
       WrittenByDay : CARDINAL;
@@ -68,7 +66,6 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       OperatedDeviceCount : CARDINAL;
       ConfigLogger : Log.TPBufferedLogger;
       DataLogger : Log.TPBufferedLogger;
-      Project : StringsO.TPString;
       
    PUBLIC PROCEDURE ConnectKNX();
    PUBLIC PROCEDURE DisconnectKNX();
@@ -103,6 +100,7 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       _Context : StringsO.CString;
       _RootDir : StringsO.CString;
       _MessageFile : StringsO.CString;
+      _Result : lec.TPResult;
       _KNX : knxcore.TPKNXServer;
       _MVC : mvc.TPMVC;
       _Port : CARDINAL;
@@ -111,7 +109,7 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       _Controller : mvc.TPController;
       _DeviceCount : CARDINAL;
       _DeviceNames : POINTER TO ARRAY [0..0] OF PWCHAR;
-      _Devices : POINTER TO ARRAY [0..0] OF io.TPIStartStopControl;
+      _Devices : POINTER TO ARRAY [0..0] OF io.TPStartStopControl;
       _ConfigLogger : Log.TPBufferedLogger;
       _DataLogger : Log.TPBufferedLogger;
       _HttpLogger : Log.TPILogger;
@@ -120,7 +118,7 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       _Users : maps.CStringStringMap;
       _Lock : Sync.RWLOCK;
       _AccessList : accesslist.CAccessList;
-      _Project : StringsO.CString;
+      _DataSource : device.TPDataSource;
       
       _StartedTime : datetime.DayCount;
       _Connected : BOOLEAN;
@@ -132,9 +130,9 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       _GotByHour : ARRAY [0..23] OF CARDINAL;
 
    PUBLIC PROCEDURE Init(
-      CONST ContextName : ARRAY OF WCHAR;
-      CONST cfg : INIfile.CINIFile;
-      KNX : knxcore.TPKNXServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl;
+      CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile;
+      Result : lec.TPResult; DataSource : device.TPDataSource; KNX : knxcore.TPKNXServer;
+      DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPStartStopControl;
       ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    
    PUBLIC READONLY PROPERTY

@@ -194,7 +194,7 @@ BEGIN
          RETURN;
       END;
 
-      Debug.WaitUsingLoop();
+      // Debug.WaitUsingLoop();
 
       _Service^.OnStart();
       _Service^.LogEvent( -1, OAsz( R()^[Texts._ServiceIsStartedSuccessfully] ));

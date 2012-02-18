@@ -3,13 +3,6 @@
 
     <PropertyGroup>
         <Manufacturer>NeNo</Manufacturer>
-
-        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
-        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
-        <LanguageStyle>UNICODE</LanguageStyle>
-        <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Private</CLib>
-        <LeakChecking>off</LeakChecking>
         <PublishExports>on</PublishExports>
     </PropertyGroup>
 

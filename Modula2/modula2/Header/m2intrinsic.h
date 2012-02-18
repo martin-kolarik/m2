@@ -91,7 +91,7 @@ inline WCHAR LOWFW_( WCHAR ch ) throw()
 # endif
 
 namespace Storage {
-  __Storage_MI void (M2ALLOCATE)( M2ADDRESS* ptr, CARDINAL size ) throw();
+  __Storage_MI void (M2ALLOCATE)( M2ADDRESS* ptr, TSIZE size ) throw();
   __Storage_MI void (M2DEALLOCATE)( M2ADDRESS* ptr ) throw();
 }
 # define __M2ALLOCATE Storage::M2ALLOCATE

@@ -1,0 +1,55 @@
+DEFINITION MODULE Scene;
+
+IMPORT
+   adviser,
+   device,
+   functionbase,
+   iovalue,
+   log,
+   msghandler,
+   msgqueue,
+   ns,
+   Sync;
+
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
+(*# call( o_a_copy => off ) *)
+
+(*================================================================================*)
+
+TYPE
+   TPSceneFunction = POINTER TO CSceneFunction;
+   TPOutput = POINTER TO COutput;
+
+CLASS CSceneFunction( functionbase.CFunctionBase ) IMPLEMENTS ns.IAdviseInfo;
+
+   // MessageHandler
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+
+   // IAdviseInfo
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
+
+   // SELF
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // accepts citINIFile or citINIFileSection
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   
+   // SELF
+   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStop();
+
+   PRIVATE VAR
+      _Outputs : lists.CPtrList; // list of COutput
+      _SendQueue : msgqueue.CPtrQueue;
+
+   PRIVATE PROCEDURE Enqueue( output : TPOutput );
+   PRIVATE PROCEDURE Write( output : TPOutput );
+
+   INITIALLY CSceneFunction();
+   FINALLY CSceneFunction();
+
+END CSceneFunction;
+
+(*================================================================================*)
+
+END Scene.

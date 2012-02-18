@@ -13,7 +13,7 @@ TYPE
    TPCache = POINTER TO ICache;
 
 INTERFACE ICache( iplugin.IPluginObject ); // aka device driver
-	PROCEDURE NS() : ns.TPns;
+	PROCEDURE NS() : ns.TPNamespace;
 	PROCEDURE IO() : iocached.TPIOCached;
 	PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
 END ICache;

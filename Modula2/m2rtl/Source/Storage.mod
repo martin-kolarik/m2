@@ -7,30 +7,30 @@ IMPORT
   
 VAR
    GHeap : windows.HANDLE := NIL;
-   GPageSize : CARDINAL := 0;
+   GPageSize : TSIZE := 0;
 
 //--------------------------------------------------------------------------------
 
 INITIALLY __I();
 VAR
-	si : windows.SYSTEM_INFO;
+   si : windows.SYSTEM_INFO;
 BEGIN
    GHeap := windows.GetProcessHeap();
 
-	Fill( ADR( si ), SIZE( si ), 0 );
-	windows.GetSystemInfo( ADR( si ));
-	GPageSize := si.dwPageSize;
+   Fill( ADR( si ), SIZE( si ), 0 );
+   windows.GetSystemInfo( ADR( si ));
+   GPageSize := TSIZE( si .dwPageSize );
 END __I;
 
-PROCEDURE PageSize() : CARDINAL;
+PROCEDURE PageSize() : TSIZE;
 BEGIN
    __I();
    RETURN GPageSize;
 END PageSize;
-	
+   
 //================================================================================
 
-PROCEDURE M2ALLOCATE( OUT a : ADDRESS; size : CARDINAL );
+PROCEDURE M2ALLOCATE( OUT a : ADDRESS; size : TSIZE );
 BEGIN
    __I();
    HeapAllocate( GHeap, OUT a, size );
@@ -45,7 +45,7 @@ END M2DEALLOCATE;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE M2REALLOCATE( REF a : ADDRESS; size: CARDINAL );
+PROCEDURE M2REALLOCATE( REF a : ADDRESS; size: TSIZE );
 BEGIN
    __I();
    HeapReallocate( GHeap, REF a, size );
@@ -72,7 +72,7 @@ END DisposeHeap;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE HeapAllocate( Heap : PTR; OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+PROCEDURE HeapAllocate( Heap : PTR; OUT a : ADDRESS; size : TSIZE ) : BOOLEAN;
 BEGIN
    IF Heap = NIL THEN
       RETURN FALSE;
@@ -104,7 +104,7 @@ END HeapDeallocate;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE HeapReallocate( Heap : PTR; REF a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+PROCEDURE HeapReallocate( Heap : PTR; REF a : ADDRESS; size : TSIZE ) : BOOLEAN;
 VAR
    na : ADDRESS;
 BEGIN
@@ -131,7 +131,7 @@ END HeapReallocate;
 
 (*================================================================================*)
 
-PROCEDURE Move( CONST source : ADDRESS; destination : ADDRESS; length : CARDINAL );
+PROCEDURE Move( CONST source : ADDRESS; destination : ADDRESS; length : TSIZE );
 VAR
    termination : ADDRESS := INC( source, length );
 BEGIN
@@ -156,7 +156,7 @@ BEGIN
    END;
 END Move;
 
-PROCEDURE Fill( destination : ADDRESS; length : CARDINAL; value : BYTE );
+PROCEDURE Fill( destination : ADDRESS; length : TSIZE; value : BYTE );
 VAR
    termination : ADDRESS := INC( destination, length );
 BEGIN
@@ -166,7 +166,7 @@ BEGIN
    END;
 END Fill;
 
-PROCEDURE Zero( destination : ADDRESS; length : CARDINAL );
+PROCEDURE Zero( destination : ADDRESS; length : TSIZE );
 VAR
    termination : ADDRESS := INC( destination, length );
 BEGIN
@@ -176,7 +176,7 @@ BEGIN
    END;
 END Zero;
 
-PROCEDURE Equals( CONST Source, Destination : ADDRESS; Length : CARDINAL ) : BOOLEAN;
+PROCEDURE Equals( CONST Source, Destination : ADDRESS; Length : TSIZE ) : BOOLEAN;
 VAR
    Termination : ADDRESS;
 BEGIN

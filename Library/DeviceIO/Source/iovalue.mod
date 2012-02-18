@@ -25,28 +25,31 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Type GET : TValueType;
+   PUBLIC PROPERTY Type GET : TType;
    BEGIN
       RETURN _Type;
    END Type;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Type SET( value : TValueType );
+   PUBLIC PROPERTY Type SET( value : TType );
    VAR
       LFlags : TFlags;
       LValue : Value;
    BEGIN
-      IF _Type <> value THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+
+      ELSIF _Type <> value THEN
          LFlags := _Flags;
 
-         IF ( value <> vtUnknown ) AND ( value <> vtVoid ) THEN
+         IF ( value <> vtUnknown ) AND ( value <> vtObject ) AND ( value <> vtReference ) THEN
             // convert
             LValue._Type := value;
             LValue := SELF;
          END;
 
-         // adopt new data
+         // adopt new data, does not perform a deep copy of children
          Dispose();
          _Flags := LFlags;
          _Type := value;
@@ -54,7 +57,7 @@ CLASS IMPLEMENTATION Value;
 
          // forget old
          LValue._Type := vtUnknown;
-         LValue._Storage.QW := 0;
+         LValue._Storage.Long := 0;
       END;
    END Type;
 
@@ -69,12 +72,14 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Undefined SET( Value : BOOLEAN );
    BEGIN
-      IF Value THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF Value THEN
          INCL( _Flags, vfUndefined );
          IF _Type = vtString THEN
             _Storage.String^.Clear();
          ELSE
-            _Storage.QW := 0;
+            _Storage.Long := 0;
          END;
       ELSE
          EXCL( _Flags, vfUndefined );
@@ -92,12 +97,31 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Saturate SET( Value : BOOLEAN );
    BEGIN
-      IF Value THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF Value THEN
          INCL( _Flags, vfSaturate );
       ELSE
          EXCL( _Flags, vfSaturate );
       END;
    END Saturate;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Reference GET : PTR;
+   BEGIN
+      IF _Type <> vtReference THEN
+         ASSERT( FALSE );
+
+      ELSIF vfUndefined IN _Flags THEN
+         RETURN 0;
+
+      ELSE
+         RETURN _Storage.Reference;
+
+      END;
+      RETURN 0;
+   END Reference;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -111,8 +135,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -157,8 +181,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -234,8 +258,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -300,8 +324,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -350,8 +374,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -402,9 +426,11 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
       | vtObject :
          ASSERT( FALSE );
+
+      | vtReference :
+         S.FromCARD64( CARD64( _Storage.Reference ), 16 );
 
       | vtBoolean :
          IF _Storage.Boolean THEN
@@ -455,8 +481,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -510,15 +536,36 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Reference SET( Value : PTR );
+   BEGIN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
+         _Type := vtReference;
+      END;
+
+      CASE _Type OF
+      | vtReference :
+         _Storage.Reference := Value;
+
+      ELSE
+         ASSERT( FALSE );
+      END; // CASE
+   END Reference;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Boolean SET( value : BOOLEAN );
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtBoolean;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -571,13 +618,15 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Tristate SET( value : TRISTATE );
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtTristate;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -615,8 +664,8 @@ CLASS IMPLEMENTATION Value;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -655,13 +704,15 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Long SET( value : INT64 );
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtLong;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -708,13 +759,15 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Float SET( value : LONGREAL );
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtFloat;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -771,13 +824,15 @@ CLASS IMPLEMENTATION Value;
    VAR
       dt : datetime.DateTime;
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          Type := vtString; // using property allocates string
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -830,13 +885,15 @@ CLASS IMPLEMENTATION Value;
       dt : datetime.DateTime;
       s : ARRAY [0..63] OF WCHAR;
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtDate;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -887,18 +944,44 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY ReadOnly GET : BOOLEAN;
+   BEGIN
+      RETURN vfReadOnly IN _Flags;
+   END ReadOnly;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY VisibleToUser GET : BOOLEAN;
+   BEGIN
+      RETURN ( vfHidden NOT IN _Flags ) AND ( _Type <> vtReference );
+   END VisibleToUser;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY HasValue GET : BOOLEAN;
+   BEGIN
+      RETURN ( vfUndefined NOT IN _Flags ) AND ( _Type <> vtObject );
+   END HasValue;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC OPERATOR :=( CONST Source : Value );
    BEGIN
-      _Flags := Source._Flags;
+      IF vfUndefined NOT IN Source._Flags THEN
+         EXCL( _Flags, vfUndefined ); // other flags are respected
+      END;
+
       IF _Type = vtUnknown THEN
          _Type := Source._Type;
       END;
 
       CASE _Type OF
-      | vtUnknown :
-      | vtVoid :
-      | vtObject :
-         ASSERT( FALSE );
+      | vtUnknown,
+        vtObject :
+         // intentionally do nothing
+
+      | vtReference :
+         _Storage.Reference := Source.Reference;
 
       | vtBoolean :
          _Storage.Boolean := Source.Boolean;
@@ -928,6 +1011,17 @@ CLASS IMPLEMENTATION Value;
          ASSERT( FALSE );
       END; // CASE
    END :=;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE AssignSource( CONST Source : Value ); // overrides read only flag, not for outer users
+   VAR
+      flags : TFlags := _Flags;
+   BEGIN
+      EXCL( _Flags, vfReadOnly );
+      SELF := Source;
+      _Flags := flags;
+   END AssignSource;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1260,7 +1354,7 @@ CLASS IMPLEMENTATION Value;
       END;
       _Flags := TFlags{};
       _Type := vtUnknown;
-      _Storage.QW := 0;
+      _Storage.Long := 0;
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -1320,19 +1414,6 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ToStringOA( OUT String : ARRAY OF WCHAR; TransportFlag : BOOLEAN );
-   BEGIN
-      IF _Type <> vtBoolean THEN
-         SELF.String.ToOA( OUT String );
-      ELSIF Boolean THEN
-         String := defaultTransportTrue;
-      ELSE
-         String := defaultTransportFalse;
-      END;
-   END ToStringOA;
-   
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE FromString( CONST String : StringsO.IString; TransportFlag : BOOLEAN );
    VAR
       S : StringsO.CString;
@@ -1340,16 +1421,6 @@ CLASS IMPLEMENTATION Value;
       S.Assign( String );
       SELF.String := S;
    END FromString;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE FromStringOA( CONST String : ARRAY OF WCHAR; TransportFlag : BOOLEAN );
-   VAR
-      S : StringsO.CString;
-   BEGIN
-      S.FromOA( String );
-      SELF.String := S;
-   END FromStringOA;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1464,10 +1535,17 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY InitializeFlags SET( Value : TFlags );
+   BEGIN
+      _Flags := Value;
+   END InitializeFlags;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _Flags := TFlags{};
    _Type := vtUnknown;
-   _Storage.QW := 0;
+   _Storage.Long := 0;
 FINALLY
    Dispose();
 END Value;

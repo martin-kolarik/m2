@@ -130,7 +130,7 @@ BEGIN
   IF Handle = NIL THEN
     RETURN FALSE;
   ELSIF windows.GetClassLongPtr( Handle, windows.GCW_ATOM ) = windows.ULONG_PTR( WndClass ) THEN
-    Target := OSALmsg.TPMessageTarget( windows.GetWindowLongPtr( Handle, windows.GWL_USERDATA ));
+    Target := OSALmsg.TPMessageTarget( windows.GetWindowLongPtr( Handle, windows.GWLP_USERDATA ));
     RETURN Target <> NIL;
   ELSE
     RETURN FALSE;
@@ -468,7 +468,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
             );
     IF HWND <> NIL THEN        
       LeakALLOCATE( ADDRESS( HWND ), CARDINAL( LOPTRLONGWORD( HWND )) OR 08000000H );
-      windows.SetWindowLongPtr( HWND, windows.GWL_USERDATA, PTR( ADR( SELF )));
+      windows.SetWindowLongPtr( HWND, windows.GWLP_USERDATA, PTR( ADR( SELF )));
     END;
 
     #if DEBUG #then
@@ -492,7 +492,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
         Handlers.Remove( ADR( SELF ));
       #endif
       LeakDEALLOCATE( ADDRESS( HWND ));
-      windows.SetWindowLongPtr( HWND, windows.GWL_USERDATA, windows.LONG_PTR( 0 ));
+      windows.SetWindowLongPtr( HWND, windows.GWLP_USERDATA, windows.LONG_PTR( 0 ));
       windows.DestroyWindow( HWND );
       HWND := NIL;
       __F();

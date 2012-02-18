@@ -975,7 +975,7 @@ BEGIN
         Result[di] := L"'"; // escape for resulting apostrophe --
         INC( di );
       END;
-      Result[di] := Format[si]; // -- escaped apostrophe
+      Result[di] := Format[si]; // -- escaped delimiter
       Result[di+1] := L"'"; // -- escaped apostrophe
       INC( di, 2 );
 
@@ -1117,8 +1117,10 @@ BEGIN
           ( Wrapped[si+1] IN Strings.WCHARS{L'd', L'M', L'y', L'g'} ) AND
           ( Wrapped[si+2] = WCHAR( 1 )) AND
           ( Wrapped[si+3] = L' ' ) THEN
-      DEC( di );
-      IF UW[di-1] = WCHAR( 1 ) THEN
+      IF di > 0 THEN
+         DEC( di );
+      END;
+      IF ( di > 0 ) AND ( UW[di-1] = WCHAR( 1 )) THEN
         DEC( di );
       ELSE
         UW[di] := WCHAR( 1 );
