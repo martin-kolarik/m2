@@ -18,7 +18,7 @@ IMPORT
 (*================================================================================*)
 
 CONST // time	
-	FORSAFETY = 34543;
+   FORSAFETY = 34543;
 
 TYPE
   TPSSocket = POINTER TO SSocket;
@@ -120,7 +120,7 @@ CLASS SSocket( threadpool.APoolDelegate );
   PUBLIC PROCEDURE Listen( OUT Error : CARDINAL ) : Sync.TAsyncResult; // listen
   PUBLIC PROCEDURE Flush(); // blind recv, accept depending on SSocket.Type, flushes Listen queue
   
-	// for stDatagram
+   // for stDatagram
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE ReceiveFromOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL; OUT Address : inetaddr.INETADDR ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
@@ -159,7 +159,7 @@ CLASS DSocket( SSocket );
     Readable      : BOOLEAN; // after remote shutdown the socked is formally closed, but it still can offer data
     DataAvailable : CARDINAL;
     
-	// Open, Close pair is in DSocket covered with Connect/Disconnet. Open/Close cannot be used (only as SSocket.Open/Close call)
+   // Open, Close pair is in DSocket covered with Connect/Disconnet. Open/Close cannot be used (only as SSocket.Open/Close call)
   PRIVATE PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
   PRIVATE PROCEDURE Close( Persist : BOOLEAN );
   // WaitCompletion() comes from SSocket

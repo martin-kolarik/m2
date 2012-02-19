@@ -9,7 +9,8 @@ IMPORT
 (*================================================================================*)
 
 TYPE
-  TPPtrSyncList = POINTER TO CPtrSyncList;
+   TPPtrSyncList = POINTER TO CPtrSyncList;
+   TPPtrSyncListIterator = POINTER TO CPtrSyncListIterator;
 
 CLASS CPtrSyncList( lists.CPtrList );
 
@@ -32,7 +33,7 @@ CLASS CPtrSyncList( lists.CPtrList );
    PUBLIC PROCEDURE InsertBefore( Before, Value : PTR; Data : PTR );
 
    #save, option( leak_info => on )
-   PUBLIC PROCEDURE GetIterator() : lists.TPPtrListIterator;
+   PUBLIC PROCEDURE GetIterator() : TPPtrSyncListIterator;
    #restore
 
    // queue interface
@@ -49,6 +50,18 @@ CLASS CPtrSyncList( lists.CPtrList );
       _Lock : Sync.RWLOCK;
 
 END CPtrSyncList;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CPtrSyncListIterator( lists.CPtrListIterator );
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrSyncList; Direction : collection.TDirection );
+   PUBLIC PROCEDURE Stop(); // After the call the iterator behaves like Init is not called.
+
+   PRIVATE VAR
+      _List : TPPtrSyncList := NIL;
+
+END CPtrSyncListIterator;
 
 (*================================================================================*)
 

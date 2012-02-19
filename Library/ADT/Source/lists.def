@@ -11,7 +11,7 @@ FROM StringsO IMPORT
    IString, TPString;
   
 FROM StorageO IMPORT
-	AMemoryBuffer;
+   AMemoryBuffer;
 
 #save, option( dll_export => on )
 

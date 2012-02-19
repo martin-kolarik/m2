@@ -62,7 +62,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Construction & getters" );
 
       FOR t := iovalue.vtReference TO iovalue.vtDate DO
-         IF t <> iovalue.vtObject THEN
+         IF ( t <> iovalue.vtObject ) AND ( t <> iovalue.vtReference ) THEN
             v1.Type := t;
 
             TryAll( REF v1 );

@@ -51,11 +51,11 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       SELF.Host := Host;
 
-	   TRY
-		   fs.FromPath( L"D:\Work\Buff\Test.xml", FIOO.imOpenRead );
-		CATCH e : IOO.CIOException DO
-		   // do nothing
-		END;
+      TRY
+         fs.FromPath( L"D:\Work\Buff\Test.xml", FIOO.imOpenRead );
+      CATCH e : IOO.CIOException DO
+         // do nothing
+      END;
 
       Host^.StartPhase( L"Copy XML to console" );
       
@@ -93,7 +93,7 @@ CLASS IMPLEMENTATION CTest;
                s1 := reader.CurrentName;         
                s2 := reader.CurrentValue;
                Host^.Log^.LogSSSS( log.lcInfo, 0, L"", L"    name: ", OA( s1.Length-1, s1.Data ), L" = ", OA( s2.Length-1, s2.Data ));
-            UNTIL reader.MoveToNextAttribute() <> xmlreader.xmle_S_FALSE;
+            UNTIL reader.MoveToNextAttribute() = xmlreader.xmle_S_FALSE;
          END;
 
          xmle := reader.MoveNext();

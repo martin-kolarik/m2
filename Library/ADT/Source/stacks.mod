@@ -18,6 +18,7 @@ CLASS IMPLEMENTATION CIntegerStack;
       it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       RETURN it.Value;
    END Top;
 
@@ -28,6 +29,7 @@ CLASS IMPLEMENTATION CIntegerStack;
       it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       RETURN it.Data;
    END TopData;
 
@@ -38,6 +40,7 @@ CLASS IMPLEMENTATION CIntegerStack;
       it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       it.Data := Value;
    END TopData;
 
@@ -55,13 +58,13 @@ CLASS IMPLEMENTATION CIntegerStack;
       it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
-      IF it.colCurrent = NIL THEN
-         RETURN FALSE;
-      ELSE
+      IF it.MoveNext() THEN
          Value := it.Value;
          Data := it.Data;
          Delete( list.TPListElem( it.colCurrent ));
          RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
    END Pop;
   
@@ -72,12 +75,12 @@ CLASS IMPLEMENTATION CIntegerStack;
       it : lists.CIntegerListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
-      IF it.colCurrent = NIL THEN
-         RETURN FALSE;
-      ELSE
+      IF it.MoveNext() THEN
          Value := it.Value;
          Data := it.Data;
          RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
    END Peek;
 
@@ -96,6 +99,7 @@ CLASS IMPLEMENTATION CPtrStack;
       it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       RETURN it.Value;
    END Top;
 
@@ -106,6 +110,7 @@ CLASS IMPLEMENTATION CPtrStack;
       it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       RETURN it.Data;
    END TopData;
 
@@ -116,6 +121,7 @@ CLASS IMPLEMENTATION CPtrStack;
       it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       it.Data := Value;
    END TopData;
 
@@ -133,13 +139,13 @@ CLASS IMPLEMENTATION CPtrStack;
       it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
-      IF it.colCurrent = NIL THEN
-         RETURN FALSE;
-      ELSE
+      IF it.MoveNext() THEN
          Value := it.Value;
          Data := it.Data;
          Delete( list.TPListElem( it.colCurrent ));
          RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
    END Pop;
   
@@ -150,12 +156,12 @@ CLASS IMPLEMENTATION CPtrStack;
       it : lists.CPtrListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
-      IF it.colCurrent = NIL THEN
-         RETURN FALSE;
-      ELSE
+      IF it.MoveNext() THEN
          Value := it.Value;
          Data := it.Data;
          RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
    END Peek;
 
@@ -174,6 +180,7 @@ CLASS IMPLEMENTATION CStringStack;
       it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       RETURN it.Value;
    END Top;
 
@@ -184,6 +191,7 @@ CLASS IMPLEMENTATION CStringStack;
       it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       RETURN it.Data;
    END TopData;
 
@@ -194,6 +202,7 @@ CLASS IMPLEMENTATION CStringStack;
       it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
+      it.MoveNext();
       it.Data := Value;
    END TopData;
 
@@ -211,13 +220,13 @@ CLASS IMPLEMENTATION CStringStack;
       it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
-      IF it.colCurrent = NIL THEN
-         RETURN FALSE;
-      ELSE
+      IF it.MoveNext() THEN
          Value.Assign( it.Value^ );
          Data := it.Data;
          Delete( list.TPListElem( it.colCurrent ));
          RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
    END Pop;
   
@@ -228,12 +237,12 @@ CLASS IMPLEMENTATION CStringStack;
       it : lists.CStringListIterator;
    BEGIN
       it.Init( SELF, collection.dirForward );
-      IF it.colCurrent = NIL THEN
-         RETURN FALSE;
-      ELSE
+      IF it.MoveNext() THEN
          Value.Assign( it.Value^ );
          Data := it.Data;
          RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
    END Peek;
 

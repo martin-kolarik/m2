@@ -16,45 +16,6 @@ CONST
 
 (*================================================================================*)
 
-CLASS CPtrSyncListIterator( lists.CPtrListIterator );
-
-   LOCAL PROCEDURE Init( list : TPPtrSyncList; direction : collection.TDirection );
-
-   PRIVATE VAR
-      _List : TPPtrSyncList := NIL;
-
-END CPtrSyncListIterator;
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS IMPLEMENTATION CPtrSyncListIterator;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE Init( list : TPPtrSyncList; direction : collection.TDirection );
-   VAR
-      result : Sync.TAsyncResult;
-   BEGIN
-      IF _List <> NIL THEN
-         _List^.Lock^.UnlockRead();
-      END;
-      SUPER.Init( list^, direction );
-      _List := list;
-      result := _List^.Lock^.LockRead( Sync.FORSAFETY );
-      ASSERTLOG( result <> Sync.arTimeout, L"Unable to lock list for reading" );
-   END Init;
-
-(*--------------------------------------------------------------------------------*)
-
-BEGIN FINALLY
-   IF _List <> NIL THEN
-      _List^.Lock^.UnlockRead();
-      _List := NIL;
-   END;
-END CPtrSyncListIterator;
-
-(*================================================================================*)
-
 CLASS IMPLEMENTATION CPtrSyncList;
 
 (*--------------------------------------------------------------------------------*)
@@ -159,11 +120,11 @@ CLASS IMPLEMENTATION CPtrSyncList;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetIterator() : lists.TPPtrListIterator;
+   PUBLIC PROCEDURE GetIterator() : TPPtrSyncListIterator;
    VAR
       iterator : POINTER TO CPtrSyncListIterator := NEW( CPtrSyncListIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ), collection.dirForward );
+      iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END GetIterator;
 
@@ -197,6 +158,41 @@ CLASS IMPLEMENTATION CPtrSyncList;
 (*--------------------------------------------------------------------------------*)
 
 END CPtrSyncList;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CPtrSyncListIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrSyncList; Direction : collection.TDirection );
+   VAR
+      result : Sync.TAsyncResult;
+   BEGIN
+      Stop();
+      _List := TPPtrSyncList( ADR( OfCollection ));
+
+      result := _List^.Lock^.LockRead( Sync.FORSAFETY );
+      ASSERTLOG( result <> Sync.arTimeout, L"Unable to lock list for reading" );
+
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Stop();
+   BEGIN
+      IF _List <> NIL THEN
+         _List^.Lock^.UnlockRead();
+         _List := NIL;
+      END;
+   END Stop;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN FINALLY
+   Stop();
+END CPtrSyncListIterator;
 
 (*================================================================================*)
 

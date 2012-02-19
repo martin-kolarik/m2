@@ -1487,7 +1487,7 @@ CLASS IMPLEMENTATION CSender;
 
    PRIVATE PROCEDURE ProcessQueue();
    VAR
-      it : lists.CPtrListIterator;
+      it : synclists.CPtrSyncListIterator;
       now : datetime.DateTime;
       queueItem : TPQueueItem;
       oldestCreation : datetime.DateTime;
@@ -1499,9 +1499,13 @@ CLASS IMPLEMENTATION CSender;
       ASSERT( thread.Current()^.InfoType = thread.infoTypePool );
       now := datetime.NowUTC();
 
-      it.Init( _Queue, collection.dirForward );
-      WHILE it.MoveNext() DO
+      LOOP
+         it.Init( _Queue, collection.dirForward );
+         IF NOT it.MoveNext() THEN
+            EXIT;
+         END;
          queueItem := it.Value;
+         it.Stop();
 
          CASE Sync.TAsyncResult( Sync.IGet( REF PINTEGER( ADR( queueItem^.ProcessingStatus ))^ )) OF
          | Sync.arPending :
@@ -1528,7 +1532,6 @@ CLASS IMPLEMENTATION CSender;
          ELSE
             _Logger^.LogSP( log.ldTrace, CAT_QUEUE, LOG_PREFIX, L"Mail resend [userId]:", queueItem^.UserId );
          END;
-
 
          // resend the message
          DispatchSend( queueItem );

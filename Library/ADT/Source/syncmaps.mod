@@ -16,45 +16,6 @@ CONST
 
 (*================================================================================*)
 
-CLASS CPtrPtrSyncMapIterator( maps.CPtrPtrMapIterator );
-
-   LOCAL PROCEDURE Init( map : TPPtrPtrSyncMap; direction : collection.TDirection );
-
-   PRIVATE VAR
-      _Map : TPPtrPtrSyncMap := NIL;
-
-END CPtrPtrSyncMapIterator;
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS IMPLEMENTATION CPtrPtrSyncMapIterator;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE Init( map : TPPtrPtrSyncMap; direction : collection.TDirection );
-   VAR
-      result : Sync.TAsyncResult;
-   BEGIN
-      IF _Map <> NIL THEN
-         _Map^.Lock^.UnlockRead();
-      END;
-      SUPER.Init( map^, direction );
-      _Map := map;
-      result := _Map^.Lock^.LockRead( Sync.FORSAFETY );
-      ASSERTLOG( result <> Sync.arTimeout, L"Unable to lock map for reading" );
-   END Init;
-
-(*--------------------------------------------------------------------------------*)
-
-BEGIN FINALLY
-   IF _Map <> NIL THEN
-      _Map^.Lock^.UnlockRead();
-      _Map := NIL;
-   END;
-END CPtrPtrSyncMapIterator;
-
-(*================================================================================*)
-
 CLASS IMPLEMENTATION CPtrPtrSyncMap;
       
 (*--------------------------------------------------------------------------------*)
@@ -136,11 +97,11 @@ CLASS IMPLEMENTATION CPtrPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetIterator() : maps.TPPtrPtrMapIterator;
+   PUBLIC PROCEDURE GetIterator() : TPPtrPtrSyncMapIterator;
    VAR
       iterator : POINTER TO CPtrPtrSyncMapIterator := NEW( CPtrPtrSyncMapIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ), collection.dirForward );
+      iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END GetIterator;
 
@@ -152,42 +113,38 @@ END CPtrPtrSyncMap;
 
 (*================================================================================*)
 
-CLASS CStringPtrSyncMapIterator( maps.CStringPtrMapIterator );
-
-   LOCAL PROCEDURE Init( map : TPStringPtrSyncMap; direction : collection.TDirection );
-
-   PRIVATE VAR
-      _Map : TPStringPtrSyncMap := NIL;
-
-END CStringPtrSyncMapIterator;
+CLASS IMPLEMENTATION CPtrPtrSyncMapIterator;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CStringPtrSyncMapIterator;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROCEDURE Init( map : TPStringPtrSyncMap; direction : collection.TDirection );
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrPtrSyncMap; Direction : collection.TDirection );
    VAR
       result : Sync.TAsyncResult;
    BEGIN
-      IF _Map <> NIL THEN
-         _Map^.Lock^.UnlockRead();
-      END;
-      SUPER.Init( map^, direction );
-      _Map := map;
+      Stop();
+      _Map := TPPtrPtrSyncMap( ADR( OfCollection ));
+
       result := _Map^.Lock^.LockRead( Sync.FORSAFETY );
       ASSERTLOG( result <> Sync.arTimeout, L"Unable to lock map for reading" );
+
+      SUPER.Init( OfCollection, Direction );
    END Init;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Stop();
+   BEGIN
+      IF _Map <> NIL THEN
+         _Map^.Lock^.UnlockRead();
+         _Map := NIL;
+      END;
+   END Stop;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN FINALLY
-   IF _Map <> NIL THEN
-      _Map^.Lock^.UnlockRead();
-      _Map := NIL;
-   END;
-END CStringPtrSyncMapIterator;
+   Stop();
+END CPtrPtrSyncMapIterator;
 
 (*================================================================================*)
 
@@ -272,11 +229,11 @@ CLASS IMPLEMENTATION CStringPtrSyncMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetIterator() : maps.TPStringPtrMapIterator;
+   PUBLIC PROCEDURE GetIterator() : TPStringPtrSyncMapIterator;
    VAR
       iterator : POINTER TO CStringPtrSyncMapIterator := NEW( CStringPtrSyncMapIterator );
    BEGIN
-      iterator^.Init( ADR( SELF ), collection.dirForward );
+      iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END GetIterator;
 
@@ -285,6 +242,41 @@ CLASS IMPLEMENTATION CStringPtrSyncMap;
 BEGIN
    _Lock.Init( Sync.ltSpin, L"" );
 END CStringPtrSyncMap;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CStringPtrSyncMapIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringPtrSyncMap; Direction : collection.TDirection );
+   VAR
+      result : Sync.TAsyncResult;
+   BEGIN
+      Stop();
+      _Map := TPStringPtrSyncMap( ADR( OfCollection ));
+
+      result := _Map^.Lock^.LockRead( Sync.FORSAFETY );
+      ASSERTLOG( result <> Sync.arTimeout, L"Unable to lock map for reading" );
+
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Stop();
+   BEGIN
+      IF _Map <> NIL THEN
+         _Map^.Lock^.UnlockRead();
+         _Map := NIL;
+      END;
+   END Stop;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN FINALLY
+   Stop();
+END CStringPtrSyncMapIterator;
 
 (*================================================================================*)
 
