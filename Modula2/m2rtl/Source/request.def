@@ -19,17 +19,17 @@ TYPE
 CLASS Completable( delegate.Delegate ) IMPLEMENTS basecompletion.ICompletable;
 
    // ICompletableSink
-   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR ); // implementation must be independent from calling sink
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // implementation must be independent from calling sink
 
    // ICompletable
    PUBLIC VIRTUAL PROPERTY
       CompletionSink : basecompletion.TPICompletionSink;
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
 
    // SELF
    PRIVATE VAR
-      _Completable : basecompletion.CCompletableImplHelper;
+      _Completable : basecompletion.CSimpleCompletable;
 
 END Completable;
 
@@ -41,13 +41,13 @@ TYPE
 CLASS WaitableCompletable( delegate.Delegate ) IMPLEMENTS basecompletion.IWaitableCompletable;
 
    // ICompletableSink
-   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR ); // implementation must be independent from calling sink
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // implementation must be independent from calling sink
 
    // ICompletable
    PUBLIC VIRTUAL PROPERTY
       CompletionSink : basecompletion.TPICompletionSink;
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
 
    // IWaitableCompletable
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -59,7 +59,7 @@ CLASS WaitableCompletable( delegate.Delegate ) IMPLEMENTS basecompletion.IWaitab
 
    // SELF
    PRIVATE VAR
-      _WaitableCompletable : basecompletion.CWaitableCompletableImplHelper;
+      _WaitableCompletable : basecompletion.CSimpleWaitableCompletable;
 
 END WaitableCompletable;
 
@@ -74,7 +74,7 @@ CLASS AbortableWaitableCompletable( WaitableCompletable ) IMPLEMENTS basecomplet
    PUBLIC VIRTUAL PROPERTY
       AbortSink : basecompletion.TPIAbortable;
 
-   PUBLIC VIRTUAL PROCEDURE Abort( OperationHandle : PTR );
+   PUBLIC VIRTUAL PROCEDURE Abort( CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
 
    // SELF
    PRIVATE VAR

@@ -2,16 +2,16 @@ IMPLEMENTATION MODULE basecompletion;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CCompletableImplHelper;
+CLASS IMPLEMENTATION CSimpleCompletable;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
    VAR
       client : TPICompletionSink := Client;
    BEGIN
       IF client <> NIL THEN
-         client^.OnCompleted( Result, OperationHandle );
+         client^.OnCompleted( Result, Source, OperationHandle );
       END;
    END OnCompleted;
 
@@ -31,13 +31,13 @@ CLASS IMPLEMENTATION CCompletableImplHelper;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
    VAR
       sink : TPICompletionSink := CompletionSink;
    BEGIN
-      OnCompleted( Result, OperationHandle );
+      OnCompleted( Result, Source, OperationHandle );
       IF sink <> NIL THEN
-         sink^.OnCompleted( Result, OperationHandle );
+         sink^.OnCompleted( Result, Source, OperationHandle );
       END;
    END Complete;
 
@@ -58,15 +58,15 @@ CLASS IMPLEMENTATION CCompletableImplHelper;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-END CCompletableImplHelper;
+END CSimpleCompletable;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION CWaitableCompletableImplHelper;
+CLASS IMPLEMENTATION CSimpleWaitableCompletable;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
    BEGIN
    END OnCompleted;
 
@@ -86,13 +86,13 @@ CLASS IMPLEMENTATION CWaitableCompletableImplHelper;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
    BEGIN
       IF Completed THEN
          RETURN;
       END;
       Sync.ISetAR( REF _Result, Result );
-      SUPER.Complete( Result, OperationHandle );
+      SUPER.Complete( Result, Source, OperationHandle );
       _Signal.Signal();
    END Complete;
 
@@ -150,7 +150,7 @@ CLASS IMPLEMENTATION CWaitableCompletableImplHelper;
 
 BEGIN
    _Signal.Init( Sync.stSpin, L"", FALSE );
-END CWaitableCompletableImplHelper;
+END CSimpleWaitableCompletable;
 
 (*================================================================================*)
 

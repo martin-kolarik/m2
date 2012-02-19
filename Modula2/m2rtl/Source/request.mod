@@ -6,7 +6,7 @@ CLASS IMPLEMENTATION Completable;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
    BEGIN
    END OnCompleted;
 
@@ -26,9 +26,9 @@ CLASS IMPLEMENTATION Completable;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
    BEGIN
-      _Completable.Complete( Result, OperationHandle );
+      _Completable.Complete( Result, Source, OperationHandle );
    END Complete;
 
 (*--------------------------------------------------------------------------------*)
@@ -41,7 +41,7 @@ CLASS IMPLEMENTATION WaitableCompletable;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
    BEGIN
    END OnCompleted;
 
@@ -61,9 +61,9 @@ CLASS IMPLEMENTATION WaitableCompletable;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
    BEGIN
-      _WaitableCompletable.Complete( Result, OperationHandle );
+      _WaitableCompletable.Complete( Result, Source, OperationHandle );
    END Complete;
 
 (*--------------------------------------------------------------------------------*)
@@ -118,12 +118,12 @@ CLASS IMPLEMENTATION AbortableWaitableCompletable;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Abort( OperationHandle : PTR );
+   PUBLIC VIRTUAL PROCEDURE Abort( CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
    BEGIN
       IF _AbortSink <> NIL THEN
-         _AbortSink^.Abort( OperationHandle );
+         _AbortSink^.Abort( Source, OperationHandle );
       END;
-      Complete( Sync.arAborted, OperationHandle );
+      Complete( Sync.arAborted, Source, OperationHandle );
    END Abort;
 
 (*--------------------------------------------------------------------------------*)

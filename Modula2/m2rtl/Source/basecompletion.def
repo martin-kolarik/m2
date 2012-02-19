@@ -11,11 +11,25 @@ IMPORT
 (*================================================================================*)
 
 TYPE
+   TPICompletionSource = POINTER TO ICompletionSource;
+
+INTERFACE ICompletionSource;
+
+   READONLY PROPERTY
+      Source : baseobject.PBASE;
+      SourceHandle : PTR;
+      SourceSpecific : PTR;
+
+END ICompletionSource;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
    TPICompletionSink = POINTER TO ICompletionSink;
 
 INTERFACE ICompletionSink;
    
-   INTERNAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   INTERNAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : ICompletionSource; OperationHandle : PTR );
 
 END ICompletionSink;
 
@@ -31,7 +45,7 @@ INTERFACE ICompletable( ICompletionSink ); // ICompletable can delegate operatio
 
    // INTERNAL PROCEDURE OnCompleted( OperationHandle : PTR; Result : Sync.TAsyncResult ); // implementation must be independent from calling sink
 
-   PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+   PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : ICompletionSource; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
 
 END ICompletable;
 
@@ -64,22 +78,22 @@ INTERFACE IAbortable;
    PROPERTY
       AbortSink : TPIAbortable;
 
-   PROCEDURE Abort( OperationHandle : PTR ); // first calls AbortSink, then calls own action
+   PROCEDURE Abort( CONST Source : ICompletionSource; OperationHandle : PTR ); // first calls AbortSink, then calls own action
 
 END IAbortable;
 
 (*================================================================================*)
 
-CLASS CCompletableImplHelper( baseobject.BASE ) IMPLEMENTS ICompletable;
+CLASS CSimpleCompletable( baseobject.BASE ) IMPLEMENTS ICompletable;
 
    // ICompletionSink
-   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : ICompletionSource; OperationHandle : PTR );
 
    // ICompletable
    PUBLIC VIRTUAL PROPERTY
       CompletionSink : TPICompletionSink;
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : ICompletionSource; OperationHandle : PTR );
 
    // SELF
    PUBLIC PROPERTY
@@ -89,20 +103,20 @@ CLASS CCompletableImplHelper( baseobject.BASE ) IMPLEMENTS ICompletable;
       _CompletionSink : TPICompletionSink := NIL;
       _Client : TPICompletionSink := NIL;
 
-END CCompletableImplHelper;
+END CSimpleCompletable;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CWaitableCompletableImplHelper( CCompletableImplHelper ) IMPLEMENTS IWaitableCompletable;
+CLASS CSimpleWaitableCompletable( CSimpleCompletable ) IMPLEMENTS IWaitableCompletable;
 
    // ICompletionSink
-   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : ICompletionSource; OperationHandle : PTR );
 
    // ICompletable
    PUBLIC VIRTUAL PROPERTY
       CompletionSink : TPICompletionSink;
 
-   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; OperationHandle : PTR );
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : ICompletionSource; OperationHandle : PTR );
 
    // IWaitableCompletable
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -121,7 +135,7 @@ CLASS CWaitableCompletableImplHelper( CCompletableImplHelper ) IMPLEMENTS IWaita
       _Signal : Sync.SIGNAL;
       _Result : Sync.TAsyncResult := Sync.arUnknown; // arUnknown means "NOT Completed"
 
-END CWaitableCompletableImplHelper;
+END CSimpleWaitableCompletable;
 
 (*================================================================================*)
 
