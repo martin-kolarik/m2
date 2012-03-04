@@ -1458,8 +1458,12 @@ CLASS IMPLEMENTATION DSocket;
       Result : Sync.TAsyncResult;
       wb : windows.BOOL := windows.True;
    BEGIN
-      ASSERTLOG( _Pending * posConnectPrerequisities = posConnectPrerequisities );
-      Result := Open( OUT Error );
+      IF _Pending * posConnectPrerequisities = posConnectPrerequisities THEN // ok, expected conditions fulfilled
+         Result := Open( OUT Error );
+      ELSE
+         ASSERTLOG( _Pending * posConnectPrerequisities = posConnectPrerequisities );
+         Result := Sync.arAborted; // stop the connecting
+      END;
     
       IF Result NOT IN Sync.arsStarts THEN
          // fall down to process error
