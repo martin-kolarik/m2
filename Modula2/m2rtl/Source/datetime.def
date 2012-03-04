@@ -17,6 +17,9 @@ TYPE
 PROCEDURE UptimeMS(): CARDINAL; // returns time from system startup in ms
 PROCEDURE UptimeMS64(): TTime64; // returns time from system startup in ms
 
+// for debug purposes only
+PROCEDURE UptimeMS16(): CARD16; // returns time from system startup in ms
+
 // high resolution timer
 PROCEDURE GetHiResHz() : TTime64;
 PROCEDURE GetHiResTicks() : TTime64;
