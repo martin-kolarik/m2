@@ -302,6 +302,7 @@ CLASS IMPLEMENTATION CConnection;
       ai : inetaddr.INETADDR;
       cr : core.ConnectRequest;
       l : CARDINAL;
+      mg : inetaddr.INETADDR;
       timeout : CARDINAL := 0;
       b : BOOLEAN;
    BEGIN
@@ -319,10 +320,13 @@ CLASS IMPLEMENTATION CConnection;
          ELSE
             timeout := Timeout;
          END;
-         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
+         mg.FromOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
+         HPAIData.Address := mg; // override address to be sure that it is correct
+         b := netsrv.StartListen( netsocket.stDatagram, ai, ADR( mg ), _Listener, timeout, ADR( _Socket )) = 0;
       | cmRouting :
-         ai.Port := core.EIBNET_IPPORT;
-         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, 0, ADR( _Socket )) = 0;
+         mg := HPAIData.Address;
+         ai.Port := mg.Port;
+         b := netsrv.StartListen( netsocket.stDatagram, ai, ADR( mg ), _Listener, 0, ADR( _Socket )) = 0;
       ELSE
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
       END;
@@ -355,8 +359,6 @@ CLASS IMPLEMENTATION CConnection;
          ai.Port := _Socket^.LocalAddress.Port;
          HPAISelf.Address := ai;
 
-         ai.FromOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
-         _Socket^.MulticastGroup := ai;
          IOState := ioReady;
 
          LogSHPAI( _Logger, ldTrace, DEBUG_PREFIX, L"CONNECTed in SCANNING mode: ", HPAIData );
@@ -364,7 +366,6 @@ CLASS IMPLEMENTATION CConnection;
 
       //-----
       | cmRouting :
-         _Socket^.MulticastGroup := HPAIData.Address;
          IOState := ioReady;
          OnConnect();
 
