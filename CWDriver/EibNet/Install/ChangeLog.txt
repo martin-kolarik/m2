@@ -1,4 +1,11 @@
-Version 1.0.1335 V1.0 (without documentation)
+Version 1.0.1761 V1.0 4.3.2012 (without documentation)
+- BUG: #160, routing was available for single driver only, multiple drivers with
+       routing connection did not start.      
+- BUG: #268, the driver badly handled overflow of system timer, which appears each
+       49.7 days. During the errorneous state the driver disconnected and started,
+       with almost no delays, reconnection attempts.
+
+Version 1.0.1335 V1.0 14.10.2010 (without documentation)
 - BUG: #157, line number of "address" parameter of "interface" section was always
        badly read as 0
 - BUG: #158, "discover" tool occasionaly crashed if more than single interface was
