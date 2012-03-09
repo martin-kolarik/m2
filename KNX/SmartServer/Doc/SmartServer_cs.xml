@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <document file="SmartServer" xml:lang="cs"
           xmlns="http://www.mii.cz/2004/XML/Document/Common">
-  <header creator="martin" doc_type="generic" last_modified="2011-09-17"
+  <header creator="martin" doc_type="generic" last_modified="2012-03-09"
           last_modifier="martin" version="1.2.1550.0" xml:lang="cs"></header>
 
   <adjustment>
@@ -29,8 +29,8 @@
           <caption>Softwarové a hardwarové požadavky:</caption>
 
           <li><p>operační systémy Windows XP SP2 a vyšší, XP Embedded SP2 a
-          vyšší, Vista RTM a vyšší, Window Server 2003 RTM a vyšší, Windows
-          Server 2008 RTM a vyšší,</p></li>
+          vyšší, Vista RTM a vyšší, 7 RTM a vyšší, Window Server 2003 RTM a
+          vyšší, Windows Server 2008 RTM a vyšší,</p></li>
 
           <li><p>10<c.special what="thinspace" />MB volného místa na
           disku,</p></li>
@@ -42,7 +42,7 @@
           standardu KNX).</p></li>
         </il>
 
-        <p>Verze dokumentace: 1.2.1550</p>
+        <p>Verze dokumentace: 1.2.1775</p>
 
         <content>
           <caption>Obsah</caption>
@@ -869,21 +869,22 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze využít
               <text>
                 <dl class="dlParameter">
                   <caption>Sekce <type>[control]</type> definuje následující
-                  parametry:</caption>
+                  výstupy a parametry:</caption>
 
-                  <dt><type>time</type></dt>
+                  <dt><type>&lt;addr&gt; = time</type></dt>
 
-                  <dd><p>pro definici datového bodu, do něhož bude server
+                  <dd><p>pro definici datových bodů, do nichž bude server
                   zapisovat aktuální čas. Zápisy se opakují v periodě určené
                   parametrem <type>date_time_push_period</type>.
-                  Příklad:</p><p.type>time = 2/2/0</p.type></dd>
+                  Příklad:</p><p.type>2/2/0 = time
+13/0/255 = time</p.type></dd>
 
-                  <dt><type>date</type></dt>
+                  <dt><type>&lt;addr&gt; = date</type></dt>
 
-                  <dd><p>pro definici datového bodu, do něhož bude server
+                  <dd><p>pro definici datových bodů, do nichž bude server
                   zapisovat aktuální datum. Zápisy se opakují v periodě určené
                   parametrem <type>date_time_push_period</type>.
-                  Příklad:</p><p.type>date = 6/0/10</p.type></dd>
+                  Příklad:</p><p.type>6/0/10 = date</p.type></dd>
 
                   <dt><type>date_time_push_period</type></dt>
 
@@ -2761,265 +2762,11 @@ Control.Connected true</p.type>
           <title>Ukázky klientů</title>
 
           <text>
-            <p>V instalaci SmartServeru jsou zařazeny dvě ukázky datových
-            klientů a jedna ukázka klienta webového. První klient
-            (<file>Examples\Philips Pronto</file>) používá pro komunikaci
-            SDAP, druhý klient (<file>Examples\Adobe Flash</file>) XMLSocket a
-            třetí klient (Wix, <file>Examples\Wix</file>) využívá jen webového
-            rozhraní SmartServeru.</p>
-
-            <section level="3">
-              <title>Philips Pronto</title>
-
-              <text>
-                <p>Philips Pronto je univerzální dálkový ovladač s podporou
-                grafiky, dotykovým displejem, WiFi komunikací a plnou podporou
-                programování. Podpora pro obecné programy dovoluje v Prontu
-                vytvořit komunikační rozhraní pro SDAP, pomocí něhož se
-                dovnitř Pronto aplikace dostanou informace z KNX a naopak,
-                pomocí něhož program (uživatel) může KNX vzdáleně ovládat.</p>
-
-                <p>Jazyk programování Pronta je JavaScript (stejný jazyk se
-                používá pro klientské programování v internetových stránkách),
-                pro programování Pronta slouží ProntoEdit Professional,
-                program volně dostupný ke stažení na stránkách <type>http://www.pronto.philips.com</type>
-                (kde lze samozřejmě najít také mnoho jiných informací o Prontu
-                a jeho použití).</p>
-
-                <dl>
-                  <caption>V ukázce jsou soubory:</caption>
-
-                  <dt><file>Template.xcf</file></dt>
-
-                  <dd><p>Soubor s kostrou aplikace pro Pronto. Aplikaci lze
-                  přímo načíst do ProntoEdit a dále ji upravovat. Aplikace
-                  obsahuje několik obrazovek pro ovládání A/V zařízení a dvě
-                  obrazovky (uvnitř zařízení KNX), které dovolují ovládat
-                  světla a rolety.</p><p>V ukázce je bezprostředně zřejmý
-                  způsob komunikace s KNX: Hlavní JavaScript spojený se
-                  zařízením KNX zajišťuje komunikaci pomocí SDAP; co a jak se
-                  má komunikovat každá z obou vnořených obrazovek plní do při
-                  svém zobrazení do hlavního JavaScriptu a sama pak reaguje na
-                  příchozí hodnoty.</p><p>Hlavní komunikační skript je uložen
-                  ve větvi <gui>KNX/KNX Properties</gui> v záložce
-                  <gui>Advanced</gui>.</p></dd>
-
-                  <dt><file>Main.js</file></dt>
-
-                  <dd><p>Hlavní JavaScript z předchozího souboru samostatně
-                  vydělený pro jednodušší náhled. V úvodu skriptu je
-                  definovaná proměnná <type>IP_ADDRESS</type>, kterou je nutné
-                  při použití nastavit na správnou adresu
-                  SmartServeru.</p><p>Součástí skriptu jsou společné procedury
-                  <type>System.SetReadObjects</type>, <type>System.PageUpdate</type>
-                  a <type>System.ConnectionCheck</type>. Tyto procedury se
-                  používají ze skriptů stránek pro nastavení komunikace
-                  požadovaných datových bodů, reakci na jejich novou hodnotu a
-                  reakci na aktuální stav komunikace.</p><p>Spojení se
-                  serverem se opakovaně navazuje a ukončuje, protože Pronto
-                  Script při přechodu do StandBy módu nesprávně uzavírá TCP
-                  spojení.</p></dd>
-
-                  <dt><file>Page.js</file></dt>
-
-                  <dd><p>JavaScript ze stránky pro ovládání světel.
-                  V <file>Template.xcf</file> je skript zapsán ve větvi
-                  <gui>KNX/Lights</gui> v záložce
-                  <gui>Advanced</gui>.</p><p>Ve skriptu jsou názorně použity
-                  výše zmíněné metody ze skriptu
-                  <file>Main.js</file>.</p></dd>
-
-                  <dt><file>ButtonSwitch.js</file></dt>
-
-                  <dd><p>JavaScript z tlačítka pro zapínání a vypínání
-                  světla.V <file>Template.xcf</file> je skript zapsán ve větvi
-                  <gui>Templates/Lights</gui> v tlačítku <gui>Light</gui>
-                  v záložce <gui>Actions</gui>.</p><p>Skript pro změnu stavu
-                  datového objektu serveru, skript se odkazuje na proměnné
-                  definované ve skriptu <file>Page.js</file>.</p></dd>
-
-                  <dt><file>ButtonDim.js</file></dt>
-
-                  <dd><p>JavaScript z tlačítka pro stmívání (snižování jasu).
-                  V <file>Template.xcf</file> je skript zapsán ve větvi
-                  <gui>Templates/Lights</gui> v tlačítku <gui>Dimming</gui>
-                  v záložce <gui>Actions</gui>.</p><p>Skript pro snižování
-                  jasu (při držení tlačítka se jas průběžně snižuje), skript
-                  se odkazuje na proměnné definované ve skriptu
-                  <file>Page.js</file>.</p></dd>
-
-                  <dt><file>BlindsDown.js</file></dt>
-
-                  <dd><p>JavaScript z tlačítka pro zatažení rolet.
-                  V <file>Template.xcf</file> je skript zapsán ve větvi
-                  <gui>Templates/Blinds</gui> v tlačítku <gui>BlindsDown</gui>
-                  v záložce <gui>Actions</gui>.</p><p>Skript zahájí dlouhý
-                  pohyb (<type>CentralLong</type>) a počítá délku stisku
-                  tlačítka. Pokud je tlačítko uvolněno dříve jak za dvě
-                  sekundy, ukončí skript pohyb zápisem do <type>CentralStep</type>.</p></dd>
-                </dl>
-
-                <p>Následující ukázka zobrazuje stránkový skript (podobný
-                <file>Page.js</file>) s vysvětlením jednotlivých částí. Pro
-                pochopení ukázky je dobré znát popis ProntoScriptu a jazyk
-                JavaScript obecně:</p>
-
-                <p.type>// 1.
-deviceState = new CO( "3/0/12", "switch", widget( "DeviceDisplay" ));
-// 2.
-deviceControl = new CO( "3/1/12", "switch" );
-
-// 3.
-System.ConnectionCheck = function( Connected ) {
-  status = widget( "CommunicationStatus" );
-  if( Connected ) {
-    status.setImage( System.Image( "ConnectionStateOK" ));
-  } else {
-    status.setImage( System.Image( "ConnectionStateError" ));
-  }
-}
-
-// 4.
-System.SetReadObjects( new Array(
-  deviceState
-));
-
-// 5.
-System.PageUpdate = function( CO ) {
-  if( CO.widget == null ) {
-    // do nothing
-  } else if( CO.value == "true" ) {
-    CO.widget.setImage( CF.widget( "On1", "Res", "Sys" ).getImage(), 0 );
-    CO.widget.setImage( CF.widget( "On2", "Res", "Sys" ).getImage(), 1 );
-  } else {
-    CO.widget.setImage( CF.widget( "IOff1", "Res", "Sys" ).getImage(), 0 );
-    CO.widget.setImage( CF.widget( "IOff2", "Res", "Sys" ).getImage(), 1 );
-  }
-}</p.type>
-
-                <il numbered="yes">
-                  <caption>Význam částí:</caption>
-
-                  <li><p>Zde se konstruuje datový objekt (= komunikační objekt
-                  = communication object = CO) s využitím konstruktoru <type>CO</type>
-                  se třemi parametry pro uchování prvku uživatelského rozhraní
-                  (funkce <type>widget</type> ProntoScriptu, její popis viz
-                  dokumentaci ProntoScriptu). Vytvoří se objekt typu <type>switch</type>
-                  s adresou <type>3/0/12</type>, přičemž objekt si v sobě
-                  pamatuje odkaz na prvek uživatelského rozhraní
-                  <gui>DeviceDisplay</gui>. Později (ve funkci <type>PageUpdate</type>)
-                  bude tento odkaz využit.</p></li>
-
-                  <li><p>Konstruktor <type>CO</type> se dvěma parametry
-                  neuchová odkaz na žádný zobrazující prvek, vytvoří se tak
-                  objekt bez vazby na uživatelské rozhraní. To je typické pro
-                  datové objekty využité (někde na stránce) pro odesílání dat
-                  do serveru. Dále ve skriptu se již objekt nepoužívá, což
-                  rovněž ukazuje na pozdější využití někde jinde. Objekt je po
-                  spuštění stránkového skriptu jen připraven.</p></li>
-
-                  <li><p>Použití funkce skriptu <file>Main.js</file> <type>ConnectionCheck</type>.
-                  <file>Main.js</file> volá <type>ConnectionCheck</type>
-                  (pokud není <type>null</type>) periodicky, takže skript ve
-                  stránce může zobrazovat stav spojení se serverem. Použitý
-                  skript vyhledá zobrazovací prvek se jménem
-                  <gui>ConnectionStatus</gui> a podle stavu spojení v něm
-                  nastaví odpovídající obrázek.</p></li>
-
-                  <li><p>Další funkce skriptu <file>Main.js</file>. Voláním
-                  <type>SetReadObjects</type> dojde k zapamatování pole
-                  datových objektů, které bude <file>Main.js</file>
-                  automaticky periodicky číst. Stránkový skript již proto
-                  obnovování hodnot nemusí zajišťovat. V případě přečtení
-                  hodnoty některého z datových objektů <file>Main.js</file>
-                  následně zavolá funkci <type>PageUpdate</type> (pokud není
-                  <type>null</type>).</p><p>Pokud dojde k přepnutí stránek,
-                  měl by být <type>SetReadObjects</type> zavolán s novými
-                  datovými objekty, případně s parametrem <type>null</type>,
-                  který zajistí vypnutí opakovaného čtení datových
-                  objektů.</p></li>
-
-                  <li><p>Nastavení funkce do <type>System.PageUpdate</type>,
-                  <file>Main.js</file> funkci zavolá pro každý datový objekt,
-                  jehož novou hodnotu přečetl. V uvedeném skriptu se využívá
-                  skutečnosti, že čtené objekty si pamatují svůj zobrazující
-                  prvek (<type>CO.widget</type>), takže se na lze přímo
-                  odkázat a vyměnit v nich obrázky.</p></li>
-                </il>
-
-                <p>Skripty v Prontu dovolují libovolné programování, všechny
-                ukázky proto mohou být doplněny či pozměněny dle potřeb
-                konkrétní aplikace. Další ukázka obsahuje stránkový skript
-                stránky, která nezobrazuje žádné změny hodnot (například
-                obsahuje jen samá ovládací tlačítka):</p>
-
-                <p.type>// 2.
-deviceControl = new CO( "3/1/12", "switch" );
-
-// 3.
-System.ConnectionCheck = function( Connected ) {
-  status = widget( "CommunicationStatus" );
-  if( Connected ) {
-    status.setImage( System.Image( "ConnectionStateOK" ));
-  } else {
-    status.setImage( System.Image( "ConnectionStateError" ));
-  }
-}
-
-// 4.
-System.SetReadObjects( null );
-
-// 5.
-System.PageUpdate = null;</p.type>
-
-                <p>Ve stránce s oběma uvedenými skripty může být tlačítko
-                například se skriptem:</p>
-
-                <p.type>deviceControl.Write( "true" );</p.type>
-
-                <p>V poslední ukázce je zobrazen začátek skriptu
-                <file>Main.js</file> s definicí hlavních konstant, které řídí
-                chování celého spojení s KNX. Tyto konstanty lze nastavovat
-                podle potřeby:</p>
-
-                <p.type>var DEBUG = true;
-var CORE_PERIOD = 200;
-var COMMUNICATE_EACH = 4; // count of periods
-
-var IP_ADDRESS = "10.0.1.133";
-var IP_PORT = "6007";</p.type>
-
-                <dl>
-                  <caption>kde jednotlivé konstanty znamenají:</caption>
-
-                  <dt><type>DEBUG</type></dt>
-
-                  <dd><p>Nastavení ladicích informací, ukázkové skripty
-                  konstantu používají výjimečně.</p></dd>
-
-                  <dt><type>CORE_PERIOD</type></dt>
-
-                  <dd><p>Perioda v milisekundách, vnitřní takt skriptu
-                  <file>Main.js</file>. V tomto taktu se například testuje
-                  živost spojení. Kratší časy mohou s ohledem na výkon Pronta
-                  a způsob komunikace (WiFi) působit obtíže.</p></dd>
-
-                  <dt><type>COMMUNICATE_EACH</type></dt>
-
-                  <dd><p>Počet <type>CORE_PERIOD</type>, po kterých
-                  <file>Main.js</file> čte datové objekty určené voláním
-                  funkce <type>SetReadObjects</type>.</p></dd>
-
-                  <dt><type>IP_ADDRESS</type></dt>
-
-                  <dd><p>IP adresa počítače se SmartServerem.</p></dd>
-
-                  <dt><type>IP_PORT</type></dt>
-
-                  <dd><p>Port, na kterém SmartServer přijímá spojení.</p></dd>
-                </dl>
-              </text>
-            </section>
+            <p>V instalaci SmartServeru je zařazena ukázka datového klienta a
+            ukázka webového klienta. První klient (<file>Examples\Adobe
+            Flash</file>) používá pro komunikaci XMLSocket, druhý klient (Wix,
+            <file>Examples\Wix</file>) využívá jen webového rozhraní
+            SmartServeru.</p>
 
             <section level="3">
               <title>Adobe (Macromedia) Flash</title>
