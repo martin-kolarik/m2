@@ -726,6 +726,7 @@ CLASS IMPLEMENTATION CKNXServer;
 
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    LABEL
+      AddressRoutingError,
       Fail;
    CONST
       // .PAR section names 
@@ -751,7 +752,6 @@ CLASS IMPLEMENTATION CKNXServer;
       knAddress              = L'address';
       knACKTimeout           = L'ACK_timeout';
       knBUSYDelay            = L'BUSY_delay';
-      knACKMethod            = L'ACK_method';
       knRetryCount           = L'retry_count';
       knIgnoreRepeated       = L'ignore_repeated';
       knSendDelay            = L'send_delay';
@@ -1252,6 +1252,7 @@ CLASS IMPLEMENTATION CKNXServer;
       ErrorMessageOA : ARRAY [0..255] OF WCHAR;
       ES : PTR;
       i : CARDINAL;
+      mode : StringsO.CString;
       Name : StringsO.CString;
       objectType : TObjectType;
       p : StringsO.CString;
@@ -1349,11 +1350,14 @@ CLASS IMPLEMENTATION CKNXServer;
          GOTO Fail;
       END;
       // still inside snDevice
-      IF TS.GetKeyStr( knMode, OUT ErrorLine, OUT so ) THEN
-         IF NOT KNX^.SetParameter( L"link.mode", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
-            CreateParameterError( Texts._BadMode, ErrorMessageOA, REF ErrorMessage );
-            GOTO Fail;
-         END;
+      IF NOT TS.GetKeyStr( knMode, OUT ErrorLine, OUT so ) THEN
+         CreateParameterError( Texts._MissingMode, ErrorMessageOA, REF ErrorMessage );
+         GOTO Fail;
+      ELSIF NOT KNX^.SetParameter( L"link.mode", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
+         CreateParameterError( Texts._BadMode, ErrorMessageOA, REF ErrorMessage );
+         GOTO Fail;
+      ELSE
+         mode := so;
       END;
 
       // read interface options
@@ -1374,20 +1378,22 @@ CLASS IMPLEMENTATION CKNXServer;
             END;
          END;
          IF TS.GetKeyStr( knAddress, OUT ErrorLine, OUT so ) THEN
-            IF NOT Address.SetPhysicalAddress3( OA( so.Length-1, so.Data )) THEN
+            IF NOT mode.EqualsOA( L"routing" ) THEN
+               ErrorMessage.AppendOA( OAsz( R[ Texts._AddressDeniedInTunnelingMode ] ));
+               AppendErrorId( REF ErrorMessage, so );
+               GOTO Fail;
+            ELSIF NOT Address.SetPhysicalAddress3( OA( so.Length-1, so.Data )) THEN
                ErrorMessage.AppendOA( OAsz( R[ Texts._BadPhysicalAddress ] ));
                AppendErrorId( REF ErrorMessage, so );
                GOTO Fail;
             END;
+         ELSE
+            IF mode.EqualsOA( L"routing" ) THEN
+               GOTO AddressRoutingError;
+            END;
          END;
          IF TS.GetKeyInt( knACKTimeout, OUT ErrorLine, OUT c ) THEN
             ACKTimeout := c;
-         END;
-         IF TS.GetKeyStr( knACKMethod, OUT ErrorLine, OUT so ) THEN
-            IF NOT KNX^.SetParameter( L"link.ackMethod", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
-               CreateParameterError( Texts._BadACKMethod, ErrorMessageOA, REF ErrorMessage );
-               GOTO Fail;
-            END;
          END;
          IF TS.GetKeyStr( knRetryCount, OUT ErrorLine, OUT so ) THEN
             IF NOT KNX^.SetParameter( L"link.retryCount", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
@@ -1416,6 +1422,11 @@ CLASS IMPLEMENTATION CKNXServer;
          IF TS.GetKeyBool( knPromiscuousMode, OUT ErrorLine, OUT b ) THEN
             PromiscuousMode := b;
          END;
+      ELSIF mode.EqualsOA( L"routing" ) THEN
+   AddressRoutingError:
+         ErrorMessage.AppendOA( OAsz( R[ Texts._AddressRequiredInRoutingMode ] ));
+         AppendErrorId( REF ErrorMessage, so );
+         GOTO Fail;
       END;
 
       // read read on start options
