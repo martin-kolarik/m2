@@ -5,7 +5,7 @@
         <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1" />
         <Directory Id="TARGETDIR" Name="SourceDir">
             <?if $(var.CLib)=Shared ?>
-            <?if $(var.ConfigurationName)=Debug ?>
+            <?if $(var.Configuration)=Debug ?>
             <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
             <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
             <?else ?>
@@ -147,6 +147,7 @@
                                 <File Id="userLogin.pt.xml" LongName="userLogin.pt.xml" Name="USERLOG.XML" Source="Web\userLogin.pt.xml" DiskId="1" />
                                 <File Id="userLoginCanvas.jpg" LongName="userLoginCanvas.jpg" Name="UCANVAS.JPG" Source="Web\userLoginCanvas.jpg" DiskId="1" />
                                 <File Id="error.401.pt.xml" LongName="error.401.pt.xml" Name="err401.XML" Source="Web\error.401.pt.xml" DiskId="1" />
+                                <File Id="SmartServer.ico" LongName="SmartServer.ico" Name="SmartSrv.ico" Source="Web\SmartServer.ico" DiskId="1" />
                             </Component>
                             <Directory Id="UserWeb" Name="User">
                                 <Component Id="UserWeb" Guid="FDF719DB-B1DA-4401-BE5F-1FA854E7DB2D">
@@ -197,19 +198,6 @@
                                     <File Id="SmartServerConnectorAS3.as" LongName="SmartServerConnectorAS3.as" Name="SRVCONN3.AS" Source="Examples\Adobe Flash\SmartServerConnectorAS3.as" DiskId="1" />
                                     <File Id="SmartServerDataEventAS3.as" LongName="SmartServerDataEventAS3.as" Name="SEND3.AS" Source="Examples\Adobe Flash\SmartServerDataEventAS3.as" DiskId="1" />
                                     <File Id="SmartServerAS3.fla" LongName="SmartServerAS3.fla" Name="SMARTSR3.FLA" Source="Examples\Adobe Flash\SmartServerAS3.fla" DiskId="1" />
-                                </Component>
-                            </Directory>
-                            <Directory Id="Philips_Pronto" LongName="Philips Pronto" Name="Pronto">
-                                <Component Id="ExamplesPronto" Guid="CA0905D8-C0F5-4cf5-81EE-8427C8D63071">
-                                    <File Id="BlindsDown.js" LongName="BlindsDown.js" Name="BLINDS.JS" Source="Examples\Philips Pronto\BlindsDown.js" DiskId="1" />
-                                    <File Id="ButtonDim.js" LongName="ButtonDim.js" Name="BUTTOND.JS" Source="Examples\Philips Pronto\ButtonDim.js" DiskId="1" />
-                                    <File Id="ButtonSwitch.js" LongName="ButtonSwitch.js" Name="BUTTONS.JS" Source="Examples\Philips Pronto\ButtonSwitch.js" DiskId="1" />
-                                    <File Id="Main.js" LongName="Main.js" Name="MAIN.JS" Source="Examples\Philips Pronto\Main.js" DiskId="1" />
-                                    <File Id="Page.js" LongName="Page.js" Name="PAGE.JS" Source="Examples\Philips Pronto\Page.js" DiskId="1" />
-                                    <File Id="TemperaturesPage.js" LongName="TemperaturesPage.js" Name="TEMPPAGE.JS" Source="Examples\Philips Pronto\TemperaturesPage.js" DiskId="1" />
-                                    <File Id="Template_TSU9400_v2.xcf" LongName="Template_TSU9400_v2.xcf" Name="TEMP4V2.XCF" Source="Examples\Philips Pronto\Template_TSU9400_v2.xcf" DiskId="1" />
-                                    <File Id="Template_TSU9600_v1.xcf" LongName="Template_TSU9600_v1.xcf" Name="TEMP6V1.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v1.xcf" DiskId="1" />
-                                    <File Id="Template_TSU9600_v2.xcf" LongName="Template_TSU9600_v2.xcf" Name="TEMP6V2.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v2.xcf" DiskId="1" />
                                 </Component>
                             </Directory>
                             <Directory Id="Wix" Name="Wix">
@@ -293,7 +281,7 @@
                         </Component>
                         <?endif ?>
                         <?if $(var.CLib)=Private ?>
-                        <?if $(var.ConfigurationName)=Debug ?>
+                        <?if $(var.Configuration)=Debug ?>
                         <Directory Id="Microsoft.VC80.DebugCRT" LongName="Microsoft.VC80.DebugCRT" Name="vc80">
                             <Component Id="VC8Runtime" DiskId="1" Guid="74A623EF-9464-4A92-B9D2-649BA0DD9F95">
                                 <File Id="Microsoft.VC80.DebugCRT.manifest" LongName="Microsoft.VC80.DebugCRT.manifest" Name="vc80.MAN" Source="$(env.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC80.DebugCRT\Microsoft.VC80.DebugCRT.manifest" />
@@ -351,7 +339,6 @@
             <ComponentRef Id="UserWebExamples" />
             <ComponentRef Id="Examples" />
             <ComponentRef Id="ExamplesFlash" />
-            <ComponentRef Id="ExamplesPronto" />
             <ComponentRef Id="ExamplesWix" />
             <ComponentRef Id="ExamplesiWebKit" />
             <ComponentRef Id="RCWE01" />
