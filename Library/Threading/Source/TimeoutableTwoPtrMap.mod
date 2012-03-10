@@ -27,7 +27,7 @@ CLASS CTimeoutableItem( avltree.CAVLTreeElem2 );
       ElapsesOn : TStorage := 0;
       Counter : TStorage;
       // data
-      Value : PTR := 0;
+      Data : PTR := 0;
       Timeout : TStorage := 0;
 
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
@@ -168,7 +168,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       NEW( PI );
       PI^.Key1 := Key1;
       PI^.Key2 := Key2;
-      PI^.Value := Value;
+      PI^.Data := Data;
       PI^.Timeout := TStorage( Timeout );
       IF Timeout = Sync.FOREVER THEN
          // do nothing
@@ -300,7 +300,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       END;
       Key1 := TI^.Key1;
       Key2 := TI^.Key2;
-      Value := TI^.Value;
+      Data := TI^.Data;
       elapsesBy := TI^.ElapsesOn - TStorage( CurrentTime );
       IF elapsesBy < 0 THEN // has already elapsed
          ElapsesBy := 0;

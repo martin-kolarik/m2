@@ -44,7 +44,7 @@ END UptimeMS64;
 
 PROCEDURE UptimeMS16() : CARD16; // overflows each 65 seconds
 BEGIN
-   RETURN CARD16( UptimeMS32());
+   RETURN CARD16( UptimeMS());
 END UptimeMS16;
 
 (*================================================================================================*)
