@@ -309,8 +309,12 @@ Licence support tool
                   <dt><type>address</type></dt>
 
                   <dd><p>pro definici fyzické KNX adresy, kterou server
-                  použije pøi odesílání dat do KNX sbìrnice. Parametr je
-                  pøítomen ve všech ukázkách. Pøíklad:</p><p.type>address = 1.2.1</p.type></dd>
+                  použije pøi odesílání dat do KNX sbìrnice pøi zpùsobu
+                  spojení <type>routing</type>. Parametr je pøítomen ve všech
+                  ukázkách. Pøíklad:</p><p.type>address = 1.2.1</p.type><p>V pøípadì
+                  tunelových spojení (<type>tunneling</type>, <type>tunneling-NAT</type>)
+                  parametr nesmí být zadán, SmartServer v tìchto spojeních
+                  získává adresu automaticky.</p></dd>
 
                   <dt><type>read_on_start_repeat_count</type></dt>
 
@@ -1766,6 +1770,648 @@ allow = 127.0.0.1</p.type>
 [12:54:46.965] t KNX/KNXnet.Connection: DISCONNECT forced as abortive 
 [12:54:46.965] t KNX/KNXnet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
 [12:54:46.965] t KNX/KNXnet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
+              </text>
+            </section>
+          </text>
+        </section>
+
+        <section level="2">
+          <title>Datový model</title>
+
+          <text>
+            <p></p>
+          </text>
+        </section>
+
+        <section level="2">
+          <title>Funkèní moduly</title>
+
+          <text>
+            <section level="3">
+              <title>Spoleèné vlastnosti</title>
+
+              <text>
+                <p>SmartServer poskytuje pro administraci i pro uživatelské
+                webové stránky spojené s daty z KNX zabudovaný webový server.
+                Administraèní èást je chránìná jménem a heslem, uživatelské
+                webové stránky jsou volnì dostupné. Server bìží na IP portu
+                <number>6005</number> (pøípadnì na jiném portu nastaveném
+                v konfiguraci, viz kapitolu <in label="secWeb"></in>).</p>
+
+                <p>Administraèní èást serveru je dostupná na adrese (po
+                vložení do adresového øádku prohlížeèe)
+                <uri>http://[server]:6005/SmartServer</uri>, uživatelská èást
+                serveru je dostupná na adrese
+                <uri>http://[server]:6005/SmartServer/User</uri>
+                (<uri>[server]</uri> je tøeba nahradit jménem nebo adresou
+                poèítaèe, pro místní poèítaè bude platit napøíklad
+                <uri>http://127.0.0.1:6005/SmartServer</uri>). Všechny
+                soubory, které mají být pomocí serveru dostupné, musejí být
+                uloženy ve složce <file>User</file> (a podsložkách, více viz
+                <in label="secWeb"></in>).</p>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Persistence dat</title>
+
+              <text>
+                <p>Administraèní rozhraní je rozdìleno do nìkolika jménem a
+                heslem chránìných stránek. SmartServer vstoupí do
+                administraèního rozhraní po vložení URL
+                <uri>http://[server]:6005/SmartServer</uri> do adresového
+                øádku internetového prohlížeèe a kliknutí na odkaz
+                <gui>Soukromé stránky</gui>. Následující stránka
+                <gui>Pøihlášení</gui> a požaduje vložení pøihlašovacích údajù.
+                Po instalaci SmartServeru je platná dvojice jméno
+                <gui>admin</gui> a heslo <gui>admin</gui>.</p>
+
+                <p>Pøihlášení k administraènímu rozhraní je èasovì omezené a
+                vyprší po 30 minutách neèinnosti.</p>
+
+                <dl>
+                  <caption>Administraèní rozhraní je složeno ze
+                  stránek:</caption>
+
+                  <dt><gui>Pøehled</gui></dt>
+
+                  <dd><p>Úvodní stránka s rychlým pøehledem o stavu serveru a
+                  jeho licenci.</p><p>Dùležitá je možnost pøipojit a opojit
+                  SmartServer od KNX rozhraní. Napøíklad, pokud je KNX
+                  rozhraní sdíleno a používá se souèasnì i pro konfiguraci a
+                  programování zaøízení v KNX, musí být pøed pøipojením ETS
+                  SmartServer odpojen, a po dokonèení programování zase
+                  pøipojen (jinak SmartServer nebude klientùm poskytovat
+                  platná data).</p></dd>
+
+                  <dt><gui>Konfigurace</gui></dt>
+
+                  <dd><p>Stránka pro nastavení konfigurace serveru. Možné je
+                  zapnout a vypnout obì klientská rozhraní (SDAP klient,
+                  XMLSocket klient), možno je zmìnit konfiguraci
+                  serveru.</p><p>Rozhraní neumožòuje nahrát konfiguraci pomocí
+                  prohlížeèe, souboru s konfigurací se musí do poèítaèe se
+                  SmartServerem dostat jiným zpùsobem (pomocí RDP apod.).
+                  Konfigurace se zmìní po zadání cesty ke konfiguraènímu
+                  souboru (pøedvyplnìn je aktuální konfiguraèní soubor) a
+                  stisknutí tlaèítka <gui>Použít</gui>. Napøíklad, pøi úpravì
+                  nastavení spojení nebo pøi doplnìní datových objektù se
+                  nejprve konfiguraèní soubor upraví (pøipraví nový) a
+                  následnì se a stiskem tlaèítka <gui>Použít</gui> aplikuje
+                  aniž by bylo tøeba restartovat službu
+                  SmartServeru.</p><p>Pomocí odkazu <gui>Uložit</gui> lze
+                  aktuální konfiguraèní soubor stáhnout a uložit v místním
+                  poèítaèi.</p><p>Pod øádkem s konfigurací a tlaèítky je
+                  plocha s výpisem chyb nalezených pøi ètení konfigurace.
+                  Pokud je konfigurace v poøádku (napø. pokud byla pøedem
+                  zkontrolovaná pomocí instalovaného nástroje
+                  <file>checkcfg</file>), bude vždy pøidán jen jeden øádek
+                  o úspìšném zavedení konfigurace.</p><p>Naèítání konfigurace
+                  pomocí tlaèítka <gui>Použít</gui> nahrazuje pouze
+                  konfiguraci související s datovými objekty serveru a
+                  s komunikací s KNX. Systémovou konfiguraci, tj. sekce
+                  konfiguraèního souboru <type>[log]</type>, <type>[datalog]</type>
+                  (<in label="secLog"></in>), <type>[web]</type> (<in
+                  label="secWeb"></in>) a <type>[users]</type> (<in
+                  label="secUsers"></in>), server pøijme pouze pøi svém
+                  startu.</p></dd>
+
+                  <dt><gui>Historie dat</gui></dt>
+
+                  <dd><p>Stránka zobrazuje historii datového provozu serveru.
+                  V seznamu øazeném od nejnovìjších událostí po nejstarší se
+                  objevují události <gui>UPDATE</gui> (pøíjem dat ze
+                  sbìrnice), <gui>SET OK</gui> (úspìšný zápis), <gui>SET
+                  FAILED</gui> (zápis se nepodaøilo zahájit, napøíklad pokud
+                  SmartServer není právì pøipojen ke sbìrnici) a <gui>SET
+                  ERROR</gui> (zápis byl zahájen, ale skonèil
+                  chybou).</p><p>V historii se objevují pouze datové objekty,
+                  které byly v konfiguraci vytvoøeny pomocí parametrù <type>logged_objects</type>
+                  a <type>logged_object</type> (viz kapitolu <in
+                  label="secObjects"></in>).</p></dd>
+
+                  <dt><gui>Protokol</gui></dt>
+
+                  <dd><p>Stránka se systémovými záznamy bude vìtšinou prázdná.
+                  Mezi záznamy se poèítají pøedevším ladicí a diagnostické
+                  výpisy, které se nevypisují, pokud nejsou zapnuty. Pokud se
+                  v sekci <type>[log]</type> (viz <in label="secLog"></in>)
+                  výpisy zapnout, objeví se právì zde.</p></dd>
+
+                  <dt><gui>Pøímý pøístup</gui></dt>
+
+                  <dd><p>Jednoduchá stránka dovolující pøímo zapsat a èíst
+                  datové objekty serveru.</p><p><gui>Ètení hodnoty z KNX</gui>
+                  vyžaduje vložení skupinové adresy (napøíklad
+                  <gui>3/2/3</gui>) do pole vlevo od tlaèítka
+                  <gui>Pøeèíst</gui> a jeho stisk. SmartServer vypíše hodnotu
+                  nebo informaci o chybì ètení.</p><p>Zápis hodnoty do KNX
+                  pracuje podobnì, navíc však v druhém poli vyžaduje vložení
+                  zapisované hodnoty. Napøíklad, pokud má být na bitovou
+                  adresu 3/1/1 zapsána logická jednièka, uvede se do pole
+                  s hodnotou <gui>true</gui>. SmartServer po stisku tlaèítka
+                  <gui>Zapsat</gui> oznámí výsledek zápisu (a ihned je možné
+                  se ve stránce <gui>Historie dat</gui> pøesvìdèit, jak zápis
+                  dopadl).</p></dd>
+
+                  <dt><gui>Uživatelé</gui></dt>
+
+                  <dd><p>Stránka se dvìma plochami pro editaci uživatelù a
+                  jejich rolí. Stránka má dva základní úèely: nastavovat
+                  pøístupové údaje k administraènímu webovému rozhraní a
+                  nastavovat pøístupové údaje k uživatelským
+                  stránkám.</p><p>Dvì role (<gui>sysadmin</gui> a
+                  <gui>sysuser</gui>) jsou systémové a nelze je upravit ani
+                  odstranit. Tyto role se nenabízejí v seznamu rolí, avšak je
+                  možné je zvolit pøi výbìru role uživatele.</p><p>Systémoví
+                  uživatelé (ve výchozím nastavení <gui>admin</gui> a
+                  <gui>user</gui>), kteøí jsou urèeni konfiguraèním souborem
+                  (napø. <file>default.cfg</file>), nemohou být rovnìž ani
+                  upraveni ani smazáni. Jejich hesla mohou být mìnìna
+                  libovolnì.</p><warning><p>Definice uživatelé mùže být
+                  z konfiguraèního souboru odstranìna. Zùstanou tak
+                  k dispozici pouze uživatelé, kteøí byli ruènì pøidáni anebo
+                  kterým již bylo zmìnìno heslo. Pokud po takových zmìnách
+                  nebude v systému žádný uživatel s rolí <gui>sysadmin</gui>
+                  nebude možné SmartServer pøes webové rozhraní spravovat
+                  (nebude se jak k rozhraní pøihlásit).</p></warning><dl>
+                      <caption>Editace rolí i uživatelù je jednoduchá. Pro obì
+                      skupiny webové rozhraní nabízí tøi operace, vyjádøené
+                      ikonami:</caption>
+
+                      <dt>Pøidat roli/uživatele <figure
+                      file="Add32"></figure></dt>
+
+                      <dd><p>Otevøe se formuláø s údaji role nebo uživatele,
+                      po vyplnìní údajù lze stiskem tlaèítka <gui>Použít</gui>
+                      roli/uživatele vytvoøit, nebo se lze pomocí odkazu
+                      <gui>Pøejít zpìt do seznamu uživatelù</gui> vrátit zpìt
+                      bez založení role/uživatele.</p></dd>
+
+                      <dt>Smazat roli/uživatele <figure
+                      file="Trash32"></figure></dt>
+
+                      <dd><p>Smaže pøíslušnou roli nebo pøíslušného
+                      uživatele.</p></dd>
+
+                      <dt>Upravit roli/uživatele <figure
+                      file="Edit32"></figure></dt>
+
+                      <dd><p>Otevøe se formuláø shodný s formuláøe pro pøidání
+                      role/uživatele. Po úpravì dat lze opìt stiskem tlaèítka
+                      <gui>Použít</gui> nové údaje pøijmout nebo se lze pomocí
+                      odkazu vrátit zpìt.</p></dd>
+                    </dl></dd>
+                </dl>
+              </text>
+            </section>
+
+            <section label="secUserPages" level="3">
+              <title>Ekvitermní køivka</title>
+
+              <text>
+                <p>Všechny soubory ve složce <file>Web/User</file> instalaèní
+                složky mohou být zobrazeny bez pøihlášení. Napøíklad, ukázkový
+                soubor (souèást instalace serveru) <gui>index.html</gui>,
+                pøítomný v této složce, bude na místním poèítaèi dostupný jako
+                <uri>http://127.0.0.1:6005/SmartServer/User/index.html</uri>.</p>
+
+                <p>Mezi soubory (bìžné statické HTML, obrázky, styly) mohou
+                být umístìny soubory s pøíponou <file>pt.xml</file> (napøíklad
+                <file>example.pt.xml</file>, který je souèástí instalace),
+                které SmartServer zpracovává dynamicky a umožòuje tak dovnitø
+                jejich obsahu vkládat živá data datových objektù z KNX.
+                Soubory <file>pt.xml</file> jsou XML, musejí proto být správnì
+                formátovány a pro použití ve SmartServeru musejí mít
+                definovaný XML namespace
+                <uri>http://www.smartcontrol.cz/2008/XML/Web/PageTemplate</uri>.
+                Pokud bude mít správnou pøíponu a chybný namespace, nezpracuje
+                ho SmartServer jako dynamický a živá data do nìj nevloží.</p>
+
+                <p>Doporuèuje se pro vytváøení vlastních uživatelských stránek
+                s živými daty vždy vytvoøit kopii ukázkového souboru a tu
+                upravovat.</p>
+
+                <p>Živá data se do stránky dostávají pomocí funkce <type>get</type>
+                uzavøené do znaèek <type>${</type> a <type>}</type>.
+                SmartServer znaèky vyhledává a nahrazuje je aktuální hodnotou.
+                Podobnì je možné zapsat do KNX hodnotu pomocí funkce <type>set</type>.
+                Zápis hodnoty vyžaduje aktivitu uživatele (stisk tlaèítka,
+                odkazu), SmartServer proto v uživatelských dynamických
+                (<file>pt.xml</file>) stránkách pøijímá funkci <type>set</type>
+                jako parametr odkazu na stránku (na jinou nebo na sebe samu).
+                Uvnitø dynamických stránek je také možné použít vybírací
+                pøíkaz (<type>pt:choose</type>), což dovoluje vytváøet obsah
+                stránky rùzný podle rùzných hodnot logických datových
+                objektù.</p>
+
+                <p>Funkce <type>get</type> je doplnìna odlišnì pracující
+                funkcí <type>getwix</type>, která slouží pøedevším pro
+                pøedávání dat do vizualizaèního nástroje Wix (viz
+                <uri>www.papouch.com</uri>). Funkce <gui>getwix</gui> je
+                popsána dále v kapitole <in label="secGetWix"></in>.</p>
+
+                <dl class="dlCaption">
+                  <caption>Vše ukazuje následující sada pøíkladù. Pøíklady
+                  (<file>*.pt.xml</file> soubory, po instalaci dostupné
+                  z veøejných stránek serveru) vždy následují ukázky HTML,
+                  které SmartServer z pøedloh vyrobí a které odesílá
+                  klientovi:</caption>
+
+                  <dt>Zobrazení hodnoty datového objektu (<file>01
+                  get.pt.xml</file>)</dt>
+
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;01 get.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: ${get(3/1/21)}.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p>výsledek u klienta:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;01 get.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+
+                  <dt>Zápis hodnoty (<file>02 set.pt.xml</file>)</dt>
+
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;02 set.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set value example&lt;/h1&gt;
+    &lt;p&gt;Switch &lt;a href="?set(3/1/21,true)"&gt;on&lt;/a&gt; or
+              &lt;a href="?set(3/1/21,false)"&gt;off&lt;/a&gt;&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p>výsledek u klienta:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;02 set.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set value example&lt;/h1&gt;
+    &lt;p&gt;Switch 
+      &lt;a href="?set(3/1/21,true)"&gt;on&lt;/a&gt; or 
+      &lt;a href="?set(3/1/21,false)"&gt;off&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+
+                  <dt>Zmìna stylu podle hodnoty objektu (<file>03
+                  style.pt.xml</file>)</dt>
+
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;03 style.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Change style by get example&lt;/h1&gt;
+    &lt;pt:choose&gt;
+      &lt;pt:when condition="get(3/1/21)"&gt;
+        &lt;p style="color: green;"&gt;Green text.&lt;/p&gt;
+      &lt;/pt:when&gt;
+      &lt;pt:otherwise&gt;
+        &lt;p style="color: red;"&gt;Red text.&lt;/p&gt;
+      &lt;/pt:otherwise&gt;
+    &lt;/pt:choose&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p>výsledek u klienta:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;03 style.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Change style by get example&lt;/h1&gt;
+    &lt;p style="color: red;"&gt;Red text.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+
+                  <dt>Kombinace zápisu s podmínkou (<file>04
+                  set.pt.xml</file>)</dt>
+
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;04 set.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set according to current state&lt;/h1&gt;
+    &lt;pt:choose&gt;
+      &lt;pt:when condition="get(3/1/21)"&gt;
+        &lt;p style="color: green;"&gt;OK,
+          &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.
+        &lt;/p&gt;
+      &lt;/pt:when&gt;
+      &lt;pt:otherwise&gt;
+        &lt;p style="color: red;"&gt;Failure,
+          &lt;a href="?set(3/1/21,true)"&gt;switch on&lt;/a&gt;.
+        &lt;/p&gt;
+      &lt;/pt:otherwise&gt;
+    &lt;/pt:choose&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p>výsledek u klienta:</p><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;04 set.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set according to current state&lt;/h1&gt;
+    &lt;p style="color: green;"&gt;OK, 
+      &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+
+                  <dt>Opakované ètení (<file>05 get
+                  refresh.pt.xml</file>)</dt>
+
+                  <dd><p>Opakovaného ètení je dosaženo zapsáním znaèky <type>&lt;meta&gt;</type>
+                  dovnitø znaèky <type>&lt;head&gt;</type>:</p><p.type>&lt;head&gt;  
+  &lt;meta http-equiv="refresh" content="5"/&gt;
+  ...</p.type></dd>
+
+                  <dt>Zápis uživatelské hodnoty (<file>06
+                  input.pt.xml</file>)</dt>
+
+                  <dd><p>Do serveru je zapsána hodnota z editaèního øádku. Pro
+                  zápis (a nové naètení stránky) je použitá funkce <type>setValue</type>
+                  zapsaná v JavaScriptu:</p><p.type>function setValue( address, value )
+{
+    try
+    {
+        location.replace( location.pathname +
+                          "?set(" + address + "," + value + ")" );
+    }
+    catch(error)
+    {
+        // intentionaly do nothing
+    }
+}</p.type><p>Samotný editaèní øádek je s touto funkcí spojeno
+                  následovnì:</p><p.type>&lt;input type="text" value="${get(3/3/21)}"
+       onchange="setValue( '3/3/21', this.value )" size="3" maxlength="3" /&gt;</p.type></dd>
+
+                  <dt>Zápis hodnoty po stisku tlaèítka (<file>07
+                  dimming.pt.xml</file>)</dt>
+
+                  <dd><p>Pøíklad používá stejnou funkci <type>setValue</type>
+                  jako pøíklad 6, rozdíl je pouze v hodnotách zapisovaných do
+                  serveru:</p><p.type>&lt;input type="button" value="Increase" onclick="setValue( '3/2/21', 10 )"/&gt;
+&lt;input type="button" value="Decrease" onclick="setValue( '3/2/21', -10 )"/&gt;</p.type></dd>
+
+                  <dt>Zápis hodnoty jen pøi stisku tlaèítka (<file>08 push
+                  button.pt.xml</file>)</dt>
+
+                  <dd><p>Zápis hodnoty jen pøi stisku tlaèítka vyžaduje, aby
+                  bìhem stisku nedošlo k novému naètení stránky (tak jako tomu
+                  bylo v pøedešlých ukázkách). Tohoto chování se dosáhne
+                  základním prostøedkem AJAX, objektem <type>XMLHttpRequest</type>:</p><p.type>function setValue( address, value )
+{
+    try
+    {
+        var xmlhttp;
+        if (window.XMLHttpRequest)
+        {
+            // code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp = new XMLHttpRequest();
+        }
+        else
+        {
+            // code for IE6, IE5
+            xmlhttp = new ActiveXObject( "Microsoft.XMLHTTP" );
+        }
+        xmlhttp.open( "GET", location.pathname +
+                             "?set(" + address + "," + value + ")", true );
+        xmlhttp.send( null );
+    }
+    catch(error)
+    {
+        // intentionaly do nothing
+    }
+}</p.type><p>Další èást pøíkladu, volání funkce <type>setValue</type>, je
+                  stejné jako v pøedchozích ukázkách.</p></dd>
+
+                  <dt>Ukázka iterace a promìnných (<file>09
+                  table.pt.xml</file>)</dt>
+
+                  <dd><p>Ukázka použití poèítaného cyklu <type>pt:for</type> a
+                  v nìm nastavovaných promìnných <type>pt:variable</type>:</p><p.type>&lt;pt:for from="30" to="39" index="index" order="order" odd="odd"&gt;
+    &lt;pt:variable model="status" source="3/0/${index}" /&gt;
+    &lt;pt:variable model="brightness" source="3/3/${index}" /&gt;
+    &lt;tr&gt;
+        &lt;td&gt;${order}&lt;/td&gt;
+        &lt;td&gt;${get(status)}&lt;/td&gt;
+        &lt;td&gt;${get(brightness)}&lt;/td&gt;
+    &lt;/tr&gt;
+&lt;/pt:for&gt;</p.type></dd>
+
+                  <dt>Relaèní operátory (<file>10
+                  relations.pt.xml</file>)</dt>
+
+                  <dd><p>Pøíklad ukazující použití srovnávacích funkcí, tj.
+                  funkcí pro rozlišení velikosti hodnoty, pøípadnì jejich
+                  shody:</p><p.type>&lt;p pt:condition="${equal(ementál,chleba)}"&gt;
+    ementál = chleba
+&lt;/p&gt;
+&lt;p pt:condition="${notEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt;&amp;amp;gt; chleba
+&lt;/p&gt;
+&lt;p pt:condition="${less(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt; chleba (incorrect in English, correct in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${lessEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt;= chleba (incorrect in English, correct in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${greater(ementál,chleba)}"&gt;
+    ementál &amp;amp;gt; chleba (correct in English, incorrect in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${greaterEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;gt;= chleba (correct in English, incorrect in Czech)
+&lt;/p&gt;</p.type></dd>
+                </dl>
+
+                <p>Z ukázek je zøejmé, že znaèky specifické pro SmartServer
+                jsou jasnì oddìleny (<type>pt:...</type>) a že zbytek textu je
+                obyèejné, nièím neomezené HTML. To je také dùvod, proè je
+                v <file>pt.xml</file> souborech používat všechny HTML
+                konstrukce vèetnì stylù, skriptù apod.</p>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Týdenní kalendáø</title>
+
+              <text>
+                <p>SmartServer dovoluje omezovat pøístup ke všem uživatelským
+                stránkám, které vznikají z <file>pt.xml</file> souborù.
+                Omezení pøístupu napø. k textovým souborùm nebo k obrázkùm
+                není podporováno.</p>
+
+                <il>
+                  <caption>Model pøístupu ke stránkám je jednoduchý:</caption>
+
+                  <li><p><file>pt.xml</file> soubor (tedy stránka) urèí, jaké
+                  role uživatelù k nìmu budou mít pøístup. Typicky je s každým
+                  <file>pt.xml</file> souborem spojena jedna role (ale mùže
+                  jich být i více).</p></li>
+
+                  <li><p>Administrátor (uživatel s rolí <gui>sysadmin</gui>)
+                  v uživatelském rozhraní tyto role definuje a pøipojí k nim
+                  uživatele (zpravidla nezávisle).</p></li>
+
+                  <li><p>SmartServer pøi pøístupu na stránku, která vyžaduje
+                  urèitou roli, zjistí, jaký uživatel je pøihlášený. Pokud je
+                  role uživatele správná, SmartServer stránku bezprostøednì
+                  zobrazí. Pokud role správná není, SmartServer zobrazí
+                  stránku s požadavkem na pøihlášení
+                  uživatele.</p><p>Pøihlásí-li se správný uživatel, pøejde
+                  SmartServer na chránìnou stránku.</p></li>
+
+                  <li><p>Administrátor (uživatel s rolí <gui>sysadmin</gui>)
+                  má pøístup ke všem stránkám.</p></li>
+                </il>
+
+                <il>
+                  <caption>Role uživatelù jsou dvojího druhu:</caption>
+
+                  <li><p>role, které vyžadují plné pøihlášení uživatele (tj.
+                  jménem a heslem),</p></li>
+
+                  <li><p>role, které dovolují pøihlášení uživatele pouze jeho
+                  heslem (kódem, zpravidla èíselným).</p></li>
+                </il>
+
+                <p>Uživatelé jsou do seznamu vždy pøidáni plnì, tj. vèetnì
+                jména a hesla. Rozlišení, zdali jméno použít nebo ne, je
+                vlastnost role a teprve zaøazením uživatele do patøièné role
+                se o zpùsobu jeho pøihlašování rozhodne.</p>
+
+                <p>Role dovolí pøihlášení pouze heslem (kódem), pokud je
+                v její editaci (formuláø <gui>Editace role</gui>) zaškrtnuta
+                volba <gui>Pøihlášení jen kódem</gui>.</p>
+
+                <warning><p>Pokud pøi využití pøihlašování pouze kódem dojde
+                k pøekrytí hesel, není výsledné pøihlášení nijak blíže urèeno
+                a pøihlášen mùže být kterýkoli z uživatelù se stejným
+                kódem.</p></warning>
+
+                <p>Role, kterou <file>pt.xml</file> stránka vyžaduje, se
+                zapisuje dvìma zpùsoby podle poètu rolí, které stránka
+                dovoluje. Jediná dovolená role mùže být zapsána do atributu
+                <type>role</type> prvku <type>pt:access</type> následovnì:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
+
+    &lt;pt:access role="somerole" /&gt;
+
+    &lt;html&gt;
+...</p.type>
+
+                <p>Pøi potøebì dovolit pøístup více rolím, je nutné využít
+                složitìjší zápis:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
+
+    &lt;pt:access&gt;
+        &lt;pt:role&gt;roleone&lt;/pt:role&gt;
+        &lt;pt:role&gt;roletwo&lt;/pt:role&gt;
+        &lt;pt:role&gt;somerole&lt;/pt:role&gt;
+    &lt;/pt:access&gt;
+
+    &lt;html&gt;
+...</p.type>
+
+                <p>Je zøejmé, že atribut <type>role</type> byl nahrazen
+                vnoøenými prvky <type>pt:role</type>. Obì ukázky jsou souèástí
+                instalace (soubory <file>singlerole.pt.xml</file> a
+                <file>multipleroles.pt.xml</file>). Aby ukázky byly funkèní,
+                je tøeba po instalaci SmartServeru pomocí administraèního
+                rozhraní definovat role <type>roleone</type>, <type>roletwo</type>
+                a <type>somerole</type> spolu s uživateli, kteøí do tìchto
+                rolí budou zaøazeni.</p>
+
+                <p>Pro bezpeèné a pøehledné øízení pøístupu ke stránkám lze
+                doporuèit, aby jedna stránka dovolovala pøístup pouze jedné
+                roli.</p>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Výstup 1:N</title>
+
+              <text>
+                <p>Prohlížení webových stránek je orientováno na uživatele.
+                Uživatel si vybere adresu, odkaz, na který chce pøejít,
+                prohlížeè požádá server o data a server je prohlížeèi vrátí.
+                Mezi požadavky prohlížeè a webový server neudržují žádné
+                spojení a nevìdí o sobì.</p>
+
+                <p>Pro zobrazování dat ze SmartServeru mùže být užiteèné, aby
+                prohlížeè èas od èasu sám o nová data webový server požádal.
+                Technologie HTTP/HTML nemá pro tento pøípad žádný standard,
+                nicménì vìtšina prohlížeèù v dnešní dobì pro tento úèel
+                respektuje znaèka meta refresh (bez ohledu na skuteènost, že
+                meta refresh je konsorciem W3C nedoporuèený).</p>
+
+                <p>Použití znaèky meta refresh je nejlépe vidìt na pøíkladu
+                (za sebou je øazeny zdrojový soubor, <file>05 get
+                refresh.pt.xml</file>, a výsledek odeslaný do prohlížeèe):</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta http-equiv="refresh" content="5"/&gt;
+    &lt;title&gt;05 get refresh.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: ${get(3/1/21)}.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type>
+
+                <p>výsledek u klienta:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta http-equiv="refresh" content="5"/&gt;
+    &lt;title&gt;05 get refresh.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type>
+
+                <p>Pøidání znaèky &lt;meta refresh.../&gt; zpùsobí, že
+                prohlížeè požádá webový server o nová data každých pìt
+                sekund.</p>
               </text>
             </section>
           </text>

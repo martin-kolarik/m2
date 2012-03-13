@@ -1,9 +1,16 @@
+Version 2.0.17xx/beta 11.3.2012
+- ISS: Routing mode requires disabling firewall.
+- ISS: Installer sometimes does not uninstall the product.
+- BUG:
+- CHG:
+- NEW: Function block Scenes
+
 Version 2.0.1612/beta 12.11.2011
-- NEW: Function blocks Equithermic curve, Persistent writer and Week calendar introduced.
 - ISS: Server sometimes crashes when stopped.
 - ISS: Routing mode requires disabling firewall.
 - ISS: Installer sometimes does not uninstall the product.
 - ISS: date/time definiton (#240) will change format in the next version.
+- NEW: Function blocks Equithermic curve, Persistent writer and Week calendar introduced.
 
 Version 1.2.1550/R 17.9.2011
 - BUG: #250, rarely, after disconnecting KNX interface when new connection was temporarily
