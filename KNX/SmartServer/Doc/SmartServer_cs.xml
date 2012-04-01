@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <document file="SmartServer" xml:lang="cs"
           xmlns="http://www.mii.cz/2004/XML/Document/Common">
-  <header creator="martin" doc_type="generic" last_modified="2012-03-09"
+  <header creator="martin" doc_type="generic" last_modified="2012-04-01"
           last_modifier="martin" version="1.2.1550.0" xml:lang="cs"></header>
 
   <adjustment>
@@ -42,7 +42,7 @@
           standardu KNX).</p></li>
         </il>
 
-        <p>Verze dokumentace: 1.2.1775</p>
+        <p>Verze dokumentace: 1.2.1795</p>
 
         <content>
           <caption>Obsah</caption>
@@ -469,15 +469,28 @@ Licence support tool
                 rychlou definici několika datových bodů, zatímco <type>[blocks]</type>
                 dovoluje větší strukturovanost konfigurace.</p>
 
-                <p>V obou sekcích lze datové objekty definovat pomocí
-                parametrů <type>objects</type>, <type>object</type>, <type>logged_objects</type>,
-                <type>logged_object</type>, <type>logged_on_change_objects</type>
-                a <type>logged_on_change_object</type>. Jejich odlišení je
-                jednoduché: <type>objects</type>, <type>logged_ob<c.special
-                      what="breakhint" />jects</type> a <type>logged_on_change_objects</type>
-                dovolují najednou definovat více datových objektů (každý
-                s jednou skupinovou adresou); <type>object</type>, <type>logged_object</type>
-                a <type>logged_on_change_object</type> definuje jediný datový
+                <dl>
+                  <caption>V obou sekcích lze datové objekty definovat pomocí
+                  parametrů:</caption>
+
+                  <dt><type>objects</type></dt>
+
+                  <dt><type>object</type></dt>
+
+                  <dt><type>logged_objects</type></dt>
+
+                  <dt><type>logged_object</type></dt>
+
+                  <dt><type>logged_on_change_objects</type></dt>
+
+                  <dt><type>logged_on_change_object</type></dt>
+                </dl>
+
+                <p>Jejich odlišení je jednoduché: <type>objects</type>, <type>logged_objects</type>
+                a <type>logged_on_change_objects</type> dovolují najednou
+                definovat více datových objektů (každý s jednou skupinovou
+                adresou); <type>object</type>, <type>logged_object</type> a
+                <type>logged_on_change_object</type> definuje jediný datový
                 objekt spojený případně s více skupinovými adresami (model je
                 stejný jako při spojování komunikačních objektů se skupinovými
                 adresami při běžném programování KNX v ETS).</p>
@@ -1287,7 +1300,7 @@ context = KNX
                   <dt><type>&lt;curve_definition&gt;</type></dt>
 
                   <dd><p>pro zápis výpočtu jedné topné křivky. Definice má
-                  následující formát:</p><p.type>&lt;output_temperature_name&gt; = &lt;inner_wish_temperature_name&gt;, &lt;current_outer_temperature_name&gt; [, &lt;slope&gt; [, &lt;offset&gt; ] ]</p.type><p>přičemž
+                  následující formát:</p><p.type>&lt;out_temp&gt; = &lt;inner_wish_temp&gt;, &lt;current_out_temp&gt; [, &lt;slope&gt; [, &lt;offset&gt; ] ]</p.type><p>přičemž
                   jednotlivé vstupní hodnoty a parametry se odpovídají výpočtu
                   zapsanému v kapitole <in
                   label="secModuleEquithermic"></in>.</p><p>Parametry <type>slope</type>
@@ -1373,7 +1386,7 @@ context = KNX
               <text>
                 <p>Sekce <type>[storage]</type> slouží ke konfiguraci
                 funkčního modulu trvalého uložení dat. Pro popis funkce modulu
-                viz sekci <in label="secModuleStorage"></in>.</p>
+                viz sekci <in label="secModulePersistentStorage"></in>.</p>
 
                 <dl>
                   <caption>Sekce definuje následující parametry:</caption>
@@ -1396,13 +1409,19 @@ context = KNX
                   <dd><p>pro určení cesty k souboru, do kterého se budou
                   určená data ukládat. Příklad zápisu parametru:</p><p.type>storage_file_path = d:\ss.ini</p.type><p>Parametr
                   je nepovinný a jeho výchozí hodnota je <file>&lt;common
-                  program
-                  data&gt;\NeNo\SmartServer\PersistingStorage.ini</file>.
-                  <file>&lt;common program data&gt;</file> je nahrazeno cestou
-                  ke společným konfiguracím programů v různých operačních
-                  systémech různě<c.special what="dash" />například ve Window
-                  7 je celá výchozí cesta k souboru
-                  <file>C:\ProgramData\NeNo\SmartServer\PersistingStorage.ini</file>.</p></dd>
+                  program data&gt;\<c.special
+                  what="breakhint" />NeNo\<c.special
+                  what="breakhint" />SmartServer\<c.special
+                  what="breakhint" />Persisting<c.special
+                  what="breakhint" />Storage.ini</file>. <file>&lt;common
+                  program data&gt;</file> je nahrazeno cestou ke společným
+                  konfiguracím programů v různých operačních systémech
+                  různě<c.special what="dash" />například ve Window 7 je celá
+                  výchozí cesta k souboru <file>C:\<c.special
+                  what="breakhint" />ProgramData\<c.special
+                  what="breakhint" />NeNo\<c.special
+                  what="breakhint" />SmartServer\<c.special
+                  what="breakhint" />PersistingStorage.ini</file>.</p></dd>
 
                   <dt><type>write_delay</type></dt>
 
@@ -2127,16 +2146,22 @@ context = KNX
                 v konfiguraci, viz kapitolu <in label="secWeb"></in>).</p>
 
                 <p>Administrační část serveru je dostupná na adrese (po
-                vložení do adresového řádku prohlížeče)
-                <uri>http://[server]:6005/SmartServer</uri>, uživatelská část
-                serveru je dostupná na adrese
-                <uri>http://[server]:6005/SmartServer/User</uri>
-                (<uri>[server]</uri> je třeba nahradit jménem nebo adresou
-                počítače, pro místní počítač bude platit například
-                <uri>http://127.0.0.1:6005/SmartServer</uri>). Všechny
-                soubory, které mají být pomocí serveru dostupné, musejí být
-                uloženy ve složce <file>User</file> (a podsložkách, více viz
-                <in label="secWeb"></in>).</p>
+                vložení do adresového řádku prohlížeče) <uri>http://<c.special
+                what="breakhint" />[server]:6005/<c.special
+                what="breakhint" />SmartServer</uri>, uživatelská část serveru
+                je dostupná na adrese <uri>http://<c.special
+                what="breakhint" />[server]:<c.special
+                what="breakhint" />6005/<c.special
+                what="breakhint" />SmartServer/<c.special
+                what="breakhint" />User</uri> (<uri>[server]</uri> je třeba
+                nahradit jménem nebo adresou počítače, pro místní počítač bude
+                platit například <uri>http://<c.special
+                what="breakhint" />127.0.0.1:<c.special
+                what="breakhint" />6005/<c.special
+                what="breakhint" />SmartServer</uri>). Všechny soubory, které
+                mají být pomocí serveru dostupné, musejí být uloženy ve složce
+                <file>User</file> (a podsložkách, více viz <in
+                label="secWeb"></in>).</p>
               </text>
             </section>
 
@@ -2311,10 +2336,19 @@ context = KNX
                 jejich obsahu vkládat živá data datových objektů z KNX.
                 Soubory <file>pt.xml</file> jsou XML, musejí proto být správně
                 formátovány a pro použití ve SmartServeru musejí mít
-                definovaný XML namespace
-                <uri>http://www.smartcontrol.cz/2008/XML/Web/PageTemplate</uri>.
-                Pokud bude mít správnou příponu a chybný namespace, nezpracuje
-                ho SmartServer jako dynamický a živá data do něj nevloží.</p>
+                definovaný XML namespace <uri>http://www.<c.special
+                what="breakhint" />smart<c.special
+                what="breakhint" />control.<c.special
+                what="breakhint" />cz/<c.special
+                what="breakhint" />2008/<c.special
+                what="breakhint" />XML/<c.special
+                what="breakhint" />Web/<c.special
+                what="breakhint" />Page<c.special
+                what="breakhint" />Tem<c.special
+                what="breakhint" />pla<c.special what="breakhint" />te</uri>.
+                Pokud bude mít soubor správnou příponu a chybný namespace,
+                nezpracuje ho SmartServer jako dynamický a živá data do něj
+                nevloží.</p>
 
                 <p>Doporučuje se pro vytváření vlastních uživatelských stránek
                 s živými daty vždy vytvořit kopii ukázkového souboru a tu
@@ -2818,7 +2852,7 @@ context = KNX
             <p>Konfigurace funkčních modulů je popsána nezávisle v sekci <in
             label="secConfiguration"></in>.</p>
 
-            <section level="3">
+            <section label="secModulePersistentStorage" level="3">
               <title>Trvalé úložiště dat</title>
 
               <text>
@@ -2879,7 +2913,7 @@ context = KNX
               </text>
             </section>
 
-            <section level="3">
+            <section label="secModuleWeekCalendar" level="3">
               <title>Týdenní kalendář</title>
 
               <text>
@@ -2909,7 +2943,7 @@ context = KNX
               </text>
             </section>
 
-            <section level="3">
+            <section label="secModuleScenes" level="3">
               <title>Scény</title>
 
               <text>
@@ -3155,6 +3189,10 @@ context = KNX
                 ukončení klientem. V případě nerozpoznaného výpadku sítě
                 server spojení ukončí cca do 2 minut.</p>
 
+                <p>Rozhraní XMLSocket používá neměnný kontext <qq><type>.KNX</type></qq>.
+                Pro přístup k jiným datovým položkám je vždy třeba použít
+                úplné (absolutní) jméno.</p>
+
                 <p>XML v protokolu má následující formát (ukázka skutečného
                 XML):</p>
 
@@ -3392,8 +3430,11 @@ context = KNX
               <text>
                 <dl>
                   <caption>Ukázka klienta pro iPhone (iPad), jako vývojové
-                  prostředí je využit iWebKit
-                  (<uri>http://www.iwebkit.net</uri>). Ve složce
+                  prostředí je využit iWebKit (<uri>http://<c.special
+                  what="breakhint" />www.<c.special
+                  what="breakhint" />iweb<c.special
+                  what="breakhint" />kit.<c.special
+                  what="breakhint" />net</uri>). Ve složce
                   <file>Examples\iWebKit</file> jsou umístěny dva
                   soubory:</caption>
 
@@ -3476,7 +3517,8 @@ context = KNX
 .System.Licensing.SerialNumber
 .System.Configuration.Error
 .System.Configuration.File
-.KNX
+.KNX.Connected
+.KNX.... (všechny definované skupinové adresy, např. .KNX.1/0/0)
 </p.type>
           </text>
         </section>

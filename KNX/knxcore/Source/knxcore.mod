@@ -74,7 +74,6 @@ CONST
    itemConnected = 1;
    nameNamespace = L"KNX";
    nameConnected = L"Connected";
-   namePathConnected = L"Control." + nameConnected;
 
 //================================================================================
 
@@ -1839,7 +1838,7 @@ CLASS IMPLEMENTATION CKNXServer;
       END;
       
       IF _AdviseSource.AdviseListener <> NIL THEN
-         Namespace.Get( StringsO.FromOA( namePathConnected ), OUT pairs );
+         Namespace.Get( StringsO.FromOA( nameConnected ), OUT pairs );
          result := Sync.arCompleted;
          value.Boolean := TRUE;
          _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( pairs )), OA( 0, ADR( value )) );
@@ -1860,7 +1859,7 @@ CLASS IMPLEMENTATION CKNXServer;
       StopTimer( tiForceRead );
 
       IF _AdviseSource.AdviseListener <> NIL THEN
-         Namespace.Get( StringsO.FromOA( namePathConnected ), OUT pairs );
+         Namespace.Get( StringsO.FromOA( nameConnected ), OUT pairs );
          result := Sync.arCompleted;
          value.Boolean := FALSE;
          _AdviseSource.AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( pairs )), OA( 0, ADR( value )) );
