@@ -1,4 +1,10 @@
-Version 1.2.1067/R 6.11.2011
+Version 1.2.1799/R 3.4.2012
+- BUG: #268, each approx. 50 days SmartServer started to connect and disconnect quickly
+       for about a hour. The load of the machine was high and no data could be transferred.
+       Operating system sometimes crashed during the time. After that, SmartServer could
+       still recover and could continue normal work.
+
+Version 1.2.1607/R 6.11.2011
 - CHG: Current version renamed to "SmartServer Standard".
 - NEW: New version names "SmartServer Lite" introduced, SDAP and XMLSocket support is missing
        in the version.

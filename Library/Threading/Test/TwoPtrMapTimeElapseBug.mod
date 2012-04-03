@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   datetime,
+   time,
    log,
    sync,
    test,
@@ -52,7 +52,7 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
 
       // the test requires GetUptimeMS overflow after 8192 milliseconds
-      currentTime := datetime.UptimeMS16();
+      currentTime := time.UptimeMS16();
 
       FOR i := 1 TO 10 DO
          Map.Add( CARDINAL( currentTime ), i, 0, i * 100 );
@@ -61,16 +61,16 @@ CLASS IMPLEMENTATION CTest;
       LOOP
          timeout := Map.GetTimeoutToFirstElapsed( CARDINAL( currentTime ));
 
-         Host^.Log^.LogSC( log.ldError, 0, L"", L"Timeout:", timeout );
+         Host^.Log^.LogSC( log.dldError, L"", L"Timeout:", timeout );
          
          sync.Sleep( timeout );
-         currentTime := datetime.UptimeMS16();
+         currentTime := time.UptimeMS16();
 
-         Host^.Log^.LogSC( log.ldError, 0, L"", L"Time:", CARDINAL( currentTime ));
+         Host^.Log^.LogSC( log.dldError, L"", L"Time:", CARDINAL( currentTime ));
 
          WHILE Map.GetFirstElapsed( CARDINAL( currentTime ), TRUE, OUT key, OUT ptr ) DO
             i := CARDINAL( key );
-            Host^.Log^.LogSC( log.ldError, 0, L"", L"  tick: ", i );
+            Host^.Log^.LogSC( log.dldError, L"", L"  tick: ", i );
 
             Map.Add( CARDINAL( currentTime ), i, 0, i * 100 );
          END; // DO

@@ -40,6 +40,13 @@ BEGIN
   RETURN LastTimeMS64;
 END UptimeMS64;
 
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE UptimeMS16(): CARD16; // for debugging purposes
+BEGIN
+   RETURN CARD16( UptimeMS());
+END UptimeMS16;
+
 (*================================================================================================*)
 // high resolution timer
 
