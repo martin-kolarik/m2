@@ -72,16 +72,6 @@
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" KeyPath="yes" />
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
-                        <Directory Id="RCWare" Name="RCWare">
-                            <Component Id="RCWareDLL1" Guid="36FD59CA-EAB9-457d-B031-57A1B469D5F5">
-                                <File Id="RCWareDLL1.dll" Name="RCWare1.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll"
-                                      Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll" DiskId="1" Vital="yes" KeyPath="yes" />
-                            </Component>
-                            <Component Id="RCWareDLL2" Guid="428BF0C8-B96D-4894-A359-44297DF02B65">
-                                <File Id="RCWareDLL2.dll" Name="RCWare2.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll"
-                                      Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll" DiskId="1" Vital="yes" KeyPath="yes" />
-                            </Component>
-                        </Directory>
                         <?if $(var.LanguageName)=en ?>
                             <Component Id="Documentation" Guid="D172AB6D-5999-4677-B590-8C5EB991973B">
                                 <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
@@ -267,10 +257,9 @@
                                     </Directory>
                                 </Directory>
                             </Directory>
-                            <Directory Id="iWebKit" Name="iWebKit">
-                                <Component Id="ExamplesiWebKit" Guid="EAC4A79A-24A5-493d-B148-219081E4BD0E">
-                                    <File Id="iWebKit.zip" Name="iWebKit.cfg" LongName="iWebKit5.04.zip" Source="Examples\iWebKit\iWebKit5.04.zip" DiskId="1" />
-                                    <File Id="iPhone.zip" Name="iphone.zip" Source="Examples\iWebKit\iphone.zip" DiskId="1" />
+                            <Directory Id="MobileWeb" Name="MobileWeb">
+                                <Component Id="ExamplesMobileWeb" Guid="162A102F-34A7-4279-9A98-894FA8D28DD3">
+                                    <File Id="iPhone.zip" Name="iphone.zip" Source="Examples\MobileWeb\iphone.zip" DiskId="1" />
                                 </Component>
                             </Directory>
                         </Directory>
@@ -332,15 +321,13 @@
             <ComponentRef Id="Changelog" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="ETSPR3" />
-            <ComponentRef Id="RCWareDLL1" />
-            <ComponentRef Id="RCWareDLL2" />
             <ComponentRef Id="Web" />
             <ComponentRef Id="UserWeb" />
             <ComponentRef Id="UserWebExamples" />
             <ComponentRef Id="Examples" />
             <ComponentRef Id="ExamplesFlash" />
             <ComponentRef Id="ExamplesWix" />
-            <ComponentRef Id="ExamplesiWebKit" />
+            <ComponentRef Id="ExamplesMobileWeb" />
             <ComponentRef Id="RCWE01" />
             <ComponentRef Id="RCWE02" />
             <ComponentRef Id="RCWE03" />
