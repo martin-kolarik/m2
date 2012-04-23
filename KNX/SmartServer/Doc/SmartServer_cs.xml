@@ -1897,7 +1897,7 @@ context = KNX
                 v <file>pt.xml</file> souborech možné používat všechny HTML konstrukce vèetnì stylù, skriptù apod.</p>
 
                 <p>V všech <file>pt.xml</file> souborech je možné používat znaèku <type>pt:context</type> s atributem <type>name</type>, která slouží pro pøepnutí datového kontextu. Nový kontext platí
-                vždy od místa znaèky dále a je možné možné jej nastavovat opakovanì. Výchozí kontext na zaèátku stránky je <qq><type>.</type></qq> (koøenový kontext). Pøíklad:</p>
+                vždy od místa znaèky dále a je možné možné jej nastavovat opakovanì. Výchozí kontext na zaèátku zpracování stránky je <qq><type>.KNX</type></qq> (nejèastìji používaný). Pøíklad:</p>
 
                 <p.type>&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
               contenttype="text/html"&gt;
@@ -2095,7 +2095,7 @@ context = KNX
                   pøi bìhu SmartServeru se do souboru hodnota ukládá. Pokud ještì není žádá hodnota uchovaná, použije se hodnota poèáteèní (pøeètená z konfigurace).</p></li>
                 </il>
 
-                <p>Funkèní modul trvalého úložištì spolupracuje s poèáteèním vyèítáním (inicializací) dat z KNX (viz <about label="secReadStart">sekci</about>). Uchovávaná data mohou být bìhem výpadku
+                <p>Funkèní modul trvalého úložištì spolupracuje s poèáteèním vyèítáním (inicializací) dat z KNX (viz sekci <in label="secReadStart"></in>). Uchovávaná data mohou být bìhem výpadku
                 SmartServeru v KNX zmìnìna (napø. bázová teplota termostatu) a SmartServer by mohl svým startem tuto pozdìji nastavenou hodnotu pøepsat nesprávnou starou hodnotou. Modul trvalého
                 úložištì proto zapisuje svá data (pøeètená ze souboru) až po vyètení poèáteèních hodnot z KNX.</p>
 

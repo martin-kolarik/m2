@@ -1913,7 +1913,7 @@ context = KNX
 
                 <p>There is possible to use <type>pt:context</type> tag (with <type>name</type> attribute) for switching data context in all <file>pt.xml</file> files. New context is valid for all
                 tags following particular <type>pt:context</type> tag, it is also possible to set the context repeatedly. Initial context (on the page load beginning) is <qq><type>.KNX</type></qq>
-                (the most usedone). Example:</p>
+                (the most used one). Example:</p>
 
                 <p.type>&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
               contenttype="text/html"&gt;
@@ -2110,8 +2110,8 @@ context = KNX
                   during run time value is stored to the file if data item is changes. If no value is persisted yet during start, initial configured value is written to KNX.</p></li>
                 </il>
 
-                <p>Persisting storage module cooperates with initial reading of KNX data (see <about label="secReadStart">sekci</about> section). Persisted data can be changed in KNX during
-                SmartServer outage and SmartServer would replace current value with improper (older) one. That is why persisting storage module writes its data just after initial reading finishes.</p>
+                <p>Persisting storage module cooperates with initial reading of KNX data (see <in label="secReadStart">sekci</in> section). Persisted data can be changed in KNX during SmartServer
+                outage and SmartServer would replace current value with improper (older) one. That is why persisting storage module writes its data just after initial reading finishes.</p>
 
                 <p>To make persisting storage really persistent, data file must be located in disk surviving outage. This is common in mainstream operating system, but uncommon in embedded operating
                 systems. For these systems data file must be placed to some external disk (USB, eSATA<c.special what="commadots" />).</p>
@@ -2565,7 +2565,7 @@ context = KNX
         </section>
 
         <section level="2">
-          <title>Pøehled datového modelu</title>
+          <title>Data model overview</title>
 
           <text>
             <p>The following list shows data items of SmartServer:</p>
