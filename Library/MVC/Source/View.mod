@@ -527,6 +527,9 @@ CONST
    PT_VARIABLE = L"variable";
       // model
       PT_SOURCE = L"source";
+   PT_CONTEXT = L"context";
+
+   DATA_CONTEXT_CHANGE_FUNCTION = L"changeDataContext";
 
 (*--------------------------------------------------------------------------------*)
 
@@ -969,6 +972,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
             b := ParseForeach( attributes );
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_VARIABLE ) THEN
             b := ParseVariable( isEmpty, attributes );
+         ELSIF nodeName.EqualsIgnoreCaseOA( PT_CONTEXT ) THEN
+            b := ParseContext( isEmpty );
             
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_ACCESS ) THEN
             IF TWhere{whInInput, whInOption, whInAccess} * Where <> TWhere{} THEN
@@ -1767,10 +1772,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseVariable( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
-      lattributes : lists.CStringStringList;
       nodeName : StringsO.CString;
-      nodePrefix : StringsO.CString;
-      nodeType : xmlreader.TNodeType;
       model : StringsO.CString;
       pname : StringsO.TPString;
       source : StringsO.CString;
@@ -1814,6 +1816,32 @@ CLASS IMPLEMENTATION CPageTemplateView;
       
       RETURN TRUE;
    END ParseVariable;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ParseContext( isEmpty : BOOLEAN ) : BOOLEAN;
+   VAR
+      functionHandler : MVC.TPFunctionHandler;
+      parameterList : lists.CStringStringList;
+      source : StringsO.CString;
+   BEGIN
+      IF NOT Request^.ModelContainer^.GetFunctionHandlerOA( DATA_CONTEXT_CHANGE_FUNCTION, OUT functionHandler ) THEN
+         source.FromOA( L"(pt:)context" );
+         SetError( source, NIL, L"'pt:context' support is missing." );
+         RETURN FALSE;
+      END;
+
+      IF isEmpty THEN
+         parameterList.Add( StringsO.Empty(), StringsO.Empty() );
+      ELSIF LoadTextContents( OUT source ) THEN
+         parameterList.Add( StringsO.Empty(), source );
+
+      ELSE
+         RETURN FALSE;
+      END;
+
+      RETURN functionHandler^.Call( Request^, ChangeDataContextFunctionName(), REF parameterList, NIL ) IN MVC.crsCalled;
+   END ParseContext;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -2176,6 +2204,13 @@ BEGIN
    Where := TWhere{};
    AuthTokens := NIL;
 END CPageTemplateView;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ChangeDataContextFunctionName() : StringsO.CString;
+BEGIN
+   RETURN StringsO.FromOA( DATA_CONTEXT_CHANGE_FUNCTION );
+END ChangeDataContextFunctionName;
 
 (*================================================================================*)
 

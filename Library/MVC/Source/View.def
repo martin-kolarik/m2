@@ -227,6 +227,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE ParseFormOption( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
    PRIVATE PROCEDURE ParseVariable( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseContext( isEmpty : BOOLEAN ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormAction( CONST attributes : lists.CStringStringList; OUT formAction : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormModel( CONST attributes : lists.CStringStringList; OUT formModel : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormId( CONST attributes : lists.CStringStringList; OUT formId : StringsO.IString ) : BOOLEAN;
@@ -242,6 +243,9 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE FormatError();
    PRIVATE PROCEDURE Load() : TLoadState; // return is copy of LoadState member
 END CPageTemplateView;
+
+// static
+PROCEDURE ChangeDataContextFunctionName() : StringsO.CString;
 
 (*--------------------------------------------------------------------------------*)
 
