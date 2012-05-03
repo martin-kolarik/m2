@@ -257,7 +257,7 @@
                                     </Directory>
                                 </Directory>
                             </Directory>
-                            <Directory Id="MobileWeb" Name="MobileWeb">
+                            <Directory Id="MobileWeb" Name="MobilWeb" LongName="MobileWeb">
                                 <Component Id="ExamplesMobileWeb" Guid="162A102F-34A7-4279-9A98-894FA8D28DD3">
                                     <File Id="iPhone.zip" Name="iphone.zip" Source="Examples\MobileWeb\iphone.zip" DiskId="1" />
                                 </Component>
