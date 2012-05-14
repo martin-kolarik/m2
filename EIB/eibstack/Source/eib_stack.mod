@@ -356,6 +356,13 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE Done();
+  BEGIN
+    Clear();
+  END Done;
+
+(*--------------------------------------------------------------------------------*)
+
+  LOCAL PROCEDURE Clear();
   VAR
     Priority : eib_def.TPriority;
   BEGIN
@@ -368,7 +375,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
         INC( Priority );
       END;
     END; // FOR
-  END Done;
+  END Clear;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -2612,6 +2619,23 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
+  LOCAL PROCEDURE A_QueueClear( WhatIsPending : TPendingOperation );
+  VAR
+    i : eib_def.TPriority;
+  BEGIN
+    i := eib_def.priorityLowest;
+    LOOP
+      A_Data.Pending[ WhatIsPending ][i].Dispose();
+      IF i = eib_def.priorityHighest THEN
+        EXIT;
+      ELSE
+        INC( i );
+      END;
+    END;
+  END A_QueueClear;
+
+(*--------------------------------------------------------------------------------*)
+
   LOCAL PROCEDURE A_SetPromiscuousMode( PromiscuousMode : BOOLEAN );
   BEGIN
     A_Parameters.PromiscuousMode := PromiscuousMode;
@@ -2944,10 +2968,24 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
+  PUBLIC PROCEDURE ClearOutputQueue();
+  BEGIN
+    TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Data.Queue.Clear();
+  END ClearOutputQueue;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC PROCEDURE WriteQueueLength() : CARDINAL;
   BEGIN
     RETURN TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_QueueLength( pendingGroupWrite );
   END WriteQueueLength;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE ClearWriteQueue();
+  BEGIN
+    TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_QueueClear( pendingGroupWrite );
+  END ClearWriteQueue;
 
 (*--------------------------------------------------------------------------------*)
 

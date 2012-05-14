@@ -238,6 +238,7 @@ CLASS CL_Request_Queue;
 
   LOCAL PROCEDURE Init( PDistribution : TPPriorityDistribution );
   LOCAL PROCEDURE Done();
+  LOCAL PROCEDURE Clear();
 
   LOCAL PROCEDURE AppendPacket(
           PListener   : TPL_Data_Listener;
@@ -971,6 +972,7 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMes
   PRIVATE PROCEDURE A_GetLastStarted( WhatIsPending : TPendingOperation; PClass : eib_def.TPPriority; VAR PSPO : ADDRESS ) : BOOLEAN;
 
   LOCAL PROCEDURE A_QueueLength( WhatIsPending : TPendingOperation ) : CARDINAL;
+  LOCAL PROCEDURE A_QueueClear( WhatIsPending : TPendingOperation );
   LOCAL PROCEDURE A_SetPromiscuousMode( PromiscuousMode : BOOLEAN );
 END CEIBStackApplicationLayer;
 
@@ -1044,7 +1046,9 @@ CLASS CEIBStack;
 
   PUBLIC PROCEDURE IsSelfPacket( PPacket : eib_def.TPPacket ) : BOOLEAN;
   PUBLIC PROCEDURE OutputQueueLength() : CARDINAL;
+  PUBLIC PROCEDURE ClearOutputQueue();
   PUBLIC PROCEDURE WriteQueueLength() : CARDINAL;
+  PUBLIC PROCEDURE ClearWriteQueue();
 
   // rewritable methods, ALL rewritable methods are OPTIONAL
   INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : TEIBStackLayerType; VAR PLayer : TPEIBStackLayer ) : BOOLEAN;

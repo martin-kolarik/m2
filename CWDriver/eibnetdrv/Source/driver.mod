@@ -906,6 +906,26 @@ CLASS IMPLEMENTATION CEIBDriver;
          IOValue2EIBValue( IO, EIT, OUT EV );
          prObjects[EIT].InitiateTransmit( Address, EV );
 
+      //=====
+      ELSIF EQUALS( N, L'clear' ) THEN
+         CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
+
+         //-----
+         IF EQUALS( N, L'output_queue' ) THEN
+            EIB^.ClearOutputQueue();
+            CS.Clear();
+
+         //-----
+         ELSIF EQUALS( N, L'write_queue' ) THEN
+            EIB^.ClearWriteQueue();
+            CS.Clear();
+
+         //-----
+         ELSE
+           CS.FromOA( L'error: "clear" procedure, unknown command' );
+           GOTO Error;
+         END;
+
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
       END;
