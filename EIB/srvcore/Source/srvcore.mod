@@ -529,44 +529,44 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-	VAR
-	   line : CARDINAL;
-	   message : StringsO.CString;
-	BEGIN
-	   IF ( HIGH( Source ) = -1 ) OR ( Source[0].Type <> device.citIString ) THEN
-	      RETURN Sync.arCannotStart;
-	   END;
-	   IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
-	      Log^.LogSS( log.ldMessage, 0, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
-	      RETURN Sync.arCompleted;
-	   ELSE
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   VAR
+      line : CARDINAL;
+      message : StringsO.CString;
+   BEGIN
+      IF ( HIGH( Source ) = -1 ) OR ( Source[0].Type <> device.citIString ) THEN
+         RETURN Sync.arCannotStart;
+      END;
+      IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
+         Log^.LogSS( log.ldMessage, 0, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
+         RETURN Sync.arCompleted;
+      ELSE
          Log^.LogFilePos( log.lcError, 0, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.Data ), OA( message.Length-1, message.Data ), line, 0 );
-	      Log^.LogSS( log.lcInfo, 0, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
-	      RETURN Sync.arCannotStart;
-	   END;
-	END Configure;
-	
+         Log^.LogSS( log.lcInfo, 0, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
+         RETURN Sync.arCannotStart;
+      END;
+   END Configure;
+   
 //--------------------------------------------------------------------------------
 
-	PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-	BEGIN
-	   RETURN ADR( SELF );
-	END Mapper;
-
-//--------------------------------------------------------------------------------
-
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
-	BEGIN
-	   RETURN NIL;
-	END NS;
+   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+   BEGIN
+      RETURN ADR( SELF );
+   END Mapper;
 
 //--------------------------------------------------------------------------------
 
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-	BEGIN
-	   RETURN ADR( SELF );
-	END IO;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+   BEGIN
+      RETURN NIL;
+   END NS;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   BEGIN
+      RETURN ADR( SELF );
+   END IO;
 
 //--------------------------------------------------------------------------------
 
@@ -1411,7 +1411,7 @@ CLASS IMPLEMENTATION CEIBServer;
       b : BOOLEAN;
       logged : BOOLEAN;
    BEGIN
-	   IF EXEFlag THEN
+      IF EXEFlag THEN
          R.LoadRES2( L"", L"srvcore.Texts" );
       ELSE
          R.LoadRES2( EMITW( %dll ), L"srvcore.Texts" );

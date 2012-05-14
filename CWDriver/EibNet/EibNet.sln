@@ -31,6 +31,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "checkcfg", "..\..\EIB\check
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "..\..\Licensing\Core\Core.vcxproj", "{B55A0CAC-6957-409F-8C01-A086E0F43252}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Text", "..\..\Library\Text\Text.vcxproj", "{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -97,6 +99,10 @@ Global
 		{B55A0CAC-6957-409F-8C01-A086E0F43252}.Debug|Win32.Build.0 = Debug|Win32
 		{B55A0CAC-6957-409F-8C01-A086E0F43252}.Release|Win32.ActiveCfg = Release|Win32
 		{B55A0CAC-6957-409F-8C01-A086E0F43252}.Release|Win32.Build.0 = Release|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Debug|Win32.Build.0 = Debug|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Release|Win32.ActiveCfg = Release|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
