@@ -1,3 +1,9 @@
+Version 1.0.1813 V1.0 19.5.2012 (without documentation)
+- BUG: #273, lines of CFG file [objects] section containing only white spaces
+       were badly processed as valid lines defining some object(s)
+- NEW: #272, two new driver query procedures "clear output_queue" and "clear write_queue"
+       has been added
+
 Version 1.0.1765 V1.0 5.3.2012 (without documentation)
 - BUG: #269, the driver loses connection and never reconnects
 
