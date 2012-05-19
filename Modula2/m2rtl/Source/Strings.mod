@@ -359,6 +359,9 @@ BEGIN
          END;
          EXIT;
       ELSIF i = 0 THEN
+         IF i <= HIGH( String ) THEN
+            String[i] := 0W;
+         END;
          EXIT;
       ELSE
          DEC( i );
@@ -382,6 +385,9 @@ BEGIN
          END;
          EXIT;
       ELSIF i = 0 THEN
+         IF i <= HIGH( String ) THEN
+            String[i] := 0W;
+         END;
          EXIT;
       ELSE
          DEC( i );
@@ -410,6 +416,9 @@ BEGIN
          END;
          EXIT;
       ELSIF i = 0 THEN
+         IF i <= HIGH( String ) THEN
+            String[i] := 0W;
+         END;
          RETURN;
       ELSE
          DEC( i );
@@ -441,6 +450,9 @@ BEGIN
          END;
          EXIT;
       ELSIF i = 0 THEN
+         IF i <= HIGH( String ) THEN
+            String[i] := 0W;
+         END;
          RETURN;
       ELSE
          DEC( i );
