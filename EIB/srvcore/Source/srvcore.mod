@@ -2746,6 +2746,7 @@ BEGIN
    _DataLogger := NIL;
 
    Logger.Level := Log.ldDebug;
+   Logger.Output := log.outsNone; // redirect all to Log.logger()
    Logger.AddOutput( Log.logger());
    Log.ConfigureByRegistry( REF Logger, LIBRARY );
    Logger.SetName( L"KNX" );

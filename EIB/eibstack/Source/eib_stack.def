@@ -235,10 +235,11 @@ CLASS CL_Request_Queue;
   Requests      : TL_Requests;
   Counts        : TL_Counts;
   PCurrent      : ADDRESS;
+  ClearQueueRequest : sync.SIGNAL;
 
   LOCAL PROCEDURE Init( PDistribution : TPPriorityDistribution );
   LOCAL PROCEDURE Done();
-  LOCAL PROCEDURE Clear();
+  LOCAL PROCEDURE Clear( RequestOnly : BOOLEAN );
 
   LOCAL PROCEDURE AppendPacket(
           PListener   : TPL_Data_Listener;

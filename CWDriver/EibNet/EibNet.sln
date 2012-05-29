@@ -1,8 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EibNet", "EibNet.vcxproj", "{26BBC2F9-1B99-415B-AEF4-2D9F909B33DC}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcxproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2ortl", "..\..\Modula2\m2ortl\m2ortl.vcxproj", "{332A033A-AF35-4573-83CB-A19E643D5845}"
@@ -14,8 +12,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ActiveX", "..\..\Library\ActiveX\ActiveX.vcxproj", "{57418949-0922-46EC-824B-ED7B59897F4C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "discover", "..\..\EIB\discover\discover.vcxproj", "{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibnetstack", "..\..\EIB\eibnetstack\eibnetstack.vcxproj", "{2EC1CD71-998F-412B-99FD-5874C227A2A4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Threading", "..\..\Library\Threading\Threading.vcxproj", "{97C30A53-92E2-4179-B0A0-A740E2FDD762}"
 EndProject
@@ -33,16 +29,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibstack", "..\..\EIB\eibst
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "srvcore", "..\..\EIB\srvcore\srvcore.vcxproj", "{B3354F39-423B-4402-9990-4EB6A313D0FC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibnetstack", "..\..\EIB\eibnetstack\eibnetstack.vcxproj", "{2EC1CD71-998F-412B-99FD-5874C227A2A4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{26BBC2F9-1B99-415B-AEF4-2D9F909B33DC}.Debug|Win32.ActiveCfg = Debug|Win32
-		{26BBC2F9-1B99-415B-AEF4-2D9F909B33DC}.Debug|Win32.Build.0 = Debug|Win32
-		{26BBC2F9-1B99-415B-AEF4-2D9F909B33DC}.Release|Win32.ActiveCfg = Release|Win32
-		{26BBC2F9-1B99-415B-AEF4-2D9F909B33DC}.Release|Win32.Build.0 = Release|Win32
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.ActiveCfg = Debug|Win32
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
@@ -67,10 +61,6 @@ Global
 		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Debug|Win32.Build.0 = Debug|Win32
 		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Win32.ActiveCfg = Release|Win32
 		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Win32.Build.0 = Release|Win32
-		{2EC1CD71-998F-412B-99FD-5874C227A2A4}.Debug|Win32.ActiveCfg = Debug|Win32
-		{2EC1CD71-998F-412B-99FD-5874C227A2A4}.Debug|Win32.Build.0 = Debug|Win32
-		{2EC1CD71-998F-412B-99FD-5874C227A2A4}.Release|Win32.ActiveCfg = Release|Win32
-		{2EC1CD71-998F-412B-99FD-5874C227A2A4}.Release|Win32.Build.0 = Release|Win32
 		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Win32.ActiveCfg = Debug|Win32
 		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Win32.Build.0 = Debug|Win32
 		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Win32.ActiveCfg = Release|Win32
@@ -103,6 +93,10 @@ Global
 		{B3354F39-423B-4402-9990-4EB6A313D0FC}.Debug|Win32.Build.0 = Debug|Win32
 		{B3354F39-423B-4402-9990-4EB6A313D0FC}.Release|Win32.ActiveCfg = Release|Win32
 		{B3354F39-423B-4402-9990-4EB6A313D0FC}.Release|Win32.Build.0 = Release|Win32
+		{2EC1CD71-998F-412B-99FD-5874C227A2A4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2EC1CD71-998F-412B-99FD-5874C227A2A4}.Debug|Win32.Build.0 = Debug|Win32
+		{2EC1CD71-998F-412B-99FD-5874C227A2A4}.Release|Win32.ActiveCfg = Release|Win32
+		{2EC1CD71-998F-412B-99FD-5874C227A2A4}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

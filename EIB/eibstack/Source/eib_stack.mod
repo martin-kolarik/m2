@@ -357,15 +357,20 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 
   LOCAL PROCEDURE Done();
   BEGIN
-    Clear();
+    Clear( FALSE );
   END Done;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE Clear();
+  LOCAL PROCEDURE Clear( RequestOnly : BOOLEAN );
   VAR
     Priority : eib_def.TPriority;
   BEGIN
+    IF RequestOnly THEN
+      ClearQueueRequest.Signal();
+      RETURN;
+    END; // IF RequestOnly
+
     Priority := eib_def.priorityLowest;
     LOOP
       Requests[ Priority ].Dispose();
@@ -506,6 +511,11 @@ CLASS IMPLEMENTATION CL_Request_Queue;
   Remove:
     Requests[ Priority ].Delete( PCurrent );
     PCurrent := NIL;
+
+    IF ClearQueueRequest.Reset() THEN
+      Clear( FALSE );
+    END;
+
     RETURN eib_status.essOK;
   END PacketSent;
 
@@ -2970,7 +2980,7 @@ CLASS IMPLEMENTATION CEIBStack;
 
   PUBLIC PROCEDURE ClearOutputQueue();
   BEGIN
-    TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Data.Queue.Clear();
+    TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Data.Queue.Clear( TRUE );
   END ClearOutputQueue;
 
 (*--------------------------------------------------------------------------------*)
