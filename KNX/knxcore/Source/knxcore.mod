@@ -73,6 +73,7 @@ CONST // object type names
 CONST
    itemConnected = 1;
    nameNamespace = L"KNX";
+   nameDescription = L"Description";
    nameConnected = L"Connected";
 
 //================================================================================
@@ -1243,6 +1244,7 @@ CLASS IMPLEMENTATION CKNXServer;
    //----------
 
    VAR
+      b : BOOLEAN;
       BFlags : knx_def.TA_ObjectFlags;
       Blocks : lists.CStringList;
       c : CARDINAL;
@@ -1251,6 +1253,8 @@ CLASS IMPLEMENTATION CKNXServer;
       ErrorMessageOA : ARRAY [0..255] OF WCHAR;
       ES : PTR;
       i : CARDINAL;
+      key : StringsO.CString;
+      logged : BOOLEAN;
       mode : StringsO.CString;
       Name : StringsO.CString;
       objectType : TObjectType;
@@ -1262,8 +1266,7 @@ CLASS IMPLEMENTATION CKNXServer;
       s : ARRAY [0..4095] OF WCHAR;
       so : StringsO.CString;
       TS : INIFile.CINIFile;
-      b : BOOLEAN;
-      logged : BOOLEAN;
+      value : iovalue.Value;
    BEGIN
       IF EXEFlag THEN
          R.LoadRES2( L"", L"knxcore.Texts" );
@@ -1785,10 +1788,15 @@ CLASS IMPLEMENTATION CKNXServer;
       Namespace.InitializeName := StringsO.FromOA( nameNamespace );
 
       // group addresses
+      key.FromOA( nameDescription );
       FOR i := 0 TO Objects.Count - 1 DO
          PObject := TPObject( Objects[i] );
+         // identifier
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT s );
          Namespace.DefineIOValue( StringsO.FromOA( s ), REF SELF, PObject, NIL, OUT PObject^.Pairs );
+         // comment
+         value.String := PObject^.Comment;
+         PObject^.Pairs^.DefineStorageValue( key, iovalue.vtString, iovalue.flagsDefaultSWRO, ADR( value ), 0, NIL, NIL, OUT pairs );
       END; // FOR
 
       // connection info/control
