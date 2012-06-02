@@ -10,13 +10,13 @@
         <ProductGUID>841A3212-2680-4ed4-9307-D2964EE55842</ProductGUID>
         <ProductUpgradeGUID>3A9E965F-7926-4c49-B119-F21E6E0109B2</ProductUpgradeGUID>
 
-        <ProductId>SmartControl.EIBNet.CWDriver</ProductId>
+        <ProductId>SmartControl.KnxNet.CWDriver</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
         <ProductNote></ProductNote>
 
-        <ProjectDisplayName>EIBNet/IP Driver</ProjectDisplayName>
-        <ProjectDescription>EIBNet/IP Group Object Driver</ProjectDescription>
+        <ProjectDisplayName>KnxNet/IP Driver</ProjectDisplayName>
+        <ProjectDescription>KnxNet/IP Group Object Driver</ProjectDescription>
 
         <DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod>
     </PropertyGroup>
@@ -27,9 +27,9 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxcore;$(RootPath)\CWDriver\eibnetdrv;$(RootPath)\CWDriver\eibnet"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxcore;$(RootPath)\CWDriver\KnxNet;$(RootPath)\CWDriver\KnxNet_product"/>
 
-        <Components Include="component\sccore;CWDriver\eibnetdrv;KNX\checkcfg;KNX\discover;Licensing\LicTool"/>
+        <Components Include="component\sccore;CWDriver\KnxNet;KNX\checkcfg;KNX\discover;Licensing\LicTool"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

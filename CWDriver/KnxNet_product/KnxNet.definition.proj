@@ -5,7 +5,7 @@
         <Result>Program</Result>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='eibnetdrv' Or $(MSBuildProjectName)=='sccore'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='KnxNet' Or $(MSBuildProjectName)=='sccore'">
         <Result>Dynamic</Result>
     </PropertyGroup>
 

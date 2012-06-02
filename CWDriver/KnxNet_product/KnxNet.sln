@@ -1,7 +1,7 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EibNet", "EibNet.vcxproj", "{26BBC2F9-1B99-415B-AEF4-2D9F909B33DC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KnxNet_product", "KnxNet_product.vcxproj", "{26BBC2F9-1B99-415B-AEF4-2D9F909B33DC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcxproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
 EndProject
@@ -13,7 +13,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CWDriver", "..\..\Library\C
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ActiveX", "..\..\Library\ActiveX\ActiveX.vcxproj", "{57418949-0922-46EC-824B-ED7B59897F4C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibnetdrv", "..\eibnetdrv\eibnetdrv.vcxproj", "{0A80509F-245D-4AAF-8D4F-30DC816C9FB4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KnxNet", "..\KnxNet\KnxNet.vcxproj", "{0A80509F-245D-4AAF-8D4F-30DC816C9FB4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Threading", "..\..\Library\Threading\Threading.vcxproj", "{97C30A53-92E2-4179-B0A0-A740E2FDD762}"
 EndProject

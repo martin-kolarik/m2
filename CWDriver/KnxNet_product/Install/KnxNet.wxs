@@ -28,9 +28,9 @@
             </Directory>
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="SmartControl" Name="SmartCtr" LongName="SmartControl">
-                    <Directory Id="INSTALLDIR" Name="EibNet">
+                    <Directory Id="INSTALLDIR" Name="KnxNet">
                         <Component Guid="5E7580BB-9458-476e-8758-F7545A78B927" Id="Program">
-                            <File DiskId="1" Id="EibNet.DLL" Name="EibNet.dll" Source="EibNet.dll" Vital="yes" KeyPath="yes" />
+                            <File DiskId="1" Id="KnxNet.DLL" Name="KnxNet.dll" Source="KnxNet.dll" Vital="yes" KeyPath="yes" />
                         </Component>
                         <Component Guid="926A58B0-D728-4e9c-BED8-E1EA41CD80E4" Id="RuntimeLib">
                             <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
@@ -45,9 +45,9 @@
                             <File Id="Discover.EXE" Name="Discover.exe" Source="Discover.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
                         <Component Guid="{4707C82D-BFEC-4985-A8E2-9F6A0C37C7D5}" Id="DebugInfo">
-                            <File Id="EibNet.PDB" Name="eibnet.pdb" Source="eibnet.pdb" DiskId="1" KeyPath="yes"/>
+                            <File Id="KnxNet.PDB" Name="KnxNet.pdb" Source="KnxNet.pdb" DiskId="1" KeyPath="yes"/>
                             <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
-                            <File Id="EibNet.MAP" Name="eibnet.map" Source="eibnet.map" DiskId="1" />
+                            <File Id="KnxNet.MAP" Name="KnxNet.map" Source="KnxNet.map" DiskId="1" />
                             <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
                         </Component>
                         <Component Id="Licence" Guid="6FFD29EB-7F31-49e2-A5CF-5AC4B9C83628">
@@ -133,7 +133,7 @@
         </Feature>
         <UIRef Id="WixUI_Licence" />
         <UI />
-        <Icon Id="AddRemoveIcon" SourceFile="EibNet.ico" />
+        <Icon Id="AddRemoveIcon" SourceFile="KnxNet.ico" />
         <?include $(var.BuildRoot)\Manufacturer.wxs ?>
         <?include $(var.BuildRoot)\Upgrade.wxs ?>
     </Product>

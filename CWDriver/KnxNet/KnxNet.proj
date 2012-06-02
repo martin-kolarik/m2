@@ -7,16 +7,16 @@
         <ComponentType>Product</ComponentType>
         <ClientLicensing>on</ClientLicensing>
 
-        <ProductId>SmartControl.EIBNet.CWDriver</ProductId>
+        <ProductId>SmartControl.KnxNet.CWDriver</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
         <ProductNote></ProductNote>
 
-        <ProjectDescription>EIBNet/IP Group Object Driver</ProjectDescription>
+        <ProjectDescription>KnxNet/IP Group Object Driver</ProjectDescription>
     </PropertyGroup>
 
     <PropertyGroup>
-        <ResultName>EibNet</ResultName>
+        <ResultName>KnxNet</ResultName>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -25,7 +25,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxcore;$(RootPath)\CWDriver\EibNet"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxcore;$(RootPath)\CWDriver\KnxNet_product"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Component\sccore"/>
