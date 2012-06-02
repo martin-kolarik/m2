@@ -1,5 +1,6 @@
 1. nainstalovat Mercurial + nastavit PATH k jeho binárkám, pokud se to neudìlá
 2. hg clone | hg checkout
-3. bld LeakDetector (Test=Off,RebuildAllComponents)
-4. bld Test (Test=Off,RebuildAllComponents)
-5. a co je tøeba...
+3. CCSuppFunc pøeložit pro všechny platformy ve VS
+4. bld LeakDetector (Test=Off,RebuildAllComponents)
+5. bld Test (Test=Off,RebuildAllComponents)
+6. a co je tøeba...
