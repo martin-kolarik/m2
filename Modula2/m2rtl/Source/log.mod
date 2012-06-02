@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE log;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    REALLOCATE, DEALLOCATE;
@@ -20,6 +20,9 @@ IMPORT
    winreg;
 
 (*===========================================================================*)
+
+CONST
+   SPACE = L" ";
 
 CONST
    strlen = 1023;
@@ -112,7 +115,11 @@ CLASS IMPLEMENTATION AFormatter;
          ELSE
             dt.SetNowUTC();
          END;
-         dt.ToStringOA( L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT S );
+         IF SeparateTimeBrackets THEN
+            dt.ToStringOA( L"[ yyyy-MM-dd HH:mm:ss.fff ] ", TRUE, TRUE, OUT S );
+         ELSE
+            dt.ToStringOA( L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT S );
+         END;
       END;
       IF Levels THEN
          leading := TRUE;
@@ -417,7 +424,7 @@ END CBufferOutput;
 // DO NOT LOCK anything inside, the class is fully locked from outside
 CLASS CSimplePtrArray;
 
-   PUBLIC PROCEDURE Clear();
+   PUBLIC PROCEDURE Dispose();
    PUBLIC PROCEDURE Add( CONST Data : iLog.TPIOutput );
    PUBLIC PROCEDURE Remove( CONST Appender : iLog.TPIOutput );
 
@@ -448,12 +455,12 @@ CLASS IMPLEMENTATION CSimplePtrArray;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Clear();
+   PUBLIC PROCEDURE Dispose();
    BEGIN
       _Count := 0;
       _Size := 0;
       DEALLOCATE( REF _Appenders );
-   END Clear;
+   END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
@@ -579,6 +586,8 @@ CLASS IMPLEMENTATION CSimplePtrArray;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+FINALLY
+   Dispose();
 END CSimplePtrArray;
 
 (*===========================================================================*)
@@ -817,9 +826,24 @@ CLASS IMPLEMENTATION CBaseAppender;
 
    PUBLIC PROPERTY LocalTime SET( Value : BOOLEAN );
    BEGIN
-      _KernelOutput.Names := LocalTime;
-      _FileOutput.Names := LocalTime;
+      _KernelOutput.LocalTime := Value;
+      _FileOutput.LocalTime := Value;
    END LocalTime;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY SeparateTimeBrackets GET : BOOLEAN;
+   BEGIN
+      RETURN _KernelOutput.SeparateTimeBrackets;
+   END SeparateTimeBrackets;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY SeparateTimeBrackets SET( Value : BOOLEAN );
+   BEGIN
+      _KernelOutput.SeparateTimeBrackets := Value;
+      _FileOutput.SeparateTimeBrackets := Value;
+   END SeparateTimeBrackets;
 
 (*---------------------------------------------------------------------------*)
 
@@ -880,7 +904,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
         RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.AppendW( REF S, S2 );
       Append( Level, FilterData, _Name, Prefix, S );
    END LogSS;
@@ -895,9 +919,9 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.AppendW( REF S, S2 );
-      Strings.AppendW( REF S, L" " );
+      Strings.AppendW( REF S, SPACE );
       Strings.FromCARD32W( C, 10, OUT N );
       Strings.AppendW( REF S, N );
       Append( Level, FilterData, _Name, Prefix, S );
@@ -913,7 +937,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.FromCARD32W( C, 10, OUT N );
       Strings.AppendW( REF S, N );
       Append( Level, FilterData, _Name, Prefix, S );
@@ -929,10 +953,10 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.FromCARD32W( C1, 10, OUT N );
       Strings.AppendW( REF S, N );
-      Strings.AppendW( REF S, L" " );
+      Strings.AppendW( REF S, SPACE );
       Strings.FromCARD32W( C2, 10, OUT N );
       Strings.AppendW( REF S, N );
       Append( Level, FilterData, _Name, Prefix, S );
@@ -948,7 +972,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.FromCARD32W( C, 16, OUT N );
       Strings.AppendW( REF S, N );
       Append( Level, FilterData, _Name, Prefix, S );
@@ -964,11 +988,29 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.FromCARD64W( CARD64( P ), 16, OUT N );
       Strings.AppendW( REF S, N );
       Append( Level, FilterData, _Name, Prefix, S );
    END LogSP;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE LogSSP( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR; P : PTR );
+   VAR
+      N : TNum;
+      S : TString;
+   BEGIN
+      IF Filtered( Level, FilterData ) THEN
+         RETURN;
+      END;
+      Strings.ConcatW( OUT S, S1, SPACE );
+      Strings.AppendW( REF S, S2 );
+      Strings.AppendW( REF S, SPACE );
+      Strings.FromCARD64W( CARD64( P ), 16, OUT N );
+      Strings.AppendW( REF S, N );
+      Append( Level, FilterData, _Name, Prefix, S );
+   END LogSSP;
 
 (*---------------------------------------------------------------------------*)
 
@@ -980,10 +1022,10 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.FromCARD32W( C, 10, OUT N );
       Strings.AppendW( REF S, N );
-      Strings.AppendW( REF S, L" " );
+      Strings.AppendW( REF S, SPACE );
       Strings.FromCARD64W( CARD64( P ), 16, OUT N );
       Strings.AppendW( REF S, N );
       Append( Level, FilterData, _Name, Prefix, S );
@@ -999,10 +1041,10 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.FromCARD32W( C, 16, OUT N );
       Strings.AppendW( REF S, N );
-      Strings.AppendW( REF S, L" " );
+      Strings.AppendW( REF S, SPACE );
       Strings.FromCARD64W( CARD64( P ), 16, OUT N );
       Strings.AppendW( REF S, N );
       Append( Level, FilterData, _Name, Prefix, S );
@@ -1063,7 +1105,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.FromCARD32W( C, 10, OUT N );
       Strings.AppendW( REF S, N );
       Strings.AppendW( REF S, L' [' );
@@ -1102,9 +1144,9 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.AppendW( REF S, S2 );
-      Strings.AppendW( REF S, L" " );
+      Strings.AppendW( REF S, SPACE );
       Strings.AppendW( REF S, S3 );
       Append( Level, FilterData, _Name, Prefix, S );
    END LogSSS;
@@ -1118,11 +1160,11 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.AppendW( REF S, S2 );
-      Strings.AppendW( REF S, L" " );
+      Strings.AppendW( REF S, SPACE );
       Strings.AppendW( REF S, S3 );
-      Strings.AppendW( REF S, L" " );
+      Strings.AppendW( REF S, SPACE );
       Strings.AppendW( REF S, S4 );
       Append( Level, FilterData, _Name, Prefix, S );
    END LogSSSS;
@@ -1137,7 +1179,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-      Strings.ConcatW( OUT S, S1, L" " );
+      Strings.ConcatW( OUT S, S1, SPACE );
       Strings.FromErrorW( ErrorCode, OUT E );
       Strings.AppendW( REF S, E );
       Append( Level, FilterData, _Name, Prefix, S );
@@ -1166,29 +1208,34 @@ CLASS IMPLEMENTATION CBaseLogger;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE LogExc( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.Exception );
-	VAR
-		S : TString;
-	BEGIN
+   VAR
+      S : TString;
+   BEGIN
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
-	   e.ToString( OUT S );
+      e.ToString( OUT S );
       Append( Level, FilterData, _Name, Prefix, S );
-	END LogExc;
+   END LogExc;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
-	VAR
-	   colFlag, lineFlag : BOOLEAN;
-		S : TString;
+   VAR
+      colFlag, lineFlag : BOOLEAN;
+      S : TString;
       N : TNum;
+      pathEmpty : BOOLEAN := EQUALS( Path, L"" );
    BEGIN
       IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
 
-      S := Path;
+      IF pathEmpty THEN
+         S := Prefix;
+      ELSE
+         S := Path;
+      END;
       lineFlag := ( Line <> 0 ) AND ( Line <> -1 );
       colFlag := ( Col <> 0 ) AND ( Col <> -1 );
       IF colFlag OR lineFlag THEN
@@ -1204,13 +1251,16 @@ CLASS IMPLEMENTATION CBaseLogger;
             Strings.FromCARD32W( Col, 10, OUT N );
             Strings.AppendW( REF S, N );
          END;
-         Strings.AppendW( REF S, L"): " );
+         Strings.AppendW( REF S, L")" );
+      END;
+      
+      IF pathEmpty THEN
+         Append( Level, FilterData, _Name, S, S1 );
       ELSE
          Strings.AppendW( REF S, L": " );
+         Strings.AppendW( REF S, S1 );
+         Append( Level, FilterData, _Name, Prefix, S );
       END;
-      Strings.AppendW( REF S, S1 );
-      
-      Append( Level, FilterData, _Name, Prefix, S );
    END LogFilePos;
 
 (*---------------------------------------------------------------------------*)
@@ -1229,6 +1279,38 @@ END CBaseLogger;
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION CBufferedLogger;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY TimeStamps SET( Value : BOOLEAN );
+   BEGIN
+      SUPER.TimeStamps := Value;
+      _BufferOutput.TimeStamps := Value;
+   END TimeStamps;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Levels SET( Value : BOOLEAN );
+   BEGIN
+      SUPER.Levels := Value;
+      _BufferOutput.Levels := Value;
+   END Levels;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Names SET( Value : BOOLEAN );
+   BEGIN
+      SUPER.Names := Value;
+      _BufferOutput.Names := Value;
+   END Names;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LocalTime SET( Value : BOOLEAN );
+   BEGIN
+      SUPER.LocalTime := Value;
+      _BufferOutput.LocalTime := Value;
+   END LocalTime;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1459,7 +1541,7 @@ CLASS CLoggerRegistry;
    PRIVATE VAR
       _Loggers : CSimplePtrArray;
       
-   PUBLIC PROCEDURE Clear();
+   PUBLIC PROCEDURE Dispose();
       
    PUBLIC PROCEDURE Register( CONST Appender : iLog.IAppender );
    PUBLIC PROCEDURE Forget( CONST Appender : iLog.IAppender );
@@ -1473,12 +1555,12 @@ CLASS IMPLEMENTATION CLoggerRegistry;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Clear();
+   PUBLIC PROCEDURE Dispose();
    BEGIN
       _Loggers.LockWrite();
-      _Loggers.Clear();
+      _Loggers.Dispose();
       _Loggers.UnlockWrite();
-   END Clear;
+   END Dispose;
       
 (*---------------------------------------------------------------------------*)
 
@@ -1531,7 +1613,7 @@ CLASS IMPLEMENTATION CLoggerRegistry;
 
 BEGIN
 FINALLY
-   Clear();
+   Dispose();
 END CLoggerRegistry;
 
 (*===========================================================================*)
@@ -1613,5 +1695,5 @@ BEGIN
    Registry.Register( Logger );
 FINALLY
    Registry.Forget( Logger );
-   Registry.Clear();
+   Registry.Dispose();
 END log.

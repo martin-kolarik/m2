@@ -68,7 +68,7 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC FINAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
    END OnAdvise;
 

@@ -1,11 +1,12 @@
 IMPLEMENTATION MODULE View;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 FROM Exceptions IMPORT
    TestIfCatched, RetrieveException;
 
 IMPORT
+   collection,
    datetime,
    FIO,
    FIOO,
@@ -16,6 +17,7 @@ IMPORT
    LanguagesO,
    lists,
    maps,
+   MIME,
    netsocket,
    NodeList,
    Strings,
@@ -34,7 +36,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    BEGIN
       Response.StatusCode := StatusCode;
       RETURN TRUE;
@@ -42,7 +44,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -50,7 +52,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -67,7 +69,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -98,7 +100,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -106,7 +108,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -114,11 +116,12 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    VAR
       buffer : StorageO.CMemoryBuffer;
       Content : StringsO.CString;
       empty : StringsO.CString;
+      fileLen : CARD64;
       fileName : ARRAY [0..299] OF WCHAR;
       filePath : StringsO.CString;
       fs : FIOO.CFileStream;
@@ -142,7 +145,7 @@ CLASS IMPLEMENTATION CFileView;
       END;
 
       IF ( MIMEResolver = NIL ) OR NOT MIMEResolver^.ResolveMIME( MIMEResolverContext, filePath, OUT Content ) THEN
-         HttpTools.FormatContent( HttpTools.contentUnknown, filePath, empty, TRUE, OUT Content );
+         MIME.FormatContent( MIME.contentUnknown, filePath, empty, TRUE, OUT Content );
       END;
       Response.ContentType := Content;
       Response.AllowCaching := TRUE;
@@ -161,7 +164,12 @@ CLASS IMPLEMENTATION CFileView;
       END;
       Response.Length := fs.Length;
 
-      buffer.Size := MIN2( 2*65536, fs.Length32 );
+      fileLen := fs.Length;
+      IF fileLen < 2*65536 THEN
+         buffer.Size := CARD32( fileLen );
+      ELSE
+         buffer.Size := 2*65536;
+      END;
       LOOP
          buffer.Clear();
          Result := fs.ReadBuffer( buffer.Size, REF buffer, Sync.FORSAFETY );
@@ -202,7 +210,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -242,7 +250,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       i : CARDINAL;
       Location : StringsO.CString;
@@ -278,7 +286,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -286,7 +294,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -303,7 +311,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -335,14 +343,14 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       Content : StringsO.CString;
       now : datetime.DateTime;
    BEGIN
       now.SetNowUTC();
    
-      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+      MIME.FormatContentOA( MIME.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
       Response.ContentType := Content;
       Response.AllowCaching := FALSE;
       Response.LastModified := now;
@@ -353,7 +361,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -361,7 +369,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -378,7 +386,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -407,7 +415,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       now : datetime.DateTime;
       s : StringsO.CString;
@@ -415,7 +423,7 @@ CLASS IMPLEMENTATION CRawTextView;
       now.SetNowUTC();
    
       IF ContentType.Empty THEN
-         HttpTools.FormatContentOA( HttpTools.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentType );
+         MIME.FormatContentOA( MIME.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentType );
       END;
       Response.ContentType := ContentType;
       Response.AllowCaching := FALSE;
@@ -433,7 +441,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -441,7 +449,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -458,7 +466,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -526,6 +534,9 @@ CONST
    PT_VARIABLE = L"variable";
       // model
       PT_SOURCE = L"source";
+   PT_CONTEXT = L"context";
+
+   DATA_CONTEXT_CHANGE_FUNCTION = L"changeDataContext";
 
 (*--------------------------------------------------------------------------------*)
 
@@ -540,7 +551,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    LABEL
       Failure;
    VAR
@@ -555,15 +566,21 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Response.AllowCaching := FALSE;
       Response.LastModified := now;
+      
+      IF OverrideLanguage THEN
+         Language := OverriddenLanguage;
+      ELSE
+         Language := Request.Language;
+      END;
 
       // determine, if client supports XHTML by browser information
       IF Request.RequestHeaders^.Get( HttpCommon.Accept, OUT acceptHeader ) THEN
          acceptHeader.Lowerize();
-         IF acceptHeader.ContainsOA( HttpTools.CONTENT_TYPE_XHTML ) THEN // browser explictely states that it supports XHTML, use it
+         IF acceptHeader.ContainsOA( MIME.CONTENT_TYPE_XHTML ) THEN // browser explictely states that it supports XHTML, use it
             xhtmlSupported := TRUE;
          END;
       END;
-      SELF.Request := MVC.TPHttpRequest( ADR( Request ));
+      SELF.Request := MVC.TPMvcRequest( ADR( Request ));
 
       CASE Load() OF
       | lsNotLoaded :
@@ -586,9 +603,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       // finalize content type
       IF RequestedContent.Empty THEN // view did not use content type from template file or it is impossible
          IF xhtmlSupported THEN
-            HttpTools.FormatContentOA( HttpTools.contentTextXHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+            MIME.FormatContentOA( MIME.contentTextXHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
          ELSE // otherwise use compatible content type
-            HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+            MIME.FormatContentOA( MIME.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
          END;
       // ELSE assume that view (this class) set XHTML/XMLdecl pair or HTML/XMLdecl pair correcly according to client abilities
       END;
@@ -597,7 +614,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       RETURN TRUE;
       
    Failure:
-      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+      MIME.FormatContentOA( MIME.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
       Response.ContentType := RequestedContent;
 
       Output.Clear();
@@ -611,7 +628,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -619,7 +636,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -641,14 +658,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    VAR
       empty : StringsO.CString;
    BEGIN
       methodName.Clear();
       authenticationTokens.Dispose();
 
-      SELF.Request := MVC.TPHttpRequest( ADR( Request ));
+      SELF.Request := MVC.TPMvcRequest( ADR( Request ));
 
       CASE Load() OF
       | lsNotLoaded :
@@ -677,10 +694,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR; overrideLanguage : BOOLEAN; overriddenLanguage : Languages.TLanguage );
    BEGIN
       SELF.Resolver := Resolver;
       SELF.ViewName.FromOA( ViewName );
+      SELF.OverrideLanguage := overrideLanguage;
+      SELF.OverriddenLanguage := overriddenLanguage;
    END Init;
    
 (*--------------------------------------------------------------------------------*)
@@ -688,13 +707,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseRoot( parseMode : TParseMode; xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
    VAR
       appendCharset : BOOLEAN := FALSE;
-      content : HttpTools.TContent;
+      charset : StringsO.CString;
+      content : MIME.TContent;
       encoding : StringsO.CString;
       haveContentType : BOOLEAN := FALSE;
       haveDeclaration : BOOLEAN := FALSE;
       haveXHTML : BOOLEAN := FALSE;
       haveNS : BOOLEAN := FALSE;
-      rfc1766 : StringsO.CString;
       rootName : StringsO.CString;
       xmle : xmlreader.TXMLError;
       value : StringsO.CString;
@@ -778,20 +797,20 @@ CLASS IMPLEMENTATION CPageTemplateView;
                      END;
                      haveContentType := TRUE;
 
-                     IF HttpTools.DecodeContent( value, OUT content, OUT rfc1766 ) THEN
-                        haveXHTML := content = HttpTools.contentTextXHTML;
+                     IF MIME.DecodeContent( value, OUT content, OUT charset ) THEN
+                        haveXHTML := content = MIME.contentTextXHTML;
                      ELSE
                         haveXHTML := FALSE;
-                        content := HttpTools.contentUnknown;
+                        content := MIME.contentUnknown;
                      END;
                      IF NOT haveXHTML THEN // use mime type as is, no logic can be applied; handle encoding
                         contentTypeRequest := value;
-                        IF content IN HttpTools.ENCODING_SENSITIVE_CONTENT THEN
-                           appendCharset := rfc1766.Empty; // supply content type with source encoding, only if it is not known
+                        IF content IN MIME.ENCODING_SENSITIVE_CONTENT THEN
+                           appendCharset := charset.Empty; // supply content type with source encoding, only if it is not known
                         END;
-                        IF content = HttpTools.contentUnknown THEN // content was not successfully decoded
+                        IF content = MIME.contentUnknown THEN // content was not successfully decoded
                            // do not affect XMLDeclaration, author may set it upon his needs
-                        ELSIF content IN HttpTools.TAGGED_CONTENT THEN
+                        ELSIF content IN MIME.TAGGED_CONTENT THEN
                            // do not affect XMLDeclaration, author may set it upon his needs
                         ELSE
                            Writer.XMLDeclaration := FALSE; // formats without tagged content cannot emit XMLDeclaration
@@ -801,13 +820,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
                         contentTypeRequest := value; // XHTML
                         Writer.XMLDeclaration := TRUE; // XHTML mime type requires valid XML
                      ELSE
-                        contentTypeRequest.FromOA( HttpTools.CONTENT_TYPE_HTML ); // overwrite XHTML to HTML, client does not support it; handle encoding
+                        contentTypeRequest.FromOA( MIME.CONTENT_TYPE_HTML ); // overwrite XHTML to HTML, client does not support it; handle encoding
                         appendCharset := TRUE;
                         // do not affect XMLDeclaration, author may set it upon his needs
                      END;
                      IF appendCharset THEN
                         contentTypeRequest.AppendOA( L"; " );
-                        contentTypeRequest.AppendOA( HttpTools.CHARSET_PREFIX );
+                        contentTypeRequest.AppendOA( MIME.CHARSET_PREFIX );
                         contentTypeRequest.AppendOA( L"=" );
                         contentTypeRequest.Append( encoding ); // got from XML declaration
                      END;
@@ -930,16 +949,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
       b : BOOLEAN;
       condition : StringsO.CString;
       empty : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
       ptype : POINTER TO CONST WCHAR;
       simpleInput : BOOLEAN;
    BEGIN
       // look for condition
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
-            ParseText( attributes.CurrentData^, OUT condition );
+            ParseText( it.Data^, OUT condition );
             IF NOT EvaluateBoolean( condition ) THEN
                IF isEmpty OR Parse( FALSE, limitToPTOnly ) THEN
                   RETURN esaProcessedInDeep;
@@ -960,6 +980,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
             b := ParseForeach( attributes );
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_VARIABLE ) THEN
             b := ParseVariable( isEmpty, attributes );
+         ELSIF nodeName.EqualsIgnoreCaseOA( PT_CONTEXT ) THEN
+            b := ParseContext( isEmpty );
             
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_ACCESS ) THEN
             IF TWhere{whInInput, whInOption, whInAccess} * Where <> TWhere{} THEN
@@ -1090,6 +1112,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseAccess( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       lattributes : lists.CStringStringList;
       prefix : StringsO.CString;
       pname : StringsO.TPString;
@@ -1099,20 +1122,20 @@ CLASS IMPLEMENTATION CPageTemplateView;
       prefix.AppendOA( L":" );
 
       // first analyze attributes
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
 
          attribute := prefix; attribute.AppendOA( PT_AUTHENTICATION );
          IF pname^.EqualsIgnoreCaseOA( PT_AUTHENTICATION ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT AuthMethod );
+            ParseText( it.Data^, OUT AuthMethod );
          END;
          
          attribute := prefix; attribute.AppendOA( PT_ROLE );
          IF pname^.EqualsIgnoreCaseOA( PT_ROLE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             IF AuthTokens <> NIL THEN
-               ParseText( attributes.CurrentData^, OUT role );
-               AuthTokens^.AddOA( L"", role );
+               ParseText( it.Data^, OUT role );
+               AuthTokens^.Add( StringsO.Empty(), role );
             END;
          END;
       END; // WHILE
@@ -1131,7 +1154,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ELSIF NOT LoadTextContents( OUT role ) THEN
          RETURN FALSE;
       ELSIF AuthTokens <> NIL THEN
-         AuthTokens^.AddOA( L"", role );
+         AuthTokens^.Add( StringsO.Empty(), role );
       END;
       RETURN TRUE;
    END ParseRole;
@@ -1146,6 +1169,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       emit : TRISTATE;
       haveOtherwise : BOOLEAN := FALSE;
       isEmpty : BOOLEAN;
+      it : lists.CStringStringListIterator;
       nodeName : StringsO.CString;
       nodePrefix : StringsO.CString;
       nodeType : xmlreader.TNodeType;
@@ -1184,11 +1208,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
                   emit := 0;
                ELSE // look for condition
                   emit := -1;
-                  attributes.Reset();
-                  WHILE attributes.MoveNext() DO
-                     pname := attributes.Current;
+                  it.Init( attributes, collection.dirForward );
+                  WHILE it.MoveNext() DO
+                     pname := it.Value;
                      IF pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
-                        ParseText( attributes.CurrentData^, OUT condition );
+                        ParseText( it.Data^, OUT condition );
                         IF EvaluateBoolean( condition ) THEN
                            emit := 1;
                         ELSE
@@ -1238,6 +1262,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       attribute : StringsO.CString;
       by : INTEGER := 1;
+      d : PTR;
       depth : INTEGER := 0;
       from : INTEGER;
       haveBy : BOOLEAN := FALSE;
@@ -1247,6 +1272,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       index : StringsO.CString;
       inverted : BOOLEAN;
       isEmpty : BOOLEAN;
+      it : lists.CStringStringListIterator;
       lattributes : lists.CStringStringList;
       nl : NodeList.CNodeList;
       nodeName : StringsO.CString;
@@ -1264,13 +1290,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
       prefix.AppendOA( L":" );
 
       // first analyze attributes
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
 
          attribute := prefix; attribute.AppendOA( PT_FROM );
          IF pname^.EqualsIgnoreCaseOA( PT_FROM ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT value );
+            ParseText( it.Data^, OUT value );
             IF value.ToCARD32( 10, OUT from ) THEN
                haveFrom := TRUE;
             ELSE
@@ -1283,7 +1309,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          
          attribute := prefix; attribute.AppendOA( PT_TO );
          IF pname^.EqualsIgnoreCaseOA( PT_TO ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT value );
+            ParseText( it.Data^, OUT value );
             IF value.ToCARD32( 10, OUT to ) THEN
                haveTo := TRUE;
             ELSE
@@ -1296,7 +1322,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
          attribute := prefix; attribute.AppendOA( PT_BY );
          IF pname^.EqualsIgnoreCaseOA( PT_BY ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT value );
+            ParseText( it.Data^, OUT value );
             IF value.ToCARD32( 10, OUT by ) THEN
                haveBy := TRUE;
             ELSE
@@ -1309,19 +1335,19 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
          attribute := prefix; attribute.AppendOA( PT_INDEX );
          IF pname^.EqualsIgnoreCaseOA( PT_INDEX ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT index );
+            ParseText( it.Data^, OUT index );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ORDER );
          IF pname^.EqualsIgnoreCaseOA( PT_ORDER ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT order );
+            ParseText( it.Data^, OUT order );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ODD );
          IF pname^.EqualsIgnoreCaseOA( PT_ODD ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT odd );
+            ParseText( it.Data^, OUT odd );
             CONTINUE;
          END;
 
@@ -1366,7 +1392,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END; // WHILE
       
       // third switch sources and do "for"
-      Sources.Push( ADR( nl ));
+      Sources.Push( ADR( nl ), 0 );
       inverted := from > to;
       idx := from;
       item := 1;
@@ -1376,14 +1402,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( idx, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, index, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, index, value );
          END;
          IF NOT order.Empty THEN
             value.FromCARD32( item, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, order, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value );
          END;
 
-         nl.Reset(); // prepare parsing
          IF NOT Parse( TRUE, FALSE ) THEN
             RETURN FALSE;
          END;
@@ -1391,7 +1416,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          INC( idx, by );
          INC( item );
       END; // WHILE
-      Sources.Pop();
+      Sources.Pop( OUT d, OUT d );
       
       RETURN TRUE;
    END ParseFor;
@@ -1400,11 +1425,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE ParseForeach( CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
+      atit : lists.CStringStringListIterator;
       attribute : StringsO.CString;
       current : StringsO.TPString;
       currentData : StringsO.TPString;
+      d : PTR;
       data : StringsO.CString;
       depth : INTEGER := 0;
+      eachit : collection.TPIterator;
       haveSource : BOOLEAN := FALSE;
       haveList : BOOLEAN := FALSE;
       index : StringsO.CString;
@@ -1412,8 +1440,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
       isEmpty : BOOLEAN;
       lattributes : lists.CStringStringList;
       list : lists.TPStringStringList;
+      listit : lists.CStringStringListIterator;
       loopItem : INTEGER;
       map : maps.TPStringStringMap;
+      mapit : maps.CStringStringMapIterator;
       model : StringsO.CString;
       nl : NodeList.CNodeList;
       nodeName : StringsO.CString;
@@ -1430,43 +1460,43 @@ CLASS IMPLEMENTATION CPageTemplateView;
       prefix.AppendOA( L":" );
 
       // first analyze attributes
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      atit.Init( attributes, collection.dirForward );
+      WHILE atit.MoveNext() DO
+         pname := atit.Value;
 
          attribute := prefix; attribute.AppendOA( PT_MODEL );
          IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT model );
+            ParseText( atit.Data^, OUT model );
             CONTINUE;
          END;
          
          attribute := prefix; attribute.AppendOA( PT_INDEX );
          IF pname^.EqualsIgnoreCaseOA( PT_INDEX ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT index );
+            ParseText( atit.Data^, OUT index );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ORDER );
          IF pname^.EqualsIgnoreCaseOA( PT_ORDER ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT order );
+            ParseText( atit.Data^, OUT order );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ITEM );
          IF pname^.EqualsIgnoreCaseOA( PT_ITEM ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT item );
+            ParseText( atit.Data^, OUT item );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_DATA );
          IF pname^.EqualsIgnoreCaseOA( PT_DATA ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT data );
+            ParseText( atit.Data^, OUT data );
             CONTINUE;
          END;
 
          attribute := prefix; attribute.AppendOA( PT_ODD );
          IF pname^.EqualsIgnoreCaseOA( PT_ODD ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT odd );
+            ParseText( atit.Data^, OUT odd );
             CONTINUE;
          END;
       END; // WHILE
@@ -1507,54 +1537,53 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END; // WHILE
       
       // third switch sources and do "for"
-      Sources.Push( ADR( nl ));
+      Sources.Push( ADR( nl ), 0 );
       loopItem := 1;
       IF haveList THEN
-         list^.Reset();
+         listit.Init( list^, collection.dirForward );
       ELSE
-         map^.Reset();
+         mapit.Init( map^, collection.dirForward );
       END;
       LOOP
          IF haveList THEN
-            IF NOT list^.MoveNext() THEN
+            IF NOT listit.MoveNext() THEN
                EXIT;
             END;
-            current := list^.Current;
-            currentData := list^.CurrentData;
+            current := listit.Value;
+            currentData := listit.Data;
          ELSE
-            IF NOT map^.MoveNext() THEN
+            IF NOT mapit.MoveNext() THEN
                EXIT;
             END;
-            current := map^.Current;
-            currentData := map^.CurrentData;
+            current := mapit.Key;
+            currentData := mapit.Value;
          END;
          
          IF NOT item.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, item, current^, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, item, current^ );
          END;
          IF NOT data.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, data, currentData^, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, data, currentData^ );
          END;
          IF NOT odd.Empty THEN
             SetModelBoolean( odd, loopItem AND 1 = 1 );
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( loopItem-1, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, index, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, index, value );
          END;
          IF NOT order.Empty THEN
             value.FromCARD32( loopItem, 10 );
-            Request^.ModelContainer^.SetModelValue( Request^, order, value, NIL );
+            Request^.ModelContainer^.SetModelValue( Request^, Request^.MessageSource, Language, order, value );
          END;
 
-         nl.Reset(); // prepare parsing
          IF NOT Parse( TRUE, FALSE ) THEN
             RETURN FALSE;
          END;
 
          INC( loopItem );
       END; // LOOP
-      Sources.Pop();
+      Sources.Pop( OUT d, OUT d );
       
       RETURN TRUE;
    END ParseForeach;
@@ -1641,7 +1670,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteElementStartOA( L"", L"input" );
 
       Writer.WriteAttributeStringOA( L"", L"type", OAsz( ptype ));
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value, NIL ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, fullModel, OUT value ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
          IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
             Writer.WriteAttributeStringOA( L"", L"value", L"true" );
@@ -1651,7 +1680,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          ELSE            
             Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
          END;
-      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value, NIL ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, model, OUT value ) THEN // model = item
          WriteFormNameAttribute( model );
          IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
             Writer.WriteAttributeStringOA( L"", L"value", L"true" );
@@ -1695,6 +1724,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       attribute : StringsO.CString;
       fullModel : StringsO.CString;
       fullSelectedModel : StringsO.CString;
+      it : lists.CStringStringListIterator;
       model : StringsO.CString;
       pname : StringsO.TPString;
       selectedModel : StringsO.CString;
@@ -1714,11 +1744,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_FORM_OPTION_SELECTED );
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_FORM_OPTION_SELECTED ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT selectedModel );
+            ParseText( it.Data^, OUT selectedModel );
          END;
       END; // WHILE
       IF NOT selectedModel.Empty AND NOT FormModel.Empty THEN
@@ -1729,9 +1759,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Writer.WriteElementStartOA( L"", L"option" );
 
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value, NIL ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, fullModel, OUT value ) THEN // model = form.item
          Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
-      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value, NIL ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, model, OUT value ) THEN // model = item
          Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
@@ -1750,7 +1780,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
    BEGIN
       // TODO: react to error
-      Request^.ModelContainer^.Format( Request^, FALSE, Text, Request^.MessageSource, Request^.Language, OUT Parsed );
+      Request^.ModelContainer^.Format( Request^, FALSE, Text, Request^.MessageSource, Language, OUT Parsed );
    END ParseText;
 
 (*--------------------------------------------------------------------------------*)
@@ -1758,10 +1788,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseVariable( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
-      lattributes : lists.CStringStringList;
+      it : lists.CStringStringListIterator;
       nodeName : StringsO.CString;
-      nodePrefix : StringsO.CString;
-      nodeType : xmlreader.TNodeType;
       model : StringsO.CString;
       pname : StringsO.TPString;
       source : StringsO.CString;
@@ -1777,11 +1805,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_SOURCE );
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_SOURCE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT source );
+            ParseText( it.Data^, OUT source );
             EXIT;
          END;
       END;
@@ -1808,20 +1836,47 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE ParseContext( isEmpty : BOOLEAN ) : BOOLEAN;
+   VAR
+      functionHandler : MVC.TPFunctionHandler;
+      parameterList : lists.CStringStringList;
+      source : StringsO.CString;
+   BEGIN
+      IF NOT Request^.ModelContainer^.GetFunctionHandlerOA( DATA_CONTEXT_CHANGE_FUNCTION, OUT functionHandler ) THEN
+         source.FromOA( L"(pt:)context" );
+         SetError( source, NIL, L"'pt:context' support is missing." );
+         RETURN FALSE;
+      END;
+
+      IF isEmpty THEN
+         parameterList.Add( StringsO.Empty(), StringsO.Empty() );
+      ELSIF LoadTextContents( OUT source ) THEN
+         parameterList.Add( StringsO.Empty(), source );
+
+      ELSE
+         RETURN FALSE;
+      END;
+
+      RETURN functionHandler^.Call( Request^, ChangeDataContextFunctionName(), REF parameterList, NIL ) IN MVC.crsCalled;
+   END ParseContext;
+
+(*--------------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE GetFormAction( CONST attributes : lists.CStringStringList; OUT formAction : StringsO.IString ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
    BEGIN
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_ACTION );
 
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_ACTION ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT formAction );
+            ParseText( it.Data^, OUT formAction );
          END;
       END; // WHILE
 
@@ -1833,17 +1888,18 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE GetFormModel( CONST attributes : lists.CStringStringList; OUT formModel : StringsO.IString ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
    BEGIN
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_MODEL );
 
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT formModel );
+            ParseText( it.Data^, OUT formModel );
          END;
       END; // WHILE
 
@@ -1855,17 +1911,18 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE GetFormId( CONST attributes : lists.CStringStringList; OUT formId : StringsO.IString ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
    BEGIN
       attribute := Prefix;
       attribute.AppendOA( L":" );
       attribute.AppendOA( PT_FORMID );
 
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF pname^.EqualsIgnoreCaseOA( PT_FORMID ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT formId );
+            ParseText( it.Data^, OUT formId );
          END;
       END; // WHILE
 
@@ -1876,9 +1933,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT empty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
    VAR
-      al : lists.TPStringStringList;
-      nl : NodeList.TPNodeList;
+      it : lists.CStringStringListIterator;
       nli : NodeList.TPNodeItem;
+      nlit : NodeList.CNodeListIterator;
       xmle : xmlreader.TXMLError;
    BEGIN
       IF Sources.Empty THEN
@@ -1929,12 +1986,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END; // LOOP
 
       ELSE
-         nl := NodeList.TPNodeList( Sources.Peek());
-         IF NOT nl^.MoveNext() THEN
+         nlit.Init( NodeList.TPNodeList( Sources.Top )^, collection.dirForward );
+         IF NOT nlit.MoveNext() THEN
             RETURN xmlreader.xmle_S_FALSE;
          END;
          
-         nli := nl^.Current;
+         nli := nlit.Value;
          nodeType := nli^.Type;
          nodePrefix.Assign( nli^.Prefix^ );
          nodeName.Assign( nli^.Name^ );
@@ -1942,13 +1999,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
          nodeValue.Assign( nli^.Value^ );
 
          attributes.Dispose();
-         al := nli^.Attributes;
-         IF al <> NIL THEN
-            al^.Reset();
-            WHILE al^.MoveNext() DO
-               attributes.Add( al^.Current^, al^.CurrentData^ );
+         IF nli^.Attributes <> NIL THEN
+            it.Init( nli^.Attributes^, collection.dirForward );
+            WHILE it.MoveNext() DO
+               attributes.Add( it.Value^, it.Data^ );
             END; // WHILE
-         END; // IF al <> NIL
+         END; // IF nli^.Attributes <> NIL
          
          RETURN xmlreader.xmle_S_OK;
       END;
@@ -1960,6 +2016,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       ignore1 : StringsO.CString;
       ignore2 : StringsO.CString;
+      it : lists.CStringStringListIterator;
       pname : StringsO.TPString;
       value : StringsO.CString;
    BEGIN
@@ -1975,9 +2032,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ignore2.AppendOA( L":" );
       ignore2.AppendOA( ignoreOA2 );
 
-      attributes.Reset();
-      WHILE attributes.MoveNext() DO
-         pname := StringsO.TPString( attributes.Current );
+      it.Init( attributes, collection.dirForward );
+      WHILE it.MoveNext() DO
+         pname := it.Value;
          IF ptFlag AND pname^.EqualsIgnoreCaseOA( ignoreOA1 ) OR pname^.EqualsIgnoreCase( ignore1 ) THEN
             CONTINUE; // ignore pt:ignore
          ELSIF ignoreOA2[0] = 0W THEN
@@ -1985,7 +2042,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          ELSIF ptFlag AND pname^.EqualsIgnoreCaseOA( ignoreOA2 ) OR pname^.EqualsIgnoreCase( ignore2 ) THEN
             CONTINUE; // ignore pt:ignore
          END;
-         ParseText( attributes.CurrentData^, OUT value );
+         ParseText( it.Data^, OUT value );
          Writer.WriteAttributeStringOA( L"", OA( pname^.Length-1, pname^.Data ), OA( value.Length-1, value.Data ));
       END; // WHILE
    END CopyAttributes;
@@ -2063,7 +2120,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       ELSIF Value.EqualsOA( L"true" ) OR Value.EqualsOA( L"1" ) THEN
          RETURN TRUE;
-      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Value, OUT modelValue, NIL ) THEN
+      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Request^.MessageSource, Language, Value, OUT modelValue ) THEN
          RETURN TRUE; // value not found, string is not empty
       ELSIF modelValue.EqualsOA( L"false" ) OR modelValue.EqualsOA( L"0" ) OR modelValue.Empty THEN
          RETURN FALSE;
@@ -2160,10 +2217,20 @@ BEGIN
    Request := NIL;
    Resolver := NIL;
    LoadState := lsNotLoaded;
+   OverrideLanguage := FALSE;
+   OverriddenLanguage := Languages.GetDefaultLanguage( Languages.dlUser );
+   Language := OverriddenLanguage;
    CurrentViewNameIndex := 1;
    Where := TWhere{};
    AuthTokens := NIL;
 END CPageTemplateView;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ChangeDataContextFunctionName() : StringsO.CString;
+BEGIN
+   RETURN StringsO.FromOA( DATA_CONTEXT_CHANGE_FUNCTION );
+END ChangeDataContextFunctionName;
 
 (*================================================================================*)
 
@@ -2178,7 +2245,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    BEGIN
       IF PageTemplateView^.FormatToBuffer( Request, REF Response, OUT Output ) THEN // OK, view file found, send it as response
          Response.OverrideStatusResponse := TRUE;
@@ -2192,7 +2259,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -2200,7 +2267,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERTLOG( FALSE );
       RETURN FALSE;
@@ -2218,7 +2285,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -2236,7 +2303,7 @@ CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for e
       Path.PrependOA( PREFIX );
       Path.AppendOA( SUFFIX );
       
-      PageTemplateView^.Init( Resolver, OA( Path.Length-1, Path.Data ));
+      PageTemplateView^.Init( Resolver, OA( Path.Length-1, Path.Data ), FALSE, 0 );
       SELF.StatusCode := StatusCode;
    END Init;
    

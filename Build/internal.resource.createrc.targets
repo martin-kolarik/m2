@@ -23,11 +23,10 @@
     VALUE &quot;ProductName&quot;, &quot;$(ProductDescription)\0&quot;
     VALUE &quot;ProductVersion&quot;, &quot;$(ProductVersionMajor).$(ProductVersionMinor).#(ProductVersionBuild).$(ProductVersionRevision)\0&quot;
 
-    VALUE &quot;FileDescription&quot;, &quot;$(FileDescription)\0&quot;
-    VALUE &quot;FileVersion&quot;, &quot;$(FileVersionMajor).$(FileVersionMinor).#(FileVersionBuild).$(FileVersionRevision) (#(FileRevisionId))\0&quot;
+    VALUE &quot;FileDescription&quot;, &quot;$(ProjectDescription)\0&quot;
+    VALUE &quot;FileVersion&quot;, &quot;$(ProjectVersionMajor).$(ProjectVersionMinor).#(ProjectVersionBuild).$(ProjectVersionRevision) (#(ProjectRevisionId))\0&quot;
     VALUE &quot;InternalName&quot;, &quot;$(InternalName)\0&quot;
     VALUE &quot;OriginalFilename&quot;, &quot;$(OriginalFilename)\0&quot;
-    VALUE &quot;LanguageStyle&quot;, &quot;$(LanguageStyle)\0&quot;
         </RCStringFileInfo>
         <RCStepping Condition="$(ProductStepping)!=''">
     VALUE &quot;SpecialBuild&quot;, &quot;$(ProductStepping)\0&quot;
@@ -38,12 +37,12 @@
         </RCVarFileInfo>
 
         <RCFileContents>
-#include &quot;winres.h&quot;
+#include &quot;winresrc.h&quot;
 #pragma code_page($(OriginalCodePageDec))
         
 VS_VERSION_INFO VERSIONINFO
   PRODUCTVERSION $(ProductVersionMajor),$(ProductVersionMinor),#(ProductVersionBuild),$(ProductVersionRevision)
-  FILEVERSION $(FileVersionMajor),$(FileVersionMinor),#(FileVersionBuild),$(FileVersionRevision)
+  FILEVERSION $(ProjectVersionMajor),$(ProjectVersionMinor),#(ProjectVersionBuild),$(ProjectVersionRevision)
   FILEFLAGSMASK VS_FF_DEBUG | VS_FF_SPECIALBUILD
   FILEFLAGS $(RCFileFlags)
   FILEOS VOS_NT
@@ -62,14 +61,13 @@ LANGUAGE $(LangName), $(SubLangName)
         </RCFileContents>
     </PropertyGroup>
 
-    <UsingTask TaskName="WriteLinesToEncodedFile" AssemblyFile="BuildTasks.dll"/>
-    <!-- UsingTask TaskName="BuildNumber" AssemblyFile="BuildTasks.dll"/ -->
-    <UsingTask TaskName="Patch" AssemblyFile="BuildTasks.dll"/>
+    <UsingTask TaskName="WriteLinesToEncodedFile" AssemblyFile="$(BuildTask)"/>
+    <!-- UsingTask TaskName="BuildNumber" AssemblyFile="$(BuildTask)"/ -->
+    <UsingTask TaskName="Patch" AssemblyFile="$(BuildTask)"/>
 
     <PropertyGroup>
         <RCFile>$(IntermediateDir)\$(MSBuildProjectName).generated.rc</RCFile>
         <RCFileDependency>$(ResourceFile);$(TLBFile);@(GrabbedMessages);@(MessagesBin)</RCFileDependency>
-        <RCFileDependency Condition="!Exists('$(RCFile)')">$(RCFile);$(RCFileDependency)</RCFileDependency>
     </PropertyGroup>
 
     <Target Name="AppendSpecificRC">
@@ -80,18 +78,24 @@ LANGUAGE $(LangName), $(SubLangName)
         <WriteLinesToEncodedFile File="$(RCFile)" Lines="@(SourceLines)" Encoding="$(OriginalCodePageDec)"/>
     </Target>
 
+    <Target Name="CreateRCFileInput">
+        <CreateProperty Condition="!Exists('$(RCFile)')" Value="$(RCFile);$(RCFileDependency)">
+            <Output TaskParameter="Value" PropertyName="RCFileDependency"/>
+        </CreateProperty>
+    </Target>
+    
     <Target Name="CreateRCFile"
             Condition="@(RESFile)!=''"
             Inputs="$(RCFileDependency)"
             Outputs="$(RCFile)">
         <!-- operate build numbers -->
-        <CreateProperty Condition="$(ProductVersionBuild)==''" Value="$(FileVersionBuild)">
+        <CreateProperty Condition="$(ProductVersionBuild)==''" Value="$(ProjectVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductVersionBuild"></Output>
         </CreateProperty>
-        <CreateProperty Value="@(FileRevisionIds)">
-            <Output TaskParameter="Value" PropertyName="FileRevisionId"/>
+        <CreateProperty Value="@(ProjectRevisionIds)">
+            <Output TaskParameter="Value" PropertyName="ProjectRevisionId"/>
         </CreateProperty>
-        <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;FileVersionBuild;FileRevisionId" Patches="$(ProductVersionBuild);$(FileVersionBuild);$(FileRevisionId)"><!-- patch property -->
+        <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;ProjectVersionBuild;ProjectRevisionId" Patches="$(ProductVersionBuild);$(ProjectVersionBuild);$(ProjectRevisionId)"><!-- patch property -->
             <Output TaskParameter="Value" PropertyName="RCFileContents"/>
         </Patch>
         <!-- create rc file itself -->

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <comment>CFG errors</comment>
+        <string name="_DeviceIsNotInitialized">
+            <item lang="en-US">Device (source for data) is not initialized</item>
+            <item lang="cs-CZ">Zařízení (zdroj dat) není nastaveno</item>
+        </string>
+        <string name="_BadParameterMissingSourceOfConfiguration">
+            <item lang="en-US">Bad parameter -- not know where to load configuration from</item>
+            <item lang="cs-CZ">Chybný parametr -- není znám zdroj konfigurace</item>
+        </string>
+        <string name="_UnsupportedSourceOfConfiguration">
+            <item lang="en-US">Bad parameter -- unsupported configuration source</item>
+            <item lang="cs-CZ">Chybný parametr -- nepodporovaný zdroj konfigurace</item>
+        </string>
+        <string name="_ConfigurationSectionNotFound">
+            <item lang="en-US">Configuration section not found: </item>
+            <item lang="cs-CZ">Sekce nebyla v konfiguraci nalezena:</item>
+        </string>
+        <string name="_IncorrectOutputConditionFormat">
+            <item lang="en-US">Incorrect output with condition format. The valid one is &lt;output&gt;[&lt;condition&gt;], where square bracket part is optional:</item>
+            <item lang="cs-CZ">Nesprávný formát výstupu s podmínkou. Správný zápis je &lt;output&gt;[&lt;condition&gt;], přičemž blok v hranatých závorkách je volitelný:</item>
+        </string>
+        <string name="_ContextNotFound">
+            <item lang="en-US">Context is not known:</item>
+            <item lang="cs-CZ">Kontext není známý:</item>
+        </string>
+        <string name="_OutputAddressNotFound">
+            <item lang="en-US">An item coresponding to given output address does not exist:</item>
+            <item lang="cs-CZ">Prvek (výstup) s uvedenou adresou neexistuje:</item>
+        </string>
+        <string name="_ConditionAddressNotFound">
+            <item lang="en-US">An item coresponding to given condition address does not exist:</item>
+            <item lang="cs-CZ">Prvek (podmínka) s uvedenou adresou neexistuje:</item>
+        </string>
+        <string name="_OutputValueNotFound">
+            <item lang="en-US">Output value is missing:</item>
+            <item lang="cs-CZ">Chybí výstupní hodnota:</item>
+        </string>
+        <string name="_InputAddressNotFound">
+            <item lang="en-US">An item coresponding to given input address does not exist:</item>
+            <item lang="cs-CZ">Prvek (vstup) s uvedenou adresou neexistuje:</item>
+        </string>
+        <string name="_InputValuesAreMissing">
+            <item lang="en-US">Missing input values addresses (inner setpoint, outer actual)</item>
+            <item lang="cs-CZ">Chybí adresy vstupních prvků (žádaná hodnota, venkovní teplota)</item>
+        </string>
+        <string name="_SetpointAddressNotFound">
+            <item lang="en-US">An item coresponding to given setpoint address does not exist:</item>
+            <item lang="cs-CZ">Prvek (žádaná hodnota) s uvedenou adresou neexistuje:</item>
+        </string>
+        <string name="_OuterAddressNotFound">
+            <item lang="en-US">An item coresponding to given outer temperature address does not exist:</item>
+            <item lang="cs-CZ">Prvek (venkovní teplota) s uvedenou adresou neexistuje:</item>
+        </string>
+        <string name="_SlopeIsNotANumber">
+            <item lang="en-US">Given slope is not a number (maybe it is malformed?)</item>
+            <item lang="cs-CZ">Zadaná hodnota sklonu není číslo (je špatně zapsané?)</item>
+        </string>
+        <string name="_SlopeOutOfRange">
+            <item lang="en-US">Given slope is out of allowed range 0.2--3.5</item>
+            <item lang="cs-CZ">Zadaná hodnota sklonu je mimo povolený rozsah 0,2--3,5</item>
+        </string>
+        <string name="_OffsetIsNotANumber">
+            <item lang="en-US">Given offset is not a number (maybe it is malformed?)</item>
+            <item lang="cs-CZ">Zadaná hodnota posunutí není číslo (je špatně zapsané?)</item>
+        </string>
+
+        <string name="_AppDataStorageUnavailable">
+            <item lang="en-US">Unable to set up common application data storage</item>
+            <item lang="cs-CZ">Nelze nastavit cestu ke společným datům aplikací</item>
+        </string>
+        <string name="_WriteDelayCannotBeZeroOrLessThanZeroIgnoring">
+            <item lang="en-US">Write delay must be at least 1 (second)</item>
+            <item lang="cs-CZ">Zpoždění zápisu musí být nejméně 1 (sekunda)</item>
+        </string>
+        <string name="_AddressNotFound">
+            <item lang="en-US">An item corresponding to given address does not exist:</item>
+            <item lang="cs-CZ">Prvek s uvedenou adresou neexistuje:</item>
+        </string>
+
+        <string name="_IncorrectTimeFormat">
+            <item lang="en-US">Invalid time specification, it has to be entered in 'hh:mm' format</item>
+            <item lang="cs-CZ">Neplatné určení času, čas musí být zadán ve formátu 'hh:mm'</item>
+        </string>
+        <string name="_IncorrectDaySpecification">
+            <item lang="en-US">Invalid day specification, values allowed are: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday, Workday, Weekend</item>
+            <item lang="cs-CZ">Neplatné určení dne, povolené hodnoty jsou: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday, Workday, Weekend</item>
+        </string>
+
+        <string name="_MissingInputSelector">
+            <item lang="en-US">Missing at least one value of input for which the output would be applied:</item>
+            <item lang="cs-CZ">Chybí alespoň jedna hodnota vstupu, pro kterou by výstup použil:</item>
+        </string>
+
+    </strings>
+</resources>

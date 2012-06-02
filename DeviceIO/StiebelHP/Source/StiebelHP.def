@@ -12,6 +12,8 @@ IMPORT
    io,
    IOO,
    iovalue,
+   iplugin,
+   lists,
    log,
    netsocket,
    ns,
@@ -53,11 +55,12 @@ END CNS;
 CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
    LOCAL VAR
       PIO : TPIO;
-      Connection : rawconnection.TCPConnection;
+      Connection : rawconnection.ClientTCPConnection;
       RxBuffer : StorageO.CMemoryBuffer;
       Logger : log.CLogger;
 
    PRIVATE VAR
+      _AppenderList : lists.CPtrList;
       _DeviceAddress : StringsO.CString;
       _SDAPAddress : StringsO.CString;
       _Data : lists.CStringList; // String = SDAP address, Data = ns.THash
@@ -139,17 +142,19 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CStiebelHPDevice( helper.APluginObject ) IMPLEMENTS iplugin.IPlugin, device.IDevice;
    PRIVATE VAR
       _NS : CNS;
       _IO : CIO;
 
+   // CDisposable
+   PUBLIC FINAL PROCEDURE Dispose();
+
    // IObject
    PUBLIC FINAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC FINAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC FINAL PROCEDURE OnDispose();
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -160,6 +165,7 @@ CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS device.IDevice;
    PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 
    PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+
 END CStiebelHPDevice;
 
 (*---------------------------------------------------------------------------*)

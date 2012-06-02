@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
   maps,
   OSALmsg,
   Sync;
@@ -52,13 +53,17 @@ CLASS SCMessage IMPLEMENTS OSALmsg.IMessage;
     INDEX( ParameterIndex : CARDINAL ) : PTR;
   PUBLIC VIRTUAL PROCEDURE Clone() : POINTER TO OSALmsg.IMessage;
   PUBLIC VIRTUAL PROCEDURE Release();
+  PUBLIC VIRTUAL PROCEDURE Send( Target : OSALmsg.TPMessageTarget; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
   PUBLIC OPERATOR
     :=( CONST MSG : SCMessage );
 END SCMessage;
 
+// ctor
+PROCEDURE FromMessage( Source : ADDRESS; Message : CARDINAL; Parameter : PTR ) : SCMessage;
+
 (*===============================================================================*)
 
-CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
+CLASS SCMessageHandler( baseobject.CDisposable ) IMPLEMENTS OSALmsg.IMessageHandler;
   INTERNAL VAR
     joinedTo : OSALmsg.TPMessageQueueThread;
   PUBLIC VIRTUAL READONLY PROPERTY

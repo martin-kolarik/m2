@@ -221,7 +221,7 @@ CLASS IMPLEMENTATION CTest;
          Writer.Summa := 0;
 
          // start
-         NetWriteStream.FromServer( L"127.0.0.1:4444" );
+         NetWriteStream.FromServer( L"127.0.0.1:4444", 0 );
          WaitForMessages( 50 );
          ReaderThread.Start( TRUE );
      
@@ -251,12 +251,7 @@ CLASS IMPLEMENTATION CTest;
          ReaderThread.Stop( TRUE );
 
          // check
-         IF Count <> Reader.PrevCount+1 THEN
-            Failure := TRUE;
-            Host^.StopPhaseWithResult( test.trFailure );
-         ELSE
-            Host^.StopPhaseWithResult( test.trSuccess );
-         END;
+         Host^.StopPhaseWithResult( Count = Reader.PrevCount+1 );
       END WriteOnly;
       
    //----------
@@ -273,7 +268,7 @@ CLASS IMPLEMENTATION CTest;
          Writer.Summa := 0;
 
          // start
-         NetWriteStream.FromServer( L"127.0.0.1:4444" );
+         NetWriteStream.FromServer( L"127.0.0.1:4444", 0 );
          WaitForMessages( 50 );
          
          IF BigBlock THEN
@@ -335,19 +330,9 @@ CLASS IMPLEMENTATION CTest;
 
          // check
          IF BigBlock THEN
-            IF CARD64( lcount ) * SIZE( bb ) <> Reader.Summa THEN
-               Failure := TRUE;
-               Host^.StopPhaseWithResult( test.trFailure );
-            ELSE
-               Host^.StopPhaseWithResult( test.trSuccess );
-            END;
+            Host^.StopPhaseWithResult( CARD64( lcount ) * SIZE( bb ) = Reader.Summa );
          ELSE
-            IF Count <> Reader.PrevCount+1 THEN
-               Failure := TRUE;
-               Host^.StopPhaseWithResult( test.trFailure );
-            ELSE
-               Host^.StopPhaseWithResult( test.trSuccess );
-            END;
+            Host^.StopPhaseWithResult( Count = Reader.PrevCount+1 );
          END;
       END ReadWrite;
       

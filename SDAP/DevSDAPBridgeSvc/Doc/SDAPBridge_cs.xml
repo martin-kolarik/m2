@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <document file="SDAPBridge" xmlns="http://www.mii.cz/2004/XML/Document/Common">
-  <header creator="martin" doc_type="generic" last_modified="2010-03-10" last_modifier="martin" version="1.0.1516.0"
+  <header creator="martin" doc_type="generic" last_modified="2011-02-06" last_modifier="martin" version="1.0.1516.0"
           xml:lang="cs"></header>
 
   <adjustment>
@@ -14,21 +14,20 @@
       <title>SDAP Bridge</title>
 
       <text>
-        <p>SDAP Bridge je produkt, který převádí komunikaci dat pomocí specializovaných protokolů do protokolu SDAP.
-        SDAP Bridge je určen pro trvalý běh, v operačním systému je přítomen jako služba. SDAP Bridge je SDAP klient,
-        pro svou práci potřebuje SDAP server, kterému data specializovaných protokolů periodicky odesílá. V opačném
-        směru (SDAP Server<c.special what="dash" />SDAP Bridge<c.special what="dash" />specializovaný protokol) SDAP
-        Bridge data přenáší jen po přijetí zprávy ze SDAP serveru.</p>
+        <p>SDAP Bridge je produkt, který převádí komunikaci dat pomocí specializovaných protokolů do protokolu SDAP. SDAP Bridge
+        je určen pro trvalý běh, v operačním systému je přítomen jako služba. SDAP Bridge je SDAP klient, pro svou práci
+        potřebuje SDAP server, kterému data specializovaných protokolů periodicky odesílá. V opačném směru (SDAP
+        Server<c.special what="dash" />SDAP Bridge<c.special what="dash" />specializovaný protokol) SDAP Bridge data přenáší jen
+        po přijetí zprávy ze SDAP serveru.</p>
 
-        <p>SDAP Bridge sám žádný specializovaný protokol neimplementuje, pouze pro ně poskytuje oddělené vnitřní
-        rozhraní. Každý ze speciálních protokolů proto musí být do SDAP Bridge zapojen jako samostatný zásuvný
-        modul.</p>
+        <p>SDAP Bridge sám žádný specializovaný protokol neimplementuje, pouze pro ně poskytuje oddělené vnitřní rozhraní. Každý
+        ze speciálních protokolů proto musí být do SDAP Bridge zapojen jako samostatný zásuvný modul.</p>
 
         <il>
           <caption>Softwarové a hardwarové požadavky:</caption>
 
-          <li><p>operacní systémy Windows XP SP2 a vyšší, XP Embedded SP2 a vyšší, Vista RTM a vyšší, Window Server 2003
-          RTM a vyšší, Windows Server 2008 RTM a vyšší,</p></li>
+          <li><p>operacní systémy Windows XP SP2 a vyšší, XP Embedded SP2 a vyšší, Vista RTM a vyšší, Window Server 2003 RTM a
+          vyšší, Windows Server 2008 RTM a vyšší,</p></li>
 
           <li><p>10<c.special what="thinspace" />MB volného místa na disku,</p></li>
 
@@ -37,7 +36,7 @@
           <li><p>pomocí IP sítě dostupný SDAP server (například SmartServer).</p></li>
         </il>
 
-        <p>Verze dokumentace: 1.0.1249</p>
+        <p>Verze dokumentace: 1.5.1455</p>
 
         <content>
           <caption>Obsah</caption>
@@ -47,11 +46,11 @@
           <title>Instalace a licence</title>
 
           <text>
-            <p>Instalační balíček SDAP Bridge (v podobě MSI souboru, MSI = Microsoft Installer) nainstaluje po spuštění
-            program automaticky do složky <file>Program Files\NeNo\DevSDAPBridge</file>. Během instalace je třeba vložit
-            správné licenční údaje (z licenčního certifikátu), nebo je možné SDAP Bridge nainstalovat jako demoverzi.
-            Pokud je licence vystavena na jméno, musí být při instalaci toto jméno zadáno přesně podle licence (včetně
-            mezer, velkých a malých písmen či diakritiky).</p>
+            <p>Instalační balíček SDAP Bridge (v podobě MSI souboru, MSI = Microsoft Installer) nainstaluje po spuštění program
+            automaticky do složky <file>Program Files\NeNo\DevSDAPBridge</file>. Během instalace je třeba vložit správné
+            licenční údaje (z licenčního certifikátu), nebo je možné SDAP Bridge nainstalovat jako demoverzi. Pokud je licence
+            vystavena na jméno, musí být při instalaci toto jméno zadáno přesně podle licence (včetně mezer, velkých a malých
+            písmen či diakritiky).</p>
 
             <il>
               <caption>Demoverze je vůči plné verzi omezená následovně:</caption>
@@ -60,24 +59,24 @@
 
               <li><p>poskytuje klientům data pouze cca 30 minut od spuštění,</p></li>
 
-              <li><p>omezení nezastavuje službu a neuzavírá spojení s klienty, klienti zůstanou připojení, server jim
-              pouze neposkytne žádná data.</p></li>
+              <li><p>omezení nezastavuje službu a neuzavírá spojení s klienty, klienti zůstanou připojení, server jim pouze
+              neposkytne žádná data.</p></li>
             </il>
 
-            <p>Nainstalovaný SDAP Bridge je nutné do 35 dnů od instalace aktivovat. Aktivaci lze provést z příkazové
-            řádky pomocí nástroje (<type>activate</type>), který se nainstaluje spolu se SDAP Bridge. Pokud se během
-            35 dnů od instalace SDAP Bridge neaktivuje, poběží dále jako demoverze.</p>
+            <p>Nainstalovaný SDAP Bridge je nutné do 35 dnů od instalace aktivovat. Aktivaci lze provést z příkazové řádky
+            pomocí nástroje (<type>activate</type>), který se nainstaluje spolu se SDAP Bridge. Pokud se během 35 dnů od
+            instalace SDAP Bridge neaktivuje, poběží dále jako demoverze.</p>
 
             <section level="3">
               <title>Aktivace licence</title>
 
               <text>
-                <p>Aktivace probíhá dvoukrokově. V prvním kroku se získá registrační číslo, které se odešle na adresu
-                technické podpory (prodejce). Technická podpora číslo zaeviduje a na jeho základě vytvoří aktivační
-                číslo, které odešle zpět. V druhém kroku aktivace se aktivační číslo aplikuje.</p>
+                <p>Aktivace probíhá dvoukrokově. V prvním kroku se získá registrační číslo, které se odešle na adresu technické
+                podpory (prodejce). Technická podpora číslo zaeviduje a na jeho základě vytvoří aktivační číslo, které odešle
+                zpět. V druhém kroku aktivace se aktivační číslo aplikuje.</p>
 
-                <p>Registrační číslo se pomocí nástroje <type>activate</type> získá následovně (záznam operací
-                v příkazové řádce):</p>
+                <p>Registrační číslo se pomocí nástroje <type>activate</type> získá následovně (záznam operací v příkazové
+                řádce):</p>
 
                 <p.type>C:\&gt;cd "Program Files\Neno\DevSDAPBridge"
 C:\Program Files\NeNo\DevSDAPBridge&gt;activate -Q *
@@ -92,12 +91,12 @@ Licence support tool
     for product "NeNo.DevSDAPBridge"
     registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
 
-                <p>Uvedené registrační číslo se nevypíše, pokud je SDAP Bridge nainstalovaný bez licence (tj. jako
-                demoverze), nebo pokud již je SDAP Bridge aktivován.</p>
+                <p>Uvedené registrační číslo se nevypíše, pokud je SDAP Bridge nainstalovaný bez licence (tj. jako demoverze),
+                nebo pokud již je SDAP Bridge aktivován.</p>
 
-                <p>Po odeslání celého registračního čísla (<type>REG-xxxxx-...-xxxxx</type>) a jeho zpracování vznikne
-                aktivační číslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>. Toto aktivační číslo se opět pomocí nástroje
-                <type>activate</type> aplikuje:</p>
+                <p>Po odeslání celého registračního čísla (<type>REG-xxxxx-...-xxxxx</type>) a jeho zpracování vznikne aktivační
+                číslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>. Toto aktivační číslo se opět pomocí nástroje <type>activate</type>
+                aplikuje:</p>
 
                 <p.type>C:\&gt;cd "Program Files\Neno\DevSDAPBridge
 C:\Program Files\NeNo\DevSDAPBridge&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
@@ -125,9 +124,9 @@ Licence support tool
     type "----"
       activated permanently</p.type>
 
-                <p>Upozornění: po aktivaci je třeba službu SDAP Bridge restartovat. V počítačích se zabudovaným
-                operačním systémem (Windows<c.special what="thinspace" />XP Embedded) je třeba navíc zapsat změny
-                nastavení počítače na disk a počítač restartovat.</p>
+                <p>Upozornění: po aktivaci je třeba službu SDAP Bridge restartovat. V počítačích se zabudovaným operačním
+                systémem (Windows<c.special what="thinspace" />XP Embedded) je třeba navíc zapsat změny nastavení počítače na
+                disk a počítač restartovat.</p>
               </text>
             </section>
           </text>
@@ -148,22 +147,20 @@ Licence support tool
 
                   <dt><type>library</type></dt>
 
-                  <dd><p>Parametr společný všem zásuvným modulů, pomocí něj SDAP Bridge pozná, v jakém souboru je
-                  zásuvný modul uložen.</p><p>Příklad použití v konfiguraci:</p><p.type>[device_HP]
+                  <dd><p>Parametr společný všem zásuvným modulů, pomocí něj SDAP Bridge pozná, v jakém souboru je zásuvný modul
+                  uložen.</p><p>Příklad použití v konfiguraci:</p><p.type>[device_HP]
 library = C:\Program Files\NeNo\DevSDAPBridge\StiebelHP.dll</p.type></dd>
 
                   <dt><type>host</type></dt>
 
                   <dd><p>IP adresa nebo DNS jméno převodníku XPort/NeNo RS232/485-Ethernet. Zásuvný modul komunikuje
-                  s převodníkem pomocí TCP, převodník dále zajišťuje sériovou komunikaci s řídicí jednotkou tepelného
-                  čerpadla. Struktura parametru je <type>&lt;IP/DNS&gt;:&lt;port&gt;</type>.</p><p>Příklad
-                  použití:</p><p.type>[device_HP]
+                  s převodníkem pomocí TCP, převodník dále zajišťuje sériovou komunikaci s řídicí jednotkou tepelného čerpadla.
+                  Struktura parametru je <type>&lt;IP/DNS&gt;:&lt;port&gt;</type>.</p><p>Příklad použití:</p><p.type>[device_HP]
 host = 192.168.1.100:10001</p.type></dd>
                 </dl>
 
                 <dl>
-                  <caption>Popis datových bodů (R/O = jen pro čtení, R/W = pro čtení i zápis, W/O = jen pro
-                  zápis):</caption>
+                  <caption>Popis datových bodů (R/O = jen pro čtení, R/W = pro čtení i zápis, W/O = jen pro zápis):</caption>
 
                   <dt><type>StiebelHP.Data.OperatingMode</type> R/W</dt>
 
@@ -208,11 +205,10 @@ host = 192.168.1.100:10001</p.type></dd>
 
                   <dt><type>StiebelHP.Data.Error occurred</type> R/W</dt>
 
-                  <dd><p>Informace o nové chybě. Zásuvný modul při vzniku nové chyby nastaví datový bod na hodnotu
-                  <type>true</type>. Po zpracování v SDAP serveru je třeba zápisem <type>false</type> zpět do tohoto
-                  datového bodu povolit detekci dalších chyb.</p><p>Za běhu se za novou chybu považuje chyba
-                  s datem/časem větším, než je poslední známá chyba. Při startu se za novou chybu považuje jen chyba
-                  novější, než je aktuální datum/čas.</p></dd>
+                  <dd><p>Informace o nové chybě. Zásuvný modul při vzniku nové chyby nastaví datový bod na hodnotu <type>true</type>.
+                  Po zpracování v SDAP serveru je třeba zápisem <type>false</type> zpět do tohoto datového bodu povolit detekci
+                  dalších chyb.</p><p>Za běhu se za novou chybu považuje chyba s datem/časem větším, než je poslední známá
+                  chyba. Při startu se za novou chybu považuje jen chyba novější, než je aktuální datum/čas.</p></dd>
 
                   <dt><type>StiebelHP.Data.Error 01 Code</type><c.special what="interval" /><type>StiebelHP.Data.Error 20 Code</type>
                   R/O</dt>
@@ -297,37 +293,35 @@ hp1/StiebelHP.Data.Error occurred = 7/1/21
 
                   <dt><type>library</type></dt>
 
-                  <dd><p>Parametr společný všem zásuvným modulů, pomocí něj SDAP Bridge pozná, v jakém souboru je
-                  zásuvný modul uložen.</p><p>Příklad použití v konfiguraci:</p><p.type>[device_AM]
+                  <dd><p>Parametr společný všem zásuvným modulů, pomocí něj SDAP Bridge pozná, v jakém souboru je zásuvný modul
+                  uložen.</p><p>Příklad použití v konfiguraci:</p><p.type>[device_AM]
 library = C:\Program Files\NeNo\DevSDAPBridge\AirMotion.dll</p.type></dd>
 
                   <dt><type>host</type></dt>
 
                   <dd><p>IP adresa nebo DNS jméno převodníku XPort/NeNo RS232/485-Ethernet. Zásuvný modul komunikuje
-                  s převodníkem pomocí TCP, převodník dále zajišťuje sériovou komunikaci s řídicí jednotkou tepelného
-                  čerpadla. Struktura parametru je <type>&lt;IP/DNS&gt;:&lt;port&gt;</type>.</p><p>Příklad
-                  použití:</p><p.type>[device_AM]
+                  s převodníkem pomocí TCP, převodník dále zajišťuje sériovou komunikaci s řídicí jednotkou tepelného čerpadla.
+                  Struktura parametru je <type>&lt;IP/DNS&gt;:&lt;port&gt;</type>.</p><p>Příklad použití:</p><p.type>[device_AM]
 host = 192.168.1.100:10001</p.type></dd>
 
                   <dt><type>address</type></dt>
 
                   <dd><p>Logická adresa jednotky, se kterou se má komunikovat. Povolené hodnoty jsou 1<c.special
-                  what="interval" />200, při komunikaci s jedinou jednotkou v síti RS-485 (typické nasazení) je adresa
-                  jednotky typicky 1.</p><p>Příklad použití:</p><p.type>[device_AM]
+                  what="interval" />200, při komunikaci s jedinou jednotkou v síti RS-485 (typické nasazení) je adresa jednotky
+                  typicky 1.</p><p>Příklad použití:</p><p.type>[device_AM]
 address = 60000</p.type></dd>
 
                   <dt><type>poll_period</type></dt>
 
                   <dd><p>Perioda, se kterou má zásuvný modul vyčítat změněné údaje z jednotky. Komunikace všech hodnot
-                  v typickém nastavení jednotky trvá přibližně 15 sekund. Parametr by vždy měl mít hodnotu větší, než je
-                  tato doba komunikace všech údajů.</p><p>Příklad použití:</p><p.type>[device_AM]
+                  v typickém nastavení jednotky trvá přibližně 15 sekund. Parametr by vždy měl mít hodnotu větší, než je tato
+                  doba komunikace všech údajů.</p><p>Příklad použití:</p><p.type>[device_AM]
 poll_period = 60000</p.type><p>Hodnota parametru je v milisekundách, výchozí hodnota je <number>30000</number>
                   (30 sekund).</p></dd>
                 </dl>
 
                 <dl>
-                  <caption>Popis datových bodů (R/O = jen pro čtení, R/W = pro čtení i zápis, W/O = jen pro
-                  zápis):</caption>
+                  <caption>Popis datových bodů (R/O = jen pro čtení, R/W = pro čtení i zápis, W/O = jen pro zápis):</caption>
 
                   <dt><type>AirMotion.Data.Humidity</type> R/O</dt>
 
@@ -339,13 +333,13 @@ poll_period = 60000</p.type><p>Hodnota parametru je v milisekundách, výchozí hod
 
                   <dt><type>AirMotion.Data.Humidity setpoint</type> R/O</dt>
 
-                  <dd><p>Požadovaná vlhkost klimatizovaného prostoru. Údaj obsahuje aktuální žádanou hodnotu, jednotka
-                  tuto hodnotu získává podle svého režimu běhu z nastavovacích datových bodů (vizte níže).</p></dd>
+                  <dd><p>Požadovaná vlhkost klimatizovaného prostoru. Údaj obsahuje aktuální žádanou hodnotu, jednotka tuto
+                  hodnotu získává podle svého režimu běhu z nastavovacích datových bodů (vizte níže).</p></dd>
 
                   <dt><type>AirMotion.Data.Temperature setpoint</type> R/O</dt>
 
-                  <dd><p>Požadovaná teplota klimatizovaného prostoru. Údaj obsahuje aktuální žádanou hodnotu, jednotka
-                  tuto hodnotu získává podle svého režimu běhu z nastavovacích datových bodů (vizte níže).</p></dd>
+                  <dd><p>Požadovaná teplota klimatizovaného prostoru. Údaj obsahuje aktuální žádanou hodnotu, jednotka tuto
+                  hodnotu získává podle svého režimu běhu z nastavovacích datových bodů (vizte níže).</p></dd>
 
                   <dt><type>AirMotion.Data.Temperature (bath) setpoint</type> R/W</dt>
 
@@ -353,8 +347,8 @@ poll_period = 60000</p.type><p>Hodnota parametru je v milisekundách, výchozí hod
 
                   <dt><type>AirMotion.Data.Temperature (standby) setpoint</type> R/W</dt>
 
-                  <dd><p>Nastavovací datové body teploty, body odpovídají jednotlivým pracovním režimům jednotky: bath
-                  (baden), party (party), standby (ruhe).</p></dd>
+                  <dd><p>Nastavovací datové body teploty, body odpovídají jednotlivým pracovním režimům jednotky: bath (baden),
+                  party (party), standby (ruhe).</p></dd>
 
                   <dt><type>AirMotion.Data.Humidity (bath) setpoint</type> R/W</dt>
 
@@ -362,8 +356,8 @@ poll_period = 60000</p.type><p>Hodnota parametru je v milisekundách, výchozí hod
 
                   <dt><type>AirMotion.Data.Humidity (standby) setpoint</type> R/W</dt>
 
-                  <dd><p>Nastavovací datové body vlhkosti, body odpovídají jednotlivým pracovním režimům jednotky: bath
-                  (baden), party (party), standby (ruhe).</p></dd>
+                  <dd><p>Nastavovací datové body vlhkosti, body odpovídají jednotlivým pracovním režimům jednotky: bath (baden),
+                  party (party), standby (ruhe).</p></dd>
                 </dl>
 
                 <p>Příklad části konfiguračního souboru s definicí AirMotion dat:</p>
@@ -377,6 +371,125 @@ AM/AirMotion.Data.Humidity (bath) setpoint = 1/1/7
 1/1/1 = AM/AirMotion.Data.Temperature
 1/1/2 = AM/AirMotion.Data.Humidity setpoint
 1/1/3 = AM/AirMotion.Data.Temperature setpoint</p.type>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>SATEL Integra</title>
+
+              <text>
+                <p>Jméno souboru zásuvného modulu: <file>Integra.dll</file>.</p>
+
+                <dl>
+                  <caption>Popis parametrů konfigurace:</caption>
+
+                  <dt><type>library</type></dt>
+
+                  <dd><p>Parametr společný všem zásuvným modulů, pomocí něj SDAP Bridge pozná, v jakém souboru je zásuvný modul
+                  uložen.</p><p>Příklad použití v konfiguraci:</p><p.type>[device_satel]
+library = C:\Program Files\NeNo\DevSDAPBridge\Integra.dll</p.type></dd>
+
+                  <dt><type>host</type></dt>
+
+                  <dd><p>IP adresa nebo DNS jméno převodníku XPort/NeNo RS232/485-Ethernet. Zásuvný modul komunikuje
+                  s převodníkem pomocí TCP, převodník dále zajišťuje sériovou komunikaci s řídicí jednotkou tepelného čerpadla.
+                  Struktura parametru je <type>&lt;IP/DNS&gt;:&lt;port&gt;</type>.</p><p>Příklad použití:</p><p.type>[device_satel]
+host = 192.168.1.100:10001</p.type></dd>
+
+                  <dt><type>areas</type></dt>
+
+                  <dd><p>Jméno další sekce konfiguračního souboru s definicí oblastí. Parametr je povinný a konfigurační soubor
+                  musí definovanou sekci obsahovat.</p><p>Příklad použití:</p><p.type>[device_satel]
+areas = satel_areas
+
+; dále v konfiguračním souboru
+[satel_areas]
+...</p.type></dd>
+                </dl>
+
+                <dl>
+                  <caption>Popis parametrů sekce <type>areas</type>:</caption>
+
+                  <dt><type>&lt;area&gt;</type></dt>
+
+                  <dd><p>Identifikátor oblasti, hodnota klíče slouží jako poznámka. Konfigurační soubor musí sekci daného jména
+                  (<type>&lt;area&gt;</type>) obsahovat. Oblastí může být více, každé definované oblasti odpovídá jeden řádek
+                  v této sekci.</p><p>Příklad použití:</p><p.type>[satel_areas]
+1st_floor = Přízemí
+2nd_floor = Podkroví
+
+; dále v konfiguračním souboru
+[1st_floor]
+...
+
+[2nd_floor]
+...</p.type></dd>
+                </dl>
+
+                <dl>
+                  <caption>Popis parametrů sekce <type>&lt;area&gt;</type>:</caption>
+
+                  <dt><type>partitions</type></dt>
+
+                  <dd><p>Parametr definující seznam bloků, které patří do dané oblasti (určené jménem <type>&lt;area&gt;</type>).
+                  Bloky se zapisují do řádku a oddělují se čárkou. Pro zrychlení zápisu je také možné bloky zapisovat jako
+                  intervaly pomocí dvou teček, např <type>4..15</type>.</p><p>Povolený rozsah čísel bloků je 1<c.special
+                  what="interval" />32.</p><p>Příklad použití:</p><p.type>[1st_floor]
+partitions = 1, 3, 5..10
+
+[2nd_floor]
+partitions = 15..20, 24</p.type></dd>
+                </dl>
+
+                <p>Pro všechny zadané oblasti (<type>partitions</type>) zásuvný modul vnitřně vytváří 5 datových bodů, jejichž
+                jména vznikají spojením jména oblasti (<type>&lt;area&gt;</type>) a jedné z přípon <type>arm</type>, <type>disarm</type>,
+                <type>armed</type>, <type>outputs</type> a <type>alarm</type>. Například:</p>
+
+                <p.type>1st_floor disarm
+2nd_floor armed</p.type>
+
+                <p>Tato jména datových bodů se uvádějí v komunikačních sekcích <type>[sdap_to_device]</type> a <type>[device_to_sdap]</type>.</p>
+
+                <dl>
+                  <caption>Popis datových bodů (R/O = jen pro čtení, R/W = pro čtení i zápis, W/O = jen pro zápis):</caption>
+
+                  <dt><type>Integra.Data.&lt;area&gt; arm</type> W/O</dt>
+
+                  <dd><p>Zápisem kódu do datového bodu dojde k zastřežení všech bloků dané oblasti. Nesprávný kód je ignorován a
+                  nezpůsobí zastřežení.</p></dd>
+
+                  <dt><type>Integra.Data.&lt;area&gt; disarm</type> W/O</dt>
+
+                  <dd><p>Zápisem kódu do datového bodu dojde k odstřežení všech bloků dané oblasti. Nesprávný kód je ignorován a
+                  nezpůsobí odstřežení.</p></dd>
+
+                  <dt><type>Integra.Data.&lt;area&gt; armed</type> R/O</dt>
+
+                  <dd><p>Stav zastřežení oblasti. Datový bod má hodnotu <type>true</type>, pokud alespoň jeden blok v oblasti je
+                  zastřežen. Pokud jsou všechny bloky v oblasti odstřeženy, má datový bod hodnotu <type>false</type>.</p></dd>
+
+                  <dt><type>Integra.Data.&lt;area&gt; alarm</type> R/O</dt>
+
+                  <dd><p>Narušení oblasti (poplach). Datový bod má hodnotu <type>true</type>, pokud alespoň jeden blok v oblasti
+                  je, nebo byl, narušen. Pokud nebyl v oblasti narušen žádný blok, má datový bod hodnotu <type>false</type>.</p><p>Narušení
+                  zůstává signalizováno, dokud není operátorem zrušeno. Akce zrušení narušení je nezávislá na akci odstřežení,
+                  takže samotné odstřežení nezpůsobí zrušení hlášení narušení.</p></dd>
+
+                  <dt><type>Integra.Data.&lt;area&gt; outputs</type> R/O</dt>
+
+                  <dd><p>Stav výstupů. Datový bod má hodnotu <type>true</type>, pokud alespoň jeden výstup je aktivní. Pokud
+                  není aktivní žádný výstup, má datový bod hodnotu <type>false</type>.</p></dd>
+                </dl>
+
+                <p>Příklad části konfiguračního souboru s definicí Integra dat:</p>
+
+                <p.type>[sdap_to_device]
+satel/Integra.Data.1st_floor arm = 15/0/0
+satel/Integra.Data.1st_floor disarm = 15/0/1
+
+[device_to_sdap]
+15/1/0 = satel/Integra.Data.1st_floor armed
+15/1/1 = satel/Integra.Data.1st_floor alarm</p.type>
               </text>
             </section>
           </text>

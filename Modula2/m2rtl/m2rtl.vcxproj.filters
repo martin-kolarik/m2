@@ -17,9 +17,6 @@
     <None Include="Source\datetime.mod">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Source\datetimeWin32.mod">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="Source\debug.mod">
       <Filter>Source Files</Filter>
     </None>
@@ -36,9 +33,6 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="Source\ilog.mod">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="Source\iobject.mod">
       <Filter>Source Files</Filter>
     </None>
     <None Include="Source\languages.mod">
@@ -65,9 +59,6 @@
     <None Include="Source\datetime.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\datetimeWin32.def">
-      <Filter>Header Files</Filter>
-    </None>
     <None Include="Source\debug.def">
       <Filter>Header Files</Filter>
     </None>
@@ -84,9 +75,6 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\ilog.def">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="Source\iobject.def">
       <Filter>Header Files</Filter>
     </None>
     <None Include="Source\languages.def">
@@ -111,9 +99,6 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="Test\lrconvround.mod">
-      <Filter>Test</Filter>
-    </None>
-    <None Include="Test\lrconvspeed.mod">
       <Filter>Test</Filter>
     </None>
     <None Include="Test\Match.mod">
@@ -176,6 +161,60 @@
     </None>
     <None Include="Source\tls.mod">
       <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Mathematics.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Mathematics.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Rtti.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\TDateTime.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TTimeSpan.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TDayCount.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Source\iplugin.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\iplugin.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\baseobject.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\baseobject.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\TTls.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Source\collection.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\collection.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\request.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\request.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\basecompletion.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\basecompletion.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Test\SpeedOfBCD.mod">
+      <Filter>Test</Filter>
     </None>
   </ItemGroup>
 </Project>

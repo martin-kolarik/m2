@@ -104,8 +104,8 @@ TYPE
 PROCEDURE InitValue( VAR Value : TValue );
 PROCEDURE DoneValue( VAR Value : TValue );
 
-PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
-PROCEDURE CWTypeToIOType( CWType : TValueType ) : iovalue.TValueType;
+PROCEDURE IOTypeToCWType( IOType : iovalue.TType ) : TValueType;
+PROCEDURE CWTypeToIOType( CWType : TValueType ) : iovalue.TType;
 
 PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
 PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : iovalue.Value );

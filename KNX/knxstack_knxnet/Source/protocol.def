@@ -1,0 +1,150 @@
+DEFINITION MODULE protocol;
+
+(*================================================================================*)
+
+IMPORT
+   knx_def,
+   knx_status,
+   inetaddr,
+   log,
+   netsocket,
+   netsrv,
+   Sync,
+   transport;
+
+(*================================================================================*)
+
+// default settings
+CONST
+   BROWSE_TIMEOUT     = 10 * 1000;
+   DISCONNECT_TIMEOUT = 10 * 1000;
+   CONNECT_TIMEOUT    = 10 * 1000;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPConnection = POINTER TO CConnection;
+
+(*================================================================================*)
+
+CLASS KNXnetListener( netsrv.AListener ); // netsrv produces in thread callbacks
+   LOCAL VAR
+      Connection : TPConnection := NIL;
+   LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
+   LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket ); // both types
+END KNXnetListener;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TConnectionMode = (
+      cmScanning,
+      cmTunnelingHPAI, // uses HPAIs, on both client and server sides
+      cmTunnelingBlind, // uses empty HPAIs, tested with SIEMENS, isn't it only proprietal?
+      cmRouting
+   );
+   
+   TTunnelingMode = (
+      tmEMI,
+      tmRaw,
+      tmBusmonitor
+   );
+   
+   TIOState = (
+      ioDisconnected,
+      ioConnecting,
+      ioReady,
+      ioWaitTCON1, ioWaitTCON2,
+      ioDisconnecting
+   );
+   TIOStates = SET OF TIOState;
+   
+CONST
+   maximalHbRepeat = 3;
+
+   iosPending = TIOStates{ioWaitTCON1, ioWaitTCON2};
+   iosConnected = iosPending + TIOStates{ioReady};
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CConnection( msghandler.MessageHandler );
+   INTERNAL VAR
+      // management
+      _Logger : log.TPLogger := NIL;
+      _Mode : TConnectionMode := cmTunnelingHPAI;
+      _Socket : netsocket.TPSSocket := NIL;
+      _Listener : POINTER TO KNXnetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
+      _AutoReconnectDelay : CARDINAL := 0;
+      _TunnelingMode : TTunnelingMode := tmEMI;
+      _InterfaceAddress : inetaddr.INETADDR;
+      _PhysicalAddress : knx_def.TAddress;
+      // data control
+      IOState : TIOState := ioDisconnected;
+      HPAISelf : transport.HostProtocolAddressInformation;
+      HPAICtrl : transport.HostProtocolAddressInformation;
+      HPAIData : transport.HostProtocolAddressInformation;
+      ChannelId : CARD8 := 0;
+      // data flow
+      EMI : knx_def.TPacket;
+      OutSeq : CARDINAL := 0;
+      InSeq : CARDINAL := 0;
+      AltInSeq : CARDINAL := 0; // AltInSeq contains InSeq one step backward, this works around curious bug, when there is in single RECEIVE packet unexpectedly high SeqNo. This work around allows returning back to SeqNo before.
+      HbRepeat : CARDINAL := maximalHbRepeat; // heartbeat, if it falls to zero, connection is killed
+      SendErr : CARDINAL := 0; // correction of bad server behaviour: if server does not ACK correct send (heartbeats work correctly), the connection must be reconnected. The server does not ACK packet with low numbers, it could be caused with previous lost ACK packet.
+   PUBLIC PROPERTY
+      Logger : log.TPLogger;
+      Mode : TConnectionMode;
+      InterfaceAddress : inetaddr.INETADDR; // local interface used to communicate
+      RemoteAddress : inetaddr.INETADDR; // routing or remote address
+      AutoReconnectDelay : CARDINAL; // if zero no reconnecting is done, reconnect is done after calling OnDisconnect when this time elapses
+      TunnelingMode : TTunnelingMode;
+   PUBLIC READONLY PROPERTY
+      Connected : BOOLEAN;
+      Disconnected : BOOLEAN;
+      Pending : BOOLEAN;
+      
+   INITIALLY CConnection;
+   FINALLY CConnection;
+
+   INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
+
+   PUBLIC PROCEDURE Connect( Timeout : CARDINAL ) : Sync.TAsyncResult; // timeout is used for cmScanning only
+   PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN ) : Sync.TAsyncResult;
+
+   PUBLIC PROCEDURE SendPacket( CONST EMI : knx_def.TPacket ) : Sync.TAsyncResult;
+   LOCAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
+   LOCAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
+
+   INTERNAL VIRTUAL PROCEDURE OnScanCompleted();
+   INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : transport.SearchResponse );
+   INTERNAL VIRTUAL PROCEDURE OnDescriptionResponse( CONST packet : transport.DescriptionResponse );
+
+   INTERNAL VIRTUAL PROCEDURE OnConnect();
+   INTERNAL VIRTUAL PROCEDURE OnConnectError( Result : Sync.TAsyncResult; Code : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnDisconnect();
+   INTERNAL VIRTUAL PROCEDURE On_P_Sent();
+   INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : knx_status.TKNXStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : knx_def.cEMIPacket ); // allows access to cEMI without converting to On_L_IND, IND_cEMI is called before IND
+   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : knx_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : knx_def.TPacket ) : BOOLEAN;
+
+   PRIVATE PROCEDURE OnRoutingIndication( CONST packet : transport.RoutingIndication );
+   PRIVATE PROCEDURE OnRoutingLostMessage( CONST packet : transport.RoutingLostMessage );
+
+   PRIVATE PROCEDURE OnConnectResponse( CONST packet : transport.ConnectResponse );
+   PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : transport.ConnectionStateResponse );
+   PRIVATE PROCEDURE OnDisconnectRequest( CONST packet : transport.DisconnectRequest );
+   PRIVATE PROCEDURE OnDisconnectResponse( CONST packet : transport.DisconnectResponse );
+   PRIVATE PROCEDURE OnTunnelingRequest( CONST packet : transport.TunnelingRequest );
+   PRIVATE PROCEDURE OnTunnelingACK( CONST packet : transport.TunnelingACK );
+
+   PRIVATE PROCEDURE DoSend() : Sync.TAsyncResult;
+   PRIVATE PROCEDURE DataDisconnect(); // first phase
+   PRIVATE PROCEDURE DeviceDisconnect(); // second phase
+   PRIVATE PROCEDURE ProcessHbFailure();
+   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : knx_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket, omitSeq : BOOLEAN );
+END CConnection;
+
+(*================================================================================*)
+
+END protocol.

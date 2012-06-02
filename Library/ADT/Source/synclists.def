@@ -1,0 +1,70 @@
+DEFINITION MODULE synclists;
+
+IMPORT
+   lists,
+   Sync;
+  
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPPtrSyncList = POINTER TO CPtrSyncList;
+   TPPtrSyncListIterator = POINTER TO CPtrSyncListIterator;
+
+CLASS CPtrSyncList( lists.CPtrList );
+
+   // CList
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Count : CARDINAL;
+      Empty : BOOLEAN;
+
+   // CPtrPtrList interface
+   PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
+   #restore
+   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Value : PTR; Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+   PUBLIC PROCEDURE InsertFirst( Value : PTR; Data : PTR );
+   PUBLIC PROCEDURE InsertBefore( Before, Value : PTR; Data : PTR );
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPPtrSyncListIterator;
+   #restore
+
+   // queue interface
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Enqueue( Value : PTR; Data : PTR );
+   #restore
+   PUBLIC PROCEDURE Dequeue( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; 
+
+   // SELF
+   PUBLIC READONLY PROPERTY
+      Lock : Sync.PRWLOCK;
+
+   PRIVATE VAR
+      _Lock : Sync.RWLOCK;
+
+END CPtrSyncList;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CPtrSyncListIterator( lists.CPtrListIterator );
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrSyncList; Direction : collection.TDirection );
+   PUBLIC PROCEDURE Stop(); // After the call the iterator behaves like Init is not called.
+
+   PRIVATE VAR
+      _List : TPPtrSyncList := NIL;
+
+END CPtrSyncListIterator;
+
+(*================================================================================*)
+
+#restore
+
+END synclists.

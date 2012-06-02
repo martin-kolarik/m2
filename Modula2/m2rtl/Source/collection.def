@@ -1,0 +1,135 @@
+DEFINITION MODULE collection;
+
+(*===========================================================================*)
+// interfaces common to all collections
+
+(*---------------------------------------------------------------------------*)
+// list interface MUST have:
+
+// INDEX
+// p Count
+// p Empty
+// InsertFirst
+// InsertBefore
+// Add
+// Contains
+// Remove
+// ElementAt
+
+(*---------------------------------------------------------------------------*)
+// map interface MUST have:
+
+// INDEX
+// p Count
+// p Empty
+// Add
+// Contains
+// Get
+// Remove
+// ElementAt
+
+(*---------------------------------------------------------------------------*)
+// queue interface MUST have:
+
+// p Count
+// p Empty
+// Enqueue
+// Dequeue
+
+(*===========================================================================*)
+
+IMPORT
+   baseobject;
+
+(*===========================================================================*)
+
+#save, option( dll_export => on )
+
+TYPE
+   TPIterator = POINTER TO IIterator;
+   TPCollection = POINTER TO ICollection;
+
+   TDirection = (
+      dirForward,
+      dirBackward
+   );
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IIterator;
+
+   READONLY PROPERTY
+      colCurrent : baseobject.PBASE;
+
+   PROCEDURE Reset();
+   PROCEDURE MoveNext() : BOOLEAN;
+
+   READONLY PROPERTY
+      Implementor : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
+      OfCollection : TPCollection;
+
+END IIterator;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE ICollection;
+
+   READONLY PROPERTY
+      Empty : BOOLEAN;
+      Count : CARDINAL;
+      Sequence : CARDINAL; // the key for detecting iterator invalidity
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE colGetIterator( Direction : TDirection ) : TPIterator; // the iterator has to be Reset after the call
+   #restore
+
+   // required for manipulating content of the collection
+   // PROCEDURE colContains( keyObject : baseobject.PBASE ) : BOOLEAN;
+   // PROCEDURE colAdd( object : baseobject.PBASE );
+   // PROCEDURE colGet( CONST keyObject : baseobject.PBASE; OUT object : baseobject.PBASE ) : baseobject.PBASE;
+   // PROCEDURE colRemove( CONST keyObject : baseobject.PBASE; OUT removedObject : baseobject.PBASE ) : BOOLEAN;
+   // PROCEDURE colDelete( CONST keyObject : baseobject.PBASE ) : BOOLEAN;
+   // PROCEDURE colElementAt( index : CARDINAL; OUT object : baseobject.PBASE ) : baseobject.PBASE;
+
+   // required for iterating
+   PUBLIC PROCEDURE colGetFirst( OUT object : baseobject.PBASE ) : BOOLEAN; // meant to be called by iterator implementation, which is usually in the same module (as the collection returns it as a typed pointer)
+   PUBLIC PROCEDURE colNextOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+
+   PUBLIC PROCEDURE colGetLast( OUT object : baseobject.PBASE ) : BOOLEAN; // meant to be called by iterator implementation, which is usually in the same module (as the collection returns it as a typed pointer)
+   PUBLIC PROCEDURE colPrevOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+
+END ICollection;
+
+(*---------------------------------------------------------------------------*)
+// generic implementation of the iterator
+
+CLASS CIterator( baseobject.CDisposable ) IMPLEMENTS IIterator;
+
+   // IIterator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      colCurrent : baseobject.PBASE;
+
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Implementor : baseobject.TPDisposable; // the object to be disposed, when TPIterator is to be disposed (interface cannot be disposed)
+      OfCollection : TPCollection;
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST OfCollection : ICollection; Direction : TDirection ); // the collection must initialize the iterator with self
+
+   PRIVATE VAR
+      _OfCollection : TPCollection := NIL;
+      _Direction : TDirection := dirForward;
+      _StartSequence : CARDINAL := 0;
+      _Current : baseobject.PBASE := NIL;
+      _Exhausted : BOOLEAN := FALSE;
+
+END CIterator;
+
+#restore
+
+(*==========================================================================*)
+
+END collection.

@@ -65,10 +65,10 @@ IMPORT
 		h, m : INTEGER;
 		s, mf : LONGREAL;
 		
-		jd : LONGREAL;
+		dc : datetime.DayCount;
 	BEGIN
 		IF argc < 7 THEN
-			OutS( L"usage: thelel <a> <e> <i> <O> <o> <M0> <n> epoch [1/0] [jd]", TRUE );
+			OutS( L"usage: thelel <a> <e> <i> <O> <o> <M0> <n> epoch [1/0] [dc]", TRUE );
 			RETURN 0;
 		END;
 
@@ -98,9 +98,9 @@ IMPORT
 		END;
 		
 		IF argc > 10 THEN
-			Strings.ToLONGREALW( OAsz( argp^[10] ), OUT jd );
+			Strings.ToLONGREALW( OAsz( argp^[10] ), OUT dc );
 		ELSE
-			jd := datetime.GetCurrentJD();
+			dc := datetime.NowDC();
 		END;
 		
 		refpar.tC := 15.0;
@@ -162,7 +162,7 @@ IMPORT
 											astro.corRefraction};
 		END;
 
-		cm.SetJD( jd );
+		cm.SetJD( dc );
 		cm.PEarth := ADR( earth );
 		cm.Ephemeris( ADR( venus ));
 		cm.Ephemeris( ADR( body ));

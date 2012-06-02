@@ -22,7 +22,7 @@ TYPE
     imAppend
   );
 
-CLASS CFileStream( IOO.AStream ); // 32 bit
+CLASS CFileStream( IOO.AStream ); // 64 bit
   INTERNAL VAR
     Access     : IOO.TAccess;
     OwnHandle  : BOOLEAN;

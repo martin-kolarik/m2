@@ -4,15 +4,16 @@ DEFINITION MODULE cphcommon;
 
 (*================================================================================*)
 
-PROCEDURE FromHexByteW( CONST String : ARRAY OF WCHAR; OUT Bin : BYTE  ) : BOOLEAN; // expects event number of characters in String
-PROCEDURE FromHexByteA( CONST String : ARRAY OF CHAR; OUT Bin : BYTE  ) : BOOLEAN; // expects event number of characters in String
+PROCEDURE FromHexByteW( CONST String : ARRAY OF WCHAR; OUT Bin : BYTE ) : BOOLEAN; // expects even number of characters in String
+PROCEDURE FromHexByteA( CONST String : ARRAY OF CHAR; OUT Bin : BYTE ) : BOOLEAN; // expects even number of characters in String
 PROCEDURE ToHexByte( Bin : BYTE; OUT String : ARRAY OF WCHAR );
 
-PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN; // expects event number of characters in String
+PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN; // expects even number of characters in String
 PROCEDURE ToHex( CONST Bin : ARRAY OF BYTE; OUT String : ARRAY OF WCHAR );
 
 (*--------------------------------------------------------------------------------*)
 
+PROCEDURE BASE64InputGranularity() : CARDINAL;
 PROCEDURE BASE64CharCount( SrcBytes : CARDINAL ) : CARDINAL;
 PROCEDURE BASE64ByteCount( BASE64Chars : CARDINAL ) : CARDINAL; 
 

@@ -4,11 +4,12 @@ FROM Storage IMPORT
   ALLOCATE, REALLOCATE, DEALLOCATE;
   
 IMPORT
-  FIO,
-  maps,
-  Strings,
-  Storage,
-  windows;
+   collection,
+   FIO,
+   maps,
+   Strings,
+   Storage,
+   windows;
   
 IMPORT
   com,
@@ -23,12 +24,13 @@ CONST
 CONST
   fallback = L'?unknown text';
 
+#save, option( pack => 8 )
 TYPE
   TText         = RECORD
-                    Length : CARDINAL;
+                    Length : CARD32;
                     CASE : CARDINAL OF
                     | 0 : Text   : PWCHAR;
-                    | 1 : Offset : CARDINAL;
+                    | 1 : Offset : CARD64;
                     END; // CASE
                   END;
   TPTexts       = POINTER TO ARRAY [0..0] OF TText;
@@ -37,26 +39,29 @@ TYPE
                     LangWithoutSublang : Languages.TLanguage;
                     CASE : CARDINAL OF
                     | 0 : Texts  : TPTexts;
-                    | 1 : Offset : CARDINAL;
+                    | 1 : Offset : CARD64;
                     END;
                   END;
   TPSlots       = POINTER TO ARRAY [0..0] OF TLanguageSlot;
   TResourceData = RECORD
-                    BinMagic        : CARDINAL;
-                    BinLength       : CARDINAL; // over all block
-                    BinVersion      : CARDINAL;
+                    BinMagic        : CARD32;
+                    BinLength       : CARD64; // over all block
+                    BinVersion      : CARD32;
                     DataVersion     : ARRAY [0..31] OF WCHAR;
-                    DefaultLanguage : CARDINAL;
-                    SlotCount       : CARDINAL;
-                    TextCount       : CARDINAL;
+                    DefaultLanguage : CARD32;
+                    SlotCount       : CARD32;
+                    TextCount       : CARD32;
                     CASE : CARDINAL OF
                     | 0 : Slots   : TPSlots;
-                          Strings : PWCHAR;
-                    | 1 : OffsetL : CARDINAL;
-                          OffsetS : CARDINAL;
+                    | 1 : OffsetL : CARD64;
+                    END; // CASE
+                    CASE : CARDINAL OF
+                    | 0 : Strings : PWCHAR;
+                    | 1 : OffsetS : CARD64;
                     END; // CASE
                   END;
   TResource     = POINTER TO TResourceData;
+#restore
 
 //---------------------------------------------------------------------------
 
@@ -217,16 +222,19 @@ CLASS IMPLEMENTATION CResources;
   VAR
     Bin : TResource;
     f : FIO.File;
-    l : CARDINAL;
+    l : CARD64;
   BEGIN
     f := FIO.OpenReadW( Path, FIO.TFileShare{FIO.fsRead} );
     IF f = NIL THEN
       RETURN FALSE;
     END;
     l := FIO.Size( f );
-    ALLOCATE( OUT Bin, l );
-    IF FIO.RdBin( f, Bin^, l ) <> l THEN
-       FIO.Close( f );
+    ALLOCATE( OUT Bin, CARD32( l ));
+    IF Bin = NIL THEN
+      FIO.Close( f );
+      RETURN FALSE;
+    ELSIF FIO.RdBin( f, Bin^, CARD32( l )) <> CARD32( l ) THEN
+      FIO.Close( f );
       RETURN FALSE;
     END;
     FIO.Close( f );
@@ -392,7 +400,7 @@ CLASS IMPLEMENTATION CResources;
 
   PUBLIC PROCEDURE RegisterNotifier( Notifier : TPResourcesNotifier );
   BEGIN
-    _Notifiers.Add( Notifier, 0 );
+    _Notifiers.Add( Notifier, NIL );
   END RegisterNotifier;
 
 //---------------------------------------------------------------------------
@@ -430,7 +438,7 @@ CLASS IMPLEMENTATION CResources;
 
    PRIVATE PROCEDURE AcquireText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL; Fallback : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
-      IF ( _Resource <> NIL ) OR ( Id < _Resource^.TextCount ) THEN
+      IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) THEN
          IF _Texts = NIL THEN
             // fall down
          ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
@@ -491,17 +499,19 @@ CLASS IMPLEMENTATION CResources;
 (*--------------------------------------------------------------------------------*)
 
   PRIVATE PROCEDURE Notify( Lang, Texts : BOOLEAN );
+   VAR
+      iterator : lists.CPtrListIterator;
   BEGIN
     IF Lang OR Texts = FALSE THEN
       RETURN;
     END;
-    _Notifiers.Reset();
-    WHILE _Notifiers.MoveNext() DO
+    iterator.Init( _Notifiers, collection.dirForward );
+    WHILE iterator.MoveNext() DO
       IF Lang THEN
-        TPResourcesNotifier( _Notifiers.Current )^.OnLangChange( ADR( SELF ));
-        TPResourcesNotifier( _Notifiers.Current )^.OnTextsChange( ADR( SELF ));
+        TPResourcesNotifier( iterator.Current )^.OnLangChange( ADR( SELF ));
+        TPResourcesNotifier( iterator.Current )^.OnTextsChange( ADR( SELF ));
       ELSE // Texts is surely TRUE
-        TPResourcesNotifier( _Notifiers.Current )^.OnTextsChange( ADR( SELF ));
+        TPResourcesNotifier( iterator.Current )^.OnTextsChange( ADR( SELF ));
       END;
     END; // WHILE
   END Notify;
@@ -542,7 +552,8 @@ CLASS IMPLEMENTATION CResources;
   INTERNAL PROCEDURE ResToStub(); 
   VAR
     _CurrentLang : Languages.TLanguage;
-    i, j, l : INTEGER;
+    i, j : INTEGER;
+    l : TSIZE;
   BEGIN
     l := SIZE( TResourceData ) + _Resource^.SlotCount * ( SIZE( TLanguageSlot ) + _Resource^.TextCount * SIZE( TText ));
     REALLOCATE( REF _Stub, l );
@@ -607,8 +618,8 @@ CLASS IMPLEMENTATION CPlainResources;
     _DefaultLanguage : Languages.TLanguage := 0;
     _Langs : lists.CIntegerList;
     _Pool : ADDRESS := NIL;
-    _PoolAllocated : CARDINAL := 0;
-    _PoolBytes : CARDINAL := 0;
+    _PoolAllocated : CARD64 := 0;
+    _PoolBytes : CARD64 := 0;
     _TextsAllocated : CARDINAL := 0;
     _Version : com.BSTR := NIL;
 
@@ -616,21 +627,23 @@ CLASS IMPLEMENTATION CPlainResources;
 
     PROCEDURE AddString( CONST String : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
     VAR
+      cs : StringsO.CString := StringsO.FromOA( String );
+      iterator : lists.CIntegerListIterator;
       L : CARDINAL;
       ptr : PTR;
     BEGIN
-      IF _Strings.GetOA( String, OUT ptr ) THEN
+      IF _Strings.Get( cs, OUT ptr, OUT ptr ) THEN
         Strings.ConcatW( OUT ErrorString, L"String ", String );
         Strings.AppendW( REF ErrorString, L" is already known." );
         RETURN FALSE;
       END;
-      _Strings.AddOA( String, _Strings.Count );
+      _Strings.Add( cs, _Strings.Count, 0 );
       IF _Strings.Count > _TextsAllocated THEN
         L := MAX2( _TextsAllocated << 1, 256 );
-        _Langs.Reset();
-        WHILE _Langs.MoveNext() DO
-          REALLOCATE( REF _Langs.CurrentData, L * SIZE( TText ));
-          Storage.Fill( INC( _Langs.CurrentData, _TextsAllocated * SIZE( TText )), ( L - _TextsAllocated ) * SIZE( TText ), 0 );
+        iterator.Init( _Langs, collection.dirForward );
+        WHILE iterator.MoveNext() DO
+          REALLOCATE( REF iterator.Data, L * SIZE( TText ));
+          Storage.Zero( INC( iterator.Data, _TextsAllocated * SIZE( TText )), ( L - _TextsAllocated ) * SIZE( TText ));
         END; // END
         _TextsAllocated := L;
       END;
@@ -641,19 +654,19 @@ CLASS IMPLEMENTATION CPlainResources;
 
     PROCEDURE AddStringItem( Lang : Languages.TLanguage; CONST String : ARRAY OF WCHAR );
     VAR
-      L : CARDINAL;
+      L : TSIZE;
       Texts : TPTexts;
     BEGIN
       IF NOT _Langs.Get( Lang, OUT Texts ) THEN
         L := _TextsAllocated * SIZE( TText );
         ALLOCATE( OUT Texts, L );
-        Storage.Fill( Texts, L, 0 );
+        Storage.Zero( Texts, L );
         _Langs.Add( Lang, Texts );
       END;
 
       // store String itself
-      L := LENGTH( String ) + 1;
-      IF _PoolBytes + L << 1 > _PoolAllocated THEN
+      L := TSIZE( LENGTH( String ) + 1 );
+      IF _PoolBytes + CARD64( L ) << 1 > _PoolAllocated THEN
         _PoolAllocated := ( _PoolBytes + L << 1 + 4095 ) DIV 4096 * 4096;
         REALLOCATE( REF _Pool, _PoolAllocated << 1 );
       END;
@@ -671,9 +684,11 @@ CLASS IMPLEMENTATION CPlainResources;
     PROCEDURE CreateResource();
     VAR
       at : ADDRESS;
-      al, c, cl, l : CARDINAL;
+      al : CARD64;
+      c, cl, l : CARDINAL;
       diff : PTR;
       i, j : INTEGER;
+      iterator : lists.CIntegerListIterator;
       lang : Languages.TLanguage;
       RFC1766 : ARRAY [0..31] OF WCHAR;
     BEGIN
@@ -692,6 +707,7 @@ CLASS IMPLEMENTATION CPlainResources;
       ALLOCATE( OUT _Resource, al );
 
       // main record
+      Storage.Zero( _Resource, SIZE( _Resource^ ));
       WITH _Resource^ DO
         BinMagic := binMagic;
         BinLength := al;
@@ -709,15 +725,16 @@ CLASS IMPLEMENTATION CPlainResources;
 
       // language slots and text indexes
       i := 0;
-      _Langs.Reset();
-      WHILE _Langs.MoveNext() DO WITH _Resource^ DO
+      iterator.Init( _Langs, collection.dirForward );
+      WHILE iterator.MoveNext() DO WITH _Resource^ DO
         // slot
+        Slots^[i].Offset := 0; // clear the memory
         Slots^[i].Texts := at;
-        Slots^[i].LangBySource := _Langs.Current;
-        Slots^[i].LangWithoutSublang := _Langs.Current;
+        Slots^[i].LangBySource := iterator.Value;
+        Slots^[i].LangWithoutSublang := iterator.Value;
 
          // try to get language without sublang
-         IF Languages.LanguageToRFC1766( _Langs.Current, OUT RFC1766 ) THEN
+         IF Languages.LanguageToRFC1766( iterator.Value, OUT RFC1766 ) THEN
             RFC1766[2] := 0W; // trim RFC1766 to two-character code
             IF Languages.RFC1766ToLanguage( RFC1766, OUT lang ) THEN
                Slots^[i].LangWithoutSublang := lang;
@@ -725,14 +742,14 @@ CLASS IMPLEMENTATION CPlainResources;
          END;
       
         // text indexes
-        Storage.Move( _Langs.CurrentData, at, l );
+        Storage.Move( iterator.Data, at, l );
         FOR j := 0 TO INTEGER( c - 1 ) DO
           IF Slots^[i].Texts^[j].Length > 0 THEN
             INC( Slots^[i].Texts^[j].Text, diff ); // .Text are offsets from block begin
           END;
         END;
         // dispose temporary data
-        DISPOSE( _Langs.CurrentData );
+        DISPOSE( iterator.Data );
 
         // convert slot to offset
         DEC( Slots^[i].Texts, PTR( _Resource ));
@@ -951,7 +968,7 @@ CLASS IMPLEMENTATION CPlainResources;
    VAR
       ptr : PTR;
    BEGIN
-      IF _Strings.Get( Key, OUT ptr ) THEN
+      IF _Strings.Get( Key, OUT ptr, OUT ptr ) THEN
          Id := LOPTRLONGWORD( ptr );
          RETURN TRUE;
       ELSE
@@ -974,7 +991,7 @@ CLASS IMPLEMENTATION CResourcesCreator;
     f : FIO.File;
   BEGIN
     f := FIO.CreateW( Path, FIO.TFileShare{} );
-    FIO.WrBin( f, _Resource^, _Resource^.BinLength );
+    FIO.WrBin( f, _Resource^, CARD32( _Resource^.BinLength )); // TODO
     FIO.Close( f );
   END SaveBIN;
 
@@ -984,6 +1001,7 @@ CLASS IMPLEMENTATION CResourcesCreator;
   VAR
     f : FIO.File;
     Index : ARRAY [0..15] OF WCHAR;
+    iterator : maps.CStringPtrMapIterator;
     Name : ARRAY [0..511] OF WCHAR;
   BEGIN
     f := FIO.CreateW( Path, FIO.TFileShare{} );
@@ -993,10 +1011,10 @@ CLASS IMPLEMENTATION CResourcesCreator;
     FIO.WrLnW( f );
     FIO.WrStrW( f, L'CONST' ); FIO.WrLnW( f );
     
-    _Strings.Reset();
-    WHILE _Strings.MoveNext() DO
-      _Strings.Current^.ToOA( OUT Name );
-      Strings.FromCARD64W( CARD64( _Strings.CurrentData ), 10, OUT Index );
+    iterator.Init( _Strings, collection.dirForward );
+    WHILE iterator.MoveNext() DO
+      iterator.Key^.ToOA( OUT Name );
+      Strings.FromCARD64W( CARD64( iterator.Data ), 10, OUT Index );
       FIO.WrStrW( f, L'  ' ); FIO.WrStrW( f, NamePrefix ); FIO.WrStrW( f, Name ); FIO.WrStrW( f, L' = ' ); FIO.WrStrW( f, Index ); FIO.WrStrW( f, L';' ); FIO.WrLnW( f );
     END; // WHILE
 

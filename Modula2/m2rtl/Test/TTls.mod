@@ -36,7 +36,6 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
-      Failure : BOOLEAN := FALSE;
       i : CARDINAL;
    BEGIN
       SELF.Host := Host;
@@ -56,34 +55,20 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       // now it must succeds
-      Failure := NOT tls.Create( OUT Tlss[0] );
-
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( tls.Create( OUT Tlss[0] ) );
 
       Host^.StartPhase( L"Set/Get" );
 
       // set/get data
       Tlss[0]^.Value := 14;
-      Failure := Tlss[0]^.Value <> 14;
+      Host^.ParticleWithResult( L"set a value", Tlss[0]^.Value = 14 );
 
       Tlss[0]^.Value := 0;
-      Failure := ( Tlss[0]^.Value <> 0 ) OR Failure;
+      Host^.ParticleWithResult( L"reset a value", Tlss[0]^.Value = 0 );
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhase();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

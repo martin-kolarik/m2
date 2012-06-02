@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   Delegate,
+   delegate,
    datetime,
    lists,
    sync;
@@ -26,16 +26,16 @@ TYPE
    );
 
    // copy of Items.TLicenceTypeItem, keep this synchronized
-	TLicenceTypeItem = (
-		ltUnnamed,
-		ltUpgrade,
-		ltEducational,
-		ltTrial, // without activation runs as DEMO not as unregistered
-		
-		ltActivated,
-		ltExpired
-	);
-	TLicenceType = SET OF TLicenceTypeItem;
+   TLicenceTypeItem = (
+      ltUnnamed,
+      ltUpgrade,
+      ltEducational,
+      ltTrial, // without activation runs as DEMO not as unregistered
+      
+      ltActivated,
+      ltExpired
+   );
+   TLicenceType = SET OF TLicenceTypeItem;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -48,7 +48,7 @@ CLASS CProduct;
       _Name : StringsO.CString;
       _Licences : lists.CStringList; // Data contains TLicenceType
       _StateInfo : TStateInfo;
-      _Expires : datetime.TJD;
+      _Expires : datetime.DayCount;
       _Info : lists.CStringStringList;
 
    PUBLIC READONLY PROPERTY
@@ -63,17 +63,20 @@ CLASS CProduct;
    VIRTUAL PROCEDURE Dispose();
    
    // private
-   LOCAL PROCEDURE Construct( CONST Id, Name : StringsO.IString; stateInfo : TStateInfo; expires : datetime.TJD );
+   LOCAL PROCEDURE Construct( CONST Id, Name : StringsO.IString; stateInfo : TStateInfo; expires : datetime.DayCount );
 END CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CResult( Delegate.ADelegate );
+TYPE
+   TPResult = POINTER TO CResult;
+
+CLASS CResult( delegate.Delegate );
    PRIVATE VAR
       _Lock : sync.LOCK;
       _Info : TStateInfo;
-      _Expires : datetime.TJD;
-      _Start : datetime.TJD;
+      _Expires : datetime.DayCount;
+      _Start : datetime.DayCount;
       _Counter : CARDINAL := 0;
       _Products : lists.CPtrList;
 
@@ -85,27 +88,21 @@ CLASS CResult( Delegate.ADelegate );
    PUBLIC VAR
       Behaviour : TBehaviour := bhBestCase;
    // summarized data
-   PUBLIC READONLY PROPERTY
-      StateInfo : TStateInfo;
+   PUBLIC VIRTUAL READONLY PROPERTY
       Expires : datetime.DateTime;
       Expired : BOOLEAN;
+   PUBLIC READONLY PROPERTY
+      StateInfo : TStateInfo;
       NextCheck : CARDINAL;
       Counted : BOOLEAN;
+      Products : lists.TPPtrList; // contains TPProduct
 
    PUBLIC PROCEDURE Reset( Behaviour : TBehaviour );
    PUBLIC PROCEDURE Inc();
    PUBLIC PROCEDURE GetLicences( OUT list : lists.CStringList ); // fills licences of the first product
    
-   // enumerating products
-   PUBLIC PROCEDURE ProductsLock();
-   PUBLIC PROCEDURE ProductsUnlock();
-   PUBLIC PROCEDURE ProductsReset();
-   PUBLIC PROCEDURE ProductsMoveNext() : BOOLEAN;
-   PUBLIC READONLY PROPERTY
-      CurrentProduct : TPProduct;
-
    // SELF helpers
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 END CResult;
 
 (*================================================================================*)

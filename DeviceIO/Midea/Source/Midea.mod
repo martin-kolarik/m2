@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE Midea;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 IMPORT
    FIO,
@@ -357,7 +357,7 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; DataInfo : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; DataInfo : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
       Data : TPData;
       i, j : INTEGER;
@@ -478,7 +478,7 @@ CLASS IMPLEMENTATION CIO;
       END;
       
       // DBG
-		log.logger()^.LogSCB( Log.ldTrace, L'', L'rx ', SIZE( PPacket^ ), PPacket, SIZE( PPacket^ ));
+		log.logger()^.LogSCB( Log.ldTrace, 0, L'', L'rx ', SIZE( PPacket^ ), PPacket, SIZE( PPacket^ ));
       
       IF Result = Sync.arCompleted THEN
          _DataInfo^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, ADR( V )));
@@ -533,31 +533,32 @@ CLASS IMPLEMENTATION CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC FINAL PROCEDURE Dispose();
    BEGIN
-      RETURN iobject.otEphemeral;
+      _IO.Stop();
+      _IO.Dispose();
+   END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Type GET : iplugin.TObjectType;
+   BEGIN
+      RETURN iplugin.otEphemeral;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC FINAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
-      RETURN SUPER.Library;
-   END Library;
+      RETURN SUPER.OfPlugin;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC FINAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-      SUPER.Library := Value;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE OnDispose();
-   BEGIN
-      _IO.Dispose();
-   END OnDispose;
+      RETURN SUPER.OwnerHandle;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 
@@ -633,14 +634,6 @@ CLASS IMPLEMENTATION CMideaDevice;
             Aux := TAux{};
          END; // WITH
       END; END;
-   END CMideaDevice;
-
-(*---------------------------------------------------------------------------*)
-
-   FINALLY CMideaDevice();
-   BEGIN
-      _IO.Stop();
-      OnDispose();
    END CMideaDevice;
 
 (*---------------------------------------------------------------------------*)

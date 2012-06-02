@@ -42,46 +42,38 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-	VAR
-	   Failure : BOOLEAN := FALSE;
-		S : FIOO.CFileStream;
-		X : XMLWriter.CXMLWriter;
-	BEGIN
+   VAR
+      Failure : BOOLEAN := FALSE;
+      S : FIOO.CFileStream;
+      X : XMLWriter.CXMLWriter;
+   BEGIN
       SELF.Host := Host;
 
-      Host^.StartPhase( L"Try load a file" );
+      Host^.StartPhase( L"Try write a file" );
       
-	   TRY
-		   S.FromPath( L"D:\buff\Test.xml", FIOO.imCreate );
-		CATCH e : IOO.CIOException DO
-		END;
-		X.Stream := ADR( S );
-		
-		X.WriteElementStartOA( L"", L"shell" );
-			X.WriteElementStartOA( L"", L"top" );
-				X.WriteAttributeStringOA( L"", L"name", L"Krtecek" );
-				X.WriteAttributeStartOA( L"", L"type" );
-					X.WriteStringOA( L"some type" );
-				X.WriteAttributeEnd();
-				X.WriteElementStringOA( L"", "p", "and some animals..." );
-			X.WriteElementEnd();
-			X.WriteElementStringOA( L"", "p", 'and some more "animals"...' );
-			X.WriteElementStringOA( L"", "p", 'and some more "animals"...' );
-		X.WriteElementEnd();
-
-		X.Close( FALSE );
-
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
+      TRY
+         S.FromPath( L"D:\buff\Test.xml", FIOO.imCreate );
+      CATCH e : IOO.CIOException DO
       END;
+      X.Stream := ADR( S );
+      
+      X.WriteElementStartOA( L"", L"shell" );
+         X.WriteElementStartOA( L"", L"top" );
+            X.WriteAttributeStringOA( L"", L"name", L"Krtecek" );
+            X.WriteAttributeStartOA( L"", L"type" );
+               X.WriteStringOA( L"some type" );
+            X.WriteAttributeEnd();
+            X.WriteElementStringOA( L"", "p", "and some animals..." );
+         X.WriteElementEnd();
+         X.WriteElementStringOA( L"", "p", 'and some more "animals"...' );
+         X.WriteElementStringOA( L"", "p", 'and some more "animals"...' );
+      X.WriteElementEnd();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      X.Close( FALSE );
+
+      Host^.StopPhaseWithResult( NOT Failure);
+
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

@@ -3,9 +3,9 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>HTTP Server / MVC Controller</FileDescription>
-        <FileVersionMajor>0</FileVersionMajor>
-        <FileVersionMinor>9</FileVersionMinor>
+        <ProjectDescription>HTTP Server</ProjectDescription>
+        <ProjectVersionMajor>0</ProjectVersionMajor>
+        <ProjectVersionMinor>9</ProjectVersionMinor>
     </PropertyGroup>
 
     <!-- 2 -->
@@ -15,7 +15,7 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32;API\httpapi"/>
-        <Components Include="Component\sccore"/>
+        <Components Include="Component\sccore;Library\MIME"/>
         <Modules Include="httpcommon;httpconnection;httptools;srvcommon;srvhttpapi;httpsrv"/>
     </ItemGroup>
 

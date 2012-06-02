@@ -17,36 +17,30 @@ CONST
 
 (*===========================================================================*)
 
-CLASS CCreator( helper.ACreator );
-   // IObject
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
-   
+CLASS CPlugin( helper.APlugin );
+
    // ILibrary
-   PUBLIC VIRTUAL PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE PluginInfo( OUT Plugin, PluginVersionString : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iplugin.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
 
    // ACreator
-   INTERNAL VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
-END CCreator;
+   PUBLIC VIRTUAL PROCEDURE CreateObject( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+   PUBLIC VIRTUAL PROCEDURE DestroyObject( REF Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+
+END CPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CCreator;
+CLASS IMPLEMENTATION CPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
+   PUBLIC VIRTUAL PROCEDURE PluginInfo( OUT Plugin, PluginVersionString : ARRAY OF WCHAR );
    BEGIN
-   END OnDispose;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR );
-   BEGIN
-      Library := ProductId;
-      LibraryVersionString := ProductVersion;
-   END LibraryInfo;
+      Plugin := ProductId;
+      PluginVersionString := ProductVersion;
+   END PluginInfo;
 
 (*---------------------------------------------------------------------------*)
 
@@ -61,34 +55,54 @@ CLASS IMPLEMENTATION CCreator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iplugin.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetLECData;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+   PUBLIC VIRTUAL PROCEDURE CreateObject( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
    BEGIN
-      IF NOT EQUALS( QName, nDeviceIO ) THEN
-         RETURN iobject.lrClassNotFound;
+      IF EQUALS( QName, iplugin.cidPlugin ) THEN
+         Object := OfPlugin; // return SELF
+      ELSIF EQUALS( QName, nDeviceIO ) THEN
+         Object := ADR( NEW( AirMotion.CAirMotionDevice )^.IDevice );
+      ELSE
+         RETURN iplugin.lrClassNotFound;
       END;
-      Object := ADR( NEW( AirMotion.CAirMotionDevice )^.IDevice );
-      RETURN iobject.lrSuccess;
-   END OnFactory;
+      RETURN iplugin.lrSuccess;
+   END CreateObject;
 
 (*---------------------------------------------------------------------------*)
 
-END CCreator;
+   PUBLIC VIRTUAL PROCEDURE DestroyObject( REF Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+   VAR
+      implementor : helper.TPAPluginObject := Object^.OwnerHandle;
+   BEGIN
+      IF Object = OfPlugin THEN
+         // fall down, do nothing, cannot deallocate static global class
+      ELSIF implementor^ IS AirMotion.CAirMotionDevice THEN // ok
+         DISPOSE( implementor );
+      ELSE
+         RETURN iplugin.lrClassNotFound;
+      END;
+      Object := NIL;
+      RETURN iplugin.lrSuccess;
+   END DestroyObject;
+
+(*---------------------------------------------------------------------------*)
+
+END CPlugin;
 
 (*===========================================================================*)
 
 VAR
-   Creator : CCreator;
+   Plugin : CPlugin;
 
-PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
 BEGIN
-   RETURN Creator.Factory( ClassPath, OUT Object );
+   RETURN Plugin.Factory( ClassPath, OUT Object );
 END Factory;
 
 (*===========================================================================*)

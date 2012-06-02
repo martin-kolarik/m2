@@ -6,7 +6,7 @@ IMPORT
    winsock;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -54,9 +54,10 @@ END CRequest;
 
 CLASS CNameToAddressRequest( CRequest );
    LOCAL VAR
-      Name : StringsO.CString;
-      DefaultPort : CARDINAL := 0;
       AddrInfo : WS2TcpIp.Paddrinfo := NIL;
+      DefaultPort : CARDINAL := 0;
+      Name : StringsO.CString;
+      UseDefaultPort : BOOLEAN := FALSE;
    LOCAL VIRTUAL PROCEDURE Run();
 END CNameToAddressRequest;
 
@@ -86,9 +87,11 @@ CLASS IMPLEMENTATION CDispatcher;
    VAR
       Addresses : POINTER TO ARRAY [0..0] OF inetaddr.INETADDR := NIL;
       ai : WS2TcpIp.Paddrinfo;
+      defaultPort : CARDINAL;
       count : CARDINAL;
       netResult : CARDINAL;
       Request : TPRequest := TPRequest( UserId );
+      useDefaultPort : BOOLEAN;
    BEGIN
       IF ( Request <> NIL ) AND ( Request^.PNotifier <> NIL ) THEN
          CASE Result OF
@@ -122,17 +125,17 @@ CLASS IMPLEMENTATION CDispatcher;
                Storage.Zero( Addresses, count * SIZE( Addresses^ ));
                count := 0;
                ai := TPNameToAddressRequest( Request )^.AddrInfo;
+               useDefaultPort := TPNameToAddressRequest( Request )^.UseDefaultPort;
+               defaultPort := TPNameToAddressRequest( Request )^.DefaultPort;
                REPEAT
                   Addresses^[count].FromBOA( OA( ai^.ai_addrlen-1, ai^.ai_addr ));
+                  IF useDefaultPort THEN
+                     Addresses^[count].Port := defaultPort;
+                  END;
                   INC( count );
                   ai := ai^.ai_next;
                UNTIL ai = NIL;
                
-               (*?*)
-               // IF serviceA[0] = 0C THEN
-               //    Port := DefaultPort;
-               // END;
-
                Request^.PNotifier^.OnAddressFound( Request^.RequestId, 0, OA( count-1, Addresses ));
                
                DEALLOCATE( REF Addresses );
@@ -176,8 +179,7 @@ CLASS IMPLEMENTATION CNameToAddressRequest;
       IF inetaddr.SplitAddressOA( OA( Name.Length-1, Name.Data ), OUT host, OUT service ) THEN
          Strings.ToA( host, 0, OUT hostA );
          Strings.ToA( service, 0, OUT serviceA );
-
-      (*?*) // DefaultPort
+         UseDefaultPort := service[0] = 0W;
 
          Result := WS2TcpIp.getaddrinfo( ADR( hostA ), ADR( serviceA ), ADR( hints ), OUT AddrInfo );
       END;

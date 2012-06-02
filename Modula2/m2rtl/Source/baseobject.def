@@ -1,0 +1,148 @@
+DEFINITION MODULE baseobject;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+// Ancestors having specialized some common behavior
+
+#save, option( dll_export => on )
+
+(*===========================================================================*)
+// primary base, head of all hereditary tree
+
+TYPE
+   PIBASE = POINTER TO IBASE;
+
+INTERFACE IBASE;
+   // intentionally empty
+END IBASE;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   PBASE = POINTER TO BASE;
+
+CLASS BASE IMPLEMENTS IBASE;
+   // intentionally empty
+END BASE;
+
+(*===========================================================================*)
+// class having unified resources cleaning
+
+TYPE
+   TPIDisposable = POINTER TO IDisposable;
+
+INTERFACE IDisposable; // interface with Dispose, the method disposing all implementor's data
+
+   PROCEDURE Dispose();
+
+END IDisposable;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPDisposable = POINTER TO CDisposable;
+
+CLASS CDisposable( BASE ) IMPLEMENTS IDisposable; // class with Dispose and destructor linked to it. The class should be seen as base of reference types.
+
+   // IDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // CDisposable
+   PUBLIC VIRTUAL FINALLY CDisposable();
+
+END CDisposable;
+
+(*===========================================================================*)
+// classes supporting refcounting
+
+TYPE
+   TPIRefcounter = POINTER TO IRefcounter;
+
+INTERFACE IRefcounter;
+
+   READONLY PROPERTY
+      References : CARDINAL;
+
+   PROCEDURE AddRef() : CARDINAL;
+   #save, option( leak_info => on )
+   PROCEDURE Release() : CARDINAL;
+   #restore
+
+END IRefcounter;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPIRefcounterClient = POINTER TO IRefcounterClient;
+
+INTERFACE IRefcounterClient;
+
+   LOCAL PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
+   LOCAL PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
+
+END IRefcounterClient;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPRefcounter = POINTER TO CRefcounter;
+
+CLASS CRefcounterImplHelper( BASE ) IMPLEMENTS IRefcounter; // functional, synchronized counter, no deallocation is made in the class
+
+   // IRefcounter
+   PUBLIC FINAL READONLY PROPERTY
+      References : CARDINAL;
+
+   PUBLIC FINAL PROCEDURE AddRef() : CARDINAL;
+   PUBLIC FINAL PROCEDURE Release() : CARDINAL;
+
+   // SELF
+   PUBLIC PROPERTY
+      Client : TPIRefcounterClient; // optional driven client
+
+   PRIVATE VAR
+      _References : CARDINAL := 0;
+      _Client : TPIRefcounterClient := NIL;
+
+END CRefcounterImplHelper;
+
+(*===========================================================================*)
+// classes with counted references, the classes release self with the last Release
+
+TYPE
+   TPRefcounted = POINTER TO CRefcounted;
+
+CLASS CRefcounted( CDisposable ) IMPLEMENTS IRefcounter, IRefcounterClient;
+// the class starts with References = 1, which simplifies usage, no AddRef needs to be called everywhere
+// ancestors of the class need not having Dispose call in their dtors as this class calls Dispose inside OnLastRelease
+
+   // IRefcounter
+   PUBLIC FINAL READONLY PROPERTY
+      References : CARDINAL;
+
+   PUBLIC FINAL PROCEDURE AddRef() : CARDINAL;
+   #save, option( leak_info => on )
+   PUBLIC FINAL PROCEDURE Release() : CARDINAL; // calls Dispose through destructor, then is DISPOSEs self
+   #restore
+
+   // IRefcounterClient
+   LOCAL FINAL PROCEDURE OnFirstAddRef( CONST Source : TPIRefcounter );
+   #save, option( leak_info => on )
+   LOCAL FINAL PROCEDURE OnLastRelease( CONST Source : TPIRefcounter );
+   #restore
+
+   // SELF
+   PRIVATE VAR
+      _Refcounter : CRefcounterImplHelper;
+
+   // deny DISPOSE
+   PRIVATE OPERATOR DISPOSE( a : ADDRESS );
+
+END CRefcounted;
+
+#restore   
+
+(*===========================================================================*)
+
+END baseobject.

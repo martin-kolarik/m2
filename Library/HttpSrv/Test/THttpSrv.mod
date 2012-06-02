@@ -46,7 +46,7 @@ END CProcessor;
 CLASS CServerThread( msgqueuethread.MessageQueueThread );
    PRIVATE VAR
       Processor : CProcessor;   
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    INTERNAL VIRTUAL PROCEDURE OnExit();
 END CServerThread;
 
@@ -78,11 +78,7 @@ CLASS IMPLEMENTATION CTest;
       T.Stop( TRUE );
       httpsrv.Cleanup();
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
 
       (*==========*)
 
@@ -106,7 +102,7 @@ CLASS IMPLEMENTATION CServerThread;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnStart( Restarted : BOOLEAN );
    VAR
       root : StringsO.CString;
    BEGIN

@@ -73,13 +73,13 @@ IMPORT
 
 (*---------------------------------------------------------------------------*)
 
-   PROCEDURE iJD( jd : LONGREAL; VAR y, m, d : INTEGER; VAR fd : LONGREAL );
+   PROCEDURE iJD( dc : LONGREAL; VAR y, m, d : INTEGER; VAR fd : LONGREAL );
    VAR
      A, Z, alfa : INTEGER;
      B, C, X, E : LONGREAL;
    BEGIN
-     Z  := INTEGER( jd + 0.5 );
-     fd := frac( jd + 0.5 );
+     Z  := INTEGER( dc + 0.5 );
+     fd := frac( dc + 0.5 );
      IF ( 1.0 - fd ) < 1.0 / 86400000.0 THEN // msec correction
        fd := 0.0;
        INC( Z );
@@ -117,9 +117,12 @@ BEGIN
    RETURN JD( 2007, 10, i MOD 2, 0.3 );
 END OJD;
 
-PROCEDURE NJD( i : CARDINAL ) : datetime.TJD;
+PROCEDURE NJD( i : CARDINAL ) : datetime.DayCount;
+VAR
+   ts : datetime.TimeSpan;
 BEGIN
-   RETURN datetime.JD( 2007, 10, i MOD 2, 3*8640000 );
+   ts.Days := 0.3;
+   RETURN datetime.DayCountYMDfd( 2007, 10, i MOD 2, ts );
 END NJD;
 
 (*===========================================================================*)
@@ -130,74 +133,61 @@ END NJD;
    CONST
       crlf = 13W + 10W;
    VAR
-      jd : datetime.TJD;
-      fd : CARDINAL;
+      dc : datetime.DayCount;
+      fd : datetime.TimeSpan;
       r : LONGREAL;
       y, M, d : INTEGER;
-      h, m, s, ms : CARDINAL;
 
-      diff : LONGREAL;
+      diff : datetime.TimeSpan;
       S : ARRAY [0..255] OF WCHAR;
-      t : datetime.TTime64;
+      t : datetime.HighResolutionTime;
       i : CARDINAL;
    BEGIN
-      jd := datetime.GetCurrentJD();
-      datetime.JDCToDays( jd );
-      
-      datetime.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
-      datetime.fd2HMS( fd, OUT h, OUT m, OUT s, OUT ms );
-      
       // conversion to
-      t := datetime.time();
+      t.SetNow();
       FOR i := 0 TO 99999999 DO
          r := OJD( i );
       END;
-      diff := datetime.difftime( datetime.time(), t );
-      IF r = 0.0 THEN
-         t := datetime.time();
-      END;
+      diff := t - datetime.NowHR();
 
-      Strings.FromLONGREALW( diff, FALSE, OUT S );
-      windows.OutputDebugStringW( L"  OS  jd: " );
+      Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
+      windows.OutputDebugStringW( L"  OS  dc: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
-      t := datetime.time();
+      t.SetNow();
       FOR i := 0 TO 99999999 DO
-         jd := NJD( i );
+         dc := NJD( i );
       END;
-      diff := datetime.difftime( datetime.time(), t );
-      IF jd = 0 THEN
-         t := datetime.time();
-      END;
+      diff := t - datetime.NowHR();
 
-      Strings.FromLONGREALW( diff, FALSE, OUT S );
-      windows.OutputDebugStringW( L"time  jd: " );
+      Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
+      windows.OutputDebugStringW( L"time  dc: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
       // conversion from
       r := JD( 2007, 10, 1, 0.3 );
-      jd := datetime.JD( 2007, 10, 1, 3*86400000 );
+      dc := datetime.DayCountYMDfd( 2007, 10, 1, datetime.TimeSpanD( 0.3 ));
 
-      t := datetime.time();
+      t.SetNow();
       FOR i := 0 TO 99999999 DO
-         iJD( r, OUT y, OUT M, OUT d, OUT diff );
+         iJD( r, OUT y, OUT M, OUT d, OUT r );
       END;
-      diff := datetime.difftime( datetime.time(), t );
+      diff := t - datetime.NowHR();
 
-      Strings.FromLONGREALW( diff, FALSE, OUT S );
+      Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
       windows.OutputDebugStringW( L"  OS ijd: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
-      t := datetime.time();
+      t.SetNow();
       FOR i := 0 TO 99999999 DO
-         datetime.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
+         dc.ToYMD( OUT y, OUT M, OUT d, OUT fd );
       END;
-      diff := datetime.difftime( datetime.time(), t );
+      diff := t - datetime.NowHR();
 
-      Strings.FromLONGREALW( diff, FALSE, OUT S );
+      Strings.FromLONGREALW( diff.Seconds, FALSE, OUT S );
       windows.OutputDebugStringW( L"time ijd: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));

@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE drv_def;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -61,7 +61,7 @@ END ValueDataLength;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
+PROCEDURE IOTypeToCWType( IOType : iovalue.TType ) : TValueType;
 BEGIN
    CASE IOType OF
    | iovalue.vtBoolean :
@@ -84,7 +84,7 @@ END IOTypeToCWType;
 
 (*================================================================================*)
 
-PROCEDURE CWTypeToIOType( CWType : TValueType ) : iovalue.TValueType;
+PROCEDURE CWTypeToIOType( CWType : TValueType ) : iovalue.TType;
 BEGIN
    CASE CWType OF
    | vtBoolean :
@@ -600,7 +600,7 @@ BEGIN
       RETURN AssignDrvValueCStringW( REF CWValue, CWValueUFlag, TrimFlag, IOValue.String );
 
    | iovalue.vtDate :
-      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, datetime.ToSJD( IOValue.Date ));
+      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, IOValue.Date.DayCount.JulianDate );
 
    ELSE
       RETURN AssignDrvValueStringW( REF CWValue, CWValueUFlag, TrimFlag, L"" );

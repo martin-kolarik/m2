@@ -22,11 +22,14 @@ IMPORT
   wtypes;
 
 IMPORT
+  collection,
   FIO,
   iovalue,
   msghandler,
   Storage,
-  list;
+  StringsO,
+  list,
+  lists;
 
 IMPORT
   ax_automation;
@@ -68,9 +71,9 @@ CONST
                                  04DB3H,
                                  0B8H, 04FH, 0B2H, 03EH, 0CEH, 098H, 02BH, 06DH );
 
-	// uuid(5D8864F7-4F93-4379-BE5A-4F832B39D1C6),
-	// version(1.0),
-	// helpstring("Control Web Driver ActiveX Control 1.0 Type Library")
+   // uuid(5D8864F7-4F93-4379-BE5A-4F832B39D1C6),
+   // version(1.0),
+   // helpstring("Control Web Driver ActiveX Control 1.0 Type Library")
   IID_DrvAx_TypeLib   = TMyGUID( 05D8864F7H,
                                  04F93H,
                                  04379H,
@@ -87,8 +90,8 @@ TYPE
 TYPE
   TCommunicationState = (
     csSuccess = 0,
-  	 csPending = 1,
-	 csFailure = 2,
+    csPending = 1,
+    csFailure = 2,
     csNotRunning = 3,
     csBadIndex = 4,
     csBadDirection = 5
@@ -563,24 +566,30 @@ CLASS IMPLEMENTATION CDriverActiveX;
 
   PUBLIC VIRTUAL PROCEDURE Stop() : BOOLEAN;
   VAR
+    it : list.CListIterator;
     PPending : TPPendingItem;
   BEGIN
     CASE State OF
     | dstRun :
       Driver.Stop();
 
-      WHILE Inputs.GetFirst( OUT PPending ) DO
-        Inputs.Remove( PPending );
+      it.Init( Inputs, collection.dirForward );
+      WHILE it.MoveNext() DO
+        PPending := TPPendingItem( it.Current );
         InputRead( csNotRunning, PPending^.Index, 0 );
         PPending^.Done();
         DISPOSE( PPending );
       END; // WHILE
-      WHILE Outputs.GetFirst( OUT PPending ) DO
-        Outputs.Remove( PPending );
+      Inputs.Dispose();
+
+      it.Init( Outputs, collection.dirForward );
+      WHILE it.MoveNext() DO
+        PPending := TPPendingItem( it.Current );
         OutputWritten( csNotRunning, PPending^.Index, 0 );
         PPending^.Done();
         DISPOSE( PPending );
       END; // WHILE
+      Outputs.Dispose();
 
       State := dstHasPAR;
     | dstHasPAR :
@@ -601,9 +610,10 @@ CLASS IMPLEMENTATION CDriverActiveX;
   VAR
     Direction : drv_def.TDirection;
     ES : ARRAY [0..3] OF WCHAR;
+    found : BOOLEAN := FALSE;
+    it : list.CListIterator;
     PInput : TPPendingItem;
     Type : drv_def.TValueType;
-    b : BOOLEAN;
   BEGIN
     IF     UsesRunStop AND ( State <> dstRun ) OR
        NOT UsesRunStop AND ( State <> dstHasPAR ) THEN
@@ -613,22 +623,28 @@ CLASS IMPLEMENTATION CDriverActiveX;
     ELSIF NOT( drv_def.dirInput IN Direction ) THEN
       CommunicationState := csBadDirection;
     ELSE
-      b := Inputs.GetFirst( OUT PInput );
-      WHILE b AND ( PInput^.Index <> InputIndex ) DO
-        b := Inputs.NextOf( PInput, OUT PInput );
+      it.Init( Inputs, collection.dirForward );
+      WHILE it.MoveNext() DO
+        PInput := TPPendingItem( it.Current );
+        IF PInput^.Index = InputIndex THEN
+          found := TRUE;
+          EXIT;
+        END;
       END; // WHILE
-      IF b AND NOT PInput^.Pending THEN // found and still not pending
-        CommunicationState := csSuccess;
 
-      ELSIF b THEN // found and pending
-        CommunicationState := csPending;
-
-      ELSE // not found
+      IF NOT found THEN
         CommunicationState := csSuccess;
 
         NEW( PInput );
         PInput^.Index := InputIndex;
-        Inputs.Append( PInput );
+        Inputs.Add( PInput );
+
+      ELSIF PInput^.Pending THEN
+        CommunicationState := csPending;
+
+      ELSE // found and not pending yet
+        CommunicationState := csSuccess;
+
       END;
     END;   
   END MarkInput;
@@ -637,8 +653,8 @@ CLASS IMPLEMENTATION CDriverActiveX;
 
   PUBLIC VIRTUAL PROCEDURE ReadInputs( VAR CommunicationState : TCommunicationState );
   VAR
+    it : list.CListIterator;
     PInput : TPPendingItem;
-    b : BOOLEAN;
   BEGIN
     IF     UsesRunStop AND ( State <> dstRun ) OR
        NOT UsesRunStop AND ( State <> dstHasPAR ) THEN
@@ -653,12 +669,14 @@ CLASS IMPLEMENTATION CDriverActiveX;
       CommunicationState := csPending;
 
       Driver.InputRequestStart();
-      b := Inputs.GetFirst( OUT PInput );
-      WHILE b DO
+
+      it.Init( Inputs, collection.dirForward );
+      WHILE it.MoveNext() DO
+        PInput := TPPendingItem( it.Current );
         Driver.InputRequest( PInput^.Index );
         PInput^.Pending := TRUE;
-        b := Inputs.NextOf( PInput, OUT PInput );
       END;
+
       Driver.InputRequestCompleted();
       Driver.DriverCallBackW( drv_def.dcfInputFinalized, NIL );
     END;
@@ -669,11 +687,12 @@ CLASS IMPLEMENTATION CDriverActiveX;
 
   PUBLIC VIRTUAL PROCEDURE MarkOutput( OutputIndex : CARDINAL; Value : ARRAY OF WCHAR; VAR CommunicationState : TCommunicationState );
   VAR
-    ES : ARRAY [0..3] OF WCHAR;
     Direction : drv_def.TDirection;
+    ES : ARRAY [0..3] OF WCHAR;
+    found : BOOLEAN := FALSE;
+    it : list.CListIterator;
     POutput : TPPendingItem;
     Type : drv_def.TValueType;
-    b : BOOLEAN;
   BEGIN
     IF     UsesRunStop AND ( State <> dstRun ) OR
        NOT UsesRunStop AND ( State <> dstHasPAR ) THEN
@@ -683,30 +702,35 @@ CLASS IMPLEMENTATION CDriverActiveX;
     ELSIF NOT( drv_def.dirOutput IN Direction ) THEN
       CommunicationState := csBadDirection;
     ELSE
-      b := Outputs.GetFirst( OUT POutput );
-      WHILE b AND ( POutput^.Index <> OutputIndex ) DO
-        b := Outputs.NextOf( POutput, OUT POutput );
+      it.Init( Inputs, collection.dirForward );
+      WHILE it.MoveNext() DO
+        POutput := TPPendingItem( it.Current );
+        IF POutput^.Index = OutputIndex THEN
+          found := TRUE;
+          EXIT;
+        END;
       END; // WHILE
-      IF b AND NOT POutput^.Pending THEN
-        CommunicationState := csSuccess;
 
-        POutput^.Value.FromStringOA( Value, FALSE );
-
-      ELSIF b THEN // found and pending
-        CommunicationState := csPending;
-
-      ELSE // not found
+      IF NOT found THEN
         CommunicationState := csSuccess;
 
         NEW( POutput );
         POutput^.Index := OutputIndex;
         POutput^.Value.Type := drv_def.CWTypeToIOType( Type );
         // not needed, POutput^.Value is filled with 0 here -- POutput^.Value.ValDString := NIL;
-        Outputs.Append( POutput );
+        Outputs.Add( POutput );
 
-        POutput^.Value.FromStringOA( Value, FALSE );
+        POutput^.Value.FromString( StringsO.FromOA( Value ), FALSE );
+
+      ELSIF POutput^.Pending THEN
+        CommunicationState := csPending;
+      
+      ELSE // found and not pending yet
+        CommunicationState := csSuccess;
+
+        POutput^.Value.FromString( StringsO.FromOA( Value ), FALSE );
+
       END;
-
     END;   
   END MarkOutput;
 
@@ -715,9 +739,11 @@ CLASS IMPLEMENTATION CDriverActiveX;
   PUBLIC VIRTUAL PROCEDURE WriteOutputs( VAR CommunicationState : TCommunicationState );
   VAR
     EC : CARDINAL;
-    POutput, PNext : TPPendingItem;
+    it : list.CListIterator;
+    itr : lists.CPtrListIterator;
+    outputsToRemove : lists.CPtrList;
+    POutput : TPPendingItem;
     TS : drv_def.TUTCStamp;
-    b : BOOLEAN;
   BEGIN
     IF     UsesRunStop AND ( State <> dstRun ) OR
        NOT UsesRunStop AND ( State <> dstHasPAR ) THEN
@@ -733,22 +759,26 @@ CLASS IMPLEMENTATION CDriverActiveX;
       Storage.Fill( ADR( TS ), SIZE( TS ),  0 );
 
       Driver.OutputRequestStart();
-      b := Outputs.GetFirst( OUT POutput );
-      WHILE b DO
-        b := Outputs.NextOf( POutput, OUT PNext );
+
+      it.Init( Outputs, collection.dirForward );
+      WHILE it.MoveNext() DO
+        POutput := TPPendingItem( it.Current );
         
         IF Driver.OutputRequest( EC, POutput^.Index, POutput^.Value, drv_def.qosGood, TS ) THEN
           POutput^.Pending := TRUE;
         ELSE
-          Outputs.Remove( POutput );
+          outputsToRemove.Add( POutput, 0 );
 
           OutputWritten( csFailure, POutput^.Index, EC );
 
           POutput^.Done();
           DISPOSE( POutput );
         END;
+      END; // WHILE
 
-        POutput := PNext;
+      itr.Init( outputsToRemove, collection.dirForward );
+      WHILE itr.MoveNext() DO
+        Outputs.Remove( itr.Value );
       END; // WHILE
 
       Driver.OutputRequestCompleted();
@@ -763,8 +793,10 @@ CLASS IMPLEMENTATION CDriverActiveX;
   VAR
     CS : TCommunicationState;
     EC : CARDINAL;
-    PInput, PNext : TPPendingItem;
-    b : BOOLEAN;
+    inputsToRemove : lists.CPtrList;
+    it : list.CListIterator;
+    itr : lists.CPtrListIterator;
+    PInput : TPPendingItem;
     StillPending : BOOLEAN;
   BEGIN
     IF     UsesRunStop AND ( State <> dstRun ) OR
@@ -775,23 +807,29 @@ CLASS IMPLEMENTATION CDriverActiveX;
     EXCL( Action, actInputRequest );
     StillPending := FALSE;
 
-    b := Inputs.GetFirst( OUT PInput );
-    WHILE b DO
-      b := Inputs.NextOf( PInput, OUT PNext );
+    it.Init( Outputs, collection.dirForward );
+    WHILE it.MoveNext() DO
+      PInput := TPPendingItem( it.Current );
       IF NOT PInput^.Pending THEN // new item, which communication has not been started yet, after this item NO next should be processed now
-        b := FALSE;  
+        EXIT;
+
       ELSIF Driver.InputFinalized( PInput^.Index, EC ) THEN
-        Inputs.Remove( PInput );
+        inputsToRemove.Add( PInput, 0 );
 
         InputRead( csSuccess, PInput^.Index, EC ); // the call can append new items to be read
 
         PInput^.Done();
         DISPOSE( PInput );
+
       ELSE
         StillPending := TRUE;
       END;
-      PInput := PNext;
     END; // WHILE;
+
+    itr.Init( inputsToRemove, collection.dirForward );
+    WHILE itr.MoveNext() DO
+      Inputs.Remove( itr.Value );
+    END; // WHILE
 
     IF NOT StillPending THEN
       EXCL( Action, actInputPending );
@@ -807,8 +845,10 @@ CLASS IMPLEMENTATION CDriverActiveX;
   VAR
     CS : TCommunicationState;
     EC : CARDINAL;
-    POutput, PNext : TPPendingItem;
-    b : BOOLEAN;
+    it : list.CListIterator;
+    itr : lists.CPtrListIterator;
+    outputsToRemove : lists.CPtrList;
+    POutput : TPPendingItem;
     StillPending : BOOLEAN;
   BEGIN
     IF     UsesRunStop AND ( State <> dstRun ) OR
@@ -819,23 +859,29 @@ CLASS IMPLEMENTATION CDriverActiveX;
     EXCL( Action, actOutputRequest );
     StillPending := FALSE;
 
-    b := Outputs.GetFirst( OUT POutput );
-    WHILE b DO
-      b := Outputs.NextOf( POutput, OUT PNext );
+    it.Init( Outputs, collection.dirForward );
+    WHILE it.MoveNext() DO
+      POutput := TPPendingItem( it.Current );
       IF NOT POutput^.Pending THEN // new item, which communication has not been started yet, after this item NO next should be processed now
-        b := FALSE;
+        EXIT;
+
       ELSIF Driver.OutputFinalized( POutput^.Index, EC ) THEN
-        Outputs.Remove( POutput );
+        outputsToRemove.Add( POutput, 0 );
 
         OutputWritten( csSuccess, POutput^.Index, EC ); // the call can append new items to be written
 
         POutput^.Done();
         DISPOSE( POutput );
+
       ELSE
         StillPending := TRUE;
       END;
-      POutput := PNext;
     END; // WHILE;
+
+    itr.Init( outputsToRemove, collection.dirForward );
+    WHILE itr.MoveNext() DO
+      Outputs.Remove( itr.Value );
+    END; // WHILE
 
     IF NOT StillPending THEN
       EXCL( Action, actOutputPending );

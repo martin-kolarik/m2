@@ -2,38 +2,38 @@
 
     <!-- TOOLS -->
     <PropertyGroup>
-        <!-- VCD Condition="$(VCD)==''">$(MSD)\</VCD -->
-        <CL>&quot;$(VCD)cl&quot; /nologo /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
-        <LINK>&quot;$(VCD)link&quot; /nologo /map /nodefaultlib</LINK>
-        <LIB>&quot;$(VCD)lib&quot; /nodefaultlib</LIB>
-        <RC>&quot;$(VCD)rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
+        <CompileProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</CompileProductId>
+        <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
+        <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
+        <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
 
-        <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
-        <MTT>mt -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
+        <CL>&quot;$(CompilerBin)\cl&quot; /nologo /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
+        <LINK>&quot;$(CompilerBin)\link&quot; /nologo /map /nodefaultlib</LINK>
+        <LIB>&quot;$(CompilerBin)\lib&quot; /nodefaultlib</LIB>
+        <RC>&quot;$(SDKBin)\rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
+
+        <MT>&quot;$(SDKBin)\mt&quot; -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
+        <MTT>&quot;$(SDKBin)\mt&quot; -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
 
         <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2>
         <M2D>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2D>
         <XRSDEF>&quot;$(RootBuildPath)\Bin\xrsc&quot; -D -O$(SourceDir)</XRSDEF>
         <XRSBIN>&quot;$(RootBuildPath)\Bin\xrsc&quot; -B -O$(IntermediateDir) -P$(MSBuildProjectName).</XRSBIN>
 
-        <LICSRC>&quot;$(RootBuildPath)\Bin\licbuild&quot; -M</LICSRC>
+        <LICSRC Condition="$(ClientLicensingType)=='Host'">&quot;$(RootBuildPath)\Bin\licbuild&quot; -M</LICSRC>
+        <LICSRC Condition="$(ClientLicensingType)=='Plugin'">&quot;$(RootBuildPath)\Bin\licbuild&quot; -Mp</LICSRC>
         <LICSIGN>&quot;$(RootBuildPath)\Bin\licbuild&quot; -S</LICSIGN>
         <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
         <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
         <RUNTEST>&quot;$(RootBuildPath)\Bin\runtest&quot; -F</RUNTEST>
-
-        <CompileProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</CompileProductId>
-        <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
-        <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
-        <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
-
+        
         <!-- M2PROD takes here self initial value -->
-        <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion)</M2PROD>
+        <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion) -DProjectId:$(ProjectId)</M2PROD>
     </PropertyGroup>
 
     <!-- CONTROLS -->
     <PropertyGroup>
-        <M2CTRL>-DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName) -DLicenceMachineId:$(LicenceMachineId)</M2CTRL>
+        <M2CTRL>-DManufacturer:$(Manufacturer) -DConfiguration:$(Configuration) -DPlatform:$(Platform) -DLicenceMachineId:$(LicenceMachineId)</M2CTRL>
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug)</M2CTRL>
         <M2CTRL Condition="$(CPPExceptions)=='on'">$(M2CTRL) -SE</M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
@@ -42,10 +42,12 @@
         <CLCTRL Condition="$(CPPExceptions)!='on'">$(CLCTRL) /GR-</CLCTRL>
         <!-- CLCTRL>$(CLCTRL) /W4 /wd4018 /wd4100 /wd4102 /wd4127 /wd4146 /wd4245</CLCTRL -->
         <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
-        <LINKCTRL>/DYNAMICBASE /LARGEADDRESSAWARE /NXCOMPAT /STACK:65536 /OPT:REF /MERGE:.rdata=.text /IGNORE:4049 /IGNORE:4199 /IGNORE:4210 /IGNORE:4217 delayimp.lib</LINKCTRL>
+        <LINKCTRL>/DYNAMICBASE /LARGEADDRESSAWARE /NXCOMPAT /STACK:$(StackReservation) /OPT:REF /MERGE:.rdata=.text /IGNORE:4049 /IGNORE:4199 /IGNORE:4210 /IGNORE:4217 delayimp.lib</LINKCTRL>
         <LINKCTRL Condition="$(ResultSubsystem)=='Console'">$(LINKCTRL) /SUBSYSTEM:CONSOLE</LINKCTRL>
         <LINKCTRL Condition="$(ResultSubsystem)=='GUI'">$(LINKCTRL) /SUBSYSTEM:WINDOWS</LINKCTRL>
         <LINKCTRL Condition="$(CLib)=='Private'">$(LINKCTRL) /SAFESEH:NO</LINKCTRL>
+        <LINKCTRL>$(LINKCTRL) /MACHINE:$(Platform)</LINKCTRL>
+        <LIBDEF>/MACHINE:$(Platform)</LIBDEF>
     </PropertyGroup>
 
     <!-- Manifests: CRT and UAC -->
@@ -59,15 +61,14 @@
         <MT Condition="$(CLib)=='Dynamic' And $(Result)=='Dynamic'">$(MT);#2</MT>
     </PropertyGroup>
 
-    <!-- ConfigurationName -->
-    <PropertyGroup Condition ="$(ConfigurationName)=='Release'">
+    <!-- Configuration -->
+    <PropertyGroup Condition ="$(Configuration)=='Release'">
         <RCCTRL>-DRELEASE</RCCTRL>
         <LINKCTRL>$(LINKCTRL) /RELEASE /LTCG</LINKCTRL>
-        <LIBDEF>/LTCG</LIBDEF>
+        <LIBDEF>$(LIBDEF) /LTCG</LIBDEF>
     </PropertyGroup>
-    <PropertyGroup Condition ="$(ConfigurationName)!='Release'">
+    <PropertyGroup Condition ="$(Configuration)!='Release'">
         <RCCTRL></RCCTRL>
-        <LIBDEF></LIBDEF>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(Debug)=='on'">
@@ -100,14 +101,16 @@
         <CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS>
         <CLINPUTS>$(CLINPUTS) @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</CLINPUTS>
         <CLINPUTS>$(CLINPUTS) @(GrabbedHeaders -> '-I&quot;..\%(Identity)\Header&quot;', ' ')</CLINPUTS>
-        <RCINPUTS>-i&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
+        <CLINPUTS>$(CLINPUTS) -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</CLINPUTS>
+        <RCINPUTS>-I&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
+        <RCINPUTS>$(RCINPUTS) -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</RCINPUTS>
+        <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot; /LIBPATH:&quot;$(CompilerLib)&quot;</LINKCTRL>
     </PropertyGroup>
 
     <!-- OUTPUT -->
     <PropertyGroup>
         <BUILDOUTPUT>/out:..\$(OutputFile)</BUILDOUTPUT>
-        <LINKEXPORT Condition="$(Export)!=''">/def:..\$(SourceDir)\$(Export).def</LINKEXPORT>
-        <LINKEXPORTTOINTERFACE>/def:..\$(SourceDir)\$(ExportToInterfaceFile)</LINKEXPORTTOINTERFACE>
+        <LIBEXPORT Condition="$(Export)!=''">/def:..\$(SourceDir)\$(Export).def</LIBEXPORT>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(ProductLinkMapFilePath)==''">

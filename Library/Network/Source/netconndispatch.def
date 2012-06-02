@@ -4,7 +4,7 @@ DEFINITION MODULE netconndispatch; // network connections dispatcher
   
 IMPORT
   arrays,
-  Delegate,
+  delegate,
   inetaddr,
   maps,
   msghandler,
@@ -26,7 +26,7 @@ TYPE
 
 //--------------------------------------------------------------------------------
   
-CLASS CClientInterface( Delegate.ADelegate );
+CLASS CClientInterface( delegate.Delegate );
   INTERNAL VAR
     PDispatcher : TPDispatcher;
     
@@ -66,7 +66,7 @@ CLASS CDispatcher( msghandler.MessageHandler );
   PRIVATE VAR
     MQueue      : msgqueue.CBufferQueue; // all except send
     SQueue      : msgqueue.CBufferQueue; // send only
-    Connections : inetaddr.CINETADDRMap;
+    Connections : inetaddr.CINETADDRPtrMap;
     Defered     : arrays.CPtrArray; // Connections which were not able to put data into queue and were delayed. They must be restarted after queue is flushed.
     DeferLock   : sync.LOCK;
     PListener   : netsrv.TPListener;

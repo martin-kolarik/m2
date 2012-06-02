@@ -8,6 +8,7 @@ FROM Exceptions IMPORT
 IMPORT
    array,
    arrays,
+   collection,
    cphcommon,
    datetime,
    Defs,
@@ -94,6 +95,8 @@ TYPE
          , opProductHash
          , opOwnerHash
          , opMachineHash
+         , opNumberInfoFromCmdLine
+         , opNumberInfoFromFile
       #endif
    );
 
@@ -121,6 +124,7 @@ PROCEDURE Main( argc : INTEGER; argp : TPParameters ) : INTEGER;
 #restore
 VAR
    args : lists.CStringList;
+   argsit : lists.CStringListIterator;
    count : INTEGER;
    err : TextWriter.TPTextWriter := TextWriter.errout();
    i : INTEGER;
@@ -129,6 +133,7 @@ VAR
 
    #if Builder #then
       di : FSO.CDirectoryInfo;
+      generateM2Library : BOOLEAN := FALSE;
       outdir, path, tail : FIO.PathStrW := L"";
       pid : StringsO.CString;
    #endif
@@ -141,10 +146,10 @@ VAR
    #endif
    
    #if Licensor #then
+      dc : datetime.DayCount;
       expBegin : StringsO.CString;
       expEnd : StringsO.CString;
       flags : ARRAY [0..7] OF WCHAR := L"";
-      jd : datetime.TJD;
       ps : StringsO.TPString;
       s : ARRAY [0..63] OF WCHAR;
    #endif
@@ -159,6 +164,7 @@ VAR
       rn : Number.CRegistration;
       sn : Number.CSerial;
       sns : lists.CStringList;
+      snsit : lists.CStringListIterator;
       so : StringsO.CString;
    #endif
 
@@ -169,7 +175,7 @@ VAR
       haveSome : BOOLEAN := FALSE;
       identity : TIdentity := TIdentity{idMAC};
       j : INTEGER;
-      jlist, klist : lists.TPPtrList;
+      jlistit, klistit : lists.CPtrListIterator;
       licenceItem : Items.TPLicence;
       uid : Uniquer.TUId;
       uq : Uniquer.CUniquer;
@@ -183,7 +189,9 @@ VAR
       hMID : Defs.TMID;
       hOwner : Defs.TOwner;
       hPID : Defs.TPID;
+      s2 : ARRAY [0..63] OF WCHAR;
       showGOrds : BOOLEAN := FALSE;
+      st : StringsO.CString;
    #endif
 
    #if Client #or Licensor #or Activator #then
@@ -220,15 +228,17 @@ VAR
 
    #if Client #or Activator #then
    PROCEDURE LoadData( bind, validate : BOOLEAN; OUT data : arrays.CPtrArray );
+   VAR
+      it : lists.CStringListIterator;
    BEGIN
       ls.Filters^.Add( ADR( lsINI ), 0 );
       data.Strategy := array.astrgListInArray;
 
-      args.Reset();
+      it.Init( args, collection.dirForward );
       IF useCommonStorage THEN
          // do nothing
-      ELSIF args.MoveNext() THEN 
-         so.Assign( args.Current^ );
+      ELSIF it.MoveNext() THEN 
+         so.Assign( it.Value^ );
          ls.Path := so;
       ELSE
          ls.SetPathOA( L"." );
@@ -248,7 +258,7 @@ VAR
    #endif
    
    #if Builder #then
-   PROCEDURE WriteM2Source( CONST owner : StringsO.CString ) : CARDINAL;
+   PROCEDURE WriteM2Source( CONST owner : StringsO.CString; libraryFlag : BOOLEAN ) : CARDINAL;
    TYPE
       TK = ARRAY [0..31] OF BYTE;
    CONST
@@ -326,6 +336,10 @@ VAR
       tw.LineEnd();
       tw.WriteOA( L"   );", TRUE );
       tw.LineEnd();
+      IF libraryFlag THEN
+         tw.WriteOA( L"PROCEDURE validator() : ADDRESS;", TRUE );
+         tw.LineEnd();
+      END;
       tw.WriteOA( L"END cllv.", TRUE );
 
       fs.Close( FALSE );
@@ -344,8 +358,10 @@ VAR
       tw.WriteOA( L"FROM Storage IMPORT", TRUE );
       tw.WriteOA( L"   ALLOCATE, DEALLOCATE;", TRUE );
       tw.LineEnd();
-      tw.WriteOA( L"IMPORT", TRUE );
-      tw.WriteOA( L"   lec;", TRUE );
+      IF NOT libraryFlag THEN
+         tw.WriteOA( L"IMPORT", TRUE );
+         tw.WriteOA( L"   lec;", TRUE );
+      END;
       tw.LineEnd();
       tw.WriteOA( L"CLASS CValidator;", TRUE );
       tw.WriteOA( L"   VIRTUAL PROCEDURE query( bit : CARDINAL; OUT value : BOOLEAN );", TRUE );
@@ -384,11 +400,19 @@ VAR
       tw.LineEnd();
       tw.WriteOA( "END CValidator;", TRUE );
       tw.LineEnd();
-      tw.WriteOA( "BEGIN", TRUE );
-      tw.WriteOA( "   lec.RegisterValidator( ADR( data ), length, ADR( V ));", TRUE );
-      tw.WriteOA( "FINALLY", TRUE );
-      tw.WriteOA( "   lec.UnregisterValidator( ADR( data ));", TRUE );
-      tw.WriteOA( "END cllv.", TRUE );
+      IF libraryFlag THEN
+         tw.WriteOA( "PROCEDURE validator() : ADDRESS;", TRUE );
+         tw.WriteOA( "BEGIN", TRUE );
+         tw.WriteOA( "   RETURN ADR( V );", TRUE );
+         tw.WriteOA( "END validator;", TRUE );
+         tw.LineEnd();
+      ELSE
+         tw.WriteOA( "BEGIN", TRUE );
+         tw.WriteOA( "   lec.RegisterValidator( ADR( data ), length, ADR( V ));", TRUE );
+         tw.WriteOA( "FINALLY", TRUE );
+         tw.WriteOA( "   lec.UnregisterValidator( ADR( data ));", TRUE );
+      END;
+         tw.WriteOA( "END cllv.", TRUE );
 
       fs.Close( FALSE );
       err^.WriteOA( L'  the file "cllv.mod" was successfully generated', TRUE );
@@ -399,7 +423,7 @@ VAR
      
 BEGIN
    err^.WriteOA( L"Licence support tool", TRUE );
-   err^.WriteOA( L"(c) ", FALSE ); err^.WriteOA( Manufacturer, FALSE ); err^.WriteOA( L" 2009", TRUE );
+   err^.WriteOA( L"(c) ", FALSE ); err^.WriteOA( Manufacturer, FALSE ); err^.WriteOA( L" 2011", TRUE );
    err^.LineEnd();
 
    IF argc < 2 THEN
@@ -421,7 +445,7 @@ BEGIN
                err^.WriteOA( L'  "A" parameter requires activation number', TRUE );
                RETURN 101;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'a' :
             op := opApplyActivationFromFile;
             INC( i );
@@ -487,7 +511,7 @@ BEGIN
                err^.WriteOA( L'  "L" parameter requires licence number', TRUE );
                RETURN 102;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'l' :
             op := opApplyLicenceFromFile;
             INC( i );
@@ -500,6 +524,7 @@ BEGIN
          #if Builder #then
          | 'M' :
             op := opGenerateM2Source;
+            generateM2Library := TPString( argp^[i] )^[2] = L'p';
             INC( i );
             IF i >= argc THEN
                err^.WriteOA( L'  "M" parameter requires product identifier', TRUE );
@@ -507,15 +532,31 @@ BEGIN
             END;
             pid.FromOA( OAsz( argp^[i] ));
          #endif
+         #if Supervisor #then
+         | 'N' :
+            op := opNumberInfoFromCmdLine;
+            INC( i );
+            IF i >= argc THEN
+               err^.WriteOA( L'  "N" parameter requires a number', TRUE );
+               RETURN 118;
+            END;
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
+         | 'n' :
+            op := opNumberInfoFromFile;
+            INC( i );
+            IF i >= argc THEN
+               err^.WriteOA( L'  "n" parameter requires path to file', TRUE );
+               RETURN 119;
+            END;
+            pathOrFilter.FromOA( OAsz( argp^[i] ));
+         #endif
          #if Client #or Activator #then
          | 'Q' :
             op := opQueryRegistration;
             INC( i );
-            IF i >= argc THEN
-               err^.WriteOA( L'  "Q" parameter requires product identifier', TRUE );
-               RETURN 103;
+            IF i < argc THEN
+               pathOrFilter.FromOA( OAsz( argp^[i] ));
             END;
-            pathOrFilter.FromOA( OAsz( argp^[i] ));
          | 'x' : // suboption of Q
             allFlag := TRUE;
          #endif
@@ -527,7 +568,7 @@ BEGIN
                err^.WriteOA( L'  "R" parameter requires registration number', TRUE );
                RETURN 104;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'r' :
             op := opRegisterFromFile;
             INC( i );
@@ -575,7 +616,7 @@ BEGIN
                err^.WriteOA( L'  "U" parameter requires licence number', TRUE );
                RETURN 105;
             END;
-            sns.AddOA( OAsz( argp^[i] ), 0 );
+            sns.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | 'u' :
             op := opRemoveLicenceFromFile;
             INC( i );
@@ -587,10 +628,10 @@ BEGIN
          #endif
          ELSE
             err^.WriteOA( L'  unknown option: ', FALSE ); err^.WriteOA( OAsz( argp^[i] ), TRUE );
-            RETURN 118;
+            RETURN 120;
          END;
       ELSE // paths
-         args.AddOA( OAsz( argp^[i] ), 0 );
+         args.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
       END;
 
       INC( i );
@@ -622,13 +663,13 @@ BEGIN
    | opSignProduct :
       ls.Filters^.Add( ADR( lsINI ), 0 );
       IF args.Empty THEN
-         args.AddOA( L".", 0 );
+         args.Add( StringsO.FromOA( L"." ), 0 );
       END;
    
-      args.Reset();
-      WHILE args.MoveNext() DO
-         IF NOT di.StartFromPath( args.Current^, FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
-            err^.WriteOA( L'  nothing found for "', FALSE ); err^.Write( args.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
+      argsit.Init( args, collection.dirForward );
+      WHILE argsit.MoveNext() DO
+         IF NOT di.StartFromPath( argsit.Value^, FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
+            err^.WriteOA( L'  nothing found for "', FALSE ); err^.Write( argsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
             CONTINUE;
          END;
          REPEAT
@@ -678,13 +719,11 @@ BEGIN
    #if Licensor #then
    //-----
    | opGenerateLicence :
-      args.Reset();
-
-      IF NOT args.MoveNext() THEN
+      IF NOT argsit.MoveNext() THEN
          err^.WriteOA( L'  expected gord', TRUE );
          RETURN 201;
       END;
-      ps := args.Current;
+      ps := argsit.Value;
       IF NOT ps^.ToCARD32( 10, OUT i ) THEN
          err^.WriteOA( L'  bad gord: ', FALSE ); err^.Write( ps^, TRUE );
          RETURN 202;
@@ -696,11 +735,11 @@ BEGIN
          sn.GOrd := i;
       END;
 
-      IF NOT args.MoveNext() THEN
+      IF NOT argsit.MoveNext() THEN
          err^.WriteOA( L'  expected product', TRUE );
          RETURN 204;
       END;
-      sn.SetPId( args.Current^ );
+      sn.SetPId( argsit.Value^ );
 
       IF owner.Empty THEN
          sn.Type := Items.TLicenceType{Items.ltUnnamed};
@@ -754,13 +793,13 @@ BEGIN
       
       LoadData( FALSE, FALSE, OUT data );
    
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          err^.LineEnd();
 
          // get current licence
-         err^.WriteOA( L'  processing licence "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF NOT Number.Decode( sns.Current^, REF sn ) THEN
+         err^.WriteOA( L'  processing licence "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF NOT Number.Decode( snsit.Value^, REF sn ) THEN
             err^.WriteOA( L'    the licence is not valid', TRUE );
             CONTINUE;
          ELSIF Items.ltUnnamed IN sn.Type THEN
@@ -786,7 +825,7 @@ BEGIN
                   licenceItem^.ProductId := item^.ProductId;
                   licenceItem^.Type := sn.Type;
                   licenceItem^.Created := datetime.NowUTC();
-                  so.Assign( sns.Current^ );
+                  so.Assign( snsit.Value^ );
                   licenceItem^.Serial := so;
                   licenceItem^.Owner := owner;
                   licenceItem^.UId := uq.UId( licenceItem^.ProductId );
@@ -832,13 +871,13 @@ BEGIN
       
       LoadData( FALSE, FALSE, OUT data );
    
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          err^.LineEnd();
 
          // get current licence
-         err^.WriteOA( L'  processing licence "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF NOT Number.Decode( sns.Current^, REF sn ) THEN
+         err^.WriteOA( L'  processing licence "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF NOT Number.Decode( snsit.Value^, REF sn ) THEN
             err^.WriteOA( L'    the licence is not valid', TRUE );
             CONTINUE;
          END; 
@@ -898,8 +937,7 @@ BEGIN
    #if Client #or Activator #then
    | opQueryRegistration :
       IF pathOrFilter.Empty THEN
-         err^.WriteOA( L'  the product name was not specified', TRUE );
-         RETURN 207;
+         pathOrFilter.FromOA( L"*" ); // allow output all
       END;
 
       LoadData( TRUE, TRUE, OUT data );
@@ -966,8 +1004,7 @@ BEGIN
                err^.WriteOA( L'  the month count is not valid', TRUE );
                RETURN 210;
             END;
-            jd := datetime.GetCurrentJD() + datetime.DaysToJDC( i * 31 );
-            dte.FromJD( jd, 0, 0 );
+            dte.DayCount := datetime.NowDC() + datetime.TimeSpanD( LONGREAL( i * 31 ));
          ELSIF NOT dte.FromStringOA( OA( expEnd.Length-1, expEnd.Data ), dateFormat ) THEN
             err^.WriteOA( L'  the end date is not valid', TRUE );
             RETURN 211;
@@ -980,9 +1017,13 @@ BEGIN
          an.Origin := dtb;
          an.Months := -1;
       ELSE
-         jd := MAX2( datetime.TJD( 2120500080000000 ), dtb.JulianDate ); // 2120500080000000 is minimal origin (see Number.mod)
-         i := datetime.JDCToDays( dte.JulianDate - jd ) DIV 31 + 1;
-         dte.FromJD( jd + datetime.DaysToJDC( i * 31 ), 0, 0 );
+         // get maximum (trim to the lowest possible value)
+         dc.Value := INT64( 2120500080000000 );
+         IF dc < dtb.DayCount THEN 
+            dc := dtb.DayCount;
+         END;
+         i := CARDINAL( dte.DayCount.Difference( dc ).Days / 31.0 ) + 1;
+         dte.DayCount := dc + datetime.TimeSpanD( LONGREAL( i * 31 ));
          dte.ToStringOA( dateFormat, TRUE, FALSE, OUT s );
          err^.WriteOA( L'  expiration counted to ', FALSE ); err^.WriteOA( s, TRUE );
          an.Origin := dtb; // dtbs sooner than 2120500080000000 are trimmed inside an.Origin.set
@@ -990,15 +1031,15 @@ BEGIN
       END;
 
       count := 0;
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          IF count > 0 THEN
             err^.LineEnd();
          END;
 
          // get current licence
-         err^.WriteOA( L'  processing registration "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF NOT Number.Decode( sns.Current^, REF rn ) THEN
+         err^.WriteOA( L'  processing registration "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF NOT Number.Decode( snsit.Value^, REF rn ) THEN
             err^.WriteOA( L'    the registration is not valid', TRUE );
             CONTINUE;
          END;
@@ -1036,13 +1077,13 @@ BEGIN
       
       LoadData( TRUE, TRUE, OUT data );
    
-      sns.Reset();
-      WHILE sns.MoveNext() DO
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
          err^.LineEnd();
 
          // get current licence
-         err^.WriteOA( L'  processing activation "', FALSE ); err^.Write( sns.Current^, FALSE ); err^.WriteOA( L'"', TRUE );
-         IF NOT Number.Decode( sns.Current^, REF an ) THEN
+         err^.WriteOA( L'  processing activation "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF NOT Number.Decode( snsit.Value^, REF an ) THEN
             err^.WriteOA( L'    the activation is not valid', TRUE );
             CONTINUE;
          END; 
@@ -1080,7 +1121,7 @@ BEGIN
                      activationItem^.Starts := dte;
                   ELSE
                      activationItem^.Starts := dte;
-                     dte.FromJD( dte.JulianDate + datetime.DaysToJDC( an.Months * 31 ), 0, 0 );
+                     dte.DayCount.Add( datetime.TimeSpanD( LONGREAL( an.Months * 31 )));
                      activationItem^.Expires := dte;
                   END;
 
@@ -1132,12 +1173,184 @@ BEGIN
       hash.hashb( uid, OUT hMID );
       cphcommon.ToHex( hMID, OUT s );
       err^.WriteOA( L'  mhash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+   //-----
+   | opNumberInfoFromCmdLine, opNumberInfoFromFile :
+
+      // check file
+      IF op = opApplyLicenceFromFile THEN
+         i := LoadFile( pathOrFilter, OUT sns );
+         IF i <> 0 THEN
+            RETURN i;
+         END;
+      END; // IF read from file
+      IF sns.Empty THEN
+         err^.WriteOA( L'  no licence number was found', TRUE );
+         RETURN 207;
+      END;
+      
+      snsit.Init( sns, collection.dirForward );
+      WHILE snsit.MoveNext() DO
+         err^.LineEnd();
+
+         // get current licence
+         err^.WriteOA( L'  processing number "', FALSE ); err^.Write( snsit.Value^, FALSE ); err^.WriteOA( L'"', TRUE );
+         IF Number.Decode( snsit.Value^, REF sn ) THEN
+            IF sn.Valid THEN
+               err^.WriteOA( L'  the number is a valid licence number', TRUE );
+            ELSE
+               err^.WriteOA( L'  the number is an invalid licence number', TRUE );
+               CONTINUE;
+            END;
+            st.FromCARD32( sn.GOrd, 10 );
+            err^.WriteOA( L'  gord ', FALSE ); err^.Write( st, TRUE );
+            Items.LicenceTypeToString( sn.Type, OUT st );
+            err^.WriteOA( L'  type "', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'"', TRUE );
+            cphcommon.ToHex( sn.PId, OUT s );
+            err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            IF Items.ltUnnamed NOT IN sn.Type THEN
+               err^.WriteOA( L'  ohash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            END;
+
+         ELSIF Number.Decode( snsit.Value^, REF rn ) THEN
+            IF rn.Valid THEN
+               err^.WriteOA( L'  the number is a valid registration number', TRUE );
+            ELSE
+               err^.WriteOA( L'  the number is an invalid registration number', TRUE );
+               CONTINUE;
+            END;
+            st.FromCARD32( rn.GOrd, 10 );
+            err^.WriteOA( L'  gord ', FALSE ); err^.Write( st, TRUE );
+            cphcommon.ToHex( rn.PId, OUT s );
+            err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            cphcommon.ToHex( rn.MId, OUT s );
+            err^.WriteOA( L'  mhash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            err^.WriteOA( L'  version info', TRUE );
+            Strings.FromCARD32W( rn.OSVersion.Platform, 10, OUT s );
+            err^.WriteOA( L'    platform "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            Strings.FromCARD32W( rn.OSVersion.Major, 10, OUT s );
+            err^.WriteOA( L'    major "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            Strings.FromCARD32W( rn.OSVersion.Minor, 10, OUT s );
+            err^.WriteOA( L'    minor "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+
+            // dump associated numbers
+            err^.WriteOA( L'  of', TRUE );
+            // serial
+            sn.GOrd := rn.GOrd;
+            sn.PId := rn.PId;
+            IF owner.Empty THEN
+               sn.Type := Items.TLicenceType{Items.ltUnnamed};
+            ELSE
+               sn.SetOwner( owner );
+            END;
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/-', TRUE );
+            //-----            
+            INCL( sn.Type, Items.ltUpgrade );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/U', TRUE );
+            EXCL( sn.Type, Items.ltUpgrade );
+            //-----            
+            INCL( sn.Type, Items.ltEducational );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/E', TRUE );
+            EXCL( sn.Type, Items.ltEducational );
+            INCL( sn.Type, Items.ltTrial );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/T', TRUE );
+            EXCL( sn.Type, Items.ltTrial );
+
+            // activation
+            an.GOrd := rn.GOrd;
+            an.PId := rn.PId;
+            an.MId := rn.MId;
+            Number.Code( an, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, TRUE );
+
+         ELSIF Number.Decode( snsit.Value^, REF an ) THEN
+            IF an.Valid THEN
+               err^.WriteOA( L'  the number is a valid activation number', TRUE );
+            ELSE
+               err^.WriteOA( L'  the number is an invalid activation number', TRUE );
+               CONTINUE;
+            END;
+            st.FromCARD32( an.GOrd, 10 );
+            err^.WriteOA( L'  gord ', FALSE ); err^.Write( st, TRUE );
+            cphcommon.ToHex( an.PId, OUT s );
+            err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            cphcommon.ToHex( an.MId, OUT s );
+            err^.WriteOA( L'  mhash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+
+            IF an.Months = 0 THEN
+               dtb.Clear();
+               dte := an.Origin;
+            ELSIF an.Months = -1 THEN
+               dtb := an.Origin;
+               dte.Clear();
+            ELSE
+               dtb := an.Origin;
+               dte.DayCount := dtb.DayCount + datetime.TimeSpanD( LONGREAL( an.Months * 31 ));
+            END;
+
+            IF ( dtb.Year = 0 ) AND ( dte.Year = 0 ) THEN
+               err^.WriteOA( L'  activates permanently', TRUE );
+            ELSIF dtb.Year = 0 THEN
+               dte.ToStringOA( dateFormat, TRUE, TRUE, OUT s );
+               err^.WriteOA( L'  activates to "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            ELSIF dte.Year = 0 THEN
+               dtb.ToStringOA( dateFormat, TRUE, TRUE, OUT s );
+               err^.WriteOA( L'  activates permanently from "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+            ELSE
+               dtb.ToStringOA( dateFormat, TRUE, TRUE, OUT s );
+               dte.ToStringOA( dateFormat, TRUE, TRUE, OUT s2 );
+               err^.WriteOA( L'  activates from "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'" to "', FALSE ); err^.WriteOA( s2, FALSE ); err^.WriteOA( L'"', TRUE );
+            END;
+
+            // dump associated numbers
+            err^.WriteOA( L'  of', TRUE );
+            // serial
+            sn.GOrd := an.GOrd;
+            sn.PId := an.PId;
+            IF owner.Empty THEN
+               sn.Type := Items.TLicenceType{Items.ltUnnamed};
+            ELSE
+               sn.SetOwner( owner );
+            END;
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/-', TRUE );
+            //-----            
+            INCL( sn.Type, Items.ltUpgrade );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/U', TRUE );
+            EXCL( sn.Type, Items.ltUpgrade );
+            //-----            
+            INCL( sn.Type, Items.ltEducational );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/E', TRUE );
+            EXCL( sn.Type, Items.ltEducational );
+            INCL( sn.Type, Items.ltTrial );
+            Number.Code( sn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, FALSE ); err^.WriteOA( L'/T', TRUE );
+            EXCL( sn.Type, Items.ltTrial );
+
+            // activation
+            rn.GOrd := an.GOrd;
+            rn.PId := an.PId;
+            rn.MId := an.MId;
+            Number.Code( rn, OUT st );
+            err^.WriteOA( L'    ', FALSE ); err^.Write( st, TRUE );
+
+         ELSE
+            err^.WriteOA( L'    the number is of no known type', TRUE );
+         END;
+
+      END; // WHILE sns
+
    #endif
 
    #if Builder #then
    //-----
    | opGenerateM2Source :
-      WriteM2Source( pid );
+      WriteM2Source( pid, generateM2Library );
    #endif
 
    #if Client #or Activator #then
@@ -1160,14 +1373,13 @@ BEGIN
                err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             #endif
 
-            jlist := Items.TPProduct( item )^.LicencesAndInfos;
-            jlist^.Reset();
-            WHILE jlist^.MoveNext() DO
-               IF NOT( Items.TPItem( jlist^.Current )^ IS Items.CLicence ) THEN
+            jlistit.Init( Items.TPProduct( item )^.LicencesAndInfos^, collection.dirForward );
+            WHILE jlistit.MoveNext() DO
+               IF NOT( Items.TPItem( jlistit.Value )^ IS Items.CLicence ) THEN
                   CONTINUE;
                END;
             
-               item := Items.TPItem( jlist^.Current );
+               item := Items.TPItem( jlistit.Value );
                err^.WriteOA( L'    licence "', FALSE ); err^.Write( Items.TPLicence( item )^.Serial, FALSE ); err^.WriteOA( L'"', TRUE );
                err^.WriteOA( L'    type "', FALSE ); err^.Write( Items.TPLicence( item )^.TypeString, FALSE ); err^.WriteOA( L'"', TRUE );
 
@@ -1190,10 +1402,9 @@ BEGIN
                   END;
                #endif
 
-               klist := Items.TPLicence( item )^.Activations;
-               klist^.Reset();
-               WHILE klist^.MoveNext() DO
-                  item := Items.TPItem( klist^.Current );
+               klistit.Init( Items.TPLicence( item )^.Activations^, collection.dirForward );
+               WHILE klistit.MoveNext() DO
+                  item := Items.TPItem( klistit.Value );
 
                   dtb := Items.TPActivation( item )^.Starts;
                   dte := Items.TPActivation( item )^.Expires;
@@ -1241,10 +1452,9 @@ BEGIN
                err^.WriteOA( L'    ohash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             END;
 
-            klist := Items.TPLicence( item )^.Activations;
-            klist^.Reset();
-            WHILE klist^.MoveNext() DO
-               item := Items.TPItem( klist^.Current );
+            klistit.Init( Items.TPLicence( item )^.Activations^, collection.dirForward );
+            WHILE klistit.MoveNext() DO
+               item := Items.TPItem( klistit.Value );
 
                dtb := Items.TPActivation( item )^.Starts;
                dte := Items.TPActivation( item )^.Expires;

@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Folders;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    FIO,

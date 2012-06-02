@@ -80,7 +80,7 @@ CLASS IMPLEMENTATION CNetworkStream;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR; DefaultPort : CARDINAL );
   VAR
     Result : Sync.TAsyncResult;
   BEGIN
@@ -88,7 +88,7 @@ CLASS IMPLEMENTATION CNetworkStream;
 
     NEW( Socket );
     Socket^.Waitable := TRUE;
-    Result := Socket^.Connect( Server, netsocket.FORSAFETY );
+    Result := Socket^.Connect( Server, DefaultPort, netsocket.FORSAFETY );
     IF ( Result IN Sync.arsStarts ) AND ( Socket^.WaitCompletion( netsocket.FORSAFETY + 100 ) = Sync.arCompleted ) THEN
        Access := IOO.accReadWrite;
        OwnHandle := TRUE;

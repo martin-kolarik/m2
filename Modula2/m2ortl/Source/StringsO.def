@@ -235,6 +235,10 @@ CLASS CString IMPLEMENTS IString;
   FINALLY CString;
 END CString;
 
+// static methods
+PROCEDURE FromOA( String : ARRAY OF WCHAR ) : CString;
+PROCEDURE Empty() : CString;
+
 #restore
 
 END StringsO.

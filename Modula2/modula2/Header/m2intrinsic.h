@@ -91,7 +91,7 @@ inline WCHAR LOWFW_( WCHAR ch ) throw()
 # endif
 
 namespace Storage {
-  __Storage_MI void (M2ALLOCATE)( M2ADDRESS* ptr, CARDINAL size ) throw();
+  __Storage_MI void (M2ALLOCATE)( M2ADDRESS* ptr, TSIZE size ) throw();
   __Storage_MI void (M2DEALLOCATE)( M2ADDRESS* ptr ) throw();
 }
 # define __M2ALLOCATE Storage::M2ALLOCATE
@@ -142,55 +142,5 @@ inline void __cdecl operator delete[](void* ptr) throw()
 # endif // # ifndef _M2INTRINSIC_Storage_
 
 # endif // # ifdef __Storage_MN
-
-// --------------------
-// MODULA-2 ASSERTIONS
-
-# ifdef __Debug_MN
-
-# ifndef _M2INTRINSIC_Assert_
-# define _M2INTRINSIC_Assert_
-
-# ifndef _USER_DEBUG_DEFINED_
-
-# ifndef __Debug_MI
-# define __Debug_MI_UNDEF
-# define __Debug_MI
-# endif
-
-namespace Debug {
-  __Debug_MI BOOLEAN Assert( INTEGER Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine, CARDINAL CPPLine ) throw();
-  __Debug_MI void LogAssertA( INTEGER Text_HIGH, const CHAR* Text, INTEGER Module_HIGH, const CHAR* Module, CARDINAL ModuleLine ) throw();
-  __Debug_MI void LogAssertW( INTEGER Text_HIGH, const WCHAR* Text, INTEGER Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine ) throw();
-}
-# define __Assertion Debug::Assert
-# define __LogAssertionA Debug::LogAssertA
-# define __LogAssertionW Debug::LogAssertW
-
-# ifdef __Debug_MI_UNDEF
-# undef __Debug_MI
-# endif
-
-# endif // _USER_DEBUG_DEFINED_
-
-#define _WIDEN(x) L##x
-#define WIDEN(x) _WIDEN(x)
-#define _LITERATE(x) L#x
-#define LITERATE(x) _LITERATE(x)
-
-#define PROTOTYPE_IMPORT_C extern "C" __declspec(dllimport)
-PROTOTYPE_IMPORT_C void __stdcall DebugBreak();
-
-# define ASSERT_(e, m2line) {\
-    if( !(e) ) {\
-        if( __Assertion( OA_MAX, WIDEN(__FILE__), m2line, __LINE__ )) {\
-            DebugBreak();\
-        }\
-    }\
-}
-
-# endif // # ifndef _M2INTRINSIC_Assert_
-
-# endif // # ifdef __Debug_MN
 
 // --------------------

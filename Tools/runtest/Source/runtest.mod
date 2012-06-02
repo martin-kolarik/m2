@@ -4,9 +4,12 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
+   collection,
    datetime,
+   debug,
    FIO,
-   iobject,
+   iplugin,
    lists,
    loader,
    log,
@@ -90,13 +93,6 @@ END CTestOutput;
 (*================================================================================*)
    
 CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
-   PRIVATE VAR
-      _Progress : CARDINAL := 0;
-      _Logger : log.CPlainLogger;
-      _Output : CTestOutput;
-      _FastEvaluation : BOOLEAN := FALSE;
-      _Test : test.TPTest := NIL;
-      _TestResult : test.TTestResult := test.trFailure;
 
    // IHost
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -105,19 +101,36 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
       FastEvaluation : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Progress : CARDINAL; // percent
-   // optional
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE StopPhase();
-   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
+   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( result : BOOLEAN ); // expression = TRUE and no ASSERT means success
+   PUBLIC VIRTUAL PROCEDURE ParticleWithResult( CONST Description : ARRAY OF WCHAR; result : BOOLEAN ); // expression = TRUE and no ASSERT means success
+   PUBLIC VIRTUAL PROCEDURE ParticleWithAssert( CONST Description : ARRAY OF WCHAR ); // found means success
    
    // IRunnable
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    
    // self
    PUBLIC READONLY PROPERTY
       TestOutput : TPTestOutput;
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    LOCAL PROCEDURE RunTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest ) : Sync.TAsyncResult;
+
+   LOCAL PROCEDURE AssertHook( CONST AssertText : StringsO.CString );
+
+   // SELF
+   PRIVATE VAR
+      _Progress : CARDINAL := 0;
+      _Logger : log.CBaseLogger;
+      _Output : CTestOutput;
+      _FastEvaluation : BOOLEAN := FALSE;
+      _Test : test.TPTest := NIL;
+      _ParticleAssert : BOOLEAN := FALSE;
+      _ParticleAssertText : StringsO.CString;
+      _PhaseResult : test.TTestResult := test.trFailure;
+      _TestResult : test.TTestResult := test.trFailure;
+      _SuiteResult : test.TTestResult := test.trFailure;
+
 END CHost;   
 
 (*--------------------------------------------------------------------------------*)
@@ -165,40 +178,99 @@ CLASS IMPLEMENTATION CHost;
    BEGIN
       _Logger.LogSS( log.lcInfo, 0, L"", "    Phase: ", Name );
       _Output.Inside := insidePhase;
+      _PhaseResult := test.trUnknown;
+      _ParticleAssert := FALSE;
+      _ParticleAssertText.Clear();
    END StartPhase;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE StopPhase();
    BEGIN
-      StopPhaseWithResult( test.trUnknown );
+      _Output.Inside := insideTest;
+      IF _PhaseResult = test.trFailure THEN
+         _Logger.LogS( log.lcInfo, 0, L"", L"      Result: Failure" );
+         _TestResult := test.trFailure;
+      ELSIF _TestResult = test.trUnknown THEN
+         _TestResult := _PhaseResult;
+      END;
    END StopPhase;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
+   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( result : BOOLEAN ); // expression = TRUE
    BEGIN
-      _Output.Inside := insideTest;
-      IF Result = test.trFailure THEN
-         _Logger.LogS( log.lcInfo, 0, L"", L"      Result: Failure" );
+      IF result THEN
+         _PhaseResult := test.trSuccess;
+      ELSE
+         _PhaseResult := test.trFailure;
       END;
+      StopPhase();
    END StopPhaseWithResult;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ParticleWithResult( CONST FailureText : ARRAY OF WCHAR; result : BOOLEAN ); // expression = TRUE and no ASSERT means success
+   BEGIN
+      IF NOT result THEN // TRUE expected
+         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
+         _PhaseResult := test.trFailure;
+         _TestResult := test.trFailure;
+      ELSIF _ParticleAssert THEN // unexpected
+         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure (assert): ", FailureText );
+         _PhaseResult := test.trFailure;
+         _TestResult := test.trFailure;
+      ELSIF _PhaseResult = test.trUnknown THEN
+         _PhaseResult := test.trSuccess;
+         IF _TestResult = test.trUnknown THEN
+            _TestResult := test.trSuccess;
+         END;
+      END;
+      _ParticleAssert := FALSE;
+      _ParticleAssertText.Clear();
+   END ParticleWithResult;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ParticleWithAssert( CONST FailureText : ARRAY OF WCHAR ); // found means success
+   BEGIN
+      IF NOT _ParticleAssert THEN // assert expected, but did not occur
+         _Logger.LogSS( log.lcInfo, 0, L"", L"        failure: ", FailureText );
+         _PhaseResult := test.trFailure;
+      ELSIF _PhaseResult = test.trUnknown THEN
+         _PhaseResult := test.trSuccess; 
+         IF _TestResult = test.trUnknown THEN
+            _TestResult := test.trSuccess;
+         END;
+      END;
+      _ParticleAssert := FALSE;
+      _ParticleAssertText.Clear();
+   END ParticleWithAssert;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    BEGIN
-      _FastEvaluation := FastEvaluation;
       _Logger.LogSS( log.lcInfo, 0, L"", "Suite: ", Name );
+      _FastEvaluation := FastEvaluation;
+      _SuiteResult := test.trUnknown;
+      _TestResult := test.trUnknown;
    END StartSuite;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    TYPE
       PPWCHAR = POINTER TO PWCHAR;
+   VAR
+      result : test.TTestResult;
    BEGIN
-      _TestResult := _Test^.Run( ADR( SELF ), OA( -1, PPWCHAR( NIL )));
+      result := _Test^.Run( ADR( SELF ), OA( -1, PPWCHAR( NIL )));
+      IF result = test.trFailure THEN
+         _TestResult := test.trFailure;
+      ELSIF _TestResult = test.trUnknown THEN
+         _TestResult := result;
+      END;
       RETURN 0;
    END OnRun;
 
@@ -218,8 +290,7 @@ CLASS IMPLEMENTATION CHost;
       Time : CARDINAL;
    BEGIN
       _Test := Test;
-      _TestResult := test.trFailure;
-
+      _TestResult := test.trUnknown;
       _Output.Inside := insideTest;
       _Logger.LogSS( log.lcInfo, 0, L"", "Test: ", Name );
       
@@ -250,8 +321,14 @@ CLASS IMPLEMENTATION CHost;
       _Output.Inside := insideTest;
       IF _TestResult = test.trSuccess THEN
          _Logger.LogS( log.lcInfo, 0, L"", L"  Result: Success" );
-      ELSE
+         IF _SuiteResult = test.trUnknown THEN
+            _SuiteResult := test.trSuccess;
+         END;
+      ELSIF _TestResult = test.trFailure THEN
          _Logger.LogSR( log.lcInfo, 0, L"", L"  Result: Failure", asyncResult );
+         _SuiteResult := test.trFailure;
+      ELSE
+         _Logger.LogS( log.lcInfo, 0, L"", L"  Result: unknown" );
       END;
       _Output.Inside := insideSuite;
 
@@ -260,11 +337,28 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
+   LOCAL PROCEDURE AssertHook( CONST AssertText : StringsO.CString );
+   BEGIN
+      _ParticleAssert := TRUE;
+      _ParticleAssertText := AssertText;
+   END AssertHook;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _Logger.Level := log.ldDebug;
    _Logger.Output := log.outsNone;
    _Logger.AddOutput( ADR( _Output ));
 END CHost;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE AssertHook( UserData : PTR; AssertMessage : ARRAY OF WCHAR );
+TYPE
+   TPHost = POINTER TO CHost;
+BEGIN
+   TPHost( UserData )^.AssertHook( StringsO.FromOA( AssertMessage ));
+END AssertHook;
 
 (*================================================================================*)
    
@@ -279,25 +373,28 @@ LABEL
    Error;
 VAR
    ClassPath : ARRAY [0..255] OF WCHAR;
-   ESl : PTR;
-   ESt : PTR;
-   Host : CHost;
+   disposable : baseobject.TPDisposable;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    Filters : lists.CStringList;
+   filtersIterator : lists.CStringListIterator;
    FastEvaluation : BOOLEAN := FALSE;
    Found : BOOLEAN;
+   Host : CHost;
    i : INTEGER;
-   LibraryState : loader.TState;
-   LoadResult : iobject.TResult;
+   LoadResult : iplugin.TLoadResult;
    Name : ARRAY [0..127] OF WCHAR;
-   Path : FIO.PathStrW;
+   pluginIterator : loader.CLoaderPluginIterator;
    RepeatCount, rc : CARDINAL := 1;
+   s : StringsO.CString;
    StdOutFlag : BOOLEAN := FALSE;
    Test : test.TPTest;
+   testIterator : POINTER TO test.ITestIterator;
    Tests : test.TPTests;
    TimeStamps : BOOLEAN := FALSE;
    TotalResult : CARDINAL := 0;
 BEGIN
+
+   // analyze parameters
    i := 1;
    WHILE i < argc DO
       IF ( argp^[i]^[0] = L'/' ) OR ( argp^[i]^[0] = L'-' ) THEN // option
@@ -311,7 +408,7 @@ BEGIN
                errout^.WriteOA( L"runtest: missing filter string for -f option ", TRUE );
                GOTO Error;
             END;
-            Filters.AddOA( OAsz( argp^[i] ), 0 );
+            Filters.Add( StringsO.FromOA( OAsz( argp^[i] )), 0 );
          | L'h' :
             GOTO Error;
          | L'o' :
@@ -333,24 +430,28 @@ BEGIN
          END;
 
       ELSE // file
-         loader.ldr()^.AddLibrary( OAsz( argp^[i] ), NIL );
+         loader.ldr()^.AddPlugin( OAsz( argp^[i] ), NIL );
       END;
       
       INC( i );
    END; // WHILE
    
    Host.TestOutput^.TimeStamps := TimeStamps;
+   debug.SetAssertHook( debug.TAssertHook( AssertHook ), ADR( Host ));
    
+   // run tests
    FOR rc := 1 TO RepeatCount DO
    
-      ESl := 0;
-      WHILE loader.ldr()^.EnumerateLibraries( REF ESl, OUT Name, OUT Path, OUT LibraryState ) DO
+      loader.ldr()^.InitializePluginIterator( REF pluginIterator );
+      WHILE pluginIterator.MoveNext() DO
+         pluginIterator.Name.ToOA( OUT Name );
+
          Strings.ConcatW( OUT ClassPath, Name, L"/Development.Tests" );
          LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Tests );
-         IF LoadResult <> iobject.lrSuccess THEN
+         IF LoadResult <> iplugin.lrSuccess THEN
             Host.Log^.LogSS( log.lcSysError, 0, L"", L"Error loading library: ", Name );
             Host.Log^.LogSC( log.lcSysError, 0, L"", L"          load result: ", CARDINAL( LoadResult ));
-            IF LoadResult = iobject.lrLibraryNotFound THEN
+            IF LoadResult = iplugin.lrPluginNotFound THEN
                CONTINUE;
             ELSE
                TotalResult := 1;
@@ -360,8 +461,11 @@ BEGIN
 
          Host.StartSuite( Name, FastEvaluation );
 
-         ESt := 0;
-         WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
+         testIterator := Tests^.GetIterator();
+         WHILE testIterator^.MoveNext() DO
+            testIterator^.Name( OUT Name );
+            Test := testIterator^.Test;
+
             IF Test = NIL THEN
                Host.Log^.LogSS( log.lcSysError, 0, L"", L"Error getting test: ", Name );
                CONTINUE;
@@ -369,9 +473,10 @@ BEGIN
          
             IF NOT Filters.Empty THEN
                Found := FALSE;
-               Filters.Reset();
-               WHILE Filters.MoveNext() DO
-                  IF Strings.MatchW( Name, OA( Filters.Current^.Length-1, Filters.Current^.Data ), FALSE ) THEN
+               filtersIterator.Init( Filters, collection.dirForward );
+               WHILE filtersIterator.MoveNext() DO
+                  s.FromOA( Name );
+                  IF s.Match( filtersIterator.Value^, FALSE ) THEN
                      Found := TRUE;
                      EXIT;
                   END;
@@ -391,6 +496,8 @@ BEGIN
                TotalResult := 3;
             END;
          END; // WHITE Tests
+         disposable := testIterator^.Implementor;
+         DISPOSE( disposable );
          
          loader.ldr()^.ReleaseObject( REF Tests );
       END; // WHILE Libraries

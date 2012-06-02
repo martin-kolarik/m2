@@ -6,7 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, Move;
 
 IMPORT
-   Delegate,
+   delegate,
    OSALthread,
    Sync;
 
@@ -26,7 +26,7 @@ CONST
 TYPE
    TPThreadProcedureCall = POINTER TO ThreadProcedureCall;
 
-CLASS ThreadProcedureCall( Delegate.ADelegate );
+CLASS ThreadProcedureCall( delegate.Delegate );
    PRIVATE VAR
       _Target : TPIThreadProcedureCallTarget := NIL;
       _High : CARDINAL := -1;

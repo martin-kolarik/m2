@@ -1,0 +1,1096 @@
+DEFINITION MODULE knx_stack;
+
+(*# warn( 4251 => off,
+          4275 => off ) *)
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   avltree,
+   knx_def,
+   knx_status,
+   list,
+   msghandlersink,
+   msgqueue,
+   sync;
+  
+(*================================================================================*)
+// common
+
+TYPE
+  TKNXStackLayerType = (
+    kltUndefined,
+    kltAbstract,
+    kltPhysical,
+    kltLink,
+    kltNetwork,
+    kltTransport,
+    kltApplication,
+    kltUser
+  );
+
+  TKNXStackLayerHirerarchy = ARRAY TKNXStackLayerType OF TKNXStackLayerType;
+
+CONST
+  knxExecutive = TKNXStackLayerHirerarchy(
+    kltUndefined,   // for kltUdefined
+    kltUndefined,   // for kltAbstract
+    kltUndefined,   // for kltPhysical
+    kltPhysical,    // for kltLink
+    kltLink,        // for kltNetwork
+    kltNetwork,     // for kltTransport
+    kltTransport,   // for kltApplication
+    kltApplication  // for kltUser
+  );
+  knxListener = TKNXStackLayerHirerarchy(
+    kltUndefined,   // for kltUdefined
+    kltUndefined,   // for kltAbstract
+    kltLink,        // for kltPhysical
+    kltNetwork,     // for kltLink
+    kltTransport,   // for kltNetwork
+    kltApplication, // for kltTransport
+    kltUser,        // for kltApplication
+    kltUndefined    // for kltUser
+  );
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TTimeoutId = (
+    tidU_Unknown,
+    tidL_Communicate,
+    tidL_ACKTimeout,
+    tidL_BUSYDelay,
+    tidL_SendDelay,
+    tidA_PendingTimeout,
+    tidA_PendingDelay
+  );
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TACKMethod = (
+    ackmNone,
+    ackmKnown,
+    ackmAll
+  );
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TProcessPhase = (
+    pphREQ,
+    pphCON,
+    pphRES,
+    pphIND
+  );
+
+TYPE
+  TGroupInfo = SET OF CARD16;
+
+(*--------------------------------------------------------------------------------*)
+// abstract layer
+
+TYPE
+  TPKNXStack          = POINTER TO CKNXStack;
+  TPKNXStackEventSink = POINTER TO IKNXStackEventSink;
+  TPKNXStackLayer     = POINTER TO CKNXStackLayer;
+
+CLASS CKNXStackLayer;
+  INTERNAL VAR
+    LayerType  : TKNXStackLayerType; // CONST
+    PExecutive : TPKNXStackLayer;
+    PListener  : TPKNXStackLayer;
+  PUBLIC VAR
+    PStack     : TPKNXStack;
+
+  // common
+  INTERNAL VIRTUAL PROCEDURE IsSelf( CONST Address : knx_def.TAddress ) : BOOLEAN;
+  LOCAL VIRTUAL PROCEDURE GetLayerType() : TKNXStackLayerType;
+  LOCAL VIRTUAL PROCEDURE Freeable() : BOOLEAN;
+  // PROCEDURE Executive() : LayerTypeExecutive
+  // PROCEDURE Listener() : LayerTypeListener
+
+  // chaining
+  LOCAL VIRTUAL PROCEDURE SetExecutive(
+          PExcecutive : TPKNXStackLayer
+  );
+  LOCAL VIRTUAL PROCEDURE SetListener(
+          PListener : TPKNXStackLayer
+  );
+
+  // operation
+  LOCAL VIRTUAL PROCEDURE Initialize_Req();
+  LOCAL VIRTUAL PROCEDURE Initialize_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+
+  LOCAL VIRTUAL PROCEDURE Done_Req();
+  LOCAL VIRTUAL PROCEDURE Done_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+
+  LOCAL VIRTUAL PROCEDURE TimeoutUpdated( TimeoutId : TTimeoutId; UserId : LONGWORD );
+  LOCAL VIRTUAL PROCEDURE Timeout( TimeoutId : TTimeoutId; UserId : LONGWORD );
+
+  VIRTUAL FINALLY CKNXStackLayer();
+END CKNXStackLayer;
+
+(*--------------------------------------------------------------------------------*)
+// helper object
+
+CLASS CTimeouter( msghandler.MessageHandler );
+  PLayer       : TPKNXStackLayer;
+  TimeoutId    : TTimeoutId;
+  TimeoutDelay : CARDINAL;
+  UserId       : LONGWORD;
+
+  LOCAL PROCEDURE Init( PLayer : TPKNXStackLayer; TimeoutId : TTimeoutId; TimeoutDelay : CARDINAL; UserId : LONGWORD );
+  INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
+
+  LOCAL PROCEDURE Start();
+  LOCAL PROCEDURE StartEx( TimeoutId : TTimeoutId; TimeoutDelay : CARDINAL );
+  LOCAL PROCEDURE Stop();
+  LOCAL PROCEDURE Pending() : BOOLEAN;
+END CTimeouter;
+
+(*================================================================================*)
+// layers, forward pointer types
+
+TYPE
+  TPKNXStackPhysicalLayer    = POINTER TO CKNXStackPhysicalLayer;
+  TPKNXStackLinkLayer        = POINTER TO CKNXStackLinkLayer;
+  TPKNXStackNetworkLayer     = POINTER TO CKNXStackNetworkLayer;
+  TPKNXStackTransportLayer   = POINTER TO CKNXStackTransportLayer;
+  TPKNXStackApplicationLayer = POINTER TO CKNXStackApplicationLayer;
+
+  TPKNXStackUserLayer        = POINTER TO CKNXStackLayer; // abstract
+  TPObject                   = POINTER TO IUserObject;
+CONST
+  TPSAP                      ::= TPObject;
+
+(*================================================================================*)
+// physical layer, mainly abstract
+
+CLASS CKNXStackPhysicalLayer( CKNXStackLayer );
+  // chaining
+  // PROCEDURE Executive() : LayerTypeExecutive
+  PUBLIC PROCEDURE Listener() : TPKNXStackLinkLayer;
+
+  // operation
+  LOCAL VIRTUAL PROCEDURE Initialize_Req();
+
+  // PHYSICAL LAYER
+  // :: service Ph_Reset
+  PUBLIC VIRTUAL PROCEDURE Ph_Reset_Req();
+  PUBLIC VIRTUAL PROCEDURE Ph_Reset_Con(
+    // Status : knx_status.TKNXStackStatus is generated inside
+  );
+
+  PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( // procedure MUST call Ph_Data_Sent (or assure that Ph_Data_Sent will be called) if sending succeeded
+      VAR Packet      : knx_def.TPacket
+  );
+  // default CALLS Ph_Data_Ind/Con to LinkLayer
+
+  PUBLIC PROCEDURE Ph_Data_Sent( // extension, from the call LinkLayer starts to count timeouts, this is handshake/ACK to Ph_Data_Req
+  );
+  PUBLIC VIRTUAL PROCEDURE Ph_Data_Ind(
+    // Packet is received and created inside
+  );
+  PUBLIC VIRTUAL PROCEDURE Ph_Data_Con(
+    // Status : knx_status.TKNXStackStatus is generated inside
+  );
+END CKNXStackPhysicalLayer;
+
+(*================================================================================*)
+// link layer
+
+TYPE
+  TCommunicateRequestType = (
+    crtN_LayerRequest,
+    crtL_LayerContinueAfterCon1, // before WM*
+    crtL_LayerContinueAfterCon2, // after WM*
+    crtL_LayerWithBUSYDelay,
+    crtL_LayerAfterBUSYDelay,
+    crtL_LayerWithSendDelay,
+    crtL_LayerAfterSendDelay
+  );
+
+TYPE
+  TPriorityDistribution = ARRAY knx_def.TPriority OF INTEGER;
+  TPPriorityDistribution = POINTER TO TPriorityDistribution;
+CONST
+  defaultPriorityDistribution = TPriorityDistribution( -1, 2, 3, -1 );
+
+TYPE
+  TL_Requests = ARRAY knx_def.TPriority OF list.CList;
+  TL_Counts = ARRAY knx_def.TPriority OF INTEGER; 
+  TPL_Data_Listener = POINTER TO CL_Data_Listener;
+
+CLASS CL_Request_Queue;
+  PDistribution : TPPriorityDistribution;
+  Requests      : TL_Requests;
+  Counts        : TL_Counts;
+  PCurrent      : ADDRESS;
+  ClearQueueRequest : sync.SIGNAL;
+
+  LOCAL PROCEDURE Init( PDistribution : TPPriorityDistribution );
+  LOCAL PROCEDURE Done();
+  LOCAL PROCEDURE Clear( RequestOnly : BOOLEAN );
+
+  LOCAL PROCEDURE AppendPacket(
+          PListener   : TPL_Data_Listener;
+          PPacket     : knx_def.TPPacket;
+          NAK_Retry   : CARDINAL;
+          BUSY_Retry  : CARDINAL
+  );
+  LOCAL PROCEDURE GetActiveRequest(
+      VAR PListener   : TPL_Data_Listener;
+      VAR Packet      : knx_def.TPacket;
+      VAR Pending     : BOOLEAN
+  ) : BOOLEAN; // gets currently operated packet
+  LOCAL PROCEDURE GetPacketToSend(
+      VAR Packet      : knx_def.TPacket;
+      VAR Pending     : BOOLEAN
+  ) : BOOLEAN; // gets top packet
+  LOCAL PROCEDURE PacketSent(
+          Status      : knx_status.TKNXStackStatus
+  ) : knx_status.TKNXStackStatus; // removes packet
+  LOCAL PROCEDURE PacketsPending() : CARDINAL;
+END CL_Request_Queue;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CL_Data_Listener( list.CListElem );
+  PExecutive : TPKNXStackLinkLayer;
+
+  // public
+  LOCAL VIRTUAL PROCEDURE Done();
+
+  LOCAL VIRTUAL PROCEDURE Freeable() : BOOLEAN;
+  LOCAL VIRTUAL PROCEDURE GetGroups( VAR Groups : TGroupInfo );
+  LOCAL VIRTUAL PROCEDURE GroupsUpdated();
+
+  // requests helpers
+  LOCAL VIRTUAL PROCEDURE L_Data_Req(
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
+  );
+  LOCAL PROCEDURE Communicate( RequestType : TCommunicateRequestType );
+
+  // default CALLS L_Data_Ind/Con to NetworkLayer
+  LOCAL VIRTUAL PROCEDURE L_Data_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress; // physical or group
+          PPacket     : knx_def.TPPacket
+  );
+  LOCAL VIRTUAL PROCEDURE L_Data_Ind(
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+END CL_Data_Listener;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TL_AcceptResponse = (
+    larNOT_MINE,
+    larACK,
+    larNAK,
+    larBUSY
+  );
+
+  TL_LinkMode = (
+    lmNormal,
+    lmBusMonitor
+  );
+  TL_State = (
+    lsPowerOn,
+    lsWaitResetCon,
+    lsNormalIdle,
+    lsBusMonitorIdle,
+    lsStop
+  );
+
+TYPE
+  TL_Parameters = RECORD
+                    // KNX
+                    LinkMode             : TL_LinkMode;
+                    SelfAddress          : knx_def.TAddress;
+                    NAK_Retry            : CARDINAL;
+                    BUSY_Retry           : CARDINAL;
+                    PollGroupAddress     : knx_def.TAddress;
+                    PollResponseSlot     : CARDINAL;
+                    // communications
+                    PriorityDistribution : TPriorityDistribution;
+                    ACKTimeout           : CARDINAL; // msec
+                    BUSYDelay            : CARDINAL; // msec
+                    SendDelay            : CARDINAL; // msec
+                    CheckAddressed       : BOOLEAN;
+                    LL_ACK_and_ChkSum    : BOOLEAN;
+                    OutputQueueLength    : CARDINAL;
+                  END; // RECORD
+
+  TL_Data = RECORD
+              State        : TL_State;
+              Queue        : CL_Request_Queue;
+              Groups       : TGroupInfo;
+              Listeners    : list.CList;
+              ACKTimeouter : CTimeouter;
+              BUSYDelayer  : CTimeouter;
+              SendDelayer  : CTimeouter;
+              LastSend     : CARDINAL;
+            END; // RECORD
+
+CLASS CKNXStackLinkLayer( CKNXStackLayer );
+  L_Parameters : TL_Parameters;
+  L_Data       : TL_Data;
+
+  // common
+  INTERNAL VIRTUAL PROCEDURE IsSelf( CONST Address : knx_def.TAddress ) : BOOLEAN;
+  LOCAL PROCEDURE IsSelfPacket( PPacket : knx_def.TPPacket ) : BOOLEAN;
+
+  // chaining
+  PRIVATE PROCEDURE Executive() : TPKNXStackPhysicalLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackLayer;
+
+  // operation
+  LOCAL VIRTUAL PROCEDURE Initialize_Req();
+  LOCAL VIRTUAL PROCEDURE Initialize_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+  LOCAL VIRTUAL PROCEDURE Done_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+
+  // listeners registration and multiplexing
+  LOCAL PROCEDURE RegisterListener( PListener : TPL_Data_Listener );
+  LOCAL PROCEDURE ForgetListener( PListener : TPL_Data_Listener );
+  LOCAL PROCEDURE ListenerGroupUpdated( PListener : TPL_Data_Listener );
+
+  LOCAL VIRTUAL PROCEDURE TimeoutUpdated( TimeoutId : TTimeoutId; UserId : LONGWORD );
+  LOCAL VIRTUAL PROCEDURE Timeout( TimeoutId : TTimeoutId; UserId : LONGWORD );
+
+  // PHYSICAL LAYER RECEPTION, MAIN LINK LAYER INPUT
+  PUBLIC PROCEDURE Ph_Data_Sent( // extension, from the call LinkLayer starts to count timeouts, this is handshake/ACK to Ph_Data_Req
+  );
+  PUBLIC PROCEDURE Ph_Data_Ind(
+          PPacket     : knx_def.TPPacket
+  );
+  PUBLIC PROCEDURE Ph_Data_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+  PUBLIC VIRTUAL PROCEDURE L_Data_Ind_Res( // EXTENSION
+          AcceptResponse : TL_AcceptResponse
+  );
+
+  // LINK LAYER
+  // :: service simple data
+  LOCAL VIRTUAL PROCEDURE L_Data_Req(
+          PListener   : TPL_Data_Listener;
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
+  );
+  LOCAL VIRTUAL PROCEDURE Communicate( RequestType : TCommunicateRequestType );
+
+  // default CALLS L_Data_Ind/Con to NetworkLayer
+  INTERNAL VIRTUAL PROCEDURE L_Data_Con(
+          PListener   : TPL_Data_Listener;
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress; // physical or group
+          PPacket     : knx_def.TPPacket
+  );
+  PRIVATE PROCEDURE Process_L_Data_Ind(
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+  INTERNAL VIRTUAL PROCEDURE L_Data_Ind(
+          PListener   : TPL_Data_Listener;
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // :: service poll data
+  // PROCEDURE L_Poll_Data$Req
+  // VIRTUAL PROCEDURE L_Poll_Data$Con
+  // PROCEDURE L_Poll_Data_Update$Req
+  // VIRTUAL PROCEDURE L_Poll_Data_Update$Con
+
+  // :: service busmon
+  INTERNAL VIRTUAL PROCEDURE L_Busmonitor_Ind(
+          Status      : knx_status.TKNXStackStatus;
+          Time        : INT64;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // :: service information
+  INTERNAL VIRTUAL PROCEDURE L_Service_Information_Ind();
+
+END CKNXStackLinkLayer;
+
+(*================================================================================*)
+// network layer
+
+TYPE
+  TPRoutingTable = POINTER TO CRoutingTable;
+
+CLASS CRoutingTable;
+  LOCAL VIRTUAL PROCEDURE EnumerateTargets( VAR EnumerateState : PTR; CONST Destination : knx_def.TAddress; VAR PInterface : TPKNXStackLinkLayer ) : BOOLEAN;
+END CRoutingTable;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TN_DeviceType = (
+    ndtEndDevice,
+    ndtBridge,
+    ndtRouter
+  );
+
+  TN_Parameters = RECORD
+                    DeviceType           : TN_DeviceType;
+                    PRoutingTable        : TPRoutingTable;
+                    GroupRepeatedAllowed : BOOLEAN;
+                  END; // RECORD
+
+  TN_Data       = RECORD
+                    PL_Listener     : TPL_Data_Listener;
+                    Groups          : TGroupInfo;
+                    LastGroupPacket : knx_def.TPacket; // with repeated NOT set
+                  END;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TPN_L_Data_Listener = POINTER TO CN_L_Data_Listener;
+
+CLASS CN_L_Data_Listener( CL_Data_Listener );
+  PListener : TPKNXStackNetworkLayer;
+
+  // methods
+  LOCAL VIRTUAL PROCEDURE GetGroups( VAR Groups : TGroupInfo );
+  LOCAL PROCEDURE AddGroup( CONST Address : knx_def.TAddress );
+  LOCAL PROCEDURE RemoveGroup( CONST Address : knx_def.TAddress );
+
+  LOCAL VIRTUAL PROCEDURE L_Data_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress; // physical or group
+          PPacket     : knx_def.TPPacket
+  );
+  LOCAL VIRTUAL PROCEDURE L_Data_Ind(
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+END CN_L_Data_Listener;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CKNXStackNetworkLayer( CKNXStackLayer );
+  N_Parameters : TN_Parameters;
+  N_Data       : TN_Data;
+
+  // chaining
+  PRIVATE PROCEDURE Executive() : TPL_Data_Listener;
+  PRIVATE PROCEDURE Listener() : TPKNXStackTransportLayer;
+
+  // inherited
+  LOCAL VIRTUAL PROCEDURE Initialize_Req();
+  LOCAL VIRTUAL PROCEDURE Done_Req();
+  LOCAL VIRTUAL PROCEDURE Done_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+
+  // LINK LAYER RECEPTION
+  LOCAL PROCEDURE L_Data_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress; // physical or group
+          PPacket     : knx_def.TPPacket
+  );
+  LOCAL PROCEDURE L_Data_Ind(
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical or group
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // unicast data
+  LOCAL VIRTUAL PROCEDURE N_Data_Req(
+          Destination    : knx_def.TAddress; // physical
+          Class          : knx_def.TPriority;
+      VAR Packet         : knx_def.TPacket
+  );
+  // default CALLS N_Data_Ind/Con to TransportLayer
+  INTERNAL VIRTUAL PROCEDURE N_Data_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress; // physical
+          PPacket     : knx_def.TPPacket
+  );
+  INTERNAL VIRTUAL PROCEDURE N_Data_Ind(
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical, self
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // multicast data
+  LOCAL VIRTUAL PROCEDURE N_Groupdata_Req(
+          Destination    : knx_def.TAddress; // logical
+          Class          : knx_def.TPriority;
+      VAR Packet         : knx_def.TPacket
+  );
+  // default CALLS N_Data_Ind/Con to TransportLayer
+  INTERNAL VIRTUAL PROCEDURE N_Groupdata_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress; // logical
+          Packet      : knx_def.TPPacket
+  );
+  INTERNAL VIRTUAL PROCEDURE N_Groupdata_Ind(
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // group, one of self objects
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // broadcast data
+  LOCAL VIRTUAL PROCEDURE N_Broadcast_Req(
+          Class          : knx_def.TPriority;
+      VAR Packet         : knx_def.TPacket
+  );
+  // default CALLS N_Data_Ind/Con to TransportLayer
+  INTERNAL VIRTUAL PROCEDURE N_Broadcast_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+  INTERNAL VIRTUAL PROCEDURE N_Broadcast_Ind(
+          Source      : knx_def.TAddress; // physical
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // extension methods
+  INTERNAL VIRTUAL PROCEDURE OnPacketDiscard(
+          PPacket        : knx_def.TPPacket
+  );
+END CKNXStackNetworkLayer;
+
+(*================================================================================*)
+// transport layer
+
+TYPE
+  TT_PDU = (
+    tpduBroadcastData_REQ,
+    tpduGroupdata_REQ,
+    tpduDataUnACK_REQ,
+    tpduData_REQ,
+    tpduConnect_REQ,
+    tpduConnect_CON,
+    tpduDisconnect_REQ,
+    tpduData_ACK,
+    tpduData_NAK
+  );
+  TTT_PDU_Bits = ARRAY TT_PDU OF BITSET16;
+
+CONST // bits already converted to big endian
+  TT_PDU_Mask = BITSET16{7, 6, 5, 4, 3, 2};
+  TT_PDU_ConnectMask = BITSET16{7, 6, 5, 4, 3, 2, 1, 0};
+  TT_PDU_Bits = TTT_PDU_Bits(
+    BITSET16{},
+    BITSET16{},
+    BITSET16{},
+    BITSET16{6},
+    BITSET16{7},
+    BITSET16{7,1},
+    BITSET16{7,0},
+    BITSET16{7,6,1},
+    BITSET16{7,6,1,0}
+  );
+
+TYPE
+   TPConnection = ADDRESS;
+
+CLASS CKNXStackTransportLayer( CKNXStackLayer );
+
+  // chaining
+  PRIVATE PROCEDURE Executive() : TPKNXStackNetworkLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackApplicationLayer;
+
+  // NETWORK LAYER RECEPTION
+
+  // unicast data
+  LOCAL PROCEDURE N_Data_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress; // physical
+          PPacket     : knx_def.TPPacket
+  );
+  LOCAL PROCEDURE N_Data_Ind(
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // physical, self
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // multicast data
+  LOCAL PROCEDURE N_Groupdata_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress; // logical
+          Packet      : knx_def.TPPacket
+  );
+  LOCAL PROCEDURE N_Groupdata_Ind(
+          Source      : knx_def.TAddress; // physical
+          Destination : knx_def.TAddress; // group, one of self objects
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // broadcast data
+  LOCAL PROCEDURE N_Broadcast_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+  LOCAL PROCEDURE N_Broadcast_Ind(
+          Source      : knx_def.TAddress; // physical
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // TRANSPORT LAYER
+  // :: service unicast connectionless
+  LOCAL PROCEDURE T_Data_Unack_Req(
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
+  );
+  // unicast connectionless data
+  INTERNAL VIRTUAL PROCEDURE T_Data_Unack_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Data_Unack_Ind(
+          Source      : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // :: service unicast connection oriented
+  // 1. connect
+  LOCAL PROCEDURE T_Connect_Req(
+          Destination : knx_def.TAddress; // physical
+      VAR PConnection : TPConnection
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Connect_Con(
+          Status      : knx_status.TKNXStackStatus;
+          PConnection : TPConnection
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Connect_Ind(
+          PConnection : TPConnection
+  );
+  // 2. disconnect
+  LOCAL PROCEDURE T_Disconnect_Req(
+          PConnection : TPConnection
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Disconnect_Con(
+          Status      : knx_status.TKNXStackStatus;
+          PConnection : TPConnection
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Disconnect_Ind(
+          PConnection : TPConnection
+  );
+  // 3. data
+  LOCAL PROCEDURE T_Data_Req(
+          PConnection : TPConnection;
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Data_Con(
+          Status      : knx_status.TKNXStackStatus;
+          PConnection : TPConnection
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Data_Ind(
+          PConnection : TPConnection
+  );
+
+  // :: service broadcast
+  LOCAL VIRTUAL PROCEDURE T_Broadcast_Req(
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Broadcast_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Broadcast_Ind(
+          Source      : knx_def.TAddress; // physical
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // :: service multicast
+  LOCAL VIRTUAL PROCEDURE T_Groupdata_Req(
+          Destination : knx_def.TAddress; // cr_id
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Groupdata_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress;
+          PPacket     : knx_def.TPPacket
+  );
+  INTERNAL VIRTUAL PROCEDURE T_Groupdata_Ind(
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // private transport layer stuffs
+  PRIVATE PROCEDURE SetTPDU( VAR Packet : knx_def.TPacket; TPDU : TT_PDU );
+END CKNXStackTransportLayer;
+
+(*================================================================================*)
+// application layer
+
+TYPE
+  TA_PDU = (
+    apduGroupValue_RD,                   // multicast
+    apduGroupValue_RS,                   // multicast
+    apduGroupValue_WR                    // multicast
+ );
+
+  TACPI = RECORD
+            Mask : BITSET16;
+            ACPI : BITSET16;
+          END;
+
+  TACPIs = ARRAY TA_PDU OF TACPI;
+
+CONST
+  maskGroup  ::= knx_def.acmValueDirection;
+  maskMemory ::= knx_def.acmMemory;
+  maskFull   ::= knx_def.acmACPI;
+
+  acpis = TACPIs(
+    TACPI( maskFull,   knx_def.acsValueRead          ), // apduGroupValue_RD
+    TACPI( maskGroup,  knx_def.acsValueResponse      ), // apduGroupValue_RS
+    TACPI( maskGroup,  knx_def.acsValueWrite         )  // apduGroupValue_WR
+  );
+
+TYPE
+  TPendingOperation = (
+    pendingGroupRead,
+    pendingGroupWrite
+    // pendingPropertyRead,
+    // pendingPropertyWrite
+  );
+
+TYPE
+  TPA_Group = POINTER TO CA_Group;
+
+TYPE
+  TA_Parameters = RECORD
+                    PendingTimeout  : ARRAY TPendingOperation OF CARDINAL;
+                    PendingDelay    : ARRAY TPendingOperation OF CARDINAL;
+                    PendingCount    : ARRAY TPendingOperation OF CARDINAL;
+                    PromiscuousMode : BOOLEAN;
+                  END;
+
+  TprLength     = ( prl1, prl2, prl3, prl4, prl5, prl15 );
+
+  TA_PendingClasses = ARRAY knx_def.TPriority OF list.CList;
+  TA_Data       = RECORD;
+                    Groups    : avltree.CAVLTree;
+                    Timeouter : ARRAY TPendingOperation OF CTimeouter;
+                    Pending   : ARRAY TPendingOperation OF TA_PendingClasses;
+                    LastSend  : ARRAY TPendingOperation OF CARDINAL;
+                    prGroup   : ARRAY TprLength OF TPA_Group;
+                    prObject  : ARRAY TprLength OF TPSAP;
+                  END; // RECORD
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CKNXStackApplicationLayer( CKNXStackLayer ) IMPLEMENTS msghandlersink.IMessageSink;
+   PRIVATE VAR
+      Handler : msghandlersink.SinkMessageHandler;
+      Queue : msgqueue.CPtrQueue;
+      DataLock : Sync.LOCK;
+   LOCAL VAR
+      A_Parameters : TA_Parameters;
+      A_Data : TA_Data;
+
+  // chaining
+  PRIVATE PROCEDURE Executive() : TPKNXStackTransportLayer;
+  PRIVATE PROCEDURE Listener() : TPKNXStackUserLayer;
+
+  LOCAL VIRTUAL PROCEDURE Done_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+
+  LOCAL VIRTUAL PROCEDURE Timeout( TimeoutId : TTimeoutId; UserId : LONGWORD );
+
+  // TRANSPORT LAYER RECEPTION
+  // unicast connectionless data
+  LOCAL PROCEDURE T_Data_Unack_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress
+  );
+  LOCAL PROCEDURE T_Data_Unack_Ind(
+          Source      : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // unicast data
+  LOCAL PROCEDURE T_Connect_Con(
+          Status      : knx_status.TKNXStackStatus;
+          PConnection : TPConnection
+  );
+  LOCAL PROCEDURE T_Connect_Ind(
+          PConnection : TPConnection
+  );
+  LOCAL PROCEDURE T_Disconnect_Con(
+          Status      : knx_status.TKNXStackStatus;
+          PConnection : TPConnection
+  );
+  LOCAL PROCEDURE T_Disconnect_Ind(
+          PConnection : TPConnection
+  );
+  LOCAL PROCEDURE T_Data_Con(
+          Status      : knx_status.TKNXStackStatus;
+          PConnection : TPConnection
+  );
+  LOCAL PROCEDURE T_Data_Ind(
+          PConnection : TPConnection
+  );
+
+  // broadcast data
+  LOCAL PROCEDURE T_Broadcast_Con(
+          Status      : knx_status.TKNXStackStatus
+  );
+  LOCAL PROCEDURE T_Broadcast_Ind(
+          Source      : knx_def.TAddress; // physical
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // multicast data
+  LOCAL PROCEDURE T_Groupdata_Con(
+          Status      : knx_status.TKNXStackStatus;
+          Destination : knx_def.TAddress;
+          PPacket     : knx_def.TPPacket
+  );
+  LOCAL PROCEDURE T_Groupdata_Ind(
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+          PPacket     : knx_def.TPPacket
+  );
+
+  // APPLICATION LAYER itself
+  // multicast data
+  PUBLIC PROCEDURE A_GroupValue_Read_Req(
+          POriginator : TPSAP;
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority
+  );
+  PUBLIC PROCEDURE A_GroupValue_Read_Res(
+          POriginator : TPSAP;
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
+  );
+  PUBLIC PROCEDURE A_GroupValue_Write_Req(
+          POriginator : TPSAP;
+          Destination : knx_def.TAddress;
+          Class       : knx_def.TPriority;
+      VAR Packet      : knx_def.TPacket
+  );
+  INTERNAL VIRTUAL PROCEDURE A_GroupValue_Process( // rewritting allow tracking of all groups
+          Status      : knx_status.TKNXStackStatus; // if needed, e.g. for pphCON
+          POriginator : TPSAP;
+          Phase       : TProcessPhase;
+          APDU        : TA_PDU;
+          Class       : knx_def.TPriority;
+          Destination : knx_def.TAddress;
+    CONST PPacket     : knx_def.TPPacket
+  );
+  PRIVATE PROCEDURE A_GroupValue_Process_Single( // rewritting allow tracking of all groups
+          Status      : knx_status.TKNXStackStatus; // if needed, e.g. for pphCON
+          POriginator : TPSAP;
+          Phase       : TProcessPhase;
+          APDU        : TA_PDU;
+          Class       : knx_def.TPriority;
+          Destination : knx_def.TAddress;
+    CONST PPacket     : knx_def.TPPacket;
+          Promiscuous : BOOLEAN;
+          PGroup      : TPA_Group
+  );
+
+  PUBLIC PROCEDURE A_Subscribe(
+          Update_L_Layer : BOOLEAN;
+    CONST Address        : knx_def.TAddress;
+          PObject        : TPSAP
+  ) : knx_status.TKNXStackStatus;
+  PUBLIC PROCEDURE A_Unsubscribe(
+          Update_L_Layer : BOOLEAN;
+    CONST Address        : knx_def.TAddress;
+          PObject        : TPSAP
+  ) : knx_status.TKNXStackStatus;
+
+  PUBLIC PROCEDURE A_SubscribePromiscuous(
+          Length         : TprLength;
+          PObject        : TPSAP
+  ) : knx_status.TKNXStackStatus;
+  PUBLIC PROCEDURE A_UnsubscribePromiscuous(
+          Length         : TprLength;
+          PObject        : TPSAP
+  ) : knx_status.TKNXStackStatus;
+
+  PUBLIC PROCEDURE Update_L_Layer();
+  
+  // IMessageSink
+  PUBLIC VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+
+  // HELPERS
+  PRIVATE PROCEDURE GetAPDU( PPacket : knx_def.TPPacket ) : TA_PDU;
+  PRIVATE PROCEDURE SetAPDU( VAR Packet : knx_def.TPacket; APCI : TA_PDU );
+
+  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; POriginator : TPSAP; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress; CONST Packet : knx_def.TPacket );
+  PRIVATE PROCEDURE A_GetPendingDestination( WhatIsPending : TPendingOperation; Class : knx_def.TPriority; VAR Destination : knx_def.TAddress ) : BOOLEAN;
+  PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : knx_status.TKNXStackStatus; Class : knx_def.TPriority; CONST Destination : knx_def.TAddress );
+  PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; PClass : knx_def.TPPriority ); // CAN be NIL, if start could select packet automatically
+  PRIVATE PROCEDURE A_PendingIsTransactional( PendingOperation : TPendingOperation ) : BOOLEAN;
+
+  PRIVATE PROCEDURE A_Group_SearchGroup( CONST Address : knx_def.TAddress; VAR PGroup : TPA_Group ) : BOOLEAN;
+  PRIVATE PROCEDURE A_Group_SearchPromiscuousGroupByLength( CONST PPacket : knx_def.TPPacket; OUT PGroup : TPA_Group ) : BOOLEAN;
+  PRIVATE PROCEDURE A_GetFirstPending( WhatIsPending : TPendingOperation; PClass : knx_def.TPPriority; VAR PSPO : ADDRESS ) : BOOLEAN;
+  PRIVATE PROCEDURE A_GetLastStarted( WhatIsPending : TPendingOperation; PClass : knx_def.TPPriority; VAR PSPO : ADDRESS ) : BOOLEAN;
+
+  LOCAL PROCEDURE A_QueueLength( WhatIsPending : TPendingOperation ) : CARDINAL;
+  LOCAL PROCEDURE A_QueueClear( WhatIsPending : TPendingOperation );
+  LOCAL PROCEDURE A_SetPromiscuousMode( PromiscuousMode : BOOLEAN );
+END CKNXStackApplicationLayer;
+
+(*================================================================================*)
+// multicast user layer is represented by objects
+
+INTERFACE IUserObject;
+
+  // USER LAYER
+  PROCEDURE AU_GroupValue_Read_Req(); // possible different thread
+
+  PROCEDURE AU_GroupValue_Read_Con(  // possible different thread
+          Status : knx_status.TKNXStackStatus
+  );
+
+  PROCEDURE AU_GroupValue_Read_Res( // possible different thread
+          Status : knx_status.TKNXStackStatus;
+    CONST PPacket : knx_def.TPPacket
+  );
+
+  PROCEDURE AU_GroupValue_Write_Ind( // possible different thread
+    CONST PPacket : knx_def.TPPacket
+  );
+
+  PROCEDURE AU_GroupValue_Write_Con( // possible different thread
+          Status : knx_status.TKNXStackStatus
+  );
+  
+   // USER LAYER ADDRESSES
+   PROPERTY
+      ReadAddress        : knx_def.TAddress;
+      SendAddress        : knx_def.TAddress;
+      PromiscuousAddress : knx_def.TAddress;
+   READONLY PROPERTY
+      Promiscuous        : BOOLEAN;
+
+END IUserObject;
+
+(*================================================================================*)
+
+TYPE
+  TStackLayers = ARRAY [kltPhysical..kltUser] OF TPKNXStackLayer;
+
+TYPE
+  TStackStatus = (
+    ssError,
+    ssInitialized,
+    ssConnected,
+    ssFinalized,
+    ssBusy
+  );
+  TStackStatusSet = SET OF TStackStatus;
+
+CLASS CKNXStack;
+  Status     : TStackStatusSet;
+  PEventSink : TPKNXStackEventSink;
+  Layers     : TStackLayers;
+
+  // public methods
+  PUBLIC PROCEDURE Init( ConnectImmediatelly : BOOLEAN; InitLayerFrom, InitLayerTo : TKNXStackLayerType; PEventSink : TPKNXStackEventSink ) : knx_status.TKNXStackStatus;
+    // InitLayerFrom, InitLayerTo can be kltUnknown
+  PUBLIC PROCEDURE Connect() : knx_status.TKNXStackStatus;
+  PUBLIC PROCEDURE Disconnect() : knx_status.TKNXStackStatus;
+  PUBLIC PROCEDURE Done() : knx_status.TKNXStackStatus;
+
+  // public configuration & queries
+  PUBLIC PROCEDURE SetStackAddress( CONST Address : knx_def.TAddress ) : knx_status.TKNXStackStatus;
+  PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
+  PUBLIC PROCEDURE SetParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE GetParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE IsSelfPacket( PPacket : knx_def.TPPacket ) : BOOLEAN;
+  PUBLIC PROCEDURE OutputQueueLength() : CARDINAL;
+  PUBLIC PROCEDURE ClearOutputQueue();
+  PUBLIC PROCEDURE WriteQueueLength() : CARDINAL;
+  PUBLIC PROCEDURE ClearWriteQueue();
+
+  // rewritable methods, ALL rewritable methods are OPTIONAL
+  INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : TKNXStackLayerType; VAR PLayer : TPKNXStackLayer ) : BOOLEAN;
+    // method creates layer, otherwise returns FALSE (this is correct and it is handled by stack itself)
+  LOCAL VIRTUAL PROCEDURE CreateL_Data_Listener( VAR PL_Data_Listener : TPL_Data_Listener ) : BOOLEAN;
+    // method creates link layer listener, which is used for communication between link and network layers
+
+  INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
+    // called inside SetParameter
+  INTERNAL VIRTUAL PROCEDURE ConstructParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+    // called inside GetParameter
+  INTERNAL VIRTUAL PROCEDURE Initialize() : knx_status.TKNXStackStatus;
+    // called from Init, user init actions
+  INTERNAL VIRTUAL PROCEDURE ConnectBUS() : knx_status.TKNXStackStatus;
+    // called from Connect, connect itself
+  INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : knx_status.TKNXStackStatus;
+    // called from Disconnnect, disconnect itself
+  INTERNAL VIRTUAL PROCEDURE Dispose() : knx_status.TKNXStackStatus;
+    // called from Done, user done actions
+  LOCAL VIRTUAL PROCEDURE OnError( Layer : TKNXStackLayerType; ErrorCode : knx_status.TKNXStackStatus );
+
+  PUBLIC VIRTUAL PROCEDURE DeviceConnected() : BOOLEAN;
+    // if the HW/iface is found
+  PUBLIC VIRTUAL PROCEDURE KNXConnected() : BOOLEAN;
+    // if the whole connection to KNX is OK
+  PUBLIC PROCEDURE OnDeviceConnected();
+    // callback
+  PUBLIC PROCEDURE OnDeviceDisconnected();
+    // callback
+
+  // private methods
+  PRIVATE PROCEDURE CreateLayerInternal( Layer : TKNXStackLayerType; VAR PLayer : TPKNXStackLayer ) : BOOLEAN;
+END CKNXStack;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IKNXStackEventSink;
+  PROCEDURE OnDeviceConnected();
+  PROCEDURE OnDeviceDisconnected();
+END IKNXStackEventSink;
+
+(*================================================================================*)
+
+END knx_stack.

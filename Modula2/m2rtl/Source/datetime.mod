@@ -3,41 +3,41 @@ IMPLEMENTATION MODULE datetime;
 (*================================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
-  windows,
-  winnls;
+   windows,
+   winnls;
   
 IMPORT
-  Storage,
-  Strings,
-  Sync;
+   Storage,
+   Strings,
+   Sync;
 
 (*================================================================================================*)
 
-PROCEDURE UptimeMS(): CARDINAL;
+PROCEDURE UptimeMS32() : CARD32;
 BEGIN
-  RETURN CARDINAL( windows.GetTickCount() );
-END UptimeMS;
+   RETURN CARD32( windows.GetTickCount());
+END UptimeMS32;
 
 (*------------------------------------------------------------------------------------------------*)
 
 VAR
-  LastTicks    : CARDINAL;
-  LastTimeMS64 : TTime64;
-  TimeLock     : Sync.LOCK;
+   LastTicks32 : CARD32 := 0;
+   LastTimeMS64 : CARD64 := 0;
+   TimeLock : Sync.LOCK;
 
-PROCEDURE UptimeMS64(): TTime64;  // returns time from system startup in ms
+PROCEDURE UptimeMS64() : CARD64;  // returns time from system startup in ms
 VAR
-  ticks : CARDINAL;
+   ticks32 : CARD32;
 BEGIN
-  TimeLock.Lock();
-  ticks := windows.GetTickCount();
-  INC( LastTimeMS64, ticks - LastTicks );
-  LastTicks := ticks;
-  TimeLock.Unlock();
-  RETURN LastTimeMS64;
+   TimeLock.Lock();
+   ticks32 := UptimeMS32();
+   INC( LastTimeMS64, ticks32 - LastTicks32 );
+   LastTicks32 := ticks32;
+   TimeLock.Unlock();
+   RETURN LastTimeMS64;
 END UptimeMS64;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -48,139 +48,423 @@ BEGIN
 END UptimeMS16;
 
 (*================================================================================================*)
+// time span
+
+CLASS IMPLEMENTATION TimeSpan; // unit is 100 ns, CANNNOT be negative
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Precision GET : CARD64; // hertz
+   BEGIN
+      RETURN 1000 * 1000 * 10;
+   END Precision;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Negative GET : BOOLEAN;
+   BEGIN
+      RETURN _Value < 0;
+   END Negative;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : INT64; // raw value, e.g. for transport purposes
+   BEGIN
+      RETURN _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( _Value : INT64 ); // raw value, e.g. for transport purposes
+   BEGIN
+      SELF._Value := _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Microseconds GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 10.0;
+   END Microseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Microseconds SET( Value : LONGREAL );
+   BEGIN
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 10.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 10.0 - 0.5 );
+      END;
+   END Microseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Milliseconds GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 10000.0;
+   END Milliseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Milliseconds SET( Value : LONGREAL );
+   BEGIN
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 10000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 10000.0 - 0.5 );
+      END;
+   END Milliseconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Seconds GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 10000000.0;
+   END Seconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Seconds SET( Value : LONGREAL );
+   BEGIN
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 10000000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 10000000.0 - 0.5 );
+      END;
+   END Seconds;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Minutes GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 600000000.0;
+   END Minutes;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Minutes SET( Value : LONGREAL );
+   BEGIN
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 600000000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 600000000.0 - 0.5 );
+      END;
+   END Minutes;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Hours GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / 36000000000.0;
+   END Hours;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Hours SET( Value : LONGREAL );
+   BEGIN
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 36000000000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 36000000000.0 - 0.5 );
+      END;
+   END Hours;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Days GET : LONGREAL; // usable for a fraction of the day too, of course
+   BEGIN
+      RETURN LONGREAL( _Value ) / 864000000000.0;
+   END Days;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Days SET( Value : LONGREAL );
+   BEGIN
+      IF Value = 0.0 THEN
+         _Value := 0;
+      ELSIF Value > 0.0 THEN
+         _Value := INT64( Value * 864000000000.0 + 0.5 );
+      ELSE
+         _Value := INT64( Value * 864000000000.0 - 0.5 );
+      END;
+   END Days;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC INLINE OPERATOR :=( CONST Source : TimeSpan );
+   BEGIN
+      _Value := Source._Value;
+   END :=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR =( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value = Comperand._Value;
+   END =;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <>( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <> Comperand._Value;
+   END <>;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value < Comperand._Value;
+   END <;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <=( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <= Comperand._Value;
+   END <=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value > Comperand._Value;
+   END >;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >=( CONST Comperand : TimeSpan ) : BOOLEAN;
+   BEGIN
+      RETURN _Value >= Comperand._Value;
+   END >=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : TimeSpan;
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts._Value := _Value + Addend._Value;
+      RETURN ts;
+   END +;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : TimeSpan;
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts._Value := _Value - Addend._Value;
+      RETURN ts;
+   END -;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
+   BEGIN
+      INC( _Value, Addend._Value );
+   END Add;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
+   BEGIN
+      DEC( _Value, Addend._Value );
+   END Subtract;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE FromDHMS( D, H, M, S, MS : CARDINAL );
+   BEGIN
+      _Value := ( INT64((( D * 24 + H ) * 60 + M ) * 60 + S ) * 1000 + INT64( MS )) * 10000;
+   END FromDHMS;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToDHMS( OUT D, H, M, S, MS : CARDINAL );
+   VAR
+      fd : INT64;
+   BEGIN
+      IF _Value >= 0 THEN
+         fd := _Value;
+      ELSE
+         fd := -_Value;
+      END;
+      fd := fd DIV 10000;
+
+      MS := CARDINAL( fd MOD 1000 );
+      fd := fd DIV 1000;
+      S := CARDINAL( fd MOD 60 );
+      fd := fd DIV 60;
+      M := CARDINAL( fd MOD 60 );
+      fd := fd DIV 60;
+      H := CARDINAL( fd MOD 24 );
+      D := CARDINAL( fd DIV 24 );
+
+      IF MS = 1000 THEN
+         INC( S );
+         MS := 0;
+      END;
+      IF S = 60 THEN
+         INC( M );
+         S := 0;
+      END;
+      IF M = 60 THEN
+         INC( H );
+         M := 0;
+      END;
+      IF H = 24 THEN
+         INC( D );
+         H := 0;
+      END;
+   END ToDHMS;
+
+(*------------------------------------------------------------------------------------------------*)
+
+BEGIN
+END TimeSpan;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE TimeSpanZero() : TimeSpan;
+VAR
+   ts : TimeSpan;
+BEGIN
+   RETURN ts;
+END TimeSpanZero;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE TimeSpanMS32( Milliseconds : INT32 ) : TimeSpan;
+VAR
+   ts : TimeSpan;
+BEGIN
+   ts.Milliseconds := LONGREAL( Milliseconds );
+   RETURN ts;
+END TimeSpanMS32;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE TimeSpanS( Seconds : LONGREAL ) : TimeSpan;
+VAR
+   ts : TimeSpan;
+BEGIN
+   ts.Seconds := Seconds;
+   RETURN ts;
+END TimeSpanS;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE TimeSpanD( Days : LONGREAL ) : TimeSpan;
+VAR
+   ts : TimeSpan;
+BEGIN
+   ts.Days := Days;
+   RETURN ts;
+END TimeSpanD;
+
+(*================================================================================================*)
 // high resolution timer
 
 VAR
-  FHaveHiResTimer : BOOLEAN;
-  HiResTimerHz    : TTime64;
+   HRTimeFound : BOOLEAN := FALSE;
+   HRTimeFrequency : CARD64;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE InitHiResTimer();
+PROCEDURE InitHRTime();
 VAR
-  li : windows.LARGE_INTEGER;
+   li : windows.LARGE_INTEGER;
 BEGIN
-  FHaveHiResTimer := windows.QueryPerformanceFrequency( li ) = windows.True;
-  IF FHaveHiResTimer THEN
-    HiResTimerHz := TTime64( li );
-  ELSE
-    HiResTimerHz := 1000;
-  END;
-END InitHiResTimer;
+   HRTimeFound := windows.QueryPerformanceFrequency( li ) = windows.True;
+   IF HRTimeFound THEN
+      HRTimeFrequency := CARD64( li );
+   ELSE
+      HRTimeFrequency := 1000;
+   END;
+END InitHRTime;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE GetHiResHz() : TTime64;
-BEGIN
-  RETURN HiResTimerHz;
-END GetHiResHz;
+CLASS IMPLEMENTATION HighResolutionTime; // unit is 1/Frequency
+   
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Precision GET : CARD64; // hertz
+   BEGIN
+      RETURN HRTimeFrequency;
+   END Precision;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE GetHiResTicks() : TTime64;
+   PUBLIC PROPERTY Value GET : CARD64; // hertz
+   BEGIN
+      RETURN _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC INLINE OPERATOR :=( CONST Source : HighResolutionTime );
+   BEGIN
+      _Value := Source._Value;
+   END :=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR -( CONST Addend : HighResolutionTime ) : TimeSpan;
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts.Seconds := LONGREAL( _Value - Addend._Value ) / LONGREAL( HRTimeFrequency );
+      RETURN ts;
+   END -;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetNow();
+   TYPE
+      PLARGE_INTEGER = POINTER TO windows.LARGE_INTEGER;
+   VAR
+      pli : PLARGE_INTEGER := PLARGE_INTEGER( ADR( _Value ));
+   BEGIN
+      IF HRTimeFound THEN
+         windows.QueryPerformanceCounter( pli^ );
+      ELSE
+         _Value := UptimeMS64();
+      END;
+   END SetNow;
+
+(*------------------------------------------------------------------------------------------------*)
+
+BEGIN
+END HighResolutionTime;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE NowHR() : HighResolutionTime;
 VAR
-  li : windows.LARGE_INTEGER;
+   hr : HighResolutionTime;
 BEGIN
-  IF FHaveHiResTimer THEN
-    windows.QueryPerformanceCounter( li );
-    RETURN TTime64( li );
-  ELSE
-    RETURN UptimeMS64();
-  END;
-END GetHiResTicks;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE GetHiResDifference( REF fromTick : TTime64 ) : TTime64;
-VAR
-  ticks : TTime64;
-BEGIN
-  ticks := fromTick;
-  fromTick := GetHiResTicks();
-  RETURN fromTick - ticks;
-END GetHiResDifference;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE HiResTicksToMS( ticks : TTime64 ) : TTime64;
-CONST
-  secToMS = 1000;
-BEGIN
-  RETURN ( secToMS * ticks ) DIV HiResTimerHz;
-END HiResTicksToMS;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE HiResTicksToLRMS( ticks : TTime64 ) : LONGREAL;
-CONST
-  secToMS = 1000;
-BEGIN
-  RETURN LONGREAL( secToMS * ticks ) / LONGREAL( HiResTimerHz );
-END HiResTicksToLRMS;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE HiResTicksToLRS( ticks : TTime64 ) : LONGREAL;
-BEGIN
-  RETURN LONGREAL( ticks ) / LONGREAL( HiResTimerHz );
-END HiResTicksToLRS;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE difftime( CONST StopTime, StartTime : TTime64 ) : LONGREAL; // seconds
-BEGIN
-  RETURN LONGREAL( StopTime - StartTime ) / LONGREAL( HiResTimerHz );
-END difftime;
+   hr.SetNow();
+   RETURN hr;
+END NowHR;
 
 (*================================================================================================*)
+// julian date
 
 CONST
-  scale = TJD( 864000000 ); // 100 ns
-  scaleLR = 864000000.0;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE fd( ri : TJD ) : CARDINAL;
-BEGIN
-   RETURN CARDINAL( ri MOD scale );
-END fd;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE HMS2fd( H, M, S, MS : CARDINAL ) : CARDINAL;
-BEGIN
-   RETURN ((( H * 60 + M ) * 60 + S ) * 1000 + MS ) * 10;
-END HMS2fd;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE fd2HMS( fd : CARDINAL; OUT H, M, S, MS : CARDINAL ) : BOOLEAN;
-BEGIN
-   fd := fd DIV 10;
-   MS := fd MOD 1000;
-   fd := fd DIV 1000;
-   S := fd MOD 60;
-   fd := fd DIV 60;
-   M := fd MOD 60;
-   H := fd DIV 60;
-
-   IF MS = 1000 THEN
-      INC( S );
-      MS := 0;
-   END;
-   IF S = 60 THEN
-      INC( M );
-      S := 0;
-   END;
-   IF M = 60 THEN
-       INC( H );
-      M := 0;
-   END;
-
-   RETURN H = 24;
-END fd2HMS;
-
-(*------------------------------------------------------------------------------------------------*)
+   scale = INT64( 864000000 ); // 100 us
 
 // speed up of julian months
 // julianMonth = 306001; -- multiples converted to table
@@ -189,191 +473,368 @@ TYPE
 CONST
    months = TMonths( 0,  30,  61,  91, 122, 153, 183, 214, 244, 275, 306, 336, 367, 397, 428, 459 );
 
-PROCEDURE JD( y : INTEGER; m, d, fd : CARDINAL ) : TJD;
-// JD ver 1.7 by mk - synchronized to day.mod utility
-// JD ver 1.8 by mk - scaled to INT64
-CONST
-   julianYear = 2922; // scaled by 8 (<< 3)
+(*------------------------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION DayCount;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Precision GET : CARD64;
+   BEGIN
+      RETURN 1000 * 10;
+   END Precision;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DayOfWeek GET : TDayOfWeek;
+   BEGIN
+      RETURN TDayOfWeek((( _Value + scale DIV 2 ) DIV scale ) MOD 7 + 1 );
+   END DayOfWeek;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY IsLowBound GET : BOOLEAN;
+   BEGIN
+      RETURN _Value = MIN( INT64 );
+   END IsLowBound;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY IsHighBound GET : BOOLEAN;
+   BEGIN
+      RETURN _Value = MAX( INT64 );
+   END IsHighBound;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : INT64; // e.g. for transport purposes
+   BEGIN
+      RETURN _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( _Value : INT64 );
+   BEGIN
+      SELF._Value := _Value;
+   END Value;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY FractionOfTheDay GET : TimeSpan; // values greater than 1 D are trimmed (only the fraction is used)
+   VAR
+      ts : TimeSpan;
+      valueReducedToMidnight : INT64;
+   BEGIN
+      valueReducedToMidnight := _Value - INT64( 432000000 );
+      ts.Value := 1000 * ( valueReducedToMidnight MOD scale ); // possible expected "-" is correct too, because 432... is a half of the interval and +/- has the same sense (here)
+      RETURN ts;
+   END FractionOfTheDay;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY FractionOfTheDay SET( CONST Value : TimeSpan ); // values greater than 1 D are trimmed (only the fraction is used)
+   VAR
+      valueReducedToMidnight : INT64;
+   BEGIN
+      valueReducedToMidnight := _Value - INT64( 432000000 );
+      DEC( _Value, valueReducedToMidnight MOD scale ); // remove existing fraction
+      INC( _Value, ( Value.Value DIV 1000 ) MOD scale ); // add scale from the span
+   END FractionOfTheDay;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY JulianDate GET : LONGREAL;
+   BEGIN
+      RETURN LONGREAL( _Value ) / LONGREAL( scale );
+   END JulianDate;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY JulianDate SET( Value : LONGREAL );
+   BEGIN
+      _Value := INT64(( Value + 0.5 / 864000000.0 ) * LONGREAL( scale ));
+   END JulianDate;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR =( CONST Comperand : DayCount ) : BOOLEAN;
+   BEGIN
+      RETURN _Value = Comperand._Value;
+   END =;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <>( CONST Comperand : DayCount ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <> Comperand._Value;
+   END <>;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <( CONST Comperand : DayCount ) : BOOLEAN;
+   BEGIN
+      RETURN _Value < Comperand._Value;
+   END <;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR <=( CONST Comperand : DayCount ) : BOOLEAN;
+   BEGIN
+      RETURN _Value <= Comperand._Value;
+   END <=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >( CONST Comperand : DayCount ) : BOOLEAN;
+   BEGIN
+      RETURN _Value > Comperand._Value;
+   END >;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR >=( CONST Comperand : DayCount ) : BOOLEAN;
+   BEGIN
+      RETURN _Value >= Comperand._Value;
+   END >=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC INLINE OPERATOR :=( CONST Source : DayCount );
+   BEGIN
+      _Value := Source._Value;
+   END :=;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR +( CONST Addend : TimeSpan ) : DayCount;
+   VAR
+      dc : DayCount;
+   BEGIN
+      dc._Value := INC( _Value, Addend.Value DIV 1000 );
+      RETURN dc;
+   END +;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR -( CONST Addend : TimeSpan ) : DayCount;
+   VAR
+      dc : DayCount;
+   BEGIN
+      dc._Value := DEC( _Value, Addend.Value DIV 1000 );
+      RETURN dc;
+   END -;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetNow();
+   BEGIN
+      _Value := NowDC()._Value;
+   END SetNow;
+   
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetLowBound(); // pair to IsLowBound
+   BEGIN
+      _Value := MIN( INT64 );
+   END SetLowBound;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetHighBound(); // pair to IsHighBound
+   BEGIN
+      _Value := MAX( INT64 );
+   END SetHighBound;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Add( CONST Addend : TimeSpan );
+   BEGIN
+      INC( _Value, Addend.Value DIV 1000 );
+   END Add;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Subtract( CONST Addend : TimeSpan );
+   BEGIN
+      DEC( _Value, Addend.Value DIV 1000 );
+   END Subtract;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Difference( CONST Operand : DayCount ) : TimeSpan; // SELF - Operand
+   VAR
+      ts : TimeSpan;
+   BEGIN
+      ts.Value := 1000 * ( _Value - Operand._Value );
+      RETURN ts;
+   END Difference;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE FromYMD( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan );
+   CONST
+      julianYear = 2922; // scaled by 8 (<< 3)
+   VAR
+      a, c : INTEGER;
+   BEGIN
+      IF m > 12 THEN // to be sure
+         INC( y, m DIV 12 );
+         m := m MOD 12 + 1;
+      END;
+      IF m < 3 THEN
+         DEC( y );
+         INC( m, 13 );
+      ELSE
+         INC( m );
+      END;
+
+      IF y > 1582 THEN
+         a := y DIV 100;
+         c := 0;
+         d := INTEGER( d ) + a DIV 4 - a + 2;
+      ELSIF ( y = 1582 ) AND (( m > 11 ) OR ( m = 11 ) AND ( d >= 15 )) THEN
+         a := y DIV 100;
+         c := 0;
+         d := INTEGER( d ) + a DIV 4 - a + 2;
+      ELSIF y < 0 THEN
+         c := 6; // scaled by 8
+      END;
+
+      _Value := scale * (
+                  ( julianYear * y - c ) DIV 8 + // years
+                  months[m] + // months
+                  d // scale
+                ) +
+                INT64( 1486939248000000 ) + // year 0 boundary, 1720994.5
+                fd.Value DIV 1000; // fraction
+   END FromYMD;
+
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToYMD( OUT y : INTEGER; OUT m, d : CARDINAL; OUT fd : TimeSpan );
+   CONST
+      gregorianCentury = 3652425; // scaled by 100
+      julianYear = 36525; // scaled by 100
+      julianMonth = 306001; // scaled by 10000
+   VAR
+      a, b, alfa, z : INTEGER;
+      dcl, dcx : INT64;
+   BEGIN
+      // works up to cca +/- 64000 years, see assert
+      dcl := _Value + INT64( 432000000 );
+
+      // separate fd, rescale to days
+      dcx := dcl DIV scale;
+      fd.Value := 1000 * ( dcl - scale * dcx );
+      z := INTEGER( dcx );
+      IF z >= MAX( INTEGER ) DIV 100 THEN
+         ASSERTLOG( FALSE );
+         z := MAX( INTEGER ) DIV 100 - 1;
+      END;
+
+      IF z < 2299161 THEN
+         a := z;
+      ELSE
+         alfa := ( 100 * z - 186721625 ) DIV gregorianCentury; // 1867216.25
+         a := z + 1 + alfa - alfa DIV 4;
+      END;
+
+      b := a + 1524;
+      y := ( 100 * b - 12210 ) DIV julianYear; // 122.1, years
+      b := b - ( julianYear * y ) DIV 100;
+
+      m := ( 10000 * b ) DIV julianMonth;
+      d := b - months[m];
+
+      IF m > 13 THEN
+         m := m - 13;
+      ELSE
+         m := m - 1;
+      END;
+      IF m > 2 THEN
+         y := y - 4716;
+      ELSE
+         y := y - 4715;
+      END;
+   END ToYMD;
+
+(*------------------------------------------------------------------------------------------------*)
+
+BEGIN
+END DayCount;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE NowDC() : DayCount;
 VAR
-  a, c : INTEGER;
+   dateTime : DateTime;
 BEGIN
-  IF m > 12 THEN // to be sure
-    INC( y, m DIV 12 );
-    m := m MOD 12 + 1;
-  END;
-  IF m < 3 THEN
-    DEC( y );
-    INC( m, 13 );
-  ELSE
-    INC( m );
-  END;
-
-  IF y > 1582 THEN
-    a := y DIV 100;
-    c := 0;
-    d := INTEGER( d ) + a DIV 4 - a + 2;
-  ELSIF ( y = 1582 ) AND (( m > 11 ) OR ( m = 11 ) AND ( d >= 15 )) THEN
-    a := y DIV 100;
-    c := 0;
-    d := INTEGER( d ) + a DIV 4 - a + 2;
-  ELSIF y < 0 THEN
-    c := 6; // scaled by 8
-  END;
-
-  RETURN scale * (
-            ( julianYear * y - c ) DIV 8 + // years
-            months[m] + // months
-            d // scale
-         ) +
-         TJD( 1486939248000000 ) + // year 0 boundary, 1720994.5
-         TJD( fd ); // fraction
-END JD;
+   dateTime.SetNowUTC();
+   RETURN dateTime.DayCount;
+END NowDC;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE iJD( CONST jd : TJD; OUT y : INTEGER; OUT m, d, fd : CARDINAL );
-CONST
-   gregorianCentury = 3652425; // scaled by 100
-   julianYear = 36525; // scaled by 100
-   julianMonth = 306001; // scaled by 10000
+PROCEDURE NowDCDayOnly() : DayCount;
 VAR
-   a, b, alfa, z : INTEGER;
-   jdl, jdx : TJD;
+   dateTime : DateTime;
 BEGIN
-   // works up to cca +/- 64000 years, see assert
-   jdl := jd + TJD( 432000000 );
-
-   // separate fd, rescale to days
-   jdx := jdl DIV scale;
-   fd := CARDINAL( jdl - scale * jdx );
-   z := INTEGER( jdx );
-   IF z >= MAX( INTEGER ) DIV 100 THEN
-      ASSERTLOG( FALSE );
-      z := MAX( INTEGER ) DIV 100 - 1;
-   END;
-
-   IF z < 2299161 THEN
-      a := z;
-   ELSE
-      alfa := ( 100 * z - 186721625 ) DIV gregorianCentury; // 1867216.25
-      a := z + 1 + alfa - alfa DIV 4;
-   END;
-
-   b := a + 1524;
-   y := ( 100 * b - 12210 ) DIV julianYear; // 122.1, years
-   b := b - ( julianYear * y ) DIV 100;
-
-   m := ( 10000 * b ) DIV julianMonth;
-   d := b - months[m];
-
-   IF m > 13 THEN
-      m := m - 13;
-   ELSE
-      m := m - 1;
-   END;
-   IF m > 2 THEN
-      y := y - 4716;
-   ELSE
-      y := y - 4715;
-   END;
-END iJD;
+   dateTime.SetNowUTC();
+   dateTime.TrimTime();
+   RETURN dateTime.DayCount;
+END NowDCDayOnly;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE DayOfWeek( CONST jd : TJD ) : CARDINAL;
+PROCEDURE DayCountYMD( y : INTEGER; m, d : CARDINAL ) : DayCount;
+VAR
+   dc : DayCount;
 BEGIN
-   RETURN JDCToDays( jd + scale DIV 2 ) MOD 7;
-END DayOfWeek;
+   dc.FromYMD( y, m, d, TimeSpanZero());
+   RETURN dc;
+END DayCountYMD;
 
 (*------------------------------------------------------------------------------------------------*)
 
-PROCEDURE TrimFD( CONST jd : TJD ) : TJD;
+PROCEDURE DayCountYMDfd( y : INTEGER; m, d : CARDINAL; CONST fd : TimeSpan ) : DayCount;
+VAR
+   dc : DayCount;
 BEGIN
-   RETURN jd - jd MOD scale;
-END TrimFD;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE JDCToMS( CONST jd : TJDC ) : CARDINAL;
-BEGIN
-   RETURN CARDINAL( jd DIV 10 );
-END JDCToMS;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE MSToJDC( ms : CARDINAL ) : TJDC;
-BEGIN
-   RETURN TJDC( ms ) * 10;
-END MSToJDC;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE JDCToDays( CONST jd : TJDC ) : CARDINAL;
-BEGIN
-   RETURN CARDINAL( jd DIV scale );
-END JDCToDays;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE DaysToJDC( days : CARDINAL ) : TJDC;
-BEGIN
-   RETURN TJD( days ) * scale;
-END DaysToJDC;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE JDCToDaysLR( CONST jd : TJDC ) : LONGREAL;
-BEGIN
-   RETURN LONGREAL( jd ) / scaleLR;
-END JDCToDaysLR;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE DaysLRToJDC( days : LONGREAL ) : TJDC;
-BEGIN
-   RETURN TJD( days * scaleLR );
-END DaysLRToJDC;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE ToSJD( CONST jd : TJD ) : LONGREAL;
-BEGIN
-   RETURN LONGREAL( jd ) / LONGREAL( scale );
-END ToSJD;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE FromSJD( jd : LONGREAL ) : TJD;
-BEGIN
-   RETURN TJD(( jd + 0.5 / 864000000.0 ) * LONGREAL( scale ));
-END FromSJD;
+   dc.FromYMD( y, m, d, fd );
+   RETURN dc;
+END DayCountYMDfd;
 
 (*================================================================================================*)
 
 TYPE
-  TCWZoneInfo = RECORD
+   TZoneInfo = RECORD
                   // Biases are always in MINUTES
                   SystemZoneInfo : windows.TIME_ZONE_INFORMATION;
 
                   DSTBias        : INTEGER; // DST bias respecting current DST state (if DST is off Current_DST_Bias = 0)
                   UTCDSTBias     : INTEGER; // SystemZoneInfo.Bias + CurrentDSTBias = both two biases in single element
-                END;
+               END;
 
 VAR
-  ZoneInfo : TCWZoneInfo;
-  ZoneInfoUpdated : CARDINAL;
+   ZoneInfo : TZoneInfo;
+   ZoneInfoUpdated : CARDINAL;
 
 (*------------------------------------------------------------------------------------------------*)
 
 PROCEDURE CheckUpdateZoneInfo();
+VAR
+   now : CARDINAL := UptimeMS();
 BEGIN
-   IF ( ZoneInfoUpdated <> 0 ) AND ( UptimeMS() - ZoneInfoUpdated < 15*60*1000 ) THEN
+   IF ( ZoneInfoUpdated <> 0 ) AND ( now - ZoneInfoUpdated < 15*60*1000 ) THEN
       RETURN;
+   ELSE
+      ZoneInfoUpdated := now;
    END;
    IF windows.GetTimeZoneInformation( ADR( ZoneInfo.SystemZoneInfo )) = windows.TIME_ZONE_ID_DAYLIGHT THEN
       ZoneInfo.DSTBias := INTEGER( ZoneInfo.SystemZoneInfo.DaylightBias );
    ELSE
-      ZoneInfo.DSTBias := 0; // if daylight time is not active the bias should (for CW) be 0
+      ZoneInfo.DSTBias := 0; // if daylight time is not active the bias should be 0
    END;
    ZoneInfo.UTCDSTBias := INTEGER( ZoneInfo.SystemZoneInfo.Bias ) + ZoneInfo.DSTBias;
 END CheckUpdateZoneInfo;
@@ -429,16 +890,6 @@ BEGIN
    TimeLock.Unlock();
    RETURN i;
 END GetCurrentDSTBias;
-
-(*------------------------------------------------------------------------------------------------*)
-
-PROCEDURE GetCurrentJD() : TJD;
-VAR
-   dateTime : DateTime;
-BEGIN
-   dateTime.SetNowUTC();
-   RETURN dateTime.JulianDate;
-END GetCurrentJD;
 
 (*================================================================================================*)
 // local procedures needed for DateTime
@@ -531,7 +982,7 @@ BEGIN
         Result[di] := L"'"; // escape for resulting apostrophe --
         INC( di );
       END;
-      Result[di] := Format[si]; // -- escaped apostrophe
+      Result[di] := Format[si]; // -- escaped delimiter
       Result[di+1] := L"'"; // -- escaped apostrophe
       INC( di, 2 );
 
@@ -673,8 +1124,10 @@ BEGIN
           ( Wrapped[si+1] IN Strings.WCHARS{L'd', L'M', L'y', L'g'} ) AND
           ( Wrapped[si+2] = WCHAR( 1 )) AND
           ( Wrapped[si+3] = L' ' ) THEN
-      DEC( di );
-      IF UW[di-1] = WCHAR( 1 ) THEN
+      IF di > 0 THEN
+         DEC( di );
+      END;
+      IF ( di > 0 ) AND ( UW[di-1] = WCHAR( 1 )) THEN
         DEC( di );
       ELSE
         UW[di] := WCHAR( 1 );
@@ -740,6 +1193,13 @@ END UnwrapDateProtection;
 
 CLASS IMPLEMENTATION DateTime;
         
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Precision GET : CARD64;
+   BEGIN
+      RETURN 1000;
+   END Precision;
+
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Millisecond GET : CARDINAL;
@@ -897,7 +1357,7 @@ CLASS IMPLEMENTATION DateTime;
    BEGIN
       _Empty := FALSE;
       IF _UTCBias <> Value THEN
-         FromJD( JulianDate, Value, _DSTBias );
+         FromDC( DayCount, Value, _DSTBias );
       END;
    END UTCBias;
 
@@ -918,7 +1378,7 @@ CLASS IMPLEMENTATION DateTime;
    BEGIN
       _Empty := FALSE;
       IF _DSTBias <> Value THEN
-         FromJD( JulianDate, _UTCBias, Value );
+         FromDC( DayCount, _UTCBias, Value );
       END;
    END DSTBias;
 
@@ -997,9 +1457,8 @@ CLASS IMPLEMENTATION DateTime;
          TDSTInterval( 31,  3,  2, 27, 10,  3 )  // 2002
       );
    VAR
-      DayOfWeek : CARDINAL;
       Interval  : TDSTInterval;
-      JD_       : TJD;
+      dc_ : datetime.DayCount;
       PInterval : POINTER TO CONST TDSTInterval;
    BEGIN
       IF _Empty THEN
@@ -1014,15 +1473,13 @@ CLASS IMPLEMENTATION DateTime;
          PInterval := ADR( czBiasTable1[ _Year ] );
       ELSIF _Year > toYear3 THEN
          // get last march sunday
-         JD_ := JD( INTEGER( _Year ), 3, 31, 0 );
-         DayOfWeek := CARDINAL( ToSJD( JD_ ) + 1.5 ) MOD 7; // 0 is sunday
-         Interval.FromDay := 31 - DayOfWeek;
+         dc_ := DayCountYMD( INTEGER( _Year ), 3, 31 );
+         Interval.FromDay := 31 - CARDINAL( dc_.DayOfWeek ) - 1;
          Interval.FromMonth := 3;
          Interval.FromHour := 2;
          // get last october sunday
-         JD_ := JD( INTEGER( _Year ), 10, 31, 0 );
-         DayOfWeek := CARDINAL( ToSJD( JD_ ) + 1.5 ) MOD 7; // 0 is sunday
-         Interval.ToDay := 31 - DayOfWeek;
+         dc_ := DayCountYMD( INTEGER( _Year ), 10, 31 );
+         Interval.ToDay := 31 - CARDINAL( dc_.DayOfWeek ) - 1;
          Interval.ToMonth := 10;
          Interval.ToHour := 2;
          PInterval := ADR( Interval );
@@ -1055,83 +1512,165 @@ CLASS IMPLEMENTATION DateTime;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DayOfWeek GET : CARDINAL;
+   PUBLIC PROPERTY DayOfWeek GET : TDayOfWeek;
    BEGIN
-      IF _DayOfWeekDirty THEN
+      IF _Empty THEN
+         RETURN UnknownDay;
+      ELSIF _DayOfWeekDirty THEN
          _DayOfWeekDirty := FALSE;
-         _DayOfWeek := CARDINAL( ToSJD( JulianDate ) + 1.5 ) MOD 7; // ( JD + 0.5 ) MOD 7 gives 0 = Monday
+         _DayOfWeek := DayCount.DayOfWeek;
       END;
       RETURN _DayOfWeek;
    END DayOfWeek;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY JulianDate GET : TJD;
+   PUBLIC PROPERTY DayCount GET : datetime.DayCount;
+   VAR
+      dc : datetime.DayCount;
+      ts : TimeSpan;
    BEGIN
-      IF _Empty THEN
-         RETURN 0;
-      ELSE
-         RETURN JD(
-                   INTEGER( _Year ),
-                   INTEGER( _Month ),
-                   INTEGER( _Day ),
-                   HMS2fd( _Hour, _Minute, _Second, _Millisecond ) + CARDINAL( _UTCBias + _DSTBias ) * 600000
-                );
+      IF NOT _Empty THEN
+         ts.FromDHMS( 0, _Hour, _Minute + CARDINAL( _UTCBias + _DSTBias ), _Second, _Millisecond );
+         dc.FromYMD( INTEGER( _Year ), INTEGER( _Month ), INTEGER( _Day ), ts );
       END;
-   END JulianDate;
+      RETURN dc;
+   END DayCount;
       
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY JulianDate SET( Value : TJD );
+   PUBLIC PROPERTY DayCount SET( CONST Value : datetime.DayCount );
    BEGIN
-      FromJD( Value, 0, 0 );
-   END JulianDate;
+      FromDC( Value, 0, 0 );
+   END DayCount;
       
+(*------------------------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR :=( CONST Source : DateTime );
+   BEGIN
+      Storage.Move( ADR( Source ), ADR( SELF ), SIZE( SELF ));
+   END :=;
+
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR = ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN NOT Equals( Comperand );
+      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
+         RETURN Comperand.DayCount = DayCount;
+      ELSIF Comperand._Year <> _Year THEN
+         RETURN FALSE;
+      ELSIF Comperand._Month <> _Month THEN
+         RETURN FALSE;
+      ELSIF Comperand._Day <> _Day THEN
+         RETURN FALSE;
+      ELSIF Comperand._Hour <> _Hour THEN
+         RETURN FALSE;
+      ELSIF Comperand._Minute <> _Minute THEN
+         RETURN FALSE;
+      ELSIF Comperand._Second <> _Second THEN
+         RETURN FALSE;
+      ELSIF Comperand._Millisecond <> _Millisecond THEN
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
    END =;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR <> ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN NOT Equals( Comperand );
+      RETURN NOT( SELF = Comperand );
    END <>;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR < ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN Less( Comperand );
+      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
+         RETURN Comperand.DayCount > DayCount;
+      ELSIF Comperand._Year < _Year THEN
+         RETURN FALSE;
+      ELSIF Comperand._Year > _Year THEN
+         RETURN TRUE;
+      ELSIF Comperand._Month < _Month THEN
+         RETURN FALSE;
+      ELSIF Comperand._Month > _Month THEN
+         RETURN TRUE;
+      ELSIF Comperand._Day < _Day THEN
+         RETURN FALSE;
+      ELSIF Comperand._Day > _Day THEN
+         RETURN TRUE;
+      ELSIF Comperand._Hour < _Hour THEN
+         RETURN FALSE;
+      ELSIF Comperand._Hour > _Hour THEN
+         RETURN TRUE;
+      ELSIF Comperand._Minute < _Minute THEN
+         RETURN FALSE;
+      ELSIF Comperand._Minute > _Minute THEN
+         RETURN TRUE;
+      ELSIF Comperand._Second < _Second THEN
+         RETURN FALSE;
+      ELSIF Comperand._Second > _Second THEN
+         RETURN TRUE;
+      ELSIF Comperand._Millisecond <= _Millisecond THEN
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
    END <;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR <= ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN NOT Greater( Comperand );
+      RETURN NOT( SELF > Comperand );
    END <=;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR > ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN Greater( Comperand );
+      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
+         RETURN Comperand.DayCount < DayCount;
+      ELSIF Comperand._Year > _Year THEN
+         RETURN FALSE;
+      ELSIF Comperand._Year < _Year THEN
+         RETURN TRUE;
+      ELSIF Comperand._Month > _Month THEN
+         RETURN FALSE;
+      ELSIF Comperand._Month < _Month THEN
+         RETURN TRUE;
+      ELSIF Comperand._Day > _Day THEN
+         RETURN FALSE;
+      ELSIF Comperand._Day < _Day THEN
+         RETURN TRUE;
+      ELSIF Comperand._Hour > _Hour THEN
+         RETURN FALSE;
+      ELSIF Comperand._Hour < _Hour THEN
+         RETURN TRUE;
+      ELSIF Comperand._Minute > _Minute THEN
+         RETURN FALSE;
+      ELSIF Comperand._Minute < _Minute THEN
+         RETURN TRUE;
+      ELSIF Comperand._Second > _Second THEN
+         RETURN FALSE;
+      ELSIF Comperand._Second < _Second THEN
+         RETURN TRUE;
+      ELSIF Comperand._Millisecond >= _Millisecond THEN
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
    END >;
 
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC OPERATOR >= ( CONST Comperand : DateTime ) : BOOLEAN;
    BEGIN
-      RETURN NOT Less( Comperand );
+      RETURN NOT( SELF < Comperand );
    END >=;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR + ( CONST Addend : TJDC ) : DateTime;
+   PUBLIC OPERATOR + ( CONST Addend : TimeSpan ) : DateTime;
    VAR
       dt : DateTime := SELF;
    BEGIN
@@ -1141,7 +1680,7 @@ CLASS IMPLEMENTATION DateTime;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC OPERATOR - ( CONST Addend : TJDC ) : DateTime;
+   PUBLIC OPERATOR - ( CONST Addend : TimeSpan ) : DateTime;
    VAR
       dt : DateTime := SELF;
    BEGIN
@@ -1152,8 +1691,10 @@ CLASS IMPLEMENTATION DateTime;
 (*------------------------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Clear();
+   VAR
+      dt : DateTime;
    BEGIN
-      _Empty := TRUE;
+      SELF := dt;
    END Clear;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -1194,7 +1735,7 @@ CLASS IMPLEMENTATION DateTime;
       _Day         := CARDINAL( st.wDay );
       _Month       := CARDINAL( st.wMonth );
       _Year        := CARDINAL( st.wYear );
-      _DayOfWeek   := CARDINAL( st.wDayOfWeek );
+      _DayOfWeek   := TDayOfWeek(( CARDINAL( st.wDayOfWeek ) + 6 ) MOD 7 + 1 );
       _UTCBias     := 0;
       _DSTBias     := 0;
    END SetNowLocal;
@@ -1214,7 +1755,7 @@ CLASS IMPLEMENTATION DateTime;
       _Day         := CARDINAL( st.wDay );
       _Month       := CARDINAL( st.wMonth );
       _Year        := CARDINAL( st.wYear );
-      _DayOfWeek   := CARDINAL( st.wDayOfWeek );
+      _DayOfWeek   := TDayOfWeek(( CARDINAL( st.wDayOfWeek ) + 6 ) MOD 7 + 1 );
       _UTCBias     := 0;
       _DSTBias     := 0;
    END SetNowUTC;
@@ -1244,152 +1785,60 @@ CLASS IMPLEMENTATION DateTime;
       IF ( _UTCBias = utcBias ) AND ( _DSTBias = dstBias ) THEN
          RETURN;
       END;
-      FromJD( JulianDate, utcBias, dstBias );
+      FromDC( DayCount, utcBias, dstBias );
    END SetZone;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE FromJD( jd : TJD; utcBias, dstBias : INTEGER );
+   PUBLIC PROCEDURE FromDC( CONST dc : datetime.DayCount; utcBias, dstBias : INTEGER );
    VAR
       FD : CARDINAL;
+      ldc : datetime.DayCount := dc;
       Y, M, D : INTEGER;
+      ts : TimeSpan;
    BEGIN
-      jd := jd - TJD( dstBias + dstBias ) * 600000;
-      iJD( jd, OUT Y, OUT M, OUT D, OUT FD );
+      ts.Minutes := LONGREAL( dstBias + dstBias );
+      ldc.Subtract( ts );
+      ldc.ToYMD( OUT Y, OUT M, OUT D, OUT ts );
 
       _Empty := FALSE;
       _Year := CARDINAL( Y );
       _Month := CARDINAL( M );
       _Day := CARDINAL( D );
-      _DayOfWeek := CARDINAL( ToSJD( jd ) + 1.5 ) MOD 7; // ( JD + 0.5 ) MOD 7 gives 0 = Monday
+      _DayOfWeek := ldc.DayOfWeek;
       _DayOfWeekDirty := FALSE;
       _UTCBias := utcBias;
       _DSTBias := dstBias;
 
-      fd2HMS( FD, OUT _Hour, OUT _Minute, OUT _Second, OUT _Millisecond );
-   END FromJD;
+      ts.ToDHMS( OUT D, OUT _Hour, OUT _Minute, OUT _Second, OUT _Millisecond );
+   END FromDC;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE FromJDToLocal( JD : TJD );
+   PUBLIC PROCEDURE FromDCToLocal( CONST dc : datetime.DayCount );
    BEGIN
-      FromJD( JD, GetZonalUTCBias(), GetZonalDSTBias());
-   END FromJDToLocal;
+      FromDC( dc, GetZonalUTCBias(), GetZonalDSTBias());
+   END FromDCToLocal;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Less( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE Add( Addend : TimeSpan );
    BEGIN
-      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate > JulianDate;
-      ELSIF Comperand._Year < _Year THEN
-         RETURN FALSE;
-      ELSIF Comperand._Year > _Year THEN
-         RETURN TRUE;
-      ELSIF Comperand._Month < _Month THEN
-         RETURN FALSE;
-      ELSIF Comperand._Month > _Month THEN
-         RETURN TRUE;
-      ELSIF Comperand._Day < _Day THEN
-         RETURN FALSE;
-      ELSIF Comperand._Day > _Day THEN
-         RETURN TRUE;
-      ELSIF Comperand._Hour < _Hour THEN
-         RETURN FALSE;
-      ELSIF Comperand._Hour > _Hour THEN
-         RETURN TRUE;
-      ELSIF Comperand._Minute < _Minute THEN
-         RETURN FALSE;
-      ELSIF Comperand._Minute > _Minute THEN
-         RETURN TRUE;
-      ELSIF Comperand._Second < _Second THEN
-         RETURN FALSE;
-      ELSIF Comperand._Second > _Second THEN
-         RETURN TRUE;
-      ELSIF Comperand._Millisecond <= _Millisecond THEN
-         RETURN FALSE;
-      END;
-      RETURN TRUE;
-   END Less;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Greater( CONST Comperand : DateTime ) : BOOLEAN;
-   BEGIN
-      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate < JulianDate;
-      ELSIF Comperand._Year > _Year THEN
-         RETURN FALSE;
-      ELSIF Comperand._Year < _Year THEN
-         RETURN TRUE;
-      ELSIF Comperand._Month > _Month THEN
-         RETURN FALSE;
-      ELSIF Comperand._Month < _Month THEN
-         RETURN TRUE;
-      ELSIF Comperand._Day > _Day THEN
-         RETURN FALSE;
-      ELSIF Comperand._Day < _Day THEN
-         RETURN TRUE;
-      ELSIF Comperand._Hour > _Hour THEN
-         RETURN FALSE;
-      ELSIF Comperand._Hour < _Hour THEN
-         RETURN TRUE;
-      ELSIF Comperand._Minute > _Minute THEN
-         RETURN FALSE;
-      ELSIF Comperand._Minute < _Minute THEN
-         RETURN TRUE;
-      ELSIF Comperand._Second > _Second THEN
-         RETURN FALSE;
-      ELSIF Comperand._Second < _Second THEN
-         RETURN TRUE;
-      ELSIF Comperand._Millisecond >= _Millisecond THEN
-         RETURN FALSE;
-      END;
-      RETURN TRUE;
-   END Greater;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Equals( CONST Comperand : DateTime ) : BOOLEAN;
-   BEGIN
-      IF ( Comperand._UTCBias <> _UTCBias ) OR ( Comperand._DSTBias <> _DSTBias ) THEN
-         RETURN Comperand.JulianDate = JulianDate;
-      ELSIF Comperand._Year <> _Year THEN
-         RETURN FALSE;
-      ELSIF Comperand._Month <> _Month THEN
-         RETURN FALSE;
-      ELSIF Comperand._Day <> _Day THEN
-         RETURN FALSE;
-      ELSIF Comperand._Hour <> _Hour THEN
-         RETURN FALSE;
-      ELSIF Comperand._Minute <> _Minute THEN
-         RETURN FALSE;
-      ELSIF Comperand._Second <> _Second THEN
-         RETURN FALSE;
-      ELSE
-         RETURN Comperand._Millisecond <> _Millisecond;
-      END;
-   END Equals;
-
-(*------------------------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Add( Addend : TJDC );
-   BEGIN
-      JulianDate := JulianDate + Addend;
+      DayCount := DayCount + Addend;
    END Add;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Subtract( Addend : TJDC );
+   PUBLIC PROCEDURE Subtract( Addend : TimeSpan );
    BEGIN
-      JulianDate := JulianDate - Addend;
+      DayCount := DayCount - Addend;
    END Subtract;
 
 (*------------------------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TJDC;
+   PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TimeSpan;
    BEGIN
-      RETURN JulianDate - Operand.JulianDate;
+      RETURN DayCount.Difference( Operand.DayCount );
    END Difference;
 
 (*------------------------------------------------------------------------------------------------*)
@@ -1996,7 +2445,7 @@ BEGIN
    _Day := 0;
    _Month := 0;
    _Year := 0;
-   _DayOfWeek := 0;
+   _DayOfWeek := UnknownDay;
    _DayOfWeekDirty := FALSE;
    _UTCBias := 0;
    _DSTBias := 0;
@@ -2026,11 +2475,9 @@ END NowUTC;
 
 INITIALLY __I();
 BEGIN
-   LastTicks := 0;
-   LastTimeMS64 := 0;
    ZoneInfoUpdated := 0;
    TimeLock.Init( Sync.ltSpin, L"", FALSE );
-   InitHiResTimer();
+   InitHRTime();
 END __I;
 
 (*================================================================================================*)

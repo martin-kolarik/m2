@@ -2,13 +2,8 @@
     xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
 
     <PropertyGroup>
-        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
-        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
-        <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
-        <Language Condition="$(Language)==''">English</Language>
         <CLib>Static</CLib>
         <Result>Static</Result>
-        <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='libexp'">

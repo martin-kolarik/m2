@@ -43,27 +43,27 @@ TYPE
   PBOOL   = POINTER TO BOOL;
 
   INT     = INTEGER;
-  PINT    = POINTER TO INTEGER;
+  PINT    = POINTER TO INT;
 
   LONG    = LONGINT;
   PLONG   = POINTER TO LONG;
 
-  SHORT   = SHORTINT;
-  PSHORT  = POINTER TO SHORTINT;
+  SHORT   = INT16;
+  PSHORT  = POINTER TO SHORT;
 
   UINT    = CARDINAL;
-  PUINT   = POINTER TO CARDINAL;
+  PUINT   = POINTER TO UINT;
 
   ULONG   = LONGCARD;
   PULONG  = POINTER TO ULONG;
 
-  USHORT  = SHORTCARD;
+  USHORT  = CARD16;
   PUSHORT = POINTER TO USHORT;
 
   UCHAR   = CHAR;
   PUCHAR  = POINTER TO UCHAR;
 
-  // WCHAR   = SHORTCARD;   // UNICODE two byte character -- defined in m2defs.h as wchar_t
+  // WCHAR   = USHORT;   // UNICODE two byte character -- defined in m2defs.h as wchar_t
   // PWCHAR  = POINTER TO WCHAR;
 
   DWORD   = LONGWORD;
@@ -80,8 +80,10 @@ TYPE
   LPCVOID  = ADDRESS;
   PPVOID  = POINTER TO ADDRESS;
 
+  PULARGE_INTEGER = POINTER TO ULARGE_INTEGER;
+
 // from BASETSD.H
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
   INT_PTR         = PTR;
   PINT_PTR        = POINTER TO INT_PTR;
   UINT_PTR        = PTR;
@@ -338,13 +340,15 @@ TYPE
 
   LARGE_INTEGER = RECORD
     CASE : CARDINAL OF
-    | 0: d0, d1 : DWORD;
-    | 1: w0, w1, w2, w3 : WORD;
-    | 2: b0, b1, b2, b3, b4, b5, b6, b7 : BYTE;
+    | 0: QuadPart : INT64;
+    | 1: d0, d1 : DWORD;
+    | 2: w0, w1, w2, w3 : WORD;
+    | 3: b0, b1, b2, b3, b4, b5, b6, b7 : BYTE;
     END;
   END;
-  LUID          = LARGE_INTEGER;
-  PLUID         = POINTER TO LUID;
+  LUID = LARGE_INTEGER;
+  PLARGE_INTEGER = POINTER TO LARGE_INTEGER;
+  PLUID = POINTER TO LUID;
 
 CONST
 
@@ -1425,7 +1429,7 @@ CONST
 // Use #999 here (0x3E7 = 999)
 *)
 
-  SYSTEM_LUID = LUID_AND_ATTRIBUTES( LUID( 0, 03E7H, 0 ), DWORD( 0 ));
+  SYSTEM_LUID = LUID_AND_ATTRIBUTES( LUID( 0, 03E7H ), DWORD( 0 ));
 
 (*
 // end_ntifs
@@ -2295,7 +2299,7 @@ TYPE
   END;
   PMESSAGE_RESOURCE_DATA = POINTER TO MESSAGE_RESOURCE_DATA;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 TYPE
   CRITICAL_SECTION  = RECORD
                         LockCount   : CARDINAL; //* Nesting count on critical section */
@@ -3568,7 +3572,7 @@ PROCEDURE DisableThreadLibraryCalls(
     hLibModule : HMODULE
     ): BOOL;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 PROCEDURE GetProcAddress(
     hModule : HMODULE;
     lpProcName : PCWSTR
@@ -3746,14 +3750,14 @@ PROCEDURE HeapDestroy(
 PROCEDURE HeapAlloc(
     hHeap : HANDLE;
     dwFlags : DWORD;
-    dwBytes : DWORD
+    dwBytes : TSIZE
     ): PVOID;
 
 PROCEDURE HeapReAlloc(
     hHeap : HANDLE;
     dwFlags : DWORD;
     lpMem : PVOID;
-    dwBytes : DWORD
+    dwBytes : TSIZE
     ): PVOID;
 
 PROCEDURE HeapFree(
@@ -3766,7 +3770,7 @@ PROCEDURE HeapSize(
     hHeap : HANDLE;
     dwFlags : DWORD;
     lpMem : LPCVOID
-    ): DWORD;
+    ): TSIZE;
 
 PROCEDURE HeapValidate(
     hHeap : HANDLE;
@@ -4245,6 +4249,11 @@ PROCEDURE GetFileSize(
     lpFileSizeHigh : PDWORD
     ): DWORD;
 
+PROCEDURE GetFileSizeEx(
+    hFile : HANDLE;
+    lpFileSize : PLARGE_INTEGER
+    ): BOOL;
+
 PROCEDURE GetStdHandle(
     nStdHandle : DWORD
     ): HANDLE;
@@ -4295,6 +4304,13 @@ PROCEDURE SetFilePointer(
     lpDistanceToMoveHigh : PLONG;
     dwMoveMethod : DWORD
     ): DWORD;
+
+PROCEDURE SetFilePointerEx(
+    hFile : HANDLE;
+    lDistanceToMove : LARGE_INTEGER;
+    lpNewPointer : PLARGE_INTEGER;
+    dwMoveMethod : DWORD
+    ): BOOL;
 
 PROCEDURE FindClose(
     hFindFile : HANDLE
@@ -5147,7 +5163,7 @@ CONST
 
 TYPE
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
   WIN32_FIND_DATAA = RECORD         // only due to prototypes compilation
     dwFileAttributes  : DWORD;
     ftCreationTime    : FILETIME;
@@ -5376,7 +5392,7 @@ PROCEDURE CreateProcessA(
     bInheritHandles : BOOL;
     dwCreationFlags : DWORD;
     lpEnvironment : PVOID;
-  #if PlatformName #startswith L"WinCE" #then
+  #if Platform #startswith L"WinCE" #then
     lpCurrentDirectory : PSTR;
   #else
     lpCurrentDirectory : PCSTR;
@@ -5393,7 +5409,7 @@ PROCEDURE CreateProcessW(
     bInheritHandles : BOOL;
     dwCreationFlags : DWORD;
     lpEnvironment : PVOID;
-  #if PlatformName #startswith L"WinCE" #then
+  #if Platform #startswith L"WinCE" #then
     lpCurrentDirectory : PWSTR;
   #else
     lpCurrentDirectory : PCWSTR;
@@ -5824,6 +5840,13 @@ PROCEDURE GetDiskFreeSpace(
     lpNumberOfFreeClusters : PDWORD;
     lpTotalNumberOfClusters : PDWORD
     ): BOOL;
+
+PROCEDURE GetDiskFreeSpaceExW(
+  lpDirectoryName : PCWSTR;
+  lpFreeBytesAvailable : PULARGE_INTEGER;
+  lpTotalNumberOfBytes : PULARGE_INTEGER;
+  lpTotalNumberOfFreeBytes : PULARGE_INTEGER
+) : BOOL;
 
 PROCEDURE CreateDirectory(
     lpPathName : PCTSTR;
@@ -6960,7 +6983,7 @@ PROCEDURE SetSystemPowerState(
     ): BOOL;
 
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 // This is an extension to 'winbase.h' header.
 // Original 'winver.h' header is not present in any WinCE SDK platform.
 // Some functions are replaced by the same prototypes from 'winbase.h'.
@@ -8596,19 +8619,19 @@ TYPE
     dmSize : WORD;
     dmDriverExtra : WORD;
     dmFields : DWORD;
-    dmOrientation : SHORTINT;
-    dmPaperSize : SHORTINT;
-    dmPaperLength : SHORTINT;
-    dmPaperWidth : SHORTINT;
-    dmScale : SHORTINT;
-    dmCopies : SHORTINT;
-    dmDefaultSource : SHORTINT;
-    dmPrintQuality : SHORTINT;
-    dmColor : SHORTINT;
-    dmDuplex : SHORTINT;
-    dmYResolution : SHORTINT;
-    dmTTOption : SHORTINT;
-    dmCollate : SHORTINT;
+    dmOrientation : SHORT;
+    dmPaperSize : SHORT;
+    dmPaperLength : SHORT;
+    dmPaperWidth : SHORT;
+    dmScale : SHORT;
+    dmCopies : SHORT;
+    dmDefaultSource : SHORT;
+    dmPrintQuality : SHORT;
+    dmColor : SHORT;
+    dmDuplex : SHORT;
+    dmYResolution : SHORT;
+    dmTTOption : SHORT;
+    dmCollate : SHORT;
     dmFormName : ARRAY [ 0..CCHFORMNAME-1 ] OF BYTE;
     dmLogPixels : WORD;
     dmBitsPerPel : DWORD;
@@ -8909,7 +8932,7 @@ TYPE
 
   FIXED = RECORD
     fract : WORD;
-    value : SHORTINT;
+    value : SHORT;
   END;
 
   MAT2 = RECORD
@@ -8924,8 +8947,8 @@ TYPE
     gmBlackBoxX : UINT;
     gmBlackBoxY : UINT;
     gmptGlyphOrigin : POINT;
-    gmCellIncX : SHORTINT;
-    gmCellIncY : SHORTINT;
+    gmCellIncX : SHORT;
+    gmCellIncY : SHORT;
   END;
   PGLYPHMETRICS = POINTER TO GLYPHMETRICS;
 
@@ -9030,9 +9053,9 @@ TYPE
   PGCP_RESULTS = POINTER TO GCP_RESULTSA;
 
   RASTERIZER_STATUS = RECORD
-    nSize : SHORTINT;
-    wFlags : SHORTINT;
-    nLanguageID : SHORTINT;
+    nSize : SHORT;
+    wFlags : SHORT;
+    nLanguageID : SHORT;
   END;
   PRASTERIZER_STATUS = POINTER TO RASTERIZER_STATUS;
 
@@ -10695,7 +10718,7 @@ TYPE
 
   WNDPROC           = PROCEDURE( HWND, UINT, WPARAM, LPARAM ): LRESULT;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
   DLGPROC           = PROCEDURE( HWND, UINT, WPARAM, LPARAM ): BOOL;
   GRAYSTRINGPROC    = PROCEDURE( HDC, LPARAM, INTEGER ): BOOL;
   WNDENUMPROC       = PROCEDURE( HWND, LPARAM ): BOOL;
@@ -11441,7 +11464,7 @@ TYPE (* Window CLASS structure *)
         { (pt).x = (LONG)(SHORT)LOWORD(*(LONG*)&pts);   \
           (pt).y = (LONG)(SHORT)HIWORD(*(LONG*)&pts); }
 
-#define POINTTOPOINTS(pt)      (MAKELONG((SHORTINT)((pt).x), (SHORTINT)((pt).y)))
+#define POINTTOPOINTS(pt)      (MAKELONG((SHORT)((pt).x), (SHORT)((pt).y)))
 #define MAKEWPARAM(l, h)      (WPARAM)MAKELONG(l, h)
 #define MAKEPARAM(l, h)      (LPARAM)MAKELONG(l, h)
 #define MAKELRESULT(l, h)     (LRESULT)MAKELONG(l, h)
@@ -11459,13 +11482,13 @@ CONST
 (*
  * Window field offsets for GetWindowLong()
  *)
-  GWL_WNDPROC         = -4;
-  GWL_HINSTANCE       = -6;
-  GWL_HWNDPARENT      = -8;
+  GWLP_WNDPROC         = -4;
+  GWLP_HINSTANCE       = -6;
+  GWLP_HWNDPARENT      = -8;
   GWL_STYLE           = -16;
   GWL_EXSTYLE         = -20;
-  GWL_USERDATA        = -21;
-  GWL_ID              = -12;
+  GWLP_USERDATA        = -21;
+  GWLP_ID              = -12;
 
 (*
  * Class field offsets for GetClassLong()
@@ -11635,6 +11658,12 @@ CONST
   WM_NCMBUTTONUP                  = 000A8H;
   WM_NCMBUTTONDBLCLK              = 000A9H;
 
+  WM_NCXBUTTONDOWN                = 000ABH;
+  WM_NCXBUTTONUP                  = 000ACH;
+
+  WM_INPUT_DEVICE_CHANGE          = 000FEH;
+  WM_INPUT                        = 000FFH;
+
   WM_KEYFIRST                     = 00100H;
   WM_KEYDOWN                      = 00100H;
   WM_KEYUP                        = 00101H;
@@ -11686,7 +11715,10 @@ CONST
   WHEEL_DELTA                     = 120;
 
   WM_MOUSEWHEEL                   = 0020AH;
-  WM_MOUSELAST                    = 0020AH;
+
+  WM_XBUTTONDOWN                  = 0020BH;
+  WM_XBUTTONUP                    = 0020CH;
+  WM_XBUTTONDBLCLK                = 0020DH;
 
   WM_PARENTNOTIFY                 = 00210H;
   MENULOOP_WINDOW                 = 0;
@@ -11695,6 +11727,9 @@ CONST
   WM_EXITMENULOOP                 = 00212H;
 
   WM_NEXTMENU                     = 00213H;
+
+  XBUTTON1                        = 00001H;
+  XBUTTON2                        = 00002H;
 
 TYPE
 
@@ -12980,10 +13015,10 @@ TYPE
     style : DWORD;
     dwExtendedStyle : DWORD;
     cdit : WORD;
-    x : SHORTINT;
-    y : SHORTINT;
-    cx : SHORTINT;
-    cy : SHORTINT;
+    x : SHORT;
+    y : SHORT;
+    cx : SHORT;
+    cy : SHORT;
   END;
   PDLGTEMPLATE = POINTER TO DLGTEMPLATE;
   PCDLGTEMPLATE = PDLGTEMPLATE;
@@ -12994,10 +13029,10 @@ TYPE
   DLGITEMTEMPLATE = RECORD
     style : DWORD;
     dwExtendedStyle : DWORD;
-    x : SHORTINT;
-    y : SHORTINT;
-    cx : SHORTINT;
-    cy : SHORTINT;
+    x : SHORT;
+    y : SHORT;
+    cx : SHORT;
+    cy : SHORT;
     id : WORD;
   END;
   PDLGITEMTEMPLATE = POINTER TO DLGITEMTEMPLATE;
@@ -13756,7 +13791,7 @@ PROCEDURE DrawMenuBar(
     hWnd : HWND
     ): BOOL;
 
-#if PlatformName #startswith L"WinCE" #then
+#if Platform #startswith L"WinCE" #then
 // #define GetSystemMenu(hwnd, bRevert)    ((HMENU)(hwnd))
 (*# save, call( macro => on ) *)
 PROCEDURE GetSystemMenu( hWns : HWND; bRevert : BOOL ): HMENU;
@@ -16819,5 +16854,230 @@ PROCEDURE EnumDisplayMonitors(
     dwData   : LPARAM ): BOOL;
 
 //#endif /* WINVER >= 0x0500 */
+
+(*============================================================*)
+// Raw Input Messages
+(*============================================================*)
+
+CONST
+   RIM_INPUT = 0;
+   RIM_INPUTSINK = 1;
+
+TYPE
+   RAWINPUTHEADER = RECORD
+      dwType : DWORD;
+      dwSize : DWORD;
+      hDevice : HANDLE;
+      wParam : WPARAM;
+   END; // RECORD
+   PRAWINPUTHEADER = POINTER TO RAWINPUTHEADER;
+
+CONST
+   RIM_TYPEMOUSE = 0;
+   RIM_TYPEKEYBOARD = 1;
+   RIM_TYPEHID = 2;
+
+TYPE
+   RAWMOUSE = RECORD
+      usFlags : USHORT;
+      CASE : CARDINAL OF
+      | 0 : ulButtons : ULONG;
+      | 1 : usButtonFlags : USHORT;
+            usButtonData : USHORT;
+      END; // CASE
+      ulRawButtons : ULONG;
+      lLastX : LONG;
+      lLastY : LONG;
+      ulExtraInformation : ULONG;
+   END; // RECORD
+   PRAWMOUSE = POINTER TO RAWMOUSE;
+
+CONST
+   RI_MOUSE_LEFT_BUTTON_DOWN = 0001H;  // Left Button changed to down.
+   RI_MOUSE_LEFT_BUTTON_UP = 0002H;  // Left Button changed to up.
+   RI_MOUSE_RIGHT_BUTTON_DOWN = 0004H;  // Right Button changed to down.
+   RI_MOUSE_RIGHT_BUTTON_UP = 0008H;  // Right Button changed to up.
+   RI_MOUSE_MIDDLE_BUTTON_DOWN = 0010H;  // Middle Button changed to down.
+   RI_MOUSE_MIDDLE_BUTTON_UP = 0020H;  // Middle Button changed to up.
+
+   RI_MOUSE_BUTTON_1_DOWN = RI_MOUSE_LEFT_BUTTON_DOWN;
+   RI_MOUSE_BUTTON_1_UP = RI_MOUSE_LEFT_BUTTON_UP;
+   RI_MOUSE_BUTTON_2_DOWN = RI_MOUSE_RIGHT_BUTTON_DOWN;
+   RI_MOUSE_BUTTON_2_UP = RI_MOUSE_RIGHT_BUTTON_UP;
+   RI_MOUSE_BUTTON_3_DOWN = RI_MOUSE_MIDDLE_BUTTON_DOWN;
+   RI_MOUSE_BUTTON_3_UP = RI_MOUSE_MIDDLE_BUTTON_UP;
+
+   RI_MOUSE_BUTTON_4_DOWN = 0040H;
+   RI_MOUSE_BUTTON_4_UP = 0080H;
+   RI_MOUSE_BUTTON_5_DOWN = 0100H;
+   RI_MOUSE_BUTTON_5_UP = 0200H;
+
+   RI_MOUSE_WHEEL = 0400H;
+
+   MOUSE_MOVE_RELATIVE = 0;
+   MOUSE_MOVE_ABSOLUTE = 1;
+   MOUSE_VIRTUAL_DESKTOP = 02H;  // the coordinates are mapped to the virtual desktop
+   MOUSE_ATTRIBUTES_CHANGED = 04H;  // requery for mouse attributes
+   MOUSE_MOVE_NOCOALESCE = 08H;  // do not coalesce mouse moves
+
+TYPE
+   RAWKEYBOARD = RECORD
+      MakeCode : USHORT;
+      Flags : USHORT;
+      Reserved : USHORT;
+      VKey : USHORT;
+      Message : UINT;
+      ExtraInformation : ULONG;
+   END; // RECORD
+   PRAWKEYBOARD = POINTER TO RAWKEYBOARD;
+
+CONST
+   KEYBOARD_OVERRUN_MAKE_CODE = 0FFH;
+   RI_KEY_MAKE = 0;
+   RI_KEY_BREAK = 1;
+   RI_KEY_E0 = 2;
+   RI_KEY_E1 = 4;
+   RI_KEY_TERMSRV_SET_LED = 8;
+   RI_KEY_TERMSRV_SHADOW = 10H;
+
+TYPE
+   RAWHID = RECORD
+      dwSizeHid : DWORD;    // byte size of each report
+      dwCount : DWORD;      // number of input packed
+      bRawData : PBYTE;
+   END; // RECORD
+   PRAWHID = POINTER TO RAWHID;
+
+   RAWINPUT = RECORD
+      header : RAWINPUTHEADER;
+      data : RECORD
+         CASE : CARDINAL OF
+         | 0 : mouse : RAWMOUSE;
+         | 1 : keyboard : RAWKEYBOARD;
+         | 2 : hid : RAWHID;
+         END; // CASE
+      END; // RECORD
+   END; // RECORD
+   PRAWINPUT = POINTER TO RAWINPUT;
+
+CONST
+   RID_INPUT = 010000003H;
+   RID_HEADER = 010000005H;
+
+PROCEDURE GetRawInputData(
+   hRawInput : HANDLE;
+   uiCommand : UINT;
+   pData : PVOID;
+   pcbSize : PUINT;
+   cbSizeHeader : UINT ) : UINT;
+
+CONST
+   RIDI_PREPARSEDDATA = 20000005H;
+   RIDI_DEVICENAME = 20000007H;  // the return valus is the character length, not the byte size
+   RIDI_DEVICEINFO = 2000000BH;
+
+TYPE
+   RID_DEVICE_INFO_MOUSE = RECORD
+      dwId : DWORD;
+      dwNumberOfButtons : DWORD;
+      dwSampleRate : DWORD;
+      fHasHorizontalWheel : BOOL;
+   END; // RECORD
+   PRID_DEVICE_INFO_MOUSE = POINTER TO RID_DEVICE_INFO_MOUSE;
+
+   RID_DEVICE_INFO_KEYBOARD = RECORD
+      dwType : DWORD;
+      dwSubType : DWORD;
+      dwKeyboardMode : DWORD;
+      dwNumberOfFunctionKeys : DWORD;
+      dwNumberOfIndicators : DWORD;
+      dwNumberOfKeysTotal : DWORD;
+   END; // RECORD
+   PRID_DEVICE_INFO_KEYBOARD = POINTER TO RID_DEVICE_INFO_KEYBOARD;
+
+   RID_DEVICE_INFO_HID = RECORD
+      dwVendorId : DWORD;
+      dwProductId : DWORD;
+      dwVersionNumber : DWORD;
+      usUsagePage : USHORT;
+      usUsage : USHORT;
+   END; // RECORD
+   PRID_DEVICE_INFO_HID = POINTER TO RID_DEVICE_INFO_HID;
+
+   RID_DEVICE_INFO = RECORD
+      cbSize : DWORD;
+      dwType : DWORD;
+      CASE : CARDINAL OF
+      | 0 : mouse : RID_DEVICE_INFO_MOUSE;
+      | 1 : keyboard : RID_DEVICE_INFO_KEYBOARD;
+      | 2 : hid : RID_DEVICE_INFO_HID;
+      END; // CASE
+   END; // RECORD
+   PRID_DEVICE_INFO = POINTER TO RID_DEVICE_INFO;
+
+PROCEDURE GetRawInputDeviceInfoW(
+    hDevice : HANDLE;
+    uiCommand : UINT;
+    pData : PVOID;
+    pcbSize : PUINT ) : UINT;
+
+PROCEDURE GetRawInputBuffer(
+    pData : PRAWINPUT;
+    pcbSize : PUINT;
+    cbSizeHeader : UINT ) : UINT;
+
+TYPE
+   RAWINPUTDEVICE = RECORD
+      usUsagePage : USHORT; // Toplevel collection UsagePage
+      usUsage : USHORT;     // Toplevel collection Usage
+      dwFlags : DWORD;
+      hwndTarget : HWND;    // Target hwnd. NULL = follows keyboard focus
+   END; // RECORD
+   PRAWINPUTDEVICE = POINTER TO RAWINPUTDEVICE;
+   PCRAWINPUTDEVICE = POINTER TO CONST RAWINPUTDEVICE;
+
+CONST
+   RIDEV_REMOVE = 00000001H;
+   RIDEV_EXCLUDE = 00000010H;
+   RIDEV_PAGEONLY = 00000020H;
+   RIDEV_NOLEGACY = 00000030H;
+   RIDEV_INPUTSINK = 00000100H;
+   RIDEV_CAPTUREMOUSE = 00000200H; // effective when mouse nolegacy is specified, otherwise it would be an error
+   RIDEV_NOHOTKEYS = 00000200H; // effective for keyboard.
+   RIDEV_APPKEYS = 00000400H; // effective for keyboard.
+   RIDEV_EXINPUTSINK = 00001000H;
+   RIDEV_DEVNOTIFY = 00002000H;
+   RIDEV_EXMODEMASK = 000000F0H;
+
+CONST
+   GIDC_ARRIVAL = 1;
+   GIDC_REMOVAL = 2;
+
+PROCEDURE RegisterRawInputDevices(
+    pRawInputDevices : PCRAWINPUTDEVICE;
+    uiNumDevices : UINT;
+    cbSize : UINT ) : BOOL;
+
+PROCEDURE GetRegisteredRawInputDevices(
+    pRawInputDevices : PRAWINPUTDEVICE;
+    puiNumDevices : PUINT;
+    cbSize : UINT ) : UINT;
+
+TYPE
+   RAWINPUTDEVICELIST = RECORD
+      hDevice : HANDLE;
+      dwType : DWORD;
+   END; // RECORD
+   PRAWINPUTDEVICELIST = POINTER TO RAWINPUTDEVICELIST;
+
+PROCEDURE GetRawInputDeviceList(
+    pRawInputDeviceList : PRAWINPUTDEVICELIST;
+    puiNumDevices : PUINT;
+    cbSize : UINT ) : UINT;
+
+PROCEDURE DefRawInputProc(
+    paRawInput : POINTER TO PRAWINPUT;
+    nInput : INT;
+    cbSizeHeader : UINT ) : LRESULT;
 
 END windows.

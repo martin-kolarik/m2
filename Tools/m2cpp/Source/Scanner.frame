@@ -2,7 +2,6 @@
 IMPLEMENTATION MODULE Scanner;
 
 IMPORT
-  time,
   winerror;
 
 FROM Storage IMPORT
@@ -11,7 +10,7 @@ FROM Storage IMPORT
 IMPORT
   Storage,
   Strings,
-  time;
+  datetime;
 -->namespace
 //============================================================
 
@@ -46,7 +45,7 @@ CLASS IMPLEMENTATION CBuffer;
   PROCEDURE Open( File : FIO.File ) : CARDINAL;
   BEGIN
     HFile := File;
-    FileLen := FIO.Size( HFile );
+    FileLen := CARDINAL( FIO.Size( HFile ));
     U := FIO.IsUnicodeFile( HFile );
     IF U THEN
       FileLen := FileLen DIV 2;
@@ -120,9 +119,9 @@ CLASS IMPLEMENTATION CBuffer;
   PROCEDURE GetString( From, To : CARDINAL; OUT S : StringsO.CString );
   BEGIN
     IF U THEN
-      S.FromOA( OA( To - From, PWCHAR( PBuffer@[From<<1] )));
+      S.FromOA( OA( CARDINAL( To - From ), PWCHAR( PBuffer@[From<<1] )));
     ELSE
-      S.FromOAA( 0, OA( To - From, PCHAR( PBuffer@[From] )));
+      S.FromOAA( 0, OA( CARDINAL( To - From ), PCHAR( PBuffer@[From] )));
     END;
   END GetString;
 
@@ -133,8 +132,8 @@ CLASS IMPLEMENTATION CBuffer;
 
   PROCEDURE SetPos( Pos : CARDINAL );
   BEGIN
-    IF Pos > FileLen THEN
-      CharPos := FileLen;
+    IF Pos > CARDINAL( FileLen ) THEN
+      CharPos := CARDINAL( FileLen );
     ELSE
       CharPos := Pos;
     END;
@@ -153,7 +152,7 @@ END CBuffer;
 
 CLASS IMPLEMENTATION CScanner;
 
-  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : time.DateTime ) : CARDINAL;
+  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : datetime.DateTime ) : CARDINAL;
   VAR
     HFile : FIO.File;
     R : CARDINAL;

@@ -1,0 +1,158 @@
+DEFINITION MODULE KnxSvcWeb;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   accesslist,
+   datetime,
+   inetaddr,
+   INIfile,
+   io,
+   knxcore,
+   lec,
+   lists,
+   Log,
+   maps,
+   mvc,
+   StringsO,
+   threadcall;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TRole = (
+      roleGuest,
+      roleSystemUser,
+      roleSystemAdministrator,
+      roleUserNamed,
+      roleUserKeyed
+   );
+
+TYPE
+   TPKnxSvcWeb = POINTER TO CKnxSvcWeb;
+
+CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureCallTarget;
+
+   // IKNXServerSink
+   PUBLIC VIRTUAL PROCEDURE OnConnect();
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect();
+   PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : knxcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : knxcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
+   
+   // IThreadProcedureCallTarget
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+
+   // Client interface
+   PUBLIC READONLY PROPERTY
+      RootDir : StringsO.TPString;
+      Connected : BOOLEAN;
+      CacheOnlyMode : BOOLEAN;
+      StartedTime : datetime.DayCount;
+      ConnectedTime : datetime.DayCount;
+      DisconnectedTime : datetime.DayCount;
+      LicenceExpires : datetime.DateTime;
+      LicenceType : lec.TLicenceType;
+      Connection : StringsO.CString;
+      WrittenByHour : CARDINAL;
+      WrittenByDay : CARDINAL;
+      ReadByHour : CARDINAL;
+      ReadByDay : CARDINAL;
+      OperatedDeviceCount : CARDINAL;
+      ConfigLogger : Log.TPBufferedLogger;
+      DataLogger : Log.TPBufferedLogger;
+      DefaultDataContext : StringsO.CString;
+      
+   PUBLIC PROCEDURE ConnectKNX();
+   PUBLIC PROCEDURE DisconnectKNX();
+   PUBLIC PROCEDURE ConfigureKNX( CONST ConfigFilePath : StringsO.CString );
+   
+   PUBLIC PROCEDURE OperatedDeviceName( index : CARDINAL ) : PWCHAR;
+   PUBLIC PROCEDURE OperateDevice( index : CARDINAL; StartNotStop : BOOLEAN );
+   PUBLIC PROCEDURE DeviceRunning( index : CARDINAL ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE SetValue( CONST originator : inetaddr.INETADDR; CONST name, value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetWixValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString; OUT Role : StringsO.IString ) : TRole; // name can be empty if only a number is required for the password
+   
+   // roles and users
+   PUBLIC READONLY PROPERTY
+      RolesCount : CARDINAL;
+      UsersCount : CARDINAL;
+   PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT userName, roleName : StringsO.IString ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE CheckRenameRoleConflict( CONST currentName, roleName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
+   PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
+   PUBLIC PROCEDURE DeleteRole( CONST roleName : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE CheckRenameUserConflict( CONST currentName, userName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
+   PUBLIC PROCEDURE UpdateUser( CONST currentName, userName, roleName, password : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString ) : BOOLEAN;
+   
+   // SELF
+   PRIVATE VAR
+      _Context : StringsO.CString;
+      _RootDir : StringsO.CString;
+      _MessageFile : StringsO.CString;
+      _Result : lec.TPResult;
+      _KNX : knxcore.TPKNXServer;
+      _MVC : mvc.TPMVC;
+      _Port : CARDINAL;
+      _SessionValidity : CARDINAL; // in seconds, 30 minutes by default
+      _Running : BOOLEAN;
+      _Controller : mvc.TPController;
+      _DeviceCount : CARDINAL;
+      _DeviceNames : POINTER TO ARRAY [0..0] OF PWCHAR;
+      _Devices : POINTER TO ARRAY [0..0] OF io.TPStartStopControl;
+      _ConfigLogger : Log.TPBufferedLogger;
+      _DataLogger : Log.TPBufferedLogger;
+      _HttpLogger : Log.TPILogger;
+      _Roles : maps.CStringPtrMap;
+      _SysUsers : lists.CStringList;
+      _Users : maps.CStringStringMap;
+      _Lock : Sync.RWLOCK;
+      _AccessList : accesslist.CAccessList;
+      _DataSource : device.TPDataSource;
+      _DefaultDataContext : StringsO.CString;
+      
+      _StartedTime : datetime.DayCount;
+      _Connected : BOOLEAN;
+      _ConnectedTime : datetime.DayCount;
+      _DisconnectedTime : datetime.DayCount;
+      _WrittenByHourModified : ARRAY [0..23] OF datetime.DayCount;
+      _WrittenByHour : ARRAY [0..23] OF CARDINAL;
+      _GotByHourModified : ARRAY [0..23] OF datetime.DayCount;
+      _GotByHour : ARRAY [0..23] OF CARDINAL;
+
+   PUBLIC PROCEDURE Init(
+      CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile;
+      Result : lec.TPResult; DataSource : device.TPDataSource; KNX : knxcore.TPKNXServer;
+      DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPStartStopControl;
+      ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
+   
+   PUBLIC READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC PROCEDURE Run();
+   PUBLIC PROCEDURE Stop();
+   
+   // PRIVATE
+   PRIVATE PROCEDURE LoadWebUsers() : BOOLEAN;
+   PRIVATE PROCEDURE PersistUsers();
+
+   PRIVATE PROCEDURE AddControllers();
+   PRIVATE PROCEDURE RemoveControllers();
+
+   PRIVATE PROCEDURE AdjustHours( CONST dt : datetime.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF datetime.DayCount );
+
+END CKnxSvcWeb;
+
+(*================================================================================*)
+
+END KnxSvcWeb.

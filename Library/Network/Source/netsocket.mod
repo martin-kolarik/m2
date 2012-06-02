@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE netsocket;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    winsock;
@@ -679,6 +679,7 @@ CLASS IMPLEMENTATION SSocket;
 
   INTERNAL PROCEDURE MulticastJoin() : CARDINAL;
   VAR
+    loopback : CARDINAL;
     MReq : WS2TcpIp.ip_mreq;
     res : CARDINAL;
     ttl : CARDINAL;
@@ -700,7 +701,13 @@ CLASS IMPLEMENTATION SSocket;
     END;
 
     ttl := 32; // the same site
-    RETURN winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_MULTICAST_TTL, windows.PSTR( ADR( ttl )), SIZE( ttl ));
+    res := winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_MULTICAST_TTL, windows.PSTR( ADR( ttl )), SIZE( ttl ));
+    IF res <> 0 THEN
+      RETURN res;
+    END;
+
+    loopback := 0; // false
+    RETURN winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_MULTICAST_LOOP, windows.PSTR( ADR( loopback )), SIZE( loopback ));
   END MulticastJoin;
 
 (*--------------------------------------------------------------------------------*)
@@ -931,7 +938,7 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
       Addr : inetaddr.INETADDR;
       LPending : TPendingOperation;
@@ -955,7 +962,7 @@ CLASS IMPLEMENTATION DSocket;
       SELF.Result := Sync.arUnknown;
       _HSignal.Reset();
 
-      NumericAddress := Addr.FromOA( Server, 0 );
+      NumericAddress := Addr.FromOA( Server, DefaultPort );
       IF NumericAddress THEN // we know where to connect immediatelly
          _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
          Remote := Addr;
@@ -983,7 +990,7 @@ CLASS IMPLEMENTATION DSocket;
          END;
 
          AddRef(); // allow DNS finish after my Release
-         dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, 0, OUT ResolveAddr );
+         dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, DefaultPort, OUT ResolveAddr );
          // now, wait for DNS and connect after its response
       END;
 

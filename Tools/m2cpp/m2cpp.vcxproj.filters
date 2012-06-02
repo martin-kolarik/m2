@@ -1,0 +1,181 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{b44a576b-a4ed-48c1-aa87-b1473cfe1ca6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\Console.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\DOM.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Generator.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\m2cpp.grammar">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Parser.frame">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Program.MOD">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Project.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Scanner.frame">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Types.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\Console.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\DOM.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Generator.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Parser.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Project.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Scanner.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\Types.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\err.xrs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Source\wrn.xrs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Test\accessingstructuredconsts.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\accessingstructuredconsts2.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\asserts.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\assignstructuredconst.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\assigntooa.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\classcomparemembers.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\classinnerconstandtype.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\conststringadd.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\dllexport.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\forwardtypes.def">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\gettingpropertyfromconstparameter.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\implements.def">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\inheritancemodifiers.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\inheritedinterfaces.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\interfaceaccessing.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\interfacecompatibility.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\longsets.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\nestedtypes.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\opaqueindef.def">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\operatoris.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\pragmaif.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\propertiestry.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\RangeTypes.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\selfsuperetc.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\SetOfTypes.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\structuredvar.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\tristate.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\try.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\withtorefclass.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="m2cpp.definition.proj" />
+    <None Include="m2cpp.proj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Modula2\modula2\Header\m2cpp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Modula2\modula2\Header\m2intrinsic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Modula2\modula2\Header\m2leak.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Modula2\modula2\Header\m2init.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -595,14 +595,11 @@
         <string name="_MissingDEALLOCATEForDISPOSE">
             <item>DEALLOCATE for DISPOSE is not imported</item>
         </string>
-        <string name="_MissingAssertion">
-            <item>Assertion for ASSERT/ASSERTLOG is not imported</item>
+        <string name="_MissingAssertionA">
+            <item>AssertionA for ASSERTLOG is not imported</item>
         </string>
-        <string name="_MissingLogAssertionA">
-            <item>LogAssertionA for ASSERTLOG is not imported</item>
-        </string>
-        <string name="_MissingLogAssertionW">
-            <item>LogAssertionW for ASSERTLOG is not imported</item>
+        <string name="_MissingAssertionW">
+            <item>AssertionW for ASSERT/ASSERTLOG is not imported</item>
         </string>
         <string name="_ExpectedSetType">
             <item>Expected set type</item>
@@ -653,6 +650,20 @@
         <string name="_COMCanInheritOnlyCOM">
             <item>COM interface can be inherited only from another COM interface</item>
         </string>
+
+        <string name="_CannotInheritINTERFACEItIsImplicit">
+            <item>Cannot inherit INTERFACE, the type is symbolic</item>
+        </string>
+        <string name="_ClassCannotInheritINTERFACE">
+            <item>Class cannot inherit INTERFACE</item>
+        </string>
+        <string name="_CannotInheritOBJECT">
+            <item>Interface cannot inherit OBJECT</item>
+        </string>
+        <string name="_ClassCannotInheritObjectItIsImplicit">
+            <item>Cannot inherit OBJECT, the type is symbolic</item>
+        </string>
+
         <string name="_IMPLEMENTSCannotUseCOMInterfaces">
             <item>IMPLEMENTS clause cannot be used for COM interfaces</item>
         </string>

@@ -3,9 +3,9 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>SMTP Client</FileDescription>
-        <FileVersionMajor>1</FileVersionMajor>
-        <FileVersionMinor>0</FileVersionMinor>
+        <ProjectDescription>SMTP Client</ProjectDescription>
+        <ProjectVersionMajor>1</ProjectVersionMajor>
+        <ProjectVersionMinor>0</ProjectVersionMinor>
     </PropertyGroup>
 
     <!-- 2 -->
@@ -15,8 +15,8 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Modula2\m2rtl;Library\ADT;Library\Threading;Library\Text;Library\Network"/>
-        <Modules Include="MailMessage;SMTPSender"/>
+        <Components Include="Component\sccore;Library\MIME"/>
+        <Modules Include="SMTPTools;MailPerson;MailMessage;PersonsImpl;SMTPSender"/>
     </ItemGroup>
 
     <!-- 4 -->

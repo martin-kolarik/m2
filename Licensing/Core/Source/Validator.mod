@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   collection,
    Defs,
    hash,
    rijndael,
@@ -89,13 +90,12 @@ CLASS IMPLEMENTATION Validator;
 
    LOCAL PROCEDURE Unregister( CONST Data : ADDRESS );
    VAR
-      Item : TPItem;
+      it : lists.CBufferListIterator;
    BEGIN
-      Items.Reset();
-      WHILE Items.MoveNext() DO
-         Item := TPItem( Items.Current^.Data );
-         IF Item^.Address = Data THEN
-            Items.Delete( Items.CListWState.Current );
+      it.Init( Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         IF it.Value^.Data = Data THEN
+            Items.Delete( it.Current );
             RETURN;
          END;
       END; // WHILE
@@ -106,15 +106,16 @@ CLASS IMPLEMENTATION Validator;
    LOCAL PROCEDURE IsValid( CONST Product : StringsO.IString ) : TRISTATE;
    VAR
       dataPId : Defs.TPID;
+      it : lists.CBufferListIterator;
       Item : TPItem;
       queryPId : Defs.TPID;
       Unwrapped : StringsO.CString;
    BEGIN
       hash.hashs( OA( Product.Length-1, Product.Data ), OUT queryPId );
    
-      Items.Reset();
-      WHILE Items.MoveNext() DO
-         Item := TPItem( Items.Current^.Data );
+      it.Init( Items, collection.dirForward );
+      WHILE it.MoveNext() DO
+         Item := TPItem( it.Value^.Data );
          IF Item^.PId <> queryPId THEN
             CONTINUE;
          ELSIF Item^.Length = 0 THEN // damaged from start -- product withount any licence

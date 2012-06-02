@@ -1,0 +1,56 @@
+DEFINITION MODULE Event;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT   
+   collection,
+   Rtti,
+   synclists;
+  
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPEventIterator = POINTER TO CEventIterator;
+
+CLASS CEventIterator( lists.CPtrListIterator );
+
+   PUBLIC READONLY PROPERTY
+      Listener : ADDRESS;
+
+END CEventIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+ABSTRACT CLASS AEvent; // meant to be used: "CLASS EventSource( EVENT ) IMPLEMENTS ISink..."
+
+   // client
+   PUBLIC READONLY PROPERTY
+      Empty : BOOLEAN;
+   PUBLIC PROPERTY
+      SinkType : Rtti.CLASSTYPE;
+
+   PUBLIC PROCEDURE Subscribe( Listener : ADDRESS ); // TODO: shall be OBJECT/PBASE
+   PUBLIC PROCEDURE Unsubscribe( Listener : ADDRESS ); // TODO: shall be OBJECT/PBASE
+   
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL FINALLY AEvent();
+
+   // for implementors
+   INTERNAL PROCEDURE UnsubscribeAll();
+   INTERNAL PROCEDURE StartIteration( REF iterator : CEventIterator );
+
+   // self
+   PRIVATE VAR
+      _Listeners : synclists.CPtrSyncList;
+      _SinkType : Rtti.CLASSTYPE := NIL;
+
+END AEvent;
+
+(*================================================================================*)
+
+#restore
+
+END Event.

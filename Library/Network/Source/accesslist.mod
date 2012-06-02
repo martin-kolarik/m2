@@ -1,6 +1,7 @@
 IMPLEMENTATION MODULE AccessList;
 
 IMPORT
+   collection,
    Strings;
 
 (*================================================================================*)
@@ -81,17 +82,17 @@ CLASS IMPLEMENTATION CAccessList;
       addressOA : inetaddr.TRFC2553;
       filled : CARDINAL;
       i : CARDINAL;
+      iterator : lists.CBufferListIterator;
       matches : BOOLEAN;
       patternOA : inetaddr.TRFC2553;
       result : TAccessType := _Policy;
-      rules : lists.CBufferList := _Rules; // avoid locking using local copy
    BEGIN
-      rules.Reset();
-      WHILE rules.MoveNext() DO
+      iterator.Init( _Rules, collection.dirForward );
+      WHILE iterator.MoveNext() DO
          IPAddress.ToBOA( OUT addressOA, OUT filled );
-         Mask( REF addressOA, LOPTRLONGWORD( rules.CurrentData ) AND 07FFFFFFFH );
+         Mask( REF addressOA, LOPTRLONGWORD( iterator.Data ) AND 07FFFFFFFH );
    
-         rules.Current^.ToOA( OUT patternOA, OUT filled );
+         iterator.Value^.ToOA( OUT patternOA, OUT filled );
          matches := TRUE;
          FOR i := 0 TO filled-1 DO
             IF patternOA[i] <> addressOA[i] THEN
@@ -100,10 +101,9 @@ CLASS IMPLEMENTATION CAccessList;
             END;
          END;
          IF matches THEN
-            result := TAccessType( LOPTRLONGWORD( rules.CurrentData ) >> 31 );
+            result := TAccessType( LOPTRLONGWORD( iterator.Data ) >> 31 );
          END;
       END; // WHILE
-      rules.Clear(); // clear but not deallocate
       
       RETURN result = actAllow;
    END AllowedForAddress;

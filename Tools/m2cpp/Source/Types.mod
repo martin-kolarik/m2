@@ -184,7 +184,7 @@ CLASS IMPLEMENTATION CFloat;
     ELSE
       PT := PWith^.PrimitiveType;
       RETURN ( PWith^.TypeKind = DOM.tkPrimitive ) AND
-             (( PT = DOM.ptREAL ) OR ( PT = DOM.ptLONGREAL ) OR ( PT = DOM.ptTEMPREAL ));
+             (( PT = DOM.ptREAL ) OR ( PT = DOM.ptLONGREAL ));
     END;
   END Compatible;
 
@@ -206,6 +206,8 @@ CLASS IMPLEMENTATION COrdinalNumber;
     IF PWith = TOrdinalNumber THEN
       RETURN TRUE;
     ELSIF PWith = TPTR THEN
+      RETURN TRUE;
+    ELSIF PWith = TTSIZE THEN
       RETURN TRUE;
     ELSIF PWith^.TypeKind <> DOM.tkPrimitive THEN
       RETURN FALSE;
@@ -604,7 +606,7 @@ CLASS IMPLEMENTATION CPTR;
     PWith := PWith^.Unwrap();
     IF ( CM = DOM.cmExact ) AND ( PWith <> TPTR ) THEN
       RETURN FALSE;
-    ELSIF ( PWith = TPTR ) OR ( PWith = TOrdinalNumber ) THEN
+    ELSIF ( PWith = TPTR ) OR ( PWith = TOrdinalNumber ) OR ( PWith = TTSIZE ) THEN
       RETURN TRUE;
     ELSIF TADDRESS^.Compatible( CM, PWith ) THEN
       RETURN TRUE;
@@ -633,7 +635,9 @@ CLASS IMPLEMENTATION CSIZE;
     PT : DOM.TPrimitiveType;
   BEGIN
     PWith := PWith^.Unwrap();
-    IF ( PWith = TSIZE ) OR ( PWith = TOrdinalNumber ) THEN
+    IF ( CM = DOM.cmExact ) AND ( PWith <> TTSIZE ) THEN
+      RETURN FALSE;
+    ELSIF ( PWith = TTSIZE ) OR ( PWith = TOrdinalNumber ) OR ( PWith = TPTR ) THEN
       RETURN TRUE;
     ELSE
       PT := PWith^.PrimitiveType;
@@ -648,7 +652,7 @@ CLASS IMPLEMENTATION CSIZE;
 BEGIN
   TypeKind := DOM.tkPrimitive;
   PrimitiveType := DOM.ptSIZE;
-  N.FromOA( L'size_t' );
+  N.FromOA( L'TSIZE' );
 END CSIZE;
 
 //============================================================
@@ -714,8 +718,6 @@ BEGIN
   NEW( TINT32 );    TINT32^.   Init3( L'INT32',       DOM.tkPrimitive,     DOM.ptINT32 );
   NEW( TINT64 );    TINT64^.   Init3( L'INT64',       DOM.tkPrimitive,     DOM.ptINT64 );
   // NEW( TPINTPTR( TINTPTR ));
-  NEW( TSHORTINT ); TSHORTINT^.Init3( L'SHORTINT',    DOM.tkLink, DOM.ptUnknown );
-       TSHORTINT^.T := TINT16;
   NEW( TINTEGER );  TINTEGER^. Init3( L'INTEGER',     DOM.tkLink, DOM.ptUnknown );
        TINTEGER^.T := TINT32;
   NEW( TLONGINT );  TLONGINT^. Init3( L'LONGINT',     DOM.tkLink, DOM.ptUnknown );
@@ -726,8 +728,6 @@ BEGIN
   NEW( TCARD32 );   TCARD32^.  Init3( L'CARD32',      DOM.tkPrimitive,     DOM.ptCARD32 );
   NEW( TCARD64 );   TCARD64^.  Init3( L'CARD64',      DOM.tkPrimitive,     DOM.ptCARD64 );
   // NEW( TPCARDPTR( TCARDPTR ));
-  NEW( TSHORTCARD ); TSHORTCARD^.Init3( L'SHORTCARD', DOM.tkLink, DOM.ptUnknown );
-       TSHORTCARD^.T := TCARD16;
   NEW( TCARDINAL ); TCARDINAL^.Init3( L'CARDINAL',    DOM.tkLink, DOM.ptUnknown );
        TCARDINAL^.T := TCARD32;
   NEW( TLONGCARD ); TLONGCARD^.Init3( L'LONGCARD',    DOM.tkLink, DOM.ptUnknown );
@@ -809,15 +809,17 @@ BEGIN
        TREFADDRESS^.T := TADDRESS;
        TREFADDRESS^.TypeModifier := DOM.tmREF;
   NEW( TPPTR( TPTR ));
-  NEW( TPSIZE( TSIZE )); 
+  NEW( TPSIZE( TTSIZE )); 
   NEW( TFormalSIZE );
-    TFormalSIZE^.T := TSIZE;
+    TFormalSIZE^.T := TTSIZE;
 
-  NEW( TREAL );     TREAL^.        Init3( L'REAL',        DOM.tkPrimitive,     DOM.ptREAL );
-  NEW( TLONGREAL ); TLONGREAL^.    Init3( L'LONGREAL',    DOM.tkPrimitive,     DOM.ptLONGREAL );
-  NEW( TPROC );     TPROC^.        Init3( L'PROC',        DOM.tkProcedure,     DOM.ptPROC );
-  NEW( TOBJECT );   TOBJECT^.      Init3( L'OBJECT',      DOM.tkClass,         DOM.ptOBJECT );
-  NEW( TException );TException^.   Init3( L'Exceptions::Exception', DOM.tkClass, DOM.ptUnknown );
+  NEW( TREAL );      TREAL^.       Init3( L'REAL',       DOM.tkPrimitive, DOM.ptREAL );
+  NEW( TLONGREAL );  TLONGREAL^.   Init3( L'LONGREAL',   DOM.tkPrimitive, DOM.ptLONGREAL );
+  NEW( TPROC );      TPROC^.       Init3( L'PROC',       DOM.tkProcedure, DOM.ptPROC );
+  NEW( TINTERFACE ); TINTERFACE^.  Init3( L'INTERFACE',  DOM.tkClass,     DOM.ptINTERFACE );
+  NEW( TOBJECT );    TOBJECT^.     Init3( L'OBJECT',     DOM.tkClass,     DOM.ptOBJECT );
+  NEW( TException ); TException^.  Init3( L'Exceptions::Exception',
+                                                         DOM.tkClass,     DOM.ptUnknown );
 
   // language pointer types
   NEW( TpINT8 );      TpINT8^.     Init3( L'PINT8',      DOM.tkReference, DOM.ptUnknown );
@@ -830,8 +832,6 @@ BEGIN
        TpINT64^.T := TINT64;
   // NEW( TpINTPTR );    TpINTPTR^.   Init3( L'PINTPTR',    DOM.tkReference, DOM.ptUnknown );
   //      TpINTPTR^.T := TINTPTR;
-  NEW( TpSHORTINT );  TpSHORTINT^. Init3( L'PSHORTINT',  DOM.tkReference, DOM.ptUnknown );
-       TpSHORTINT^.T := TSHORTINT;
   NEW( TpINTEGER );   TpINTEGER^.  Init3( L'PINTEGER',   DOM.tkReference, DOM.ptUnknown );
        TpINTEGER^.T := TINTEGER;
   NEW( TpLONGINT );   TpLONGINT^.  Init3( L'PLONGINT',   DOM.tkReference, DOM.ptUnknown );
@@ -847,8 +847,6 @@ BEGIN
        TpCARD64^.T := TCARD64;
   // NEW( TpCARDPTR );   TpCARDPTR^.  Init3( L'PCARDPTR',   DOM.tkReference, DOM.ptUnknown );
   //      TpCARDPTR^.T := TCARDPTR;
-  NEW( TpSHORTCARD ); TpSHORTCARD^.Init3( L'PSHORTCARD', DOM.tkReference, DOM.ptUnknown );
-       TpSHORTCARD^.T := TSHORTCARD;
   NEW( TpCARDINAL );  TpCARDINAL^. Init3( L'PCARDINAL',  DOM.tkReference, DOM.ptUnknown );
        TpCARDINAL^.T := TCARDINAL;
   NEW( TpLONGCARD );  TpLONGCARD^. Init3( L'PLONGCARD',  DOM.tkReference, DOM.ptUnknown );
@@ -894,8 +892,8 @@ BEGIN
        TpADDRESS^.T := TADDRESS;
   NEW( TpPTR );       TpPTR^.      Init3( L'PPTR',       DOM.tkReference, DOM.ptUnknown );
        TpPTR^.T := TPTR;
-  NEW( TpSIZE );       TpSIZE^.    Init3( L'PSIZE',      DOM.tkReference, DOM.ptUnknown );
-       TpSIZE^.T := TSIZE;
+  NEW( TpTSIZE );     TpTSIZE^.    Init3( L'PTSIZE',     DOM.tkReference, DOM.ptUnknown );
+       TpTSIZE^.T := TTSIZE;
 
   NEW( TpREAL );      TpREAL^.     Init3( L'PREAL',      DOM.tkReference, DOM.ptUnknown );
        TpREAL^.T := TREAL;
@@ -905,9 +903,12 @@ BEGIN
        TpPROC^.T := TPROC;
   NEW( TpOBJECT );    TpOBJECT^.   Init3( L'POBJECT',    DOM.tkReference, DOM.ptUnknown );
        TpOBJECT^.T := TOBJECT;
+  NEW( TpINTERFACE ); TpINTERFACE^.Init3( L'PINTERFACE', DOM.tkReference, DOM.ptUnknown );
+       TpINTERFACE^.T := TINTERFACE;
        
   NEW( TpException ); TpException^.Init3( L'Exceptions::Exception*', DOM.tkReference, DOM.ptUnknown );
        TpException^.T := TException;
+
 END __I;
 
 END Types.

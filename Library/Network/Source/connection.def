@@ -38,7 +38,7 @@ END IConnection;
 
 INTERFACE IClientConnection( IConnection );
    
-   PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PROCEDURE Open( Host : ARRAY OF WCHAR; DefaultPort : CARDINAL; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult; // DefaultPort is used when Host does not contain it
 
 END IClientConnection;
 

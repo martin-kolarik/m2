@@ -4,9 +4,10 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
+   collection,
    lists,
    Log,
    StringsO;
@@ -22,7 +23,7 @@ END ReadFilterLine;
 
 PROCEDURE ConfigureLogBySection( CONST ini : INIFile.CINIFile; CONST SectionName : ARRAY OF WCHAR; REF _configured : iLog.IAppender; REF createdAppenderList : lists.CPtrList; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 VAR
-   AllowedBits : CARD64;
+   AllowedBits : CARD64 := -1;
    Cached : CARDINAL;
    chainedAppender : Log.TPBaseAppender; // base appender
    configured : Log.TPBaseAppender;
@@ -67,7 +68,7 @@ BEGIN
                NEW( chainedAppender );
                Result := ConfigureLogBySection( ini, OA( cs.Length-1, cs.Data ), REF chainedAppender^, REF createdAppenderList, OUT errorLine );
                IF Result = clrSuccess THEN
-                  createdAppenderList.Append( chainedAppender, 0 );
+                  createdAppenderList.Add( chainedAppender, 0 );
                   foundAppender := chainedAppender;
                ELSE
                   DISPOSE( chainedAppender );
@@ -199,12 +200,24 @@ BEGIN
       IF Output <> Log.outsNone THEN
          configured^.Output := Output;
       END;
-      configured^.Level := Level;
-      configured^.AllowedFilterDataBits := PTR( AllowedBits );
-      configured^.TimeStamps := TimeStamps = 1;
-      configured^.Levels := Levels = 1;
-      configured^.Names := Names = 1;
-      configured^.LocalTime := LocalTime = 1;
+      IF haveLevel THEN
+         configured^.Level := Level;
+      END;
+      IF haveAllowedBits THEN
+         configured^.AllowedFilterDataBits := PTR( AllowedBits );
+      END;
+      IF TimeStamps <> -1 THEN
+         configured^.TimeStamps := TimeStamps = 0;
+      END;
+      IF Levels <> -1 THEN
+         configured^.Levels := Levels = 1;
+      END;
+      IF Names <> -1 THEN
+         configured^.Names := Names = 1;
+      END;
+      IF LocalTime <> -1 THEN
+         configured^.LocalTime := LocalTime = 1;
+      END;
    END;
    IF _configured INHERITS Log.CBufferedLogger THEN
       Log.TPBufferedLogger( configured )^.BufferSize := Cached;
@@ -219,15 +232,18 @@ PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; CONST SectionName : ARRAY 
 VAR
    Result : TConfigureLogResult;
 BEGIN
-   IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( OAsz( Log.GetKeyword( Log.cksLog )) ) THEN
+   IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) THEN
       Result := ConfigureLogBySection( ini, SectionName, REF _appender, REF createdAppenderList, OUT errorLine );
-      IF Result <> clrSuccess THEN
-         DisposeAppenderList( REF createdAppenderList );
-      END;
-      RETURN Result;
+   ELSIF ini.SetSection( OAsz( Log.GetKeyword( Log.cksLog ))) THEN
+      Result := ConfigureLogBySection( ini, OAsz( Log.GetKeyword( Log.cksLog )), REF _appender, REF createdAppenderList, OUT errorLine );
    ELSE // no section found, but it is not a problem, because the configuration is optional
       RETURN clrSuccess;
    END;
+   // ok, configuration found and read      
+   IF Result <> clrSuccess THEN
+      DisposeAppenderList( REF createdAppenderList );
+   END;
+   RETURN Result;
 END ConfigureLog;
 
 (*--------------------------------------------------------------------------------*)
@@ -236,10 +252,11 @@ PROCEDURE DisposeAppenderList( REF appenderList : lists.CPtrList ); // to clear 
 VAR
    appender : Log.TPBaseAppender;
    filter : iLog.TPIFilter;
+   iterator : lists.CPtrListIterator;
 BEGIN
-   appenderList.Reset();
-   WHILE appenderList.MoveNext() DO
-      appender := appenderList.Current;
+   iterator.Init( appenderList, collection.dirForward );
+   WHILE iterator.MoveNext() DO
+      appender := iterator.Value;
       ASSERT( appender^ IS Log.CBaseAppender );
       filter := appender^.Filter;
       IF filter <> NIL THEN
@@ -247,7 +264,7 @@ BEGIN
          DISPOSE( LogFilter.TPLogFilter( filter ));
       END;
       DISPOSE( appender );
-   END;
+   END; // WHILE
    appenderList.Dispose();
 END DisposeAppenderList;
 

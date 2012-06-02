@@ -23,6 +23,7 @@ CONST
   IThread ::= OSALthread.IThread;
 CONST
   Thread ::= Win32thread.Win32Thread;
+  Current ::= Win32thread.Current;
 TYPE
   TPThread = Win32thread.TPWin32Thread;
 

@@ -20,6 +20,7 @@ IMPORT
    IOO,
    lists,
    Log,
+   LogConfig,
    netpool,
    Resources,
    Strings,
@@ -101,15 +102,15 @@ CLASS IMPLEMENTATION CDriver;
          RETURN FALSE;
       END;
 
-      Logger.SetUpByRegistry( LIBRARY );
-      CASE INIFile.ConfigureLog( TS, L"", REF Logger, OUT line ) OF
-      | INIFile.clrUnknownTarget :
+      log.ConfigureByRegistry( REF Logger, LIBRARY );
+      CASE LogConfig.ConfigureLog( TS, L"", REF Logger, REF AppenderList, OUT line ) OF
+      | LogConfig.clrUnknownTarget :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
          RETURN FALSE;
-      | INIFile.clrUnknownLevel :
+      | LogConfig.clrUnknownLevel :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
          RETURN FALSE;
-      | INIFile.clrTargetFileMissingFile :
+      | LogConfig.clrTargetFileMissingFile :
          Log.LogFilePos( log.lcError, 0, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;
@@ -241,6 +242,7 @@ CLASS IMPLEMENTATION CDriver;
       WHILE Queue.Dequeue( OUT ExceptionItem, OUT Data ) DO
          DISPOSE( ExceptionItem );
       END;
+      LogConfig.DisposeAppenderList( REF AppenderList );
    END Dispose;
 
 //--------------------------------------------------------------------------------
@@ -598,21 +600,37 @@ CLASS IMPLEMENTATION CDriver;
                   Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue ", L"reset interface" );
                END; // CASE ExceptionType
 
+               sceneNumber := -1;
                CASE ExceptionType OF
                | eitEvent, eitRead, eitPollStatus :
-                  CASE ExceptionItem^.Command OF
-                  | DaliBridge.cmdStatus :
+                  CASE CARDINAL( ExceptionItem^.Command ) OF
+                  | CARDINAL( DaliBridge.cmdStatus ):
                      CS.FromOA( L"status " );  
-                  | DaliBridge.cmdWorking :
+                  | CARDINAL( DaliBridge.cmdWorking ):
                      CS.FromOA( L"present " );
-                  | DaliBridge.cmdDeviceType :
+                  | CARDINAL( DaliBridge.cmdDeviceType ):
                      CS.FromOA( L"type " );
-                  | DaliBridge.cmdVersion :
+                  | CARDINAL( DaliBridge.cmdVersion ):
                      CS.FromOA( L"version " );
-                  | DaliBridge.cmdCurrentLevel :
+                  | CARDINAL( DaliBridge.cmdCurrentLevel ):
                      CS.FromOA( L"level " );
-                  | DaliBridge.cmdEvent :
+                  | CARDINAL( DaliBridge.cmdEvent ):
                      CS.FromOA( L"value " );
+                  | CARDINAL( DaliBridge.cmdCurrentMin ):
+                     CS.FromOA( L"minimum " );
+                  | CARDINAL( DaliBridge.cmdCurrentMax ):
+                     CS.FromOA( L"maximum " );
+                  | CARDINAL( DaliBridge.cmdCurrentPowerOn ):
+                     CS.FromOA( L"power_on_level " );
+                  | CARDINAL( DaliBridge.cmdCurrentFail ):
+                     CS.FromOA( L"failure_level " );
+                  | CARDINAL( DaliBridge.cmdCurrentFadeTimeRate ):
+                     CS.FromOA( L"fade " );
+                  | CARDINAL( DaliBridge.cmdGetGroupsH ):
+                     CS.FromOA( L"groups " );
+                  | CARDINAL( DaliBridge.cmdSceneGet1 )..CARDINAL( DaliBridge.cmdSceneGet16 ):
+                     CS.FromOA( L"scene_level " );
+                     sceneNumber := CARDINAL( ExceptionItem^.Command ) - CARDINAL( DaliBridge.cmdSceneGet1 );
                   ELSE
                      CS.FromOA( L"value " );
                   END;
@@ -1322,7 +1340,7 @@ BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
 
-   Logger.SetLogName( logName );
+   Logger.SetName( logName );
    StatusChannel := MAX( CARDINAL );
    OutputQueueCountChannel := MAX( CARDINAL );
    OutputQueueLength := MAX( CARDINAL );

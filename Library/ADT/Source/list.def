@@ -4,80 +4,99 @@ DEFINITION MODULE list;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
-#save, option( dll_export => on )
+IMPORT
+   baseobject,
+   collection;
+
+(*---------------------------------------------------------------------------*)
 
 TYPE
-  TPList     = POINTER TO CList;
   TPListElem = POINTER TO CListElem;
+  TPList = POINTER TO CList;
+  TPListIterator = POINTER TO CListIterator;
 
-CLASS CListElem;
-  LOCAL VAR
-    PPrev : TPListElem;
-    PNext : TPListElem;
-  PUBLIC READONLY PROPERTY
-    InList : BOOLEAN;
-    PrevOf : TPListElem;
-    NextOf : TPListElem;
-  PUBLIC VIRTUAL FINALLY CListElem();
+(*---------------------------------------------------------------------------*)
+
+#save, option( dll_export => on )
+
+CLASS CListElem( baseobject.CDisposable );
+
+   PUBLIC READONLY PROPERTY
+      PrevOf : TPListElem;
+      NextOf : TPListElem;
+
+   LOCAL VAR
+      PPrev : TPListElem;
+      PNext : TPListElem;
+
 END CListElem;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CList;
-  INTERNAL VAR
-    PFirst      : TPListElem;
-    PLast       : TPListElem;
-  PUBLIC READONLY VAR
-    Count       : CARDINAL;
-  PUBLIC READONLY PROPERTY
-    Empty       : BOOLEAN;
-  PUBLIC VAR
-    CheckOwning : BOOLEAN;
+CLASS CList( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
 
-  PUBLIC READONLY
-    INDEX( Index : INTEGER ) : TPListElem; // SLOW, O(n)!!
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
-  PUBLIC PROCEDURE InsertFirst( PElem : TPListElem );
-  PUBLIC PROCEDURE InsertBefore( PBefore, PElem : TPListElem );
-  PUBLIC PROCEDURE Append( PElem : TPListElem );
-  PUBLIC PROCEDURE Contains( CONST PElem : TPListElem ): BOOLEAN;
-  PUBLIC PROCEDURE Remove( PElem : TPListElem );
-  PUBLIC PROCEDURE Delete( PElem : TPListElem );
+   // ICollection
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Empty : BOOLEAN;
+      Count : CARDINAL;
+      Sequence : CARDINAL;
 
-  PUBLIC PROCEDURE GetFirst( OUT PElem : TPListElem ) : BOOLEAN;
-  PUBLIC PROCEDURE GetLast( OUT PElem : TPListElem ) : BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC VIRTUAL PROCEDURE colGetIterator( Direction : collection.TDirection ) : collection.TPIterator;
+   #restore
+   PUBLIC VIRTUAL PROCEDURE colGetFirst( OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE colNextOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE colGetLast( OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE colPrevOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
 
-  PUBLIC PROCEDURE PrevOf( CONST Element : TPListElem; OUT Previous : TPListElem ): BOOLEAN;
-  PUBLIC PROCEDURE NextOf( CONST Element : TPListElem; OUT Next : TPListElem ): BOOLEAN;
-  PUBLIC PROCEDURE IndexOf( CONST Element : TPListElem ): INTEGER;
+   // SELF -- list interface
+   PUBLIC PROCEDURE Contains( CONST PElem : TPListElem ) : BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Add( PElem : TPListElem );
+   #restore
+   PUBLIC PROCEDURE Remove( PElem : TPListElem );
+   PUBLIC PROCEDURE Delete( PElem : TPListElem );
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT PElem : TPListElem ) : BOOLEAN;
 
-  PUBLIC PROCEDURE AppendList( REF List : CList ); // clears PList
+   PUBLIC PROCEDURE InsertFirst( PElem : TPListElem );
+   PUBLIC PROCEDURE InsertBefore( PBefore, PElem : TPListElem );
+   PUBLIC PROCEDURE AppendList( REF List : CList ); // clears List
 
-  PUBLIC PROCEDURE Clear();
-  PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC PROCEDURE IndexOf( CONST Element : TPListElem ): INTEGER;
+   PUBLIC PROCEDURE Clear();
   
-  // queue interface
-  PUBLIC PROCEDURE Enqueue( PElem : TPListElem );
-  PUBLIC PROCEDURE Dequeue( OUT PElem : TPListElem ) : BOOLEAN; 
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPListIterator;
+   #restore
+
+   // SELF -- queue interface
+   PUBLIC PROCEDURE Enqueue( PElem : TPListElem );
+   PUBLIC PROCEDURE Dequeue( OUT PElem : TPListElem ) : BOOLEAN; 
+
+   // SELF
+   PRIVATE VAR
+      PFirst : TPListElem := NIL;
+      PLast : TPListElem := NIL;
+      _Count : CARDINAL := 0;
+      _Sequence : CARDINAL := 0;
+
 END CList;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CListWState( CList );
-  INTERNAL VAR
-    _Current : PTR;
-  PUBLIC READONLY PROPERTY
-    Current : TPListElem;
+CLASS CListIterator( collection.CIterator );
 
-  PUBLIC PROCEDURE Reset();
-  PUBLIC PROCEDURE MoveNext() : BOOLEAN;
-  
-   // helper for enumerators
-   PUBLIC PROCEDURE SetNextOf( CONST Element : TPListElem ) : BOOLEAN;
-END CListWState;
+   // SELF
+   PUBLIC READONLY PROPERTY
+      Current : TPListElem;
 
-(*===========================================================================*)
+END CListIterator;
 
 #restore
+
+(*===========================================================================*)
 
 END list.

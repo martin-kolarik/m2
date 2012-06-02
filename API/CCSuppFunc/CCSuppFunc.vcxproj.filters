@@ -18,9 +18,6 @@
     <ClCompile Include="Source\atexit.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\coninit.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\dllinit.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -30,13 +27,10 @@
     <ClCompile Include="Source\math.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\memory.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\purecall.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\stackprobe.c">
+   <ClCompile Include="Source\exeinit.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,5 +47,8 @@
     <ClInclude Include="Source\math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CCSuppFunc.proj" />
   </ItemGroup>
 </Project>

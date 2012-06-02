@@ -1,0 +1,60 @@
+DEFINITION MODULE functionbase;
+
+IMPORT
+   adviser,
+   INIFile,
+   log,
+   msghandler,
+   Resources,
+   StringsO,
+   Sync;
+
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
+(*# call( o_a_copy => off ) *)
+
+(*================================================================================*)
+
+ABSTRACT CLASS CFunctionBase( msghandler.MessageHandler ) IMPLEMENTS ns.IOriginator, io.IStartStopControl;
+
+   // IOriginator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Description : StringsO.CString;
+
+   // IStartStopControlbase
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC FINAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC FINAL PROCEDURE Stop();
+   
+   // SELF
+   PUBLIC PROPERTY
+      DataSource : adviser.TPAdvisedDataSource; // setting Device requires calling Configure to follow
+      Logger : log.TPILogger;
+
+   INTERNAL VIRTUAL PROCEDURE OnStart(); // called from Start
+   INTERNAL VIRTUAL PROCEDURE OnStop(); // called from Stop
+      
+   PUBLIC ABSTRACT PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // accepts citINIFile or citINIFileSection
+   
+   // SELF
+   INTERNAL READONLY PROPERTY
+      R : Resources.TPResources;
+   INTERNAL WRITEONLY PROPERTY
+      DescriptionSet : StringsO.CString;
+   INTERNAL PROCEDURE SplitOutputAndCondition( CONST composite : StringsO.IString; OUT output : StringsO.IString; OUT conditionFound : BOOLEAN; OUT condition : StringsO.IString ) : BOOLEAN;
+   INTERNAL PROCEDURE AppendLineNumber( CONST prefix : ARRAY OF WCHAR; line : CARDINAL; OUT result : ARRAY OF WCHAR );
+
+   PRIVATE VAR
+      _R : Resources.CResources;
+      _Description : StringsO.CString;
+      _DataSource : adviser.TPAdvisedDataSource := NIL;
+      _Logger : log.TPILogger := log.logger();
+      _Running : BOOLEAN := FALSE;
+
+END CFunctionBase;
+
+(*================================================================================*)
+
+END functionbase.

@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   collection,
    httptools,
    Languages,
    log,
@@ -72,6 +73,7 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Decoded : lists.CStringStringList;
       Failure1, Failure2 : BOOLEAN;
+      it : lists.CStringStringListIterator;
    BEGIN
       IF FormFlag THEN
          Host^.StartPhase( L"FRMenc, query: na+me1=val+ue1&na+me2=val+ue2&na+me3=val+ue3" );
@@ -80,47 +82,45 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       Decoded.Dispose();
+      it.Init( Decoded, collection.dirForward );
+
       httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2=val+ue2&na+me3=val+ue3", OUT Decoded );
-      Decoded.Reset();
-      IF Decoded.MoveNext() THEN
+      it.Reset();
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val ue1" );
          ELSE
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na+me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val+ue1" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue2" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue2" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue3" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue3" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
 
       (*==========*)
 
@@ -132,46 +132,42 @@ CLASS IMPLEMENTATION CTest;
       
       Decoded.Dispose();
       httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2=val+ue2&na+me3=", OUT Decoded );
-      Decoded.Reset();
-      IF Decoded.MoveNext() THEN
+      it.Reset();
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val ue1" );
          ELSE
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na+me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val+ue1" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue2" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue2" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
 
       (*==========*)
 
@@ -183,46 +179,42 @@ CLASS IMPLEMENTATION CTest;
       
       Decoded.Dispose();
       httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2=&na+me3=val+ue3", OUT Decoded );
-      Decoded.Reset();
-      IF Decoded.MoveNext() THEN
+      it.Reset();
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val ue1" );
          ELSE
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na+me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val+ue1" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue3" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue3" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
 
       (*==========*)
 
@@ -234,46 +226,42 @@ CLASS IMPLEMENTATION CTest;
       
       Decoded.Dispose();
       httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2=val+ue2&na+me3", OUT Decoded );
-      Decoded.Reset();
-      IF Decoded.MoveNext() THEN
+      it.Reset();
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val ue1" );
          ELSE
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na+me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val+ue1" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue2" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue2" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
 
       (*==========*)
 
@@ -285,46 +273,45 @@ CLASS IMPLEMENTATION CTest;
       
       Decoded.Dispose();
       httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2&na+me3=val+ue3", OUT Decoded );
-      Decoded.Reset();
-      IF Decoded.MoveNext() THEN
+      it.Reset();
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val ue1" );
          ELSE
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na+me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"val+ue1" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue3" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue3" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
 
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
       IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
          RETURN FALSE;
       ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
          RETURN TRUE;
       END;
 
@@ -336,6 +323,7 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Decoded : lists.CStringStringList;
       Failure1, Failure2 : BOOLEAN;
+      it : lists.CStringStringListIterator;
    BEGIN
       IF FormFlag THEN
          Host^.StartPhase( L"FRMenc, query: na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue3" );
@@ -345,46 +333,42 @@ CLASS IMPLEMENTATION CTest;
       
       Decoded.Dispose();
       httptools.DecodeURLEncoding( FormFlag, C"na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue3", OUT Decoded );
-      Decoded.Reset();
-      IF Decoded.MoveNext() THEN
+      it.Reset();
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"va l ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"va l ue1" );
          ELSE
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"va l+ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na+me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"va l+ue1" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"vaýl ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"vaýl ue2" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"vaýl+ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"vaýl+ue2" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue3" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue3" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
       
       (*==========*)
 
@@ -396,46 +380,42 @@ CLASS IMPLEMENTATION CTest;
       
       Decoded.Dispose();
       httptools.DecodeURLEncoding( FormFlag, C"na+me1=va%20l+ue1&na+&amp;me2=va%FDl+ue2&na+me&#38;3=val+ue3", OUT Decoded );
-      Decoded.Reset();
-      IF Decoded.MoveNext() THEN
+      it.Reset();
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"va l ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"va l ue1" );
          ELSE
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"va l+ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na+me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"va l+ue1" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na &me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"vaýl ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na &me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"vaýl ue2" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+&me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"vaýl+ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+&me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"vaýl+ue2" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me&3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me&3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue3" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me&3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue3" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me&3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue3" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
 
-      IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
       
       (*==========*)
 
@@ -447,46 +427,45 @@ CLASS IMPLEMENTATION CTest;
       
       Decoded.Dispose();
       httptools.DecodeURLEncoding( FormFlag, C"na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue%3", OUT Decoded );
-      Decoded.Reset();
-      IF Decoded.MoveNext() THEN
+      it.Reset();
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"va l ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"va l ue1" );
          ELSE
-            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
-            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"va l+ue1" );
+            Failure1 := NOT it.Value^.EqualsOA( L"na+me1" );
+            Failure2 := NOT it.Data^.EqualsOA( L"va l+ue1" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"vaýl ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"vaýl ue2" );
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me2" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"vaýl+ue2" );
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me2" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"vaýl+ue2" );
          END;
       ELSE
          Failure1 := TRUE;
       END;
-      IF Decoded.MoveNext() THEN
+      IF it.MoveNext() THEN
          IF FormFlag THEN
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue" ); // the input is errorneous
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val ue" ); // the input is errorneous
          ELSE
-            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me3" );
-            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue" ); // the input is errorneous
+            Failure1 := Failure1 OR NOT it.Value^.EqualsOA( L"na+me3" );
+            Failure2 := Failure2 OR NOT it.Data^.EqualsOA( L"val+ue" ); // the input is errorneous
          END;
       ELSE
          Failure1 := TRUE;
       END;
 
+      Host^.StopPhaseWithResult( NOT Failure1 AND NOT Failure2 );
       IF Failure1 OR Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
          RETURN FALSE;
       ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
          RETURN TRUE;
       END;
 

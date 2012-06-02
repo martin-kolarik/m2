@@ -10,20 +10,14 @@ IMPORT
 
 //--------------------------------------------------------------------------------
 
-CLASS CTimeoutableTwoPtrMap( avltree.CAVLTreeWState );
-   PRIVATE VAR
-     Counter : CARDINAL;
+TYPE
+   TPTimeoutableTwoPtrMapIterator = POINTER TO CTimeoutableTwoPtrMapIterator;
 
-   // WState
-   PUBLIC READONLY PROPERTY
-      Current1 : PTR;
-      Current2 : PTR;
-   PUBLIC PROPERTY
-      CurrentData : PTR;
+//--------------------------------------------------------------------------------
+
+CLASS CTimeoutableTwoPtrMap( avltree.CAVLTree );
 
    // map interface
-   // PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR; -- no index as keys are two
-
    PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key1, Key2 : PTR; Data : PTR; Timeout : CARDINAL );
    PUBLIC PROCEDURE Remove( Key1, Key2 : PTR );
    PUBLIC PROCEDURE Contains( Key1, Key2 : PTR ) : BOOLEAN;
@@ -35,8 +29,25 @@ CLASS CTimeoutableTwoPtrMap( avltree.CAVLTreeWState );
    PUBLIC PROCEDURE GetTimeoutToFirstElapsed( CurrentTime : CARDINAL ) : CARDINAL;
    PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout, ElapsedOn : CARDINAL ) : BOOLEAN;
    
+   // SELF
    PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout, ElapsesOn : CARDINAL; OUT ElapsesBy : CARDINAL ) : BOOLEAN;
+
+   PRIVATE VAR
+     Counter : CARDINAL;
+
 END CTimeoutableTwoPtrMap;
+
+//--------------------------------------------------------------------------------
+
+CLASS CTimeoutableTwoPtrMapIterator( avltree.CAVLTreeIterator );
+
+   PUBLIC READONLY PROPERTY
+      Key1 : PTR;
+      Key2 : PTR;
+   PUBLIC PROPERTY
+      Value : PTR;
+
+END CTimeoutableTwoPtrMapIterator;
 
 //--------------------------------------------------------------------------------
 

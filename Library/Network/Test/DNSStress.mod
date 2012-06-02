@@ -168,11 +168,7 @@ CLASS IMPLEMENTATION CTest;
       FOR i := 1 TO Limit DO
          Failure1 := Failure1 OR ( Results[i] = 0 );
       END;      
-      IF Failure1 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure1 );
 
       Host^.StartPhase( L"Forward Queries" );
       // init
@@ -197,21 +193,13 @@ CLASS IMPLEMENTATION CTest;
       UNTIL Completed;
       // check
       Failure2 := ( Results[1] = 0 ) OR ( Results[2] = 0 ) OR ( Results[3] = 1 );
-      IF Failure2 THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure2 );
 
       netinit.Cleanup();
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
 
-      IF Failure1 OR Failure2 THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

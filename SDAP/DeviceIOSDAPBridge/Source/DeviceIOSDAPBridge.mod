@@ -1,20 +1,26 @@
 IMPLEMENTATION MODULE DeviceIOSDAPBridge;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    cllv,
+   collection,
    FIO,
    INIFile,
-   iobject,
    IOO,
    iovalue,
    log,
+   LogConfig,
    ns,
    resources,
    Sync,
    Texts;
+
+#if Target #contains L"IBS" #then
+IMPORT
+   validator;
+#endif
 
 (*================================================================================*)
 
@@ -52,9 +58,10 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       cb : io.CCompletionDataInfo;
+      it : lists.CPtrListIterator;
       item : TPItem;
       Result : Sync.TAsyncResult;
       s : StringsO.CString;
@@ -104,19 +111,19 @@ CLASS IMPLEMENTATION ABridge;
             END;
 
             // get values from device and send them to SDAP
-            _Data.Reset();
-            WHILE _Data.MoveNext() DO
+            it.Init( _Data, collection.dirForward );
+            WHILE it.MoveNext() DO
                IF Helper.WaitForStopRequest( 0 ) = Sync.arCompleted THEN // stop loop prematurely, someone wants to stop the thread
                   EXIT;
                END;
 
-               item := _Data.Current;
+               item := it.Value;
                IF item^.Direction <> IOO.dirRead THEN
                   CONTINUE;
                END;
                _Result.Inc();
 
-               IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+               IF NOT _Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
                   _Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Querying: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ));
                END;
 
@@ -141,7 +148,7 @@ CLASS IMPLEMENTATION ABridge;
                   CONTINUE;
                END;
 
-               IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+               IF NOT _Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
                   _Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Got value: ", OA( valueString.Length-1,  valueString.Data ));
                END;
 
@@ -170,9 +177,9 @@ CLASS IMPLEMENTATION ABridge;
                   CONTINUE;
                END;
 
-               _Data.Reset();
-               WHILE _Data.MoveNext() DO
-                  item := _Data.Current;
+               it.Init( _Data, collection.dirForward );
+               WHILE it.MoveNext() DO
+                  item := it.Value;
                   IF item^.Direction <> IOO.dirWrite THEN
                      CONTINUE;
                   ELSIF NOT item^.SDAPName.Equals( sdapName ) THEN
@@ -180,11 +187,12 @@ CLASS IMPLEMENTATION ABridge;
                   END;
                   _Result.Inc();
 
-                  IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+                  IF NOT _Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
                      _Logger.LogSSSS( log.ldDebug, 0, LOG_NAME, L"Writing: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ), L"", OA( valueString.Length-1, valueString.Data ));
                   END;
 
                   cb.Reset();
+                  value.Dispose();
                   value.String := valueString;
                   Result := item^.Device^.IO()^.IOh( NIL, IOO.dirWrite, item^.Hash, REF value, ADR( cb ));
                   IF Result <> Sync.arPending THEN
@@ -233,13 +241,14 @@ CLASS IMPLEMENTATION ABridge;
 	   dev : device.TPDevice;
 	   deviceId : StringsO.CString;
 	   devices : maps.CStringStringMap;
+      devicesIterator : maps.CStringStringMapIterator;
 	   devPath, exePath : FIO.PathStrW;
 	   ES : PTR;
 	   hash : ns.THash;
 	   iniFile : INIFile.TPINIFile;
 	   item : POINTER TO CItem;
-	   nameDevMap : maps.CStringMap;
-	   key : ARRAY [0..127] OF WCHAR;
+	   nameDevMap : maps.CStringPtrMap;
+	   key : StringsO.CString;
 	   l : CARDINAL;
 	   Result : Sync.TAsyncResult := Sync.arCompleted;
 	   s : StringsO.CString;
@@ -252,6 +261,7 @@ CLASS IMPLEMENTATION ABridge;
 	   CONST
 	      charSplit = StringsO.WCHARS{ L"/" };
 	   VAR
+         d : PTR;
 	      deviceName : StringsO.CString;
 	      i : CARDINAL;
 	      inputS : StringsO.CString;
@@ -264,7 +274,7 @@ CLASS IMPLEMENTATION ABridge;
 	      inputS.Remove( 0, i );
 	      IF inputS.Empty THEN
 	         RETURN FALSE;
-	      ELSIF NOT nameDevMap.Get( deviceName, OUT dev ) THEN
+	      ELSIF NOT nameDevMap.Get( deviceName, OUT dev, OUT d ) THEN
 	         RETURN FALSE;
 	      ELSIF NOT dev^.Mapper()^.NameToHash( inputS, OUT hash ) THEN
 	         RETURN FALSE;
@@ -304,7 +314,7 @@ CLASS IMPLEMENTATION ABridge;
 	   END;
 	   
 	   // logger
-	   INIFile.ConfigureLog( iniFile^, L"", REF _Logger, OUT l );
+	   LogConfig.ConfigureLog( iniFile^, L"", REF _Logger, REF _AppenderList, OUT l );
 
       // SDAP
       IF iniFile^.SetSection( secSDAP ) THEN
@@ -321,22 +331,22 @@ CLASS IMPLEMENTATION ABridge;
       IF iniFile^.SetSection( secDevices ) THEN
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
-            devices.AddOA( key, value );
+            devices.Add( key, value, 0 );
          END; // WHILE
       END;
 
       FIO.GetModuleDirW( L"", OUT exePath );
       
-      devices.Reset();
-      WHILE devices.MoveNext() DO
+      devicesIterator.Init( devices, collection.dirForward );
+      WHILE devicesIterator.MoveNext() DO
 
-         IF nameDevMap.Contains( devices.Current^ ) THEN
-            LogError( 0, Texts._DeviceAlreadyExists, devices.Current );
+         IF nameDevMap.Contains( devicesIterator.Key^ ) THEN
+            LogError( 0, Texts._DeviceAlreadyExists, devicesIterator.Key );
             CONTINUE;
          END;
 
          deviceId.FromOA( secDevicePrefix );
-         deviceId.Append( devices.Current^ );
+         deviceId.Append( devicesIterator.Key^ );
          IF NOT iniFile^.SetSection( OA( deviceId.Length-1, deviceId.Data )) THEN
             LogError( 0, Texts._DeviceSectionMissing, ADR( deviceId ));
             CONTINUE;
@@ -346,35 +356,35 @@ CLASS IMPLEMENTATION ABridge;
          END;   
          
          FIO.MakePathW( exePath, OA( value.Length-1, value.Data ), OUT devPath );
-         _Loader.AddLibrary( devPath, ADR( value )); // value contains LibraryName
+         _Loader.AddPlugin( devPath, ADR( value )); // value contains LibraryName
          value.AppendOA( DEVICE_CLASS_NAME_SUFFIX );
          CASE _Loader.CreateObject( OA( value.Length-1, value.Data ), OUT dev ) OF
          //----
-         | iobject.lrSuccess :
+         | iplugin.lrSuccess :
             src.Type := device.citINIFileSection;
             src._iniFile := iniFile;
             src.section := ADR( deviceId );
             IF dev^.Configure( OA( 0, ADR( src )), Log ) = Sync.arCompleted THEN
-               _Devices.Add( devices.CurrentData^, dev );
-               nameDevMap.Add( devices.Current^, dev );
+               _Devices.Add( devicesIterator.Value^, dev );
+               nameDevMap.Add( devicesIterator.Key^, dev, 0 );
             ELSE
                _Loader.ReleaseObject( REF dev );
                Result := Sync.arAborted;
             END;
          //----
-         | iobject.lrLibraryNotFound :
+         | iplugin.lrPluginNotFound :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryNotFound, ADR( s ));
          //----
-         | iobject.lrLibraryFoundButIsUnloadable :
+         | iplugin.lrPluginFoundButIsUnloadable :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryUnloadable, ADR( s ));
          //----
-         | iobject.lrLibraryDisabled :
+         | iplugin.lrPluginDisabled :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryDisable, ADR( s ));
          //----
-         | iobject.lrClassNotFound :
+         | iplugin.lrClassNotFound :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryClassNotFound, ADR( s ));
          END; // CASE
@@ -385,9 +395,8 @@ CLASS IMPLEMENTATION ABridge;
       IF iniFile^.SetSection( secSDAPToDevice ) THEN // deviceId = sdapId
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
-            IF NOT GetHash( key, OUT dev, OUT hash ) THEN
-               s.FromOA( key );
-               LogError( l, Texts._DataItemNotFound, ADR( s ));
+            IF NOT GetHash( OA( key.Length-1, key.Data ), OUT dev, OUT hash ) THEN
+               LogError( l, Texts._DataItemNotFound, ADR( key ));
                CONTINUE;
             END;
             
@@ -395,7 +404,7 @@ CLASS IMPLEMENTATION ABridge;
             item^.Direction := IOO.dirWrite;
             item^.Device := dev;
             item^.Hash := hash;
-            item^.SDAPName.Assign( value );
+            item^.SDAPName := value;
             
             _Data.Add( item, 0 );
          END; // WHILE
@@ -408,7 +417,7 @@ CLASS IMPLEMENTATION ABridge;
       
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
-            IF EQUALS( key, keyPeriod ) THEN
+            IF key.EqualsOA( keyPeriod ) THEN
                CONTINUE;
             ELSIF NOT GetHash( OA( value.Length-1, value.Data ), OUT dev, OUT hash ) THEN
                LogError( l, Texts._DataItemNotFound, ADR( value ));
@@ -419,7 +428,7 @@ CLASS IMPLEMENTATION ABridge;
             item^.Direction := IOO.dirRead;
             item^.Device := dev;
             item^.Hash := hash;
-            item^.SDAPName.FromOA( key );
+            item^.SDAPName := key;
             
             _Data.Add( item, 0 );
          END; // WHILE
@@ -447,6 +456,7 @@ CLASS IMPLEMENTATION ABridge;
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    VAR
       dev : device.TPDevice;
+      it : lists.CStringListIterator;
       Result : Sync.TAsyncResult := Sync.arCannotStart;
       s : FIO.PathStrW;
    BEGIN
@@ -456,9 +466,9 @@ CLASS IMPLEMENTATION ABridge;
       FIO.GetModuleDirW( L"", OUT s );
       lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF _Result );
 
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         dev := _Devices.CurrentData;
+      it.Init( _Devices, collection.dirForward );
+      WHILE it.MoveNext() DO
+         dev := it.Data;
          CASE dev^.IO()^.Start() OF
          | Sync.arCompleted :
             // OK
@@ -480,12 +490,13 @@ CLASS IMPLEMENTATION ABridge;
    PUBLIC VIRTUAL PROCEDURE Stop();
    VAR
       dev : device.TPDevice;
+      it : lists.CStringListIterator;
    BEGIN
       _Thread.Stop( TRUE );
    
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         dev := _Devices.CurrentData;
+      it.Init( _Devices, collection.dirForward );
+      WHILE it.MoveNext() DO
+         dev := it.Data;
          dev^.IO()^.Stop();
       END; // WHILE
 
@@ -521,52 +532,56 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT deviceName : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
-   VAR
-      b : BOOLEAN;
-      dev : device.TPDevice;
+   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Library : iplugin.TPPlugin ) : BOOLEAN;
+   #if Target #contains L"IBS" #then
+      VAR
+         cllvData : iplugin.TcllvData;
+         cllvPath : ARRAY [0..3] OF WCHAR;
+         pid : StringsO.CString;
+         result : BOOLEAN;
+   #endif
    BEGIN
-      IF ES = -1 THEN
-         RETURN FALSE;
-      ELSIF ES = 0 THEN
-         _Devices.Reset();
-         b := _Devices.MoveNext();
-      ELSE
-         b := _Devices.SetNextOf( ES );
-      END;
-      IF b THEN
-         ES := _Devices.CListWState.Current;
-         
-         dev := _Devices.CurrentData;
-         deviceName.Assign( _Devices.Current^ );
-         Running := dev^.IO()^.Running;         
-         
-      ELSE
-         ES := -1;
-      END;
-      RETURN b;
-   END EnumerateDeviceState;
+      #if Target #contains L"Common" #then
+         RETURN TRUE;
+      #else
+         IF Library = NIL THEN
+            RETURN FALSE;
+         ELSIF NOT Library^.GetLECData( OUT cllvData, OUT cllvPath ) THEN
+            RETURN FALSE;
+         END;
+
+         // now check if data is valid
+         pid.FromOA( L"NeNo.DeviceIO.Integra" );
+         validator.Register( cllvData.Data, cllvData.Length, cllvData.Validator );
+         result := validator.Check( pid ) = 1;
+         validator.Unregister( cllvData.Data );
+
+         RETURN result;
+      #endif
+   END AuthorizedToLoad;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       dev : device.TPDevice;
+      dataIterator : lists.CPtrListIterator;
+      devicesIterator : lists.CStringListIterator;
       item : TPItem;
    BEGIN
       Stop();
       
-      _Data.Reset();
-      WHILE _Data.MoveNext() DO
-         item := _Data.Current;
+      dataIterator.Init( _Data, collection.dirForward );
+      WHILE dataIterator.MoveNext() DO
+         item := dataIterator.Value;
          DISPOSE( item );
       END; // WHILE
       _Data.Dispose();
       _Lookup.Dispose();
       
-      _Devices.Reset();
-      WHILE _Devices.MoveNext() DO
-         dev := _Devices.CurrentData;
+      devicesIterator.Init( _Devices, collection.dirForward );
+      WHILE devicesIterator.MoveNext() DO
+         dev := devicesIterator.Data;
          _Loader.ReleaseObject( REF dev );
       END; // WHILE
       _Devices.Dispose();
@@ -577,6 +592,8 @@ CLASS IMPLEMENTATION ABridge;
          _SDAPClient^.Dispose();
          _SDAPClient := NIL;
       END;
+
+	   LogConfig.DisposeAppenderList( REF _AppenderList );
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -587,6 +604,9 @@ BEGIN
    _PeriodCounter := 15;
    _TickCounter := 0;
    _WriteSignal.Init( Sync.stEventAutoreset, L"", FALSE );
+   _Loader.LoadAuthorizer := ADR( SELF );
+FINALLY
+   Dispose();
 END ABridge;
 
 (*================================================================================*)

@@ -3,9 +3,9 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>Structured device I/O</FileDescription>
-        <FileVersionMajor>1</FileVersionMajor>
-        <FileVersionMinor>0</FileVersionMinor>
+        <ProjectDescription>Structured Device I/O</ProjectDescription>
+        <ProjectVersionMajor>1</ProjectVersionMajor>
+        <ProjectVersionMinor>0</ProjectVersionMinor>
     </PropertyGroup>
 
     <!-- 2 -->
@@ -16,7 +16,7 @@
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Component\sccore"/>
-        <Modules Include="device;iocached;cache;iovalue;io;ns;nslookup;nsitem;adviser;sdap;xmlsocket"/>
+        <Modules Include="device;deviceimpl;iocached;cache;iovalue;io;ns;namevaluepairsimpl;nsimpl;compositedatasource;adviser;sdap;xmlsocket"/>
         <!-- Libraries Include="user32;Ws2_32"/ -->
     </ItemGroup>
 

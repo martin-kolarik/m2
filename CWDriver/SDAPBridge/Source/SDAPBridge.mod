@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE SDAPBridge;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM log IMPORT
    ldError, ldMessage, ldTrace, ldDebug;

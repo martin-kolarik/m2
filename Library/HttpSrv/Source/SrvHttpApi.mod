@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE SrvHttpApi;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE;
@@ -10,10 +10,13 @@ FROM Log IMPORT
    logger, lcError, lcWarning, lcInfo;
    
 IMPORT
+   collection,
    httpapi,
    HttpCommon,
    inetaddr,
    LanguagesO,
+   lists,
+   maps,
    SrvCommon,
    Storage,
    StorageO,
@@ -110,7 +113,7 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
          s.FromOAA( 0, OA( CARDINAL( Request^.Headers.KnownHeaders[i].RawValueLength )-1, Request^.Headers.KnownHeaders[i].pRawValue ));
 
          IF FromSysApi( httpapi.HTTP_HEADER_ID( i ), OUT Header ) THEN
-            KnownCache.Add( CARDINAL( Header ), s );
+            KnownCache.Add( CARDINAL( Header ), s, 0 );
          END;
       END; // FOR
 
@@ -122,7 +125,7 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
          n.Lowerize();
          s.FromOAA( 0, OA( CARDINAL( header^.RawValueLength )-1, header^.pRawValue ));
 
-         UnknownCache.Add( n, s );
+         UnknownCache.Add( n, s, 0 );
 
          INC( header, SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
       END; // FOR
@@ -135,8 +138,10 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
       a : ADDRESS;
       i : INTEGER;
       id : httpapi.HTTP_HEADER_ID;
+      kit : maps.CIntegerStringMapIterator;
       l : CARDINAL;
       s : StringsO.TPString;
+      uit : maps.CStringStringMapIterator;
    BEGIN
       HeaderBuffer.Clear();
       
@@ -145,14 +150,14 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
          Response.Headers.KnownHeaders[i].pRawValue := NIL;
       END;
       
-      KnownCache.Reset();
-      WHILE KnownCache.MoveNext() DO
-         s := KnownCache.CurrentData;
+      kit.Init( KnownCache, collection.dirForward );
+      WHILE kit.MoveNext() DO
+         s := kit.Data;
          l := HeaderBuffer.Length;
          LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
          HeaderBuffer.AppendByte( 0 );
 
-         ToSysApi( HttpCommon.TKnownHeader( KnownCache.Current ), OUT id );
+         ToSysApi( HttpCommon.TKnownHeader( kit.Key ), OUT id );
          Response.Headers.KnownHeaders[CARDINAL( id )].RawValueLength := CARD16( HeaderBuffer.Length - l - 1 ); // trailing byte
       END; // WHILE KnownCache
       
@@ -161,16 +166,16 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
          REALLOCATE( REF UnknownHeaderBuffer, UnknownCache.Count * SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
 
          i := 0;
-         UnknownCache.Reset();
-         WHILE UnknownCache.MoveNext() DO
-            s := UnknownCache.Current;
+         uit.Init( UnknownCache, collection.dirForward );
+         WHILE uit.MoveNext() DO
+            s := uit.Key;
             l := HeaderBuffer.Length;
             LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
             HeaderBuffer.AppendByte( 0 );
             
             UnknownHeaderBuffer^[i].NameLength := CARD16( HeaderBuffer.Length - l - 1 ); // trailing byte
 
-            s := UnknownCache.CurrentData;
+            s := uit.Value;
             l := HeaderBuffer.Length;
             LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
             HeaderBuffer.AppendByte( 0 );
@@ -196,8 +201,8 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
          Response.Headers.pUnknownHeaders := UnknownHeaderBuffer;
 
          i := 0;
-         UnknownCache.Reset();
-         WHILE UnknownCache.MoveNext() DO
+         uit.Init( UnknownCache, collection.dirForward );
+         WHILE uit.MoveNext() DO
             l := CARDINAL( UnknownHeaderBuffer^[i].NameLength );
             UnknownHeaderBuffer^[i].pName := a;
             INC( a, l + 1 ); // trailing byte

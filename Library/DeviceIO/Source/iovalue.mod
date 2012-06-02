@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE iovalue;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -16,7 +16,7 @@ CONST
    defaultFalse = L"false";
    defaultTransportTrue = L"T";
    defaultTransportFalse = L"F";
-   defaultDate = datetime.TJD( 2118134448000000 ); // 1.1.2000
+   defaultDate = INT64( 2118134448000000 ); // 1.1.2000
    defaultDateTimeFormat = L"dd.MM.yyyy HH.mm.ss.fff";
 
 (*================================================================================*)
@@ -25,28 +25,31 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Type GET : TValueType;
+   PUBLIC PROPERTY Type GET : TType;
    BEGIN
       RETURN _Type;
    END Type;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Type SET( value : TValueType );
+   PUBLIC PROPERTY Type SET( value : TType );
    VAR
       LFlags : TFlags;
       LValue : Value;
    BEGIN
-      IF _Type <> value THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+
+      ELSIF _Type <> value THEN
          LFlags := _Flags;
 
-         IF ( value <> vtUnknown ) AND ( value <> vtVoid ) THEN
+         IF ( value <> vtUnknown ) AND ( value <> vtObject ) AND ( value <> vtReference ) THEN
             // convert
             LValue._Type := value;
             LValue := SELF;
          END;
 
-         // adopt new data
+         // adopt new data, does not perform a deep copy of children
          Dispose();
          _Flags := LFlags;
          _Type := value;
@@ -54,7 +57,7 @@ CLASS IMPLEMENTATION Value;
 
          // forget old
          LValue._Type := vtUnknown;
-         LValue._Storage.QW := 0;
+         LValue._Storage.Long := 0;
       END;
    END Type;
 
@@ -69,12 +72,14 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Undefined SET( Value : BOOLEAN );
    BEGIN
-      IF Value THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF Value THEN
          INCL( _Flags, vfUndefined );
          IF _Type = vtString THEN
             _Storage.String^.Clear();
          ELSE
-            _Storage.QW := 0;
+            _Storage.Long := 0;
          END;
       ELSE
          EXCL( _Flags, vfUndefined );
@@ -92,7 +97,9 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Saturate SET( Value : BOOLEAN );
    BEGIN
-      IF Value THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF Value THEN
          INCL( _Flags, vfSaturate );
       ELSE
          EXCL( _Flags, vfSaturate );
@@ -101,18 +108,35 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Reference GET : PTR;
+   BEGIN
+      IF _Type <> vtReference THEN
+         ASSERT( FALSE );
+
+      ELSIF vfUndefined IN _Flags THEN
+         RETURN 0;
+
+      ELSE
+         RETURN _Storage.Reference;
+
+      END;
+      RETURN 0;
+   END Reference;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Boolean GET : BOOLEAN;
    VAR
       PS : StringsO.TPString;
-      today, tomorrow : datetime.TJD;
+      today, tomorrow : datetime.DayCount;
    BEGIN
       IF vfUndefined IN _Flags THEN
          RETURN FALSE;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -135,8 +159,8 @@ CLASS IMPLEMENTATION Value;
          RETURN PS^.EqualsOA( L"TRUE" ) OR PS^.EqualsOA( defaultTrue ) OR PS^.EqualsOA( L"T" ) OR PS^.EqualsOA( L"1" );
 
       | vtDate :
-         today := datetime.TrimFD( datetime.GetCurrentJD());
-         tomorrow := today + datetime.DaysToJDC( 1 );
+         today := datetime.NowDCDayOnly();
+         tomorrow := today + datetime.TimeSpanD( 1.0 );
          RETURN ( _Storage.Date >= today ) AND ( _Storage.Date < tomorrow );
 
       ELSE
@@ -150,15 +174,15 @@ CLASS IMPLEMENTATION Value;
    PUBLIC PROPERTY Tristate GET : TRISTATE;
    VAR
       PS : StringsO.TPString;
-      today, tomorrow : datetime.TJD;
+      today, tomorrow : datetime.DayCount;
    BEGIN
       IF vfUndefined IN _Flags THEN
          RETURN -1;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -209,8 +233,8 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtDate :
-         today := datetime.TrimFD( datetime.GetCurrentJD());
-         tomorrow := today + datetime.DaysToJDC( 1 );
+         today := datetime.NowDCDayOnly();
+         tomorrow := today + datetime.TimeSpanD( 1.0 );
          IF ( _Storage.Date >= today ) AND ( _Storage.Date < tomorrow ) THEN
             RETURN 1;
          ELSE
@@ -234,8 +258,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -281,7 +305,7 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtDate :
-         RETURN datetime.fd( _Storage.Date ) DIV CARDINAL( datetime.unitsInMillisecond );
+         RETURN INT32( _Storage.Date.FractionOfTheDay.Milliseconds );
 
       ELSE
          ASSERT( FALSE );
@@ -300,8 +324,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -331,7 +355,7 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtDate :
-         RETURN _Storage.Date;
+         RETURN _Storage.Date.Value;
 
       ELSE
          ASSERT( FALSE );
@@ -350,8 +374,8 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -381,7 +405,7 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtDate :
-         RETURN datetime.ToSJD( _Storage.Date );
+         RETURN _Storage.Date.JulianDate;
 
       ELSE
          ASSERT( FALSE );
@@ -402,9 +426,11 @@ CLASS IMPLEMENTATION Value;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
       | vtObject :
          ASSERT( FALSE );
+
+      | vtReference :
+         S.FromCARD64( CARD64( _Storage.Reference ), 16 );
 
       | vtBoolean :
          IF _Storage.Boolean THEN
@@ -429,7 +455,7 @@ CLASS IMPLEMENTATION Value;
          RETURN _Storage.String^;
 
       | vtDate :
-         dt.JulianDate := _Storage.Date;
+         dt.DayCount := _Storage.Date;
          IF dt.ToStringOA( defaultDateTimeFormat, TRUE, TRUE, OUT s ) THEN
             S.FromOA( s );
          END;
@@ -443,52 +469,58 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Date GET : datetime.TJD;
+   PUBLIC PROPERTY Date GET : datetime.DayCount;
    VAR
+      dc : datetime.DayCount := datetime.NowDC();
       dt : datetime.DateTime;
-      t : datetime.TJD := datetime.GetCurrentJD();
+      ts : datetime.TimeSpan;
    BEGIN
       IF vfUndefined IN _Flags THEN
-         RETURN defaultDate;
+         dc.Value := defaultDate;
+         RETURN dc;
       END;
       CASE _Type OF
       | vtUnknown :
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
-         IF _Storage.Boolean THEN
-            RETURN t;
-         ELSE
-            RETURN defaultDate;
+         IF NOT _Storage.Boolean THEN
+            dc.Value := defaultDate;
          END;
+         RETURN dc;
 
       | vtTristate :
-         IF _Storage.Tristate = 1 THEN
-            RETURN t;
-         ELSE
-            RETURN defaultDate;
+         IF _Storage.Tristate <> 1 THEN
+            dc.Value := defaultDate;
          END;
+         RETURN dc;
 
       | vtInteger :
          IF _Storage.Integer < 0 THEN
-            RETURN defaultDate;
+            dc.Value := defaultDate;
+            RETURN dc;
          ELSE
-            RETURN datetime.TrimFD( t ) + datetime.TJD( _Storage.Integer * INTEGER( datetime.unitsInMillisecond ));
+            dc.FractionOfTheDay := datetime.TimeSpanZero();
+            ts.Milliseconds := LONGREAL( _Storage.Integer );
+            RETURN dc + ts;
          END;
 
       | vtLong :
-         RETURN _Storage.Long;
+         dc.Value := _Storage.Long;
+         RETURN dc;
 
       | vtFloat :
-         RETURN datetime.FromSJD( _Storage.Float );
+         dc.JulianDate := _Storage.Float;
+         RETURN dc;
 
       | vtString :
          IF dt.FromStringOA( OA( _Storage.String^.Length-1, _Storage.String^.Data ), defaultDateTimeFormat ) THEN
-            RETURN dt.JulianDate;
+            RETURN dt.DayCount;
          ELSE
-            RETURN defaultDate;
+            dc.Value := defaultDate;
+            RETURN dc;
          END;
 
       | vtDate :
@@ -497,20 +529,43 @@ CLASS IMPLEMENTATION Value;
       ELSE
          ASSERT( FALSE );
       END; // CASE
-      RETURN defaultDate;
+
+      dc.Value := defaultDate;
+      RETURN dc;
    END Date;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Reference SET( Value : PTR );
+   BEGIN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
+         _Type := vtReference;
+      END;
+
+      CASE _Type OF
+      | vtReference :
+         _Storage.Reference := Value;
+
+      ELSE
+         ASSERT( FALSE );
+      END; // CASE
+   END Reference;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Boolean SET( value : BOOLEAN );
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtBoolean;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -563,13 +618,15 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Tristate SET( value : TRISTATE );
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtTristate;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -607,8 +664,8 @@ CLASS IMPLEMENTATION Value;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -636,7 +693,7 @@ CLASS IMPLEMENTATION Value;
          _Storage.String^.FromINT32( value, 10 );
 
       | vtDate :
-         _Storage.Date := datetime.TrimFD( datetime.GetCurrentJD() ) + datetime.TJD( value ) * datetime.unitsInMillisecond;
+         _Storage.Date := datetime.NowDCDayOnly() + datetime.TimeSpanMS32( value );
 
       ELSE
          ASSERT( FALSE );
@@ -647,13 +704,15 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Long SET( value : INT64 );
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtLong;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -689,7 +748,7 @@ CLASS IMPLEMENTATION Value;
          _Storage.String^.FromINT64( value, 10 );
 
       | vtDate :
-         _Storage.Date := value;
+         _Storage.Date.Value := value;
 
       ELSE
          ASSERT( FALSE );
@@ -700,13 +759,15 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Float SET( value : LONGREAL );
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtFloat;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -750,7 +811,7 @@ CLASS IMPLEMENTATION Value;
          _Storage.String^.FromLONGREAL( value, FALSE );
 
       | vtDate :
-         _Storage.Date := datetime.FromSJD( value );
+         _Storage.Date.JulianDate := value;
 
       ELSE
          ASSERT( FALSE );
@@ -763,13 +824,15 @@ CLASS IMPLEMENTATION Value;
    VAR
       dt : datetime.DateTime;
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          Type := vtString; // using property allocates string
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
@@ -804,7 +867,7 @@ CLASS IMPLEMENTATION Value;
 
       | vtDate :
          IF dt.FromStringOA( OA( value.Length-1, value.Data ), defaultDateTimeFormat ) THEN
-            _Storage.Date := dt.JulianDate;
+            _Storage.Date := dt.DayCount;
          ELSE
             Undefined := TRUE;
          END;
@@ -816,39 +879,41 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Date SET( value : datetime.TJD );
+   PUBLIC PROPERTY Date SET( CONST value : datetime.DayCount );
    VAR
-      today, tomorrow : datetime.TJD;
+      today, tomorrow : datetime.DayCount;
       dt : datetime.DateTime;
       s : ARRAY [0..63] OF WCHAR;
    BEGIN
-      IF _Type = vtUnknown THEN
+      IF vfReadOnly IN _Flags THEN
+         RETURN;
+      ELSIF _Type = vtUnknown THEN
          _Type := vtDate;
       END;
 
       CASE _Type OF
-      | vtVoid :
-      | vtObject :
+      | vtObject,
+        vtReference :
          ASSERT( FALSE );
 
       | vtBoolean :
-         today := datetime.TrimFD( datetime.GetCurrentJD());
-         tomorrow := today + datetime.DaysToJDC( 1 );
-         _Storage.Boolean := ( value >= today ) AND ( value < tomorrow );
+         today := datetime.NowDCDayOnly();
+         tomorrow := today + datetime.TimeSpanD( 1.0 );
+         _Storage.Boolean := ( today <= value ) AND ( tomorrow > value );
 
       | vtTristate :
-         today := datetime.TrimFD( datetime.GetCurrentJD());
-         tomorrow := today + datetime.DaysToJDC( 1 );
-         _Storage.Boolean := ( value >= today ) AND ( value < tomorrow );
+         today := datetime.NowDCDayOnly();
+         tomorrow := today + datetime.TimeSpanD( 1.0 );
+         _Storage.Tristate := TRISTATE(( today <= value ) AND ( tomorrow > value ));
 
       | vtInteger :
-         _Storage.Integer := datetime.fd( value ) DIV CARDINAL( datetime.unitsInMillisecond );
+         _Storage.Integer := INT32( value.FractionOfTheDay.Milliseconds );
 
       | vtLong :
-         _Storage.Long := value;
+         _Storage.Long := value.Value;
 
       | vtFloat :
-         _Storage.Float := datetime.ToSJD( value );
+         _Storage.Float := value.JulianDate;
 
       | vtString :
          dt.SetNowUTC();
@@ -879,18 +944,44 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY ReadOnly GET : BOOLEAN;
+   BEGIN
+      RETURN vfReadOnly IN _Flags;
+   END ReadOnly;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY VisibleToUser GET : BOOLEAN;
+   BEGIN
+      RETURN ( vfHidden NOT IN _Flags ) AND ( _Type <> vtReference );
+   END VisibleToUser;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY HasValue GET : BOOLEAN;
+   BEGIN
+      RETURN ( vfUndefined NOT IN _Flags ) AND ( _Type <> vtObject );
+   END HasValue;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC OPERATOR :=( CONST Source : Value );
    BEGIN
-      _Flags := Source._Flags;
+      IF vfUndefined NOT IN Source._Flags THEN
+         EXCL( _Flags, vfUndefined ); // other flags are respected
+      END;
+
       IF _Type = vtUnknown THEN
          _Type := Source._Type;
       END;
 
       CASE _Type OF
-      | vtUnknown :
-      | vtVoid :
-      | vtObject :
-         ASSERT( FALSE );
+      | vtUnknown,
+        vtObject :
+         // intentionally do nothing
+
+      | vtReference :
+         _Storage.Reference := Source.Reference;
 
       | vtBoolean :
          _Storage.Boolean := Source.Boolean;
@@ -920,6 +1011,17 @@ CLASS IMPLEMENTATION Value;
          ASSERT( FALSE );
       END; // CASE
    END :=;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE AssignSource( CONST Source : Value ); // overrides read only flag, not for outer users
+   VAR
+      flags : TFlags := _Flags;
+   BEGIN
+      EXCL( _Flags, vfReadOnly );
+      SELF := Source;
+      _Flags := flags;
+   END AssignSource;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1080,7 +1182,7 @@ CLASS IMPLEMENTATION Value;
          LValue.Undefined := TRUE;
       ELSIF _Type = vtDate THEN
          LValue.Type := vtLong;
-         LValue.Long := ( Date - Source.Date ) DIV datetime.unitsInMillisecond;
+         LValue.Long := INT64( Date.Difference( Source.Date ).Milliseconds );
       ELSE
          CASE _Type OF
          | vtBoolean :
@@ -1252,7 +1354,7 @@ CLASS IMPLEMENTATION Value;
       END;
       _Flags := TFlags{};
       _Type := vtUnknown;
-      _Storage.QW := 0;
+      _Storage.Long := 0;
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -1312,19 +1414,6 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ToStringOA( OUT String : ARRAY OF WCHAR; TransportFlag : BOOLEAN );
-   BEGIN
-      IF _Type <> vtBoolean THEN
-         SELF.String.ToOA( OUT String );
-      ELSIF Boolean THEN
-         String := defaultTransportTrue;
-      ELSE
-         String := defaultTransportFalse;
-      END;
-   END ToStringOA;
-   
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE FromString( CONST String : StringsO.IString; TransportFlag : BOOLEAN );
    VAR
       S : StringsO.CString;
@@ -1332,16 +1421,6 @@ CLASS IMPLEMENTATION Value;
       S.Assign( String );
       SELF.String := S;
    END FromString;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE FromStringOA( CONST String : ARRAY OF WCHAR; TransportFlag : BOOLEAN );
-   VAR
-      S : StringsO.CString;
-   BEGIN
-      S.FromOA( String );
-      SELF.String := S;
-   END FromStringOA;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1456,13 +1535,60 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY InitializeFlags SET( Value : TFlags );
+   BEGIN
+      _Flags := Value;
+   END InitializeFlags;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _Flags := TFlags{};
    _Type := vtUnknown;
-   _Storage.QW := 0;
+   _Storage.Long := 0;
 FINALLY
    Dispose();
 END Value;
+
+(*================================================================================*)
+
+PROCEDURE FromInteger( CONST value : INT32 ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Integer := value;
+   RETURN v;
+END FromInteger;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromLong( CONST value : INT64 ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Long := value;
+   RETURN v;
+END FromLong;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromFloat( CONST value : LONGREAL ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.Float := value;
+   RETURN v;
+END FromFloat;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromString( CONST value : StringsO.CString ) : Value;
+VAR
+   v : Value;
+BEGIN
+   v.String := value;
+   RETURN v;
+END FromString;
 
 (*================================================================================*)
 

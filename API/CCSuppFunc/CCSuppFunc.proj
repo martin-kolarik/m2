@@ -13,7 +13,7 @@
 
     <!-- 4 -->
     <ItemGroup>
-        <Interface Include="$(InterfaceNamePath);$(ComponentPath)\Library\ntdll"/>
+        <Interface Include="$(InterfaceNamePath)"/>
     </ItemGroup>
 
 </Project>

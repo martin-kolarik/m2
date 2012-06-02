@@ -74,21 +74,25 @@ END CDelegate;
 
 (*===========================================================================*)
 
+TYPE
+   TEventHandles = ARRAY [0..LIMIT-1] OF windows.HANDLE;
+   TPoolHandles = ARRAY [0..10*LIMIT-1] OF windows.HANDLE;
+
 CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
-      EA : ARRAY [0..LIMIT-1] OF windows.HANDLE;
+      EA : POINTER TO TEventHandles := NEW( TEventHandles );
       Failure : BOOLEAN;
       i : CARDINAL;
-      PH : ARRAY [0..10*LIMIT-1] OF windows.HANDLE;
+      PH : POINTER TO TPoolHandles := NEW( TPoolHandles );
    BEGIN
       threadinit.Startup();
       NEW( Pool );
       
-      PH[0] := NIL;
+      PH^[0] := NIL;
       SELF.Host := Host;
       Delegate.Test := ADR( SELF );
 
@@ -100,18 +104,21 @@ CLASS IMPLEMENTATION CTest;
 
       // create handles
       FOR i := 0 TO Limit-1 DO
-         EA[i] := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
+         EA^[i] := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
       END; // FOR
       
-      Failure := Round( FALSE, EA, REF PH );
+      Failure := Round( FALSE, EA^, REF PH^ );
 
-      Failure := Round( TRUE, EA, REF PH ) OR Failure;
+      Failure := Round( TRUE, EA^, REF PH^ ) OR Failure;
 
       // done handles
       FOR i := 0 TO Limit-1 DO
-          windows.CloseHandle( EA[i] );
+          windows.CloseHandle( EA^[i] );
       END; // FOR
    
+      DISPOSE( EA );
+      DISPOSE( PH );
+
       DISPOSE( Pool );
       threadinit.Cleanup();
 
@@ -170,12 +177,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      IF Count = lcount THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Host^.StopPhaseWithResult( Count = lcount );
 
       //==========
       IF CompletionInOwningThread THEN
@@ -211,12 +213,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      IF Count = lcount THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Host^.StopPhaseWithResult( Count = lcount );
 
       //==========
       IF CompletionInOwningThread THEN
@@ -253,12 +250,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      IF Count = 10*lcount THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Host^.StopPhaseWithResult( Count = 10*lcount );
 
       //==========
       IF CompletionInOwningThread THEN
@@ -296,12 +288,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      IF Count = 10*lcount THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Host^.StopPhaseWithResult( Count = 10*lcount );
       
       RETURN Failure;
    END Round;

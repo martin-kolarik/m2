@@ -25,7 +25,7 @@
         <CandleDefs>$(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDisplayName=&quot;$(ProductDisplayName)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dUpgradeGUID=$(ProductUpgradeGUID) -dLicenceMId=$(LicenceMachineId)</CandleDefs>
-        <CandleDefs>$(CandleDefs) -dLanguageName=$(RFC1766Short) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dLeakChecking=$(LeakChecking)</CandleDefs>
+        <CandleDefs>$(CandleDefs) -dLanguageName=$(RFC1766Short) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfiguration=$(Configuration) -dLeakChecking=$(LeakChecking)</CandleDefs>
         <CandleDefs Condition="$(CLib)!='Dynamic'">$(CandleDefs) -dCLib=none</CandleDefs>
         <CandleDefs Condition="$(CLib)=='Dynamic'">$(CandleDefs) -dCLib=$(DynamicCLibInstallMethod)</CandleDefs>
     </PropertyGroup>
@@ -35,7 +35,7 @@
         <IntermediateSetupFiles Include="$(SetupDir)\License.rtf;$(IntermediateDir)\*.wixobj"/>
     </ItemGroup>
 
-    <UsingTask TaskName="GenerateGUID" AssemblyFile="BuildTasks.dll"/>
+    <UsingTask TaskName="GenerateGUID" AssemblyFile="$(BuildTask)"/>
 
     <Target Name="CleanSetup">
         <Delete Files="@(IntermediateSetupFiles)" ContinueOnError="true" />
@@ -45,10 +45,10 @@
             DependsOnTargets="OutputProperties;GUID;MSI;Digests"/>
 
     <Target Name="OutputProperties">
-        <CreateProperty Condition="$(ConfigurationName)=='Release'" Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short).msi">
+        <CreateProperty Condition="$(Configuration)=='Release'" Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short)-$(Platform).msi">
             <Output TaskParameter="Value" PropertyName="SetupResult" />
         </CreateProperty>
-        <CreateProperty Condition="$(ConfigurationName)!='Release'" Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short)-$(ConfigurationName).msi">
+        <CreateProperty Condition="$(Configuration)!='Release'" Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short)-$(Configuration)_$(Platform).msi">
             <Output TaskParameter="Value" PropertyName="SetupResult" />
         </CreateProperty>
         <CreateProperty Value="$(OutputDir)\$(SetupResult)">
@@ -71,6 +71,9 @@
               Command="&quot;$(Candle)&quot; $(SetupFile) -dProductVersion=$(ProductVersion) -dProductGUID=$(ProductGUID) $(CandleDefs)"/>
         <Exec WorkingDirectory="$(OutputDir)"
               Command="&quot;$(Light)&quot; -b &quot;..\$(SetupDir)&quot; &quot;..\$(SetupObj)&quot; &quot;$(WiXSrc)\WixUI_Licence.wixlib&quot; -loc &quot;$(WiXSrc)\WixUI_$(RFC1766Long).wxl&quot; -loc &quot;$(WixSrc)\WixUI_Licence_$(RFC1766Long).wxl&quot; -out $(SetupResult)"/>
+        <Exec Condition="$(SignCertificatePath)!=''"
+              WorkingDirectory="$(OutputDir)"
+              Command="&quot;$(SDKCommonBin)\signtool&quot; sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(SetupResult)"/>
     </Target>
 
     <Target Name="Digests"

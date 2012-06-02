@@ -930,11 +930,11 @@ END COpenLinkElem;
     IF POpenLinkList = NIL THEN
       NEW( POpenLinkList );
     END;
-    b := POpenLinkList^.GetFirst( OUT PE );
+    b := POpenLinkList^.colGetFirst( OUT PE );
     WHILE b AND 
           NOT( EQUALS( sTail, PE^.LibraryName ) AND 
                EQUALS( sDevice, PE^.DeviceName ) ) DO
-      b := POpenLinkList^.NextOf( PE, OUT PE );
+      b := POpenLinkList^.colNextOf( PE, OUT PE );
     END;
 
     IF NOT b THEN  // link does not exist
@@ -998,7 +998,7 @@ END COpenLinkElem;
 
       NEW( PE );
       PE^ := Elem;
-      POpenLinkList^.Append( PE );
+      POpenLinkList^.Add( PE );
 
     ELSE  // link already exists
       b := PE^.PDeviceLink^.InitW( Device, IniFilePath,
@@ -1025,9 +1025,9 @@ END COpenLinkElem;
     IF POpenLinkList = NIL THEN
       RETURN;
     END;
-    b := POpenLinkList^.GetFirst( OUT PE );
+    b := POpenLinkList^.colGetFirst( OUT PE );
     WHILE b AND (hLink <> TLinkHandle(PE^.PDeviceLink)) DO
-      b := POpenLinkList^.NextOf( PE, OUT PE );
+      b := POpenLinkList^.colNextOf( PE, OUT PE );
     END;
     IF b THEN
       PE^.PDeviceLink^.DoneSession( hSession );

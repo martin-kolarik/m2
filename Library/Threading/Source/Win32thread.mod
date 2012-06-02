@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Win32thread;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    Debug,
@@ -49,7 +49,7 @@ CLASS IMPLEMENTATION CThreadManager;
       IF Result = Sync.arTimeout THEN
          ASSERTLOG( FALSE, L"Unable to obtain ThreadManager lock" );
       ELSE
-         Threads.Append( Thread, 0 );
+         Threads.Add( Thread, 0 );
       END;
       Lock.UnlockWrite();
    END Register;
@@ -95,16 +95,19 @@ VAR
 (*================================================================================*)
 
 #save, call( convention => stdcall )
-PROCEDURE Win32_thread( Thread : TPWin32Thread ) : windows.DWORD;
+PROCEDURE Loop( Thread : TPWin32Thread ) : windows.DWORD;
 BEGIN
   RETURN Thread^.Exec();
-END Win32_thread;
+END Loop;
 #restore
 
 (*--------------------------------------------------------------------------------*)
 
 PROCEDURE ThreadCrashHandler( exceptionPointers : windows.PEXCEPTION_POINTERS ) : TRISTATE;
 BEGIN
+   IF windows.IsDebuggerPresent() THEN
+      windows.DebugBreak();
+   END;
    Debug.Dump( L"", exceptionPointers );
    RETURN excpt.EXCEPTION_EXECUTE_HANDLER;
 END ThreadCrashHandler;
@@ -168,7 +171,7 @@ CLASS IMPLEMENTATION Win32Thread;
 
       _RunLock.Reset();
       _HExit.Reset();
-      _HThread := windows.CreateThread( NIL, STACK_RESERVATION_SIZE, windows.PTHREAD_START_ROUTINE( Win32_thread ), ADR( SELF ), windows.STACK_SIZE_PARAM_IS_A_RESERVATION, ADR( _Thread ));
+      _HThread := windows.CreateThread( NIL, STACK_RESERVATION_SIZE, windows.PTHREAD_START_ROUTINE( Loop ), ADR( SELF ), windows.STACK_SIZE_PARAM_IS_A_RESERVATION, ADR( _Thread ));
       IF WaitRun THEN
          Result := _RunLock.Wait( Sync.FORSAFETY );
       ELSE

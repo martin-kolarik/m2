@@ -234,8 +234,8 @@ INTERFACE ITokenizer;
    PROCEDURE Reset(); // rewinds to start
    PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    
-   PROCEDURE Mark() : PTR; // return mark handle of current position
-   PROCEDURE GotoMark( Handle : PTR );
+   PROCEDURE MarkPosition() : PTR; // return mark handle of current position
+   PROCEDURE GotoMarkedPosition( Handle : PTR );
 
 END ITokenizer;
 
@@ -265,8 +265,8 @@ CLASS CTokenizer IMPLEMENTS ITokenizer;
    PUBLIC VIRTUAL PROCEDURE Reset(); // rewinds to start
    PUBLIC VIRTUAL PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    
-   PUBLIC VIRTUAL PROCEDURE Mark() : PTR; // return mark handle of current position
-   PUBLIC VIRTUAL PROCEDURE GotoMark( Handle : PTR );
+   PUBLIC VIRTUAL PROCEDURE MarkPosition() : PTR; // return mark handle of current position
+   PUBLIC VIRTUAL PROCEDURE GotoMarkedPosition( Handle : PTR );
    
    // SELF
    PUBLIC PROPERTY

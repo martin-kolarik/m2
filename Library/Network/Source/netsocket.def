@@ -165,7 +165,7 @@ CLASS DSocket( SSocket );
   PRIVATE PROCEDURE Close( Persist : BOOLEAN );
   // WaitCompletion() comes from SSocket
 
-  PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE ConnectAddress( CONST Server : inetaddr.INETADDR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE Accept( CONST ServerSocket : TPSSocket; OUT Error : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE AcceptFrom( REF SourceSocket : TPDSocket; OUT Error : CARDINAL ) : Sync.TAsyncResult; // adopts SourceSocket.Socket and clears it

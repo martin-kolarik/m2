@@ -19,17 +19,11 @@ TYPE
    
 // THE CLASS SHOULD BE ALLOCATED DYNAMICALLY TO NOT TO MAKE NEED TO CALL CONTSRUCTOR FROM OTHER DLLs
    
-CLASS CSupport IMPLEMENTS threadcall.IThreadProcedureCallTarget;
-   PRIVATE VAR
-      OfThread : OSALmsg.TPMessageQueueThread;
-      Joined : maps.CPtrMap;
-      JoinedLock : Sync.LOCK;
-      Timers : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMap;
-      TimersLock : Sync.LOCK;
+CLASS CSupport( baseobject.CDisposable ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
 
-   PUBLIC PROCEDURE Init( OfThread : OSALmsg.TPMessageQueueThread );
-   PUBLIC PROCEDURE Dispose();
-   
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
    // client (outer) side
    PUBLIC PROCEDURE Join( Handler : OSALmsg.TPMessageHandler; CallOnJoinInThread : BOOLEAN );
    PUBLIC PROCEDURE Leave( Handler : OSALmsg.TPMessageHandler; CallOnLeaveInThread : BOOLEAN );
@@ -51,6 +45,17 @@ CLASS CSupport IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    PRIVATE PROCEDURE DoLeave( Handler : OSALmsg.TPMessageHandler );
    PRIVATE PROCEDURE DoStartTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    PRIVATE PROCEDURE DoStopTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR );
+
+   // SELF
+   PUBLIC PROCEDURE Init( OfThread : OSALmsg.TPMessageQueueThread );
+   
+   PRIVATE VAR
+      OfThread : OSALmsg.TPMessageQueueThread;
+      Joined : maps.CPtrPtrMap;
+      JoinedLock : Sync.LOCK;
+      Timers : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMap;
+      TimersLock : Sync.LOCK;
+
 END CSupport;
 
 (*===========================================================================*)

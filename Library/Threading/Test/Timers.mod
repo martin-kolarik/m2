@@ -184,7 +184,6 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
-      Failure : BOOLEAN := FALSE;
       i, LCount : CARDINAL;
    BEGIN
       threadinit.Startup();
@@ -214,11 +213,7 @@ CLASS IMPLEMENTATION CTest;
       UNTIL Exit = 1;
       sync.Sleep( 50 );
 
-      IF Count = 50 THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( Count = 50 );
 
       //-----      
       Host^.StartPhase( L"4 timers started out of thread" );
@@ -246,11 +241,7 @@ CLASS IMPLEMENTATION CTest;
       UNTIL Exit = 1;
       sync.Sleep( 50 );
 
-      IF Count = 50 THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( Count = 50 );
 
       //-----      
       Host^.StartPhase( L"20 threads each making 200 not repeated timers" );
@@ -278,20 +269,12 @@ CLASS IMPLEMENTATION CTest;
          END;
       UNTIL Count = i;
 
-      IF Count = i THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-      END;
+      Host^.StopPhaseWithResult( Count = i );
 
       DISPOSE( Handler );
       threadinit.Cleanup();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

@@ -3,11 +3,15 @@ IMPLEMENTATION MODULE msgthreadsupport;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
+   collection,
    datetime,
-   msghandler;
+   Log,
+   msghandler,
+   Rtti,
+   StringsO;
    
 (*===========================================================================*)
 
@@ -30,9 +34,23 @@ CLASS IMPLEMENTATION CSupport;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   VAR
+      iterator : maps.CPtrPtrMapIterator;
+      logger : Log.TPLogger;
+      name : StringsO.CString;
    BEGIN
-      ASSERTLOG( Joined.Empty );
+      // diagnostics report
+      IF NOT Joined.Empty THEN
+         logger := Log.logger();
+         iterator.Init( Joined, collection.dirForward );
+         WHILE iterator.MoveNext() DO
+            name.FromOAA( 0, OAsz( Rtti.TPRTTI( RTTI( OSALmsg.TPMessageHandler( iterator.Key )^ ))^.Name ));
+            logger^.LogS( Log.ldDebug, 0, EMITW( %class ), OA( name.Length-1, name.Data ));
+         END; // WHILE
+         ASSERTLOG( FALSE, L"Unexpectedly not empty." );
+      END;
+
       Joined.Dispose();
       OfThread := NIL;
    END Dispose;
@@ -221,10 +239,13 @@ CLASS IMPLEMENTATION CSupport;
 
    PRIVATE PROCEDURE DoJoin( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERTLOG( NOT IsJoined( Handler ));
+      IF IsJoined( Handler ) THEN
+         ASSERTLOG( FALSE, L"Handler is already joined, cannot join" );
+         RETURN;
+      END;
 
       JoinedLock.Lock();
-      Joined.Add( Handler, 0 );
+      Joined.Add( Handler, 0, 0 );
       JoinedLock.Unlock();
 
       Handler^.OnJoin( OfThread^ );
@@ -234,7 +255,10 @@ CLASS IMPLEMENTATION CSupport;
 
    PRIVATE PROCEDURE DoLeave( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERTLOG( IsJoined( Handler ));
+      IF NOT IsJoined( Handler ) THEN
+         ASSERTLOG( FALSE, L"Handler is not joined, cannot leave" );
+         RETURN;
+      END;
 
       JoinedLock.Lock();
       Joined.Remove( Handler );

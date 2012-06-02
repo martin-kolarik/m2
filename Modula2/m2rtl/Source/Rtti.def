@@ -13,6 +13,10 @@ TYPE
                ClassSize     : CARDINAL;
             END; // RECORD
 
+CONST
+   // Type is more readable compared to TPRTTI
+   CLASSTYPE ::= TPRTTI;
+
 (*================================================================================*)
 
 END Rtti.

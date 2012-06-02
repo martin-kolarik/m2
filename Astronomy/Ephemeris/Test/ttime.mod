@@ -38,21 +38,24 @@ IMPORT
 	#restore
 	VAR
 		cm : astro.CCelestialMechanic;
-		jd : LONGREAL;
+      d : CARDINAL;
+		dc : datetime.DayCount;
+      ts : datetime.TimeSpan;
 		
 		h, m, s, ms : CARDINAL;
 	BEGIN
 		IF argc = 1 THEN
-			jd := datetime.GetCurrentJD();
+			dc := datetime.NowDC();
 		ELSE
-			Strings.ToLONGREALW( OAsz( argp^[1] ), OUT jd );
+			Strings.ToLONGREALW( OAsz( argp^[1] ), OUT dc.JulianDate );
 		END;
-		cm.SetJD( jd );
+		cm.SetJD( dc );
 		
 		OutLR( L"JD:           ", jd, TRUE );
 		OutLR( L"Sideral time: ", cm.SideralTimeUT(), TRUE );
 		
-		datetime.fd2HMS( cm.SideralTimeUT() / 24.0, h, m, s, ms );
+      ts := datetime.TimeSpanD( cm.SideralTimeUT());
+		ts.ToDHMS( OUT d, OUT h, OUT m, OUT s, OUT ms );
 
 		OutLR( "  h: ", LONGREAL( h ), TRUE );
 		OutLR( "  m: ", LONGREAL( m ), TRUE );

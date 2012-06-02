@@ -6,10 +6,11 @@ FROM Storage IMPORT
 //===========================================================================
 
 IMPORT
-  Languages,
-  lists,
-  maps,
-  StringsO;
+   baseobject,
+   Languages,
+   lists,
+   maps,
+   StringsO;
 
 //===========================================================================
 
@@ -30,7 +31,7 @@ CLASS CResources;
     _Stub          : TResource;
     _Mode          : TResourceMode;
     _HResource     : ADDRESS;
-    _Strings       : maps.CStringMap;
+    _Strings       : maps.CStringPtrMap;
   PRIVATE VAR
     _Lang          : Languages.TLanguage;
     _RFC1766       : Languages.TRFC1766;
@@ -83,7 +84,7 @@ END CResources;
 
 //===========================================================================
 
-INTERFACE IResourcesNotifier;
+INTERFACE IResourcesNotifier( baseobject.IBASE );
   VIRTUAL PROCEDURE OnLangChange( CONST Resources : TPResources ); // Lang := ...
   VIRTUAL PROCEDURE OnTextsChange( CONST Resources : TPResources ); // Lang := ..., FallbackLang := ...
 END IResourcesNotifier;

@@ -1,7 +1,7 @@
 MODULE lrconvround;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -82,7 +82,6 @@ CLASS IMPLEMENTATION CTest;
                   -0.0009998765432E-20
                );
    VAR
-      Failure : BOOLEAN := FALSE;
       i, j : CARDINAL;
       S : ARRAY [0..255] OF WCHAR;
 
@@ -111,11 +110,7 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StopPhase();
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trSuccess;
    END Run;
    
 (*---------------------------------------------------------------------------*)

@@ -1,0 +1,429 @@
+DEFINITION MODULE transport;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   knx_def,
+   inetaddr,
+   StringsO;
+
+(*================================================================================*)
+// global & common networking
+
+CONST
+   KNXNET_DISCOVERY_ADDRESS = L"224.0.23.12:3671";
+   KNXNET_IPPORT = 3671;
+
+   HEART_BEAT_PERIOD = 60 * 1000;
+   HEART_BEAT_TIMEOUT = 10 * 1000;
+   TUNNELING_REQUEST_TIME_OUT = 1 * 1000;
+
+   // specific
+   ROUTING_L_CON_TIME_OUT = 20;
+
+(*--------------------------------------------------------------------------------*)
+// main service structures
+
+CONST
+   HEADER_SIZE_10 = 6;
+
+TYPE
+   TProtocolVersion = CARD8(
+      KNXNETIP_VERSION_10 = 010H // BCD 1.0
+   );
+   
+   TServiceFamily = CARD8(
+      FAMILY_CORE                 = 2,
+      FAMILY_MANAGEMENT           = 3,
+      FAMILY_TUNELLING            = 4,
+      FAMILY_ROUTING              = 5,
+      FAMILY_REMOTE_LOGGING       = 6,
+      FAMILY_REMOTE_CONFIG        = 7,
+      FAMILY_REMOTE_OBJECT_SERVER = 8
+   );
+   TServiceFamilies = SET OF TServiceFamily;
+
+   TService = CARD16(
+      // private handler
+      SERVICE_UNKNOWN          = 0,
+      // CORE services
+      SEARCH_REQUEST           = 0201H,
+      SEARCH_RESPONSE          = 0202H,
+      DESCRIPTION_REQUEST      = 0203H,
+      DESCRIPTION_RESPONSE     = 0204H,
+      CONNECT_REQUEST          = 0205H,
+      CONNECT_RESPONSE         = 0206H,
+      CONNECTIONSTATE_REQUEST  = 0207H,
+      CONNECTIONSTATE_RESPONSE = 0208H,
+      DISCONNECT_REQUEST       = 0209H,
+      DISCONNECT_RESPONSE      = 020AH,
+      // TUNELLING services
+      TUNNELING_REQUEST        = 0420H,
+      TUNNELING_ACK            = 0421H,
+      // ROUTING services
+      ROUTING_INDICATION       = 0530H,
+      ROUTING_LOST_MESSAGE     = 0531H
+   );
+   
+   TStatus = CARD8(
+      E_NO_ERROR              = 000H,
+      E_HOST_PROTOCOL_TYPE    = 001H,
+      E_VERSION_NOT_SUPPORTED = 002H,
+      E_SEQUENCE_NUMBER       = 004H,
+      E_CONNECTION_ID         = 021H,
+      E_CONNECTION_TYPE       = 022H,
+      E_CONNECTION_OPTIONS    = 023H,
+      E_MORE_CONNECTIONS      = 024H,
+      E_DATA_CONNECTION       = 026H,
+      E_KNX_CONNECTION        = 027H,
+      E_TUNELLING_LAYER       = 029H
+   );
+   
+TYPE
+   THostProtocolCode = CARD8(
+      IPV4_UDP = 1,
+      IPV4_TCP = 2
+   );
+   
+   TDIBType = CARD8(
+      DEVICE_INFO       = 1,
+      SUPP_SVC_FAMILIES = 2,
+      MFR_DATA          = 0FEH
+   );
+   
+   TKNXMediumItem = (
+      TP0,
+      TP1,
+      PL110,
+      PL132,
+      RF
+   );
+   TKNXMedium = SET CARD8 OF TKNXMediumItem;
+
+   TDeviceStatusItem = (
+      PROGRAM_MODE
+   );
+   TDeviceStatus = SET CARD8 OF TDeviceStatusItem;
+   
+(*--------------------------------------------------------------------------------*)
+
+#save, option( pack => 1 )
+CLASS V1Header;
+   LOCAL VAR
+      _HdrLength : CARD8 := HEADER_SIZE_10;
+      _Version   : TProtocolVersion := KNXNETIP_VERSION_10;
+      _Service   : TService := SERVICE_UNKNOWN;
+      _PktLength : CARD16 := HEADER_SIZE_10;
+END V1Header; // RECORD
+
+CLASS HostProtocolAddressInformation;
+   LOCAL VAR
+      _HPAILength       : CARD8 := 8; // default
+      _HostProtocolCode : THostProtocolCode := IPV4_UDP;
+      _IPAddress        : inetaddr.TIPV4;
+      _Port             : CARD16 := REVERSE( CARD16( KNXNET_IPPORT ));
+   PUBLIC PROPERTY
+      Address : inetaddr.INETADDR;
+      Port    : CARDINAL;
+END HostProtocolAddressInformation;
+
+TYPE
+   DIBInfo = RECORD
+                DIBLength       : CARD8;
+                Type            : TDIBType;
+                Medium          : TKNXMedium;
+                Status          : TStatus;
+                PhysicalAddress : knx_def.TPacketAddress;
+                ProjectId       : CARD16;
+                SerialNo        : ARRAY [0..5] OF BYTE;
+                RoutingAddress  : inetaddr.TIPV4;
+                MAC             : ARRAY [0..5] OF BYTE;
+                Name            : ARRAY [0..29] OF CHAR;
+             END; // RECORD
+
+   DIBServiceFamilies = RECORD
+                           DIBLength : CARD8;
+                           Type      : TDIBType;
+                           Families  : ARRAY [0..9] OF RECORD // maximal count is 10
+                                                          Family  : TServiceFamily;
+                                                          Version : CARD8;
+                                                       END;
+                        END; // RECORD
+
+   DIBManufacturer = RECORD
+                        DIBLength      : CARD8;
+                        Type           : TDIBType;
+                        ManufacturerId : CARD16;
+                     END; // RECORD
+#restore
+
+#save, option( pack => 1 )
+TYPE
+   TPPacket = POINTER TO Packet;
+
+ABSTRACT CLASS Packet;
+   INTERNAL VAR
+      _HDR  : V1Header;
+   PUBLIC INLINE PROPERTY
+      Length  : CARDINAL;
+      Service : TService;
+END Packet;
+
+ABSTRACT CLASS HPAIPacket( Packet );
+   INTERNAL VAR
+      _HPAI   : HostProtocolAddressInformation;
+   PUBLIC PROPERTY
+      HPAI    : HostProtocolAddressInformation;
+      Address : inetaddr.INETADDR;
+      Port    : CARDINAL;
+END HPAIPacket;
+#restore
+
+#save, option( pack => 1 )
+TYPE
+   TPSearchRequest = POINTER TO SearchRequest;
+
+CLASS SearchRequest( HPAIPacket );
+END SearchRequest;
+
+TYPE
+   TPSearchResponse = POINTER TO SearchResponse;
+
+CLASS SearchResponse( HPAIPacket );
+   INTERNAL VAR
+      _DIB : DIBInfo;
+      _SF  : DIBServiceFamilies;
+   PUBLIC READONLY PROPERTY
+      Valid             : BOOLEAN;
+      SupportedFamilies : TServiceFamilies;
+      Name              : StringsO.CString;
+      MAC               : StringsO.CString;
+      PhysicalAddress   : knx_def.TAddress;
+      RoutingAddress    : inetaddr.INETADDR;
+END SearchResponse;
+#restore
+
+#save, option( pack => 1 )
+TYPE
+   TPDescriptionRequest = POINTER TO DescriptionRequest;
+
+CLASS DescriptionRequest( HPAIPacket );
+END DescriptionRequest;
+
+TYPE
+   TPDescriptionResponse = POINTER TO DescriptionResponse;
+
+CLASS DescriptionResponse( Packet );
+   INTERNAL VAR
+      _DIB : DIBInfo;
+      _SF  : DIBServiceFamilies;
+      _MF  : POINTER TO DIBManufacturer;
+   PUBLIC READONLY PROPERTY
+      Valid             : BOOLEAN;
+      SupportedFamilies : TServiceFamilies;
+      Name              : StringsO.CString;
+      MAC               : StringsO.CString;
+      PhysicalAddress   : knx_def.TAddress;
+      RoutingAddress    : inetaddr.INETADDR;
+      ManufacturerId    : CARD16;
+END DescriptionResponse;
+#restore
+
+(*================================================================================*)
+// connections
+
+TYPE
+   TConnectionType = CARD8(
+      TUNNEL_CONNECTION = 4
+   );
+   
+   TKNXLayer = CARD8(
+      TUNNEL_LINKLAYER  = 2,
+      TUNNEL_RAW        = 4,
+      TUNNEL_BUSMONITOR = 080H
+   );
+
+#save, option( pack => 1 )
+ABSTRACT CLASS ConnectionPacket( Packet );
+   PRIVATE VAR
+      _ChannelId : CARD8 := 0;
+      _Data      : CARD8 := 0;
+   PUBLIC PROPERTY
+      ChannelId  : CARD8;
+   PUBLIC READONLY PROPERTY
+      Status     : TStatus;
+END ConnectionPacket;
+
+ABSTRACT CLASS HPAIConnectionPacket( ConnectionPacket );
+   INTERNAL VAR
+      _HPAI : HostProtocolAddressInformation;
+END HPAIConnectionPacket;
+#restore
+
+#save, option( pack => 1 )
+CLASS CRI;
+   LOCAL VAR
+      _CRILength : CARD8 := 4; // this
+      _Type      : TConnectionType := TUNNEL_CONNECTION;
+      _Layer     : TKNXLayer := TUNNEL_LINKLAYER;
+      _reserved  : CARD8 := 0;
+END CRI;
+
+CLASS CRD;
+   LOCAL VAR
+      _CRDLength : CARD8 := 4; // this
+      _Type      : TConnectionType := TUNNEL_CONNECTION;
+      _Address   : knx_def.TPacketAddress;
+END CRD;
+#restore
+
+#save, option( pack => 1 )
+TYPE
+   TPConnectRequest = POINTER TO ConnectRequest;
+
+CLASS ConnectRequest( HPAIPacket );
+   INTERNAL VAR
+      _DataHPAI : HostProtocolAddressInformation;
+      _CRI      : CRI;
+   PUBLIC PROPERTY
+      KNXLayer : TKNXLayer;
+   PUBLIC WRITEONLY PROPERTY
+      ControlHPAI : HostProtocolAddressInformation;
+      DataHPAI    : HostProtocolAddressInformation;
+END ConnectRequest;
+      
+TYPE
+   TPConnectResponse = POINTER TO ConnectResponse;
+
+CLASS ConnectResponse( HPAIConnectionPacket );
+   INTERNAL VAR
+      _CRD : CRD;
+   PUBLIC READONLY PROPERTY
+      Valid           : BOOLEAN;
+      DataHPAI        : HostProtocolAddressInformation;
+      PhysicalAddress : knx_def.TAddress;
+END ConnectResponse;
+#restore
+
+#save, option( pack => 1 )
+TYPE
+   TPConnectionStateRequest = POINTER TO ConnectionStateRequest;
+
+CLASS ConnectionStateRequest( HPAIConnectionPacket );
+   PUBLIC WRITEONLY PROPERTY
+      ControlHPAI : HostProtocolAddressInformation;
+END ConnectionStateRequest;
+
+TYPE
+   TPConnectionStateResponse = POINTER TO ConnectionStateResponse;
+
+CLASS ConnectionStateResponse( ConnectionPacket );
+   PUBLIC READONLY PROPERTY
+      Valid : BOOLEAN;
+END ConnectionStateResponse;
+#restore
+
+#save, option( pack => 1 )
+TYPE
+   TPDisconnectRequest = POINTER TO DisconnectRequest;
+
+CLASS DisconnectRequest( HPAIConnectionPacket );
+   PUBLIC READONLY PROPERTY
+      Valid : BOOLEAN;
+   PUBLIC WRITEONLY PROPERTY
+      ControlHPAI : HostProtocolAddressInformation;
+END DisconnectRequest;
+
+TYPE
+   TPDisconnectResponse = POINTER TO DisconnectResponse;
+
+CLASS DisconnectResponse( ConnectionPacket );
+   PUBLIC READONLY PROPERTY
+      Valid : BOOLEAN;
+END DisconnectResponse;
+#restore
+
+(*================================================================================*)
+// tunneling and routing data flow
+
+#save, option( pack => 1 )
+CLASS ConnectionHeader;
+   LOCAL VAR
+      _Length    : CARD8 := 4; // this
+      _ChannelId : CARD8;
+      _Sequence  : CARD8 := 0;
+      _Data      : CARD8 := 0;
+END ConnectionHeader;
+
+TYPE
+   LostMessageInfo = RECORD
+                        _Length : CARD8;
+                        _Status : TDeviceStatus;
+                        _Number : CARD16;
+                     END; // RECORD
+#restore
+
+#save, option( pack => 1 )
+ABSTRACT CLASS TunnelingPacket( Packet );
+   INTERNAL VAR
+      _CHDR : ConnectionHeader;
+   PUBLIC PROPERTY 
+      ChannelId : CARD8;
+      Sequence : CARD8;
+END TunnelingPacket;
+
+TYPE
+   TPTunnelingRequest = POINTER TO TunnelingRequest;
+
+CLASS TunnelingRequest( TunnelingPacket );
+   PRIVATE VAR
+      _EMI : knx_def.cEMIPacket;
+   PUBLIC READONLY PROPERTY
+      Valid : BOOLEAN; // returns FALSE for busmonitor and raw modes
+   PUBLIC PROPERTY
+      cEMI : knx_def.cEMIPacket;
+      EMI : knx_def.TPacket;
+END TunnelingRequest;
+
+TYPE
+   TPTunnelingACK = POINTER TO TunnelingACK;
+
+CLASS TunnelingACK( TunnelingPacket );
+   PUBLIC READONLY PROPERTY
+      Valid : BOOLEAN;
+      Status : TStatus;
+   PUBLIC PROPERTY
+      Success : BOOLEAN;
+END TunnelingACK;
+#restore
+
+#save, option( pack => 1 )
+TYPE
+   TPRoutingIndication = POINTER TO RoutingIndication;
+
+CLASS RoutingIndication( Packet );
+   PRIVATE VAR
+      _EMI : knx_def.cEMIPacket;
+   PUBLIC READONLY PROPERTY
+      Valid : BOOLEAN;
+   PUBLIC PROPERTY
+      cEMI : knx_def.cEMIPacket;
+      EMI : knx_def.TPacket;
+END RoutingIndication;
+
+TYPE
+   TPRoutingLostMessage = POINTER TO RoutingLostMessage;
+
+CLASS RoutingLostMessage( Packet );
+   PRIVATE VAR
+      _LMI : LostMessageInfo;
+   PUBLIC READONLY PROPERTY
+      Valid     : BOOLEAN;
+      LostCount : CARDINAL;
+END RoutingLostMessage;
+#restore
+
+(*================================================================================*)
+
+END transport.

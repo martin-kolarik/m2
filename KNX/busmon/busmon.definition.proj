@@ -1,0 +1,19 @@
+<Project
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <PropertyGroup>
+        <CLib>Dynamic</CLib>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
+        <ComponentType>Generic</ComponentType>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ProductM2Control></ProductM2Control>
+        <ProductCLControl></ProductCLControl>
+        <ProductRCControl></ProductRCControl>
+        <ProductLNControl></ProductLNControl>
+    </PropertyGroup>
+
+</Project>

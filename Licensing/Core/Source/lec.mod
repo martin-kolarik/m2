@@ -1,15 +1,16 @@
 IMPLEMENTATION MODULE lec;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 #if DEBUG #then
 FROM log IMPORT
-   CLogger, ldDebug;
+   CLogger, ldDebug, ldMessage;
 #endif
    
 IMPORT
    arrays,
+   collection,
    Engine,
    Items,
    lists,
@@ -24,15 +25,12 @@ VAR
    debugged : PBOOLEAN := NIL;
 
 CONST
-   expNotSet = MIN( INT64 );
-   expNever = MAX( INT64 );
-   
    #if #false #and DEBUG #then
-      demoExp = datetime.unitsInDay * 3 DIV 1440; // 3 minutes
-      unactExp = datetime.unitsInDay * 1;
+      demoExp = 3.0 / 1440.0; // 3 minutes
+      unactExp = 1.0;
    #else
-      demoExp = datetime.unitsInDay * 6 DIV 240; // 0.6 hours
-      unactExp = datetime.unitsInDay * 33;
+      demoExp = 6.0 / 240.0; // 0.6 hours
+      unactExp = 33.0;
    #endif
    countLimit = 10000;
 
@@ -56,30 +54,22 @@ CLASS IMPLEMENTATION CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY StateInfo GET : TStateInfo;
-   BEGIN
-      IF _StateInfo = siUnknown THEN
-         RETURN siDemo;
-      ELSIF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( _StateInfo )) >> 3 ) MOD 317 ) THEN
-         RETURN TStateInfo( CARDINAL( LOPTRLONGWORD( PTR( ADR( _StateInfo )) >> 3 )) MOD 2 + 1 );
-      ELSE
-         RETURN _StateInfo;
-      END;
-   END StateInfo;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Expires GET : datetime.DateTime;
+   PUBLIC VIRTUAL PROPERTY Expires GET : datetime.DateTime;
    VAR
       TExpires : datetime.DateTime;
    BEGIN
-      IF ( _Expires = expNotSet ) OR ( _Expires = expNever ) THEN
+      IF _Expires.IsLowBound THEN
+         TExpires.SetNowUTC();
+         IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
+            TExpires.Year := 117;
+         END;
+      ELSIF _Expires.IsHighBound THEN
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
             TExpires.Year := 297;
          END;
       ELSE
-         TExpires.JulianDate := _Expires;
-         // datetime.TrimTime( REF TExpires ); -- better is to not trim it, it allows use Expires as whole information
+         TExpires.DayCount := _Expires;
+         // datetime.TrimTime( REF TExpires ); -- better to not trim it, it allows use Expires as whole information
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
             TExpires.Month := TExpires.Year;
             TExpires.Year := TExpires.Day;
@@ -90,10 +80,23 @@ CLASS IMPLEMENTATION CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Expired GET : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY Expired GET : BOOLEAN;
    BEGIN
-      RETURN datetime.NowUTC().Greater( Expires );
+      RETURN datetime.NowUTC() > Expires;
    END Expired;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY StateInfo GET : TStateInfo;
+   BEGIN
+      IF _StateInfo = siUnknown THEN
+         RETURN siDemo;
+      ELSIF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( _StateInfo )) >> 3 ) MOD 317 ) THEN
+         RETURN TStateInfo( CARDINAL( LOPTRLONGWORD( PTR( ADR( _StateInfo )) >> 3 )) MOD 2 + 1 );
+      ELSE
+         RETURN _StateInfo;
+      END;
+   END StateInfo;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -119,7 +122,7 @@ CLASS IMPLEMENTATION CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Construct( CONST Name, Id : StringsO.IString; stateInfo : TStateInfo; expires : datetime.TJD );
+   LOCAL PROCEDURE Construct( CONST Name, Id : StringsO.IString; stateInfo : TStateInfo; expires : datetime.DayCount );
    BEGIN
       _Name.Assign( Name );
       _Id.Assign( Id );
@@ -131,7 +134,7 @@ CLASS IMPLEMENTATION CProduct;
 
 BEGIN
    _StateInfo := siUnknown;
-   _Expires := expNotSet;
+   _Expires.SetLowBound();
    Dispose();
 END CProduct;
 
@@ -142,13 +145,13 @@ END CProduct;
 VAR
    Log : CLogger;
 
-PROCEDURE JDCToDate( date : datetime.TJDC; OUT dateString : ARRAY OF WCHAR );
+PROCEDURE DCToString( dc : datetime.DayCount; OUT dateString : ARRAY OF WCHAR );
 VAR
    dt : datetime.DateTime;
 BEGIN
-   dt.JulianDate := date;
+   dt.DayCount := dc;
    dt.ToStringOA( L"yy-MM-dd HH:mm", TRUE, TRUE, OUT dateString );
-END JDCToDate;
+END DCToString;
 
 #endif   
 
@@ -183,14 +186,22 @@ CLASS IMPLEMENTATION CResult;
 
    (*----------*)
    
-      PROCEDURE ComputeExpiration( behaviour : TBehaviour; current : datetime.TJD; _new : datetime.TJD ) : datetime.TJD;
+      PROCEDURE ComputeExpiration( behaviour : TBehaviour; current : datetime.DayCount; _new : datetime.DayCount ) : datetime.DayCount;
       BEGIN
-         IF current = expNotSet THEN
+         IF current.IsLowBound THEN
             RETURN _new;
          ELSIF behaviour = bhWorstCase THEN
-            RETURN MIN2( current, _new );
+            IF current < _new THEN
+               RETURN current;
+            ELSE
+               RETURN _new;
+            END;
          ELSIF behaviour = bhBestCase THEN
-            RETURN MAX2( current, _new );
+            IF current > _new THEN
+               RETURN current;
+            ELSE
+               RETURN _new;
+            END;
          ELSE
             RETURN current;
          END;
@@ -201,11 +212,12 @@ CLASS IMPLEMENTATION CResult;
    LABEL
       Done;
    VAR
+      ait, lit : lists.CPtrListIterator;
       aitem : Items.TPActivation;
       dt, now : datetime.DateTime;
-      expires, nowJulianDate : datetime.TJD;
-      litems, aitems : lists.TPPtrList;
+      expires, nowDayCount : datetime.DayCount;
       linfo : Items.TPInfo;
+      linfolit : lists.CStringStringListIterator;
       info : TStateInfo := siUnknown;
       litem : Items.TPLicence;
       localActivated : BOOLEAN;
@@ -236,8 +248,8 @@ CLASS IMPLEMENTATION CResult;
          #endif
 
          now.SetNowUTC();
-         nowJulianDate := now.JulianDate;
-         expires := expNotSet;
+         nowDayCount := now.DayCount;
+         expires.SetLowBound();
 
       ELSE
 
@@ -247,22 +259,21 @@ CLASS IMPLEMENTATION CResult;
          #endif
 
          info := siDemo;
-         expires := _Start + demoExp;
+         expires := _Start + datetime.TimeSpanD( demoExp );
          GOTO Done;
       END;
 
       // parse licences
-      litems := Items.TPProduct( pitem )^.LicencesAndInfos;
-      litems^.Reset();
-      WHILE litems^.MoveNext() DO
-         litem := litems^.Current;
+      lit.Init( Items.TPProduct( pitem )^.LicencesAndInfos^, collection.dirForward );
+      WHILE lit.MoveNext() DO
+         litem := lit.Value;
 
          IF litem^ IS Items.CInfo THEN // handle info
             linfo := Items.TPInfo( litem );
             IF linfo^.List <> NIL THEN
-               linfo^.List^.Reset();
-               WHILE linfo^.List^.MoveNext() DO
-                  product^.Info^.Add( linfo^.List^.Current^, linfo^.List^.CurrentData^ );
+               linfolit.Init( linfo^.List^, collection.dirForward );
+               WHILE linfolit.MoveNext() DO
+                  product^.Info^.Add( linfolit.Value^, linfolit.Data^ );
                END;
             END;
             CONTINUE;
@@ -282,10 +293,9 @@ CLASS IMPLEMENTATION CResult;
          IF litem^.HasChilds THEN
 
             // parse activations
-            aitems := litem^.Activations;
-            aitems^.Reset();
-            WHILE aitems^.MoveNext() DO
-               aitem := aitems^.Current;
+            ait.Init( litem^.Activations^, collection.dirForward );
+            WHILE ait.MoveNext() DO
+               aitem := ait.Value;
 
                #if DEBUG #then      
                   aitem^.ExpiresString.ToOA( OUT logs );
@@ -297,13 +307,13 @@ CLASS IMPLEMENTATION CResult;
                   info := ComputeInfo( bhBestCase, info, siActivated );
                   dt := aitem^.Expires;
                   IF dt.Year > 0 THEN
-                     expires := ComputeExpiration( bhBestCase, expires, dt.JulianDate );
+                     expires := ComputeExpiration( bhBestCase, expires, dt.DayCount );
 
                      #if DEBUG #then      
                         Log.LogS( ldDebug, 0, L"LEC", L"    valid limitedly" );
                      #endif
                   ELSE
-                     expires := expNever;
+                     expires.SetHighBound();
 
                      #if DEBUG #then      
                         Log.LogS( ldDebug, 0, L"LEC", L"    valid forever" );
@@ -314,20 +324,20 @@ CLASS IMPLEMENTATION CResult;
                   
                ELSIF trialFlag THEN
                   info := ComputeInfo( bhBestCase, info, siDemo );
-                  expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
-                  localExpired := localExpired OR ( expires < nowJulianDate );
+                  expires := ComputeExpiration( bhBestCase, expires, _Start + datetime.TimeSpanD( demoExp ));
+                  localExpired := localExpired OR ( expires < nowDayCount );
 
                   #if DEBUG #then      
-                     JDCToDate( expires, OUT logs );
+                     DCToString( expires, OUT logs );
                      Log.LogSS( ldDebug, 0, L"LEC", L"    not valid, trial, expires: ", logs );
                   #endif
                ELSE
                   info := ComputeInfo( bhBestCase, info, siNotActivated );
-                  expires := ComputeExpiration( bhBestCase, expires, litem^.Created.JulianDate + unactExp );
-                  localExpired := localExpired OR ( expires < nowJulianDate );
+                  expires := ComputeExpiration( bhBestCase, expires, litem^.Created.DayCount + datetime.TimeSpanD( unactExp ));
+                  localExpired := localExpired OR ( expires < nowDayCount );
 
                   #if DEBUG #then      
-                     JDCToDate( expires, OUT logs );
+                     DCToString( expires, OUT logs );
                      Log.LogSS( ldDebug, 0, L"LEC", L"    not valid, not trial, expires: ", logs );
                   #endif
                END;
@@ -349,21 +359,21 @@ CLASS IMPLEMENTATION CResult;
             
          ELSIF trialFlag THEN
             info := ComputeInfo( bhBestCase, info, siDemo );
-            expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
-            localExpired := localExpired OR ( expires < nowJulianDate );
+            expires := ComputeExpiration( bhBestCase, expires, _Start + datetime.TimeSpanD( demoExp ));
+            localExpired := localExpired OR ( expires < nowDayCount );
 
             #if DEBUG #then      
-               JDCToDate( expires, OUT logs );
+               DCToString( expires, OUT logs );
                Log.LogSS( ldDebug, 0, L"LEC", L"    not activated, trial, expires: ", logs );
             #endif
 
          ELSE
             info := ComputeInfo( bhBestCase, info, siNotActivated );
-            expires := ComputeExpiration( bhBestCase, expires, litem^.Created.JulianDate + unactExp );
-            localExpired := localExpired OR ( expires < nowJulianDate );
+            expires := ComputeExpiration( bhBestCase, expires, litem^.Created.DayCount + datetime.TimeSpanD( unactExp ));
+            localExpired := localExpired OR ( expires < nowDayCount );
 
             #if DEBUG #then      
-               JDCToDate( expires, OUT logs );
+               DCToString( expires, OUT logs );
                Log.LogSS( ldDebug, 0, L"LEC", L"    not activated, expires: ", logs );
             #endif
 
@@ -413,7 +423,7 @@ CLASS IMPLEMENTATION CResult;
          ELSE
             Log.LogS( ldDebug, 0, L"LEC", L"Computing worst hit" );
          END;
-         JDCToDate( _Expires, OUT logs );
+         DCToString( _Expires, OUT logs );
          CASE info OF
          | siUnknown :
             Log.LogSS( ldDebug, 0, L"LEC", L"Result: unknown, expires: ", logs );
@@ -433,8 +443,8 @@ CLASS IMPLEMENTATION CResult;
    LOCAL PROCEDURE QueryFinished();
    BEGIN
       _Lock.Lock();
-      IF _Expires = expNotSet THEN
-         _Expires := _Start + demoExp;
+      IF _Expires.IsLowBound THEN
+         _Expires := _Start + datetime.TimeSpanD( demoExp );
       END;
       _Lock.Unlock();
    END QueryFinished;
@@ -459,18 +469,23 @@ CLASS IMPLEMENTATION CResult;
 
    PUBLIC PROPERTY Expires GET : datetime.DateTime;
    VAR
-      LExpires : datetime.TJD;
+      LExpires : datetime.DayCount;
       TExpires : datetime.DateTime;
    BEGIN
       _Lock.Lock();
       LExpires := _Expires;
       _Lock.Unlock();
-      IF ( LExpires = expNotSet ) OR ( LExpires = expNever ) THEN
+      IF LExpires.IsLowBound THEN
+         TExpires.SetNowUTC();
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
             TExpires.Year := 117;
          END;
+      ELSIF LExpires.IsHighBound THEN
+         IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
+            TExpires.Year := 297;
+         END;
       ELSE
-         TExpires.JulianDate := LExpires;
+         TExpires.DayCount := LExpires;
          // datetime.TrimTime( REF TExpires ); -- better is to not trim it, it allows use Expires as whole information
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
             TExpires.Month := TExpires.Year;
@@ -491,26 +506,27 @@ CLASS IMPLEMENTATION CResult;
 
    PUBLIC PROPERTY NextCheck GET : CARDINAL;
    VAR
-      expires : datetime.TJD;
+      expires : datetime.DayCount;
       LExpires : datetime.DateTime;
+      ts : datetime.TimeSpan;
    BEGIN
       _Lock.Lock();
       expires := _Expires;
       _Lock.Unlock();
       // shortcut
-      IF ( expires = expNotSet ) OR ( expires = expNever ) THEN
+      IF expires.IsLowBound OR expires.IsHighBound THEN
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( LExpires )) >> 3 ) MOD 117 ) THEN
             RETURN 0;
          END;
          RETURN -1;
       ELSE
-         DEC( expires, datetime.GetCurrentJD());
-         IF expires <= 0 THEN
+         ts := expires.Difference( datetime.NowDC());
+         IF ts.Negative THEN
             RETURN 0;
-         ELSIF expires > 20 * datetime.unitsInDay THEN // days
+         ELSIF ts.Days > 20.0 THEN // days
             RETURN 20 * 86400 * 1000;
          ELSE
-            RETURN datetime.JDCToMS( expires ); // now range expires is less than returned CARDINAL
+            RETURN CARDINAL( ts.Milliseconds ); // now range of ts is less than returned CARDINAL
          END;
       END;
    END NextCheck;
@@ -529,12 +545,19 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Products GET : lists.TPPtrList;
+   BEGIN
+      RETURN ADR( _Products );
+   END Products;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Reset( _Behaviour : TBehaviour );
    BEGIN
       _Lock.Lock();
       Behaviour := _Behaviour;
       _Info := siUnknown;
-      _Expires := expNotSet;
+      _Expires.SetLowBound();
       Dispose();
       _Lock.Unlock();
    END Reset;
@@ -554,15 +577,17 @@ CLASS IMPLEMENTATION CResult;
 
    PUBLIC PROCEDURE GetLicences( OUT list : lists.CStringList ); // fills licences of the first product
    VAR
-      product : TPProduct;
       data : PTR;
+      it : lists.CPtrListIterator;
+      pit : lists.CStringListIterator;
    BEGIN
       list.Dispose();
       _Lock.Lock();
-      IF _Products.GetFirst( OUT product, OUT data ) THEN
-         product^.Licences^.Reset();
-         WHILE product^.Licences^.MoveNext() DO
-            list.Add( product^.Licences^.Current^, product^.Licences^.CurrentData );
+      it.Init( _Products, collection.dirForward );
+      IF it.MoveNext() THEN
+         pit.Init( TPProduct( it.Value )^.Licences^, collection.dirForward );
+         WHILE pit.MoveNext() DO
+            list.Add( pit.Value^, pit.Data );
          END;
       END;
       _Lock.Unlock();
@@ -570,48 +595,14 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ProductsLock();
-   BEGIN
-      _Lock.Lock();
-   END ProductsLock;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ProductsUnlock();
-   BEGIN
-      _Lock.Unlock();
-   END ProductsUnlock;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ProductsReset();
-   BEGIN
-      _Products.Reset();
-   END ProductsReset;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ProductsMoveNext() : BOOLEAN;
-   BEGIN
-      RETURN _Products.MoveNext();
-   END ProductsMoveNext;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY CurrentProduct GET : TPProduct;
-   BEGIN
-      RETURN TPProduct( _Products.Current );
-   END CurrentProduct;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      it : lists.CPtrListIterator;
       product : TPProduct;
    BEGIN
-      _Products.Reset();
-      WHILE _Products.MoveNext() DO
-         product := _Products.Current;
+      it.Init( _Products, collection.dirForward );
+      WHILE it.MoveNext() DO
+         product := it.Value;
          DISPOSE( product );
       END; // WHILE
       _Products.Dispose();
@@ -622,8 +613,8 @@ CLASS IMPLEMENTATION CResult;
 BEGIN
    _Lock.Init( sync.ltSpin, L"", FALSE );
    _Info := siUnknown;
-   _Expires := expNotSet;
-   _Start := datetime.GetCurrentJD();
+   _Expires.SetLowBound();
+   _Start := datetime.NowDC();
    _Counter := 0;
 FINALLY
    Dispose();
@@ -640,7 +631,7 @@ BEGIN
 
    #if DEBUG #then
       IF data.Count = 0 THEN      
-         Log.LogSSSS( ldDebug, 0, L"LEC", L"No products found in: ", Path1, Path2, ProductId );
+         Log.LogSSSS( ldMessage, 0, L"LEC", L"No products found in: ", Path1, Path2, ProductId );
       END;
    #endif
 

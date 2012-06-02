@@ -190,7 +190,7 @@ CLASS IMPLEMENTATION CTest;
       Reader.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1:4444" );
+      WriteStream.FromServer( L"127.0.0.1:4444", 0 );
   
       // run
       Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
@@ -212,12 +212,7 @@ CLASS IMPLEMENTATION CTest;
       // WaitForMessages( 250 );
       
       // check
-      IF Count <> Reader.PrevCount+1 THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( Count = Reader.PrevCount+1 );
 
       //=====
 
@@ -227,7 +222,7 @@ CLASS IMPLEMENTATION CTest;
       Reader.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1:4444" );
+      WriteStream.FromServer( L"127.0.0.1:4444", 0 );
   
       // run
       Count := 0; // must start from 0, it is due to comparsion with PrevCount in receiver, but here is Count incremented before send
@@ -251,12 +246,7 @@ CLASS IMPLEMENTATION CTest;
       // WaitForMessages( 250 );
       
       // check
-      IF Count <> Reader.PrevCount+1 THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( Count = Reader.PrevCount+1 );
 
       //=====
 
@@ -270,7 +260,7 @@ CLASS IMPLEMENTATION CTest;
       Writer.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1:4444" );
+      WriteStream.FromServer( L"127.0.0.1:4444", 0 );
   
       // run
       Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
@@ -292,12 +282,7 @@ CLASS IMPLEMENTATION CTest;
       WaitForMessages( 250 );
       
       // check
-      IF Writer.Summa <> Reader.Summa THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( Writer.Summa = Reader.Summa );
 
       //=====
 
@@ -308,7 +293,7 @@ CLASS IMPLEMENTATION CTest;
       Writer.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1:4444" );
+      WriteStream.FromServer( L"127.0.0.1:4444", 0 );
   
       // run
       Count := 0; // must start from 0, it is due to comparsion with PrevCount in receiver, but here is Count incremented before send
@@ -332,12 +317,7 @@ CLASS IMPLEMENTATION CTest;
       // WaitForMessages( 250 );
       
       // check
-      IF Writer.Summa <> Reader.Summa THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( Writer.Summa = Reader.Summa );
 
       //=====
 

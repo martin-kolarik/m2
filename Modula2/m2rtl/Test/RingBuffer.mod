@@ -67,7 +67,6 @@ CLASS IMPLEMENTATION CTest;
    CONST
       sizes = TSizes( 1, 2, 7, 8, 11, 24, 113, 256, 8191, 8192, 8193 );
    VAR
-      Failure : BOOLEAN := FALSE;
       Mode : TMode;
       Size : CARDINAL;
    BEGIN
@@ -81,15 +80,11 @@ CLASS IMPLEMENTATION CTest;
    
       FOR Mode := NN TO PC DO
          FOR Size := 0 TO HIGH( sizes ) DO
-            Failure := NOT Round( Mode, sizes[Size] ) OR Failure;
+            Host^.ParticleWithResult( L"Round failed.", Round( Mode, sizes[Size] ));
          END;
       END;
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trSuccess;
    END Run;
    
 (*---------------------------------------------------------------------------*)

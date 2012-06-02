@@ -1,138 +1,47 @@
 IMPLEMENTATION MODULE MailMessage;
 
-(*================================================================================*)
+FROM Debug IMPORT
+   AssertionW;
 
-CLASS IMPLEMENTATION Person;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR :=( CONST Source : Person );
-   BEGIN
-      Address := Source.Address;
-      Name := Source.Name;
-   END :=;
-
-(*--------------------------------------------------------------------------------*)
-
-END Person;
-
-(*================================================================================*)
-
-CLASS CPersons IMPLEMENTS IPersons;
-
-   // IPersons
-   PUBLIC VIRTUAL PROCEDURE Add( CONST New : Person );
-   PUBLIC VIRTUAL PROCEDURE AddS( CONST Name, Address : StringsO.CString );
-   PUBLIC VIRTUAL PROCEDURE Clear();
-
-   PUBLIC VIRTUAL PROPERTY
-      Current : Person;
-   PUBLIC VIRTUAL PROCEDURE Reset();
-   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
-
-   // SELF
-   PRIVATE VAR
-      _Persons : lists.CStringStringList;
-
-END CPersons;
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS IMPLEMENTATION CPersons;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Add( CONST New : Person );
-   BEGIN
-      _Persons.Add( New.Name, New.Address );
-   END Add;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AddS( CONST Name, Address : StringsO.IString );
-   BEGIN
-      _Persons.Add( Name, Address );
-   END AddS;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Dispose();
-   BEGIN
-      _Persons.Dispose();
-   END Dispose;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Current GET : Person;
-   VAR
-      person : Person;
-   BEGIN
-      IF _Persons.Current <> NIL THEN
-         persons.Name.Assign( _Persons.Current^ );
-         persons.Address.Assign( _Persons.CurrentData^ );
-      END;
-      RETURN person;
-   END Current;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROPERTY Current SET( CONST Value : Person );
-   BEGIN
-      IF _Persons.Current = NIL THEN
-         ASSERTLOG( FALSE, L"Current value assigned when Current is not valid." );
-      ELSE
-         _Persons.Current^.Assign( persons.Name );
-         _Persons.CurrentData^.Assign( persons.Address );
-      END;
-   END Current;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Reset();
-   BEGIN
-      _Persons.Reset();
-   END Reset;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE MoveNext() : BOOLEAN;
-   BEGIN
-      RETURN _Persons.MoveNext();
-   END MoveNext;
-
-(*--------------------------------------------------------------------------------*)
-
-END CPersons;
+IMPORT
+   PersonsImpl,
+   StorageO;
 
 (*================================================================================*)
 
 CLASS CMailMessage IMPLEMENTS IMailMessage;
 
    PUBLIC VIRTUAL PROPERTY
-      Sender : Person;
-      ReplyTo : Person; // until set, it shares the value with Sender
-      Recipient : Person; // for fast access to single recipient
+      Sender : MailPerson.Person;
+      ReplyTo : MailPerson.Person; // until set, it shares the value with Sender
+      Recipient : MailPerson.Person; // for fast access to single recipient
       Priority : TPriority;
       Subject : StringsO.CString;
+      BodyMimeType : StringsO.CString;
+      GrabFailedRecipients : BOOLEAN;
 
    PUBLIC VIRTUAL READONLY PROPERTY
-      Recipients : TPPersons;
-      CCs : TPPersons;
-      BCCs : TPPersons;
-      Message : IOO.TPStream;
-      Attachments : lists.TPStringList; // list of paths
+      Created : datetime.DateTime;
+      Recipients : MailPerson.TPPersons;
+      CCs : MailPerson.TPPersons;
+      BCCs : MailPerson.TPPersons;
+      Body : IOO.TPStream;
+      Attachments : lists.TPStringStringList; // list of paths
 
    PRIVATE VAR
-      _Sender : Person;
-      _ReplyTo : StringsO.CString;
+      _Created : datetime.DateTime;
+      _Sender : MailPerson.Person;
+      _ReplyTo : MailPerson.Person;
       _Subject : StringsO.CString;
       _Priority : TPriority := PriorityNormal;
-      _Recipients : CPersons;
-      _CCs : CPersons;
-      _BCCs : CPersons;
-      _Message : StorageO.CMemoryBuffer;
-      _Stream : IOO.CMemoryBufferStream;
-      _Attachments : lists.CStringList;
+      _Recipients : PersonsImpl.CPersonsImpl;
+      _CCs : PersonsImpl.CPersonsImpl;
+      _BCCs : PersonsImpl.CPersonsImpl;
+      _Body : StorageO.CMemoryBuffer;
+      _BodyMimeType : StringsO.CString;
+      _BodyStream : IOO.CMemoryBufferStream;
+      _Attachments : lists.CStringStringList;
+      _GrabFailedRecipients : BOOLEAN := FALSE;
 
 END CMailMessage;
 
@@ -142,21 +51,21 @@ CLASS IMPLEMENTATION CMailMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Sender GET : Person;
+   PUBLIC VIRTUAL PROPERTY Sender GET : MailPerson.Person;
    BEGIN
       RETURN _Sender;
    END Sender;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Sender SET( Value : Person );
+   PUBLIC VIRTUAL PROPERTY Sender SET( CONST Value : MailPerson.Person );
    BEGIN
       _Sender := Value;
    END Sender;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY ReplyTo GET : Person; // until set, it shares the value with Sender
+   PUBLIC VIRTUAL PROPERTY ReplyTo GET : MailPerson.Person; // until set, it shares the value with Sender
    BEGIN
       IF _ReplyTo.Name.Empty AND _ReplyTo.Address.Empty THEN
          RETURN _Sender;
@@ -167,27 +76,31 @@ CLASS IMPLEMENTATION CMailMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY _ReplyTo SET( Value : Person );
+   PUBLIC VIRTUAL PROPERTY ReplyTo SET( CONST Value : MailPerson.Person );
    BEGIN
       _ReplyTo := Value;
-   END _ReplyTo;
+   END ReplyTo;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Recipient GET : Person; // for fast access to single recipient
+   PUBLIC VIRTUAL PROPERTY Recipient GET : MailPerson.Person; // for fast access to single recipient
    VAR
-      person : Person;
+      person : MailPerson.Person;
    BEGIN
-      _Recipients.GetFirst( OUT person.Name, OUT person.Address );
-      RETURN person;
+      _Recipients.Reset();
+      IF _Recipients.MoveNext() THEN
+         RETURN _Recipients.Current;
+      ELSE
+         RETURN person;
+      END;
    END Recipient;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Recipient SET( Value : Person ); // for fast access to single recipient
+   PUBLIC VIRTUAL PROPERTY Recipient SET( CONST Value : MailPerson.Person ); // for fast access to single recipient
    BEGIN
       _Recipients.Dispose();
-      _Recipients.Add( Value.Name, Value.Address );
+      _Recipients.Add( Value );
    END Recipient;
 
 (*--------------------------------------------------------------------------------*)
@@ -213,42 +126,77 @@ CLASS IMPLEMENTATION CMailMessage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Subject SET( Value : StringsO.CString );
+   PUBLIC VIRTUAL PROPERTY Subject SET( CONST Value : StringsO.CString );
    BEGIN
       _Subject := Value;
    END Subject;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Recipients GET : TPPersons;
+   PUBLIC VIRTUAL PROPERTY BodyMimeType GET : StringsO.CString;
+   BEGIN
+      RETURN _BodyMimeType;
+   END BodyMimeType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY BodyMimeType SET( CONST Value : StringsO.CString );
+   BEGIN
+      _BodyMimeType := Value;
+   END BodyMimeType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY GrabFailedRecipients GET : BOOLEAN;
+   BEGIN
+      RETURN _GrabFailedRecipients;
+   END GrabFailedRecipients;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY GrabFailedRecipients SET( Value : BOOLEAN );
+   BEGIN
+      _GrabFailedRecipients := Value;
+   END GrabFailedRecipients;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Created GET : datetime.DateTime;
+   BEGIN
+      RETURN _Created;
+   END Created;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Recipients GET : MailPerson.TPPersons;
    BEGIN
       RETURN ADR( _Recipients );
    END Recipients;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY CCs GET : TPPersons;
+   PUBLIC VIRTUAL PROPERTY CCs GET : MailPerson.TPPersons;
    BEGIN
       RETURN ADR( _CCs );
    END CCs;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY BCCs GET : TPPersons;
+   PUBLIC VIRTUAL PROPERTY BCCs GET : MailPerson.TPPersons;
    BEGIN
       RETURN ADR( _BCCs );
    END BCCs;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Message GET : IOO.TPStream;
+   PUBLIC VIRTUAL PROPERTY Body GET : IOO.TPStream;
    BEGIN
-      RETURN ADR( _Stream );
-   END Message;
+      RETURN ADR( _BodyStream );
+   END Body;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Attachments GET : lists.TPStringList; // list of paths
+   PUBLIC VIRTUAL PROPERTY Attachments GET : lists.TPStringStringList; // list of paths
    BEGIN
       RETURN ADR( _Attachments );
    END Attachments;
@@ -256,10 +204,14 @@ CLASS IMPLEMENTATION CMailMessage;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _Stream.Init( REF _Buffer, IOO.accReadWrite );
+   _Created.SetNowUTC();
+   _BodyStream.Init( REF _Body, IOO.accReadWrite );
 END CMailMessage;
 
 (*================================================================================*)
+
+TYPE
+   TPMessage = POINTER TO CMailMessage;
 
 PROCEDURE New( OUT Message : TPMailMessage ) : BOOLEAN;
 VAR
@@ -277,13 +229,16 @@ END New;
 (*--------------------------------------------------------------------------------*)
 
 PROCEDURE Dispose( REF Message : TPMailMessage );
+VAR
+   message : TPMessage;
 BEGIN
    IF Message = NIL THEN
       // do nothing
-   ELSIF NOT( Message IS CMessage ) THEN
-      ASSERTLOG( FALSE, L"Bad deallocation" );
+   ELSIF Message^ IS CMailMessage THEN
+      message := TPMessage( Message );
+      DISPOSE( message );
    ELSE
-      DISPOSE( REF Message );
+      ASSERTLOG( FALSE, L"Bad deallocation" );
    END;
 END Dispose;
 

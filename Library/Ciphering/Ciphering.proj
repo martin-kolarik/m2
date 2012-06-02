@@ -3,9 +3,9 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>Ciphering, hashing and message digesting support</FileDescription>
-        <FileVersionMajor>0</FileVersionMajor>
-        <FileVersionMinor>9</FileVersionMinor>
+        <ProjectDescription>Ciphering, Hashing and Message Digesting Support</ProjectDescription>
+        <ProjectVersionMajor>0</ProjectVersionMajor>
+        <ProjectVersionMinor>9</ProjectVersionMinor>
     </PropertyGroup>
 
     <!-- 2 -->
@@ -15,7 +15,7 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32;Modula2\m2rtl;Modula2\m2ortl"/>
-        <Modules Include="cphcommon;crc;digest;sha1;sha256;md5;hash;Rijndael;cphfilter"/>
+        <Modules Include="cphcommon;crc;digest;sha1;sha256;md5;hash;Rijndael;cphfilter;cphcommonO"/>
     </ItemGroup>
 
     <!-- 4 -->

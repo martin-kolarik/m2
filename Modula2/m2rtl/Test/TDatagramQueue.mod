@@ -1,7 +1,7 @@
 MODULE TDatagramQueue;
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -74,13 +74,12 @@ CLASS IMPLEMENTATION CTest;
       sizes = TSizes( 1, 23, 255, 8192 );
       producentThreads = TSizes( 1, 5, 25, 125 );
    VAR
-      Failure : BOOLEAN := FALSE;
       Mode : TMode;
       Size : CARDINAL;
       Thread : CARDINAL;
    BEGIN
       SELF.Host := Host;
-   
+
       FOR Mode := NN TO PC DO
          FOR Thread := 0 TO HIGH( producentThreads ) DO
             FOR Size := 0 TO HIGH( sizes ) DO
@@ -88,16 +87,12 @@ CLASS IMPLEMENTATION CTest;
                IF producentThreads[Thread] > sizes[Size] THEN
                   CONTINUE;
                END;
-               Failure := NOT Round( Mode, producentThreads[Thread], sizes[Size] ) OR Failure;
+               Round( Mode, producentThreads[Thread], sizes[Size] );
             END;
          END;
       END;
 
-      IF Failure THEN
-         RETURN test.trFailure;
-      ELSE
-         RETURN test.trSuccess;
-      END;
+      RETURN test.trUnknown;
    END Run;
    
 (*---------------------------------------------------------------------------*)

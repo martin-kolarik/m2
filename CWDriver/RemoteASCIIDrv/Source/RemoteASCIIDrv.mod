@@ -31,7 +31,9 @@ IMPORT
    iovalue,
    Languages,
    lec,
+   lists,
    log,
+   LogConfig,
    msgqueue,
    netsocket,
    netsrv,
@@ -143,6 +145,7 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    RStatus          : TRStatus;
    Name             : StringsO.CString;
    Logger           : log.CLogger;
+   AppenderList     : lists.CPtrList;
 
    CallbackId       : ADDRESS;
    CallbackProc     : drv_def.TDriverCallbackW;
@@ -345,12 +348,12 @@ CLASS IMPLEMENTATION CDriver;
          END;
       END;
 
-      CASE INIFile.ConfigureLog( TS, L"", REF SELF.Logger, OUT ErrorLine ) OF
-      | INIFile.clrUnknownTarget :
+      CASE LogConfig.ConfigureLog( TS, L"", REF SELF.Logger, REF AppenderList, OUT ErrorLine ) OF
+      | LogConfig.clrUnknownTarget :
          Error( Texts._UnknownDebugMode, ErrorLine );
-      | INIFile.clrUnknownLevel :
+      | LogConfig.clrUnknownLevel :
          Error( Texts._UnknownDebugLevel, ErrorLine );
-      | INIFile.clrTargetFileMissingFile :
+      | LogConfig.clrTargetFileMissingFile :
          Error( Texts._FileDebugMissingFile, ErrorLine );
       END; // CASE
     
@@ -444,6 +447,7 @@ CLASS IMPLEMENTATION CDriver;
       WHILE Events.Dequeue( OUT Event ) DO
          DISPOSE( Event );
       END; // WHILE
+      LogConfig.DisposeAppenderList( REF AppenderList );
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -476,7 +480,9 @@ CLASS IMPLEMENTATION CDriver;
          ELSIF si.EqualsOA( L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
                Logger.LogS( ldDebug, 0, logPrefix, L"Event.Get clear buffer" );
-               Events.Dispose();
+               WHILE Events.Dequeue( OUT Event ) DO
+                  DISPOSE( Event );
+               END; // WHILE
 
                GOTO Success;
 
@@ -560,7 +566,7 @@ CLASS IMPLEMENTATION CDriver;
 
       ELSIF si.EqualsOA( L'server' ) THEN
          IF Mode = cmClient THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server -- running as client" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Cmd.Server -- running as client" );
 
             sw.FromOA( OAsz( R[ Texts._StillRunningAsClient ] ));
             GOTO Error;
@@ -569,7 +575,7 @@ CLASS IMPLEMENTATION CDriver;
          sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
 
          IF si.EqualsOA( L'listen' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.Listen" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Cmd.Server.Listen" );
 
             Mode := cmServer;
             
@@ -595,7 +601,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
 
          ELSIF si.EqualsOA( L'stop_listen' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.StopListen" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Cmd.Server.StopListen" );
 
             netsrv.StopListenSocket( REF ListeningSocket );
             ServerConnection.Close(); // to be sure
@@ -614,7 +620,7 @@ CLASS IMPLEMENTATION CDriver;
 
       ELSIF si.EqualsOA( L'client' ) THEN
          IF Mode = cmServer THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server -- running as server" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Cmd.Server -- running as server" );
 
             sw.FromOA( OAsz( R[ Texts._StillRunningAsServer ] ));
             GOTO Error;
@@ -624,7 +630,7 @@ CLASS IMPLEMENTATION CDriver;
 
       DispatchFromServer:
          IF si.EqualsOA( L'connect' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.Connect" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Cmd.Server.Connect" );
 
             Mode := cmClient;
          
@@ -634,10 +640,10 @@ CLASS IMPLEMENTATION CDriver;
             END;
          
             sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si );
-            ClientConnection.OpenS( si, FALSE, netsocket.FORSAFETY );
+            ClientConnection.OpenS( si, 0, FALSE, netsocket.FORSAFETY );
 
          ELSIF si.EqualsOA( L'disconnect' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Disconnect" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Cmd.*.Disconnect" );
 
             Connection^.Close();
             IF Mode = cmClient THEN
@@ -645,7 +651,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
 
          ELSIF si.EqualsOA( L'send' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Send" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Cmd.*.Send" );
 
             IF NOT Connection^.Connected THEN
                sw.FromOA( OAsz( R[ Texts._NotConnected ] ));
@@ -676,7 +682,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
 
          ELSIF si.EqualsOA( L'receive' ) THEN
-            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Receive" );
+            Logger.LogS( ldDebug, 0, logPrefix, L"Cmd.*.Receive" );
 
             RBufferLock.Lock();
             c := MIN2( OutValueLimit DIV 2, RBuffer.Length );
@@ -1147,7 +1153,7 @@ CLASS IMPLEMENTATION CDriver;
    VAR
       Event : POINTER TO TEventData;
    BEGIN
-      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evAccept ", CARDINAL( Error ));
+      Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evAccept ", CARDINAL( Error ));
 
       NEW( Event );
       Event^.Event := evAccept;
@@ -1215,7 +1221,7 @@ CLASS IMPLEMENTATION CDriver;
       socket : netsocket.TPDSocket;
    BEGIN
       IF ServerConnection.Connected THEN
-         Logger.LogS( dldDebug, logPrefix, L"OnListen when connected" );
+         Logger.LogS( ldDebug, 0, logPrefix, L"OnListen when connected" );
          NEW( socket );
          socket^.Accept( ServerSocket, OUT error );
          socket^.Disconnect( TRUE, netsocket.FORSAFETY );
@@ -1223,7 +1229,7 @@ CLASS IMPLEMENTATION CDriver;
       ELSE
          result := ServerConnection.Accept( ServerSocket, FALSE, 0 );
          IF result <> Sync.arCompleted THEN // log error
-            Logger.LogSC( dlcError, logPrefix, L"OnListen failed:", CARDINAL( result ));
+            Logger.LogSC( lcError, 0, logPrefix, L"OnListen failed:", CARDINAL( result ));
          END;
       END;
    END OnListen;

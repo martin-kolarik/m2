@@ -85,5 +85,11 @@
       <Filter>Test</Filter>
     </None>
     <None Include="Ciphering.proj" />
+    <None Include="Source\cphcommonO.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\cphcommonO.mod">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE IOO;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move;
@@ -86,7 +86,7 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC PROPERTY Waitable GET : BOOLEAN;
   BEGIN
-    RETURN _Signal.RawHandle = NIL;
+    RETURN _Signal.RawHandle <> NIL;
   END Waitable;
 
 (*--------------------------------------------------------------------------------*)
@@ -344,6 +344,8 @@ CLASS IMPLEMENTATION CRingBufferProxy;
     | dirWrite :
       RingBuffer^.CommitReading( Completed );
     END; // CASE
+
+    _Lock.Exchg( REF SELF.Result, Sync.arCompleted );
     _Signal.Signal();
   END CompleteData;
 
@@ -356,34 +358,6 @@ END CRingBufferProxy;
 (*================================================================================*)
 
 CLASS IMPLEMENTATION AStream;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY Length32 GET : CARD32;
-  BEGIN
-    RETURN CARD32( Length );
-  END Length32;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY Length32 SET( Value : CARD32 );
-  BEGIN
-    Length := CARD64( Value );
-  END Length32;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY Position32 GET : CARD32;
-  BEGIN
-    RETURN CARD32( Position );
-  END Position32;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY Position32 SET( Value : CARD32 );
-  BEGIN
-    Position := CARD64( Value );
-  END Position32;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -621,7 +595,7 @@ CLASS IMPLEMENTATION CStreamProxy;
 
   PUBLIC VIRTUAL PROPERTY Processed GET : CARDINAL; // count of read/written data
   BEGIN
-    RETURN Stream^.Position32;
+    RETURN CARDINAL( Stream^.Position );
   END Processed;
 
 (*--------------------------------------------------------------------------------*)

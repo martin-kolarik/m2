@@ -1,108 +1,138 @@
 DEFINITION MODULE ns;
 
-FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
+IMPORT
+   IOO,
+   iovalue,
+   StringsO;
 
-IMPORT
-   StringsO,
-   TextWriter;
-   
-IMPORT
-   iovalue;
+(*===========================================================================*)
+
+TYPE
+   TPOriginator = POINTER TO IOriginator;
+
+INTERFACE IOriginator; // should be refactored? see #141
+
+   READONLY PROPERTY
+      Description : StringsO.CString;
+
+END IOriginator;
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
-   TNameType = (
-      ntName, // aka namespace/package, value of its type cannot exist
-      ntClass, // values of its type can exists
-      ntValue, // typed value
-      ntIndexedValue // typed array value
+   TPNameValuePairs = POINTER TO INameValuePairs;
+   TPValueIO = POINTER TO IValueIO;
+
+INTERFACE IValueIO;
+
+   PROCEDURE ValueIO( CONST Originator : TPOriginator; CONST NameValuePairs : TPNameValuePairs; Direction : IOO.TDirection; REF Value : iovalue.Value ) : Sync.TAsyncResult;
+      // allows full access, including result resolution and originator
+      // SHALL call Advise if IAdviseSource is assigned
+
+END IValueIO;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPAdviseInfo = POINTER TO IAdviseInfo;
+   TPAdviseSource = POINTER TO IAdviseSource;
+
+   TAdvise = (
+      advNone,
+      advWithoutData,
+      advWithData
    );
 
+INTERFACE IAdviseInfo;
+
+   // notification from device
+   PROCEDURE OnAdvise( CONST Originator : TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
+
+END IAdviseInfo;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IAdviseSource;
+
+   PROPERTY
+      Advise : TAdvise;
+      AdviseListener : TPAdviseInfo; // for Advise <> advNone
+
+END IAdviseSource;
+
+(*===========================================================================*)
+
+INTERFACE INameValuePairs( IValueIO );
+
+   // map interface
+   PROCEDURE Get( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
+
+   // information and structurals
+   READONLY PROPERTY
+      Name : StringsO.CString;
+      AdviseSource : TPAdviseSource;
+   PROPERTY
+      Parent : TPNameValuePairs; // items are linkable, so Parent must be writable too. On the other side, normal ns SHALL NOT change parents inside items.
+      Value : iovalue.Value; // allows simple value access, no result and originator available, can use IValueIO.IO, SHALL call Advise if IAdviseSource is assigned
+      Data : PTR; // user data
+   READONLY PROPERTY
+      VisibleToUser : BOOLEAN;
+      HasValue : BOOLEAN;
+   WRITEONLY PROPERTY
+      SourceValue : iovalue.Value; // intended for overwriting vfReadOnly -- the property MUST be called inside code only, no USER CAN have access to it.
+
+   // creation
+   PROCEDURE DefineStorageValue( CONST Name : StringsO.IString; Type : iovalue.TType; Flags : iovalue.TFlags; CONST InitialValue : iovalue.TPValue; Data : PTR; AccessLock : Sync.TPILockR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+   PROCEDURE DefineIOValue( CONST Name : StringsO.IString; REF ValueIO : IValueIO; Data : PTR; CONST AdviseSource : TPAdviseSource; OUT Children : ns.TPNameValuePairs ) : BOOLEAN;
+
+   PROCEDURE Link( CONST Name : StringsO.IString; Child : TPNameValuePairs; SetParent : BOOLEAN ) : BOOLEAN;
+      // creates child, although Name can be taken from Child^.Name separating the parameter is more free -- e.g. it allows using of hierarchical names in INamespace implementors
+      // use SetParent = TRUE for creating a combined ns structure, FALSE for creating a reference elsewhere into the ns. Each element can only have single parent and, also, the parent has to be set.
+   PROCEDURE Unlink( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
+      // removes child
+
+   // TODO iterator in "default" branch
+
+   // implementation dependent helper, not intended for user usage, rather not to call
+   PROCEDURE GetSingleLevel( CONST Name : StringsO.IString; OUT Child : TPNameValuePairs ) : BOOLEAN;
+
+END INameValuePairs;
+
+(*---------------------------------------------------------------------------*)
 (*---------------------------------------------------------------------------*)
 
 TYPE
-   TPMapper = POINTER TO IMapper; // simple name mapper
-   TPns = POINTER TO Ans;
-   TPnsItem = POINTER TO AnsItem;
-   TPnsIterator = POINTER TO CnsIterator;
-   THash = PTR;
+   TPNamespace = POINTER TO INamespace;
+
+INTERFACE INamespace( INameValuePairs );
+
+   PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
+
+   PROCEDURE GetFullName( CONST Value : TPNameValuePairs; OUT FullName : StringsO.IString ) : BOOLEAN;
+
+END INamespace;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   THash = PTR; // means TPNameValuePairs;
    
 CONST
-   hashINVALID = NIL;
+   hashINVALID = THash( NIL );
 
 (*---------------------------------------------------------------------------*)
 
-ABSTRACT CLASS AnsItem;
-   PUBLIC ABSTRACT READONLY PROPERTY
-      Name : StringsO.TPString;
-      NameType : TNameType;
-      ValueType : iovalue.TValueType;
-   PUBLIC ABSTRACT PROPERTY
-      Data : PTR; // for user data or references
-
-   PUBLIC ABSTRACT READONLY PROPERTY
-      Count : CARDINAL;
-   PUBLIC READONLY PROPERTY
-      Empty : BOOLEAN;
-   PUBLIC ABSTRACT READONLY INDEX( Index : CARDINAL ) : TPnsItem;
-
-   PUBLIC PROCEDURE Contains( CONST SingleName : StringsO.IString ) : BOOLEAN;
-   PUBLIC ABSTRACT PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
-
-   PUBLIC PROCEDURE Get( CONST SingleName : StringsO.IString; OUT Item : TPnsItem ) : BOOLEAN;
-   PUBLIC ABSTRACT PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : TPnsItem ) : BOOLEAN;
-
-   PUBLIC ABSTRACT PROCEDURE AddChild( Child : TPnsItem );
-
-   PUBLIC PROCEDURE GetNewIterator() : TPnsIterator;
-END AnsItem;
-
-(*---------------------------------------------------------------------------*)
-
-CLASS CnsIterator;
-   PRIVATE VAR
-      Owner : TPnsItem;
-      Index : CARDINAL;
-   PUBLIC READONLY PROPERTY
-      Count : CARDINAL;
-   PUBLIC READONLY PROPERTY
-      Current : TPnsItem;
-   PUBLIC READONLY INDEX( Index : CARDINAL ) : TPnsItem;
-   
-   LOCAL PROCEDURE Init( Item : TPnsItem );
-
-   PUBLIC PROCEDURE Reset();
-   PUBLIC PROCEDURE MoveNext() : BOOLEAN;
-END CnsIterator;
-
-(*---------------------------------------------------------------------------*)
+// TEMPORARY until its users move to INameValuePairs/INamespace
+TYPE
+   TPMapper = POINTER TO IMapper;
 
 INTERFACE IMapper;
-   PUBLIC PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
-   PUBLIC PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+
+   PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
+   PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+
 END IMapper;
 
-(*---------------------------------------------------------------------------*)
-
-ABSTRACT CLASS Ans IMPLEMENTS IMapper;
-   PUBLIC ABSTRACT READONLY PROPERTY
-      Root : TPnsItem;
-   PUBLIC READONLY PROPERTY
-      Namespace : StringsO.TPString;
-
-   PUBLIC PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
-
-   PUBLIC PROCEDURE Get( CONST Name : StringsO.IString; OUT Item : TPnsItem ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetOA( CONST Name : ARRAY OF WCHAR; OUT Item : TPnsItem ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetByHash( Hash : THash; OUT Item : TPnsItem ) : BOOLEAN;
-
-   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
-
-   PUBLIC PROCEDURE Dump( CONST Writer : TextWriter.TPTextWriter );
-END Ans;
-
-(*---------------------------------------------------------------------------*)
+(*===========================================================================*)
 
 END ns.

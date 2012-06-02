@@ -1,0 +1,80 @@
+DEFINITION MODULE helper;
+// Classes prepared to simplify implementation of plugin classes
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   iplugin,
+   StringsO;
+
+#save, option( dll_export => on )
+
+(*===========================================================================*)
+
+TYPE
+   TPAPluginObject = POINTER TO APluginObject;
+
+ABSTRACT CLASS APluginObject( baseobject.CDisposable ) IMPLEMENTS iplugin.IPluginObject;
+
+   // IDisposable
+   // PUBLIC VIRTUAL PROCEDURE Dispose();
+   // FINALLY APluginObject
+
+   // IPluginObject
+   PUBLIC VIRTUAL READONLY PROPERTY // should be FINAL, not possible, M2CPP does not distinguish between methods of different interfaces
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
+
+   // SELF
+   LOCAL PROCEDURE SetOfPlugin( CONST OfPlugin : iplugin.TPPlugin );
+
+   PRIVATE VAR
+      _OfPlugin : iplugin.TPPlugin;
+
+END APluginObject;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS APlugin( APluginObject ) IMPLEMENTS iplugin.IPlugin, baseobject.IRefcounterClient;
+// ancestors of the class need not having Dispose call in their dtors as this class calls Dispose inside OnLastRelease
+   
+   // IPluginObject
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
+
+   // IPlugin
+   PUBLIC FINAL PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
+
+   // PUBLIC VIRTUAL PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult; // Call is redirected from DLL's Factory, SELF.Factory method.
+   // PUBLIC VIRTUAL PROCEDURE DestroyObject( REF Object : iplugin.TPPluginObject ) : iplugin.TLoadResult; // To destroy/deallocate object. Typically, request to destroy APlugin must be avoided if APlugin is static.
+
+   PUBLIC VIRTUAL PROPERTY
+      HostHandle : PTR;
+
+   // IRefcounterClient
+   LOCAL FINAL PROCEDURE OnFirstAddRef( CONST Source : baseobject.TPIRefcounter );
+   LOCAL FINAL PROCEDURE OnLastRelease( CONST Source : baseobject.TPIRefcounter );
+
+   // SELF = APlugin
+   // Main creation entry point called from DLL procedure Factory. The procedure calls CreateObject, which then should contain all user class creations.
+   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iplugin.TPPluginObject ) : iplugin.TLoadResult;
+
+   INTERNAL READONLY PROPERTY
+      Refcounter : baseobject.TPIRefcounter;
+
+   LOCAL VAR
+      _Host : StringsO.CString;
+      _HostVersion : StringsO.CString;
+      _HostHandle : PTR;
+      _Refcounter : baseobject.CRefcounterImplHelper; // to handle singleton behavior of APlugin
+
+END APlugin;
+
+(*===========================================================================*)
+
+#restore
+
+END helper.

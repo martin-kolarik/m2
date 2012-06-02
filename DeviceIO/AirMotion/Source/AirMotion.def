@@ -11,6 +11,8 @@ IMPORT
 	io,
 	IOO,
 	iovalue,
+   iplugin,
+   lists,
 	log,
 	netsocket,
 	ns,
@@ -106,12 +108,13 @@ END CDeviceAutomaton;
 CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink, IAutomatonRequest;
 	LOCAL VAR
 		PIO : TPIO;
-		Connection : rawconnection.TCPConnection;
+		Connection : rawconnection.ClientTCPConnection;
 		RxBuffer : StorageO.CMemoryBuffer;
 		Logger : log.CLogger;
 		Automaton : POINTER TO CDeviceAutomaton;
 
    PRIVATE VAR
+      _AppenderList : lists.CPtrList;
 		_HostAddress : StringsO.CString;
 		_SDAPAddress : StringsO.CString;
 		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash
@@ -156,7 +159,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    PUBLIC PROCEDURE Abort();
    
    // private
-	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer );
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
    PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
 END CDeviceCommunicator;
@@ -203,17 +206,19 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CAirMotionDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CAirMotionDevice( helper.APluginObject ) IMPLEMENTS iplugin.IPlugin, device.IDevice;
 	PRIVATE VAR
 		_NS : CNS;
 		_IO : CIO;
 
-   // IObject
+   // IDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // IDevice/IObject
    PUBLIC FINAL READONLY PROPERTY
-      Type : iobject.TObjectType;
-   PUBLIC FINAL PROPERTY
-      Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
+      Type : iplugin.TObjectType;
+      OfPlugin : iplugin.TPPlugin;
+      OwnerHandle : PTR;
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY

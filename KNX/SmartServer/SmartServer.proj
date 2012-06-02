@@ -1,0 +1,34 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
+        <ProductGUID>2E913ED6-D3C0-427D-B3B2-1D7AC3CFE725</ProductGUID>
+        <ProductUpgradeGUID>67E4985B-93E9-43ED-8B7E-5D381F094F5D</ProductUpgradeGUID>
+
+        <ProductId>NeNo.KnxSrv</ProductId>
+        <ProductNote>Beta 1</ProductNote>
+        <!-- DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod -->
+
+        <ProjectDisplayName>NeNo SmartServer</ProjectDisplayName>
+        <ProjectDescription>NeNo SmartServer -- a KNX Object Server</ProjectDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxsvc;$(RootPath)\KNX\KnxSvcWeb;$(RootPath)\KNX\SmartServer"/>
+
+        <Components Include="Licensing\LicTool;Tools\svcinst;Component\sccore;Component\scmvc;KNX\knxsvc;KNX\discover;KNX\checkcfg;KNX\busmon"/>
+    </ItemGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

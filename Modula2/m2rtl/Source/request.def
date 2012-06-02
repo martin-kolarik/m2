@@ -1,0 +1,94 @@
+DEFINITION MODULE request;
+// Request is a delegate, which has waitable and completion interface. It is meant as a base
+// for various communication or synchronization tasks.
+
+(*================================================================================*)
+
+IMPORT
+   basecompletion,
+   delegate,
+   Sync;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPCompletable = POINTER TO Completable;
+
+CLASS Completable( delegate.Delegate ) IMPLEMENTS basecompletion.ICompletable;
+
+   // ICompletableSink
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // implementation must be independent from calling sink
+
+   // ICompletable
+   PUBLIC VIRTUAL PROPERTY
+      CompletionSink : basecompletion.TPICompletionSink;
+
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+
+   // SELF
+   PRIVATE VAR
+      _Completable : basecompletion.CSimpleCompletable;
+
+END Completable;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPWaitableCompletable = POINTER TO WaitableCompletable;
+
+CLASS WaitableCompletable( delegate.Delegate ) IMPLEMENTS basecompletion.IWaitableCompletable;
+
+   // ICompletableSink
+   INTERNAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // implementation must be independent from calling sink
+
+   // ICompletable
+   PUBLIC VIRTUAL PROPERTY
+      CompletionSink : basecompletion.TPICompletionSink;
+
+   PUBLIC VIRTUAL PROCEDURE Complete( Result : Sync.TAsyncResult; CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR ); // Principal completion action, callable from any source. First calls OnCompleted, then calls Sink.
+
+   // IWaitableCompletable
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Completed : BOOLEAN; // already renamed and fixed in delivery branch, leave it here temporarily renamed
+      Result : Sync.TAsyncResult;
+
+   PUBLIC VIRTUAL PROCEDURE Reset();
+   PUBLIC VIRTUAL PROCEDURE WaitForCompletion( Timeout : CARDINAL ) : Sync.TAsyncResult; // arTimeout or copies Result property
+
+   // SELF
+   PRIVATE VAR
+      _WaitableCompletable : basecompletion.CSimpleWaitableCompletable;
+
+END WaitableCompletable;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPAbortableWaitableCompletable = POINTER TO AbortableWaitableCompletable;
+
+CLASS AbortableWaitableCompletable( WaitableCompletable ) IMPLEMENTS basecompletion.IAbortable;
+
+   // IAbortable
+   PUBLIC VIRTUAL PROPERTY
+      AbortSink : basecompletion.TPIAbortable;
+
+   PUBLIC VIRTUAL PROCEDURE Abort( CONST Source : basecompletion.ICompletionSource; OperationHandle : PTR );
+
+   // SELF
+   PRIVATE VAR
+      _AbortSink : basecompletion.TPIAbortable := NIL;
+
+END AbortableWaitableCompletable;
+
+(*================================================================================*)
+
+CONST
+   Request ::= AbortableWaitableCompletable;
+
+(*================================================================================*)
+
+#restore
+
+END request.

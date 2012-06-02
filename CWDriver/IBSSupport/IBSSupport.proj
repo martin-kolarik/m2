@@ -1,0 +1,35 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
+        <ProductUpgradeGUID>DF087C54-FB1E-429f-A485-7C7FAB551D35</ProductUpgradeGUID>
+        <ProductId>NeNo.IBSSupport.CWDriver</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>1</ProductVersionMinor>
+        <ProjectDescription>NeNo IBS IQ House Support</ProjectDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore;Library\CWDriver;Library\SMTPClient"/>
+        <Program Include="driver"/>
+        <Messages Include="Texts"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <Export>export</Export>
+    </PropertyGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

@@ -139,7 +139,7 @@ CLASS IMPLEMENTATION CDriver;
   VAR
     cs : StringsO.CString;
     DebugFile : FIO.PathStrW;
-    DebugLevel : log.TDebugLevel;
+    DebugLevel : log.TLevel;
     DebugMode : log.TDebugMethod;
     fs : FIOO.CFileStream;
     l : CARDINAL;

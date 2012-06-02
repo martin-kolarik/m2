@@ -6,12 +6,12 @@ modification, are permitted provided that the following conditions
 are met:
 
 1. Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
+notice, this list of conditions and the following disclaimer.
 2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
 3. The name of the author may not be used to endorse or promote products
-   derived from this software without specific prior written permission.
+derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -54,80 +54,88 @@ namespace Tasks
     public ref class HgVersion : public ToolTask {
 
     private:
-          StringBuilder^ _outputBuffer;
-          String^ _localPath;
-          int _numRevision;
-          String^ _idRevision;
-          String^ _hgPath;
+        StringBuilder^ _outputBuffer;
+        String^ _localPath;
+        int _numRevision;
+        String^ _idRevision;
+        String^ _hgPath;
+        bool fallBack;
 
-  public:
-      HgVersion()
-      {
-        _numRevision = 0;
-        _idRevision = gcnew String("");
-        _outputBuffer = gcnew StringBuilder();
-        _hgPath = Path::Combine( Environment::GetFolderPath(Environment::SpecialFolder::ProgramFiles), "TortoiseHg" );
-      }
+    public:
+        HgVersion()
+        {
+            _numRevision = 0;
+            _idRevision = gcnew String("");
+            _outputBuffer = gcnew StringBuilder();
+            _hgPath = Path::Combine( Environment::GetFolderPath(Environment::SpecialFolder::ProgramFiles), "TortoiseHg" );
+        }
 
         [Required]
         property String^ LocalPath {
             String^ get() {
-              return _localPath;
+                return _localPath;
             }
             void set( String^ Value ) {
-              _localPath = Value;
+                _localPath = Value;
             }
         }
 
         property String^ HgPath {
             String^ get() {
-              return _hgPath;
+                return _hgPath;
             }
             void set( String^ Value ) {
-              _hgPath = Value;
+                _hgPath = Value;
             }
         }
 
         [Output]
         property int Revision {
             int get() {
-              return _numRevision;
+                return _numRevision;
             }
             void set( int Value ) {
-              _numRevision = Value;
+                _numRevision = Value;
             }
         }
 
         [Output]
         property String^ RevisionId {
             String^ get() {
-              return _idRevision;
+                return _idRevision;
             }
             void set( String^ Value ) {
-              _idRevision = Value;
+                _idRevision = Value;
             }
         }
 
-  protected:
+    protected:
         virtual String^ GenerateFullPathToTool() override {
             return Path::Combine(_hgPath, ToolName);
         }
 
         virtual property MessageImportance StandardOutputLoggingImportance {
             MessageImportance get() override {
-              return MessageImportance::Normal;
+                return MessageImportance::Normal;
             }
         }
 
         virtual property String^ ToolName {
             String^ get() override {
-              return "hg.exe";
+                return "hg.exe";
             }
         }
 
         virtual String^ GenerateCommandLineCommands() override {
             DirectoryInfo^ localPath = gcnew DirectoryInfo(_localPath);
-            return String::Format("log -q -l 1 \"{0}\"", localPath->FullName->Replace('\\', '/'));
+            if( fallBack )
+            {
+                return String::Format("log -q -l 1 \"{0}\"", localPath->FullName->Replace('\\', '/'));
+            }
+            else
+            {
+                return String::Format("log -r .:: -q -l 1 \"{0}\"", localPath->FullName->Replace('\\', '/'));
+            }
         }
 
         virtual void LogEventsFromTextOutput(String^ singleLine, MessageImportance messageImportance) override {
@@ -135,18 +143,28 @@ namespace Tasks
             _outputBuffer->Append(singleLine);
         }
 
-  public:
-        virtual bool Execute() override {
+    public:
+        virtual bool Execute() override
+        {
+            fallBack = false;
             bool result = ToolTask::Execute();
+            if (result && ParseOutput())
+            {
+                return true;
+            }
+
+            fallBack = true;
+            result = ToolTask::Execute();
             if (result)
             {
                 ParseOutput();
             }
+
             return result;
         }
 
-  private:
-        void ParseOutput()
+    private:
+        bool ParseOutput()
         {
             String^ buffer = _outputBuffer->ToString();
             int colon = buffer->IndexOf( ":" );
@@ -155,13 +173,15 @@ namespace Tasks
                 String^ num = buffer->Substring( 0, colon );
                 _numRevision = _numRevision.Parse( num );
                 _idRevision = buffer->Substring( colon+1 );
+                return true;
             }
             else
             {
                 _numRevision = 0;
                 _idRevision = gcnew String("<unversioned>");
+                return false;
             }
         }
-  };
+    };
 
 } // namespace

@@ -2,7 +2,7 @@ IMPLEMENTATION MODULE DOM;
 (*# call( o_a_copy => off ) *)
 
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, REALLOCATE, DEALLOCATE;
@@ -225,10 +225,8 @@ CLASS IMPLEMENTATION CUnit;
         G^.Indent(); TPSymbol( U )^.T^.Generate( G, gcsName ); G^.OutS( L' _ReturnResult; // deferred return result' ); G^.EOL();
       END;
       IF eoHaveReturnInCPPTry IN Options THEN
-         G^.LineS( L'BOOLEAN _FinallyReturns = false; // TRY/FINALLY exit control' );
-         IF eoThrowing IN Options THEN
-            G^.LineS( L'BOOLEAN _FinallyThrows = false; // TRY/FINALLY exit control' );
-         END;
+         G^.LineS( L'BOOLEAN _FinallyReturns = FALSE; // TRY/FINALLY exit control' );
+         G^.LineS( L'BOOLEAN _FinallyRethrow = FALSE; // by default, no exception is returned from finally' );
       END;
       IF NOT Childs.Empty THEN
         G^.EOL();
@@ -322,7 +320,8 @@ CLASS IMPLEMENTATION CUnit;
       IF eoCPPExceptions IN Options THEN
          G^.LineS( L"try {" );
       ELSE
-         G^.LineS( L"{ // native TRY" );
+         G^.LineS( L"// TRY, native" );
+         G^.LineS( L"{" );
       END;
     | ukTrySEHBlock :
       G^.LineS( L"__try {" );
@@ -333,13 +332,14 @@ CLASS IMPLEMENTATION CUnit;
       ukCatchDoBlock :
       G^.OutS( L") {" ); G^.EOL();
     | ukFinallyCPPBlock :
-      G^.LineS( L"{ // FINALLY" );
+      G^.LineS( L"// FINALLY" );
+      G^.LineS( L"{" );
       RETURN gumIndent;
     | ukFinallySEHBlock :
       G^.OutS( L" __finally {" ); G^.EOL();
       RETURN gumSimple;
     | ukCatchBlock :
-      G^.EOL();
+      G^.LineS( L"// CATCH" );
       IF eoCPPExceptions IN Options THEN
          G^.Indent(); G^.OutS( L"catch (" );
       ELSE
@@ -347,20 +347,11 @@ CLASS IMPLEMENTATION CUnit;
       END;
       RETURN gumNoIndent;
     | ukCatchAnyBlock :
-      G^.EOL();
+      G^.LineS( L"// CATCH any" );
       IF eoCPPExceptions IN Options THEN
          G^.Indent(); G^.OutS( L"catch (..." );
       ELSE
          G^.Indent(); G^.OutS( L"else if (true" );
-      END;
-      RETURN gumNoIndent;
-
-    | ukSThrow :
-      G^.Indent();
-      IF eoCPPExceptions IN Options THEN
-         G^.OutS( L'throw ' );
-      ELSE
-         Project.Current()^.OD^.MEnv.MIID[miidStoreException]^.Generate( G, gcsName ); G^.OutS( L'(&' );
       END;
       RETURN gumNoIndent;
 
@@ -488,8 +479,11 @@ CLASS IMPLEMENTATION CUnit;
       END;
     | ukBlockBodyOfCOMProcedure :
       G^.LineS( L'return 0; // implicit return' );
-    | ukBlockBodyOfReturnInTryProc,
-      ukBlockBodyOfReturnInTryFunc :
+    | ukBlockBodyOfReturnInTryProc :
+      IF eoThrowing IN Options THEN
+         G^.LineS( L'return FALSE; // implicit exception return' );
+      END;
+    | ukBlockBodyOfReturnInTryFunc :
 
     | ukClassInitStart :
 
@@ -576,17 +570,28 @@ CLASS IMPLEMENTATION CUnit;
         G^.Enter();
         IF eoTryReturnsValue IN Options THEN
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyThrows) { return TRUE; } // RETURN from TRY/THROW' );
-            G^.LineS( L'if (_FinallyReturns) { *RetVal = _ReturnResult; return FALSE; } // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) {' );
+            G^.Enter();
+              G^.LineS( L'if (_FinallyRethrow) {' );
+              G^.Enter();
+                G^.LineS( L'return TRUE; // THROW from CATCH' );
+              G^.Leave();
+              G^.LineS( L'} else {' );
+              G^.Enter();
+                G^.LineS( L'*RetVal = _ReturnResult; // RETURN from TRY/CATCH' );
+                G^.LineS( L'return FALSE; // RETURN from TRY/CATCH' );
+              G^.Leave();
+              G^.LineS( L'}' );
+            G^.Leave();
+            G^.LineS( L'}' );
           ELSE
-            G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY/CATCH' );
           END;
         ELSE
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyThrows) { return TRUE; } // RETURN from TRY/THROW' );
-            G^.LineS( L'if (_FinallyReturns) return FALSE; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return _FinallyRethrow; // RETURN/THROW from TRY/CATCH' );
           ELSE
-            G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY/CATCH' );
           END;
         END;
         G^.Leave();
@@ -598,21 +603,14 @@ CLASS IMPLEMENTATION CUnit;
     | ukTryBlock :
       G^.LineRB();
       IF eoCPPExceptions NOT IN Options THEN
-         G^.LineS( L'if (false) { // first if of CATCHes' );
+         G^.LineS( L'// CATCH, first if of CATCHes' );
+         G^.LineS( L'if (false) {' );
          G^.LineS( L'}' );
       END;
     | ukExceptDoBlock,
       ukFinallySEHBlock,
       ukCatchDoBlock :
       G^.LineRB();
-
-    | ukSThrow :
-      IF eoCPPExceptions IN Options THEN
-         G^.OutSC(); G^.EOL();
-      ELSE
-         G^.OutS( L");"); G^.EOL();
-         G^.LineS( L"return TRUE;" );
-      END;
 
     ELSE
 
@@ -860,7 +858,7 @@ CLASS IMPLEMENTATION CSymbols;
     STE : CSTE;
   BEGIN
     STE.PS := Symbol;
-    RETURN Search( ADR( STE ), OUT PSTE );
+    RETURN SUPER.Get( 0, ADR( STE ), OUT PSTE );
   END Knows;
 
   PROCEDURE Add( Symbol : TPSymbol );
@@ -870,7 +868,7 @@ CLASS IMPLEMENTATION CSymbols;
     Symbol^.OfSymbol := OfSymbol;
     NEW( PSTE );
     PSTE^.PS := Symbol;
-    Insert( PSTE );
+    SUPER.Add( PSTE );
   END Add;
 
   PROCEDURE Forget( Symbol : TPSymbol ) : BOOLEAN;
@@ -879,7 +877,7 @@ CLASS IMPLEMENTATION CSymbols;
     PSTE : TPSTE;
   BEGIN
     STE.PS := Symbol;
-    IF NOT Remove( ADR( STE ), OUT PSTE ) THEN
+    IF NOT Remove( 0, ADR( STE ), OUT PSTE ) THEN
       RETURN FALSE;
     END;
     DISPOSE( PSTE );
@@ -894,7 +892,7 @@ CLASS IMPLEMENTATION CSymbols;
   BEGIN
     STE.PS := ADR( SSymbol );
     SSymbol.N := Name;
-    IF Search( ADR( STE ), OUT PSTE ) THEN
+    IF SUPER.Get( 0, ADR( STE ), OUT PSTE ) THEN
       Symbol := PSTE^.PS;
       RETURN TRUE;
     ELSE
@@ -914,9 +912,9 @@ CLASS IMPLEMENTATION CSymbols;
     END;
     STE.PS := ADR( SSymbol );
     SSymbol.N := Name;
-    b := GetFirst( OUT PSTE );
+    b := GetFirst( 0, OUT PSTE );
     WHILE b AND NOT Name.EqualsIgnoreCase( PSTE^.PS^.N ) DO
-      b := NextOf( PSTE, OUT PSTE );
+      b := NextOf( 0, PSTE, OUT PSTE );
     END;
     IF b THEN
       Symbol := PSTE^.PS;
@@ -948,14 +946,14 @@ CLASS IMPLEMENTATION CSymbols;
     PSTE : TPSTE;
   BEGIN
     IF CurrentSTE = NIL THEN
-      IF GetFirst( OUT PSTE ) THEN
+      IF GetFirst( 0, OUT PSTE ) THEN
         CurrentSTE := PSTE;
         Current := PSTE^.PS;
         RETURN TRUE;
       END;
     ELSE
       PSTE := TPSTE( CurrentSTE );
-      IF NextOf( PSTE, OUT PSTE ) THEN
+      IF NextOf( 0, PSTE, OUT PSTE ) THEN
         CurrentSTE := PSTE;
         Current := PSTE^.PS;
         RETURN TRUE;
@@ -1454,6 +1452,25 @@ CLASS IMPLEMENTATION CType;
       ELSE
         RETURN T^.Compatible( CM, PWith^.T );
       END;
+
+      | tkClass : // OBJECT, INTERFACE
+         IF ADR( SELF ) = PWith THEN
+            RETURN TRUE;
+         ELSIF PWith^.TypeKind <> tkClass THEN
+            RETURN FALSE;
+         ELSIF PrimitiveType = ptINTERFACE THEN
+            RETURN TRUE;
+         ELSIF PrimitiveType = ptOBJECT THEN
+            CASE CM OF
+            | cmExact:
+               RETURN FALSE;
+            | cmAssign :
+               RETURN PWith^.PrimitiveType <> ptINTERFACE; // cannot assign INTERFACE to OBJECT
+            ELSE // cmOperation
+               RETURN TRUE;
+            END; // CASE
+         END;
+
     END;
     RETURN FALSE;
   END Compatible;
@@ -1772,6 +1789,8 @@ CLASS IMPLEMENTATION CType;
     ELSIF LT1^.TypeKind <> tkReference THEN
       IF LT1 = Types.TPTR THEN // cast, PTR := * is specialty o M2
         INCL( CastInfo, ciCast );
+      ELSIF LT1 = Types.TTSIZE THEN // cast, PTR := * is specialty o M2
+        INCL( CastInfo, ciCast );
       ELSIF LT1^.TypeKind = tkProcedure THEN // cast, TProc := ADDRESS
         INCL( CastInfo, ciCast );
       ELSIF LT1^.TypeKind = tkSet THEN // formal SET
@@ -1783,7 +1802,7 @@ CLASS IMPLEMENTATION CType;
           ELSIF LT2 <> Types.TSet THEN // ELSE source is typed set constructor assigned with simple-constructed set (LT1 = {}). This is solved as AssignSetEmbeddedCall and casting must be ommited.
             CastInfo := CastInfo + TCastInfo{ciCast, ciReference, ciStructure};
           // ELSE
-						// @@STRUCT SET ASSIGN
+                  // @@STRUCT SET ASSIGN
           END;
         END;
       ELSIF TM = tmUnknown THEN
@@ -2166,7 +2185,7 @@ CLASS IMPLEMENTATION COrdinalPresence;
   BEGIN
     OPTE.O1 := Ordinal1;
     OPTE.O2 := Ordinal2;
-    RETURN Search( ADR( OPTE ), OUT FOPTE );
+    RETURN Get( 0, ADR( OPTE ), OUT FOPTE );
   END Knows;
 
   PROCEDURE Add( Ordinal1, Ordinal2 : INT64 );
@@ -2176,7 +2195,7 @@ CLASS IMPLEMENTATION COrdinalPresence;
     NEW( OPTE );
     OPTE^.O1 := Ordinal1;
     OPTE^.O2 := Ordinal2;
-    Insert( OPTE );
+    SUPER.Add( OPTE );
   END Add; 
 
 BEGIN
@@ -2491,10 +2510,10 @@ CLASS IMPLEMENTATION CEnumeration;
           G^.OutS( L'{' );
         ELSE
           OutN( G, C );
-					IF T <> Types.TUnknown THEN
-	          G^.OutS( L' : ' );
-						T^.OutN( G, C );
-					END;
+               IF T <> Types.TUnknown THEN
+             G^.OutS( L' : ' );
+                  T^.OutN( G, C );
+               END;
           G^.OutS( L' {' );
         END;
       G^.EOL();
@@ -2700,20 +2719,20 @@ CLASS IMPLEMENTATION CVariable;
     TC : CTypedContainer;
   BEGIN
     IF Types.TSet^.Compatible( cmOperation, T ) AND TPSet( T^.Unwrap())^.IsLong() AND
-			 (
+          (
          ( InitE^.T^.Unwrap() = Types.TSet ) OR
          ( InitE^.N^.r.N = DOM.enDesignator ) AND ( InitE^.N^.r.V^.r.DK = DOM.dkType )
        ) THEN
-			// @@STRUCT SET ASSIGN
+         // @@STRUCT SET ASSIGN
       // So, here we assign TSet to long typed set (something like: LongTypedSetVar = {} is written).
       // Such assignment will be solved by macro using embedded call.
       G^.OutSC();
       G^.OutS( L' ASSIGNS_( ' );
         G^.OutCS( N );
-		    G^.OutS( L', ' );
-	      InitE^.Generate( G, C );
-				G^.OutS( L' )' );
-		  // semicolon is emitted later
+          G^.OutS( L', ' );
+         InitE^.Generate( G, C );
+            G^.OutS( L' )' );
+        // semicolon is emitted later
       RETURN;
     END;
     G^.OutS( L' = ' );
@@ -3112,15 +3131,15 @@ CLASS IMPLEMENTATION CProcedureType;
       RETURN TRUE;
    END CompareThrows;
 
-	PROCEDURE CopyThrows( From : TPProcedureType );
-	BEGIN
-	   Options := Options + From^.Options * TEnvironmentOptions{eoReturnInRetval, eoThrowing};
-		Throws.Dispose();
-		From^.Throws.Reset();
-		WHILE From^.Throws.MoveNext() DO
-			Throws.Add( From^.Throws.Current, 0 );
-		END; // WHILE
-	END CopyThrows;
+   PROCEDURE CopyThrows( From : TPProcedureType );
+   BEGIN
+      Options := Options + From^.Options * TEnvironmentOptions{eoReturnInRetval, eoThrowing};
+      Throws.Dispose();
+      From^.Throws.Reset();
+      WHILE From^.Throws.MoveNext() DO
+         Throws.Add( From^.Throws.Current, 0 );
+      END; // WHILE
+   END CopyThrows;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
   VAR
@@ -3426,8 +3445,13 @@ CLASS IMPLEMENTATION CFormalType;
   END IsOpenArray;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VAR
+    referencedTypeModifier : TTypeModifier := tmUnknown;
   BEGIN
-    IF TGenerateControl{gcForceFormalFrameAddOn} * C = TGenerateControl{} THEN
+    IF T^.IsFormal() THEN
+      referencedTypeModifier := TPFormalType( T )^.TypeModifier;
+    END;
+    IF ( TGenerateControl{gcForceFormalFrameAddOn} * C = TGenerateControl{} ) AND ( referencedTypeModifier <> TypeModifier ) THEN
       CASE TypeModifier OF
       | tmCONST :
         G^.OutS( L'const ' );
@@ -3738,15 +3762,17 @@ CLASS IMPLEMENTATION CClass;
       G^.OutS( L' { public:' ); G^.EOL();
       
       // output of RTTI information
-      G^.Enter();
-         G^.LineS( L'static const RTTI rtti;' );
-         IF eoVMT IN Options THEN
-            G^.LineS( L'virtual const RTTI* rtti_get() const;' );
-         ELSE
-            G^.LineS( L'const RTTI* rtti_get() const;' );
-         END;
-      G^.Leave();
-      G^.EOL();
+      IF UnitKind <> ukNestedForwardedFrame THEN // frames are internal, they do not have RTTI
+         G^.Enter();
+            G^.LineS( L'static const RTTI rtti;' );
+            IF eoVMT IN Options THEN
+               G^.LineS( L'virtual const RTTI* rtti_get() const;' );
+            ELSE
+               G^.LineS( L'const RTTI* rtti_get() const;' );
+            END;
+         G^.Leave();
+         G^.EOL();
+      END;
 
     #if CPP_ACCESS_MODIFIERS #then
       IF UnitKind = ukNestedForwardedFrame THEN
@@ -4048,62 +4074,62 @@ CLASS IMPLEMENTATION CClass;
     c^.M2^.ReportFirstError();
   END CheckImplementationSemantics;
 
-	PROCEDURE IsDescendantOf( Ancestor : TPClass; AllowSelf, DetectInterfaces : BOOLEAN; OUT HaveDuplicite : BOOLEAN ) : BOOLEAN;
-	VAR
-	   Result : BOOLEAN := FALSE;
-	
-	   PROCEDURE BroadSearch( C : TPClass );
-	   BEGIN
-	      IF C = Ancestor THEN
-	         IF Result THEN
-	            HaveDuplicite := TRUE;
-	         END;
-	         Result := TRUE;
-	         RETURN;
-	      END;
-	      C^.Implements.Reset();
-	      WHILE C^.Implements.MoveNext() DO
-	         BroadSearch( C^.Implements.Current );
-	         IF HaveDuplicite THEN
-	            RETURN;
-	         END;
-	      END; // WHILE
-	   END BroadSearch;
-	
-	VAR
-		C : TPClass;
-	BEGIN
+   PROCEDURE IsDescendantOf( Ancestor : TPClass; AllowSelf, DetectInterfaces : BOOLEAN; OUT HaveDuplicite : BOOLEAN ) : BOOLEAN;
+   VAR
+      Result : BOOLEAN := FALSE;
+   
+      PROCEDURE BroadSearch( C : TPClass );
+      BEGIN
+         IF C = Ancestor THEN
+            IF Result THEN
+               HaveDuplicite := TRUE;
+            END;
+            Result := TRUE;
+            RETURN;
+         END;
+         C^.Implements.Reset();
+         WHILE C^.Implements.MoveNext() DO
+            BroadSearch( C^.Implements.Current );
+            IF HaveDuplicite THEN
+               RETURN;
+            END;
+         END; // WHILE
+      END BroadSearch;
+   
+   VAR
+      C : TPClass;
+   BEGIN
       HaveDuplicite := FALSE;
-		IF AllowSelf AND ( Ancestor = ADR( SELF )) THEN
-			RETURN TRUE;
-		END;
-		IF DetectInterfaces THEN
-		   BroadSearch( ADR( SELF ));
-		   RETURN Result;
-		ELSE
-		   C := I;
-		   WHILE ( C <> NIL ) AND ( C <> Ancestor ) DO
-			   C := C^.I;
-		   END;
-   		RETURN C <> NIL;
-		END;
-	END IsDescendantOf;
+      IF AllowSelf AND ( Ancestor = ADR( SELF )) THEN
+         RETURN TRUE;
+      END;
+      IF DetectInterfaces THEN
+         BroadSearch( ADR( SELF ));
+         RETURN Result;
+      ELSE
+         C := I;
+         WHILE ( C <> NIL ) AND ( C <> Ancestor ) DO
+            C := C^.I;
+         END;
+         RETURN C <> NIL;
+      END;
+   END IsDescendantOf;
 
-	PROCEDURE IsDescendantOfException() : BOOLEAN;
-	VAR
-		C : TPClass := ADR( SELF );
-	BEGIN
-		WHILE C^.I <> NIL DO
-			C := C^.I;
-		END;
-		IF NOT C^.N.EqualsOA( L"Exception" ) THEN
-			RETURN FALSE;
-		ELSIF C^.OfSymbol^.SymbolKind <> skModule THEN
-			RETURN FALSE;
-		ELSE
-			RETURN C^.OfSymbol^.N.EqualsOA( L"Exceptions" );
-		END;
-	END IsDescendantOfException;
+   PROCEDURE IsDescendantOfException() : BOOLEAN;
+   VAR
+      C : TPClass := ADR( SELF );
+   BEGIN
+      WHILE C^.I <> NIL DO
+         C := C^.I;
+      END;
+      IF NOT C^.N.EqualsOA( L"Exception" ) THEN
+         RETURN FALSE;
+      ELSIF C^.OfSymbol^.SymbolKind <> skModule THEN
+         RETURN FALSE;
+      ELSE
+         RETURN C^.OfSymbol^.N.EqualsOA( L"Exceptions" );
+      END;
+   END IsDescendantOfException;
 
   PROCEDURE AddNestedFriend( AccessedMember : TPSymbol; P : TPProcedureType );
   #if CPP_ACCESS_MODIFIERS #then
@@ -4510,7 +4536,7 @@ CLASS IMPLEMENTATION CModule;
     IF ErrorCount = 0 THEN
       CompileState := csCompiled;
     ELSE
-	    CompileState := csError;
+       CompileState := csError;
     END;
     Project.LeaveSymbols( ADR( SELF ));
 
@@ -5057,7 +5083,7 @@ CLASS IMPLEMENTATION CModule;
   PROCEDURE EnterUnit( CONST Unit : TPUnit );
   BEGIN
     UStack.Push( Unit );
-		CurU := TPUnit( Unit );
+      CurU := TPUnit( Unit );
   END EnterUnit;
 
   PROCEDURE LeaveUnit() : TPUnit;
@@ -5119,7 +5145,7 @@ CLASS IMPLEMENTATION CModule;
   PROCEDURE AddToCTDeclUnit( Unit : TPUnit );
   BEGIN
     IF CurCTDU = NIL THEN
-			CurU^.Add( Unit ); // for created structured constants created inside var decls, where CTDU is not set yet. This should create required const before usage.
+         CurU^.Add( Unit ); // for created structured constants created inside var decls, where CTDU is not set yet. This should create required const before usage.
     ELSE
       CurCTDU^.Add( Unit );
     END;
@@ -5358,12 +5384,10 @@ CLASS IMPLEMENTATION CModule;
         OD^.MEnv.MIID[miidLowA] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"LowerizeW" ) THEN
         OD^.MEnv.MIID[miidLowW] := C^.IsLinkOf;
-      ELSIF Symbol^.N.EqualsOA( L"Assertion" ) THEN
-        OD^.MEnv.MIID[miidAssertion] := C^.IsLinkOf;
-      ELSIF Symbol^.N.EqualsOA( L"LogAssertionA" ) THEN
-        OD^.MEnv.MIID[miidLogAssertionA] := C^.IsLinkOf;
-      ELSIF Symbol^.N.EqualsOA( L"LogAssertionW" ) THEN
-        OD^.MEnv.MIID[miidLogAssertionW] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"AssertionA" ) THEN
+        OD^.MEnv.MIID[miidAssertionA] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"AssertionW" ) THEN
+        OD^.MEnv.MIID[miidAssertionW] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"StoreException" ) THEN
         OD^.MEnv.MIID[miidStoreException] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"RetrieveException" ) THEN
@@ -6754,144 +6778,144 @@ CLASS IMPLEMENTATION CModule;
     END;
   END LeaveProcedureImplementation;
 
-	PROCEDURE CheckTypeIsException( T : TPType );
-	BEGIN
-		T := T^.Unwrap();
-		IF ( T^.SymbolKind <> skClass ) OR NOT TPClass( T )^.IsDescendantOfException() THEN
-			SemErr( err._ExpectedException );
-		END;
-	END CheckTypeIsException;
-
-	PROCEDURE AddThrownType( P : TPProcedureType; T : TPType );
-	BEGIN
-	   IF eoCPPExceptions NOT IN Options THEN
-	      IF P^.T = Types.TUnknown THEN
-	         P^.Options := P^.Options + TEnvironmentOptions{eoThrowing};
-	      ELSE
-	         P^.Options := P^.Options + TEnvironmentOptions{eoReturnInRetval, eoThrowing};
-	      END;
-	      IF P^.OI <> NIL THEN
-	         P^.OI^.Options := P^.OI^.Options + P^.Options * TEnvironmentOptions{eoReturnInRetval, eoThrowing};
-	      END;
-	   END;
-		P^.Throws.Add( T^.Unwrap(), 0 );
-	END AddThrownType;
-
-	PROCEDURE CheckIfThrowingProcedureIsPossible( P : TPSymbol );
-	BEGIN
-		IF P^.SymbolKind = skVariable THEN
-			P := P^.T^.Unwrap();
-		END;
-		IF TPProcedureType( P )^.Throws.Empty THEN // procedure does not throw
-			RETURN;
-		ELSIF NOT TStack.Empty THEN // procedure throws, but we are inside TRY
-			AddTryProcedure( TPProcedureType( P ));
-			RETURN;
-		END;
-		IF P^.SymbolKind = skProperty THEN
-			SemErrCS( err._PropertyWithThrowMustBeUsedInTryBlockOnly, P^.N );
-		ELSIF P^.SymbolKind = skIndexer THEN
-			SemErrCS( err._IndexerWithThrowMustBeUsedInTryBlockOnly, P^.OfSymbol^.N );
-		ELSE
-			SemErrCS( err._ProcedureWithThrowMustBeUsedInTryBlockOnly, P^.N );
-		END;
-	END CheckIfThrowingProcedureIsPossible;
-
-	PROCEDURE CheckIfThrowIsPossible( T : TPType );
-	VAR
-		PT : lists.TPPtrList := ADR( TPProcedure( CurrentP())^.OD^.Throws );
-	BEGIN
-		T := T^.Unwrap();
-		PT^.Reset();
-		WHILE PT^.MoveNext() DO
-			IF T = TPType( PT^.Current ) THEN
-				RETURN;
-			END;
-		END; // WHILE
-		IF TStack.Empty OR NOT TPSTRY( TStack.Peek())^.LocalThrowEnabled THEN // we are not inside TRY
-   		SemErr( err._ThrowIsNotPossible );
-		ELSE // we are inside TRY, catched type can be local
-			AddTryThrow( T );
+   PROCEDURE CheckTypeIsException( T : TPType );
+   BEGIN
+      T := T^.Unwrap();
+      IF ( T^.SymbolKind <> skClass ) OR NOT TPClass( T )^.IsDescendantOfException() THEN
+         SemErr( err._ExpectedException );
       END;
-	END CheckIfThrowIsPossible;
+   END CheckTypeIsException;
 
-	PROCEDURE AddTryHandleAll();
-	BEGIN
-		TPSTRY( TStack.Peek())^.Handles.Dispose();
-		TPSTRY( TStack.Peek())^.Handles.Add( Types.TUnknown, 0 );
-	END AddTryHandleAll;
-	
-	PROCEDURE AddTryHandle( T : TPType );
-	BEGIN
-		TPSTRY( TStack.Peek())^.Handles.Add( T, 0 );
-	END AddTryHandle;
+   PROCEDURE AddThrownType( P : TPProcedureType; T : TPType );
+   BEGIN
+      IF eoCPPExceptions NOT IN Options THEN
+         IF P^.T = Types.TUnknown THEN
+            P^.Options := P^.Options + TEnvironmentOptions{eoThrowing};
+         ELSE
+            P^.Options := P^.Options + TEnvironmentOptions{eoReturnInRetval, eoThrowing};
+         END;
+         IF P^.OI <> NIL THEN
+            P^.OI^.Options := P^.OI^.Options + P^.Options * TEnvironmentOptions{eoReturnInRetval, eoThrowing};
+         END;
+      END;
+      P^.Throws.Add( T^.Unwrap(), 0 );
+   END AddThrownType;
 
-	PROCEDURE AddTryProcedure( P : TPProcedureType );
-	BEGIN
-		TPSTRY( TStack.Peek())^.Procedures.Add( P, 0 );
-	END AddTryProcedure;
+   PROCEDURE CheckIfThrowingProcedureIsPossible( P : TPSymbol );
+   BEGIN
+      IF P^.SymbolKind = skVariable THEN
+         P := P^.T^.Unwrap();
+      END;
+      IF TPProcedureType( P )^.Throws.Empty THEN // procedure does not throw
+         RETURN;
+      ELSIF NOT TStack.Empty THEN // procedure throws, but we are inside TRY
+         AddTryProcedure( TPProcedureType( P ));
+         RETURN;
+      END;
+      IF P^.SymbolKind = skProperty THEN
+         SemErrCS( err._PropertyWithThrowMustBeUsedInTryBlockOnly, P^.N );
+      ELSIF P^.SymbolKind = skIndexer THEN
+         SemErrCS( err._IndexerWithThrowMustBeUsedInTryBlockOnly, P^.OfSymbol^.N );
+      ELSE
+         SemErrCS( err._ProcedureWithThrowMustBeUsedInTryBlockOnly, P^.N );
+      END;
+   END CheckIfThrowingProcedureIsPossible;
 
-	PROCEDURE AddTryThrow( T : TPType );
-	BEGIN
-		TPSTRY( TStack.Peek())^.InnerThrows.Add( T, 0 );
-	END AddTryThrow;
+   PROCEDURE CheckIfThrowIsPossible( T : TPType );
+   VAR
+      PT : lists.TPPtrList := ADR( TPProcedure( CurrentP())^.OD^.Throws );
+   BEGIN
+      T := T^.Unwrap();
+      PT^.Reset();
+      WHILE PT^.MoveNext() DO
+         IF T = TPType( PT^.Current ) THEN
+            RETURN;
+         END;
+      END; // WHILE
+      IF TStack.Empty OR NOT TPSTRY( TStack.Peek())^.LocalThrowEnabled THEN // we are not inside TRY
+         SemErr( err._ThrowIsNotPossible );
+      ELSE // we are inside TRY, catched type can be local
+         AddTryThrow( T );
+      END;
+   END CheckIfThrowIsPossible;
 
-	PROCEDURE TryCheckParity();
-	LABEL
-		NextInnerThrow, NextProcedureThrow;
-	VAR
-		PT : TPSTRY := TPSTRY( TStack.Peek());
-		PP : TPProcedureType;
-		IT : TPType; // inner throw
-		s1 : ARRAY [0..511] OF WCHAR;
-		s2 : ARRAY [0..255] OF WCHAR;
-		b : BOOLEAN;
-	BEGIN
-		IF ( PT^.Handles.Count = 1 ) AND ( TPType( PT^.Handles[0] ) = Types.TUnknown ) THEN // TRY has UNHANDLED clause
-			RETURN;
-		END;
+   PROCEDURE AddTryHandleAll();
+   BEGIN
+      TPSTRY( TStack.Peek())^.Handles.Dispose();
+      TPSTRY( TStack.Peek())^.Handles.Add( Types.TUnknown, 0 );
+   END AddTryHandleAll;
+   
+   PROCEDURE AddTryHandle( T : TPType );
+   BEGIN
+      TPSTRY( TStack.Peek())^.Handles.Add( T, 0 );
+   END AddTryHandle;
 
-		// procedures
-		PT^.Procedures.Reset();
-		WHILE PT^.Procedures.MoveNext() DO
-			PP := TPProcedureType( PT^.Procedures.Current );
-			PP^.Throws.Reset();
-			WHILE PP^.Throws.MoveNext() DO
+   PROCEDURE AddTryProcedure( P : TPProcedureType );
+   BEGIN
+      TPSTRY( TStack.Peek())^.Procedures.Add( P, 0 );
+   END AddTryProcedure;
 
-				PT^.Handles.Reset();
-				WHILE PT^.Handles.MoveNext() DO
-				   IF TPSymbol( PP^.Throws.Current )^.SymbolKind <> skClass THEN
-				      CONTINUE;
-					ELSIF TPClass( PP^.Throws.Current )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE, FALSE, OUT b ) THEN // OK
-						GOTO NextProcedureThrow;
-					END;
-				END; // catches while
+   PROCEDURE AddTryThrow( T : TPType );
+   BEGIN
+      TPSTRY( TStack.Peek())^.InnerThrows.Add( T, 0 );
+   END AddTryThrow;
 
-				PP^.N.ToOA( OUT s1 ); TPType( PP^.Throws.Current )^.N.ToOA( OUT s2 );
-				Strings.AppendW( REF s1, L'.' ); Strings.AppendW( REF s1, s2 );
-				SemErrS( err._ProcedureNotCatched, s1 );
+   PROCEDURE TryCheckParity();
+   LABEL
+      NextInnerThrow, NextProcedureThrow;
+   VAR
+      PT : TPSTRY := TPSTRY( TStack.Peek());
+      PP : TPProcedureType;
+      IT : TPType; // inner throw
+      s1 : ARRAY [0..511] OF WCHAR;
+      s2 : ARRAY [0..255] OF WCHAR;
+      b : BOOLEAN;
+   BEGIN
+      IF ( PT^.Handles.Count = 1 ) AND ( TPType( PT^.Handles[0] ) = Types.TUnknown ) THEN // TRY has UNHANDLED clause
+         RETURN;
+      END;
 
-	   NextProcedureThrow:
-			END; // throws while
-		END; // procedures while
+      // procedures
+      PT^.Procedures.Reset();
+      WHILE PT^.Procedures.MoveNext() DO
+         PP := TPProcedureType( PT^.Procedures.Current );
+         PP^.Throws.Reset();
+         WHILE PP^.Throws.MoveNext() DO
 
-		// inner throws
-		PT^.InnerThrows.Reset();
-		WHILE PT^.InnerThrows.MoveNext() DO
-			IT := TPType( PT^.InnerThrows.Current );
+            PT^.Handles.Reset();
+            WHILE PT^.Handles.MoveNext() DO
+               IF TPSymbol( PP^.Throws.Current )^.SymbolKind <> skClass THEN
+                  CONTINUE;
+               ELSIF TPClass( PP^.Throws.Current )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE, FALSE, OUT b ) THEN // OK
+                  GOTO NextProcedureThrow;
+               END;
+            END; // catches while
 
-			PT^.Handles.Reset();
-			WHILE PT^.Handles.MoveNext() DO
-				IF TPClass( IT )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE, FALSE, OUT b ) THEN // OK
-					GOTO NextInnerThrow;
-				END;
-			END; // catches while
+            PP^.N.ToOA( OUT s1 ); TPType( PP^.Throws.Current )^.N.ToOA( OUT s2 );
+            Strings.AppendW( REF s1, L'.' ); Strings.AppendW( REF s1, s2 );
+            SemErrS( err._ProcedureNotCatched, s1 );
 
-			SemErrCS( err._ThrowNotCatched, IT^.N );
+      NextProcedureThrow:
+         END; // throws while
+      END; // procedures while
+
+      // inner throws
+      PT^.InnerThrows.Reset();
+      WHILE PT^.InnerThrows.MoveNext() DO
+         IT := TPType( PT^.InnerThrows.Current );
+
+         PT^.Handles.Reset();
+         WHILE PT^.Handles.MoveNext() DO
+            IF TPClass( IT )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE, FALSE, OUT b ) THEN // OK
+               GOTO NextInnerThrow;
+            END;
+         END; // catches while
+
+         SemErrCS( err._ThrowNotCatched, IT^.N );
 
    NextInnerThrow:
-		END; // inner throws while
-	END TryCheckParity;
+      END; // inner throws while
+   END TryCheckParity;
 
   PROCEDURE SemErr( n : CARDINAL );
   BEGIN
@@ -7031,7 +7055,7 @@ CLASS IMPLEMENTATION CModule;
          G^.LineS( L'#include "m2leak.h"' );
        END;
        IF eoCPPExceptions IN Options THEN
-	     G^.LineS( L'#include "typeinfo.h"' );
+        G^.LineS( L'#include "typeinfo.h"' );
        END;
 
        IF ( eoPublishExports IN CurE^.Options ) AND Project.GetComponentName( LN, TRUE, FALSE ) THEN
@@ -7974,120 +7998,120 @@ CLASS IMPLEMENTATION CExpression;
     END;
   END GenTail;
 
-	PROCEDURE AnalyzeAndGenerateOAHigh( G : Generator.TPGenerator; TargetT : TPType ); // TargetT -- destination parameter type
-	
-		PROCEDURE RecomputeHighTail( SourceBase, TargetBase : TPType );
-		BEGIN
-			G^.OutS( L'*' );
-			G^.OutS( L"sizeof(" ); SourceBase^.Generate( G, gcsName );
-			G^.OutS( L")/" );
-			G^.OutS( L"sizeof(" ); TargetBase^.Generate( G, gcsName );
-			G^.OutS( L")-1" );
-		END RecomputeHighTail;
+   PROCEDURE AnalyzeAndGenerateOAHigh( G : Generator.TPGenerator; TargetT : TPType ); // TargetT -- destination parameter type
+   
+      PROCEDURE RecomputeHighTail( SourceBase, TargetBase : TPType );
+      BEGIN
+         G^.OutS( L'*' );
+         G^.OutS( L"sizeof(" ); SourceBase^.Generate( G, gcsName );
+         G^.OutS( L")/" );
+         G^.OutS( L"sizeof(" ); TargetBase^.Generate( G, gcsName );
+         G^.OutS( L")-1" );
+      END RecomputeHighTail;
 
-	VAR
-		LT : TPType := T^.Unwrap();
-		LTb : TPType := LT^.T^.Unwrap(); // base
-		PT : TPType := TargetT^.Unwrap();
-		PTb : TPType := PT^.T^.Unwrap(); // base
-		CastFlag : BOOLEAN := FALSE;
-		OAConstructorFlag : BOOLEAN;
-		OASizeFlag : BOOLEAN := coOASize IN TargetT^.Options;
-		RefFlag : BOOLEAN := FALSE;
-		SameBase : BOOLEAN := ( LTb = PTb ) OR ( LTb^.OccupiedMemory() = PTb^.OccupiedMemory() );
-	BEGIN
-		IF LT^.TypeKind = tkStringArray THEN
-			IF OASizeFlag THEN
-				IF SameBase THEN
-					G^.OutN( High());
-				ELSE
-					G^.OutN( High()+1 ); 
-					RecomputeHighTail( LTb, PTb );
-				END;
-			END;
-			// tkStringArray is always const
-			CastFlag := ( LTb <> PTb ) OR ( N^.r.N = enDesignator ) AND ( N^.r.V^.r.DK = dkId );
+   VAR
+      LT : TPType := T^.Unwrap();
+      LTb : TPType := LT^.T^.Unwrap(); // base
+      PT : TPType := TargetT^.Unwrap();
+      PTb : TPType := PT^.T^.Unwrap(); // base
+      CastFlag : BOOLEAN := FALSE;
+      OAConstructorFlag : BOOLEAN;
+      OASizeFlag : BOOLEAN := coOASize IN TargetT^.Options;
+      RefFlag : BOOLEAN := FALSE;
+      SameBase : BOOLEAN := ( LTb = PTb ) OR ( LTb^.OccupiedMemory() = PTb^.OccupiedMemory() );
+   BEGIN
+      IF LT^.TypeKind = tkStringArray THEN
+         IF OASizeFlag THEN
+            IF SameBase THEN
+               G^.OutN( High());
+            ELSE
+               G^.OutN( High()+1 ); 
+               RecomputeHighTail( LTb, PTb );
+            END;
+         END;
+         // tkStringArray is always const
+         CastFlag := ( LTb <> PTb ) OR ( N^.r.N = enDesignator ) AND ( N^.r.V^.r.DK = dkId );
 
-		ELSIF LT^.TypeKind = tkOpenArray THEN // OK, checked
-			OAConstructorFlag := ( N^.r.N = enDesignator ) AND ( N^.r.V^.r.DK = dkEmbeddedProcedure ) AND 
-										(( N^.r.V^.r.EP = epOA ) OR ( N^.r.V^.r.EP = epOAsz ));
-			IF OASizeFlag THEN
-				//...
-				IF NOT OAConstructorFlag THEN
-					IF N^.r.V^.r.IdA = saParentProcedureVariable THEN // high is of parent procedure parameter
-						G^.OutS( L'f_' );
-						N^.r.V^.r.GO^.OutN( G, gcsName );
-						G^.OutS( L'->' );
-					END;
-					IF SameBase THEN
-						N^.r.V^.r.Id^.OutN( G, gcsName ); G^.OutS( L"_HIGH" );
-					ELSE
-						G^.OutLP(); N^.r.V^.r.Id^.OutN( G, gcsName ); G^.OutS( L"_HIGH+1)" );
-						RecomputeHighTail( LTb, PTb );
-					END;
-				//...
-				ELSIF N^.r.V^.r.EP = epOA THEN// string open array constructor
-					WITH N^.r.V^ DO
-						r.U1^.Generate( G, gcsDefault );
-					END;
-				//...
-				ELSE // sz string open array constructor
-					G^.OutS( L"OA_MAX" );
-				END;
-			END;
-			CastFlag := OAConstructorFlag OR // CastFlag cannot be automatical, CPP does not allow passing "char(*)[xxx]" to "char*"
-							//..
-							// should not be Compatible replaced with ( LTb <> PTb ) as in tkStringArray above?
-							NOT PTb^.Compatible( cmAssign, LTb ) OR // WCHAR -> WORD is OK, will not this be problem for other types? -- yes, will be, CHAR -> BYTE is problem
-							//..
-							NOT Types.TStorage^.Compatible( cmOperation, LT^.T ) AND
-							Types.TStorage^.Compatible( cmOperation, PT^.T ) OR // e.g. cast of CHAR to BYTE, M2 specialty
-							//..
-							TargetT^.IsFormal() AND // passing const to not const looses qualifiers...
-							( TPFormalType( TargetT )^.TypeModifier <> tmCONST ) AND ( TPFormalType( T )^.TypeModifier = tmCONST );
+      ELSIF LT^.TypeKind = tkOpenArray THEN // OK, checked
+         OAConstructorFlag := ( N^.r.N = enDesignator ) AND ( N^.r.V^.r.DK = dkEmbeddedProcedure ) AND 
+                              (( N^.r.V^.r.EP = epOA ) OR ( N^.r.V^.r.EP = epOAsz ));
+         IF OASizeFlag THEN
+            //...
+            IF NOT OAConstructorFlag THEN
+               IF N^.r.V^.r.IdA = saParentProcedureVariable THEN // high is of parent procedure parameter
+                  G^.OutS( L'f_' );
+                  N^.r.V^.r.GO^.OutN( G, gcsName );
+                  G^.OutS( L'->' );
+               END;
+               IF SameBase THEN
+                  N^.r.V^.r.Id^.OutN( G, gcsName ); G^.OutS( L"_HIGH" );
+               ELSE
+                  G^.OutLP(); N^.r.V^.r.Id^.OutN( G, gcsName ); G^.OutS( L"_HIGH+1)" );
+                  RecomputeHighTail( LTb, PTb );
+               END;
+            //...
+            ELSIF N^.r.V^.r.EP = epOA THEN// string open array constructor
+               WITH N^.r.V^ DO
+                  r.U1^.Generate( G, gcsDefault );
+               END;
+            //...
+            ELSE // sz string open array constructor
+               G^.OutS( L"OA_MAX" );
+            END;
+         END;
+         CastFlag := OAConstructorFlag OR // CastFlag cannot be automatical, CPP does not allow passing "char(*)[xxx]" to "char*"
+                     //..
+                     // should not be Compatible replaced with ( LTb <> PTb ) as in tkStringArray above?
+                     NOT PTb^.Compatible( cmAssign, LTb ) OR // WCHAR -> WORD is OK, will not this be problem for other types? -- yes, will be, CHAR -> BYTE is problem
+                     //..
+                     NOT Types.TStorage^.Compatible( cmOperation, LT^.T ) AND
+                     Types.TStorage^.Compatible( cmOperation, PT^.T ) OR // e.g. cast of CHAR to BYTE, M2 specialty
+                     //..
+                     TargetT^.IsFormal() AND // passing const to not const looses qualifiers...
+                     ( TPFormalType( TargetT )^.TypeModifier <> tmCONST ) AND ( TPFormalType( T )^.TypeModifier = tmCONST );
 
-		ELSIF LT^.TypeKind = tkArray THEN // OK, checked
-			IF OASizeFlag THEN
-				IF SameBase THEN
-					G^.OutN( TPArray( LT )^.High());
-				ELSE
-					G^.OutN( TPArray( LT )^.High()+1);
-					RecomputeHighTail( LTb, PTb );
-				END;
-			END;
-			RefFlag := TRUE;
-			// CastFlag cannot be automatical, CPP does not allow passing "char(*)[xxx]" to "char*"
-			// CastFlag := NOT PT^.T^.Compatible( cmAssign, LT^.T ); // WCHAR -> WORD is OK, will not this be problem for other types?;
-			CastFlag := TRUE;
-		ELSE // OK, checked
-			IF NOT OASizeFlag THEN
-			  // pass down
-			ELSIF PTb^.Compatible( cmAssign, LT ) THEN
-			  G^.OutS( L"0" );
-			ELSE
-			  G^.OutS( L"sizeof(" ); LT^.Generate( G, gcsName );
-			  G^.OutS( L")/" );
-			  G^.OutS( L"sizeof(" ); PTb^.Generate( G, gcsName );
-			  G^.OutS( L")-1" );
-			END;
-			IF N^.r.N = enDesignator THEN
-			  RefFlag := TRUE;
-			  CastFlag := ( viConst IN VI ) OR
-							  NOT PTb^.Compatible( cmAssign, LT ) OR
-							  NOT Types.TStorage^.Compatible( cmOperation, LT ) AND
-							  Types.TStorage^.Compatible( cmOperation, PT^.T ); // e.g. cast of INT8 to BYTE, M2 specialty
-			END;
-		END;
-		IF OASizeFlag THEN
-			G^.OutCmSP();
-		END;
-		IF CastFlag THEN
-			G^.OutLP(); TargetT^.Generate( G, gcsCast ); G^.OutAST(); G^.OutRP();
-		END;
-		IF RefFlag THEN
-			G^.OutS( L'&' );
-		END;
-	END AnalyzeAndGenerateOAHigh;
+      ELSIF LT^.TypeKind = tkArray THEN // OK, checked
+         IF OASizeFlag THEN
+            IF SameBase THEN
+               G^.OutN( TPArray( LT )^.High());
+            ELSE
+               G^.OutN( TPArray( LT )^.High()+1);
+               RecomputeHighTail( LTb, PTb );
+            END;
+         END;
+         RefFlag := TRUE;
+         // CastFlag cannot be automatical, CPP does not allow passing "char(*)[xxx]" to "char*"
+         // CastFlag := NOT PT^.T^.Compatible( cmAssign, LT^.T ); // WCHAR -> WORD is OK, will not this be problem for other types?;
+         CastFlag := TRUE;
+      ELSE // OK, checked
+         IF NOT OASizeFlag THEN
+           // pass down
+         ELSIF PTb^.Compatible( cmAssign, LT ) THEN
+           G^.OutS( L"0" );
+         ELSE
+           G^.OutS( L"sizeof(" ); LT^.Generate( G, gcsName );
+           G^.OutS( L")/" );
+           G^.OutS( L"sizeof(" ); PTb^.Generate( G, gcsName );
+           G^.OutS( L")-1" );
+         END;
+         IF N^.r.N = enDesignator THEN
+           RefFlag := TRUE;
+           CastFlag := ( viConst IN VI ) OR
+                       NOT PTb^.Compatible( cmAssign, LT ) OR
+                       NOT Types.TStorage^.Compatible( cmOperation, LT ) AND
+                       Types.TStorage^.Compatible( cmOperation, PT^.T ); // e.g. cast of INT8 to BYTE, M2 specialty
+         END;
+      END;
+      IF OASizeFlag THEN
+         G^.OutCmSP();
+      END;
+      IF CastFlag THEN
+         G^.OutLP(); TargetT^.Generate( G, gcsCast ); G^.OutAST(); G^.OutRP();
+      END;
+      IF RefFlag THEN
+         G^.OutS( L'&' );
+      END;
+   END AnalyzeAndGenerateOAHigh;
 
 BEGIN
   UnitKind := ukExpression;
@@ -8578,7 +8602,7 @@ CLASS IMPLEMENTATION CENode;
             G^.OutS( L'._, ' );
           END;
           G^.OutN( CARDINAL( UT^.T^.LastOrdinal()));
-          G^.OutS( L', (ORDINAL)' );
+          G^.OutS( L', (CARDINAL)' );
         ELSIF c > 4 THEN
           G^.OutS( L', 63, ' );
         ELSIF c > 2 THEN
@@ -8592,89 +8616,89 @@ CLASS IMPLEMENTATION CENode;
         G^.OutS( L')' );
         RETURN;
       
-		ELSIF ( r.O = opISExact ) OR ( r.O = opISLoose ) OR ( r.O = opISInherits ) THEN
-			UT := r.R^.T^.Unwrap();
-			IF r.O = opISExact THEN // check with class type
-   			IF UT^.SymbolKind = skClass THEN
+      ELSIF ( r.O = opISExact ) OR ( r.O = opISLoose ) OR ( r.O = opISInherits ) THEN
+         UT := r.R^.T^.Unwrap();
+         IF r.O = opISExact THEN // check with class type
+            IF UT^.SymbolKind = skClass THEN
                IF ( r.R^.r.N = enDesignator ) AND ( r.R^.r.V^.r.DK = dkType ) THEN
-				      G^.OutS( L'RTTI_IS_RTTI( ' );
-					      r.L^.Generate( G, C );
-				      G^.OutS( L'.rtti_get(), &' );
-					      r.R^.Generate( G, C );
-   		         G^.OutS( L'::rtti )' );
-				   ELSE
-				      G^.OutS( L'RTTI_IS_RTTI( ' );
-					      r.L^.Generate( G, C );
-				      G^.OutS( L'.rtti_get(), ' );
-					      r.R^.Generate( G, C );
-   		         G^.OutS( L'.rtti_get())' );
-				   END;
-   			ELSE // check with class name
-				   G^.OutS( L'RTTI_IS_NAME( ' );
-					   r.L^.Generate( G, C );
-				   G^.OutS( L'.rtti_get(), ' );
+                  G^.OutS( L'RTTI_IS_RTTI( ' );
+                     r.L^.Generate( G, C );
+                  G^.OutS( L'.rtti_get(), &' );
+                     r.R^.Generate( G, C );
+                  G^.OutS( L'::rtti )' );
+               ELSE
+                  G^.OutS( L'RTTI_IS_RTTI( ' );
+                     r.L^.Generate( G, C );
+                  G^.OutS( L'.rtti_get(), ' );
+                     r.R^.Generate( G, C );
+                  G^.OutS( L'.rtti_get())' );
+               END;
+            ELSE // check with class name
+               G^.OutS( L'RTTI_IS_NAME( ' );
+                  r.L^.Generate( G, C );
+               G^.OutS( L'.rtti_get(), ' );
                   r.R^.Evaluate( EV, 0 ); G^.OutN( EV.S.Length - 1 ); G^.OutCmSP();
-					   r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
-				   G^.OutS( L' )' );
-   			END;
-			ELSE // opISLoose, opISInherits
-   			IF UT^.SymbolKind = skClass THEN
+                  r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
+               G^.OutS( L' )' );
+            END;
+         ELSE // opISLoose, opISInherits
+            IF UT^.SymbolKind = skClass THEN
                IF ( r.R^.r.N = enDesignator ) AND ( r.R^.r.V^.r.DK = dkType ) THEN
-				      G^.OutS( L'RTTI_INHERITS_RTTI( ' );
-					      r.L^.Generate( G, C );
-				      G^.OutS( L'.rtti_get(), &' );
-					      r.R^.Generate( G, C );
-					   IF r.O = opISLoose THEN
-				         G^.OutS( L'::rtti, TRUE )' );
-					   ELSE
-				         G^.OutS( L'::rtti, FALSE )' );
-				      END;
-				   ELSE
-				      G^.OutS( L'RTTI_INHERITS_RTTI( ' );
-					      r.L^.Generate( G, C );
-				      G^.OutS( L'.rtti_get(), ' );
-					      r.R^.Generate( G, C );
-					   IF r.O = opISLoose THEN
-				         G^.OutS( L'.rtti_get(), TRUE )' );
-					   ELSE
-				         G^.OutS( L'.rtti_get(), FALSE )' );
-				      END;
-				   END;
-   			ELSE // check with class name
-				   G^.OutS( L'RTTI_INHERITS_NAME( ' );
-					   r.L^.Generate( G, C );
-				   G^.OutS( L'.rtti_get(), ' );
+                  G^.OutS( L'RTTI_INHERITS_RTTI( ' );
+                     r.L^.Generate( G, C );
+                  G^.OutS( L'.rtti_get(), &' );
+                     r.R^.Generate( G, C );
+                  IF r.O = opISLoose THEN
+                     G^.OutS( L'::rtti, TRUE )' );
+                  ELSE
+                     G^.OutS( L'::rtti, FALSE )' );
+                  END;
+               ELSE
+                  G^.OutS( L'RTTI_INHERITS_RTTI( ' );
+                     r.L^.Generate( G, C );
+                  G^.OutS( L'.rtti_get(), ' );
+                     r.R^.Generate( G, C );
+                  IF r.O = opISLoose THEN
+                     G^.OutS( L'.rtti_get(), TRUE )' );
+                  ELSE
+                     G^.OutS( L'.rtti_get(), FALSE )' );
+                  END;
+               END;
+            ELSE // check with class name
+               G^.OutS( L'RTTI_INHERITS_NAME( ' );
+                  r.L^.Generate( G, C );
+               G^.OutS( L'.rtti_get(), ' );
                   r.R^.Evaluate( EV, 0 ); G^.OutN( EV.S.Length - 1 ); G^.OutCmSP();
-					   r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
-   			   IF r.O = opISLoose THEN
-				      G^.OutS( L', TRUE )' );
-				   ELSE
-				      G^.OutS( L', FALSE )' );
-				   END;
-   			END;
-			END;
-			RETURN;
+                  r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
+               IF r.O = opISLoose THEN
+                  G^.OutS( L', TRUE )' );
+               ELSE
+                  G^.OutS( L', FALSE )' );
+               END;
+            END;
+         END;
+         RETURN;
 
-		ELSIF ( r.O = opISExactRtti ) OR ( r.O = opISLooseRtti ) OR ( r.O = opISInheritsRtti ) THEN
-			UT := r.R^.T^.Unwrap();
-			IF r.O = opISExactRtti THEN // check with class type
-		      G^.OutS( L'RTTI_IS_RTTI( ' );
-			      r.L^.Generate( G, C );
-		      G^.OutS( L'.rtti_get(), (const RTTI*)' );
-			      r.R^.Generate( G, C );
-	         G^.OutS( L' )' );
-			ELSE // opISLoose, opISInherits
-		      G^.OutS( L'RTTI_INHERITS_RTTI( ' );
-			      r.L^.Generate( G, C );
-		      G^.OutS( L'.rtti_get(), (const RTTI*)' );
-			      r.R^.Generate( G, C );
-			   IF r.O = opISLooseRtti THEN
-		         G^.OutS( L', TRUE )' );
-		      ELSE
-		         G^.OutS( L', FALSE )' );
-		      END;
-			END;
-			RETURN;
+      ELSIF ( r.O = opISExactRtti ) OR ( r.O = opISLooseRtti ) OR ( r.O = opISInheritsRtti ) THEN
+         UT := r.R^.T^.Unwrap();
+         IF r.O = opISExactRtti THEN // check with class type
+            G^.OutS( L'RTTI_IS_RTTI( ' );
+               r.L^.Generate( G, C );
+            G^.OutS( L'.rtti_get(), (const RTTI*)' );
+               r.R^.Generate( G, C );
+            G^.OutS( L' )' );
+         ELSE // opISLoose, opISInherits
+            G^.OutS( L'RTTI_INHERITS_RTTI( ' );
+               r.L^.Generate( G, C );
+            G^.OutS( L'.rtti_get(), (const RTTI*)' );
+               r.R^.Generate( G, C );
+            IF r.O = opISLooseRtti THEN
+               G^.OutS( L', TRUE )' );
+            ELSE
+               G^.OutS( L', FALSE )' );
+            END;
+         END;
+         RETURN;
 
       ELSIF ( r.O = opAddSET ) OR ( r.O = opSubSET ) OR ( r.O = opMultSET ) OR ( r.O = opDivSET ) THEN
         // long set operations are handled separately
@@ -9359,58 +9383,61 @@ CLASS IMPLEMENTATION CDesignator;
 
       | epASSERT :
         IF eoAssertAllowed IN Options THEN
-          G^.OutS( L'ASSERT_( ' );
+          Project.Current()^.OD^.MEnv.MIID[miidAssertionW]^.Generate( G, gcsName );
+          G^.OutS( L'( false, ' );
             r.U1^.Generate( G, Cn );
             G^.OutS( L', ' );
             G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
+            G^.OutS( L', __LINE__, OA_MAX, L"' );
+            G^.OutCS( Project.Current()^.OD^.Name );
+            G^.OutS( L'", -1, NIL' );
           G^.OutSPRP();
         ELSE
           RETURN gumEmpty;
         END;
 
       | epASSERTLOG :
-        G^.OutS( L'if( !(' ); r.U1^.Generate( G, Cn ); G^.OutS( L')) { // assertion if' ); G^.EOL();
-        G^.Enter();
-        G^.Indent();
-           b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
-           IF b THEN
-             Project.Current()^.OD^.MEnv.MIID[miidLogAssertionA]^.Generate( G, gcsName );
-           ELSE
-             Project.Current()^.OD^.MEnv.MIID[miidLogAssertionW]^.Generate( G, gcsName );
-           END;
-           G^.OutS( L'( ' );
-             IF b THEN
-                IF r.U2 = NIL THEN
-                  G^.OutS( L'0, "", OA_MAX, "' );
-                ELSE
-                  TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TBCONSTOAString );
-                  r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-                  G^.OutS( L', OA_MAX, "' );
-                END;
-                G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
-             ELSE
-                IF r.U2 = NIL THEN
-                  G^.OutS( L'0, L"", OA_MAX, L"' );
-                ELSE
-                  TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
-                  r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-                  G^.OutS( L', OA_MAX, L"' );
-                END;
-                G^.OutCS( Project.Current()^.OD^.Name );
-             END;
-             G^.OutS( L'", ' );
-             G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
-           G^.OutS( L' );' );
-           IF eoAssertAllowed IN Options THEN
-             G^.OutS( L' ASSERT_( false, ' );
-               G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
-             G^.OutS( L' ); // stop always, do not evaluate cond twice' );
-           END;
-           G^.EOL();
-        G^.Leave();
-        G^.Indent();
-           G^.OutS( L'}' );
-        // the semicolon is added automatically
+        // head
+        b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
+        IF b THEN
+          Project.Current()^.OD^.MEnv.MIID[miidAssertionA]^.Generate( G, gcsName );
+        ELSE
+          Project.Current()^.OD^.MEnv.MIID[miidAssertionW]^.Generate( G, gcsName );
+        END;
+        IF eoAssertAllowed IN Options THEN
+          G^.OutS( L'( false, ' );
+        ELSE
+          G^.OutS( L'( true, ' );
+        END;
+        // expression
+        r.U1^.Generate( G, Cn );
+        G^.OutS( L', ' );
+        // m2 line
+        G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
+        G^.OutS( L', __LINE__' );
+        // message
+        IF b THEN
+          G^.OutS( L', OA_MAX, "' );
+          G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
+          G^.OutS( L'", ' );
+          IF r.U2 = NIL THEN
+            G^.OutS( L'-1, NIL' );
+          ELSE
+            TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TBCONSTOAString );
+            r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
+          END;
+        ELSE
+          G^.OutS( L', OA_MAX, L"' );
+          G^.OutCS( Project.Current()^.OD^.Name );
+          G^.OutS( L'", ' );
+          IF r.U2 = NIL THEN
+            G^.OutS( L'-1, NIL' );
+          ELSE
+            TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
+            r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
+          END;
+        END;
+        G^.OutSPRP();
 
       | epCAP :
         IF Types.TBString^.Compatible( cmOperation, TPExpression( r.U1 )^.T ) THEN
@@ -9451,7 +9478,11 @@ CLASS IMPLEMENTATION CDesignator;
           END;
           G^.OutRP(); 
         ELSE
-          IF Types.TOrdinal^.Compatible( cmOperation, T ) THEN // number
+          IF Types.TTSIZE^.Compatible( cmExact, T ) THEN // TSIZE
+            G^.OutS( L'DECFS_( ' );
+          ELSIF Types.TPTR^.Compatible( cmOperation, T ) THEN // address
+            G^.OutS( L'DECFA_( ' );
+          ELSIF Types.TOrdinal^.Compatible( cmOperation, T ) THEN // number
             G^.OutS( L'DECFO_( ' );
           ELSE // address
             G^.OutS( L'DECFA_( ' );
@@ -9552,7 +9583,7 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutS( L'._, ' );
         END;
         G^.OutN( CARDINAL( LT^.T^.LastOrdinal()));
-        G^.OutS( L', (ORDINAL)(' );
+        G^.OutS( L', (CARDINAL)(' );
         r.U2^.Generate( G, Cn );
         G^.OutS( L') )' );
       | epFIELDOFS :
@@ -9585,7 +9616,11 @@ CLASS IMPLEMENTATION CDesignator;
           ASSERT( FALSE );
         END;
       | epINC, epDEC :
-        IF Types.TOrdinalNumber^.Compatible( cmOperation, T ) THEN
+        IF Types.TTSIZE^.Compatible( cmExact, T ) THEN // TSIZE
+          G^.OutS( L"(*(TSIZE*)(&" );
+          r.U1^.Generate( G, C );
+          G^.OutS( L"))" );
+        ELSIF Types.TOrdinalNumber^.Compatible( cmOperation, T ) THEN
           r.U1^.Generate( G, C );
         ELSIF Types.TADDRESS^.Compatible( cmOperation, T ) THEN
           G^.OutS( L"(*(PTR*)(&" );
@@ -9628,9 +9663,13 @@ CLASS IMPLEMENTATION CDesignator;
           END;
           G^.OutRP(); 
         ELSE
-          IF Types.TOrdinal^.Compatible( cmOperation, T ) THEN // number
+          IF Types.TTSIZE^.Compatible( cmExact, T ) THEN // TSIZE
+            G^.OutS( L'INCFS_( ' );
+          ELSIF Types.TPTR^.Compatible( cmOperation, T ) THEN // address
+            G^.OutS( L'INCFA_( ' );
+          ELSIF Types.TOrdinal^.Compatible( cmOperation, T ) THEN // number
             G^.OutS( L'INCFO_( ' );
-          ELSE
+          ELSE // address
             G^.OutS( L'INCFA_( ' );
           END;
           TPExpression( r.U1 )^.T^.Generate( G, gcsName );
@@ -9670,7 +9709,7 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutS( L'._, ' );
         END;
         G^.OutN( CARDINAL( LT^.T^.LastOrdinal()));
-        G^.OutS( L', (ORDINAL)(' );
+        G^.OutS( L', (CARDINAL)(' );
         r.U2^.Generate( G, Cn );
         G^.OutS( L') )' );
       | epINSIDE :
@@ -9682,7 +9721,7 @@ CLASS IMPLEMENTATION CDesignator;
           TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
         END;
         r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-        G^.OutS( L', (ORDINAL)' );
+        G^.OutS( L', (INTEGER)' );
         r.U1^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
         G^.OutSPRP();
 
@@ -9894,52 +9933,52 @@ CLASS IMPLEMENTATION CDesignator;
         G^.OutS( L', ' );
         r.U1^.Generate( G, Cn );
         G^.OutSPRP();
-			| epSWAP :
-	      IF Types.TLONGWORD^.Compatible( cmOperation, T ) THEN
-	        Types.TLONGWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'SWAPLW_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TLONGWORD, FALSE, CI );
-	      ELSIF Types.TWORD^.Compatible( cmOperation, T ) THEN
-	        Types.TWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'SWAPW_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TWORD, FALSE, CI );
-	      ELSIF Types.TPTR^.Compatible( cmOperation, T ) THEN
-	        Types.TPTR^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'SWAPPTR_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TPTR, FALSE, CI );
-	      ELSIF Types.TQUADWORD^.Compatible( cmOperation, T ) THEN
-	        Types.TQUADWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'SWAPQW_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TQUADWORD, FALSE, CI );
-				ELSIF Types.TBYTE^.Compatible( cmOperation, T ) THEN
-	        Types.TBYTE^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'SWAPB_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TBYTE, FALSE, CI );
-	      END;
+         | epSWAP :
+         IF Types.TLONGWORD^.Compatible( cmOperation, T ) THEN
+           Types.TLONGWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'SWAPLW_( ' );
+           T^.CheckAndGenerateCast( G, Types.TLONGWORD, FALSE, CI );
+         ELSIF Types.TWORD^.Compatible( cmOperation, T ) THEN
+           Types.TWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'SWAPW_( ' );
+           T^.CheckAndGenerateCast( G, Types.TWORD, FALSE, CI );
+         ELSIF Types.TPTR^.Compatible( cmOperation, T ) THEN
+           Types.TPTR^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'SWAPPTR_( ' );
+           T^.CheckAndGenerateCast( G, Types.TPTR, FALSE, CI );
+         ELSIF Types.TQUADWORD^.Compatible( cmOperation, T ) THEN
+           Types.TQUADWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'SWAPQW_( ' );
+           T^.CheckAndGenerateCast( G, Types.TQUADWORD, FALSE, CI );
+            ELSIF Types.TBYTE^.Compatible( cmOperation, T ) THEN
+           Types.TBYTE^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'SWAPB_( ' );
+           T^.CheckAndGenerateCast( G, Types.TBYTE, FALSE, CI );
+         END;
         r.U1^.Generate( G, Cn );
         G^.OutSPRP();
-			| epSWAPBytes :
-	      IF Types.TLONGWORD^.Compatible( cmOperation, T ) THEN
-	        Types.TLONGWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'REVERSELWB_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TLONGWORD, FALSE, CI );
-	      ELSIF Types.TWORD^.Compatible( cmOperation, T ) THEN
-	        Types.TWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'REVERSEWB_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TWORD, FALSE, CI );
-	      ELSIF Types.TPTR^.Compatible( cmOperation, T ) THEN
-	        Types.TPTR^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'REVERSEPTRB_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TPTR, FALSE, CI );
-	      ELSIF Types.TQUADWORD^.Compatible( cmOperation, T ) THEN
-	        Types.TQUADWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'REVERSEQWB_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TQUADWORD, FALSE, CI );
-			ELSIF Types.TBYTE^.Compatible( cmOperation, T ) THEN
-	        Types.TBYTE^.CheckAndGenerateCast( G, T, FALSE, CI );
-	        G^.OutS( L'REVERSEBB_( ' );
-	        T^.CheckAndGenerateCast( G, Types.TBYTE, FALSE, CI );
-	      END;
+         | epSWAPBytes :
+         IF Types.TLONGWORD^.Compatible( cmOperation, T ) THEN
+           Types.TLONGWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'REVERSELWB_( ' );
+           T^.CheckAndGenerateCast( G, Types.TLONGWORD, FALSE, CI );
+         ELSIF Types.TWORD^.Compatible( cmOperation, T ) THEN
+           Types.TWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'REVERSEWB_( ' );
+           T^.CheckAndGenerateCast( G, Types.TWORD, FALSE, CI );
+         ELSIF Types.TPTR^.Compatible( cmOperation, T ) THEN
+           Types.TPTR^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'REVERSEPTRB_( ' );
+           T^.CheckAndGenerateCast( G, Types.TPTR, FALSE, CI );
+         ELSIF Types.TQUADWORD^.Compatible( cmOperation, T ) THEN
+           Types.TQUADWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'REVERSEQWB_( ' );
+           T^.CheckAndGenerateCast( G, Types.TQUADWORD, FALSE, CI );
+         ELSIF Types.TBYTE^.Compatible( cmOperation, T ) THEN
+           Types.TBYTE^.CheckAndGenerateCast( G, T, FALSE, CI );
+           G^.OutS( L'REVERSEBB_( ' );
+           T^.CheckAndGenerateCast( G, Types.TBYTE, FALSE, CI );
+         END;
         r.U1^.Generate( G, Cn );
         G^.OutSPRP();
       | epLOBYTE :
@@ -10012,99 +10051,99 @@ CLASS IMPLEMENTATION CDesignator;
     END;
   END GenTail;
 
-	PROCEDURE AnalyzeAndGenerateOAHigh( G : Generator.TPGenerator; TargetT : TPType );
+   PROCEDURE AnalyzeAndGenerateOAHigh( G : Generator.TPGenerator; TargetT : TPType );
 
-		PROCEDURE RecomputeHighTail( SourceBase, TargetBase : TPType );
-		BEGIN
-			G^.OutS( L'*' );
-			G^.OutS( L"sizeof(" ); SourceBase^.Generate( G, gcsName );
-			G^.OutS( L")/" );
-			G^.OutS( L"sizeof(" ); TargetBase^.Generate( G, gcsName );
-			G^.OutS( L")-1" );
-		END RecomputeHighTail;
+      PROCEDURE RecomputeHighTail( SourceBase, TargetBase : TPType );
+      BEGIN
+         G^.OutS( L'*' );
+         G^.OutS( L"sizeof(" ); SourceBase^.Generate( G, gcsName );
+         G^.OutS( L")/" );
+         G^.OutS( L"sizeof(" ); TargetBase^.Generate( G, gcsName );
+         G^.OutS( L")-1" );
+      END RecomputeHighTail;
 
-	VAR
-		LT : TPType := T^.Unwrap();
-		LTb : TPType := LT^.T^.Unwrap(); // base
-		PT : TPType := TargetT^.Unwrap();
-		PTb : TPType := PT^.T^.Unwrap(); // base
-		CastFlag : BOOLEAN;
-		OAConstructorFlag : BOOLEAN;
-		OASizeFlag : BOOLEAN := coOASize IN TargetT^.Options;
-		RefFlag : BOOLEAN;
-		SameBase : BOOLEAN := ( LTb = PTb ) OR ( LTb^.OccupiedMemory() = PTb^.OccupiedMemory() );
-	BEGIN
-		IF LT^.TypeKind = tkOpenArray THEN
-			OAConstructorFlag := ( r.DK = dkEmbeddedProcedure ) AND (( r.EP = epOA ) OR ( r.EP = epOAsz ));
-			IF OASizeFlag THEN
-				IF NOT OAConstructorFlag THEN
-					IF r.IdA = saParentProcedureVariable THEN // high is of parent procedure parameter
-						G^.OutS( L'f_' );
-						r.GO^.OutN( G, gcsName );
-						G^.OutS( L'->' );
-					END;
-					IF SameBase THEN
-						r.Id^.OutN( G, gcsName ); G^.OutS( L"_HIGH" );
-					ELSE
-						G^.OutLP(); r.Id^.OutN( G, gcsName ); G^.OutS( L"_HIGH+1)" );
-						RecomputeHighTail( LTb, PTb );
-					END;
-				ELSIF r.EP = epOA THEN // string open array constructor
-					r.U1^.Generate( G, gcsDefault );
-				ELSE // sz string open array constructor
-					G^.OutS( L"OA_MAX" );
-				END;
-			END;
-			RefFlag := FALSE;
-			CastFlag := OAConstructorFlag OR // CastFlag cannot be automatical, CPP does not allow passing "char(*)[xxx]" to "char*", see same note above
-							//..
-							NOT PTb^.Compatible( cmAssign, LTb ) OR // normal cast
-							//..
-							NOT Types.TStorage^.Compatible( cmOperation, LT^.T ) AND
-							Types.TStorage^.Compatible( cmOperation, PT^.T ) OR // e.g. cast of INT8 to BYTE, M2 specialty
-							//..
-							TargetT^.IsFormal() AND // passing const to not const looses qualifiers...
-							( TPFormalType( TargetT )^.TypeModifier <> tmCONST ) AND ( TPFormalType( T )^.TypeModifier = tmCONST );
+   VAR
+      LT : TPType := T^.Unwrap();
+      LTb : TPType := LT^.T^.Unwrap(); // base
+      PT : TPType := TargetT^.Unwrap();
+      PTb : TPType := PT^.T^.Unwrap(); // base
+      CastFlag : BOOLEAN;
+      OAConstructorFlag : BOOLEAN;
+      OASizeFlag : BOOLEAN := coOASize IN TargetT^.Options;
+      RefFlag : BOOLEAN;
+      SameBase : BOOLEAN := ( LTb = PTb ) OR ( LTb^.OccupiedMemory() = PTb^.OccupiedMemory() );
+   BEGIN
+      IF LT^.TypeKind = tkOpenArray THEN
+         OAConstructorFlag := ( r.DK = dkEmbeddedProcedure ) AND (( r.EP = epOA ) OR ( r.EP = epOAsz ));
+         IF OASizeFlag THEN
+            IF NOT OAConstructorFlag THEN
+               IF r.IdA = saParentProcedureVariable THEN // high is of parent procedure parameter
+                  G^.OutS( L'f_' );
+                  r.GO^.OutN( G, gcsName );
+                  G^.OutS( L'->' );
+               END;
+               IF SameBase THEN
+                  r.Id^.OutN( G, gcsName ); G^.OutS( L"_HIGH" );
+               ELSE
+                  G^.OutLP(); r.Id^.OutN( G, gcsName ); G^.OutS( L"_HIGH+1)" );
+                  RecomputeHighTail( LTb, PTb );
+               END;
+            ELSIF r.EP = epOA THEN // string open array constructor
+               r.U1^.Generate( G, gcsDefault );
+            ELSE // sz string open array constructor
+               G^.OutS( L"OA_MAX" );
+            END;
+         END;
+         RefFlag := FALSE;
+         CastFlag := OAConstructorFlag OR // CastFlag cannot be automatical, CPP does not allow passing "char(*)[xxx]" to "char*", see same note above
+                     //..
+                     NOT PTb^.Compatible( cmAssign, LTb ) OR // normal cast
+                     //..
+                     NOT Types.TStorage^.Compatible( cmOperation, LT^.T ) AND
+                     Types.TStorage^.Compatible( cmOperation, PT^.T ) OR // e.g. cast of INT8 to BYTE, M2 specialty
+                     //..
+                     TargetT^.IsFormal() AND // passing const to not const looses qualifiers...
+                     ( TPFormalType( TargetT )^.TypeModifier <> tmCONST ) AND ( TPFormalType( T )^.TypeModifier = tmCONST );
 
-		ELSIF LT^.TypeKind = tkArray THEN
-			IF OASizeFlag THEN
-				IF SameBase THEN
-					G^.OutN( TPArray( LT )^.High());
-				ELSE
-					G^.OutN( TPArray( LT )^.High()+1 );
-					RecomputeHighTail( LTb, PTb );
-				END;
-			END;
-			RefFlag := TRUE;
-			// CastFlag cannot be automatical, CPP does not allow passing "char(*)[xxx]" to "char*", see same note above
-			CastFlag := TRUE;
+      ELSIF LT^.TypeKind = tkArray THEN
+         IF OASizeFlag THEN
+            IF SameBase THEN
+               G^.OutN( TPArray( LT )^.High());
+            ELSE
+               G^.OutN( TPArray( LT )^.High()+1 );
+               RecomputeHighTail( LTb, PTb );
+            END;
+         END;
+         RefFlag := TRUE;
+         // CastFlag cannot be automatical, CPP does not allow passing "char(*)[xxx]" to "char*", see same note above
+         CastFlag := TRUE;
 
-		ELSE
-			IF NOT OASizeFlag THEN
-				// pass down
-			ELSIF PT^.T^.Compatible( cmAssign, LT ) THEN
-				G^.OutS( L"0" );
-			ELSE
-				G^.OutS( L"sizeof(" ); LT^.Generate( G, gcsName );
-				G^.OutS( L")/" );
-				G^.OutS( L"sizeof(" ); PT^.T^.Generate( G, gcsName );
-				G^.OutS( L")-1" );
-			END;
-			RefFlag := TRUE;
-			CastFlag := NOT PTb^.Compatible( cmAssign, LT ) OR// normal cast
-							NOT Types.TStorage^.Compatible( cmOperation, LT ) AND
-							Types.TStorage^.Compatible( cmOperation, PT^.T ); // e.g. cast of INT8 to BYTE, M2 specialty
-		END;
-		IF OASizeFlag THEN
-			G^.OutCmSP();
-		END;
-		IF CastFlag THEN
-			G^.OutLP(); TargetT^.Generate( G, gcsCast ); G^.OutAST(); G^.OutRP();
-		END;
-		IF RefFlag THEN
-			G^.OutS( L'&' );
-		END;
-	END AnalyzeAndGenerateOAHigh;
+      ELSE
+         IF NOT OASizeFlag THEN
+            // pass down
+         ELSIF PT^.T^.Compatible( cmAssign, LT ) THEN
+            G^.OutS( L"0" );
+         ELSE
+            G^.OutS( L"sizeof(" ); LT^.Generate( G, gcsName );
+            G^.OutS( L")/" );
+            G^.OutS( L"sizeof(" ); PT^.T^.Generate( G, gcsName );
+            G^.OutS( L")-1" );
+         END;
+         RefFlag := TRUE;
+         CastFlag := NOT PTb^.Compatible( cmAssign, LT ) OR// normal cast
+                     NOT Types.TStorage^.Compatible( cmOperation, LT ) AND
+                     Types.TStorage^.Compatible( cmOperation, PT^.T ); // e.g. cast of INT8 to BYTE, M2 specialty
+      END;
+      IF OASizeFlag THEN
+         G^.OutCmSP();
+      END;
+      IF CastFlag THEN
+         G^.OutLP(); TargetT^.Generate( G, gcsCast ); G^.OutAST(); G^.OutRP();
+      END;
+      IF RefFlag THEN
+         G^.OutS( L'&' );
+      END;
+   END AnalyzeAndGenerateOAHigh;
 
   PROCEDURE MarkAsInitializedAndCheckRO( c : TPModule; TopLevel, LValueFlag : BOOLEAN );
   BEGIN
@@ -10139,9 +10178,9 @@ CLASS IMPLEMENTATION CDesignator;
         DOM.TPDesignator( r.U1 )^.MarkAsInitializedAndCheckRO( c, FALSE, LValueFlag );
       END;
     | dkType :
-			IF r.TC <> NIL THEN
-	      r.TC^.MarkAsInitializedAndCheckRO( c, FALSE, LValueFlag );
-	    END;
+         IF r.TC <> NIL THEN
+         r.TC^.MarkAsInitializedAndCheckRO( c, FALSE, LValueFlag );
+       END;
     END; // CASE
   END MarkAsInitializedAndCheckRO;
 
@@ -10339,7 +10378,7 @@ CLASS IMPLEMENTATION CTypedContainer;
          ( LTO^.PrimitiveType = ptStructure ) OR ( LTI^.PrimitiveType = ptStructure ) THEN
         // struct->primitive, primitive->struct must by casted using reference, except assigning sets, this is solved specially
         IF Types.TSet^.Compatible( cmOperation, LTO ) AND ( LTI^.PrimitiveType <> ptStructure ) THEN // do nothing
-					// @@STRUCT SET ASSIGN
+               // @@STRUCT SET ASSIGN
           Context := 2;
         ELSE
           Context := 1;
@@ -10370,8 +10409,8 @@ CLASS IMPLEMENTATION CTypedContainer;
         G^.OutNLH( CARD64( sl ));
       ELSE
         G^.OutLB();
-        ALLOCATE( OUT sa, r );
-        Storage.Fill( sa, r, 0 );
+        ALLOCATE( OUT sa, TSIZE( r ));
+        Storage.Fill( sa, TSIZE( r ), 0 );
         b := GetFirst( E );
         WHILE b DO
           E^.Evaluate( V, 0 );
@@ -10647,7 +10686,7 @@ CLASS IMPLEMENTATION CSAssignment;
           END;
         END;
 
-			| ukSAssignmentSetByEmbeddedCall :
+         | ukSAssignmentSetByEmbeddedCall :
         G^.OutS( L"ASSIGNS_( " );
         D^.Generate( G, gcsAssignment );
         G^.OutS( L", " );
@@ -10719,17 +10758,12 @@ CLASS IMPLEMENTATION CSReturn;
     | ukReturnInCPPTry :
       G^.Indent();
       IF Childs.Empty THEN
-        G^.OutS( L"_FinallyReturns = true;" ); G^.EOL();
-        G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
+        G^.Indent(); G^.OutS( L"_FinallyReturns = TRUE; goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
         RETURN gumSimple;
       ELSE
         G^.OutS( L'_ReturnResult = ' );
         RETURN gumNoIndent;
       END;
-    | ukThrowingInCPPTry :
-      G^.LineS( L"_FinallyThrows = true;" );
-      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
-      RETURN gumSimple;
     END;
     RETURN gumEmpty;
   END GenHead;
@@ -10755,8 +10789,7 @@ CLASS IMPLEMENTATION CSReturn;
     | ukReturnInThrowing :
       G^.LineS( L"return FALSE;" ); // exception
     | ukReturnInCPPTry :
-      G^.LineS( L"_FinallyReturns = true;" );
-      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      G^.Indent(); G^.OutS( L"_FinallyReturns = TRUE; goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
     END;
   END GenTail;
 
@@ -10935,6 +10968,58 @@ END CSASM;
 
 //============================================================
 
+CLASS IMPLEMENTATION CSTRY;
+
+   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+   BEGIN
+      IF Preceding.Empty THEN
+         RETURN gumNoIndent;
+      ELSE
+         RETURN Preceding.Generate( G, C );
+      END;
+   END GenHead;
+
+BEGIN
+   UnitKind := ukSTry;
+   CatchLabel := NIL;
+   LocalThrowEnabled := TRUE;
+END CSTRY;
+
+//============================================================
+
+CLASS IMPLEMENTATION CSTHROW;
+
+   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+   BEGIN
+      G^.Indent();
+      IF eoCPPExceptions IN Options THEN
+         G^.OutS( L'throw ' );
+      ELSE
+         Project.Current()^.OD^.MEnv.MIID[miidStoreException]^.Generate( G, gcsName ); G^.OutS( L'(&' );
+      END;
+      RETURN gumNoIndent;
+   END GenHead;
+
+   VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+   BEGIN
+      IF eoCPPExceptions IN Options THEN
+         G^.OutSC(); G^.EOL();
+      ELSIF UnitKind = ukSThrowInTry THEN
+         G^.OutS( L");"); G^.OutS( L" goto " ); Label^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      ELSIF UnitKind = ukSThrowInCatch THEN
+         G^.OutS( L"); _FinallyReturns = TRUE; _FinallyRethrow = TRUE; goto " ); Label^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      ELSE
+         G^.OutS( L"); return TRUE;"); G^.EOL();
+      END;
+   END GenTail;
+
+BEGIN
+   UnitKind := ukSThrow;
+   Label := NIL;
+END CSTHROW;
+
+//============================================================
+
 CLASS IMPLEMENTATION CCATCH;
 
   VIRTUAL READONLY PROPERTY Symbols GET : TPSymbols;
@@ -10945,25 +11030,6 @@ CLASS IMPLEMENTATION CCATCH;
 BEGIN
    UnitKind := ukCatchBlock;
 END CCATCH;
-
-//============================================================
-
-CLASS IMPLEMENTATION CSTRY;
-
-	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-	BEGIN
-		IF Preceding.Empty THEN
-			RETURN gumNoIndent;
-		ELSE
-			RETURN Preceding.Generate( G, C );
-		END;
-	END GenHead;
-
-BEGIN
-	UnitKind := ukSTry;
-	CatchLabel := NIL;
-   LocalThrowEnabled := TRUE;
-END CSTRY;
 
 //============================================================
 

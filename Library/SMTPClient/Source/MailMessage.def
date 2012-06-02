@@ -1,4 +1,4 @@
-DEFINITION MODULE Message;
+DEFINITION MODULE MailMessage;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -7,6 +7,7 @@ IMPORT
    datetime,
    IOO,
    lists,
+   MailPerson,
    StringsO;
 
 (*================================================================================*)
@@ -21,61 +22,35 @@ TYPE
 (*================================================================================*)
 
 TYPE
-   TPPersons = POINTER TO IPersons;
    TPMailMessage = POINTER TO IMailMessage;
-
-CLASS Person;
-
-   PUBLIC VAR
-      Address : StringsO.CString;
-      Name : StringsO.CString;
-
-   PUBLIC OPERATOR :=( CONST Source : Person );
-
-END Person;
-
-(*--------------------------------------------------------------------------------*)
-
-INTERFACE IPersons;
-
-   // additions
-   PROCEDURE Add( CONST New : Person );
-   PROCEDURE AddS( CONST Name, Address : StringsO.IString );
-   PROCEDURE Dispose();
-
-   // enumeration
-   PROPERTY
-      Current : Person;
-   PROCEDURE Reset();
-   PROCEDURE MoveNext() : BOOLEAN;
-
-END IPersons;
 
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IMailMessage;
 
    PROPERTY
-      Created : datetime.DateTime;
-      Sender : Person;
-      ReplyTo : Person; // until set, it shares the value with Sender
-      Recipient : Person; // for fast access to single recipient
+      Sender : MailPerson.Person;
+      ReplyTo : MailPerson.Person; // until set, it shares the value with Sender
+      Recipient : MailPerson.Person; // for fast access to single recipient
       Priority : TPriority;
       Subject : StringsO.CString;
+      BodyMimeType : StringsO.CString; // any of the correct format, charset will be ignored/replaced if present; unspecified MimeType will default to "text/plain; format=flowed; delsp=yes"
+      GrabFailedRecipients : BOOLEAN; // in the case failedRecipients of Sender's callback will be filled
 
    READONLY PROPERTY
-      Recipients : TPPersons;
-      CCs : TPPersons;
-      BCCs : TPPersons;
-      Message : IOO.TPStream;
-      Attachments : lists.TPStringList; // list of paths
+      Created : datetime.DateTime;
+      Recipients : MailPerson.TPPersons;
+      CCs : MailPerson.TPPersons;
+      BCCs : MailPerson.TPPersons;
+      Body : IOO.TPStream;
+      Attachments : lists.TPStringStringList; // list of paths + mimetypes, if mimetype is empty application/octet-stream is used
 
 END IMailMessage;
 
 (*================================================================================*)
 
-PROCEDURE New( OUT Message : TPMessage ) : BOOLEAN;
-PROCEDURE Dispose( REF Message : TPMessage );
+PROCEDURE New( OUT Message : TPMailMessage ) : BOOLEAN;
+PROCEDURE Dispose( REF Message : TPMailMessage );
 
 (*================================================================================*)
 

@@ -60,17 +60,6 @@ CLASS IMPLEMENTATION CNodeList;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC PROPERTY CNodeList.Current GET : TPNodeItem;
-   BEGIN
-      IF _Current = -1 THEN
-         RETURN NIL;
-      ELSE
-         RETURN TPNodeItem( _Current );
-      END;
-   END CNodeList.Current;
-
-//---------------------------------------------------------------------------
-
    PUBLIC PROCEDURE CNodeList.Add( Type : xmlreader.TNodeType; CONST Prefix, Name : StringsO.IString; Empty : BOOLEAN; CONST Value : StringsO.IString; REF Attributes : lists.CStringStringList ); // Attributes are cleared when added
    VAR
       PE : TPNodeItem;
@@ -82,13 +71,35 @@ CLASS IMPLEMENTATION CNodeList;
       PE^._Empty := Empty;
       PE^._Value.Assign( Value );
       PE^._Attributes.AppendList( REF Attributes );
-      SUPER.Append( PE );
+      SUPER.Add( PE );
    END CNodeList.Add;
 
 //---------------------------------------------------------------------------
 
 END CNodeList;
 
-//===========================================================================
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CNodeListIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : TPNodeItem;
+   BEGIN
+      RETURN TPNodeItem( Current );
+   END Value;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CNodeList; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*-----------------------------------------------------------------------------*)
+
+END CNodeListIterator;
+
+(*================================================================================*)
 
 END NodeList.

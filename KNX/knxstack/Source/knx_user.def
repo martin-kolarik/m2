@@ -1,0 +1,132 @@
+DEFINITION MODULE knx_user;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   knx_def,
+   knx_status,
+   knx_stack,
+   list;
+  
+(*================================================================================*)
+
+TYPE
+   TObjectStateItem = (
+      // system states
+      osUnknown,
+      osTransmitting,
+      osTransmitted,
+      osUpdated,
+         osChanged,
+      // mainly user-level hint states
+      osReading,
+      osWriting,
+      osInitReadPending,
+      osInitReadRepeat
+   );
+   TObjectState = SET OF TObjectStateItem;
+
+   TObjectBehaviour = ( // standard mostly used behaviour
+      obNone,
+      obTransmitter,           // object SETS value upon user request
+      obTransmitterWithStatus, // object SETS value upon user request and passively GETS value upon KNX network change
+      obTracker,               // object passively GETS value upon KNX network change
+      obReader                 // object actively COMMUNICATES value from KNX network
+   );
+   
+   TInitReadState = (
+      irsUnknown,
+      irsPending,
+      irsWillRepeat
+   );
+
+CLASS CUserObject IMPLEMENTS knx_stack.IUserObject;
+   // internal
+   PExecutive : knx_stack.TPKNXStackApplicationLayer;
+
+   PRIVATE VAR // runtime states, MUST be synchronized, using setter, getter or some method
+      State : TObjectState;
+      Value : knx_def.TValue;
+      prAddress : knx_def.CAddress; // promiscuous address
+   PUBLIC VAR // parameters settable during startup, NOT synchronized
+      Flags : knx_def.TA_ObjectFlags;
+      Class : knx_def.TPriority;
+      Groups : list.CList; // the first address is used for sending
+
+   PUBLIC READONLY PROPERTY   
+      Type : knx_def.TKNXType;
+
+   PUBLIC PROCEDURE Init( POfStack : knx_stack.TPKNXStack; Type : knx_def.TKNXType; Behaviour : TObjectBehaviour );
+   VIRTUAL FINALLY CUserObject();
+
+   INTERNAL VIRTUAL PROCEDURE Lock(); // hook to lock synchronized data, by default empty
+   INTERNAL VIRTUAL PROCEDURE Unlock(); // hook to lock synchronized data, by default empty
+
+   // chaining
+   PUBLIC PROCEDURE Executive() : knx_stack.TPKNXStackApplicationLayer;
+
+   // USER LAYER
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Req(); // should sync access to data
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : knx_status.TKNXStackStatus ); // should sync access to data
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : knx_status.TKNXStackStatus; CONST PPacket : knx_def.TPPacket ); // should sync access to data
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : knx_def.TPPacket ); // should sync access to data
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : knx_status.TKNXStackStatus ); // should sync access to data
+
+   // USER LAYER ADDRESSES
+   PUBLIC VIRTUAL PROPERTY
+      ReadAddress        : knx_def.TAddress;
+      SendAddress        : knx_def.TAddress;
+      PromiscuousAddress : knx_def.TAddress;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Promiscuous        : BOOLEAN;
+
+  // helpers
+  PUBLIC PROCEDURE GetFlags() : knx_def.TA_ObjectFlags;
+  PUBLIC PROCEDURE SetFlags( Flags : knx_def.TA_ObjectFlags );
+  PUBLIC PROCEDURE GetSendFlag( CONST Address : knx_def.TAddress; VAR SendFlag : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE SetSendFlag( CONST Address : knx_def.TAddress; SendFlag : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE GetReadFlag( CONST Address : knx_def.TAddress; VAR ReadFlag : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE SetReadFlag( CONST Address : knx_def.TAddress; ReadFlag : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE GetClass() : knx_def.TPriority;
+  PUBLIC PROCEDURE SetClass( Class : knx_def.TPriority );
+
+  // subscription
+  PUBLIC PROCEDURE AddAddress( SendFlag : BOOLEAN; UpdateWholeStack : BOOLEAN; CONST Address : knx_def.TAddress );
+  PUBLIC PROCEDURE RemoveAddress( UpdateWholeStack : BOOLEAN; CONST Address : knx_def.TAddress );
+  PUBLIC PROCEDURE HaveAddress( CONST Address : knx_def.TAddress ) : BOOLEAN;
+  PUBLIC PROCEDURE SubscribePromiscuous();
+  PUBLIC PROCEDURE UnsubscribePromiscuous();
+  // helper
+  PUBLIC PROCEDURE EnumerateAddress( VAR EnumerationState : PTR; VAR Address : knx_def.TAddress ) : BOOLEAN;
+
+   // client request
+   PUBLIC PROPERTY
+      InitReadState : TInitReadState; // should sync access to data
+   PUBLIC READONLY PROPERTY
+      CommunicationState : TObjectState;
+      Reading : BOOLEAN; // should sync access to data
+      Writing : BOOLEAN; // should sync access to data
+  PUBLIC PROCEDURE CancelIO(); // should sync access to data 
+  PUBLIC PROCEDURE SetValue( CONST Value : knx_def.TValue; OUT Changed : BOOLEAN ) : knx_status.TKNXStackStatus; // should sync access to data
+  PUBLIC PROCEDURE GetValue( OUT Value : knx_def.TValue; UseCached, ForceReadIgnoringObjectFlags : BOOLEAN ) : knx_status.TKNXStackStatus; // should sync access to data
+  PUBLIC PROCEDURE Transmit() : knx_status.TKNXStackStatus;
+  PUBLIC PROCEDURE InitiateTransmit( CONST Address : knx_def.TAddress; CONST Value : knx_def.TValue ) : knx_status.TKNXStackStatus; // getting of address and value should be sync
+  PUBLIC PROCEDURE InitiateGetValue( CONST Address : knx_def.TAddress ) : knx_status.TKNXStackStatus; // getting of Address should be sync
+
+  // client callback, NOT in synchronized context
+  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : knx_status.TKNXStackStatus; CurrentState : TObjectState ); // CurrentState is copy of synchronous state to avoid new synchronized state get
+  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : knx_status.TKNXStackStatus; CurrentState : TObjectState; CurrentInitReadState : TInitReadState ); // Object.State is already cleared in time of method call.
+  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : knx_status.TKNXStackStatus; CurrentState : TObjectState ); // dtto
+  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : knx_status.TKNXStackStatus; CurrentState : TObjectState ); // dtto
+
+  // private
+  PRIVATE PROCEDURE eit2prl( eit : knx_def.TKNXType; VAR prl : knx_stack.TprLength ) : BOOLEAN;
+  PRIVATE PROCEDURE UpdateStack();
+END CUserObject;
+
+(*================================================================================*)
+
+END knx_user.

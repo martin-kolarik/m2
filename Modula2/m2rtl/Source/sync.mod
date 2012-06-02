@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Sync;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, Zero;
@@ -35,6 +35,8 @@ BEGIN
       Name := L"already pending (busy)";
    | arCannotStart :
       Name := L"cannot start";
+   | arUnsupportedDirection :
+      Name := L"unsupported direction";
    ELSE
       RETURN FALSE;
    END; // CASE
@@ -568,6 +570,36 @@ CLASS IMPLEMENTATION RWLOCK;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
+   BEGIN
+      _Lock.Lock();
+      LOOP
+         IF ( Owners >= 0 ) AND ( WriteWaiters = 0 ) THEN // We can enter a read lock if there are only read-locks have been given out and a writer is not trying to get in.  
+            INC( Owners );
+            _Lock.Unlock();
+            RETURN arCompleted;
+
+         ELSIF WaitOnSignal( REF ReadSignal, REF ReadWaiters, Timeout ) = Sync.arTimeout THEN
+            _Lock.Unlock();
+            RETURN arTimeout;
+
+         END;
+      END; // LOOP
+   END LockRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE UnlockRead();
+   BEGIN
+      _Lock.Lock();
+      ASSERTLOG( Owners > 0 );
+      DEC( Owners );
+      // stay inside lock
+      UnlockAndWakeUpAppropriateWaiters();
+   END UnlockRead;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
    BEGIN
       ASSERT( Type <> ltILock );
@@ -611,36 +643,6 @@ CLASS IMPLEMENTATION RWLOCK;
       UnlockAndWakeUpAppropriateWaiters();
    END UnlockWrite;
    
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
-   BEGIN
-      _Lock.Lock();
-      LOOP
-         IF ( Owners >= 0 ) AND ( WriteWaiters = 0 ) THEN // We can enter a read lock if there are only read-locks have been given out and a writer is not trying to get in.  
-            INC( Owners );
-            _Lock.Unlock();
-            RETURN arCompleted;
-
-         ELSIF WaitOnSignal( REF ReadSignal, REF ReadWaiters, Timeout ) = Sync.arTimeout THEN
-            _Lock.Unlock();
-            RETURN arTimeout;
-
-         END;
-      END; // LOOP
-   END LockRead;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE UnlockRead();
-   BEGIN
-      _Lock.Lock();
-      ASSERTLOG( Owners > 0 );
-      DEC( Owners );
-      // stay inside lock
-      UnlockAndWakeUpAppropriateWaiters();
-   END UnlockRead;
-
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
@@ -699,6 +701,7 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
          ASSERTLOG( FALSE );
          RETURN arCannotStart;
       ELSE
+         _Read := FALSE;
          RETURN _OwnedLock^.Lock();
       END;
    END Lock;
@@ -711,6 +714,7 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
          ASSERTLOG( FALSE );
          RETURN arCannotStart;
       ELSE
+         _Read := FALSE;
          RETURN _OwnedLock^.LockTimeout( Timeout );
       END;
    END LockTimeout;
@@ -721,7 +725,6 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
    BEGIN
       IF _OwnedLock = NIL THEN
          ASSERTLOG( FALSE );
-         RETURN;
       ELSE
          _OwnedLock^.Unlock();
       END;
@@ -729,38 +732,88 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Timeout GET : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    BEGIN
-      RETURN _Timeout;
-   END Timeout;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Timeout SET( Value : CARDINAL );
-   BEGIN
-      _Timeout := Value;
-   END Timeout;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC FINALLY AutoLock();
-   BEGIN
-      IF _OwnedLock <> NIL THEN
-         Unlock();
-         Detach();
+      IF _OwnedLock = NIL THEN
+         ASSERTLOG( FALSE );
+         RETURN arCannotStart;
+      ELSIF _OwnedLock^ INHERITS ILockR THEN
+         _Read := TRUE;
+         RETURN PRWLOCK( _OwnedLock )^.LockRead( Timeout );
+      ELSE
+         _Read := FALSE;
+         RETURN _OwnedLock^.LockTimeout( Timeout );
       END;
-   END AutoLock;
+   END LockRead;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Take( REF LockToOwn : ILock ) : TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE UnlockRead();
    BEGIN
-      IF _OwnedLock <> NIL THEN
-         Unlock();
+      IF _OwnedLock = NIL THEN
+         ASSERTLOG( FALSE );
+      ELSIF _Read THEN
+         PRWLOCK( _OwnedLock )^.UnlockRead();
+      ELSE
+         _OwnedLock^.Unlock();
       END;
-      Attach( REF LockToOwn );
-      RETURN LockTimeout( _Timeout );
+   END UnlockRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Take( REF LockToOwn : ILock; Timeout : CARDINAL ) : TAsyncResult;
+   BEGIN
+      IF _OwnedLock = NIL THEN
+         Attach( REF LockToOwn );
+      ELSIF _OwnedLock = ADR( LockToOwn ) THEN
+         // do nothing, I am already attached
+      ELSE
+         // here, do not unlock previously owned lock, as such cross-taking is not safe. It is better to cause deadlock always than to crash sometimes.
+         Attach( REF LockToOwn );
+      END;
+      RETURN LockTimeout( Timeout );
    END Take;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TakeSafe( REF LockToOwn : ILock; CONST FailureDescription : ARRAY OF WCHAR ) : TAsyncResult;
+   VAR
+      Result : TAsyncResult;
+   BEGIN
+      Result := Take( REF LockToOwn, FORSAFETY );
+      IF Result = arTimeout THEN
+         ASSERTLOG( FALSE, FailureDescription );
+      END;
+      RETURN Result;
+   END TakeSafe;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TakeRead( REF LockToOwn : ILock; Timeout : CARDINAL ) : TAsyncResult;
+   BEGIN
+      IF _OwnedLock = NIL THEN
+         Attach( REF LockToOwn );
+      ELSIF _OwnedLock = ADR( LockToOwn ) THEN
+         // do nothing, I am already attached
+      ELSE
+         // here, do not unlock previously owned lock, as such cross-taking is not safe. It is better to cause deadlock always than to crash sometimes.
+         Attach( REF LockToOwn );
+      END;
+      RETURN LockRead( Timeout );
+   END TakeRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TakeReadSafe( REF LockToOwn : ILock; CONST FailureDescription : ARRAY OF WCHAR ) : TAsyncResult;
+   VAR
+      Result : TAsyncResult;
+   BEGIN
+      Result := TakeRead( REF LockToOwn, FORSAFETY );
+      IF Result = arTimeout THEN
+         ASSERTLOG( FALSE, FailureDescription );
+      END;
+      RETURN Result;
+   END TakeReadSafe;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -772,9 +825,9 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Detach() : PILock;
+   PUBLIC PROCEDURE Detach() : TPILock;
    VAR
-      lock : PILock := _OwnedLock;
+      lock : TPILock := _OwnedLock;
    BEGIN
       _OwnedLock := NIL;
       RETURN lock;
@@ -782,9 +835,31 @@ CLASS IMPLEMENTATION AutoLock; // gets outer ILock, locks it inside ASSIGN and A
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC FINALLY AutoLock();
+   BEGIN
+      IF _OwnedLock <> NIL THEN
+         IF _Read THEN
+            UnlockRead();
+         ELSE
+            Unlock();
+         END;
+         Detach();
+      END;
+   END AutoLock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE OPERATOR NEW( size : CARDINAL ) : ADDRESS; // the class cannot exist on the heap
+   BEGIN
+      ASSERTLOG( FALSE, L"AutoLock cannot exist on the heap" );
+      RETURN NIL;
+   END NEW;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
   _OwnedLock := NIL;
-  _Timeout := FORSAFETY;
+  _Read := FALSE;
 END AutoLock;
 
 (*================================================================================*)
@@ -849,6 +924,31 @@ PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
 BEGIN
   RETURN ICmpExchgPtr( REF Value, NIL, NIL );
 END IGetPtr;
+
+(*================================================================================*)
+
+PROCEDURE IGetAR( REF Variable : TAsyncResult ) : TAsyncResult;
+BEGIN
+   ASSERT( SIZE( INT32 ) = 4 );
+   RETURN TAsyncResult( IExchgAdd( REF PINT32( ADR( Variable ))^, 0 ));
+END IGetAR;
+
+(*--------------------------------------------------------------------------------*)
+  
+PROCEDURE ISetAR( REF Variable : TAsyncResult; NewValue : TAsyncResult );
+BEGIN
+   ASSERT( SIZE( INT32 ) = 4 );
+   IExchg( REF PINT32( ADR( Variable ))^, INT32( NewValue ));
+END ISetAR;
+
+(*--------------------------------------------------------------------------------*)
+  
+PROCEDURE IExchgAR( REF Variable : TAsyncResult; NewValue : TAsyncResult; OUT PreviousValue : TAsyncResult ) : BOOLEAN; // returns if value changed
+BEGIN
+   ASSERT( SIZE( INT32 ) = 4 );
+   PreviousValue := TAsyncResult( IExchg( REF PINT32( ADR( Variable ))^, INT32( NewValue )));
+   RETURN PreviousValue <> NewValue;
+END IExchgAR;
 
 (*================================================================================*)
 // signalling
@@ -971,7 +1071,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROPERTY State GET : BOOLEAN;
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          RETURN IGetPtr( REF Data ) = SPIN_SET;
       ELSE
          RETURN RawState( Data );
@@ -982,7 +1082,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROPERTY State SET( Value : BOOLEAN );
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          IF Value THEN
             IExchgPtr( REF Data, SPIN_SET );
          ELSE
@@ -999,9 +1099,16 @@ CLASS IMPLEMENTATION SIGNAL;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Type GET : TSignalType;
+   BEGIN
+      RETURN _Type;
+   END Type;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY RawHandle GET : WAITABLE;
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          RETURN NIL;
       ELSE
          RETURN Data;
@@ -1010,15 +1117,20 @@ CLASS IMPLEMENTATION SIGNAL;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+   PUBLIC PROCEDURE Init( _Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
    BEGIN
      Dispose();
-     SELF.Type := Type;
+     ASSERTLOG( _Type <> stForeign, L"SIGNAL initialized with improper type (stForeign)" );
+     SELF._Type := _Type;
      _Lock.Init( ltSpin, L"", FALSE );
-     IF Type = stEvent THEN
+     IF _Type = stEvent THEN
        Data := RawCreateSignal( InitiallySignaled, Name );
-     ELSIF Type = stEventAutoreset THEN
+     ELSIF _Type = stEventAutoreset THEN
        Data := RawCreateAutoresetSignal( InitiallySignaled, Name );
+     ELSIF InitiallySignaled THEN
+       Data := SPIN_SET;
+     ELSE
+       Data := SPIN_NOTSET;
      END;
    END Init;
 
@@ -1027,7 +1139,7 @@ CLASS IMPLEMENTATION SIGNAL;
    PUBLIC PROCEDURE InitForeign( EventHandle : WAITABLE; InitiallySignalled : BOOLEAN ); // EventHandle will not be closed
    BEGIN
       Dispose();
-      Type := stForeign;
+      _Type := stForeign;
       Data := EventHandle;
       IF InitiallySignalled THEN
          Signal();
@@ -1042,7 +1154,7 @@ CLASS IMPLEMENTATION SIGNAL;
    VAR
       b : BOOLEAN;
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          RETURN IExchgPtr( REF Data, SPIN_SET ) = SPIN_NOTSET;
       ELSE
          _Lock.Lock();
@@ -1057,7 +1169,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROCEDURE SignalAndReset();
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          IExchgPtr( REF Data, SPIN_SET );
          Sleep( 0 );
          IExchgPtr( REF Data, SPIN_NOTSET );
@@ -1074,7 +1186,7 @@ CLASS IMPLEMENTATION SIGNAL;
    VAR
       b : BOOLEAN;
    BEGIN
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          RETURN IExchgPtr( REF Data, SPIN_NOTSET ) = SPIN_SET;
       ELSE
          _Lock.Lock();
@@ -1096,9 +1208,9 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROCEDURE Wait( Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
-      IF Type = stSpin THEN
+      IF _Type = stSpin THEN
          RETURN SpinLockAcquireOrRead( TRUE, REF Data, Spin, Timeout );
-      ELSIF Type = stSpinAutoreset THEN
+      ELSIF _Type = stSpinAutoreset THEN
          RETURN SpinLockAcquireOrRead( FALSE, REF Data, Spin, Timeout );
       ELSE
          RETURN RawWait( Data, Timeout );
@@ -1110,11 +1222,11 @@ CLASS IMPLEMENTATION SIGNAL;
    PUBLIC PROCEDURE Dispose();
    BEGIN
       Signal();
-      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+      IF ( _Type = stSpin ) OR ( _Type = stSpinAutoreset ) THEN
          // do nothing
       ELSIF Data = 0 THEN
          // already clear
-      ELSIF Type = stForeign THEN
+      ELSIF _Type = stForeign THEN
          Data := 0;
       ELSE
          RawDeleteSignal( REF Data );
@@ -1156,11 +1268,11 @@ END DeleteSignal;
 PROCEDURE SafeSignal( Signal : PSIGNAL ) : TRISTATE;
 BEGIN
    IF Signal = NIL THEN
-      RETURN stINVALID;
+      RETURN sgINVALID;
    ELSIF Signal^.Signal() THEN
-      RETURN stSET;
+      RETURN sgSET;
    ELSE
-      RETURN stNOTSET;
+      RETURN sgNOTSET;
    END;
 END SafeSignal;
 
@@ -1169,11 +1281,11 @@ END SafeSignal;
 PROCEDURE SafeReset( Signal : PSIGNAL ) : TRISTATE;
 BEGIN
    IF Signal = NIL THEN
-      RETURN stINVALID;
+      RETURN sgINVALID;
    ELSIF Signal^.Reset() THEN
-      RETURN stSET;
+      RETURN sgSET;
    ELSE
-      RETURN stNOTSET;
+      RETURN sgNOTSET;
    END;
 END SafeReset;   
 
@@ -1193,11 +1305,11 @@ END SafeWait;
 PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
 BEGIN
    IF Signal = NIL THEN
-      RETURN stINVALID;
+      RETURN sgINVALID;
    ELSIF Signal^.State THEN
-      RETURN stSET;
+      RETURN sgSET;
    ELSE
-      RETURN stNOTSET;
+      RETURN sgNOTSET;
    END;
 END SafeState;
 
@@ -1682,11 +1794,11 @@ END NToOneQueue;
 
 INITIALLY Sync;
 VAR
-	si : windows.SYSTEM_INFO;
+   si : windows.SYSTEM_INFO;
 BEGIN
-	Zero( ADR( si ), SIZE( si ));
-	windows.GetSystemInfo( ADR( si ));
-	NumOfProcessors := MAX2( 1, si.dwNumberOfProcessors ); // do not to decrease to zero, even if erroneous count is returned
+   Zero( ADR( si ), SIZE( si ));
+   windows.GetSystemInfo( ADR( si ));
+   NumOfProcessors := MAX2( 1, si.dwNumberOfProcessors ); // do not to decrease to zero, even if erroneous count is returned
 END Sync;
 
 (*--------------------------------------------------------------------------------*)

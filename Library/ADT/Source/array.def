@@ -4,14 +4,17 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-  Exceptions;
+   baseobject,
+   collection,
+   Exceptions;
 
 #save, option( dll_export => on )
 
 (*=============================================================================*)
 
 TYPE
-  TPArray = POINTER TO CArray;
+   TPArray = POINTER TO CArray;
+   TPArrayIterator = POINTER TO CArrayIterator;
   
 TYPE
   TStrategy = (
@@ -20,45 +23,81 @@ TYPE
     astrgSparseArray // removed index stays in place (and is unused forever), so another indexes remain valid
   );
 
-CLASS CArray;
-  INTERNAL VAR
-    _ItemSize : CARDINAL;
-    _Size : CARDINAL;
-    _Count : CARDINAL;
-    _Data : ADDRESS;
-  PUBLIC VAR
-    LowBound : INTEGER;
-    Strategy : TStrategy := astrgSparseArray;
-  PUBLIC PROPERTY
-    Size : CARDINAL; // get, set initializes (to 0)/reallocates space
-    Count : CARDINAL;
-  PUBLIC READONLY PROPERTY
-    Empty : BOOLEAN;
-    Data : ADDRESS;
+CLASS CArray( baseobject.CDisposable ) IMPLEMENTS collection.ICollection;
 
-  PUBLIC INDEX( Index : INTEGER ) : ADDRESS; // on set, data of at least ItemSize is expected
+   // CDisposable
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
-  PUBLIC PROCEDURE Init( Strategy : TStrategy; ItemSize : CARDINAL );
-  PUBLIC PROCEDURE RemoveIndex( Index : INTEGER );
+   // ICollection
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Empty : BOOLEAN;
+      Count : CARDINAL;
+      Sequence : CARDINAL;
+
+   #save, option( leak_info => on )
+   PUBLIC VIRTUAL PROCEDURE colGetIterator( Direction : collection.TDirection ) : collection.TPIterator;
+   #restore
+   PUBLIC VIRTUAL PROCEDURE colGetFirst( OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE colNextOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE colGetLast( OUT object : baseobject.PBASE ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE colPrevOf( CONST of : baseobject.PBASE; OUT object : baseobject.PBASE ) : BOOLEAN;
+
+   // SELF -- list interface
+   PUBLIC PROCEDURE Contains( CONST Item : ARRAY OF BYTE ) : BOOLEAN;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Add( CONST Item : ARRAY OF BYTE ) : INTEGER; // returns index
+   #restore
+   PUBLIC PROCEDURE Remove( CONST Item : ARRAY OF BYTE );
+   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Item : ARRAY OF BYTE ) : BOOLEAN;
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE Insert( ToIndex : INTEGER; CONST Item : ARRAY OF BYTE );
+   PUBLIC PROCEDURE RemoveIndex( Index : INTEGER ) : BOOLEAN;
+   #restore
+   PUBLIC PROCEDURE IndexOf( CONST Item : ARRAY OF BYTE ) : INTEGER; // if not found returns LowBound-1
+   PUBLIC PROCEDURE Clear();
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPArrayIterator;
+   #restore
+
+   // SELF -- queue interface
+   PUBLIC PROCEDURE Enqueue( CONST Item : ARRAY OF BYTE );
+   PUBLIC PROCEDURE Dequeue( OUT Item : ARRAY OF BYTE ) : BOOLEAN; 
+
+   // SELF -- itself
+   PUBLIC PROPERTY
+      Strategy : TStrategy;
+      Size : CARDINAL; // get, set initializes (to 0)/reallocates space
+      ItemSize : CARDINAL; // initializes whole array, looses data
+      LowBound : INTEGER;
+   PUBLIC WRITEONLY PROPERTY
+      setCount : CARDINAL; // getter is inherited as readonly
+   PUBLIC READONLY PROPERTY
+      Data : ADDRESS;
+
+   PUBLIC INDEX( Index : INTEGER ) : ADDRESS THROWS Exceptions.CModula2Exception; // on set, data of at least ItemSize is expected
   
-  PUBLIC PROCEDURE Add( Item : ADDRESS; Len : CARDINAL ) : INTEGER; // returns index
-  PUBLIC PROCEDURE Contains( Item : ADDRESS; Len : CARDINAL ) : BOOLEAN;
-  PUBLIC PROCEDURE Insert( Index : INTEGER; Item : ADDRESS; Len : CARDINAL );
-  PUBLIC PROCEDURE Remove( Item : ADDRESS; Len : CARDINAL );
+   PRIVATE VAR
+      _Sequence : CARDINAL := 0;
+      _Strategy : TStrategy := astrgSparseArray;
+      _Size : CARDINAL := 0;
+      _ItemSize : CARDINAL := 8;
+      _LowBound : INTEGER := 0;
+      _Count : CARDINAL := 0;
+      _Data : ADDRESS := NIL;
 
-  PUBLIC PROCEDURE AddOA( CONST Item : ARRAY OF BYTE ) : INTEGER; // returns index
-  PUBLIC PROCEDURE ContainsOA( CONST Item : ARRAY OF BYTE ) : BOOLEAN;
-  PUBLIC PROCEDURE InsertOA( Index : INTEGER; CONST Item : ARRAY OF BYTE );
-  PUBLIC PROCEDURE RemoveOA( CONST Item : ARRAY OF BYTE );
-
-  PUBLIC PROCEDURE IndexOf( Item : ADDRESS; Len : CARDINAL ) : INTEGER; // if not found returns LowBound-1
-  PUBLIC PROCEDURE IndexOfOA( CONST Item : ARRAY OF BYTE ) : INTEGER; // if not found returns LowBound-1
-  
-  PUBLIC PROCEDURE Clear();
-  PUBLIC PROCEDURE Dispose();
-
-  VIRTUAL FINALLY CArray;
 END CArray;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CArrayIterator( collection.CIterator );
+
+   // SELF
+   PUBLIC READONLY PROPERTY
+      Current : ADDRESS; // address of the item
+
+END CArrayIterator;
 
 (*=============================================================================*)
 

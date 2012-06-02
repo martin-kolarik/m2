@@ -40,7 +40,6 @@ VAR
   TINT32, TpINT32         : DOM.TPType;
   TINT64, TpINT64         : DOM.TPType;
   TINTPTR, TpINTPTR       : DOM.TPType;
-  TSHORTINT, TpSHORTINT   : DOM.TPType;
   TINTEGER, TpINTEGER     : DOM.TPType;
   TLONGINT, TpLONGINT     : DOM.TPType;
   TCARD8, TpCARD8         : DOM.TPType;
@@ -48,7 +47,6 @@ VAR
   TCARD32, TpCARD32       : DOM.TPType;
   TCARD64, TpCARD64       : DOM.TPType;
   TCARDPTR, TpCARDPTR     : DOM.TPType;
-  TSHORTCARD, TpSHORTCARD : DOM.TPType;
   TCARDINAL, TpCARDINAL   : DOM.TPType;
   TLONGCARD, TpLONGCARD   : DOM.TPType;
   TBCHAR, TpBCHAR         : DOM.TPType;
@@ -73,11 +71,12 @@ VAR
   TADDRESS, TpADDRESS     : DOM.TPType;
     TREFADDRESS           : DOM.TPFormalType;
   TPTR, TpPTR             : DOM.TPType;
-  TSIZE, TpSIZE           : DOM.TPType;
+  TTSIZE, TpTSIZE         : DOM.TPType;
     TFormalSIZE           : DOM.TPFormalType;
   TREAL, TpREAL           : DOM.TPType;
   TLONGREAL, TpLONGREAL   : DOM.TPType;
   TPROC, TpPROC           : DOM.TPType;
+  TINTERFACE, TpINTERFACE : DOM.TPType;
   TOBJECT, TpOBJECT       : DOM.TPType;
 
   TException, TpException : DOM.TPType;

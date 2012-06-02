@@ -3,15 +3,15 @@ IMPLEMENTATION MODULE AirMotion;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
    
 FROM Exceptions IMPORT
    TestIfCatched, RetrieveException, CModula2Exception;
 
 IMPORT
    FIO,
-   iobject,
    IOO,
+   LogConfig,
    resources,
    Storage,
    StorageO,
@@ -29,6 +29,12 @@ VAR
    R : resources.CResources;
 
 (*================================================================================*)
+
+CONST
+   LOG_NAME = L"AirMotion";
+
+CONST
+   DEFAULT_PORT = 10001;
 
 CONST
    CH_NUL = 0C;
@@ -61,8 +67,10 @@ TYPE
    TValueType = CARD8( // CARD8 due to presence in TNSPTR
       vtAnalog,
       vtInteger,
-      vtDigital
+      vtDigital,
+      vfUnknown
    );
+   TValueTypeSet = SET CARD8 OF TValueType;
 
 TYPE
    TPacket  = RECORD
@@ -107,7 +115,7 @@ TYPE
    TNSPTR  = RECORD
                 CASE : CARDINAL OF
                 | 0 :
-                  Type : TValueType;
+                  Type : TValueTypeSet;
                   Address : CARD8;
                   Value : INT16;
                 | 1 :
@@ -120,7 +128,7 @@ TYPE
    VAR
       Ptr : TNSPTR;
    BEGIN
-      Ptr.Type := Type;
+      Ptr.Type := TValueType{vfUnknown}; INCL( Ptr.Type, Type );
       Ptr.Address := Address;
       Ptr.Value := 0;
       RETURN Ptr.Ptr;
@@ -636,22 +644,31 @@ END CPacket;
 (*===========================================================================*)
 
 PROCEDURE SetPtrValueDigital( REF Ptr : PTR; Digital : BOOLEAN );
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Digital );
+   EXCL( PPtr^.Type, vfUnknown );
+   PPtr^.Value := INT16( Digital );
 END SetPtrValueDigital;
 
 (*---------------------------------------------------------------------------*)
 
 PROCEDURE SetPtrValueInteger( REF Ptr : PTR; Integer : INTEGER );
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Integer );
+   EXCL( PPtr^.Type, vfUnknown );
+   PPtr^.Value := INT16( Integer );
 END SetPtrValueInteger;
 
 (*---------------------------------------------------------------------------*)
 
 PROCEDURE SetPtrValueAnalog( REF Ptr : PTR; Analog : LONGREAL );
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   TPNSPTR( ADR( Ptr ))^.Value := INT16( Analog * 10.0 );
+   EXCL( PPtr^.Type, vfUnknown );
+   PPtr^.Value := INT16( Analog * 10.0 );
 END SetPtrValueAnalog;
 
 (*---------------------------------------------------------------------------*)
@@ -669,28 +686,40 @@ PROCEDURE GetTypeFromPtr( Ptr : PTR ) : TValueType;
 VAR
    PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   RETURN TValueType( PPtr^.Type );
+   IF vtDigital IN PPtr^.Type THEN
+      RETURN vtDigital;
+   ELSIF vtInteger IN PPtr^.Type THEN
+      RETURN vtInteger;
+   ELSIF vtAnalog IN PPtr^.Type THEN
+      RETURN vtAnalog;
+   ELSE
+      ASSERTLOG( FALSE );
+      RETURN vtDigital;
+   END;
 END GetTypeFromPtr;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE GetValueFromPtr( Ptr : PTR; OUT Value : iovalue.Value );
+PROCEDURE GetValueFromPtr( Ptr : PTR; OUT Value : iovalue.Value ) : BOOLEAN;
 VAR
    PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   CASE PPtr^.Type OF
-   | vtDigital :
+   IF vfUnknown IN PPtr^.Type THEN
+      Value.Dispose();
+      RETURN FALSE;
+   ELSIF vtDigital IN PPtr^.Type THEN
       Value.Type := iovalue.vtBoolean;
       Value.Boolean := BOOLEAN( PPtr^.Value );
-   | vtInteger :
+   ELSIF vtInteger IN PPtr^.Type THEN
       Value.Type := iovalue.vtInteger;
       Value.Integer := INTEGER( PPtr^.Value );
-   | vtAnalog :
+   ELSIF vtAnalog IN PPtr^.Type THEN
       Value.Type := iovalue.vtFloat;
       Value.Float := LONGREAL( PPtr^.Value ) / 10.0;
    ELSE
       ASSERTLOG( FALSE );
    END;
+   RETURN TRUE;
 END GetValueFromPtr;
 
 (*---------------------------------------------------------------------------*)
@@ -699,12 +728,11 @@ PROCEDURE SetValueToPtr( REF Ptr : PTR; CONST Value : iovalue.Value );
 VAR
    PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
 BEGIN
-   CASE PPtr^.Type OF
-   | vtDigital :
+   IF vtDigital IN PPtr^.Type THEN
       SetPtrValueDigital( REF Ptr, Value.Boolean );
-   | vtInteger :
+   ELSIF vtInteger IN PPtr^.Type THEN
       SetPtrValueInteger( REF Ptr, Value.Integer );
-   | vtAnalog :
+   ELSIF vtAnalog IN PPtr^.Type THEN
       SetPtrValueAnalog( REF Ptr, Value.Float );
    ELSE
       ASSERTLOG( FALSE );
@@ -833,7 +861,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (time)" );
       IF State = tasIdle THEN
          State := tasWaitUpdate;
          _Driven^.UpdateDeviceBuffer();
@@ -846,7 +874,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (abort)" );
       State := tasIdle;
       _ItemToWrite := NIL;
    END EventAbort;
@@ -857,7 +885,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (ACK)" );
       CASE State OF
       | tasWaitUpdate :
          State := tasWaitData;
@@ -876,7 +904,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (NAK)" );
       IF State = tasWaitUpdate THEN
          IF _ItemToWrite = NIL THEN
             State := tasIdle;
@@ -893,7 +921,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (STX)" );
       IF State = tasWaitData THEN
          _Driven^.Ack();
          _Driven^.ProcessData( Packet );
@@ -912,7 +940,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (no data)" );
       IF State = tasWaitData THEN
          State := tasIdle;
       END;
@@ -924,7 +952,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (write)" );
       IF _ItemToWrite <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
@@ -942,7 +970,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    VAR
       al : Sync.AutoLock;
    BEGIN
-      al.Take( REF _Lock );
+      al.TakeSafe( REF _Lock, L"Unable to lock automaton (timeout)" );
       CASE State OF
       | tasWaitUpdate :
          State := tasIdle;
@@ -999,8 +1027,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       _PoolDelegate.TimeoutSink := ADR( SELF );
 
-      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Started" );
-      RETURN Connection.OpenS( _HostAddress, TRUE, 500 );
+      Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Started" );
+      RETURN Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
    END Start;
 
 (*---------------------------------------------------------------------------*)
@@ -1013,7 +1041,9 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       StopTimeout( REF _RxTimeoutHandle );
 
       Connection.Close();
-      Logger.LogS( log.ldMessage, 0, L"AirMotion", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Stopped" );
+      
+      LogConfig.DisposeAppenderList( REF _AppenderList );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -1022,12 +1052,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF PoolHandle = _TxTimeoutHandle THEN
          _TxTimeoutHandle := NIL;
-         Logger.LogS( log.ldTrace, 0, L"", L"Tx timeout" );
+         Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Tx timeout" );
          Automaton^.EventTimeout();
 
       ELSIF PoolHandle = _RxTimeoutHandle THEN
          _RxTimeoutHandle := NIL;
-         Logger.LogS( log.ldTrace, 0, L"", L"Rx timeout" );
+         Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Rx timeout" );
          Automaton^.EventTimeout();
 
       END;
@@ -1136,8 +1166,9 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       Data : StorageO.CMemoryBuffer;
    BEGIN
-      Connection.Stream^.ReadBuffer( 2048, REF Data, 0 );
+      Connection.BufferedStream^.ReadBuffer( 2048, REF Data, 0 );
       HandleRx( Sync.arCompleted, REF Data );
+
       Connection.BufferedStream^.StartReading();
    END OnReadable;
 
@@ -1258,7 +1289,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF addonText <> NIL THEN
             msg.Append( addonText^ );
          END;
-         Log^.LogFilePos( log.lcError, 0, L"AirMotion", L"", OA( msg.Length-1, msg.rawData ), line, 0 );
+         Log^.LogFilePos( log.lcError, 0, L"AirMotion", L"", OA( msg.Length-1, msg.Data ), line, 0 );
       END LogError;
 
       (*----------*)
@@ -1266,8 +1297,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       l : CARDINAL;
    BEGIN
-      IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.rawData )) THEN
-         INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.rawData ), REF Logger, OUT l );
+      IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.Data )) THEN
+         LogConfig.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, REF _AppenderList, OUT l );
          IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _HostAddress ) THEN
             LogError( l, Texts._HostKeyMissing, NIL );
          END;
@@ -1293,8 +1324,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       TxBuffer : StorageO.CMemoryBuffer;
    BEGIN
       IF NOT Connection.Connected THEN
-         Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
-         Connection.OpenS( _HostAddress, TRUE, 500 );
+         Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Disconnected, trying to reconnect" );
+         Connection.OpenS( _HostAddress, DEFAULT_PORT, TRUE, 500 );
       END;
    
       IF INTEGER( HIGH( Data )) >= 0 THEN // HACK
@@ -1312,8 +1343,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          StartTimeout( _RxTimeout, REF _RxTimeoutHandle );
       END;
 
-      Logger.LogSCB( log.ldDebug, 0, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
-      Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
+      Logger.LogSCB( log.ldDebug, 0, LOG_NAME, L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
+      Result := Connection.BufferedStream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
       IF Result = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
       END;
@@ -1326,12 +1357,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       Automaton^.EventAbort();
       StopTimeout( REF _TxTimeoutHandle );
       StopTimeout( REF _RxTimeoutHandle );
-      Connection.Stream^.AbortWriting();
+      Connection.BufferedStream^.AbortWriting();
    END Abort;
 
 //---------------------------------------------------------
 
-   PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer );
    VAR
       LDI, LI : CARDINAL := 0;
       LRxBuffer : StorageO.CMemoryBuffer;
@@ -1340,43 +1371,45 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       ChkSumOK : BOOLEAN := TRUE;
    BEGIN
       IF Result <> Sync.arCompleted THEN
-         Logger.LogSC( log.ldError, 0, L'', L'rx error: ', CARDINAL( Result ));
+         Logger.LogSC( log.ldError, 0, LOG_NAME, L'rx error: ', CARDINAL( Result ));
          OnRx( Result, LRxBuffer );
          RxBuffer.Clear();
-         RETURN FALSE;
+         RETURN;
       ELSIF NOT Data.Empty THEN
          RxBuffer.Append( Data );
-         Logger.LogSCB( log.ldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+         Logger.LogSCB( log.ldDebug, 0, LOG_NAME, L'rx success, len: ', Data.Length, Data.Data, Data.Length );
       END;
 
-      IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
-         RxBuffer.Clear();
-         RETURN FALSE;
-      ELSIF LI > 0 THEN
-         RxBuffer.RemoveStart( LI );
-         DEC( LDI, LI );
-         LI := 0;
-      END;
+      LOOP
+         IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
+            RxBuffer.Clear();
+            RETURN;
+         ELSIF LI > 0 THEN
+            RxBuffer.RemoveStart( LI );
+            DEC( LDI, LI );
+            LI := 0;
+         END;
 
-      IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT ApplyChecksum ) THEN
-         RETURN FALSE;
-      END;
+         IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT ApplyChecksum ) THEN
+            RETURN;
+         END;
 
-      IF ApplyChecksum THEN
-         RxBuffer.Subbuffer( LI, TI - LI, OUT LRxBuffer );
-         ChkSumOK := TestChkSum( LRxBuffer );
-      END;
-      IF ChkSumOK THEN
-         RxBuffer.Subbuffer( LDI, TDI - LDI, OUT LRxBuffer );
-         OnRx( Result, LRxBuffer );
-      END;
+         IF ApplyChecksum THEN
+            RxBuffer.Subbuffer( LI, TI - LI, OUT LRxBuffer );
+            ChkSumOK := TestChkSum( LRxBuffer );
+         END;
+         IF ChkSumOK THEN
+            RxBuffer.Subbuffer( LDI, TDI - LDI, OUT LRxBuffer );
+            OnRx( Result, LRxBuffer );
+         END;
 
-      IF RxBuffer.Length = TI THEN
-         RxBuffer.Clear();
-      ELSE
-         RxBuffer.RemoveStart( TI );
-      END;
-      RETURN NOT RxBuffer.Empty;
+         IF RxBuffer.Length = TI THEN
+            RxBuffer.Clear();
+            RETURN;
+         ELSE
+            RxBuffer.RemoveStart( TI );
+         END;
+      END; // LOOP
    END HandleRx;
 
 //---------------------------------------------------------
@@ -1488,13 +1521,18 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
-      Result : Sync.TAsyncResult := Sync.arCompleted;
+      Result : Sync.TAsyncResult;
    BEGIN
       IF Direction = IOO.dirRead THEN // get data immediatelly
-         GetValueFromPtr( nsitem.TPnsItem( Item )^.Data, OUT Value );
-         Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
+         IF GetValueFromPtr( nsitem.TPnsItem( Item )^.Data, OUT Value ) THEN
+            Result := Sync.arCompleted;
+            Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
+         ELSE
+            Result := Sync.arNoData;
+            Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, NIL ), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+         END;
+         RETURN Result;
          
-         RETURN Sync.arCompleted;
       ELSE
          _Pending := Direction;
          _Item := Item;
@@ -1591,31 +1629,32 @@ CLASS IMPLEMENTATION CAirMotionDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      RETURN iobject.otEphemeral;
+      _IO.Stop();
+      _IO.Dispose();
+   END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Type GET : iplugin.TObjectType;
+   BEGIN
+      RETURN iplugin.otEphemeral;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC FINAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
-      RETURN SUPER.Library;
-   END Library;
+      RETURN SUPER.OfPlugin;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC FINAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-      SUPER.Library := Value;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE OnDispose();
-   BEGIN
-      _IO.Dispose();
-   END OnDispose;
+      RETURN SUPER.OwnerHandle;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1660,9 +1699,6 @@ CLASS IMPLEMENTATION CAirMotionDevice;
    
 (*---------------------------------------------------------------------------*)
 
-BEGIN FINALLY
-   _IO.Stop();
-   OnDispose();
 END CAirMotionDevice;
 
 (*===========================================================================*)

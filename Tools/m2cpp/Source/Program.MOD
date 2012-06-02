@@ -28,12 +28,12 @@ TYPE
   TPParamStringArray = POINTER TO TParamStringArray;
 
 (*# save, call( convention=>cdecl ) *)
-PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ); FORWARD;
+PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER; FORWARD;
 (*# restore *)
 
 (*===========================================================================*)
 
-PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray );
+PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 
 (*----------*)
 
@@ -192,7 +192,8 @@ Error:
 
 Finish:
   windows.ExitProcess( ErrorLevel );
-END wmain;
+  RETURN ErrorLevel;
+END Main;
 
 (*===========================================================================*)
 

@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE DaliBridge;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM log IMPORT
    ldError, ldMessage, ldTrace, ldDebug;
@@ -13,6 +13,7 @@ FROM driver IMPORT
    R;
 
 IMPORT
+   collection,
    datetime,
    dns,
    Log,
@@ -1142,8 +1143,8 @@ CLASS IMPLEMENTATION CDaliDevice;
       LongName : ARRAY [0..255] OF WCHAR;
    BEGIN
       Strings.ConcatW( OUT LongName, L"Dali.", ClientName );
-      Logger.SetUpByLogger( SourceLogger );
-      Logger.SetLogName( LongName );
+      log.ConfigureByAppender( REF Logger, SourceLogger );
+      Logger.SetName( LongName );
 
       Name.FromOA( ClientName );
       Communicator^.Stop();
@@ -1332,7 +1333,7 @@ CLASS IMPLEMENTATION CDaliDevice;
       // set file data   
       DISPOSE( FileToSend[Linie] );
       FileToSend[Linie] := _FileToSend;
-      FileToSend[Linie]^.Reset();
+      FileToSendIterator[Linie].Init( _FileToSend^, collection.dirForward );
       
       SendFileItem( Linie );
       RETURN TRUE;
@@ -1342,7 +1343,7 @@ CLASS IMPLEMENTATION CDaliDevice;
 
    PRIVATE PROCEDURE SendFileItem( Linie : TDaliLinie );
    BEGIN
-      IF NOT FileToSend[Linie]^.MoveNext() THEN
+      IF NOT FileToSendIterator[Linie].MoveNext() THEN
          Programming[Linie] := FALSE;
          DISPOSE( FileToSend[Linie] );
          IF EventSink <> NIL THEN
@@ -1354,7 +1355,7 @@ CLASS IMPLEMENTATION CDaliDevice;
          END;
          RETURN;
       END;
-      FeedCommand( Linie, NIL, cmdFileItem, 0, FileToSend[Linie]^.Current^.Data, 0, L'' );
+      FeedCommand( Linie, NIL, cmdFileItem, 0, FileToSendIterator[Linie].Value^.Data, 0, L'' );
    END SendFileItem;
 
 (*-------------------------------------------------------------------------------*)
@@ -1445,7 +1446,7 @@ CLASS IMPLEMENTATION CDaliDevice;
 
             IF FileToSend[Request^.Linie] <> NIL THEN // we are sending file
                FileToSendFailure[Request^.Linie] := FileToSendFailure[Request^.Linie] OR ( Result <> Sync.arCompleted );
-               fileItem := FileToSend[Request^.Linie]^.Current^.Data;
+               fileItem := FileToSendIterator[Request^.Linie].Value^.Data;
                IF ( fileItem <> NIL ) AND ( ADR( Data ) <> NIL ) THEN
                   FOR i := 0 TO CARDINAL( fileItem@[32]^ )-1 DO
                      IF Data[i] <> fileItem@[33+i]^ THEN
@@ -1754,7 +1755,7 @@ CLASS IMPLEMENTATION CDaliDevice;
             Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Scan address: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, ADR( DA ), cmdReadLongH, 0, NIL, EXPECTED_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdReadLongH, 0, NIL, EXPECTED_RESPONSE, L'' );
             EXIT;
 
          | dapScanOneM :
@@ -1771,7 +1772,7 @@ CLASS IMPLEMENTATION CDaliDevice;
          
          | dapScan2GetShort :
             Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Read address: ", Programmer[Linie].CurrentLongAddress.C24 );
-            FeedCommand( Linie, NIL, cmdGetAddress, 0, NIL, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdGetAddress, 0, NIL, EXPECTED_RESPONSE, L'' );
             
          | dapScannedOne,
            dapScanned2One :
@@ -1788,10 +1789,10 @@ CLASS IMPLEMENTATION CDaliDevice;
             Programmer[Linie].HandleResponse( TRUE, 0 ); // move to next state
             
          | dapProgramOne :
-            Logger.LogSC( ldTrace, logProgramPrefix, L"Programm address: ", Programmer[Linie].CurrentShortAddress );
+            Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Programm address: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, NIL, cmdSetAddress, DA.TransportAddress OR 01H, NIL, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdSetAddress, DA.TransportAddress OR 01H, NIL, EXPECTED_RESPONSE, L'' );
             EXIT;
 
          | dapCheckOne :
@@ -1810,7 +1811,7 @@ CLASS IMPLEMENTATION CDaliDevice;
             Logger.LogSC( ldTrace, 0, logProgramPrefix, L"Address checked: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, ADR( DA ), cmdMax, 0, NIL, EXPECTED_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdMax, 0, NIL, EXPECTED_RESPONSE, L'' );
             EventSink^.OnDeviceFound( Name, Linie, DA, Programmer[Linie].CurrentLongAddress.C24 );
             EXIT;
 
@@ -1839,7 +1840,7 @@ CLASS IMPLEMENTATION CDaliDevice;
 
 (*-------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LogRequest( Level : log.TDebugLevel; LeadingText : ARRAY OF WCHAR; Request : ADDRESS; Result : Sync.TAsyncResult; PrintAddress, PrintResult, PrintData : BOOLEAN );
+   PRIVATE PROCEDURE LogRequest( Level : log.TLevel; FilterData : PTR; LeadingText : ARRAY OF WCHAR; Request : ADDRESS; Result : Sync.TAsyncResult; PrintAddress, PrintResult, PrintData : BOOLEAN );
    VAR
       S : ARRAY [0..127] OF WCHAR;
       N : ARRAY [0..31] OF WCHAR;
@@ -1901,7 +1902,7 @@ CLASS IMPLEMENTATION CDaliDevice;
       END;
       
       // all
-      Logger.LogS( Level, logDevPrefix, S );
+      Logger.LogS( Level, FilterData, logDevPrefix, S );
    END LogRequest;
 
 (*-------------------------------------------------------------------------------*)
@@ -1989,10 +1990,11 @@ CLASS IMPLEMENTATION CDali;
    PUBLIC PROPERTY ProgrammingInProgress GET : BOOLEAN;
    VAR
       DaliDevice : POINTER TO CDaliDevice;
+      it : maps.CStringPtrMapIterator;
    BEGIN
-      Dali.Reset();
-      WHILE Dali.MoveNext() DO
-         DaliDevice := Dali.CurrentData;
+      it.Init( Dali, collection.dirForward );
+      WHILE it.MoveNext() DO
+         DaliDevice := it.Value;
          IF DaliDevice^.ProgrammingInProgress THEN
             RETURN TRUE;
          END;
@@ -2005,11 +2007,12 @@ CLASS IMPLEMENTATION CDali;
    PUBLIC PROPERTY OutputQueueCount GET : CARDINAL;
    VAR
       DaliDevice : POINTER TO CDaliDevice;
+      it : maps.CStringPtrMapIterator;
       l : CARDINAL := 0;
    BEGIN
-      Dali.Reset();
-      WHILE Dali.MoveNext() DO
-         DaliDevice := Dali.CurrentData;
+      it.Init( Dali, collection.dirForward );
+      WHILE it.MoveNext() DO
+         DaliDevice := it.Value;
          INC( l, DaliDevice^.OutputQueueCount );
       END; // WHILE
       RETURN l;
@@ -2025,7 +2028,7 @@ CLASS IMPLEMENTATION CDali;
       Result : Sync.TAsyncResult;
       result : ARRAY [0..15] OF WCHAR;
    BEGIN
-      IF Dali.ContainsOA( Name ) THEN
+      IF Dali.Contains( StringsO.FromOA( Name )) THEN
          Error.FromOA( OAsz( R()^[ Texts._DaliAlreadyExists ] ));
          RETURN FALSE;
       END;
@@ -2051,7 +2054,7 @@ CLASS IMPLEMENTATION CDali;
       DaliDevice^.OutputQueueLength := OutputQueueLength;
       DaliDevice^.SendDelay := SendDelay;
       DaliDevice^.EventSink := ADR( SELF );
-      Dali.AddOA( Name, DaliDevice );
+      Dali.Add( StringsO.FromOA( Name ), DaliDevice, 0 );
       
       IF NOT Running THEN
          RETURN TRUE;
@@ -2074,18 +2077,21 @@ CLASS IMPLEMENTATION CDali;
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetDali( CONST Name : ARRAY OF WCHAR; OUT DaliDevice : PTR ) : BOOLEAN;
+   VAR
+      d : PTR;
    BEGIN
-      RETURN Dali.GetOA( Name, OUT DaliDevice );
+      RETURN Dali.Get( StringsO.FromOA( Name ), OUT DaliDevice, OUT d );
    END GetDali;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE RemoveDali( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
    VAR
+      d : PTR;
       DaliDevice : POINTER TO CDaliDevice;
    BEGIN
-      IF Dali.GetOA( Name, OUT DaliDevice ) THEN
-         Dali.RemoveOA( Name );
+      IF Dali.Get( StringsO.FromOA( Name ), OUT DaliDevice, OUT d ) THEN
+         Dali.Remove( StringsO.FromOA( Name ));
          DaliDevice^.Stop();
          DaliDevice^.Dispose();
          DISPOSE( DaliDevice );
@@ -2100,15 +2106,16 @@ CLASS IMPLEMENTATION CDali;
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    VAR
       DaliDevice : POINTER TO CDaliDevice;
+      it : maps.CStringPtrMapIterator;
    BEGIN
       IF Running THEN
          RETURN Sync.arAlreadyPending;
       END;
       Running := TRUE;
    
-      Dali.Reset();
-      WHILE Dali.MoveNext() DO
-         DaliDevice := Dali.CurrentData;
+      it.Init( Dali, collection.dirForward );
+      WHILE it.MoveNext() DO
+         DaliDevice := it.Value;
          DaliDevice^.Run();
       END; // WHILE
       RETURN Sync.arCompleted;
@@ -2119,15 +2126,16 @@ CLASS IMPLEMENTATION CDali;
    PUBLIC PROCEDURE Stop();
    VAR
       DaliDevice : POINTER TO CDaliDevice;
+      it : maps.CStringPtrMapIterator;
    BEGIN
       IF NOT Running THEN
          RETURN;
       END;
       Running := FALSE;
 
-      Dali.Reset();
-      WHILE Dali.MoveNext() DO
-         DaliDevice := Dali.CurrentData;
+      it.Init( Dali, collection.dirForward );
+      WHILE it.MoveNext() DO
+         DaliDevice := it.Value;
          DaliDevice^.Stop();
       END; // WHILE
    END Stop;
@@ -2218,10 +2226,11 @@ CLASS IMPLEMENTATION CDali;
    PUBLIC PROCEDURE Dispose();
    VAR
       DaliDevice : POINTER TO CDaliDevice;
+      it : maps.CStringPtrMapIterator;
    BEGIN
-      Dali.Reset();
-      WHILE Dali.MoveNext() DO
-         DaliDevice := Dali.CurrentData;
+      it.Init( Dali, collection.dirForward );
+      WHILE it.MoveNext() DO
+         DaliDevice := it.Value;
          DaliDevice^.Dispose();
          DISPOSE( DaliDevice );
       END; // WHILE

@@ -14,8 +14,18 @@
     <None Include="SMTPClient.proj" />
     <None Include="Source\MailMessage.def" />
     <None Include="Source\MailMessage.mod" />
+    <None Include="Source\MailPerson.def" />
+    <None Include="Source\MailPerson.mod" />
+    <None Include="Source\PersonsImpl.def" />
+    <None Include="Source\PersonsImpl.mod" />
     <None Include="Source\SMTPSender.def" />
     <None Include="Source\SMTPSender.mod" />
+    <None Include="Source\SMTPTools.def" />
+    <None Include="Source\SMTPTools.mod" />
+    <None Include="Test\TLightweightSender.mod" />
+    <None Include="Test\TMessage.mod" />
+    <None Include="Test\TPoolSenderStability.mod" />
+    <None Include="Test\TSmtpTools.mod" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{23093D6B-BE78-4C54-B9F6-A9AAC79C284A}</ProjectGuid>
@@ -25,8 +35,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Makefile</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <OutDir>~$(Configuration)\</OutDir>
-    <IntDir>~$(Configuration)Build\</IntDir>
+    <OutDir>!$(Configuration).$(Platform)\</OutDir>
+    <IntDir>!Build.$(Configuration).$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Makefile</ConfigurationType>
@@ -45,10 +55,16 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <NMakeOutput>SMTPClient.exe</NMakeOutput>
     <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <NMakeBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=x86</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=x86</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=x86</NMakeCleanCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <NMakeOutput>SMTPClient.exe</NMakeOutput>
     <NMakePreprocessorDefinitions>WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <NMakeBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=x86</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=x86</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=x86</NMakeCleanCommandLine>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <BuildLog>

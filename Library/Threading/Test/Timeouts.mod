@@ -145,9 +145,9 @@ CLASS IMPLEMENTATION CTest;
 
          // test
          IF CompletionInOwningThread THEN
-            WaitForMessages( Limit + Limit DIV 50 );
+            WaitForMessages( Limit * Period + Period DIV 4 );
          ELSE
-            windows.Sleep( Limit + Limit DIV 50 );
+            windows.Sleep( Limit * Period + Period DIV 4 );
          END;
 
       // check
@@ -160,13 +160,7 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
 
-      IF Failure THEN
-         FirstFailure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-      Failure := FALSE;
+      Host^.StopPhaseWithResult( NOT Failure );
 
       //==========
       IF CompletionInOwningThread THEN
@@ -180,9 +174,9 @@ CLASS IMPLEMENTATION CTest;
          END; // FOR
 
          IF CompletionInOwningThread THEN
-            WaitForMessages( Limit + Limit DIV 50 );
+            WaitForMessages( Limit * Period + Period DIV 10 );
          ELSE
-            windows.Sleep( Limit + Limit DIV 50 );
+            windows.Sleep( Limit * Period + Period DIV 10 );
          END;
 
          // test
@@ -209,13 +203,9 @@ CLASS IMPLEMENTATION CTest;
          END;
       END;
 
-      IF Failure THEN
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
+      Host^.StopPhaseWithResult( NOT Failure );
 
-      RETURN FirstFailure OR Failure;
+      RETURN Failure;
    END Round;
 
 (*---------------------------------------------------------------------------*)

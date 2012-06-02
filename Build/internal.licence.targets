@@ -12,7 +12,7 @@ note = $(ProductNote)</ProductLicenceFileContents>
 
     </PropertyGroup>
 
-    <UsingTask TaskName="Patch" AssemblyFile="BuildTasks.dll"/>
+    <UsingTask TaskName="Patch" AssemblyFile="$(BuildTask)"/>
     <Target Name="CreateProductLicenceFile"
             Inputs="$(RCFile);$(ProductBuildFile)"
             Outputs="$(ProductLicenceFile)">

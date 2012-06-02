@@ -12,10 +12,8 @@
         <ResourceFile Condition="!Exists('$(ResourceFile)')"></ResourceFile>
         <SetupDir>Install</SetupDir>
 
-        <OutputDirName Condition="$(ConfigurationName)=='Release'">~Release</OutputDirName>
-        <OutputDirName Condition="$(ConfigurationName)!='Release'">~Debug</OutputDirName>
-        <!-- IntermediateDirName>%40$(OutputDirName)</IntermediateDirName -->
-        <IntermediateDirName>~Build.$(ConfigurationName)</IntermediateDirName>
+        <OutputDirName>!$(Configuration).$(Platform)</OutputDirName>
+        <IntermediateDirName>!Build.$(Configuration).$(Platform)</IntermediateDirName>
         <HeaderDirName>$(IntermediateDirName)</HeaderDirName>
 
         <OutputDir>$(OutputDirName)</OutputDir>
@@ -124,7 +122,7 @@
         <RESFile Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='')"
                  Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
 
-        <SelfInterface Condition="$(Result)!='Program' And (@(ExportToInterface)!='' Or @(MODFiles)!='')" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
+        <SelfInterface Condition="$(Result)!='Program' And (@(ExportToInterface)!='' Or @(MODFiles)!='' Or $(LIBEXPORT)!='')" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
         <!-- SelfInterface/Interface: Interface could be extended by project to export some interfaces, e.g. Ws32, msxml, etc. -->
         <Interface Include="@(SelfInterface)"/>
 
@@ -141,9 +139,9 @@
 
     <!-- inner, invisible targets -->
     <Target Name="Environment">
-        <Error Condition="@(Objects)!='' And $(FileDescription)==''"
-               Text="Required 'FileDescription' property is not defined (project $(MSBuildProjectName))."
-               HelpKeyword ="FileDescription"/>
+        <Error Condition="@(Objects)!='' And $(ProjectDescription)==''"
+               Text="Required 'ProjectDescription' property is not defined (project $(MSBuildProjectName))."
+               HelpKeyword ="ProjectDescription"/>
         <Error Condition="@(ExportToInterface)!='' And $(OriginalExport)!=''"
                Text="Both 'ExportToInterface' and 'Export' keys are defined, this is not allowed. Select only one of them. (project $(MSBuildProjectName))."
                HelpKeyword ="ExportToInterface"/>
@@ -159,12 +157,12 @@
 
     <!-- default version info -->
     <PropertyGroup>
-        <FileVersionMajor Condition="$(FileVersionMajor)==''">1</FileVersionMajor>
-        <FileVersionMinor Condition="$(FileVersionMinor)==''">0</FileVersionMinor>
-        <FileVersionRevision Condition="$(FileVersionRevision)==''">0</FileVersionRevision>
-        <ProductVersionMajor Condition="$(ProductVersionMajor)==''">$(FileVersionMajor)</ProductVersionMajor>
-        <ProductVersionMinor Condition="$(ProductVersionMinor)==''">$(FileVersionMinor)</ProductVersionMinor>
-        <ProductVersionRevision Condition="$(ProductVersionRevision)==''">$(FileVersionRevision)</ProductVersionRevision>
+        <ProjectVersionMajor Condition="$(ProjectVersionMajor)==''">1</ProjectVersionMajor>
+        <ProjectVersionMinor Condition="$(ProjectVersionMinor)==''">0</ProjectVersionMinor>
+        <ProjectVersionRevision Condition="$(ProjectVersionRevision)==''">0</ProjectVersionRevision>
+        <ProductVersionMajor Condition="$(ProductVersionMajor)==''">$(ProjectVersionMajor)</ProductVersionMajor>
+        <ProductVersionMinor Condition="$(ProductVersionMinor)==''">$(ProjectVersionMinor)</ProductVersionMinor>
+        <ProductVersionRevision Condition="$(ProductVersionRevision)==''">$(ProjectVersionRevision)</ProductVersionRevision>
     </PropertyGroup>
 
     <!-- build number -->
@@ -196,9 +194,10 @@
     </Target>
 
     <!-- resources default -->
-    <UsingTask TaskName="SvnVersion" AssemblyFile="BuildTasks.dll"/>
-    <UsingTask TaskName="HgVersion" AssemblyFile="BuildTasks.dll"/>
-    <UsingTask TaskName="MinMax" AssemblyFile="BuildTasks.dll"/>
+    <UsingTask TaskName="SvnVersion" AssemblyFile="$(BuildTask)"/>
+    <UsingTask TaskName="HgVersion" AssemblyFile="$(BuildTask)"/>
+    <UsingTask TaskName="MinMax" AssemblyFile="$(BuildTask)"/>
+    <UsingTask TaskName="Item" AssemblyFile="$(BuildTask)"/>
     <Import Project="internal.resource.targets"/>
 
 
@@ -216,8 +215,13 @@
     <Target Condition="$(ClientLicensing)=='on' And !Exists(@(LicensingSourceDef))"
             Name="LicensingSource"
             Outputs="@(LicensingSourceFiles)">
-        <Exec WorkingDirectory="$(LicensingSourceDir)"
+        <Message Importance="high" Text="$(ClientLicensingType)=='Host': $(ProductId) else: $(ProjectId)" />
+        <Exec Condition="$(ClientLicensingType)=='Host'"
+              WorkingDirectory="$(LicensingSourceDir)"
               Command="$(LICSRC) $(ProductId)"/>
+        <Exec Condition="$(ClientLicensingType)=='Plugin'"
+              WorkingDirectory="$(LicensingSourceDir)"
+              Command="$(LICSRC) $(ProjectId)"/>
     </Target>
 
 
@@ -274,22 +278,26 @@
 
     <Target Name="CheckRevision">
         <HgVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource)">
-            <Output TaskParameter="Revision" ItemName="FileVersionBuilds"/>
-            <Output TaskParameter="RevisionId" ItemName="FileRevisionIds"/>
+            <Output TaskParameter="Revision" ItemName="ProjectVersionBuilds"/>
+            <Output TaskParameter="RevisionId" ItemName="ProjectRevisionIds"/>
         </HgVersion>
-        <Error Condition="@(FileRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
-        <MinMax Input="@(FileVersionBuilds)">
-            <Output TaskParameter="Maximum" PropertyName="FileVersionBuild"/>
+        <Error Condition="@(ProjectRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
+        <MinMax Input="@(ProjectVersionBuilds)">
+            <Output TaskParameter="Maximum" PropertyName="ProjectVersionBuild"/>
+            <Output TaskParameter="MaximumIndex" PropertyName="ProductVersionBuildIndex"/>
         </MinMax>
+        <Item Input="@(ProjectRevisionIds)" Index="$(ProductVersionBuildIndex)">
+            <Output TaskParameter="Output" PropertyName="ProjectRevisionId"/>
+        </Item>
         <ReadLinesFromFile File="$(RCFile).lastrev" ContinueOnError="true">
             <Output TaskParameter="Lines" PropertyName="LastRev"/>
         </ReadLinesFromFile>
-        <Delete Condition="$(FileVersionBuild)!=$(LastRev)"
+        <Delete Condition="$(ProjectVersionBuild)!=$(LastRev)"
                 Files="$(RCFile)"/>
-        <Delete Condition="$(FileVersionBuild)!=$(LastRev) And $(ClientLicensing)"
+        <Delete Condition="$(ProjectVersionBuild)!=$(LastRev) And $(ClientLicensing)"
                 Files="@(LicensingSourceFiles)"
                 ContinueOnError="true"/>
-        <Delete Condition="$(FileVersionBuild)!=$(LastRev) And $(SetupLicensing)"
+        <Delete Condition="$(ProjectVersionBuild)!=$(LastRev) And $(SetupLicensing)"
                 Files="$(ProductLicenceFile)"
                 ContinueOnError="true"/>
     </Target>
@@ -302,11 +310,11 @@
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="$(RC) $(RCDEF) /fo&quot;@(RESFile -> '%(Filename).res')&quot; ..\$(RCFile)"/>
         <WriteLinesToFile File="$(RCFile).lastrev"
-                          Lines="$(FileVersionBuild)"
+                          Lines="$(ProjectVersionBuild)"
                           Overwrite="true"/>
     </Target>
 
-    <Target Name="Resources" DependsOnTargets="MessagesBin;CheckRevision;BuildResources" />
+    <Target Name="Resources" DependsOnTargets="MessagesBin;CheckRevision;CreateRCFileInput;BuildResources" />
 
 
     <Target Name="ComponentInterface"
@@ -320,26 +328,26 @@
         <!-- Message Text="## @(ExportToInterfaceObjects)" Importance="high" / -->
     </Target>
 
-    <Target Name="ComponentIncludes"
+    <Target Name="ComponentTestIncludes"
             DependsOnTargets="CPPs;TestCPPs">
         <!-- here CPPs are noted (and it is not left for automatic dependency by Object), because .h files from standalone .def files must be built too -->        
     </Target>
 
     <Target Name="ComponentCode"
-            Condition="@(ExportToInterface)!='' Or @(Objects)!=''"
+            Condition="@(ExportToInterface)!='' Or @(Objects)!='' Or $(LIBEXPORT)!=''"
             DependsOnTargets="Resources;$(UserPostRES);Objects;$(UserPostOBJ)"
-            Inputs="@(Objects);@(ExportToInterfaceObjects);@(RESFile);@(LinkDependencyLibraries)"
+            Inputs="@(Objects);@(ExportToInterfaceObjects);@(RESFile);@(LinkDependencyLibraries);$(LIBEXPORT)"
             Outputs="$(OutputFile)">
         <Exec Condition="$(Result)=='Dynamic'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) /dll $(LINKDEF) $(LINKEXPORT) @(ExportToInterfaceObjects, ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) /dll $(LINKDEF) $(LIBEXPORT) @(ExportToInterfaceObjects, ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Condition="$(Result)=='Static'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LIB) $(LIBDEF) @(Objects -> '%(Filename).obj', ' ')"/>
+              Command="$(LIB) $(LIBDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ')"/>
         <Exec Condition="$(Result)=='Program'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) $(LINKDEF) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
-        <Exec Condition="$(Result)=='Program' Or $(CLib)=='Dynamic'"
+              Command="$(LINK) $(LINKDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+        <Exec Condition="$(Result)=='Program' Or ($(Result)=='Dynamic' And $(CLib)=='Dynamic')"
               Command="$(MT)"/>
     </Target>
 
@@ -360,9 +368,20 @@
         <Exec WorkingDirectory="$(OutputDir)"
               Command="$(LICSIGN) *.tlic"/>
     </Target>
+    
+    <Target Name="ComponentSign"
+            Condition="$(Sign)!='off' And
+                       $(SignCertificatePath)!='' And (
+                         @(ExportToInterface)!='' Or @(Objects)!=''
+                       )"
+            DependsOnTargets="ComponentCode">
+        <Exec Condition="$(Result)=='Program' Or $(Result)=='Dynamic'"
+              Command="&quot;$(SDKCommonBin)\signtool&quot; sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"
+              ContinueOnError="true"/>
+    </Target>
 
     <Target Name="Component"
-            DependsOnTargets="ComponentInterface;ComponentCode;ComponentIncludes;ComponentTestBuild;ComponentRuntimes;ComponentTestExec;BuildProductLicence"/>
+            DependsOnTargets="ComponentInterface;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTestIncludes;ComponentTestBuild;ComponentTestExec;BuildProductLicence"/>
 
 
     <!-- outer, visible targets -->
@@ -441,15 +460,15 @@
 
     <!-- deploy tasks -->
     <Target Name="DeployDebug">
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="ConfigurationName=Debug" StopOnFirstFailure="true" />
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Debug;Language=Czech" StopOnFirstFailure="true" />
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Debug;Language=English" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="Configuration=Debug" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Debug;Language=Czech" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Debug;Language=English" StopOnFirstFailure="true" />
     </Target>
 
     <Target Name="DeployRelease">
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="ConfigurationName=Release" StopOnFirstFailure="true" />
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Release;Language=Czech" StopOnFirstFailure="true" />
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Release;Language=English" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="Configuration=Release" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Release;Language=Czech" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Release;Language=English" StopOnFirstFailure="true" />
     </Target>
 
     <Target Name="Deploy" DependsOnTargets="DeployRelease;DeployDebug" />

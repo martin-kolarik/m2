@@ -4,9 +4,9 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>Abstract Data Types Library</FileDescription>
-        <FileVersionMajor>0</FileVersionMajor>
-        <FileVersionMinor>9</FileVersionMinor>
+        <ProjectDescription>Abstract Data Types Library</ProjectDescription>
+        <ProjectVersionMajor>0</ProjectVersionMajor>
+        <ProjectVersionMinor>9</ProjectVersionMinor>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -17,7 +17,7 @@
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Modula2\m2rtl;Modula2\m2ortl"/>
-        <Modules Include="array;list;stack;avltree;bitarray;arrays;lists;stacks;maps;syncmaps"/>
+        <Modules Include="array;list;avltree;bitarray;arrays;lists;synclists;stacks;maps;syncmaps"/>
         <!-- avlmap -->
     </ItemGroup>
 

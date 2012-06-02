@@ -10,7 +10,7 @@
         <ProductId>Inris.PelcoD.CWDriver</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
-        <FileDescription>Inris PelcoD Camera Control Driver</FileDescription>
+        <ProjectDescription>Inris PelcoD Camera Control Driver</ProjectDescription>
 
         <ProductGUID>93FD7F16-F962-4d2b-8904-2BF8D7B5B5F9</ProductGUID>
         <ProductUpgradeGUID>8FC4B411-1C7D-4a2b-B859-7788BECD6C44</ProductUpgradeGUID>
@@ -23,7 +23,7 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
 			<Components Include="Modula2\modula2;API\clib;API\win32"/>
-			<Components Include="Component\sccore;Library\Serial;Library\CWdriver"/>
+			<Components Include="Component\sccore;Library\Serial;Library\CWDriver"/>
 			<Modules Include="PelcoD"/>
 			<!-- Messages Include="Texts"/ -->
 		</ItemGroup>

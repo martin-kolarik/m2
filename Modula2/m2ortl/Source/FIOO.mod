@@ -46,7 +46,7 @@ CLASS IMPLEMENTATION CFileStream;
     IF Handle = NIL THEN
       RETURN 0;
     ELSE
-      RETURN CARD64( FIO.Size( Handle ));
+      RETURN FIO.Size( Handle );
     END;
   END Length;
 
@@ -55,7 +55,7 @@ CLASS IMPLEMENTATION CFileStream;
   PUBLIC FINAL PROPERTY Length SET( Value : CARD64 );
   BEGIN
     IF Handle <> NIL THEN
-      FIO.Seek( Handle, CARD32( Value ));
+      FIO.Seek( Handle, Value );
       FIO.Truncate( Handle );
     END;
   END Length;
@@ -67,18 +67,21 @@ CLASS IMPLEMENTATION CFileStream;
     IF Handle = NIL THEN
       RETURN 0;
     ELSE
-      RETURN CARD64( FIO.GetPos( Handle ));
+      RETURN FIO.GetPos( Handle );
     END;
   END Position;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC FINAL PROPERTY Position SET( Value : CARD64 );
-  BEGIN
-    IF Handle <> NIL THEN
-      windows.SetFilePointer( Handle, CARD32( Value ), NIL, windows.FILE_BEGIN );
-    END;
-  END Position;
+   PUBLIC FINAL PROPERTY Position SET( Value : CARD64 );
+   VAR
+      li : windows.LARGE_INTEGER;
+   BEGIN
+      IF Handle <> NIL THEN
+         li.QuadPart := Value;
+         windows.SetFilePointerEx( Handle, li, NIL, windows.FILE_BEGIN );
+      END;
+   END Position;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -133,20 +136,23 @@ CLASS IMPLEMENTATION CFileStream;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
-  BEGIN
-    IF Handle = NIL THEN
-      RETURN;
-    END;
-    CASE Origin OF
-    | IOO.soBegin :
-      windows.SetFilePointer( Handle, CARD32( Position ), NIL, windows.FILE_BEGIN );
-    | IOO.soCurrent :
-      windows.SetFilePointer( Handle, CARD32( Position ), NIL, windows.FILE_CURRENT );
-    | IOO.soEnd :
-      windows.SetFilePointer( Handle, CARD32( Position ), NIL, windows.FILE_END );
-    END; // CASE
-  END Seek;
+   PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
+   VAR
+      li : windows.LARGE_INTEGER;
+   BEGIN
+      IF Handle = NIL THEN
+         RETURN;
+      END;
+      li.QuadPart := Position;
+      CASE Origin OF
+      | IOO.soBegin :
+         windows.SetFilePointerEx( Handle, li, NIL, windows.FILE_BEGIN );
+      | IOO.soCurrent :
+         windows.SetFilePointerEx( Handle, li, NIL, windows.FILE_CURRENT );
+      | IOO.soEnd :
+         windows.SetFilePointerEx( Handle, li, NIL, windows.FILE_END );
+      END; // CASE
+   END Seek;
 
 (*--------------------------------------------------------------------------------*)
 

@@ -25,11 +25,11 @@ CLASS CStatusCodeView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( StatusCode : HttpCommon.THttpResponse );   
@@ -48,11 +48,11 @@ CLASS CFileView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; ResolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; DispositionFlag : BOOLEAN; CONST MIMEResolver : MVC.TPMIMEResolver; MIMEResolverContext : PTR );
@@ -76,11 +76,11 @@ CLASS CRedirectView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST URIIsAbsolute : BOOLEAN; URIOrControllerName : ARRAY OF WCHAR );   
@@ -99,11 +99,11 @@ CLASS CRawHTMLView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
@@ -122,11 +122,11 @@ CLASS CRawTextView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST text, downloadName : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN );
@@ -176,22 +176,25 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
-   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR; overrideLanguage : BOOLEAN; overriddenLanguage : Languages.TLanguage );
    
    PRIVATE VAR
-      Request : MVC.TPHttpRequest;
+      Request : MVC.TPMvcRequest;
       Reader : xmlreader.CXMLReader;
       Writer : xmlwriter.CXMLWriter;
       Resolver : FSO.TPFilePathResolver;
       ViewName : StringsO.CString;
       LoadState : TLoadState;
+      OverrideLanguage : BOOLEAN;
+      OverriddenLanguage : Languages.TLanguage;
+      Language : Languages.TLanguage;
 
       ParseMode : TParseMode;
       Prefix : StringsO.CString;
@@ -224,6 +227,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE ParseFormOption( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
    PRIVATE PROCEDURE ParseVariable( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseContext( isEmpty : BOOLEAN ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormAction( CONST attributes : lists.CStringStringList; OUT formAction : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormModel( CONST attributes : lists.CStringStringList; OUT formModel : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormId( CONST attributes : lists.CStringStringList; OUT formId : StringsO.IString ) : BOOLEAN;
@@ -240,6 +244,9 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE Load() : TLoadState; // return is copy of LoadState member
 END CPageTemplateView;
 
+// static
+PROCEDURE ChangeDataContextFunctionName() : StringsO.CString;
+
 (*--------------------------------------------------------------------------------*)
 
 TYPE
@@ -250,11 +257,11 @@ CLASS CErrorPageView IMPLEMENTS MVC.IView; // specialized for error pages, looks
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IMvcRequest; REF Response : MVC.IMvcResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    PUBLIC VIRTUAL PROCEDURE Release();
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IMvcRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse );

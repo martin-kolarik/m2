@@ -6,12 +6,16 @@ MODULE NetMsg;
 
 FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
+
+FROM Exceptions IMPORT
+   TestIfCatched;
   
 FROM log IMPORT
   ldError, ldTrace, ldDebug;
 
 IMPORT
   cllv,
+  collection,
   crc,
   diface,
   digest,
@@ -28,6 +32,7 @@ IMPORT
   list,
   lists,
   log,
+  LogConfig,
   maps,
   msghandler,
   netconndispatch,
@@ -198,6 +203,7 @@ CLASS CDriver( msghandler.MessageHandler ) IMPLEMENTS diface.ICWDriver;
   RStatus       : TRStatus;
   Name          : StringsO.CString;
   Logger        : log.CLogger;
+  AppenderList  : lists.CPtrList;
 
   CallbackId    : ADDRESS;
   CallbackProc  : drv_def.TDriverCallbackW;
@@ -218,8 +224,8 @@ CLASS CDriver( msghandler.MessageHandler ) IMPLEMENTS diface.ICWDriver;
   EventsLock    : Sync.LOCK;
   Events        : list.CList;
   Packet        : StorageO.CMemoryBuffer;
-  FieldToValue  : maps.CIntegerMap; // Map OF PTR TO iovalue.Value
-  Records       : maps.CStringMap; // Map OF Array OF PTR to iovalue.Value in above structure
+  FieldToValue  : maps.CIntegerPtrMap; // Map OF PTR TO iovalue.Value
+  Records       : maps.CStringPtrMap; // Map OF Array OF PTR to iovalue.Value in above structure
 
   // binding to procedural interface
   PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
@@ -413,17 +419,19 @@ CLASS IMPLEMENTATION CDriver;
   VAR
     cs : StringsO.CString;
     ChannelIndex : CARDINAL;
+    d : PTR;
     ErrorLine : CARDINAL;
     ES : PTR;
     fs : FIOO.CFileStream;
     I : StringsO.CString;
     i, number : CARDINAL;
-    RecordTypes : maps.CStringMap;
+    RecordTypes : maps.CStringPtrMap;
+    RecordTypesIterator : maps.CStringPtrMapIterator;
     S : StringsO.CString;
-    s : ARRAY [0..127] OF WCHAR;
     TS : INIFile.CINIFile;
     tr : TextReader.CTextReader;
     TypeList : lists.TPIntegerList;
+    TypeListIterator : lists.CIntegerListIterator;
     Value : iovalue.TPValue;
     ValueList : lists.TPPtrList;
   BEGIN
@@ -468,28 +476,28 @@ CLASS IMPLEMENTATION CDriver;
          END;
       END;
 
-      CASE INIFile.ConfigureLog( TS, L"", REF SELF.Logger, OUT ErrorLine ) OF
-      | INIFile.clrUnknownTarget :
+      CASE LogConfig.ConfigureLog( TS, L"", REF SELF.Logger, REF AppenderList, OUT ErrorLine ) OF
+      | LogConfig.clrUnknownTarget :
          Error( Texts._UnknownDebugMode, ErrorLine );
-      | INIFile.clrUnknownLevel :
+      | LogConfig.clrUnknownLevel :
          Error( Texts._UnknownDebugLevel, ErrorLine );
-      | INIFile.clrTargetFileMissingFile :
+      | LogConfig.clrTargetFileMissingFile :
          Error( Texts._FileDebugMissingFile, ErrorLine );
       END; // CASE
     
       // get all record types
       ES := 0;
-      WHILE TS.EnumerateSections( REF ES, OUT ErrorLine, OUT s, TRUE ) DO
-         IF EQUALS( s, snRecordType ) THEN
+      WHILE TS.EnumerateSections( REF ES, OUT ErrorLine, OUT cs, TRUE ) DO
+         IF cs.EqualsOA( snRecordType ) THEN
             IF NOT TS.GetKeyStr( knName, OUT ErrorLine, OUT S ) THEN
                Error( Texts._MissingNameOfRecordType, ErrorLine );
                GOTO Fail;
-            ELSIF RecordTypes.Contains( S ) THEN
+            ELSIF RecordTypes.Get( S, OUT d, OUT d ) THEN
                Error( Texts._RecordTypeDuplicated, ErrorLine );
                GOTO Fail;
             ELSE
                TypeList := NEW( lists.CIntegerList );
-               RecordTypes.Add( S, TypeList );
+               RecordTypes.Add( S, TypeList, 0 );
             END;
             IF NOT TS.GetKeyStr( knFields, OUT ErrorLine, OUT S ) THEN
                Error( Texts._MissingFieldsOfRecordType, ErrorLine );
@@ -544,12 +552,12 @@ CLASS IMPLEMENTATION CDriver;
 
       // get all records
       ES := 0;
-      WHILE TS.EnumerateSections( REF ES, OUT ErrorLine, OUT s, TRUE ) DO
-         IF EQUALS( s, snRecord ) THEN
+      WHILE TS.EnumerateSections( REF ES, OUT ErrorLine, OUT cs, TRUE ) DO
+         IF cs.EqualsOA( snRecord ) THEN
             IF NOT TS.GetKeyStr( knRecordType, OUT ErrorLine, OUT S ) THEN
                Error( Texts._MissingRecordTypeInRecord, ErrorLine );
                GOTO Fail;
-            ELSIF NOT RecordTypes.Get( S, OUT TypeList ) THEN
+            ELSIF NOT RecordTypes.Get( S, OUT TypeList, OUT d ) THEN
                Error( Texts._UnknownRecordType, ErrorLine );
                GOTO Fail;
             ELSIF NOT TS.GetKeyStr( knName, OUT ErrorLine, OUT S ) THEN
@@ -565,34 +573,34 @@ CLASS IMPLEMENTATION CDriver;
             ELSE
 
                ValueList := NEW( lists.CPtrList );
-               TypeList^.Reset();
-               WHILE TypeList^.MoveNext() DO
+               TypeListIterator.Init( TypeList^, collection.dirForward );
+               WHILE TypeListIterator.MoveNext() DO
                   IF ChannelIndex = 1 THEN
                      Error( Texts._ChannelOneReserved, ErrorLine );
                      GOTO Fail;
                   END;
-                  FOR i := 0 TO CARDINAL( LOPTRLONGWORD( TypeList^.CurrentData )) - 1 DO
+                  FOR i := 0 TO CARDINAL( LOPTRLONGWORD( TypeListIterator.Data )) - 1 DO
                      IF FieldToValue.Contains( ChannelIndex ) THEN
                         Error( Texts._ChannelIndexDuplicated, ErrorLine );
                         GOTO Fail;
                      END;
                      Value := NEW( iovalue.Value );
-                     Value^.Type := iovalue.TValueType( TypeList^.Current );
+                     Value^.Type := iovalue.TType( TypeListIterator.Value );
                      ValueList^.Add( Value, 0 );
-                     FieldToValue.Add( ChannelIndex, Value );
+                     FieldToValue.Add( ChannelIndex, Value, 0 );
                      INC( ChannelIndex );
                   END;
                END; // WHILE
-               Records.Add( S, ValueList );
+               Records.Add( S, ValueList, 0 );
 
             END;
          END;
       END; // WHILE
 
       // remove temporary structures
-      RecordTypes.Reset();
-      WHILE RecordTypes.MoveNext() DO
-         DISPOSE( lists.TPIntegerList( RecordTypes.CurrentData ));
+      RecordTypesIterator.Init( RecordTypes, collection.dirForward );
+      WHILE RecordTypesIterator.MoveNext() DO
+         DISPOSE( lists.TPIntegerList( RecordTypesIterator.Data ));
       END; // WHILE
       RecordTypes.Dispose();
 
@@ -600,9 +608,9 @@ CLASS IMPLEMENTATION CDriver;
 
    Fail:
       // remove temporary structures
-      RecordTypes.Reset();
-      WHILE RecordTypes.MoveNext() DO
-         DISPOSE( lists.TPIntegerList( RecordTypes.CurrentData ));
+      RecordTypesIterator.Init( RecordTypes, collection.dirForward );
+      WHILE RecordTypesIterator.MoveNext() DO
+         DISPOSE( lists.TPIntegerList( RecordTypesIterator.Data ));
       END; // WHILE
       RecordTypes.Dispose();
 
@@ -626,6 +634,7 @@ CLASS IMPLEMENTATION CDriver;
 
   PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ): BOOLEAN;
   VAR
+    d : PTR;
     Value : iovalue.TPValue;
   BEGIN
     IF EnumerateState = 0 THEN
@@ -633,7 +642,7 @@ CLASS IMPLEMENTATION CDriver;
       Direction := drv_def.TDirection{drv_def.dirInput};
       DriverIndex := chStatus;
       Type := drv_def.vtLongCard;
-    ELSIF NOT FieldToValue.ElementAt( CARDINAL( EnumerateState )-1, OUT DriverIndex, OUT Value ) THEN
+    ELSIF NOT FieldToValue.ElementAt( CARDINAL( EnumerateState )-1, OUT DriverIndex, OUT Value, OUT d ) THEN
       RETURN FALSE;
     ELSE
        Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
@@ -699,6 +708,8 @@ CLASS IMPLEMENTATION CDriver;
 
   PUBLIC VIRTUAL PROCEDURE Dispose();
   VAR
+    itf : maps.CIntegerPtrMapIterator;
+    itr : maps.CStringPtrMapIterator;
     List : lists.TPPtrList;
     PClientLE : TPClientLE;
     PGroupLE : TPGroupLE;
@@ -711,14 +722,15 @@ CLASS IMPLEMENTATION CDriver;
     EventsLock.Unlock();
 
     // kill user records structures
-    FieldToValue.Reset();
-    WHILE FieldToValue.MoveNext() DO
-       DISPOSE( iovalue.TPValue( FieldToValue.CurrentData ));
+    itf.Init( FieldToValue, collection.dirForward );
+    WHILE itf.MoveNext() DO
+       DISPOSE( iovalue.TPValue( itf.Data ));
     END; // WHILE
     FieldToValue.Dispose();
-    Records.Reset();
-    WHILE Records.MoveNext() DO
-       List := lists.TPPtrList( Records.CurrentData );
+
+    itr.Init( Records, collection.dirForward );
+    WHILE itr.MoveNext() DO
+       List := lists.TPPtrList( itr.Data );
        IF List <> NIL THEN
          DISPOSE( List );
        END;
@@ -727,13 +739,13 @@ CLASS IMPLEMENTATION CDriver;
 
     // kill client/server groups
     ClientsLock.Lock();
-    WHILE Groups.GetFirst( OUT PGroupLE ) DO
+    WHILE Groups.colGetFirst( OUT PGroupLE ) DO
       PGroupLE^.Clients.Dispose();
       Groups.Remove( PGroupLE );
       DISPOSE( PGroupLE );
     END; // WHILE
 
-    WHILE Clients.GetFirst( OUT PClientLE ) DO
+    WHILE Clients.colGetFirst( OUT PClientLE ) DO
       IF PClientLE^.PClient <> NIL THEN
         PClientLE^.PClient^.Release();
       END;
@@ -741,6 +753,8 @@ CLASS IMPLEMENTATION CDriver;
       DISPOSE( PClientLE );
     END; // WHILE
     ClientsLock.Unlock();
+
+    LogConfig.DisposeAppenderList( REF AppenderList );
   END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -753,10 +767,12 @@ CLASS IMPLEMENTATION CDriver;
     structItemSep = StringsO.WCHARS{ structItemSepChar };
   VAR
     c, i : CARDINAL;
+    d : PTR;
     Group : ARRAY [0..63] OF WCHAR;
     IAddress : inetaddr.INETADDR;
     len : CARDINAL;
     List : lists.TPPtrList;
+    ListIterator : lists.CPtrListIterator;
     
     Payload : TTransport;
     PPacket : TPPacket;
@@ -784,16 +800,16 @@ CLASS IMPLEMENTATION CDriver;
        IF EQUALS( Name, L'record' ) THEN // a record will be sent, not user data
           SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 4, TRUE, OUT Name );
           SW.FromOA( Name );
-          IF NOT Records.Get( SW, OUT List ) THEN
+          IF NOT Records.Get( SW, OUT List, OUT d ) THEN
              SW.FromOA( OAsz( R[ Texts._UnknownRecord ] ));
              RETURN FALSE;
           END;
        
           // construct data
-          List^.Reset();
-          WHILE List^.MoveNext() DO
+          ListIterator.Init( List^, collection.dirForward );
+          WHILE ListIterator.MoveNext() DO
              SW.AppendOA( structItemSepChar );
-             iovalue.TPValue( List^.Current )^.ToString( OUT S, TRUE );
+             iovalue.TPValue( ListIterator.Value )^.ToString( OUT S, TRUE );
              SW.Append( S );
           END; // WHILE
           Payload := trStruct;
@@ -842,7 +858,7 @@ CLASS IMPLEMENTATION CDriver;
         *)
 
         EventsLock.Lock();
-        b := Events.GetFirst( OUT PELE );
+        b := Events.colGetFirst( OUT PELE );
         IF b THEN
           Events.Remove( PELE );
         ELSE  
@@ -944,39 +960,39 @@ CLASS IMPLEMENTATION CDriver;
           | evDataReceived2Success, evStructReceived2Success :
             CASE PELE^.Event.PPacket^.TR OF
             | trString :
-					c := PELE^.Event.PacketLen - hdr;
-					IF c = 0 THEN
-						SW.Clear();
-					ELSE
-						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
-					END;
-			   | trStruct :
-					c := PELE^.Event.PacketLen - hdr;
-					IF c = 0 THEN
-						SW.Clear();
-					ELSE
-						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
-					END;
+               c := PELE^.Event.PacketLen - hdr;
+               IF c = 0 THEN
+                  SW.Clear();
+               ELSE
+                  SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
+               END;
+            | trStruct :
+               c := PELE^.Event.PacketLen - hdr;
+               IF c = 0 THEN
+                  SW.Clear();
+               ELSE
+                  SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
+               END;
 
-					// detach data, name of record will become data
-					i := SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
-					IF S.Empty THEN
-					   SW.FromOA( L"$empty" );
-					ELSIF NOT Records.Get( S, OUT List ) THEN
-					   SW.FromOA( L"$unknown " );
-					   SW.Append( S );
-					ELSE // decompose data
-					   
-					   List^.Reset();
+               // detach data, name of record will become data
+               i := SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
+               IF S.Empty THEN
+                  SW.FromOA( L"$empty" );
+               ELSIF NOT Records.Get( S, OUT List, OUT d ) THEN
+                  SW.FromOA( L"$unknown " );
+                  SW.Append( S );
+               ELSE // decompose data
+                  
+                  ListIterator.Init( List^, collection.dirForward );
                   i := SW.ItemS( structItemSep, i, 0, FALSE, OUT S );
-                  WHILE ( i <> -1 ) AND List^.MoveNext() DO
-                     iovalue.TPValue( List^.Current )^.FromString( S, TRUE );
+                  WHILE ( i <> -1 ) AND ListIterator.MoveNext() DO
+                     iovalue.TPValue( ListIterator.Value )^.FromString( S, TRUE );
                      i := SW.ItemS( structItemSep, i, 0, FALSE, OUT S );
                   END; // WHILE
                   SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
                   SW := S;
-					  
-		         END;
+                 
+               END;
             END;
 
           //-----
@@ -1141,12 +1157,12 @@ CLASS IMPLEMENTATION CDriver;
           PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
         ELSE // send all clients
           ClientsLock.Lock();
-          b := Clients.GetFirst( OUT PClientLE );
+          b := Clients.colGetFirst( OUT PClientLE );
           WHILE b DO
             IF ( PClientLE^.PClient <> NIL ) AND ( PClientLE^.Name[0] = L'$' ) AND ( PClientLE^.Group[0] <> L' ' ) THEN
               PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
             END;
-            b := Clients.NextOf( PClientLE, OUT PClientLE );
+            b := Clients.colNextOf( PClientLE, OUT PClientLE );
           END; // WHILE
           ClientsLock.Unlock();
         END;
@@ -1171,7 +1187,7 @@ CLASS IMPLEMENTATION CDriver;
         END;
         NEW( PGroupLE );
         ASSIGN( PGroupLE^.Name, Name );
-        Groups.Append( PGroupLE );
+        Groups.Add( PGroupLE );
 
         ClientsLock.Unlock();
       
@@ -1183,10 +1199,10 @@ CLASS IMPLEMENTATION CDriver;
           ClientsLock.Unlock();
           GOTO Error;
         END;
-        b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
+        b := PGroupLE^.Clients.colGetFirst( OUT PClientGroupLE );
         LOOP
           PClientGroupLE^.PClientLE^.PClient^.Connect( PClientGroupLE^.PClientLE^.PClient^.Connection );
-          b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
+          b := PGroupLE^.Clients.colNextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
         ClientsLock.Unlock();
@@ -1199,10 +1215,10 @@ CLASS IMPLEMENTATION CDriver;
           ClientsLock.Unlock();
           GOTO Error;
         END;
-        b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
+        b := PGroupLE^.Clients.colGetFirst( OUT PClientGroupLE );
         LOOP
           PClientGroupLE^.PClientLE^.PClient^.Disconnect( PClientGroupLE^.PClientLE^.PClient^.Connection );
-          b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
+          b := PGroupLE^.Clients.colNextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
         ClientsLock.Unlock();
@@ -1240,12 +1256,12 @@ CLASS IMPLEMENTATION CDriver;
 
         ClientsLock.Lock();
 
-        b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
+        b := PGroupLE^.Clients.colGetFirst( OUT PClientGroupLE );
         WHILE b DO
           IF PClientGroupLE^.PClientLE <> NIL THEN
             PClientGroupLE^.PClientLE^.PClient^.Send( PClientGroupLE^.PClientLE^.PClient^.Connection, 0, PPacket, len );
           END;
-          b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
+          b := PGroupLE^.Clients.colNextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
         ClientsLock.Unlock();
@@ -1301,15 +1317,15 @@ CLASS IMPLEMENTATION CDriver;
           IF NOT SearchGroup( Name, PGroupLE ) THEN
             NEW( PGroupLE );
             ASSIGN( PGroupLE^.Name, Name );
-            Groups.Append( PGroupLE );
+            Groups.Add( PGroupLE );
           END;
           NEW( PClientGroupLE );
           PClientGroupLE^.PClientLE := PClientLE;
-          PGroupLE^.Clients.Append( PClientGroupLE );
+          PGroupLE^.Clients.Add( PClientGroupLE );
         END;
         PClientLE^.Address := RAddr;
         NEW( PClientLE^.PClient );
-        Clients.Append( PClientLE );
+        Clients.Add( PClientLE );
 
         ClientsLock.Unlock();
 
@@ -1357,7 +1373,7 @@ CLASS IMPLEMENTATION CDriver;
         RemoveClientFromGroups( PClientLE );
         PClient := PClientLE^.PClient;
         // removed clients store data to allow notify correct information
-        RemovedClients.Append( PClientLE );
+        RemovedClients.Add( PClientLE );
 
         ClientsLock.Unlock();
 
@@ -1379,17 +1395,17 @@ CLASS IMPLEMENTATION CDriver;
           ClientsLock.Unlock();
           GOTO Error;
         END;
-        b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
+        b := PGroupLE^.Clients.colGetFirst( OUT PClientGroupLE );
         LOOP
           IF NOT b THEN
             NEW( PClientGroupLE );
             PClientGroupLE^.PClientLE := PClientLE;
-            PGroupLE^.Clients.Append( PClientGroupLE );
+            PGroupLE^.Clients.Add( PClientGroupLE );
             EXIT;
           ELSIF PClientGroupLE^.PClientLE = PClientLE THEN
             EXIT;
           END;
-          b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
+          b := PGroupLE^.Clients.colNextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
         ClientsLock.Unlock();
@@ -1408,7 +1424,7 @@ CLASS IMPLEMENTATION CDriver;
           ClientsLock.Unlock();
           GOTO Error;
         END;
-        b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
+        b := PGroupLE^.Clients.colGetFirst( OUT PClientGroupLE );
         LOOP
           IF NOT b THEN
             EXIT;
@@ -1417,7 +1433,7 @@ CLASS IMPLEMENTATION CDriver;
             DISPOSE( PClientGroupLE );
             EXIT;
           END;
-          b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
+          b := PGroupLE^.Clients.colNextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
         ClientsLock.Unlock();
@@ -1461,12 +1477,12 @@ CLASS IMPLEMENTATION CDriver;
 
         IF PClientLE = NIL THEN // send all clients
           ClientsLock.Lock();
-          b := Clients.GetFirst( OUT PClientLE );
+          b := Clients.colGetFirst( OUT PClientLE );
           WHILE b DO
             IF ( PClientLE^.PClient <> NIL ) AND ( PClientLE^.Name[0] <> L'$' ) THEN
               PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
             END;
-            b := Clients.NextOf( PClientLE, OUT PClientLE );
+            b := Clients.colNextOf( PClientLE, OUT PClientLE );
           END; // WHILE
           ClientsLock.Unlock();
         ELSE
@@ -1550,6 +1566,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
    VAR
+      d : PTR;
       Value : iovalue.TPValue;
    BEGIN
       ErrorCode := drv_def.ecSuccess;
@@ -1563,7 +1580,7 @@ CLASS IMPLEMENTATION CDriver;
          END;
          InValue.Integer := CARDINAL( RStatus * rssUser );
 
-      ELSIF NOT FieldToValue.Get( DriverIndex, OUT Value ) THEN
+      ELSIF NOT FieldToValue.Get( DriverIndex, OUT Value, OUT d ) THEN
          ErrorCode := drv_def.ecUnknownElement;
       
       ELSE
@@ -1581,10 +1598,11 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
    VAR
+      d : PTR;
       Value : iovalue.TPValue;
    BEGIN
       Result.Inc(); // locked by self
-      IF FieldToValue.Get( DriverIndex, OUT Value ) THEN
+      IF FieldToValue.Get( DriverIndex, OUT Value, OUT d ) THEN
          Value^ := OutValue;
       END;
    END OutputRequest;
@@ -1617,14 +1635,14 @@ CLASS IMPLEMENTATION CDriver;
     PClientLE : TPClientLE;
     b : BOOLEAN;
   BEGIN
-    b := Clients.GetFirst( OUT PClientLE );
+    b := Clients.colGetFirst( OUT PClientLE );
     WHILE b DO
       IF PClientLE^.Address = Address THEN
         RETURN TRUE;
       ELSIF EQUALS( PClientLE^.Name, Name ) THEN
         RETURN TRUE;
       END;
-      b := Clients.NextOf( PClientLE, OUT PClientLE );
+      b := Clients.colNextOf( PClientLE, OUT PClientLE );
     END;  // WHILE
     RETURN FALSE;
   END Exists;
@@ -1636,14 +1654,14 @@ CLASS IMPLEMENTATION CDriver;
     LPClientLE : TPClientLE;
     b : BOOLEAN;
   BEGIN
-    b := Clients.GetFirst( OUT LPClientLE );
+    b := Clients.colGetFirst( OUT LPClientLE );
     WHILE b DO
       IF LPClientLE^.PClient = NIL THEN // disconnected server stub
       ELSIF EQUALS( LPClientLE^.Name, Name ) THEN
         PClientLE := LPClientLE;
         RETURN TRUE;
       END;
-      b := Clients.NextOf( LPClientLE, OUT LPClientLE );
+      b := Clients.colNextOf( LPClientLE, OUT LPClientLE );
     END;  // WHILE
     RETURN FALSE;
   END SearchName;
@@ -1655,13 +1673,13 @@ CLASS IMPLEMENTATION CDriver;
     LPClientLE : TPClientLE;
     b : BOOLEAN;
   BEGIN
-    b := _Clients.GetFirst( OUT LPClientLE );
+    b := _Clients.colGetFirst( OUT LPClientLE );
     WHILE b DO
       IF LPClientLE^.Address = Address THEN
         PClientLE := LPClientLE;
         RETURN TRUE;
       END;
-      b := _Clients.NextOf( LPClientLE, OUT LPClientLE );
+      b := _Clients.colNextOf( LPClientLE, OUT LPClientLE );
     END;  // WHILE
     RETURN FALSE;
   END SearchNet;
@@ -1673,13 +1691,13 @@ CLASS IMPLEMENTATION CDriver;
     LPGroupLE : TPGroupLE;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT LPGroupLE );
+    b := Groups.colGetFirst( OUT LPGroupLE );
     WHILE b DO
       IF EQUALS( LPGroupLE^.Name, Name ) THEN
         PGroupLE := LPGroupLE;
         RETURN TRUE;
       END;
-      b := Groups.NextOf( LPGroupLE, OUT LPGroupLE );
+      b := Groups.colNextOf( LPGroupLE, OUT LPGroupLE );
     END;  // WHILE
     RETURN FALSE;
   END SearchGroup;
@@ -1692,18 +1710,18 @@ CLASS IMPLEMENTATION CDriver;
     PClientGroupLE, PN : TPClientGroupLE;
     b : BOOLEAN;
   BEGIN
-    b := Groups.GetFirst( OUT PGroupLE );
+    b := Groups.colGetFirst( OUT PGroupLE );
     WHILE b DO
-      b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
+      b := PGroupLE^.Clients.colGetFirst( OUT PClientGroupLE );
       WHILE b DO
-        b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PN );
+        b := PGroupLE^.Clients.colNextOf( PClientGroupLE, OUT PN );
         IF PClientGroupLE^.PClientLE = PClientLE THEN
           PGroupLE^.Clients.Remove( PClientGroupLE );
           DISPOSE( PClientGroupLE );
         END;
         PClientGroupLE := PN;
       END; // WHILE
-      b := Groups.NextOf( PGroupLE, OUT PGroupLE );
+      b := Groups.colNextOf( PGroupLE, OUT PGroupLE );
     END; // WHILE
   END RemoveClientFromGroups;
 
@@ -1726,7 +1744,7 @@ CLASS IMPLEMENTATION CDriver;
       PELE^.Event.Error := Error;
 
       EventsLock.Lock();
-      Events.Append( PELE );
+      Events.Add( PELE );
       EventsLock.Unlock();
 
       Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evConnect/client ", CARDINAL( evConnect ));
@@ -1764,7 +1782,7 @@ CLASS IMPLEMENTATION CDriver;
       Strings.PrependW( REF PClientLE^.Name, L'$' );
       PClientLE^.Group := L' ';
       PClientLE^.Address := PConnection^.RemoteAddress;
-      Clients.Append( PClientLE );
+      Clients.Add( PClientLE );
       NEW( PClientLE^.PClient );
 
       ClientsLock.Unlock();
@@ -1801,7 +1819,7 @@ CLASS IMPLEMENTATION CDriver;
     PELE^.Event.Error := Error;
 
     EventsLock.Lock();
-    Events.Append( PELE );
+    Events.Add( PELE );
     EventsLock.Unlock();
 
     Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evDisconnect", CARDINAL( evDisconnect ));
@@ -1885,12 +1903,12 @@ CLASS IMPLEMENTATION CDriver;
       IF NOT SearchGroup( Name, PGroupLE ) THEN
         NEW( PGroupLE );
         ASSIGN( PGroupLE^.Name, Name );
-        Groups.Append( PGroupLE );
+        Groups.Add( PGroupLE );
       END;
       NEW( PClientGroupLE );
       PClientGroupLE^.PClientLE := PClientLE;
       ASSIGN( PClientGroupLE^.PClientLE^.Group, Name );
-      PGroupLE^.Clients.Append( PClientGroupLE );
+      PGroupLE^.Clients.Add( PClientGroupLE );
 
       ClientsLock.Unlock();
 
@@ -1904,7 +1922,7 @@ CLASS IMPLEMENTATION CDriver;
       Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Add evConnect/remote ", CARDINAL( evConnect ));
 
       EventsLock.Lock();
-      Events.Append( PELE );
+      Events.Add( PELE );
       IF rsEventsPending IN RStatus THEN
         EventsLock.Unlock();
         RETURN;
@@ -1935,7 +1953,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
       EventsLock.Lock();
-      Events.Append( PELE );
+      Events.Add( PELE );
       EventsLock.Unlock();
 
       NEW( PELE );
@@ -1961,7 +1979,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
       EventsLock.Lock();
-      Events.Append( PELE );
+      Events.Add( PELE );
       IF rsEventsPending IN RStatus THEN
         EventsLock.Unlock();
         RETURN;

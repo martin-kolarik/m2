@@ -4,8 +4,10 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
    device,
    io,
+   iplugin,
    lec,
    lists,
    loader,
@@ -22,14 +24,15 @@ IMPORT
 TYPE
    TPBridge = POINTER TO ABridge;
 
-ABSTRACT CLASS ABridge IMPLEMENTS
+ABSTRACT CLASS ABridge( baseobject.CDisposable ) IMPLEMENTS
    thread.IRunnable,
    device.IConfigurable,
    io.IStartStopControl,
-   sdapClient.ISDAPClientEvents;
+   sdapClient.ISDAPClientEvents,
+   loader.IPluginLoadAuthorizer;
 
    // IRunnable
-   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( Restarted : BOOLEAN; CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 
    // IConfigurable
 	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
@@ -45,15 +48,19 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
 
+   // ILibraryLoadAuthorizer
+   PUBLIC VIRTUAL PROCEDURE AuthorizedToLoad( CONST Plugin : iplugin.TPPlugin ) : BOOLEAN;
+
    // SELF
    PRIVATE VAR
       _Logger : log.CLogger;
+      _AppenderList : lists.CPtrList;
       _SDAPHost : StringsO.CString;
       _SDAPClient : sdapClient.TPISDAPClient;
       _Loader : loader.CLoader;
       _Devices : lists.CStringList;
       _Data : lists.CPtrList;
-      _Lookup : maps.CStringMap;
+      _Lookup : maps.CStringPtrMap;
       _Thread : thread.Thread;
       _Connecting : BOOLEAN;
       _PeriodCounter : CARDINAL;
@@ -63,8 +70,6 @@ ABSTRACT CLASS ABridge IMPLEMENTS
       _WriteQueue : lists.CStringStringList;
       _Result : lec.CResult;
    
-   PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT device : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
-
    PUBLIC VIRTUAL PROCEDURE Dispose();
 END ABridge;
 

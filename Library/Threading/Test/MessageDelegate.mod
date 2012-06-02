@@ -1,7 +1,7 @@
 MODULE MessageDelegate;
 
 FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
+   ALLOCATE, DEALLOCATE, Zero;
 
 IMPORT
    log,
@@ -75,6 +75,32 @@ END CDelegate;
 
 (*===========================================================================*)
 
+CLASS CMessages;
+   PRIVATE VAR
+      _Messages : ARRAY [0..LIMIT-1] OF msghandler.Message;
+   PUBLIC READONLY
+      INDEX( Index : INTEGER ) : msghandler.TPIMessage;
+END CMessages;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CMessages;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC INDEX CMessages GET( Index : INTEGER ) : msghandler.TPIMessage;
+   BEGIN
+      RETURN ADR( _Messages[ Index ] );
+   END CMessages;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   _Messages[0].Message := 0;
+END CMessages;
+
+(*===========================================================================*)
+
 CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -114,8 +140,8 @@ CLASS IMPLEMENTATION CTest;
 
    PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN ) : BOOLEAN;
    VAR
-      MH : ARRAY [0..LIMIT-1] OF msghandler.TPMessageHandler;
-      MSGS : ARRAY [0..LIMIT-1] OF msghandler.Message;
+      MH : ARRAY [0..LIMIT-1] OF msghandler.TPIMessageTarget;
+      MSGS : POINTER TO CMessages := NEW( CMessages );
       Failure : BOOLEAN := FALSE;
       i : CARDINAL;
       lcount : CARDINAL;
@@ -143,7 +169,7 @@ CLASS IMPLEMENTATION CTest;
          Count := 0;
          // initiate
          FOR i := 0 TO lcount-1 DO
-            IF NOT Pool^.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, OUT MH[i], OUT MSGS[i], OUT PH[i] ) THEN
+            IF NOT Pool^.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, OUT MH[i], OUT MSGS^[i]^, OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
@@ -151,7 +177,7 @@ CLASS IMPLEMENTATION CTest;
 
          // test
          FOR i := lcount-1 TO 0 BY -1 DO
-            MH[i]^.Message( MSGS[i], msghandler.delAsynchronous, NIL );
+            MH[i]^.Message( MSGS^[i]^, msghandler.delAsynchronous, NIL );
             IF CompletionInOwningThread THEN
                WaitForMessages( 5 );
             END;
@@ -163,12 +189,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      IF Count = lcount THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Host^.StopPhaseWithResult( Count = lcount );
 
       //==========
       IF CompletionInOwningThread THEN
@@ -180,7 +201,7 @@ CLASS IMPLEMENTATION CTest;
          Count := 0;
          // initiate
          FOR i := 0 TO lcount-1 DO
-            IF NOT Pool^.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, OUT MH[i], OUT MSGS[i], OUT PH[i] ) THEN
+            IF NOT Pool^.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, OUT MH[i], OUT MSGS^[i]^, OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.lcError, 0, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
@@ -201,12 +222,9 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      IF Count = lcount THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Host^.StopPhaseWithResult( Count = lcount );
+
+      DISPOSE( MSGS );
 
       RETURN Failure;
    END Round;

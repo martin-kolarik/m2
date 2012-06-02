@@ -5,7 +5,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
   
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
   windows;
@@ -18,6 +18,7 @@ IMPORT
   winerror;
 
 IMPORT
+  collection,
   FIO,
   Strings;
 
@@ -76,8 +77,10 @@ END CConnectionPoint;
 (*---------------------------------------------------------------------------*)
 
 CLASS CIEnumConnectionPoints( CInterface );
-  PIConnectionPointContainer : TPIConnectionPointContainer;
-  PActive                    : TPConnectionPoint;
+   PRIVATE VAR
+      Iterator : list.CListIterator;
+
+   PUBLIC PROCEDURE Init( CONST ConnectionPoints : collection.ICollection );
 
   PUBLIC VIRTUAL PROCEDURE Next( celt : windows.ULONG; rgelt : TPPIConnectionPoint; pceltFetched : windows.PULONG ) : wtypes.HRESULT;
   PUBLIC VIRTUAL PROCEDURE Skip( celt : windows.ULONG ) : wtypes.HRESULT;
@@ -102,8 +105,10 @@ END CAdvisedClient;
 (*# save, call( convention => stdcall ) *)
 
 CLASS CIEnumConnections( CInterface );
-  PIConnectionPoint : TPIConnectionPoint;
-  PActive           : TPAdvisedClient;
+   PRIVATE VAR
+      Iterator : list.CListIterator;
+
+   PUBLIC PROCEDURE Init( CONST AdvisedClients : collection.ICollection );
 
   PUBLIC VIRTUAL PROCEDURE Next( cConnections : windows.ULONG; rgpcd : ocidl.PCONNECTDATA; pcFetched : windows.PULONG ) : wtypes.HRESULT;
   PUBLIC VIRTUAL PROCEDURE Skip( cConnections : windows.ULONG ) : wtypes.HRESULT;
@@ -448,14 +453,17 @@ CLASS IMPLEMENTATION CIConnectionPointContainer;
 
   PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
   VAR
+    it : list.CListIterator;
     PConnectionPoint : TPConnectionPoint;
   BEGIN
     IF ReferenceCount = 1 THEN
-      WHILE ConnectionPoints.GetFirst( OUT PConnectionPoint ) DO
-        ConnectionPoints.Remove( PConnectionPoint );
+      it.Init( ConnectionPoints, collection.dirForward );
+      WHILE it.MoveNext() DO
+        PConnectionPoint := TPConnectionPoint( it.Current );
         PConnectionPoint^.IConnectionPoint.Release();
         DISPOSE( PConnectionPoint );
       END; // WHILE
+      ConnectionPoints.Dispose();
     END;
     RETURN SUPER.Release();
   END Release;
@@ -474,7 +482,7 @@ CLASS IMPLEMENTATION CIConnectionPointContainer;
 (*%E DEBUG *)
 
     PCEnum^.AddRef();
-    PCEnum^.PIConnectionPointContainer := ADR( SELF );
+    PCEnum^.Init( ConnectionPoints );
     ppEnum := PCEnum;
 
     RETURN winerror.S_OK;
@@ -484,17 +492,17 @@ CLASS IMPLEMENTATION CIConnectionPointContainer;
 
   PUBLIC VIRTUAL PROCEDURE FindConnectionPoint( CONST riid : guiddef.IID; VAR ppCP : TPIConnectionPoint ) : wtypes.HRESULT;
   VAR
+    it : list.CListIterator;
     PConnectionPoint : TPConnectionPoint;
-    b : BOOLEAN;
   BEGIN
-    b := ConnectionPoints.GetFirst( OUT PConnectionPoint );
-    WHILE b DO
+    it.Init( ConnectionPoints, collection.dirForward );
+    WHILE it.MoveNext() DO
+      PConnectionPoint := TPConnectionPoint( it.Current );
       IF PConnectionPoint^.IConnectionPoint.IID = riid THEN
         ppCP := ADR( PConnectionPoint^.IConnectionPoint );
         ppCP^.AddRef();
         RETURN winerror.S_OK;
       END;
-      b := ConnectionPoints.NextOf( PConnectionPoint, OUT PConnectionPoint );
     END; // WHILE
     RETURN olectl.CONNECT_E_NOCONNECTION;
   END FindConnectionPoint;
@@ -537,7 +545,7 @@ CLASS IMPLEMENTATION CIConnectionPointContainer;
       PConnectionPoint^.IConnectionPoint.IID := IID;
       PConnectionPoint^.IConnectionPoint.PITypeInfo := PITypeInfo;
       PConnectionPoint^.IConnectionPoint.AddRef();
-      ConnectionPoints.Append( PConnectionPoint );
+      ConnectionPoints.Add( PConnectionPoint );
     END; // LOOP
 
     RETURN TRUE;
@@ -563,6 +571,13 @@ CLASS IMPLEMENTATION CIEnumConnectionPoints;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST ConnectionPoints : collection.ICollection );
+   BEGIN
+      Iterator.Init( ConnectionPoints, collection.dirForward );
+   END Init;
+
+(*---------------------------------------------------------------------------*)
+
   PUBLIC VIRTUAL PROCEDURE Next( celt : windows.ULONG; rgelt : TPPIConnectionPoint; pceltFetched : windows.PULONG ) : wtypes.HRESULT;
   TYPE
     TCA = ARRAY [0..0] OF TPIConnectionPoint;
@@ -570,27 +585,14 @@ CLASS IMPLEMENTATION CIEnumConnectionPoints;
   VAR
     HR : wtypes.HRESULT;
     i : CARDINAL;
-    b : BOOLEAN;
   BEGIN
-    IF PActive = NIL THEN
-      b := PIConnectionPointContainer^.ConnectionPoints.GetFirst( OUT PActive );
-    ELSE
-      b := PIConnectionPointContainer^.ConnectionPoints.Contains( PActive ) AND PIConnectionPointContainer^.ConnectionPoints.NextOf( PActive, OUT PActive );
-    END;
-    IF NOT b THEN
-      RETURN winerror.S_FALSE;
-    END;
-
     // rgelt is caller allocated (found in INET)!!!
     // rgelt := objbase.CoTaskMemAlloc( celt * SIZE( TPIConnectionPoint ));
     i := 0;
-    WHILE i < CARDINAL( celt ) DO
-      TPCA( rgelt )^[i] := ADR( PActive^.IConnectionPoint );
+    WHILE ( i < CARDINAL( celt )) AND Iterator.MoveNext() DO
+      TPCA( rgelt )^[i] := ADR( TPConnectionPoint( Iterator.Current )^.IConnectionPoint );
       TPCA( rgelt )^[i]^.AddRef();
       INC( i );
-      IF NOT PIConnectionPointContainer^.ConnectionPoints.NextOf( PActive, OUT PActive ) THEN
-        EXIT;
-      END;
     END; // WHILE
 
     IF i = CARDINAL( celt ) THEN
@@ -610,11 +612,8 @@ CLASS IMPLEMENTATION CIEnumConnectionPoints;
   VAR
     i : CARDINAL;
   BEGIN
-    IF NOT PIConnectionPointContainer^.ConnectionPoints.Contains( PActive ) THEN
-      RETURN winerror.S_FALSE;
-    END;
     i := 0;
-    WHILE ( i < CARDINAL( celt )) AND PIConnectionPointContainer^.ConnectionPoints.NextOf( PActive, OUT PActive ) DO
+    WHILE ( i < CARDINAL( celt )) AND Iterator.MoveNext() DO
       INC( i );
     END;
     IF i = CARDINAL( celt ) THEN
@@ -628,7 +627,7 @@ CLASS IMPLEMENTATION CIEnumConnectionPoints;
 
   PUBLIC VIRTUAL PROCEDURE Reset() : wtypes.HRESULT;
   BEGIN
-    PActive := NIL;
+    Iterator.Reset();
     RETURN winerror.S_OK;
   END Reset;
 
@@ -638,8 +637,7 @@ CLASS IMPLEMENTATION CIEnumConnectionPoints;
   BEGIN
     NEW( ppEnum );
     ppEnum^.PInterfaceFactory := PInterfaceFactory;
-    ppEnum^.PIConnectionPointContainer := PIConnectionPointContainer;
-    ppEnum^.PActive := PActive;
+    ppEnum^.Init( Iterator.OfCollection^ );
     RETURN winerror.S_OK;
   END Clone;
 
@@ -647,8 +645,6 @@ CLASS IMPLEMENTATION CIEnumConnectionPoints;
 
 BEGIN
   IID := ocidl.IID_IEnumConnectionPoints;
-  PIConnectionPointContainer := NIL;
-  PActive := NIL;
 END CIEnumConnectionPoints;
 
 (*===========================================================================*)
@@ -718,7 +714,7 @@ CLASS IMPLEMENTATION CIConnectionPoint;
     PAClient^.PClient := pUnk;
     PAClient^.PClient^.AddRef(); // I will call Release in Unadvise()
     PAClient^.PIDispatch_Event:= PIDispatch_Event;
-    AdvisedClients.Append( PAClient );
+    AdvisedClients.Add( PAClient );
 
     dwCookie := LOPTRLONGWORD( PAClient );
     RETURN winerror.S_OK;
@@ -750,7 +746,7 @@ CLASS IMPLEMENTATION CIConnectionPoint;
     NEW( ppEnum );
     ppEnum^.PInterfaceFactory := PInterfaceFactory;
     ppEnum^.AddRef();
-    ppEnum^.PIConnectionPoint := ADR( SELF );
+    ppEnum^.Init( AdvisedClients );
     RETURN winerror.S_OK;
   END EnumConnections;
 
@@ -768,33 +764,27 @@ CLASS IMPLEMENTATION CIEnumConnections;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Init( CONST AdvisedClients : collection.ICollection );
+   BEGIN
+      Iterator.Init( AdvisedClients, collection.dirForward );
+   END Init;
+
+(*---------------------------------------------------------------------------*)
+
   PUBLIC VIRTUAL PROCEDURE Next( cConnections : windows.ULONG; rgpcd : ocidl.PCONNECTDATA; pcFetched : windows.PULONG ) : wtypes.HRESULT;
   VAR
     HR : wtypes.HRESULT;
     i : CARDINAL;
-    b : BOOLEAN;
   BEGIN
-    IF PActive = NIL THEN
-      b := PIConnectionPoint^.AdvisedClients.GetFirst( OUT PActive );
-    ELSE
-      b := PIConnectionPoint^.AdvisedClients.Contains( PActive ) AND PIConnectionPoint^.AdvisedClients.NextOf( PActive, OUT PActive );
-    END;
-    IF NOT b THEN
-      RETURN winerror.S_FALSE;
-    END;
-
     // rgpcd is CALLER allocated (found in INET)!!
     // rgpcd := objbase.CoTaskMemAlloc( cConnections * SIZE( ocidl.CONNECTDATA ));
     i := 0;
-    WHILE i < CARDINAL( cConnections ) DO
-      rgpcd^.pUnk := PActive^.PClient;
+    WHILE ( i < CARDINAL( cConnections )) AND Iterator.MoveNext()  DO
+      rgpcd^.pUnk := TPAdvisedClient( Iterator.Current )^.PClient;
       rgpcd^.pUnk^.AddRef();
-      rgpcd^.dwCookie := windows.DWORD( LOPTRLONGWORD( PActive ));
+      rgpcd^.dwCookie := windows.DWORD( LOPTRLONGWORD( Iterator.Current ));
       INC( rgpcd, SIZE( ocidl.CONNECTDATA ));
       INC( i );
-      IF NOT PIConnectionPoint^.AdvisedClients.NextOf( PActive, OUT PActive ) THEN
-        EXIT;
-      END;
     END; // WHILE
 
     IF i = CARDINAL( cConnections ) THEN
@@ -815,11 +805,8 @@ CLASS IMPLEMENTATION CIEnumConnections;
   VAR
     i : CARDINAL;
   BEGIN
-    IF NOT PIConnectionPoint^.AdvisedClients.Contains( PActive ) THEN
-      RETURN winerror.S_FALSE;
-    END;
     i := 0;
-    WHILE ( i < CARDINAL( cConnections )) AND PIConnectionPoint^.AdvisedClients.NextOf( PActive, OUT PActive ) DO
+    WHILE ( i < CARDINAL( cConnections )) AND Iterator.MoveNext() DO
       INC( i );
     END;
     IF i = CARDINAL( cConnections ) THEN
@@ -833,7 +820,7 @@ CLASS IMPLEMENTATION CIEnumConnections;
 
   PUBLIC VIRTUAL PROCEDURE Reset() : wtypes.HRESULT;
   BEGIN
-    PActive := NIL;
+    Iterator.Reset();
     RETURN winerror.S_OK;
   END Reset;
 
@@ -842,9 +829,7 @@ CLASS IMPLEMENTATION CIEnumConnections;
   PUBLIC VIRTUAL PROCEDURE Clone( VAR ppEnum : TPIEnumConnections ) : wtypes.HRESULT;
   BEGIN
     NEW( ppEnum );
-    ppEnum^.PIConnectionPoint^.PInterfaceFactory := PInterfaceFactory;
-    ppEnum^.PIConnectionPoint := PIConnectionPoint;
-    ppEnum^.PActive := PActive;
+    ppEnum^.Init( Iterator.OfCollection^ );
     RETURN winerror.S_OK;
   END Clone;
 
@@ -852,8 +837,6 @@ CLASS IMPLEMENTATION CIEnumConnections;
 
 BEGIN
   IID := ocidl.IID_IEnumConnections;
-  PIConnectionPoint := NIL;
-  PActive := NIL;
 END CIEnumConnections;
 
 (*===========================================================================*)
@@ -945,7 +928,7 @@ CLASS IMPLEMENTATION CActiveXControl;
       PInterface := PNativeIDispatch;
 
     ELSIF riid = ocidl.IID_IConnectionPoint THEN
-      IF PIConnectionPointContainer^.ConnectionPoints.GetFirst( OUT PConnectionPoint ) THEN
+      IF PIConnectionPointContainer^.ConnectionPoints.colGetFirst( OUT PConnectionPoint ) THEN
         PInterface := ADR( PConnectionPoint^.IConnectionPoint );
       END;
 
@@ -1063,11 +1046,10 @@ CLASS IMPLEMENTATION CActiveXControl;
   VAR
     DispatchParameters : oaidl.DISPPARAMS;
     HR : wtypes.HRESULT;
-    PClient : TPAdvisedClient;
+    it : list.CListIterator;
     PConnectionPoint : TPIConnectionPoint;
     PIDispatch : oaidl.TPIDispatch;
     Result : oaidl.VARIANT;
-    b : BOOLEAN;
   BEGIN
     HR := PIConnectionPointContainer^.FindConnectionPoint( EventIDispatchIID, PConnectionPoint );
     IF HR <> winerror.S_OK THEN
@@ -1079,16 +1061,15 @@ CLASS IMPLEMENTATION CActiveXControl;
     DispatchParameters.cArgs := HIGH( Parameters ) + 1;
     DispatchParameters.cNamedArgs := 0;
 
-    b := PConnectionPoint^.AdvisedClients.GetFirst( OUT PClient );
-    WHILE b DO
-      HR := PClient^.PClient^.QueryInterface( EventIDispatchIID, ADR( PIDispatch ));
+    it.Init( PConnectionPoint^.AdvisedClients, collection.dirForward );
+    WHILE it.MoveNext() DO
+      HR := TPAdvisedClient( it.Current )^.PClient^.QueryInterface( EventIDispatchIID, ADR( PIDispatch ));
       IF HR = winerror.S_OK THEN
         oleauto.VariantInit( ADR( Result ));
         PIDispatch^.Invoke( DispatchId, guiddef.IID_NULL, windows.LOCALE_USER_DEFAULT, oleauto.DISPATCH_METHOD, ADR( DispatchParameters ), ADR( Result ), NIL, NIL );
         PIDispatch^.Release();
         oleauto.VariantClear( ADR( Result ));
       END;
-      b := PConnectionPoint^.AdvisedClients.NextOf( PClient, OUT PClient );
     END; // WHILE
 
     PConnectionPoint^.Release();

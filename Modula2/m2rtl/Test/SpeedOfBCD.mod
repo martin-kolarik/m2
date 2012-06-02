@@ -11,7 +11,7 @@ TYPE
   PROCEDURE LongToBcd( A: LONGREAL ): PackedBcd;
   TYPE
     r = RECORD
-          CASE : SHORTCARD OF
+          CASE : CARD16 OF
           | 0: w0, w1, w2, w3 : CARD16;
           | 1: l0, l1 : CARD32;
 	        END;
@@ -24,7 +24,7 @@ TYPE
     rem : ARRAY [0..4] OF CARD16;
     buf2 : r;
     tmp : RECORD
-            CASE : SHORTCARD OF
+            CASE : CARD16 OF
             | 0: w0, w1 : CARD16;
             | 1: l0 : CARD32;
             END;
@@ -112,7 +112,7 @@ TYPE
     T2BCD = ARRAY [0..39] OF CARD8;
     TPBCD = POINTER TO TBCD;
     TPC8 = POINTER TO CARD8;
-    #if #not( PlatformName #startswith L"WinCE" ) #then
+    #if #not( Platform #startswith L"x86" ) #then
       TC = RECORD
              L, H : CARD32;
            END;
@@ -123,7 +123,7 @@ TYPE
   VAR
     BCD : T2BCD := BCInit;
     PB : TPC8;
-    #if #not( PlatformName #startswith L"WinCE" ) #then
+    #if Platform #startswith L"x86" #then
       FBCD : TBCD;
       PB2 : TPC8;
     #else
@@ -133,7 +133,7 @@ TYPE
       VL : CARD32;
     #endif
   BEGIN
-    #if #not( PlatformName #startswith L"WinCE" ) #then
+    #if Platform #startswith L"x86" #then
       ASM
         fld    qword ptr [R]
         fbstp  tbyte ptr [FBCD]

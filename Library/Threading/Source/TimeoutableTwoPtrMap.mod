@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE TimeoutableTwoPtrMap;
 
+FROM Debug IMPORT
+   AssertionW;
+
 IMPORT
    Sync;
   
@@ -22,7 +25,7 @@ CLASS CTimeoutableItem( avltree.CAVLTreeElem2 );
       Key1, Key2 : PTR := 0;
       // second key
       ElapsesOn : TStorage := 0;
-      Counter : TStorage := 0;
+      Counter : TStorage;
       // data
       Data : PTR := 0;
       Timeout : TStorage := 0;
@@ -85,6 +88,7 @@ CLASS IMPLEMENTATION CTimeoutableItem;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
+   Counter := 0;
 END CTimeoutableItem;
 
 //================================================================================
@@ -92,50 +96,6 @@ END CTimeoutableItem;
 CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
 
 //--------------------------------------------------------------------------------
-
-   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMap.Current1 GET : PTR;
-   BEGIN
-      IF _Current = -1 THEN
-         RETURN 0;
-      ELSE
-         RETURN TPTimeoutableItem( _Current )^.Key1;
-      END;
-   END CTimeoutableTwoPtrMap.Current1;
-
-//---------------------------------------------------------------------------
-
-   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMap.Current2 GET : PTR;
-   BEGIN
-      IF _Current = -1 THEN
-         RETURN 0;
-      ELSE
-         RETURN TPTimeoutableItem( _Current )^.Key2;
-      END;
-   END CTimeoutableTwoPtrMap.Current2;
-
-//---------------------------------------------------------------------------
-
-   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMap.CurrentData GET : PTR;
-   BEGIN
-      IF _Current = -1 THEN
-         RETURN NIL;
-      ELSE
-         RETURN TPTimeoutableItem( _Current )^.Data;
-      END;
-   END CTimeoutableTwoPtrMap.CurrentData;
-
-//---------------------------------------------------------------------------
-
-   PUBLIC PROPERTY CTimeoutableTwoPtrMap.CurrentData SET( Data : PTR );
-   BEGIN
-      IF _Current = -1 THEN
-         RETURN;
-      ELSE
-         TPTimeoutableItem( _Current )^.Data := Data;
-      END;
-   END CTimeoutableTwoPtrMap.CurrentData;
-
-//---------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key1, Key2 : PTR; Data : PTR; Timeout : CARDINAL );
    VAR
@@ -171,7 +131,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
    BEGIN
       I.Key1 := Key1;
       I.Key2 := Key2;
-      Delete( ADR( I ));
+      Delete( 0, ADR( I ));
    END Remove;
 
 //--------------------------------------------------------------------------------
@@ -182,7 +142,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
    BEGIN
       I.Key1 := Key1;
       I.Key2 := Key2;
-      RETURN SUPER.Contains( ADR( I ));
+      RETURN SUPER.Contains( 0, ADR( I ));
    END Contains;
 
 //--------------------------------------------------------------------------------
@@ -194,7 +154,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
    BEGIN
       I.Key1 := Key1;
       I.Key2 := Key2;
-      IF NOT Search( ADR( I ), OUT PI ) THEN
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;
       Data := PI^.Data;
@@ -207,7 +167,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
    VAR
       PI : TPTimeoutableItem;
    BEGIN
-      IF NOT OfIndexI( 0, Index, OUT PI ) THEN
+      IF NOT ElementAt( 0, Index, OUT PI ) THEN
          RETURN FALSE;
       ELSE
          Key1 := PI^.Key1;
@@ -224,7 +184,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
    VAR
       PI : TPTimeoutableItem;
    BEGIN
-      IF NOT OfIndexI( 1, Index, OUT PI ) THEN
+      IF NOT ElementAt( 1, Index, OUT PI ) THEN
          RETURN FALSE;
       ELSE
          Key1 := PI^.Key1;
@@ -273,7 +233,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       elapsesBy : TDifference;
       TI : TPTimeoutableItem;
    BEGIN
-      IF NOT GetFirstI( 1, OUT TI ) THEN
+      IF NOT GetFirst( 1, OUT TI ) THEN
          RETURN FALSE;
       ELSIF TI^.Timeout = TStorage( Sync.FOREVER ) THEN
          RETURN FALSE;
@@ -296,8 +256,60 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
 
 BEGIN
   Counter := 0;
-  Indexes := 2;
+  KeyCount := 2;
 END CTimeoutableTwoPtrMap;
+
+//================================================================================
+
+CLASS IMPLEMENTATION CTimeoutableTwoPtrMapIterator;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMapIterator.Key1 GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPTimeoutableItem( Current )^.Key1;
+      END;
+   END CTimeoutableTwoPtrMapIterator.Key1;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMapIterator.Key2 GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPTimeoutableItem( Current )^.Key2;
+      END;
+   END CTimeoutableTwoPtrMapIterator.Key2;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMapIterator.Value GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPTimeoutableItem( Current )^.Data;
+      END;
+   END CTimeoutableTwoPtrMapIterator.Value;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC PROPERTY CTimeoutableTwoPtrMapIterator.Value SET( Data : PTR );
+   BEGIN
+      IF Current = NIL THEN
+         RETURN;
+      ELSE
+         TPTimeoutableItem( Current )^.Data := Data;
+      END;
+   END CTimeoutableTwoPtrMapIterator.Value;
+
+//---------------------------------------------------------------------------
+
+END CTimeoutableTwoPtrMapIterator;
 
 //================================================================================
 

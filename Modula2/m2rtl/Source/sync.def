@@ -18,6 +18,7 @@ TYPE
    TAsyncResult = ( // Sync this with IDLs !!!
       // initial, undefined value
       arUnknown,
+         arInitial = arUnknown,
 
       // successes
       arCompleted, // whole sucessfull completion
@@ -36,7 +37,8 @@ TYPE
       arAlreadyPending, // not started -- something is pending now (= busy)
          arBusy = arAlreadyPending,
       arCannotStart, // not started, no resources
-         arFailed = arCannotStart
+         arFailed = arCannotStart,
+      arUnsupportedDirection // e.g. read only
    );
    TAsyncResults = SET OF TAsyncResult;
 
@@ -63,13 +65,23 @@ PROCEDURE SpinLockLeave( REF Data : PTR );
 // generic interfaces
 
 TYPE
-   PILock = POINTER TO ILock;
+   TPILock = POINTER TO ILock;
 
-INTERFACE ILock;
+INTERFACE ILock; // for any two way lock, ILock means stronger locking
    PROCEDURE Lock() : TAsyncResult;
    PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult;
    PROCEDURE Unlock();
 END ILock;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPILockR = POINTER TO ILockR;
+
+INTERFACE ILockR( ILock ); // enhances ILock for weaker locking
+   PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
+   PROCEDURE UnlockRead();
+END ILockR;
 
 (*================================================================================*)
 // locking
@@ -127,16 +139,25 @@ PROCEDURE RawWait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
 PROCEDURE RawState( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
 
 // primitive atomic operations
+CONST
+   ivSET = 1; // interlocked value
+   ivNOTSET = 0;
+
 // for synchronization issues preferably use SpinLock* procedures above to leave system-wide compatible behavior
-PROCEDURE ICmpExchg( REF Destination : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
-PROCEDURE ICmpExchgPtr( REF Destination : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
-PROCEDURE IDec( REF Addend : INT32 ) : INT32;
-PROCEDURE IExchg( REF Target : INT32; Value : INT32 ) : INT32;
-PROCEDURE IExchgAdd( REF Addend : INT32; Value : INT32 ) : INT32;
-PROCEDURE IExchgPtr( REF Destination : ADDRESS; Value : ADDRESS ) : ADDRESS;
-PROCEDURE IInc( REF Addend : INT32 ): INT32;
-PROCEDURE IGet( REF Value : INT32 ) : INT32;
-PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
+PROCEDURE ICmpExchg( REF Variable : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
+PROCEDURE ICmpExchgPtr( REF Variable : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
+PROCEDURE IDec( REF Variable : INT32 ) : INT32;
+PROCEDURE IExchg( REF Variable : INT32; Value : INT32 ) : INT32;
+PROCEDURE IExchgAdd( REF Variable : INT32; Value : INT32 ) : INT32;
+PROCEDURE IExchgPtr( REF Variable : ADDRESS; Value : ADDRESS ) : ADDRESS;
+PROCEDURE IInc( REF Variable : INT32 ) : INT32;
+PROCEDURE IGet( REF Variable : INT32 ) : INT32;
+PROCEDURE IGetPtr( REF Variable : ADDRESS ) : ADDRESS;
+
+// synchronized access to typed values
+PROCEDURE IGetAR( REF Variable : TAsyncResult ) : TAsyncResult;
+PROCEDURE ISetAR( REF Variable : TAsyncResult; NewValue : TAsyncResult );
+PROCEDURE IExchgAR( REF Variable : TAsyncResult; NewValue : TAsyncResult; OUT PreviousValue : TAsyncResult ) : BOOLEAN; // returns if value changed
 
 (*--------------------------------------------------------------------------------*)
 // atomic signalling
@@ -147,13 +168,14 @@ TYPE
 
 CLASS SIGNAL IMPLEMENTS ILock;
    PRIVATE VAR
-      Type : TSignalType := stSpin;
+      _Type : TSignalType := stSpin;
       Spin : CARDINAL;
       Data : PTR; // initially reset
       _Lock : LOCK;
    PUBLIC PROPERTY
       State : BOOLEAN;
    PUBLIC READONLY PROPERTY
+      Type : TSignalType;
       RawHandle : WAITABLE;
 
    // ILock
@@ -176,9 +198,9 @@ END SIGNAL;
 
 // "static" methods
 CONST
-   stSET = TRISTATE( 1 );
-   stNOTSET = TRISTATE( 0 );
-   stINVALID = TRISTATE( -1 );
+   sgSET = TRISTATE( 1 );
+   sgNOTSET = TRISTATE( 0 );
+   sgINVALID = TRISTATE( -1 );
 
 PROCEDURE CreateSignal( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitialState : BOOLEAN ) : PSIGNAL;
 PROCEDURE DeleteSignal( REF Signal : PSIGNAL );
@@ -194,7 +216,26 @@ PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
 TYPE
    PRWLOCK = POINTER TO RWLOCK;
 
-CLASS RWLOCK IMPLEMENTS ILock; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
+CLASS RWLOCK IMPLEMENTS ILockR; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
+
+   // ILock, locks for writing
+   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   PUBLIC VIRTUAL PROCEDURE Unlock();
+
+   // ILockR, locks for reading
+   PUBLIC VIRTUAL PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   PUBLIC VIRTUAL PROCEDURE UnlockRead();
+
+   // SELF
+   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR ); // if lock time is expected to be short, use ltSpin, otherwise consider using of ltCS/ltMutex (they are the same for RWLock)
+   
+   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL ) : TAsyncResult;
+   PUBLIC PROCEDURE UnlockWrite();
+   
+   PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
+   PRIVATE PROCEDURE UnlockAndWakeUpAppropriateWaiters();
+
    PRIVATE VAR
       _Lock : LOCK;
       Owners : INTEGER;
@@ -203,46 +244,40 @@ CLASS RWLOCK IMPLEMENTS ILock; // single writer, multiple readers, fast; inspire
       ReadSignal : SIGNAL;
       ReadWaiters : CARDINAL;
 
-   // ILock, locks for writing
-   PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
-   PUBLIC VIRTUAL PROCEDURE Unlock();
-
-   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR ); // if lock time is expected to be short, use ltSpin, otherwise consider using of ltCS/ltMutex (they are the same for RWLock)
-   
-   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL ) : TAsyncResult;
-   PUBLIC PROCEDURE UnlockWrite();
-   
-   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
-   PUBLIC PROCEDURE UnlockRead();
-   
-   PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
-   PRIVATE PROCEDURE UnlockAndWakeUpAppropriateWaiters();
 END RWLOCK;
 
 (*================================================================================*)
 // continuation of locking
 // automatic lock
 
-CLASS AutoLock IMPLEMENTS ILock; // gets outer ILock, locks it inside ASSIGN and Attach, unlocks it inside FINALLY
+CLASS AutoLock IMPLEMENTS ILockR; // gets outer ILock, locks it inside Take, unlocks it inside FINALLY
 
    // ILock, locks for writing
    PUBLIC VIRTUAL PROCEDURE Lock() : TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    PUBLIC VIRTUAL PROCEDURE Unlock();
 
-   // own   
-   PRIVATE VAR
-      _OwnedLock : PILock;
-      _Timeout : CARDINAL;
-   PUBLIC PROPERTY
-      Timeout : CARDINAL;
+   // ILockR, locks for reading
+   PUBLIC VIRTUAL PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
+   PUBLIC VIRTUAL PROCEDURE UnlockRead();
+
+   // SELF
+   PUBLIC PROCEDURE Take( REF LockToOwn : ILock; Timeout : CARDINAL ) : Sync.TAsyncResult; // locks for write
+   PUBLIC PROCEDURE TakeSafe( REF LockToOwn : ILock; CONST FailureDescription : ARRAY OF WCHAR ) : Sync.TAsyncResult; // locks for write, uses FORSAFETY
+
+   PUBLIC PROCEDURE TakeRead( REF LockToOwn : ILock; Timeout : CARDINAL ) : Sync.TAsyncResult; // effective for RWLOCK, locks for READ
+   PUBLIC PROCEDURE TakeReadSafe( REF LockToOwn : ILock; CONST FailureDescription : ARRAY OF WCHAR ) : Sync.TAsyncResult; // effective for RWLOCK, locks for READ, uses FORSAFETY
+
+   PUBLIC PROCEDURE Attach( REF LockToOwn : ILock ); // does not lock
+   PUBLIC PROCEDURE Detach() : TPILock; // does not unlock
 
    PUBLIC FINALLY AutoLock();
 
-   PUBLIC PROCEDURE Take( REF LockToOwn : ILock ) : Sync.TAsyncResult; // locks, uses timeout
-   PUBLIC PROCEDURE Attach( REF LockToOwn : ILock ); // does not lock
-   PUBLIC PROCEDURE Detach() : PILock; // does not unlock
+   PRIVATE VAR
+      _OwnedLock : TPILock;
+      _Read : BOOLEAN;
+
+   PRIVATE OPERATOR NEW( size : CARDINAL ) : ADDRESS; // the class cannot exist on the heap
 
 END AutoLock;
 
@@ -292,42 +327,6 @@ CLASS OneToOneQueue;
 END OneToOneQueue;
 
 (*--------------------------------------------------------------------------------*)
-// WriteBuffer: multiple producers, multiple clients GetItem, indexes turn around Size --
-// a modification of Reader/Writer lock which erases old items on write and does not consume anything on read
-
-TYPE
-   TPWriteBuffer = POINTER TO WriteBuffer;
-   
-CLASS WriteBuffer; // in-process only
-  INTERNAL READONLY VAR
-    _Head : CARDINAL;
-    _Tail : CARDINAL;
-    _Lock : RWLOCK;
-  INTERNAL VAR
-    _Size : CARDINAL := 256;
-  PUBLIC READONLY PROPERTY
-    Count : CARDINAL;
-    Empty : BOOLEAN;
-    Full : BOOLEAN;
-  PUBLIC VIRTUAL PROPERTY
-    Size : CARDINAL;
-
-  // common
-  PUBLIC PROCEDURE Clear();
-
-  // writers
-  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN; // Overwrite in case of fill buffer rewrites first item, NOT Overwrite in that case returns FALSE
-  PUBLIC PROCEDURE CommitProducing();
-
-  // readers
-  PUBLIC PROCEDURE StartReading( Index : CARDINAL; OUT ReadFrom : CARDINAL ) : BOOLEAN;
-  PUBLIC PROCEDURE CommitReading();
-
-  // helper
-  INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
-END WriteBuffer;
-
-(*--------------------------------------------------------------------------------*)
 // NToOneQueue: multiple producers, single consumer, single length (1) blocks
 
 TYPE
@@ -366,6 +365,41 @@ ABSTRACT CLASS NToOneQueue;
   // helper
   INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
 END NToOneQueue;
+
+(*--------------------------------------------------------------------------------*)
+// WriteBuffer: multiple producers, indexes turn around Size, single length (1) blocks
+
+TYPE
+   TPWriteBuffer = POINTER TO WriteBuffer;
+   
+CLASS WriteBuffer; // in-process only
+  INTERNAL READONLY VAR
+    _Head : CARDINAL;
+    _Tail : CARDINAL;
+    _Lock : RWLOCK;
+  INTERNAL VAR
+    _Size : CARDINAL := 256;
+  PUBLIC READONLY PROPERTY
+    Count : CARDINAL;
+    Empty : BOOLEAN;
+    Full : BOOLEAN;
+  PUBLIC VIRTUAL PROPERTY
+    Size : CARDINAL;
+
+  // common
+  PUBLIC PROCEDURE Clear();
+
+  // writers
+  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN; // Overwrite in case of fill buffer rewrites first item, NOT Overwrite in that case returns FALSE
+  PUBLIC PROCEDURE CommitProducing();
+
+  // readers
+  PUBLIC PROCEDURE StartReading( Index : CARDINAL; OUT ReadFrom : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitReading();
+
+  // helper
+  INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
+END WriteBuffer;
 
 (*================================================================================*)
 

@@ -166,6 +166,13 @@ END ToHex;
 
 (*================================================================================*)
 
+PROCEDURE BASE64InputGranularity() : CARDINAL;
+BEGIN
+   RETURN 3;
+END BASE64InputGranularity;
+
+(*--------------------------------------------------------------------------------*)
+
 PROCEDURE BASE64CharCount( SrcBytes : CARDINAL ) : CARDINAL;
 BEGIN
    RETURN ( SrcBytes + 2 ) DIV 3 * 4;

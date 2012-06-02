@@ -2,8 +2,8 @@ DEFINITION MODULE cache;
 
 IMPORT
    device,
-   iobject,
    iocached,
+   iplugin,
 	log,
 	ns;
 
@@ -12,8 +12,8 @@ IMPORT
 TYPE
    TPCache = POINTER TO ICache;
 
-INTERFACE ICache( iobject.IObject ); // aka device driver
-	PROCEDURE NS() : ns.TPns;
+INTERFACE ICache( iplugin.IPluginObject ); // aka device driver
+	PROCEDURE NS() : ns.TPNamespace;
 	PROCEDURE IO() : iocached.TPIOCached;
 	PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
 END ICache;

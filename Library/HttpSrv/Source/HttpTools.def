@@ -11,48 +11,6 @@ IMPORT
 
 #save, option( dll_export => on )
 
-TYPE
-   TContent = (
-      contentUnknown,
-      contentApplicationBinary, // default, application/octet-stream
-      contentDefault = contentApplicationBinary,
-
-      contentTextPlain,
-      contentTextHTML,
-      contentTextXHTML,
-      contentTextXML,
-      contentTextCSS,
-      contentTextCSV,
-      contentApplicationJS
-   );
-   
-   TContentSet = SET OF TContent;
-   
-CONST
-   ENCODING_SENSITIVE_CONTENT = TContentSet{ contentTextPlain, contentTextHTML, contentTextCSS, contentTextCSV, contentApplicationJS };
-   TAGGED_CONTENT = TContentSet{ contentTextHTML, contentTextXHTML, contentTextXML };
-   
-CONST
-   CONTENT_TYPE_TEXT   = L"text/plain";
-   CONTENT_TYPE_HTML   = L"text/html";
-   CONTENT_TYPE_XHTML  = L"application/xhtml+xml";
-   CONTENT_TYPE_XML    = L"text/xml";
-   CONTENT_TYPE_CSS    = L"text/css";
-   CONTENT_TYPE_CSV    = L"text/csv";
-   CONTENT_TYPE_JS     = L"application/javascript";
-   CONTENT_TYPE_BINARY = L"application/octet-stream";
-   
-   CHARSET_PREFIX      = L"charset"; // a part of 'text/html; charset=<charset>'
-
-// if Content = contentUnknown then FileName is used, otherwise not
-// if Fallback = FALSE then FALSE is returned when mime type cannot be determined. Fallback MIME is application/octet-stream
-PROCEDURE FormatContent( Content : TContent; CONST FileName, RFC1766Code : StringsO.IString; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
-PROCEDURE FormatContentOA( Content : TContent; CONST FileName, RFC1766Code : ARRAY OF WCHAR; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
-PROCEDURE DecodeContent( CONST ContentHeader : StringsO.IString; OUT Content : TContent; OUT RFC1766Code : StringsO.IString ) : BOOLEAN;
-PROCEDURE DecodeContentOA( CONST ContentHeader : ARRAY OF WCHAR; OUT Content : TContent; OUT RFC1766Code : ARRAY OF WCHAR ) : BOOLEAN;
-
-(*---------------------------------------------------------------------------*)
-
 PROCEDURE DecodeLanguage( CONST AcceptLanguageHeader : StringsO.IString; OUT language : Languages.TLanguage ) : BOOLEAN;
 
 #restore
@@ -60,9 +18,9 @@ PROCEDURE DecodeLanguage( CONST AcceptLanguageHeader : StringsO.IString; OUT lan
 (*===========================================================================*)
 
 PROCEDURE FormatDate( CONST Date : datetime.DateTime ) : StringsO.CString;
-PROCEDURE FormatDateJD( Date : datetime.TJD ) : StringsO.CString;
+PROCEDURE FormatDateDC( Date : datetime.DayCount ) : StringsO.CString;
 PROCEDURE DecodeDate( CONST Encoded : StringsO.IString; OUT Date : datetime.DateTime ) : BOOLEAN;
-PROCEDURE DecodeDateJD( CONST Encoded : StringsO.IString; OUT Date : datetime.TJD ) : BOOLEAN;
+PROCEDURE DecodeDateDC( CONST Encoded : StringsO.IString; OUT Date : datetime.DayCount ) : BOOLEAN;
 
 (*---------------------------------------------------------------------------*)
 

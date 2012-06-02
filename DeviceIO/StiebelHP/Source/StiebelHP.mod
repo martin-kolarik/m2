@@ -3,13 +3,13 @@ IMPLEMENTATION MODULE StiebelHP;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
-   datetime,
+    datetime,
 	FIO,
-	iobject,
 	IOO,
+	LogConfig,
 	resources,
 	StorageO,
 	StringsO,
@@ -22,6 +22,9 @@ VAR
    R : resources.CResources;
 
 (*================================================================================*)
+
+CONST
+   DEFAULT_PORT = 10001;
 
 TYPE
 	TDeviceType = INT8(
@@ -107,7 +110,6 @@ END CBE;
 
 CLASS CNSI( nsitem.CnsItem );
 	LOCAL VAR
-      Value : iovalue.Value;
 		Multiplier : CARDINAL;
 END CNSI;
 
@@ -464,7 +466,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    	_PoolDelegate.TimeoutSink := ADR( SELF );
 
       Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Started" );
-      RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
+      RETURN Connection.OpenS( _DeviceAddress, DEFAULT_PORT, TRUE, 500 );
    END Start;
 
 (*---------------------------------------------------------------------------*)
@@ -478,6 +480,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
       Connection.Close();
       Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Stopped" );
+
+   	  LogConfig.DisposeAppenderList( REF _AppenderList );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -510,7 +514,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       Data : StorageO.CMemoryBuffer;
    BEGIN
-      Connection.Stream^.ReadBuffer( 2048, REF Data, 0 );
+      Connection.BufferedStream^.ReadBuffer( 2048, REF Data, 0 );
       HandleRx( Sync.arCompleted, REF Data );
       Connection.BufferedStream^.StartReading();
    END OnReadable;
@@ -613,7 +617,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       l : CARDINAL;
 	BEGIN
 	   IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.Data )) THEN
-         INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, OUT l );
+         LogConfig.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, REF _AppenderList, OUT l );
 
          // mandatory keys
          IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _DeviceAddress ) THEN
@@ -644,7 +648,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	BEGIN
 	   IF NOT Connection.Connected THEN
 	      Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
-         Connection.OpenS( _DeviceAddress, TRUE, 500 );
+         Connection.OpenS( _DeviceAddress, DEFAULT_PORT, TRUE, 500 );
 	   END;
 	
 		IF INTEGER( HIGH( Data )) >= 0 THEN // HACK
@@ -663,7 +667,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		END;
 
 		Logger.LogSCB( log.ldDebug, 0, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
-		Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
+		Result := Connection.BufferedStream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
 		IF Result = Sync.arTimeout THEN
 		   ASSERTLOG( FALSE );
 		END;
@@ -675,7 +679,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       StopTimeout( REF _TxTimeoutHandle );
       StopTimeout( REF _RxTimeoutHandle );
-		Connection.Stream^.AbortWriting();
+		Connection.BufferedStream^.AbortWriting();
    END Abort;
 
 //---------------------------------------------------------
@@ -988,13 +992,13 @@ CLASS IMPLEMENTATION CIO;
          item := TErrorItem( itemFor );
          IF Item^.Items[item] <> NIL THEN
             delegate.Reset();
-            Result := IOh( NIL, Direction, Item^.Items[item], REF Item^.Items[item]^.Value, ADR( delegate ));
+            Result := IOh( NIL, Direction, Item^.Items[item], REF Item^.Items[item]^.Value^, ADR( delegate ));
             IF Result <> Sync.arPending THEN
                _Callback := Delegate; // change delegate used for reporting back
                OnRx( Result, NIL );
                RETURN Result;
             END;
-            Result := delegate.WaitCompletion( Sync.FORSAFETY, OUT Item^.Items[item]^.Value );
+            Result := delegate.WaitCompletion( Sync.FORSAFETY, OUT Item^.Items[item]^.Value^ );
             IF Result <> Sync.arCompleted THEN
                _Callback := Delegate; // change delegate used for reporting back
                OnRx( Result, NIL );
@@ -1004,39 +1008,39 @@ CLASS IMPLEMENTATION CIO;
       END; // FOR
 
       IF Item^.Items[eiYear] = NIL THEN // item is time
-         dt.Minute := Item^.Items[eiMinute]^.Value.Integer;
-         dt.Hour := Item^.Items[eiHour]^.Value.Integer;
+         dt.Minute := Item^.Items[eiMinute]^.Value^.Integer;
+         dt.Hour := Item^.Items[eiHour]^.Value^.Integer;
          IF TimeFormat.Empty THEN // use default format
             b := dt.ToStringOA( L"HH:mm:ss", FALSE, TRUE, OUT s );
             IF NOT b THEN
                DeviceCommunicator.Logger.LogS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format: HH:mm:ss" );
             END;
          ELSE
-            b := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, OUT s );
+            b := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.Data ), FALSE, TRUE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.Data ));
             END;
          END;
-         dt.Day := Item^.Peer^.Items[eiDay]^.Value.Integer;
-         dt.Month := Item^.Peer^.Items[eiMonth]^.Value.Integer;
-         dt.Year := Item^.Peer^.Items[eiYear]^.Value.Integer;
+         dt.Day := Item^.Peer^.Items[eiDay]^.Value^.Integer;
+         dt.Month := Item^.Peer^.Items[eiMonth]^.Value^.Integer;
+         dt.Year := Item^.Peer^.Items[eiYear]^.Value^.Integer;
       ELSE
-         dt.Day := Item^.Items[eiDay]^.Value.Integer;
-         dt.Month := Item^.Items[eiMonth]^.Value.Integer;
-         dt.Year := Item^.Items[eiYear]^.Value.Integer + 2000;
+         dt.Day := Item^.Items[eiDay]^.Value^.Integer;
+         dt.Month := Item^.Items[eiMonth]^.Value^.Integer;
+         dt.Year := Item^.Items[eiYear]^.Value^.Integer + 2000;
          IF DateFormat.Empty THEN
             b := dt.ToStringOA( L"yyyy-MM-dd", TRUE, FALSE, OUT s );
             IF NOT b THEN
                DeviceCommunicator.Logger.LogS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format: yyyy-MM-dd" );
             END;
          ELSE
-            b := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, OUT s );
+            b := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.Data ), TRUE, FALSE, OUT s );
             IF NOT b THEN
-               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.ldTrace, 0, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.Data ));
             END;
          END;
-         dt.Minute := Item^.Peer^.Items[eiMinute]^.Value.Integer;
-         dt.Hour := Item^.Peer^.Items[eiHour]^.Value.Integer;
+         dt.Minute := Item^.Peer^.Items[eiMinute]^.Value^.Integer;
+         dt.Hour := Item^.Peer^.Items[eiHour]^.Value^.Integer;
       END;
       IF b THEN
          V.FromStringOA( s, FALSE );
@@ -1075,31 +1079,32 @@ CLASS IMPLEMENTATION CStiebelHPDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
+	PUBLIC FINAL PROCEDURE Dispose();
+	BEGIN
+      _IO.Stop();
+		_IO.Dispose();
+	END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Type GET : iplugin.TObjectType;
    BEGIN
-      RETURN iobject.otEphemeral;
+      RETURN iplugin.otEphemeral;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   PUBLIC FINAL PROPERTY OfPlugin GET : iplugin.TPPlugin;
    BEGIN
-      RETURN SUPER.Library;
-   END Library;
+      RETURN SUPER.OfPlugin;
+   END OfPlugin;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   PUBLIC FINAL PROPERTY OwnerHandle GET : PTR;
    BEGIN
-      SUPER.Library := Value;
-   END Library;
-
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC FINAL PROCEDURE OnDispose();
-	BEGIN
-		_IO.Dispose();
-	END OnDispose;
+      RETURN SUPER.OwnerHandle;
+   END OwnerHandle;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1153,9 +1158,6 @@ CLASS IMPLEMENTATION CStiebelHPDevice;
    
 (*---------------------------------------------------------------------------*)
 
-BEGIN FINALLY
-   _IO.Stop();
-	OnDispose();
 END CStiebelHPDevice;
 
 (*===========================================================================*)

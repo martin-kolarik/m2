@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE TextReader;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 IMPORT
    FIOO,
@@ -141,6 +141,8 @@ CLASS IMPLEMENTATION CTextReader;
                cl := 0;
             ELSIF ( Result = Sync.arNoData ) AND NOT Line.Empty THEN // last line not ended with CR must be returned as valid, NoData must come hereafter
                RETURN Sync.arCompleted;
+            ELSIF Result = Sync.arAborted THEN // here something could still in the buffer, try it
+               cl := 0; // fall down and continue
             ELSE
                RETURN Result;
             END;
@@ -308,8 +310,20 @@ CLASS IMPLEMENTATION CTextReader;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      RETURN _Stream^.Read( ADR( _SProxy ), TimeoutMS, WaitForResult );
+      IF WaitForResult THEN
+         _SProxy.Waitable := TRUE;
+      END;
+      Result := _Stream^.Read( ADR( _SProxy ), TimeoutMS, WaitForResult );
+      IF Result <> Sync.arAlreadyPending THEN // _SProxy is already known to the stream
+         RETURN Result;
+      ELSIF WaitForResult THEN
+         RETURN _SProxy.WaitCompletion( TimeoutMS );
+      ELSE
+         RETURN Sync.arPending;
+      END;
    END ReadFromStream;
 
 (*--------------------------------------------------------------------------------*)
@@ -355,7 +369,8 @@ CLASS IMPLEMENTATION CTextReader;
             charDataLength := i;
             charCommitLength := i+1;
             RETURN srBOM;
-         ELSIF current^ = 10W THEN
+         ELSIF ( LineEndStyle  = lesMAC ) AND ( current^ = 13W ) OR // mac
+               ( LineEndStyle <> lesMAC ) AND ( current^ = 10W ) THEN // unix, win
             IF CR THEN
                charDataLength := i-1;
             ELSE
@@ -365,6 +380,7 @@ CLASS IMPLEMENTATION CTextReader;
             RETURN srCompleteLine;
          END;
          CR := current^ = 13W;
+         ASSERT(( LineEndStyle <> lesMAC ) OR NOT CR ); // for mac CR here cannot be detected
          INC( i );
          IF i = l THEN
             IF NOT CR THEN // CR is not the last character

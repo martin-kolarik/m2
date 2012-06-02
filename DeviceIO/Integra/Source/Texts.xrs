@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <comment>CFG errors</comment>
+        <string name="_ConfigurationSectionMissing">
+            <item xml:space="preserve" lang="en-US">Section to load configuration of Integra is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Sekce pro konfiguraci Integra chybí: </item>
+        </string>
+        <string name="_HostKeyMissing">
+            <item lang="en-US">&quot;host&quot; key (remote RS-485 server) is missing</item>
+            <item lang="cs-CZ">Chybí parameter &quot;host&quot; (vzdálený RS-485 server)</item>
+        </string>
+        <string name="_AddressKeyMissing">
+            <item lang="en-US">&quot;address&quot; key (device communication address) is missing</item>
+            <item lang="cs-CZ">Chybí parameter &quot;address&quot; (komunikační adresa zařízení)</item>
+        </string>
+        <string name="_AreasKeyMissing">
+            <item lang="en-US">&quot;areas&quot; key (a key defining the section defining areas) is missing</item>
+            <item lang="cs-CZ">Chybí parameter &quot;areas&quot; (parametr definující sekci s definicí oblastí)</item>
+        </string>
+        <string name="_AreasSectionMissing">
+            <item xml:space="preserve" lang="en-US">The section defining areas is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Chybí sekce pro definici oblastí: </item>
+        </string>
+
+        <string name="_AreaAlreadyKnown">
+            <item xml:space="preserve" lang="en-US">Area is already known: </item>
+            <item xml:space="preserve" lang="cs-CZ">Oblast je již známá: </item>
+        </string>
+        <string name="_AreaNotFound">
+            <item xml:space="preserve" lang="en-US">A section with area definition was not found: </item>
+            <item xml:space="preserve" lang="cs-CZ">Sekce s definicí oblasti nebyla nalezena: </item>
+        </string>
+        <string name="_PartitionsKeyMissing">
+            <item xml:space="preserve" lang="en-US">&quot;partitions&quot; key is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Chybí klíč &quot;partitions&quot;: </item>
+        </string>
+        <string name="_PartitionUndefined">
+            <item lang="en-US">A part of partitions definition is empty</item>
+            <item lang="cs-CZ">Jeden z definovaných bloků je prázdný</item>
+        </string>
+        <string name="_UpperBoundaryOfPartitionIntervalIsMissing">
+            <item xml:space="preserve" lang="en-US">Upper bound of partition interval is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Chybí horní mez intervalu bloků: </item>
+        </string>
+        <string name="_UnableToConvertPartitionFrom">
+            <item xml:space="preserve" lang="en-US">The string is not a number: </item>
+            <item xml:space="preserve" lang="cs-CZ">Text nelze převést na číslo: </item>
+        </string>
+        <string name="_PartitionFromOutOfScope">
+            <item xml:space="preserve" lang="en-US">Partition number is out of the range (1..32): </item>
+            <item xml:space="preserve" lang="cs-CZ">Číslo bloku je mimo rozsah (1..32): </item>
+        </string>
+        <string name="_UnableToConvertPartitionTo">
+            <item xml:space="preserve" lang="en-US">The string is not a number: </item>
+            <item xml:space="preserve" lang="cs-CZ">Text nelze převést na číslo: </item>
+        </string>
+        <string name="_PartitionToOutOfScope">
+            <item xml:space="preserve" lang="en-US">Partition number is out of the range (1..32): </item>
+            <item xml:space="preserve" lang="cs-CZ">Číslo bloku je mimo rozsah (1..32): </item>
+        </string>
+        
+    </strings>
+</resources>

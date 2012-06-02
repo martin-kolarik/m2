@@ -15,50 +15,88 @@ FROM StringsO IMPORT
 (*================================================================================*)
 
 TYPE
-  TPPtrSyncMap = POINTER TO CPtrSyncMap;
+   TPPtrPtrSyncMap = POINTER TO CPtrPtrSyncMap;
+   TPPtrPtrSyncMapIterator = POINTER TO CPtrPtrSyncMapIterator;
 
-CLASS CPtrSyncMap( maps.CPtrMap ); // for enumerating (GetFirst/Last/Next/Prev or Reset/MoveNext) it must be locked explicitely
+CLASS CPtrPtrSyncMap( maps.CPtrPtrMap ); // for enumerating (GetFirst/Last/Next/Prev) it must be locked explicitely
+
    PRIVATE VAR
-      LOCK : Sync.RWLOCK;
+      _Lock : Sync.RWLOCK;
       
    PUBLIC READONLY PROPERTY
-      Lock : Sync.PRWLOCK;
+      Lock : Sync.TPILockR;
+
+   // TODO: Count, Empty
 
    PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-   PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
+   PUBLIC PROCEDURE Add( Key : PTR; Value, Data : PTR );
    PUBLIC PROCEDURE Remove( Key : PTR );
    PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
-END CPtrSyncMap;
+   PUBLIC PROCEDURE Get( Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( Key : PTR; Value, Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPPtrPtrSyncMapIterator;
+   #restore
+
+END CPtrPtrSyncMap;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CPtrPtrSyncMapIterator( maps.CPtrPtrMapIterator );
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CPtrPtrSyncMap; Direction : collection.TDirection );
+   PUBLIC PROCEDURE Stop();
+
+   PRIVATE VAR
+      _Map : TPPtrPtrSyncMap := NIL;
+
+END CPtrPtrSyncMapIterator;
 
 (*================================================================================*)
 
 TYPE
-  TPStringSyncMap = POINTER TO CStringSyncMap;
+   TPStringPtrSyncMap = POINTER TO CStringPtrSyncMap;
+   TPStringPtrSyncMapIterator = POINTER TO CStringPtrSyncMapIterator;
 
-CLASS CStringSyncMap( maps.CStringMap ); // for enumerating (GetFirst/Last/Next/Prev or Reset/MoveNext) it must be locked explicitely
+CLASS CStringPtrSyncMap( maps.CStringPtrMap ); // for enumerating (GetFirst/Last/Next/Prev) it must be locked explicitely
+
    PRIVATE VAR
-      LOCK : Sync.RWLOCK;
+      _Lock : Sync.RWLOCK;
       
    PUBLIC READONLY PROPERTY
-      Lock : Sync.PRWLOCK;
+      Lock : Sync.TPILockR;
+
+   // TODO: Count, Empty
 
    PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
 
-   PUBLIC PROCEDURE Add( CONST Key : IString; Data : PTR );
+   PUBLIC PROCEDURE Add( CONST Key : IString; Value, Data : PTR );
    PUBLIC PROCEDURE Remove( CONST Key : IString );
    PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
-   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Set( CONST Key : IString; Value, Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
 
-   PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; Data : PTR );
-   PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN; // similar as []
-END CStringSyncMap;
+   #save, option( leak_info => on )
+   PUBLIC PROCEDURE GetIterator() : TPStringPtrSyncMapIterator;
+   #restore
+
+END CStringPtrSyncMap;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CStringPtrSyncMapIterator( maps.CStringPtrMapIterator );
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CStringPtrSyncMap; Direction : collection.TDirection );
+   PUBLIC PROCEDURE Stop();
+
+   PRIVATE VAR
+      _Map : TPStringPtrSyncMap := NIL;
+
+END CStringPtrSyncMapIterator;
 
 (*================================================================================*)
 

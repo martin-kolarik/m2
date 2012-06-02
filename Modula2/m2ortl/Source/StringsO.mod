@@ -7,7 +7,7 @@ FROM Storage IMPORT
 FROM Strings IMPORT
    CapitalizeW, LowerizeW;
 FROM Debug IMPORT
-   Assertion;
+   AssertionW;
 
 IMPORT
    lrconv,
@@ -320,7 +320,10 @@ CLASS IMPLEMENTATION CString;
    VAR
       ps : TPCString;
    BEGIN
-      IF S IS CString THEN
+      IF ADR( S ) = ADR( IString ) THEN
+         ASSERT( FALSE );
+         RETURN;
+      ELSIF S IS CString THEN
          ps := TPCString( ADR( S ));
       ELSE // I cannot assume anything about S, use generic method
          Copy( S );
@@ -351,6 +354,10 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE CString.Copy( CONST S : IString );
    BEGIN
+      IF ADR( S ) = ADR( IString ) THEN
+         ASSERT( FALSE );
+         RETURN;
+      END;
       _Len := S.Length;
       ReallocateAndFork( _Len, 0 );
       IF _Len > 0 THEN
@@ -734,11 +741,12 @@ CLASS IMPLEMENTATION CString;
    PUBLIC VIRTUAL PROCEDURE CString.Item( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL;
    VAR
       i, l : CARDINAL;
+      s : CString;
    BEGIN
-      S.Length := 0; // avoid copying of S's data during fork in Size
-      S.Size := _Len; // preallocate space
-      i := Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.Data )), ADR( l ));
-      S.Length := l; // adjust real size
+      s.Size := _Len; // preallocate space
+      i := Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( s.Data )), ADR( l ));
+      s.Length := l; // adjust real size
+      S.Assign( s );
       RETURN i;
    END CString.Item;
 
@@ -747,11 +755,12 @@ CLASS IMPLEMENTATION CString;
    PUBLIC VIRTUAL PROCEDURE CString.ItemS( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL;
    VAR
       i, l : CARDINAL;
+      s : CString;
    BEGIN
-      S.Length := 0; // avoid copying of S's data during fork in Size
-      S.Size := _Len; // preallocate space
-      i := Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.Data )), ADR( l ));
-      S.Length := l; // adjust real size
+      s.Size := _Len; // preallocate space
+      i := Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( s.Data )), ADR( l ));
+      s.Length := l; // adjust real size
+      S.Assign( s );
       RETURN i;
    END CString.ItemS;
 
@@ -1086,6 +1095,26 @@ CLASS IMPLEMENTATION CString;
 (*--------------------------------------------------------------------------------*)
 
 END CString;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromOA( String : ARRAY OF WCHAR ) : CString;
+VAR
+   string : CString;
+BEGIN
+   string.FromOA( String );
+   RETURN string;
+END FromOA;
+
+(*--------------------------------------------------------------------------------*)
+
+VAR
+   _Empty : CString;
+
+PROCEDURE Empty() : CString;
+BEGIN
+   RETURN _Empty;
+END Empty;
 
 (*================================================================================*)
 

@@ -51,14 +51,14 @@ TYPE
               mon_grouping,
               positive_sign,
               negative_sign       : TPString;
-              int_frac_digits     : SHORTCARD;
-              frac_digits         : SHORTCARD;
+              int_frac_digits     : USHORT;
+              frac_digits         : USHORT;
               p_cs_precedes       : BOOLEAN;
               p_sep_by_space      : BOOLEAN;
               n_cs_precedes       : BOOLEAN;
               n_sep_by_space      : BOOLEAN;
-              p_sign_posn         : SHORTCARD;
-              n_sign_posn         : SHORTCARD;
+              p_sign_posn         : USHORT;
+              n_sign_posn         : USHORT;
             END;
 
 (* ANSI: char lconv members default is CHAR_MAX which is compile time

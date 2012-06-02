@@ -27,31 +27,31 @@ CLASS CXMLSocketServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopCo
 
    // SELF
    PRIVATE VAR
-      _Device : adviser.TPAdvisedDevice := NIL;
+      _DataSource : adviser.TPAdvisedDataSource := NIL;
       _CommonLogger : log.TPILogger := NIL;
       _NetworkLogger : log.TPILogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
-      _Clients : maps.CPtrMap;
+      _Clients : maps.CPtrPtrMap;
       _SendQueue : msgqueue.CPtrQueue;
+      _DefaultContext : StringsO.CString;
       
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
       
    PUBLIC PROPERTY
-      Device : adviser.TPAdvisedDevice;
+      DataSource : adviser.TPAdvisedDataSource;
       CommonLogger : log.TPILogger;
       NetworkLogger : log.TPILogger;
       ListenAddress : inetaddr.INETADDR;
+      DefaultContext : StringsO.CString;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
 
    PRIVATE PROCEDURE Parse( Connection : netconndispatch.TConnectionHandle; Client : ADDRESS; Data : ARRAY OF CHAR );
-   PRIVATE PROCEDURE HandleConnect();
-   PRIVATE PROCEDURE HandleDisconnect();
-   PRIVATE PROCEDURE HandleRead( CONST Name : ARRAY OF WCHAR; REF readRequests : arrays.TPPtrArray );
+   PRIVATE PROCEDURE HandleRead( CONST Name : ARRAY OF WCHAR; Client : ADDRESS; REF readRequests : arrays.TPPtrArray );
    PRIVATE PROCEDURE HandleWrite( CONST ia : inetaddr.INETADDR; CONST Name, Value : ARRAY OF WCHAR );
    PRIVATE PROCEDURE ScheduleSend( Client : ADDRESS; Items : arrays.TPPtrArray );
 

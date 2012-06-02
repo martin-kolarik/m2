@@ -4,13 +4,9 @@
     <PropertyGroup>
         <Manufacturer>NeNo</Manufacturer>
 
-        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
-        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
-        <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
-        <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Private</CLib>
-        <LeakChecking>off</LeakChecking>
-        <SetupLicensing>on</SetupLicensing>
+        <ProductVariant>Common</ProductVariant><!-- Common IBS -->
+
+        <SetupLicensing Condition="$(ProductVariant)!='IBS'">on</SetupLicensing>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='DevSDAPBridgeSvc'">

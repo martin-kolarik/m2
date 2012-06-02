@@ -4,12 +4,14 @@ IMPORT
    winsock;
 
 FROM Debug IMPORT
-   Assertion, LogAssertionW;
+   AssertionW;
 
 FROM Storage IMPORT
    Move;
 
 IMPORT
+   avltree,
+   collection,
    Strings,
    WS2TcpIp;
 
@@ -540,22 +542,20 @@ END ToOA;
 (*================================================================================*)
 
 TYPE
-  TPINETADDRItem = POINTER TO CINETADDRItem;
+  TPINETADDRPtrItem = POINTER TO CINETADDRPtrItem;
 
-CLASS CINETADDRItem( avltree.CAVLTreeElem );
-  PUBLIC VAR
+CLASS CINETADDRPtrItem( maps.CValueItem );
+
+  LOCAL VAR
     Key  : INETADDR;
-    Data : PTR;
 
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
-END CINETADDRItem;
+END CINETADDRPtrItem;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CINETADDRItem;
+CLASS IMPLEMENTATION CINETADDRPtrItem;
 
    PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
    VAR
@@ -563,7 +563,7 @@ CLASS IMPLEMENTATION CINETADDRItem;
       l1, l2 : CARDINAL;
    BEGIN
       l1 := Key.Length;
-      l2 := TPINETADDRItem( pelem )^.Key.Length;
+      l2 := TPINETADDRPtrItem( pelem )^.Key.Length;
       IF l1 < l2 THEN
          RETURN -1;
       ELSIF l1 > l2 THEN
@@ -572,7 +572,7 @@ CLASS IMPLEMENTATION CINETADDRItem;
          RETURN -1;
       END;
       a1 := Key.Data;
-      a2 := TPINETADDRItem( pelem )^.Key.Data;
+      a2 := TPINETADDRPtrItem( pelem )^.Key.Data;
       FOR i := 0 TO l1-1 DO
          IF PBYTE( a1@[i] )^ < PBYTE( a2@[i] )^ THEN
             RETURN -1;
@@ -583,146 +583,169 @@ CLASS IMPLEMENTATION CINETADDRItem;
       RETURN 0;
    END Compare;
 
-   // OPERATOR CINETADDRItem.NEW() : ADDRESS;
-   // VAR
-   //   a : ADDRESS;
-   // BEGIN
-   //   IF QuadwordAllocator.Allocate( OUT a, SIZE( CINETADDRItem )) THEN
-   //     RETURN a;
-   //   ELSE
-   //     RETURN NIL;
-   //   END;
-   // END CINETADDRItem.NEW;
-  
-   // OPERATOR CINETADDRItem.DISPOSE( a : ADDRESS );
-   // BEGIN
-   //   QuadwordAllocator.Deallocate( REF a );
-   // END CINETADDRItem.DISPOSE;
-
-BEGIN
-   Data := NIL;
-END CINETADDRItem;
+END CINETADDRPtrItem;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CINETADDRMap;
+CLASS IMPLEMENTATION CINETADDRPtrMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC READONLY PROPERTY CINETADDRMap.Current GET : TPINETADDR;
-   BEGIN
-      IF _Current = -1 THEN
-         ASSERTLOG( FALSE );
-         RETURN NIL;
-      ELSE
-         RETURN ADR( TPINETADDRItem( _Current )^.Key );
-      END;
-   END CINETADDRMap.Current;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC READONLY PROPERTY CINETADDRMap.CurrentData GET : PTR;
-   BEGIN
-      IF _Current = -1 THEN
-         ASSERTLOG( FALSE );
-         RETURN NIL;
-      ELSE
-         RETURN TPINETADDRItem( _Current )^.Data;
-      END;
-   END CINETADDRMap.CurrentData;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY CINETADDRMap.CurrentData SET( Data : PTR );
-   BEGIN
-      IF _Current = -1 THEN
-         ASSERTLOG( FALSE );
-         RETURN;
-      ELSE
-         TPINETADDRItem( _Current )^.Data := Data;
-      END;
-   END CINETADDRMap.CurrentData;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC READONLY INDEX CINETADDRMap GET( Index : CARDINAL ) : PTR;
+   PUBLIC READONLY INDEX CINETADDRPtrMap GET( Index : CARDINAL ) : PTR;
    VAR
-      PI : TPINETADDRItem;
+      PI : TPINETADDRPtrItem;
    BEGIN
-      PI := TPINETADDRItem( SUPER[ Index ] );
-      IF PI = NIL THEN
-         RETURN NIL;
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
+         RETURN PI^.Value;
       ELSE
-         RETURN PI^.Data;
+         RETURN NIL;
       END;
-   END CINETADDRMap;
+   END CINETADDRPtrMap;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CINETADDRMap.Add( CONST Key : INETADDR; Data : PTR );
+   PUBLIC PROCEDURE CINETADDRPtrMap.Add( CONST Key : INETADDR; Value, Data : PTR );
    VAR
-      PI : TPINETADDRItem;
+      PI : TPINETADDRPtrItem;
    BEGIN
       NEW( PI );
       PI^.Key := Key;
+      PI^.Value := Value;
       PI^.Data := Data;
-      Insert( PI );
-   END CINETADDRMap.Add;
+      SUPER.Add( PI );
+   END CINETADDRPtrMap.Add;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CINETADDRMap.Remove( CONST Key : INETADDR );
+   PUBLIC PROCEDURE CINETADDRPtrMap.Remove( CONST Key : INETADDR );
    VAR
-      I : CINETADDRItem;
+      I : CINETADDRPtrItem;
    BEGIN
       I.Key := Key;
-      Delete( ADR( I ));
-   END CINETADDRMap.Remove;
+      Delete( 0, ADR( I ));
+   END CINETADDRPtrMap.Remove;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CINETADDRMap.Contains( CONST Key : INETADDR ) : BOOLEAN;
+   PUBLIC PROCEDURE CINETADDRPtrMap.Contains( CONST Key : INETADDR ) : BOOLEAN;
    VAR
-      I : CINETADDRItem;
+      I : CINETADDRPtrItem;
    BEGIN
       I.Key := Key;
-      RETURN SUPER.Contains( ADR( I ));
-   END CINETADDRMap.Contains;
+      RETURN SUPER.Contains( 0, ADR( I ));
+   END CINETADDRPtrMap.Contains;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CINETADDRMap.Get( CONST Key : INETADDR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE CINETADDRPtrMap.Get( CONST Key : INETADDR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
    VAR
-      I : CINETADDRItem;
-      PI : TPINETADDRItem;
+      I : CINETADDRPtrItem;
+      PI : TPINETADDRPtrItem;
    BEGIN
       I.Key := Key;
-      IF NOT Search( ADR( I ), OUT PI ) THEN
+      IF NOT SUPER.Get( 0, ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;
+      Value := PI^.Value;
       Data := PI^.Data;
       RETURN TRUE;  
-   END CINETADDRMap.Get;
+   END CINETADDRPtrMap.Get;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CINETADDRMap.ElementAt( Index : CARDINAL; OUT Key : INETADDR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE CINETADDRPtrMap.ElementAt( Index : CARDINAL; OUT Key : INETADDR; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
-      PI : TPINETADDRItem;
+      PI : TPINETADDRPtrItem;
    BEGIN
-      PI := TPINETADDRItem( SUPER[ Index ] );
-      IF PI = NIL THEN
-         RETURN FALSE;
-      ELSE
+      IF SUPER.ElementAt( 0, Index, OUT PI ) THEN
          Key := PI^.Key;
+         Value := PI^.Value;
          Data := PI^.Data;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
-      RETURN TRUE;
-  END CINETADDRMap.ElementAt;
+  END CINETADDRPtrMap.ElementAt;
 
 (*--------------------------------------------------------------------------------*)
 
-END CINETADDRMap;
+   PUBLIC PROCEDURE CINETADDRPtrMap.GetIterator() : TPINETADDRPtrMapIterator;
+   VAR
+      iterator : TPINETADDRPtrMapIterator := NEW( CINETADDRPtrMapIterator );
+   BEGIN
+      iterator^.Init( SELF, collection.dirForward );
+      RETURN iterator;
+   END CINETADDRPtrMap.GetIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+END CINETADDRPtrMap;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CINETADDRPtrMapIterator;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Key GET : TPINETADDR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPINETADDRPtrItem( Current )^.Key );
+      END;
+   END Key;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPINETADDRPtrItem( Current )^.Value;
+      END;
+   END Value;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Value SET( value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPINETADDRPtrItem( Current )^.Value := value;
+      END;
+   END Value;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data GET : PTR;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN TPINETADDRPtrItem( Current )^.Data;
+      END;
+   END Data;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Data SET( Value : PTR );
+   BEGIN
+      IF Current <> NIL THEN
+         TPINETADDRPtrItem( Current )^.Data := Value;
+      END;
+   END Data;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST OfCollection : CINETADDRPtrMap; Direction : collection.TDirection );
+   BEGIN
+      SUPER.Init( OfCollection, Direction );
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+END CINETADDRPtrMapIterator;
 
 (*================================================================================*)
 

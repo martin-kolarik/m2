@@ -4,6 +4,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   baseobject,
+   delegate,
    StringsO,
    Sync,
    IOO;
@@ -17,74 +19,60 @@ IMPORT
 #save, option( dll_export => on )
 
 TYPE
-  TPIStartStopControl = POINTER TO IStartStopControl;
-  TPIO = POINTER TO IIO;
-  TPIAdviseInfo = POINTER TO IAdviseInfo;
   TPIDataInfo = POINTER TO IDataInfo;
   TPDataInfo = POINTER TO CDataInfo;
   TPCompletionDataInfo = POINTER TO CCompletionDataInfo;
-  TPOriginator = POINTER TO IOriginator;
+  TPStartStopControl = POINTER TO IStartStopControl;
+  TPIO = POINTER TO IIO;
+  TPStartStopHandler = POINTER TO IStartStopHandler;
 
-(*---------------------------------------------------------------------------*)
+(*===========================================================================*)
 
-INTERFACE IAdviseInfo;
-   // notification from device
-   PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
-END IAdviseInfo;
+INTERFACE IDataInfo( ns.IAdviseInfo );
 
-(*---------------------------------------------------------------------------*)
-
-INTERFACE IDataInfo( IAdviseInfo );
-   // called in case of any error (so for operations which has not started it is called too), for started operation OnError is called together with OnIO
+   // called in case of any error (so for operations which has not started it is called too), for started operation OnError is called together with OnIOCompleted
    PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
-   // called on completion of io operation (so for operations which has not started it is not called), for started operation OnIO is called together with OnError (if error occured)
-   PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
-   // notification from device inherited
-   // PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+
+   // called on completion of io operation (so for operations which has not started it is not called), for started operation OnIOCompleted is called together with OnError (if error occured)
+   PROCEDURE OnIOCompleted( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+
 END IDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDataInfo( Delegate.ADelegate );
+CLASS CDataInfo( delegate.Delegate ) IMPLEMENTS IDataInfo;
+
+   // IDataInfo
+   PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnIOCompleted( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( CONST Originator : ns.TPOriginator; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.TPNameValuePairs; CONST Value : ARRAY OF iovalue.Value );
+
+   // SELF
    PUBLIC VAR
-      AdviseSink : TPIAdviseInfo;
+      AdviseSink : ns.TPAdviseInfo;
       DataInfoSink : TPIDataInfo;
-   PUBLIC PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
-   PUBLIC PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
-   PUBLIC PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+
 END CDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS CCompletionDataInfo( CDataInfo ); // for single IO operation
+
+   // SELF
    PUBLIC PROCEDURE Reset();
    PUBLIC PROCEDURE WaitCompletion( TimeoutMS : CARDINAL; OUT Value : iovalue.Value ) : Sync.TAsyncResult;
+
 END CCompletionDataInfo;
 
-(*---------------------------------------------------------------------------*)
-
-INTERFACE IOriginator; // should be refactored? see #141
-   READONLY PROPERTY
-      Description : StringsO.CString;
-END IOriginator;
-
-(*---------------------------------------------------------------------------*)
+(*===========================================================================*)
 
 TYPE
    TCapability = (
       capArray,
-      capAdvise,
       capCache, // io has self cache, used in complex devices
       capSyncIO // io has synchronous interface, used in mainly complex devices (asynchronous operations are default)
    );
    TCapabilities = SET OF TCapability;
-
-TYPE
-   TAdvise = (
-      advNone,
-      advWithoutData,
-      advWithData
-   );
 
 (*---------------------------------------------------------------------------*)
 
@@ -107,17 +95,11 @@ INTERFACE IIO( IStartStopControl ); // single device, purpose is to have minimal
       IOCapabilities : TCapabilities;
       Pending : BOOLEAN;
       // IRunStopControl.Running : BOOLEAN;
-   PROPERTY
-      Advise : TAdvise;
-      AdviseListener : TPIAdviseInfo; // for Advise <> advNone
-
-   // PROCEDURE IStartStopControl.Start() : Sync.TAsyncResult;
-   // PROCEDURE IStartStopControl.Stop();
 
    // IOh, IOha MUST BE asynchronous in the terms, that callback is always called (if operation starts). Anyhow,
    // requirement to be asynchronous means, that there must not be any delays or suspensing inside the methods.
-   PROCEDURE IOh( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
-   PROCEDURE IOha( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+   PROCEDURE IOh( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+   PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
       // if operation is asynchronous input, then REF Value is not used and everything is returned to Callback
 
    PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
@@ -126,7 +108,7 @@ END IIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CSimpleOriginator IMPLEMENTS IOriginator;
+CLASS CSimpleOriginator( baseobject.BASE ) IMPLEMENTS ns.IOriginator;
 
    // IOriginator
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -147,11 +129,37 @@ ABSTRACT CLASS AItemizedIO IMPLEMENTS IIO; // used for devices with single item 
    // part of IIO
    PUBLIC VIRTUAL READONLY PROPERTY
       Capabilities : TCapabilities;
-   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : ns.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
 
 END AItemizedIO;
 
+(*===========================================================================*)
+
+INTERFACE IStartStopHandler;
+
+   PROCEDURE OnStart() : Sync.TAsyncResult;
+   PROCEDURE OnStop();
+
+END IStartStopHandler;
+
 (*---------------------------------------------------------------------------*)
+
+CLASS CSimpleStartStopHandler( baseobject.BASE ) IMPLEMENTS IStartStopControl;
+
+   PUBLIC FINAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC FINAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC FINAL PROCEDURE Stop();
+
+   PUBLIC VAR
+      StartStopSink : TPStartStopHandler := NIL;
+
+   PRIVATE VAR
+      _Running : Sync.SIGNAL;
+
+END CSimpleStartStopHandler;
+
+(*===========================================================================*)
 
 #restore
 
