@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{B3354F39-423B-4402-9990-4EB6A313D0FC}</ProjectGuid>
-    <RootNamespace>srvcore</RootNamespace>
+    <ProjectGuid>{CDE95733-D99A-4F80-8585-E9F2628F4FA9}</ProjectGuid>
+    <RootNamespace>LicTool</RootNamespace>
     <Keyword>MakeFileProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -36,10 +36,10 @@
     <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">~Build\</IntDir>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:ProductVariant=Supervisor</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
-    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lictool.exe</NMakeOutput>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <NMakeIncludeSearchPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
     <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
@@ -50,7 +50,7 @@
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
-    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Sign.exe</NMakeOutput>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <NMakeIncludeSearchPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
     <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
@@ -63,10 +63,9 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="Source\srvcore.mod" />
-    <None Include="Source\srvcore.def" />
-    <None Include="srvcore.proj" />
-    <None Include="Source\Texts.xrs" />
+    <None Include="Source\lictool.mod" />
+    <None Include="lictool.definition.proj" />
+    <None Include="lictool.proj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -11,7 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{2EC1CD71-998F-412B-99FD-5874C227A2A4}</ProjectGuid>
+    <ProjectGuid>{BB5A86DE-7A22-4314-AA65-46FA22F5020F}</ProjectGuid>
+    <RootNamespace>NetMsg</RootNamespace>
     <Keyword>MakeFileProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -38,7 +39,7 @@
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
-    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">eibnetstack.exe</NMakeOutput>
+    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <NMakeIncludeSearchPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
     <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
@@ -49,7 +50,7 @@
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
-    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">eibnetstack.exe</NMakeOutput>
+    <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NetMsg.exe</NMakeOutput>
     <NMakePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <NMakeIncludeSearchPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
     <NMakeForcedIncludes Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(NMakeForcedIncludes)</NMakeForcedIncludes>
@@ -62,17 +63,13 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="Source\browser.mod" />
-    <None Include="Source\core.mod" />
-    <None Include="Source\eibnet.mod" />
-    <None Include="Source\EIBNetStack.mod" />
-    <None Include="Source\browser.def" />
-    <None Include="Source\core.def" />
-    <None Include="Source\eibnet.def" />
-    <None Include="Source\EIBNetStack.def" />
-    <None Include="Test\Browse.mod" />
-    <None Include="Test\Tunneling.mod" />
-    <None Include="eibnetstack.proj" />
+    <None Include="Source\dllmain.mod" />
+    <None Include="Source\NetMsg.mod" />
+    <None Include="Source\Texts.xrs" />
+    <None Include="Source\export.def" />
+    <None Include="NetMsg.definition.proj" />
+    <None Include="NetMsg.proj" />
+    <None Include="Install\NetMsg.wxs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
