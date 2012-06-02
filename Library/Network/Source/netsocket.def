@@ -18,7 +18,7 @@ IMPORT
 (*================================================================================*)
 
 CONST // time	
-	FORSAFETY = 34543;
+   FORSAFETY = 34543;
 
 TYPE
   TPSSocket = POINTER TO SSocket;
@@ -95,23 +95,23 @@ CLASS SSocket( threadpool.APoolDelegate );
     _V6Mode      : TV6Mode := v6mPreferV6;
     _Broadcast   : BOOLEAN := FALSE; // for stDatagram
     Socket       : LONGWORD;
-    Local        : inetaddr.INETADDR;
+    Local        : inetaddr.INETADDR; // here in SSocket only for storing interface address
     Remote       : inetaddr.INETADDR; // here in SSocket only for storing mcast data
   PUBLIC READONLY VAR
     Result       : Sync.TAsyncResult; // for WaitCompletion, useless for listen
 
   PUBLIC PROPERTY
-    Type           : TSocketType;
-    Backlog        : CARDINAL;
-    Notifier       : TPSocketNotifier;
-    V6Mode         : TV6Mode;
-    LocalAddress   : inetaddr.INETADDR; // setting V4/V6 determines type of socket (also for DSocket and Connect)
+    Type : TSocketType;
+    Backlog : CARDINAL;
+    Notifier : TPSocketNotifier;
+    V6Mode : TV6Mode;
+    LocalAddress : inetaddr.INETADDR; // where to listen, V4/V6 determines type of socket
     MulticastGroup : inetaddr.INETADDR; // for stDatagram
-    Broadcast      : BOOLEAN; // for stDatagram, affects sending
-    Waitable       : BOOLEAN;
+    Broadcast : BOOLEAN; // for stDatagram, affects sending
+    Waitable : BOOLEAN;
   PUBLIC READONLY PROPERTY
-    Listening      : BOOLEAN;
-    DataAvailable  : CARDINAL; // for stDatagram
+    Listening : BOOLEAN;
+    DataAvailable : CARDINAL; // for stDatagram
 
   PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket, bind, getlocalname
   PUBLIC PROCEDURE Close( Persist : BOOLEAN ); // closesocket
@@ -120,7 +120,7 @@ CLASS SSocket( threadpool.APoolDelegate );
   PUBLIC PROCEDURE Listen( OUT Error : CARDINAL ) : Sync.TAsyncResult; // listen
   PUBLIC PROCEDURE Flush(); // blind recv, accept depending on SSocket.Type, flushes Listen queue
   
-	// for stDatagram
+   // for stDatagram
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE ReceiveFromOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL; OUT Address : inetaddr.INETADDR ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
@@ -152,6 +152,7 @@ CLASS DSocket( SSocket );
   PUBLIC PROPERTY
     RemoteAddress : inetaddr.INETADDR;
     KeepAliveTime : CARDINAL; // timeout after which KA probe is performed, default 300 s, INIFINITE means KA is off
+
   PUBLIC READONLY PROPERTY
     Connecting    : BOOLEAN;
     Connected     : BOOLEAN;
@@ -159,7 +160,7 @@ CLASS DSocket( SSocket );
     Readable      : BOOLEAN; // after remote shutdown the socked is formally closed, but it still can offer data
     DataAvailable : CARDINAL;
     
-	// Open, Close pair is in DSocket covered with Connect/Disconnet. Open/Close cannot be used (only as SSocket.Open/Close call)
+   // Open, Close pair is in DSocket covered with Connect/Disconnet. Open/Close cannot be used (only as SSocket.Open/Close call)
   PRIVATE PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
   PRIVATE PROCEDURE Close( Persist : BOOLEAN );
   // WaitCompletion() comes from SSocket

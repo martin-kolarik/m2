@@ -50,6 +50,7 @@ CLASS CInterfaceEnumerator( AInterfaceEnumerator );
    
    PUBLIC VIRTUAL READONLY PROPERTY
       Index : CARDINAL;
+      InterfaceIndex : CARDINAL;
       State : TState;
       Medium : TMedium;
       Addresses : CARDINAL;
@@ -138,6 +139,17 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
          RETURN _Index;
       END;
    END Index;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY InterfaceIndex GET : CARDINAL;
+   BEGIN
+      IF Current = NIL THEN
+         RETURN -1;
+      ELSE
+         RETURN Current^.IfIndex;
+      END;
+   END InterfaceIndex;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -284,6 +296,40 @@ BEGIN
    RETURN TRUE;
 END newInterfaceEnumerator;
   
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE IsValidInterface( CONST Address : inetaddr.INETADDR ) : BOOLEAN;
+VAR
+   addr : inetaddr.INETADDR;
+   assignment : TAssignment;
+   b : BOOLEAN;
+   enumerator : TPInterfaceEnumerator;
+   i : CARDINAL;
+   scope : inetaddr.TScope;
+   v6 : BOOLEAN := Address.V6;
+BEGIN
+   IF NOT newInterfaceEnumerator( NOT v6, v6, OUT enumerator ) THEN
+      RETURN FALSE;
+   END;
+
+   WHILE enumerator^.MoveNext() DO
+      IF enumerator^.State <> stUp THEN
+         CONTINUE;
+      END;
+      FOR i := 0 TO enumerator^.Addresses-1 DO
+         IF enumerator^.InetAddress( i, OUT addr, OUT b, OUT scope, OUT assignment ) AND
+            (( scope = inetaddr.scoLocalSite ) OR ( scope = inetaddr.scoGlobal )) AND
+            ( addr = Address ) THEN
+            DISPOSE( enumerator );
+            RETURN TRUE;
+         END;
+      END; // FOR
+   END; // WHILE
+
+   DISPOSE( enumerator );
+   RETURN FALSE;
+END IsValidInterface;
+
 (*================================================================================*)
 
 TYPE

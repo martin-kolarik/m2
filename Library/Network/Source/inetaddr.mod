@@ -495,6 +495,48 @@ CheckPort: // i is prepared here
    RETURN TRUE;
 END SplitAddressOA;
 
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromOA( CONST HostWithServiceAndInterface : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT HostWithService : INETADDR; Interface : TPINETADDR ) : BOOLEAN; // PInterface is optional, if not present, the interface part is rejected (FALSE is returned)
+VAR
+   i : INTEGER;
+BEGIN
+   i := Strings.IndexOfW( HostWithServiceAndInterface, L"->", 0 );
+   IF i = -1 THEN
+      IF NOT HostWithService.FromOA( HostWithServiceAndInterface, DefaultPort ) THEN
+         RETURN FALSE;
+      ELSIF Interface <> NIL THEN
+         Interface^.Clear();
+      END;
+      RETURN TRUE;
+
+   ELSE
+      IF NOT HostWithService.FromOA( OA( i-1, ADR( HostWithServiceAndInterface )), DefaultPort ) THEN
+         RETURN FALSE;
+      ELSIF Interface = NIL THEN
+         RETURN TRUE;
+      ELSE
+         INC( i, 2 ); // start position of interface
+         RETURN Interface^.FromOA( OA( HIGH( HostWithServiceAndInterface )-i, ADR( HostWithServiceAndInterface[i] )), 0 );
+      END;
+
+   END;
+END FromOA;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ToOA( CONST HostWithService : INETADDR; IncludePort : BOOLEAN; CONST Interface : TPINETADDR; OUT HostWithServiceAndInterface : ARRAY OF WCHAR );
+VAR
+   buffer : ARRAY [0..511] OF WCHAR;
+BEGIN
+   HostWithService.ToOA( IncludePort, OUT HostWithServiceAndInterface );
+   IF Interface <> NIL THEN
+      Strings.AppendW( REF HostWithServiceAndInterface, L"->" );
+      Interface^.ToOA( FALSE, OUT buffer );
+      Strings.AppendW( REF HostWithServiceAndInterface, buffer );
+   END;
+END ToOA;
+
 (*================================================================================*)
 
 TYPE

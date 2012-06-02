@@ -132,7 +132,10 @@ CLASS IMPLEMENTATION CTest;
          String := L"adapter ";
          Strings.FromCARD32W( Enum^.Index, 10, OUT n );
          Strings.AppendW( REF String, n );
-         Strings.AppendW( REF String, L": " );
+         Strings.AppendW( REF String, L"[if=" );
+         Strings.FromCARD32W( Enum^.InterfaceIndex, 10, OUT n );
+         Strings.AppendW( REF String, n );
+         Strings.AppendW( REF String, L"]: " );
 
          FOR i := 0 TO l-1 DO
             Strings.FromCARD32W( CARDINAL( hwAddr[i] ), 16, OUT n );
