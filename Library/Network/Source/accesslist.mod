@@ -57,7 +57,7 @@ CLASS IMPLEMENTATION CAccessList;
       ELSE
          i := HIGH( AddressPortPrefixLen );
       END;
-      address.FromOA( OA( i, ADR( AddressPortPrefixLen )), 0 );
+      address.FromOA( OA( i, ADR( AddressPortPrefixLen )), 0, NIL );
       AddRule( Type, address, prefixLen );
    END AddRuleOA;
 

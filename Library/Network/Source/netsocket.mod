@@ -962,7 +962,7 @@ CLASS IMPLEMENTATION DSocket;
       SELF.Result := Sync.arUnknown;
       _HSignal.Reset();
 
-      NumericAddress := Addr.FromOA( Server, DefaultPort );
+      NumericAddress := Addr.FromOA( Server, DefaultPort, NIL );
       IF NumericAddress THEN // we know where to connect immediatelly
          _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
          Remote := Addr;
@@ -990,7 +990,7 @@ CLASS IMPLEMENTATION DSocket;
          END;
 
          AddRef(); // allow DNS finish after my Release
-         dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, DefaultPort, OUT ResolveAddr );
+         dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, DefaultPort, OUT ResolveAddr, NIL );
          // now, wait for DNS and connect after its response
       END;
 

@@ -2369,7 +2369,7 @@ CLASS IMPLEMENTATION CKNXServer;
 
             IF NOT Logger.FilteredFastCheck( log.ldTrace, 0 ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Logger.LogSS( log.ldTrace, 0, L"srv", "INIT: ", saddr );
+               Logger.LogSS( log.ldTrace, 0, L"srv", "INIT:", saddr );
             END;
 
             INC( InitReadItems );
@@ -2403,7 +2403,7 @@ CLASS IMPLEMENTATION CKNXServer;
 
             IF NOT Logger.FilteredFastCheck( log.ldTrace, 0 ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Logger.LogSS( log.ldTrace, 0, L"srv", "READER: ", saddr );
+               Logger.LogSS( log.ldTrace, 0, L"srv", "READER:", saddr );
             END;
 
             PObject^.GetValue( OUT EV, FALSE, TRUE );
@@ -2519,11 +2519,11 @@ CLASS IMPLEMENTATION CKNXServer;
             so := Value.String;
             IF TimeFormat.Empty THEN
                IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), L"HH:mm:ss" ) THEN
-                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.Data ), L", format: HH:mm:ss", L"" );
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to time conversion failure:", OA( so.Length-1, so.Data ), L", format: HH:mm:ss", L"" );
                END;
             ELSE
                IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), OA( TimeFormat.Length-1, TimeFormat.Data )) THEN
-                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.Data ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.Data ));
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to time conversion failure:", OA( so.Length-1, so.Data ), L", format:", OA( TimeFormat.Length-1, TimeFormat.Data ));
                END;
             END;
             WD := 0;
@@ -2555,11 +2555,11 @@ CLASS IMPLEMENTATION CKNXServer;
             so := Value.String;
             IF DateFormat.Empty THEN
                IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), L"yyyy-MM-dd" ) THEN
-                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.Data ), L", format: yyyy-MM-dd", L"" );
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to date conversion failure:", OA( so.Length-1, so.Data ), L", format: yyyy-MM-dd", L"" );
                END;
             ELSE
                IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), OA( DateFormat.Length-1, DateFormat.Data )) THEN
-                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.Data ), L", format: ", OA( DateFormat.Length-1, DateFormat.Data ));
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to date conversion failure:", OA( so.Length-1, so.Data ), L", format:", OA( DateFormat.Length-1, DateFormat.Data ));
                END;
             END;
             Y := DT.Year;

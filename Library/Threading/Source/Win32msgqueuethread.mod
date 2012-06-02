@@ -226,8 +226,8 @@ PROCEDURE Startup();
 BEGIN
    IF GMQT = NIL THEN
       NEW( GMQT );
-      // GMQT^.Run( TRUE ); -- for Win32 global thread MUST not be run, because default thread runs in Win32 process context
-      GMQT^.Start( TRUE );
+      // GMQT^.Start( TRUE ); -- for Win32 global thread MUST not be run, because default thread runs in Win32 process context
+      // GMQT^.Start( TRUE );
    END;
 END Startup;
 
@@ -235,8 +235,8 @@ PROCEDURE Cleanup();
 BEGIN
    IF GMQT <> NIL THEN
       // GMQT^.Stop( TRUE ); -- for Win32 global thread MUST not be stopped, because default thread runs in Win32 process context
-      GMQT^.Stop( TRUE );
-      DISPOSE( GMQT );
+      // GMQT^.Stop( TRUE );
+      // DISPOSE( GMQT );
    END;
 END Cleanup;
 

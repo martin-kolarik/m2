@@ -173,10 +173,11 @@ CLASS IMPLEMENTATION CNameToAddressRequest;
       hostA : ARRAY [0..511] OF CHAR;
       hints : WS2TcpIp.addrinfo := EMPTY_AI;
       host : ARRAY [0..511] OF WCHAR;
+      interface : ARRAY [0..3] OF WCHAR;
       service : ARRAY [0..15] OF WCHAR;
       serviceA : ARRAY [0..15] OF CHAR;
    BEGIN
-      IF inetaddr.SplitAddressOA( OA( Name.Length-1, Name.Data ), OUT host, OUT service ) THEN
+      IF inetaddr.SplitAddressOA( OA( Name.Length-1, Name.Data ), OUT host, OUT service, OUT interface ) THEN
          Strings.ToA( host, 0, OUT hostA );
          Strings.ToA( service, 0, OUT serviceA );
          UseDefaultPort := service[0] = 0W;
@@ -270,12 +271,12 @@ END KillAllPending;
 
 (*===========================================================================*)
 
-PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : threadpool.TPoolHandle ) : BOOLEAN;
+PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : threadpool.TPoolHandle; Interface : inetaddr.TPINETADDR ) : BOOLEAN;
 VAR
    Address : inetaddr.INETADDR;
    Request : TPNameToAddressRequest;
 BEGIN
-   IF Address.FromOA( Name, DefaultPort ) THEN
+   IF Address.FromOA( Name, DefaultPort, Interface ) THEN
       IF PNotifier <> NIL THEN
          PNotifier^.OnAddressFound( RequestId, 0, OA( 0, ADR( Address )) );
       END;
@@ -376,14 +377,14 @@ END CLocalDNSNotifier;
 
 (*===========================================================================*)
 
-PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Addresses : ARRAY OF inetaddr.INETADDR ) : BOOLEAN;
+PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Addresses : ARRAY OF inetaddr.INETADDR; Interface : inetaddr.TPINETADDR ) : BOOLEAN;
 VAR
   LDNSN : CLocalDNSNotifier;
   H : PTR;
 BEGIN
   LDNSN.Addresses := ADR( Addresses );
   LDNSN.AddressesHigh := HIGH( Addresses );
-  IF NOT NameToAddress( ADR( LDNSN ), 0, Name, DefaultPort, OUT H ) THEN
+  IF NOT NameToAddress( ADR( LDNSN ), 0, Name, DefaultPort, OUT H, Interface ) THEN
     RETURN FALSE;
   END;
   IF LDNSN.Signal.Wait( Sync.FORSAFETY ) = Sync.arTimeout THEN

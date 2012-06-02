@@ -31,6 +31,9 @@ TYPE
    TIPV6    = ARRAY [0..15] OF BYTE;
    TRFC2553 = ARRAY [0..127] OF BYTE; // RFC2553 storage structure for all type of internet addresses
 
+TYPE
+   TPINETADDR = POINTER TO INETADDR;
+
 CLASS INETADDR;
    PRIVATE VAR
       storage : TRFC2553;
@@ -52,8 +55,8 @@ CLASS INETADDR;
    PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
    PUBLIC OPERATOR <>( CONST Operand : INETADDR ) : BOOLEAN;
 
-   PUBLIC PROCEDURE ToOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
-   PUBLIC PROCEDURE FromOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   PUBLIC PROCEDURE ToOA( IncludePort : BOOLEAN; Interface : TPINETADDR; OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   PUBLIC PROCEDURE FromOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL; Interface : TPINETADDR ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    
    PUBLIC PROCEDURE Clear();
    PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
@@ -72,15 +75,8 @@ CLASS INETADDR;
    INITIALLY INETADDR();
 END INETADDR;
 
-TYPE
-   TPINETADDR = POINTER TO INETADDR;
-
 // helper
-PROCEDURE SplitAddressOA( CONST HostWithPort : ARRAY OF WCHAR; OUT Host, Port : ARRAY OF WCHAR ) : BOOLEAN;
-
-// ctor, dtor
-PROCEDURE FromOA( CONST HostWithPortAndInterface : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT HostWithPort : INETADDR; Interface : TPINETADDR ) : BOOLEAN; // PInterface is optional, if not present, the interface part is rejected (FALSE is returned)
-PROCEDURE ToOA( CONST HostWithPort : INETADDR; IncludePort : BOOLEAN; CONST Interface : TPINETADDR; OUT HostWithPortAndInterface : ARRAY OF WCHAR );
+PROCEDURE SplitAddressOA( CONST HostWithPortAndInterface : ARRAY OF WCHAR; OUT Host, Port, Interface : ARRAY OF WCHAR ) : BOOLEAN;
 
 (*================================================================================*)
 

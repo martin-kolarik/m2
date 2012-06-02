@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CDNS;
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
          Test^.Host^.Log^.LogSS( log.lcInfo, 0, L"", L"Success: ", request );   
          FOR i := 0 TO HIGH( Address ) DO
-            Address[i].ToOA( TRUE, OUT s );
+            Address[i].ToOA( TRUE, NIL, OUT s );
             Test^.Host^.Log^.LogSS( log.lcInfo, 0, L"", L"  found: ", s );   
          END;
       ELSE
@@ -176,10 +176,10 @@ CLASS IMPLEMENTATION CTest;
          Results[i] := -1;
       END;
       // run
-      dns.NameToAddress( ADR( Notifier ), 1, L"www.smartcontrol.cz:1213", 0, OUT h );
-      dns.NameToAddress( ADR( Notifier ), 2, L"home.smartcontrol.cz", 0, OUT h );
-      dns.NameToAddress( ADR( Notifier ), 3, L"none.smartcontrol.cz", 0, OUT h );
-      dns.NameToAddress( ADR( Notifier ), 4, L"iris.smartcontrol.cz:80", 0, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 1, L"www.smartcontrol.cz:1213", 0, OUT h, NIL );
+      dns.NameToAddress( ADR( Notifier ), 2, L"home.smartcontrol.cz", 0, OUT h, NIL );
+      dns.NameToAddress( ADR( Notifier ), 3, L"none.smartcontrol.cz", 0, OUT h, NIL );
+      dns.NameToAddress( ADR( Notifier ), 4, L"iris.smartcontrol.cz:80", 0, OUT h, NIL );
       // wait
       REPEAT
          sync.Sleep( 100 );

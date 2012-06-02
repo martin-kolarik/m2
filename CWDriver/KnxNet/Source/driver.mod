@@ -1129,7 +1129,7 @@ BEGIN
    ClientName := L"";
 
    Result := ADR( LicenceResult );
-   EventSinks.Subscribe( ADR( SELF ));
+   EventSinks.Subscribe( ADR( IKNXServerSink ));
    
    StatusChannel := MAX( CARDINAL );
    WatchDogChannel := MAX( CARDINAL );
@@ -1199,7 +1199,7 @@ VAR
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   dr.LoadRES2( EMITW( %dll ), L"eibnetdrv.Texts" );
+   dr.LoadRES2( EMITW( %dll ), L"KnxNet.Texts" );
    diface.RegisterFactory( ADR( Factory ));
 END driver.
 
