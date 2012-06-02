@@ -693,7 +693,7 @@ CLASS IMPLEMENTATION SSocket;
       RETURN winsock.WSAEINVAL;
     ELSE
       MReq.imr_multiaddr := IN_ADDR4( MulticastGroup )^;
-      MReq.imr_interface.s_addr := winsock.INADDR_ANY;
+      MReq.imr_interface := IN_ADDR4( Local )^;
     END;
     res := winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_ADD_MEMBERSHIP, windows.PSTR( ADR( MReq )), SIZE( MReq ));
     IF res <> 0 THEN

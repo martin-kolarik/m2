@@ -75,7 +75,12 @@ END INETADDR;
 TYPE
    TPINETADDR = POINTER TO INETADDR;
 
-PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Service : ARRAY OF WCHAR ) : BOOLEAN;
+// helper
+PROCEDURE SplitAddressOA( CONST HostWithPort : ARRAY OF WCHAR; OUT Host, Port : ARRAY OF WCHAR ) : BOOLEAN;
+
+// ctor, dtor
+PROCEDURE FromOA( CONST HostWithPortAndInterface : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT HostWithPort : INETADDR; Interface : TPINETADDR ) : BOOLEAN; // PInterface is optional, if not present, the interface part is rejected (FALSE is returned)
+PROCEDURE ToOA( CONST HostWithPort : INETADDR; IncludePort : BOOLEAN; CONST Interface : TPINETADDR; OUT HostWithPortAndInterface : ARRAY OF WCHAR );
 
 (*================================================================================*)
 

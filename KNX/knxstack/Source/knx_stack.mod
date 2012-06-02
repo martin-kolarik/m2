@@ -356,9 +356,21 @@ CLASS IMPLEMENTATION CL_Request_Queue;
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE Done();
+  BEGIN
+    Clear( FALSE );
+  END Done;
+
+(*--------------------------------------------------------------------------------*)
+
+  LOCAL PROCEDURE Clear( RequestOnly : BOOLEAN );
   VAR
     Priority : knx_def.TPriority;
   BEGIN
+    IF RequestOnly THEN
+      ClearQueueRequest.Signal();
+      RETURN;
+    END; // IF RequestOnly
+
     Priority := knx_def.priorityLowest;
     LOOP
       Requests[ Priority ].Dispose();
@@ -368,7 +380,7 @@ CLASS IMPLEMENTATION CL_Request_Queue;
         INC( Priority );
       END;
     END; // FOR
-  END Done;
+  END Clear;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -499,6 +511,11 @@ CLASS IMPLEMENTATION CL_Request_Queue;
   Remove:
     Requests[ Priority ].Delete( PCurrent );
     PCurrent := NIL;
+
+    IF ClearQueueRequest.Reset() THEN
+      Clear( FALSE );
+    END;
+
     RETURN knx_status.essOK;
   END PacketSent;
 
@@ -2612,6 +2629,23 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
+  LOCAL PROCEDURE A_QueueClear( WhatIsPending : TPendingOperation );
+  VAR
+    i : eib_def.TPriority;
+  BEGIN
+    i := eib_def.priorityLowest;
+    LOOP
+      A_Data.Pending[ WhatIsPending ][i].Dispose();
+      IF i = eib_def.priorityHighest THEN
+        EXIT;
+      ELSE
+        INC( i );
+      END;
+    END;
+  END A_QueueClear;
+
+(*--------------------------------------------------------------------------------*)
+
   LOCAL PROCEDURE A_SetPromiscuousMode( PromiscuousMode : BOOLEAN );
   BEGIN
     A_Parameters.PromiscuousMode := PromiscuousMode;
@@ -2932,10 +2966,24 @@ CLASS IMPLEMENTATION CKNXStack;
 
 (*--------------------------------------------------------------------------------*)
 
+  PUBLIC PROCEDURE ClearOutputQueue();
+  BEGIN
+    TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Data.Queue.Clear( TRUE );
+  END ClearOutputQueue;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC PROCEDURE WriteQueueLength() : CARDINAL;
   BEGIN
     RETURN TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_QueueLength( pendingGroupWrite );
   END WriteQueueLength;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE ClearWriteQueue();
+  BEGIN
+    TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_QueueClear( pendingGroupWrite );
+  END ClearWriteQueue;
 
 (*--------------------------------------------------------------------------------*)
 

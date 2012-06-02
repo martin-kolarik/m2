@@ -47,6 +47,7 @@ ABSTRACT CLASS AInterfaceEnumerator; // if single interface has more addresses, 
    
    PUBLIC ABSTRACT READONLY PROPERTY
       Index : CARDINAL;
+      InterfaceIndex : CARDINAL;
       State : TState;
       Medium : TMedium;
       Addresses : CARDINAL;
@@ -61,6 +62,10 @@ TYPE
    TPInterfaceEnumerator = POINTER TO AInterfaceEnumerator;
 
 PROCEDURE newInterfaceEnumerator( IPV4 : BOOLEAN; IPV6 : BOOLEAN; OUT Enumerator : TPInterfaceEnumerator ) : BOOLEAN;
+
+// helpers, operate UP interfaces
+PROCEDURE IsValidInterface( CONST Address : inetaddr.INETADDR ) : BOOLEAN;
+// PROCEDURE InterfaceOfAddress( CONST Address : inetaddr.INETADDR; OutputV4 : BOOLEAN; OUT Interface : inetaddr.INETADDR ) : BOOLEAN; -- netmask is gettable from Vista up :-(
   
 (*================================================================================*)
 

@@ -85,23 +85,7 @@ CLASS IMPLEMENTATION CTimeoutableItem;
       END;
    END Compare;
 
-  // OPERATOR CTaskItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF TaskAllocator.Allocate( OUT a, SIZE( CTaskItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CPtrItem.NEW;
-  
-  // OPERATOR CTaskItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   TaskAllocator.Deallocate( REF a );
-  // END CTaskItem.DISPOSE;
-
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 BEGIN
    Counter := 0;
@@ -134,8 +118,9 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
          PI^.ElapsesOn := TStorage( CurrentTime + Timeout );
       END;
       PI^.Counter := TStorage( Counter );
-      Insert( PI );
       INC( Counter );
+
+      Insert( PI );
    END Add;
 
 //--------------------------------------------------------------------------------

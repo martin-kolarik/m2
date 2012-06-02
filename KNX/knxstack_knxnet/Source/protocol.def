@@ -76,6 +76,7 @@ CLASS CConnection( msghandler.MessageHandler );
       _Listener : POINTER TO KNXnetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
       _AutoReconnectDelay : CARDINAL := 0;
       _TunnelingMode : TTunnelingMode := tmEMI;
+      _InterfaceAddress : inetaddr.INETADDR;
       _PhysicalAddress : knx_def.TAddress;
       // data control
       IOState : TIOState := ioDisconnected;
@@ -93,6 +94,7 @@ CLASS CConnection( msghandler.MessageHandler );
    PUBLIC PROPERTY
       Logger : log.TPLogger;
       Mode : TConnectionMode;
+      InterfaceAddress : inetaddr.INETADDR; // local interface used to communicate
       RemoteAddress : inetaddr.INETADDR; // routing or remote address
       AutoReconnectDelay : CARDINAL; // if zero no reconnecting is done, reconnect is done after calling OnDisconnect when this time elapses
       TunnelingMode : TTunnelingMode;

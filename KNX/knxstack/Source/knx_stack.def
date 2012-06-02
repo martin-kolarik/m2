@@ -235,9 +235,11 @@ CLASS CL_Request_Queue;
   Requests      : TL_Requests;
   Counts        : TL_Counts;
   PCurrent      : ADDRESS;
+  ClearQueueRequest : sync.SIGNAL;
 
   LOCAL PROCEDURE Init( PDistribution : TPPriorityDistribution );
   LOCAL PROCEDURE Done();
+  LOCAL PROCEDURE Clear( RequestOnly : BOOLEAN );
 
   LOCAL PROCEDURE AppendPacket(
           PListener   : TPL_Data_Listener;
@@ -971,6 +973,7 @@ CLASS CKNXStackApplicationLayer( CKNXStackLayer ) IMPLEMENTS msghandlersink.IMes
   PRIVATE PROCEDURE A_GetLastStarted( WhatIsPending : TPendingOperation; PClass : knx_def.TPPriority; VAR PSPO : ADDRESS ) : BOOLEAN;
 
   LOCAL PROCEDURE A_QueueLength( WhatIsPending : TPendingOperation ) : CARDINAL;
+  LOCAL PROCEDURE A_QueueClear( WhatIsPending : TPendingOperation );
   LOCAL PROCEDURE A_SetPromiscuousMode( PromiscuousMode : BOOLEAN );
 END CKNXStackApplicationLayer;
 
@@ -1044,7 +1047,9 @@ CLASS CKNXStack;
 
   PUBLIC PROCEDURE IsSelfPacket( PPacket : knx_def.TPPacket ) : BOOLEAN;
   PUBLIC PROCEDURE OutputQueueLength() : CARDINAL;
+  PUBLIC PROCEDURE ClearOutputQueue();
   PUBLIC PROCEDURE WriteQueueLength() : CARDINAL;
+  PUBLIC PROCEDURE ClearWriteQueue();
 
   // rewritable methods, ALL rewritable methods are OPTIONAL
   INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : TKNXStackLayerType; VAR PLayer : TPKNXStackLayer ) : BOOLEAN;
