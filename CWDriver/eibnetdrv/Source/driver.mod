@@ -921,12 +921,12 @@ CLASS IMPLEMENTATION CEIBDriver;
 
          //-----
          IF EQUALS( N, L'output_queue' ) THEN
-            EIB^.ClearOutputQueue();
+            KNX^.ClearOutputQueue();
             CS.Clear();
 
          //-----
          ELSIF EQUALS( N, L'write_queue' ) THEN
-            EIB^.ClearWriteQueue();
+            KNX^.ClearWriteQueue();
             CS.Clear();
 
          //-----

@@ -2631,12 +2631,12 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
 
   LOCAL PROCEDURE A_QueueClear( WhatIsPending : TPendingOperation );
   VAR
-    i : eib_def.TPriority;
+    i : knx_def.TPriority;
   BEGIN
-    i := eib_def.priorityLowest;
+    i := knx_def.priorityLowest;
     LOOP
       A_Data.Pending[ WhatIsPending ][i].Dispose();
-      IF i = eib_def.priorityHighest THEN
+      IF i = knx_def.priorityHighest THEN
         EXIT;
       ELSE
         INC( i );
@@ -2968,7 +2968,7 @@ CLASS IMPLEMENTATION CKNXStack;
 
   PUBLIC PROCEDURE ClearOutputQueue();
   BEGIN
-    TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Data.Queue.Clear( TRUE );
+    TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Data.Queue.Clear( TRUE );
   END ClearOutputQueue;
 
 (*--------------------------------------------------------------------------------*)
@@ -2982,7 +2982,7 @@ CLASS IMPLEMENTATION CKNXStack;
 
   PUBLIC PROCEDURE ClearWriteQueue();
   BEGIN
-    TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_QueueClear( pendingGroupWrite );
+    TPKNXStackApplicationLayer( Layers[ kltApplication ] )^.A_QueueClear( pendingGroupWrite );
   END ClearWriteQueue;
 
 (*--------------------------------------------------------------------------------*)

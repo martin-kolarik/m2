@@ -160,6 +160,33 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY InterfaceAddress GET : inetaddr.INETADDR;
+   BEGIN
+      RETURN _InterfaceAddress;
+   END InterfaceAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY InterfaceAddress SET( CONST Value : inetaddr.INETADDR );
+   VAR
+      wasConnected : BOOLEAN := NOT Disconnected;
+   BEGIN
+      IF _InterfaceAddress = Value THEN
+         RETURN;
+      ELSIF wasConnected THEN
+         Disconnect( TRUE );
+      END;
+
+      // set itself
+      _InterfaceAddress := Value;
+
+      IF wasConnected THEN
+         Connect( 0 );
+      END;
+   END InterfaceAddress;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY RemoteAddress GET : inetaddr.INETADDR; // routing or remote address
    BEGIN
       RETURN HPAIData.Address;
@@ -323,13 +350,14 @@ CLASS IMPLEMENTATION CConnection;
          END;
          mg.FromOA( transport.KNXNET_DISCOVERY_ADDRESS, transport.KNXNET_IPPORT );
          HPAIData.Address := mg; // override address to be sure that it is correct
-         b := netsrv.StartListen( netsocket.stDatagram, ai, ADR( mg ), _Listener, timeout, ADR( _Socket )) = 0;
+         b := netsrv.StartListen( netsocket.stDatagram, _InterfaceAddress, ADR( mg ), _Listener, timeout, ADR( _Socket )) = 0;
       | cmRouting :
          mg := HPAIData.Address;
+         ai := _InterfaceAddress;
          ai.Port := mg.Port;
          b := netsrv.StartListen( netsocket.stDatagram, ai, ADR( mg ), _Listener, 0, ADR( _Socket )) = 0;
       ELSE
-         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
+         b := netsrv.StartListen( netsocket.stDatagram, _InterfaceAddress, NIL, _Listener, timeout, ADR( _Socket )) = 0;
       END;
       IF b THEN
          _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"LISTENing on port: ", _Socket^.LocalAddress.Port );
@@ -356,8 +384,11 @@ CLASS IMPLEMENTATION CConnection;
       CASE _Mode OF
       //-----
       | cmScanning :
-         dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
-         ai.Port := _Socket^.LocalAddress.Port;
+         ai := _Socket^.LocalAddress;
+         IF ai.Empty THEN
+            dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
+            ai.Port := _Socket^.LocalAddress.Port;
+         END;
          HPAISelf.Address := ai;
 
          IOState := ioReady;
@@ -375,8 +406,11 @@ CLASS IMPLEMENTATION CConnection;
 
       //-----
       | cmTunnelingHPAI :
-         dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
-         ai.Port := _Socket^.LocalAddress.Port;
+         ai := _Socket^.LocalAddress;
+         IF ai.Empty THEN
+            dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
+            ai.Port := _Socket^.LocalAddress.Port;
+         END;
          HPAISelf.Address := ai;
 
          IOState := ioConnecting;

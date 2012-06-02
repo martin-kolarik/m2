@@ -80,11 +80,11 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">!$(Configuration).$(Platform)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">!Build.$(Configuration).x86\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">!Build.$(Configuration).$(Platform)\</IntDir>
-    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=x86</NMakeBuildCommandLine>
     <NMakeBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
-    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=x86</NMakeReBuildCommandLine>
     <NMakeReBuildCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
-    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=x86</NMakeCleanCommandLine>
     <NMakeCleanCommandLine Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Text.exe</NMakeOutput>
     <NMakeOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Text.exe</NMakeOutput>
@@ -118,6 +118,7 @@
     <None Include="Source\TextWriter.def" />
     <None Include="Source\Tokenizer.def" />
     <None Include="Source\Tokenizer.mod" />
+    <None Include="Test\TINIFile.mod" />
     <None Include="Test\TxtReader.mod" />
     <None Include="Test\TxtWriter.mod" />
     <None Include="Text.proj" />

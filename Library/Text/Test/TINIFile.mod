@@ -61,7 +61,7 @@ CLASS IMPLEMENTATION CTest;
       Input.Init( ADR( text1 ), LENGTH( text1 ), IOO.accRead );
       INI.Load( Reader );
 
-      Host^.StopPhaseWithResult( Result );
+      Host^.StopPhaseWithResult( TRUE );
       
       //=====
 
