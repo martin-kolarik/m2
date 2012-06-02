@@ -20,6 +20,10 @@
             <item lang="en-US">Bad connection definition</item>
             <item lang="cs-CZ">Chybný zápis definice spojení</item>
         </string>
+        <string name="_MissingMode">
+            <item lang="en-US">Missing connection mode definition (&quot;mode&quot; parameter)</item>
+            <item lang="cs-CZ">Chybí definice způsobu komunikace (parametr &quot;mode&quot;)</item>
+        </string>
         <string name="_BadMode">
             <item lang="en-US">Bad connection mode</item>
             <item lang="cs-CZ">Neznámý způsob komunikace</item>
@@ -40,6 +44,14 @@
         <string name="_BadOrUndefinedDeviceId">
             <item lang="en-US">Bad or undefined id</item>
             <item lang="cs-CZ">Chybné nebo nedefinované id</item>
+        </string>
+        <string name="_AddressDeniedInTunnelingMode">
+            <item lang="en-US">Physical address (&quot;address&quot; parameter) cannot be defined for tunneling modes, the address is assigned by interface.</item>
+            <item lang="cs-CZ">Fyzická adresa (parametr &quot;address&quot;) nesmí být při tunelovém spojení zadaná, adresu automaticky přiřazuje rozhraní.</item>
+        </string>
+        <string name="_AddressRequiredInRoutingMode">
+            <item lang="en-US">Physical address (&quot;address&quot; parameter) must be defined for routing mode.</item>
+            <item lang="cs-CZ">Fyzická adresa (parametr &quot;address&quot;) musí být při routovaném spojení zadaná.</item>
         </string>
         <string name="_BadPhysicalAddress">
             <item lang="en-US">Bad or badly typed physical address</item>

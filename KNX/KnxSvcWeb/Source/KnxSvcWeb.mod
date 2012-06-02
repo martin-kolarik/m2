@@ -52,6 +52,8 @@ CONST
     ROLE_SYS_ADMIN = L"sysadmin";
     ROLE_SYS_USER = L"sysuser";
 
+    DEFAULT_DATA_CONTEXT = L".KNX";
+
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CKnxSvcWeb;
@@ -362,6 +364,13 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
    BEGIN
       RETURN _DataLogger;
    END DataLogger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DefaultDataContext GET : StringsO.CString;
+   BEGIN
+      RETURN _DefaultDataContext;
+   END DefaultDataContext;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -853,6 +862,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       knMessageFile = L"message_file";
       knPort = L"port";
       knSessionValidity = L"session_validity";
+      knDefaultContext = L"default_context";
    VAR
       authinfo : StringsO.CString;
       es : PTR;
@@ -877,6 +887,7 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
       _ConfigLogger := ConfigLogger;
       _DataLogger := DataLogger;
       _HttpLogger := HttpLogger;
+      _DefaultDataContext := StringsO.FromOA( DEFAULT_DATA_CONTEXT );
       
       ExeDirFound := FIO.GetModuleDirW( L"", OUT Path );
 
@@ -892,6 +903,9 @@ CLASS IMPLEMENTATION CKnxSvcWeb;
          END;
          IF cfg.GetKeyInt( knSessionValidity, OUT line, OUT sessionValidity ) THEN
             _SessionValidity := sessionValidity;
+         END;
+         IF NOT cfg.GetKeyStr( knDefaultContext, OUT line, OUT _DefaultDataContext ) THEN
+            _DefaultDataContext := StringsO.FromOA( DEFAULT_DATA_CONTEXT );
          END;
       END;
 

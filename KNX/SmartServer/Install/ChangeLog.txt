@@ -1,3 +1,34 @@
+Version 2.0.1807/beta 29.4.2012
+- BUG: #271, installation contained obsolete parts
+- NEW: #270, pt.xml files can use <pt:context> tag for changing default data context
+- NEW: english documentation for V2 features
+- ISS: Routing mode requires disabling firewall.
+- ISS: Installer sometimes does not uninstall the product.
+
+Version 2.0.1795/beta 1.4.2012
+- BUG: #252, configuration of persistent writer reported error for allowed keys.
+- BUG: #253, log entries of persistent writer were confusing.
+- BUG: #254, %APPDATA_COMMON% string in configuration example was confusing.
+- BUG: #261, pt.xml file remained open for XML files containing XML error.
+- BUG: #262, tunneling connections did not accept physical address assigned by tunneling
+       server. This caused unability to communicate through multi-tunnel interfaces.
+- BUG: #264, error in function modules configuration did not deny accepting
+       of the configuration as a whole.
+- BUG: #265, data file of persistent storage did not store full names, what caused
+       unability to read data from the file back.
+- BUG: #266, log entries of function modules were badly identified.
+- BUG: #268, after each 49.7 days of computer uptime connection timeout overflown,
+       which caused disconnecting of KNX and high probability of crash of hosting computer
+       for about a hour.
+- CHG: #256, week calendar module now skips times which were missed (e.g. between
+       suspend/resume operations).
+- CHG: #257, configuration for writing date and time into KNX was changed, now output
+       address is the key and "time" or "date" is the value. This form is consistent
+       with other outputs.
+- NEW: #263, function block Scenes.
+- ISS: Routing mode requires disabling firewall.
+- ISS: Installer sometimes does not uninstall the product.
+
 Version 2.0.1612/beta 12.11.2011
 - NEW: Function blocks Equithermic curve, Persistent writer and Week calendar introduced.
 - ISS: Server sometimes crashes when stopped.

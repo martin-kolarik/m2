@@ -64,6 +64,7 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       OperatedDeviceCount : CARDINAL;
       ConfigLogger : Log.TPBufferedLogger;
       DataLogger : Log.TPBufferedLogger;
+      DefaultDataContext : StringsO.CString;
       
    PUBLIC PROCEDURE ConnectKNX();
    PUBLIC PROCEDURE DisconnectKNX();
@@ -117,6 +118,7 @@ CLASS CKnxSvcWeb IMPLEMENTS knxcore.IKNXServerSink, threadcall.IThreadProcedureC
       _Lock : Sync.RWLOCK;
       _AccessList : accesslist.CAccessList;
       _DataSource : device.TPDataSource;
+      _DefaultDataContext : StringsO.CString;
       
       _StartedTime : datetime.TJD;
       _Connected : BOOLEAN;

@@ -11,7 +11,6 @@ IMPORT
    iovalue,
    INIFile,
    lists,
-   Mathematics,
    nsimpl,
    StringsO,
    Texts;
@@ -187,7 +186,7 @@ CLASS IMPLEMENTATION CSceneFunction;
 
          IF NOT DataSource^.NS()^.Get( nsimpl.AddContext( context, value ), OUT pairs ) THEN
             AppendLineNumber( LOGNAME, Line, OUT lineString );
-            Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._InputAddressNotFound ] ), OA( s.Length-1, s.Data ));
+            Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._InputAddressNotFound ] ), OA( value.Length-1, value.Data ));
             someError := TRUE;
             CONTINUE;
          END;
@@ -205,12 +204,13 @@ CLASS IMPLEMENTATION CSceneFunction;
          section.Prepend( StringsO.FromOA( CFG_SCENE_PREFIX ));
          IF NOT iniFile^.SetSection( OA( section.Length-1, section.Data )) THEN
             AppendLineNumber( LOGNAME, Line, OUT lineString );
-            Log^.LogSS( log.lcInfo, 0, lineString, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
+            Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._ConfigurationSectionNotFound ] ), OA( section.Length-1, section.Data ));
             someError := TRUE;
             CONTINUE;
          END;
             
          ES := 0;
+         context.Clear();
          WHILE iniFile^.EnumerateKeys( REF ES, OUT Line, OUT key, OUT value ) DO
 
             IF key.EqualsOA( CFG_CONTEXT ) THEN
@@ -246,7 +246,7 @@ CLASS IMPLEMENTATION CSceneFunction;
             i := value.ItemS( StringsO.WCHARS{L","}, 0, 0, FALSE, OUT s );
             IF ( i = -1 ) OR s.Empty THEN
                AppendLineNumber( LOGNAME, Line, OUT lineString );
-               Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._OutputValueNotFound ] ), OA( value.Length-1, value.Data ));
+               Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._OutputValueNotFound ] ), OA( key.Length-1, key.Data ));
                someError := TRUE;
                CONTINUE;
             END;
@@ -262,11 +262,20 @@ CLASS IMPLEMENTATION CSceneFunction;
             _Outputs.Add( output, 0 );
 
             // read values should math the input
-            i := value.ItemS( StringsO.WCHARS{L","}, i, 0, FALSE, OUT s );
-            WHILE i <> -1 DO
+            LOOP
+               i := value.ItemS( StringsO.WCHARS{L","}, i, 0, FALSE, OUT s );
+               IF i = -1 THEN
+                  // check if any value to match was added
+                  IF output^.InputValues.Empty THEN
+                     AppendLineNumber( LOGNAME, Line, OUT lineString );
+                     Log^.LogSS( log.lcError, 0, lineString, OAsz( R^[ Texts._MissingInputSelector ] ), OA( key.Length-1, key.Data ));
+                     someError := TRUE;
+                  END;
+                  EXIT;
+               END;
                s.Trim();
                output^.InputValues.Add( s, 0 );
-            END; // WHILE
+            END; // LOOP
 
          END; // WHILE outputs in section
 
@@ -324,21 +333,27 @@ CLASS IMPLEMENTATION CSceneFunction;
 
    PRIVATE PROCEDURE Enqueue( output : TPOutput );
    VAR
+      condition : BOOLEAN;
       name : StringsO.CString;
       result : Sync.TAsyncResult;
       value : iovalue.Value;
    BEGIN
       IF output^.Enqueue() THEN // smart queueuing, the item has just put to the queue
 
-         result := output^.Condition^.ValueIO( ADR( SELF ), output^.Condition, IOO.dirRead, REF value );
-         IF result NOT IN Sync.arsCompletions THEN
-            ASSERTLOG( FALSE, L"Unable to read condition value" );
-            RETURN;
+         IF output^.Condition = NIL THEN
+            condition := TRUE;
+         ELSE
+            result := output^.Condition^.ValueIO( ADR( SELF ), output^.Condition, IOO.dirRead, REF value );
+            IF result NOT IN Sync.arsCompletions THEN
+               ASSERTLOG( FALSE, L"Unable to read condition value" );
+               RETURN;
+            END;
+            condition := value.Boolean;
          END;
 
          DataSource^.NS()^.GetFullName( output^.Output, OUT name );
 
-         IF value.Boolean THEN 
+         IF condition THEN 
             Logger^.LogSS( log.lcInfo, 0, LOGNAME, L"Enquing item for output:", OA( name.Length-1, name.Data ));
             _SendQueue.Enqueue( output );
          ELSE // condition not satisfied, do nothing

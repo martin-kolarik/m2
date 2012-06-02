@@ -208,6 +208,7 @@ PROCEDURE redirectView( CONST ContextRelativeURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
 PROCEDURE rawTextView( CONST text, downloadName : ARRAY OF WCHAR; CONST contentType : StringsO.IString; dispositionFlag : BOOLEAN ) : TPView; // if content is empty, default one is used
 PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR; overrideLanguage : BOOLEAN; overriddenLanguage : Languages.TLanguage ) : TPView;
+PROCEDURE pageTemplateViewChangeDataContextFunctionName() : StringsO.CString; // helper for template view
 
 #restore
 

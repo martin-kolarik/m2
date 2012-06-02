@@ -120,6 +120,7 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="Install\Web\SmartServer.xrs.xml" />
     <None Include="SmartServer.definition.proj">
       <SubType>Designer</SubType>
     </None>

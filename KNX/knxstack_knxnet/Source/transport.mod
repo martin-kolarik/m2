@@ -210,9 +210,11 @@ CLASS IMPLEMENTATION SearchResponse;
    PUBLIC PROPERTY PhysicalAddress GET : knx_def.TAddress;
    VAR
       Address : knx_def.TAddress;
+      PacketAddress : knx_def.TPacketAddress;
    BEGIN
+      PacketAddress.dw := REVERSE( _DIB.PhysicalAddress.dw );
       Address.SetAddressType( knx_def.addressPhysical );
-      Address.SetPacketAddress( _DIB.PhysicalAddress );
+      Address.SetPacketAddress( PacketAddress );
       RETURN Address;
    END PhysicalAddress;
 
@@ -303,9 +305,11 @@ CLASS IMPLEMENTATION DescriptionResponse;
    PUBLIC PROPERTY PhysicalAddress GET : knx_def.TAddress;
    VAR
       Address : knx_def.TAddress;
+      PacketAddress : knx_def.TPacketAddress;
    BEGIN
+      PacketAddress.dw := REVERSE( _DIB.PhysicalAddress.dw );
       Address.SetAddressType( knx_def.addressPhysical );
-      Address.SetPacketAddress( _DIB.PhysicalAddress );
+      Address.SetPacketAddress( PacketAddress );
       RETURN Address;
    END PhysicalAddress;
 
@@ -449,9 +453,11 @@ CLASS IMPLEMENTATION ConnectResponse;
    PUBLIC PROPERTY PhysicalAddress GET : knx_def.TAddress;
    VAR
       Address : knx_def.TAddress;
+      PacketAddress : knx_def.TPacketAddress;
    BEGIN
+      PacketAddress.dw := REVERSE( _CRD._Address.dw );
       Address.SetAddressType( knx_def.addressPhysical );
-      Address.SetPacketAddress( _CRD._Address );
+      Address.SetPacketAddress( PacketAddress );
       RETURN Address;
    END PhysicalAddress;
 
