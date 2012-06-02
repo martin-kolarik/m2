@@ -1,0 +1,44 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+        <ClientLicensing>on</ClientLicensing>
+
+        <ProductId>SmartControl.KnxNet.CWDriver</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <ProductNote></ProductNote>
+
+        <ProjectDescription>KnxNet/IP Group Object Driver</ProjectDescription>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ResultName>KnxNet</ResultName>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxcore;$(RootPath)\CWDriver\KnxNet_product"/>
+
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore"/>
+        <Components Include="KNX\knxcore;Library\CWDriver"/>
+        <Messages Include="Texts"/>
+        <Program Include="driver"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <Export>export</Export>
+    </PropertyGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

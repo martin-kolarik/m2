@@ -1,0 +1,14 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <PropertyGroup Condition="$(MSBuildProjectName)=='KnxNet' Or $(MSBuildProjectName)=='sccore'">
+        <Result>Dynamic</Result>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ProductM2Control></ProductM2Control>
+        <ProductCLControl></ProductCLControl>
+        <ProductRCControl></ProductRCControl>
+        <ProductLNControl></ProductLNControl>
+    </PropertyGroup>
+
+</Project>

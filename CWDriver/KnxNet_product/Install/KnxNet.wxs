@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xsi:schemaLocation="http://schemas.microsoft.com/wix/2003/01/wi wix.xsd" xmlns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xse="http://schemas.microsoft.com/wix/2005/XmlSchemaExtension" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
+    <Product Codepage="$(var.CodePage)" Language="$(var.Language)" Manufacturer="$(var.Manufacturer)" Name="$(var.ProductDescription)" Version="$(var.ProductVersion)" Id="$(var.ProductGUID)" UpgradeCode="$(var.UpgradeGUID)">
+        <Package Compressed="yes" Id="????????-????-????-????-????????????" Languages="$(var.Language)" SummaryCodepage="$(var.CodePage)" />
+        <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1" />
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <?if $(var.CLib)=Shared ?>
+            <?if $(var.ConfigurationName)=Debug ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <?else ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <?endif ?>
+            <?endif ?>
+            <Directory Id="CommonAppDataFolder">
+                <Directory Id="SmartControlData" Name="SmartCtr" LongName="$(var.Manufacturer)">
+                    <Component Id="CommonAppFolderPermissions" Guid="E162282B-7CC7-48b7-9064-F102857EFEFA">
+                        <CreateFolder>
+                            <Permission GenericAll="yes" User="SYSTEM" />
+                            <Permission GenericAll="yes" User="Administrators" />
+                            <Permission GenericRead="yes" GenericWrite="yes" GenericExecute="yes" Delete="yes" DeleteChild="yes" WriteAttributes="yes" WriteExtendedAttributes="yes" User="Users" />
+                            <Permission GenericRead="yes" GenericExecute="yes" User="Everyone" />
+                        </CreateFolder>
+                        <RemoveFolder Id="CommonAppFolderPermissionsRemove" On="uninstall"/>
+                    </Component>
+                </Directory>
+            </Directory>
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="SmartControl" Name="SmartCtr" LongName="SmartControl">
+                    <Directory Id="INSTALLDIR" Name="KnxNet">
+                        <Component Guid="5E7580BB-9458-476e-8758-F7545A78B927" Id="Program">
+                            <File DiskId="1" Id="KnxNet.DLL" Name="KnxNet.dll" Source="KnxNet.dll" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="926A58B0-D728-4e9c-BED8-E1EA41CD80E4" Id="RuntimeLib">
+                            <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="E29B4EA2-EB20-4080-99F1-640E951169D3" Id="ToolActivator">
+                            <File Id="Activate.EXE" Name="Activate.exe" Source="Activate.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="54BB9291-84DF-47d9-81EE-5645C4967E43" Id="ToolCheckCfg">
+                            <File Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="34D08D22-82E7-426b-B4EC-E82CAD69CD03" Id="ToolDiscover">
+                            <File Id="Discover.EXE" Name="Discover.exe" Source="Discover.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="{4707C82D-BFEC-4985-A8E2-9F6A0C37C7D5}" Id="DebugInfo">
+                            <File Id="KnxNet.PDB" Name="KnxNet.pdb" Source="KnxNet.pdb" DiskId="1" KeyPath="yes"/>
+                            <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
+                            <File Id="KnxNet.MAP" Name="KnxNet.map" Source="KnxNet.map" DiskId="1" />
+                            <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
+                        </Component>
+                        <Component Id="Licence" Guid="6FFD29EB-7F31-49e2-A5CF-5AC4B9C83628">
+                            <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
+                            <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" />
+                        </Component>
+                        <?if $(var.LanguageName)=en ?>
+                        <Component Id="Documentation" Guid="0A9AB09C-0FF0-43bf-8988-D41914AA6597">
+                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
+                        </Component>
+                        <?endif ?>
+                        <?if $(var.LanguageName)=cs ?>
+                        <Component Id="Documentation" Guid="F3081930-B925-4a80-BAFE-447340DC5EB5">
+                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
+                        </Component>
+                        <?endif ?>
+                        <Directory Id="EXAMPLES" Name="Examples">
+                            <Component Id="Examples" Guid="BB839607-580F-4ca6-9673-A1E002C5EAD1">
+                                <File Id="_01_test_direct.cfg" LongName="01 test-direct.cfg" Name="01TEST.CFG" Source="Examples\01 test-direct.cfg" DiskId="1" />
+                                <File Id="_02_test_nat.cfg" LongName="02 test-nat.cfg" Name="02TEST.CFG" Source="Examples\02 test-nat.cfg" DiskId="1" />
+                                <File Id="_03_init_read.cfg" LongName="03 init-read.cfg" Name="03INIT.CFG" Source="Examples\03 init-read.cfg" DiskId="1" />
+                                <File Id="_04_forced_read.cfg" LongName="04 forced-read.cfg" Name="04FORCE.CFG" Source="Examples\04 forced-read.cfg" DiskId="1" />
+                                <File Id="_05_complex_object.cfg" LongName="05 complex-object.cfg" Name="05COMPL.CFG" Source="Examples\05 complex-object.cfg" DiskId="1" />
+                                <File Id="_06_complex_object_forced_read.cfg" LongName="06 complex-object-forced-read.cfg" Name="06COMPL.CFG" Source="Examples\06 complex-object-forced-read.cfg" DiskId="1" />
+                                <File Id="_07_blocks.cfg" LongName="07 blocks.cfg" Name="07BLOCK.CFG" Source="Examples\07 blocks.cfg" DiskId="1" />
+                                <File Id="_08_ETS_Opc.cfg" LongName="08 ETS-Opc.cfg" Name="08ETS.CFG" Source="Examples\08 ETS-Opc.cfg" DiskId="1" />
+                                <File Id="_08_test.esf" LongName="08 test.esf" Name="08TEST.ESF" Source="Examples\08 test.esf" DiskId="1" />
+                            </Component>
+                        </Directory>
+                        <?if $(var.LeakChecking)=on ?>
+                        <Component Guid="A9FCAB3B-F2A2-444b-A473-70AABBD86F94" Id="LeakDetector">
+                            <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
+                            </File>
+                        </Component>
+                        <?endif ?>
+                        <?if $(var.CLib)=Private ?>
+                        <?if $(var.ConfigurationName)=Debug ?>
+                        <Directory Id="Microsoft.VC80.DebugCRT" LongName="Microsoft.VC80.DebugCRT" Name="vc80">
+                            <Component Id="VC8Runtime" DiskId="1" Guid="B03BBBD8-89E7-4d29-A31B-DF5AECF3858B">
+                                <File Id="Microsoft.VC80.DebugCRT.manifest" LongName="Microsoft.VC80.DebugCRT.manifest" Name="vc80.MAN" Source="$(env.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC80.DebugCRT\Microsoft.VC80.DebugCRT.manifest" />
+                                <File Id="msvcr80d.dll" LongName="msvcr80d.dll" Name="MSVCR80.DLL" Source="$(env.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC80.DebugCRT\msvcr80d.dll" Vital="yes" />
+                            </Component>
+                        </Directory>
+                        <?else ?>
+                        <Directory Id="Microsoft.VC80.CRT" LongName="Microsoft.VC80.CRT" Name="vc80">
+                            <Component Id="VC8Runtime" DiskId="1" Guid="5864983C-CF19-45b1-BA19-4D0DED52DA89">
+                                <File Id="Microsoft.VC80.CRT.manifest" LongName="Microsoft.VC80.CRT.manifest" Name="vc80.MAN" Source="$(env.VCINSTALLDIR)\redist\x86\Microsoft.VC80.CRT\Microsoft.VC80.CRT.manifest" />
+                                <File Id="msvcr80.dll" LongName="msvcr80.dll" Name="MSVCR80.DLL" Source="$(env.VCINSTALLDIR)\redist\x86\Microsoft.VC80.CRT\msvcr80.dll" Vital="yes" />
+                            </Component>
+                        </Directory>
+                        <?endif ?>
+                        <?endif ?>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </Directory>
+        <?if $(var.CLib)=Private ?>
+        <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+            <ComponentRef Id="VC8Runtime" />
+        </Feature>
+        <?elseif $(var.CLib)=Shared ?>
+        <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+            <MergeRef Id="VC8Runtime" />
+            <MergeRef Id="VC8Policy" />
+        </Feature>
+        <?endif ?>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
+            <ComponentRef Id="Program" />
+            <ComponentRef Id="RuntimeLib" />
+            <ComponentRef Id="Licence" />
+            <ComponentRef Id="Documentation" />
+            <ComponentRef Id="ToolActivator" />
+            <ComponentRef Id="ToolCheckCfg" />
+            <ComponentRef Id="ToolDiscover" />
+            <ComponentRef Id="Examples" />
+            <?if $(var.LeakChecking)=on ?>
+            <ComponentRef Id="LeakDetector" />
+            <?endif ?>
+        </Feature>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="DebugInfo" Level="0">
+            <Condition Level="1">DEBUG_INFO</Condition>
+            <ComponentRef Id="DebugInfo" />
+        </Feature>
+        <UIRef Id="WixUI_Licence" />
+        <UI />
+        <Icon Id="AddRemoveIcon" SourceFile="KnxNet.ico" />
+        <?include $(var.BuildRoot)\Manufacturer.wxs ?>
+        <?include $(var.BuildRoot)\Upgrade.wxs ?>
+    </Product>
+</Wix>

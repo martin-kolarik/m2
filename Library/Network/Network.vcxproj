@@ -144,12 +144,6 @@
     <None Include="Test\TRawConnection.mod" />
     <None Include="network.proj" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Threading\Threading.vcxproj">
-      <Project>{97c30a53-92e2-4179-b0a0-a740e2fdd762}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

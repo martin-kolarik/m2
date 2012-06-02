@@ -48,21 +48,8 @@
     <None Include="Source\Tokenizer.def">
       <Filter>Header Files</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="~Build\INIFile.cpp">
-      <Filter>CPPs</Filter>
-    </ClCompile>
-    <ClCompile Include="~Build\TextReader.cpp">
-      <Filter>CPPs</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="~Build\INIFile.h">
-      <Filter>CPPs</Filter>
-    </ClInclude>
-    <ClInclude Include="~Build\TextReader.h">
-      <Filter>CPPs</Filter>
-    </ClInclude>
+    <None Include="Test\TINIFile.mod">
+      <Filter>Test</Filter>
+    </None>
   </ItemGroup>
 </Project>

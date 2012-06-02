@@ -1,0 +1,128 @@
+Version ?
+- CHG: Renamed to KnxNet
+
+Version 1.0.1817 V1.0 29.5.2012 (without documentation)
+- BUG: #272, fix, another implementation of output queue clearing, now it waits for
+       network event (ACK, timeout, NAK, ...)
+
+Version 1.0.1813 V1.0 19.5.2012 (without documentation)
+- BUG: #273, lines of CFG file [objects] section containing only white spaces
+       were badly processed as valid lines defining some object(s)
+- NEW: #272, two new driver query procedures "clear output_queue" and "clear write_queue"
+       has been added
+
+Version 1.0.1765 V1.0 5.3.2012 (without documentation)
+- BUG: #269, the driver loses connection and never reconnects
+
+Version 1.0.1761 V1.0 4.3.2012 (without documentation)
+- BUG: #160, routing was available for single driver only, multiple drivers with
+       routing connection did not start.      
+- BUG: #268, the driver badly handled overflow of system timer, which appears each
+       49.7 days. During the errorneous state the driver disconnected and started,
+       with almost no delays, reconnection attempts.
+
+Version 1.0.1335 V1.0 14.10.2010 (without documentation)
+- BUG: #157, line number of "address" parameter of "interface" section was always
+       badly read as 0
+- BUG: #158, "discover" tool occasionaly crashed if more than single interface was
+       present in the network
+- BUG: #161, driver wrote negative EIS 5 numbers as malformed positive numbers
+- BUG: #162, comment lines present in configuration file could cause ignoring of parameters
+       after comment line or reporting of strange errors
+- BUG: #174, in some configuration files counting of lines was improper, line number
+       was bigger than expected
+- BUG: #175, DLLs had bad ProductVersion
+- CHG: #170, C runtime library was dimnished
+- CHG: #182, times displayed in logs are in local time
+
+Version 1.0.1073 V1.0 (without documentation)
+- CHG: installer now contains hidden PDB and MAP files
+- CHG: discover and checkcfg are not linked to private CRtl too.
+- BUG: #158, discover crashed sometimes during printing out found devices.
+
+Version 1.0.1064 beta
+- CHG: CRtl switched to private
+- BUG: Setup of log did not affect global log 
+
+Version 1.0.605 beta
+- CHG: Versioning changed from SVN to HG
+- BUG: OutputQueueLength parameter was unable to read, it always repored error.
+- NEW: [interface] section can contain "retry_count" parameter to override EIB/KNX
+       standard value (3) for repeating send after busy and NAK link layer responses.
+       Zero value means no retrying (only single send will be done).
+- NEW: Driver in promiscuous mode reports send failures to application (using event queue).
+
+Version 1.0.1717 beta
+- BUG: initially read channels were not always notified to CW if during the initial reading
+       the channel was requested by normal CW measuring cycle.
+
+Version 1.0.1710 beta
+- BUG: Group object communication status for CW driver interface was badly
+       synchronized. This caused step-by-step stopping of synchronous CW
+       communication. The effect was hidden sometimes, because the driver forces
+       CW to accept asychronous values as well.    
+
+Version 1.0.1693 beta
+- CHG: Sequence correction algorithm from #1672 was modified to accept
+       not only skipping of sequence number, but also an insertion of sequence number.
+- CHG: Tunneling connection now discards packets coming with unexpected ChannelId.
+- BUG: Connection did not corectly resolved socket state, when no data were
+       returned after notification that data are prepared. This ocassionaly
+       resulted to mismatched receiving (not really received packet, possible
+       from different source, was processed).
+- BUG: Configuration errors (debug, id, mode, ...) were badly reported.
+
+Version 1.0.1672 beta
+- CHG: Some packets from tunneling device come with unexpectedly high SequenceNumber.
+       But next packet received has correct sequence, unfortunately now lower than the
+       unexpected one. This forces driver to wait until received packets step by step
+       increase to the bad SequenceNumber, so all packets during this period are discarded.
+       The workaround remembers previous SequenceNumber and if the next packet after
+       unexpected one uses correct number, driver detects this and it does not
+       discard no packets.
+
+Version 1.0.1669 beta 18.6.2008
+- BUG: Tunneling connection did not change self state to ready, if R_CON
+       (cEMI L_CON) was not received.
+- BUG: System channels were not enumerated, when no objects were defined.
+
+Version 1.0.1662 beta 15.6.2008
+- TST: Leaks
+- CHG: Driver interface changed to common unified interface using sc iovalue.
+- BUG: Configurable channels except status and watch_dog were not enumerated.
+- BUG: Promiscuous mode operations (send, get) were not removed from driver
+       queue after L_CON. This caused memory exhaustion after some time
+       (after cca 20 000 000 requests).
+
+Version 1.0.1611 beta 2.6.2008
+- NEW: Optional watchdog_channel
+- CHG: Switch to separate messaging thread to make stack/ControlWeb
+       interface independent, core runs on sc message threads
+- CHG: PDB file added to debug installation
+- BUG: Promiscuous mode DriverQueryProc's commands are now disallowed, they
+       return error message
+
+Version 1.0.1599 beta 21.5.2008
+- BUG: Not all promiscuous objects were bound (e.g. scaling255). Accessing them
+       caused process crash.  
+- NEW: Full support for DriverQueryProc (get, send, event).
+- CHG: Promiscuous mode can now run in parallel with normal objects (defined in CFG).
+
+Version 1.0.1568 beta 13.5.2008
+
+Version 1.0.1396 beta 28.12.2007
+- CHG: trace outputs changed, group address is now visible, if applicable. Error
+       codes are printed in all possible places.
+- BUG: Tunneling connection ignored negative ACKs. Thus, eib stack thought that
+       packet is sent and did not repeat packet.
+- CHG: Routing connection now waits 20 ms before generating L_CON. This gives
+       time to router to respond ROUTING_LOST_MESSAGE code. In that case, message
+       is repeated.
+
+Version 1.0.1315 beta 23.12.2007
+- NEW: communication via EIBNet/IP Routing service added
+
+Version 1.0.1135 beta 16.10.2007
+- NEW: created
+- NEW: reading ESF file (export from ETS)
+- NEW: split from generic server/service code

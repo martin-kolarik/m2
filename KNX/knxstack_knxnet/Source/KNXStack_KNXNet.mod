@@ -13,6 +13,7 @@ IMPORT
    knx_def,
    inetaddr,
    log,
+   netsrv,
    protocol,
    Strings,
    Sync,
@@ -46,6 +47,7 @@ CLASS KNXnetPhysicalLayer( knx_stack.CKNXStackPhysicalLayer );
       Logger : log.TPLogger;
       Mode : protocol.TConnectionMode;
       RemoteAddress : inetaddr.INETADDR; // routing or remote/tunneling address
+      InterfaceAddress : inetaddr.INETADDR;
 
    PUBLIC PROCEDURE Connect() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Connected() : BOOLEAN;
@@ -154,6 +156,20 @@ CLASS IMPLEMENTATION KNXnetPhysicalLayer;
    BEGIN
       Connection.RemoteAddress := Value;
    END RemoteAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY InterfaceAddress GET : inetaddr.INETADDR;
+   BEGIN
+      RETURN Connection.InterfaceAddress;
+   END InterfaceAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY InterfaceAddress SET( CONST Value : inetaddr.INETADDR );
+   BEGIN
+      Connection.InterfaceAddress := Value;
+   END InterfaceAddress;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -303,6 +319,7 @@ CLASS IMPLEMENTATION CKNXnetStack;
       kvTunnelingNAT = L"tunneling-NAT";
    VAR
       Addr : inetaddr.INETADDR;
+      Iface : inetaddr.INETADDR;
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
          IF EQUALS( Value, kvRouting ) THEN
@@ -317,11 +334,16 @@ CLASS IMPLEMENTATION CKNXnetStack;
          END;
 
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
-         ErrorText := L"Expected DNS name | IP address optionally followed by colon and port number (like 10.0.0.1:3778)";
-         IF NOT dns.NameToAddressWait( Value, transport.KNXNET_IPPORT, 2000, OUT OA( 0, ADR( Addr ))) THEN
+         IF NOT dns.NameToAddressWait( Value, transport.KNXNET_IPPORT, 2000, OUT OA( 0, ADR( Addr )), ADR( Iface )) THEN
+            ErrorText := L"Expected DNS name | IP address optionally followed by colon with port number and interface to communicate through (like 10.0.0.1:3778->10.0.0.100)";
+            RETURN 0;
+         END;
+         IF NOT Iface.Empty AND NOT netsrv.IsValidInterface( Iface ) THEN
+            ErrorText := L"No interface with given address exists";
             RETURN 0;
          END;
          TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.RemoteAddress := Addr;
+         TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.InterfaceAddress := Iface;
          
       ELSE
          RETURN -1;
@@ -336,6 +358,8 @@ CLASS IMPLEMENTATION CKNXnetStack;
       kvRouting = L"routing";
       kvTunneling = L"tunneling";
       kvTunnelingNAT = L"tunneling-NAT";
+   VAR
+      Iface : inetaddr.INETADDR;
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
          CASE TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.Mode OF
@@ -348,7 +372,8 @@ CLASS IMPLEMENTATION CKNXnetStack;
          END;
 
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
-         TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.RemoteAddress.ToOA( TRUE, OUT Value );
+         Iface := TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.InterfaceAddress;
+         TPKNXnetPhysicalLayer( Layers[ knx_stack.kltPhysical ] )^.RemoteAddress.ToOA( TRUE, ADR( Iface ), OUT Value );
          
       ELSE
          RETURN FALSE;

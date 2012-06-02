@@ -84,7 +84,7 @@ CLASS IMPLEMENTATION CBrowser;
       Server : TPServer;
       String : ARRAY [0..63] OF WCHAR;
    BEGIN
-      packet.Address.ToOA( FALSE, OUT String );
+      packet.Address.ToOA( FALSE, NIL, OUT String );
       logger()^.LogSS( ldTrace, 0, L"KNXnet Browser", "found server: ", String );
 
       NEW( Server );

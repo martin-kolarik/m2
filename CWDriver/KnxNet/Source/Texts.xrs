@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <string name="_DriverName">
+            <item lang="en-US">KNX Group Object Driver</item>
+            <item lang="cs-CZ">KNX Group Object Driver</item>
+        </string>
+
+        <string name="_InitError">
+            <item lang="en-US">Initialization failed</item>
+            <item lang="cs-CZ">Chyba inicializace ovladače</item>
+        </string>
+        <string name="_UnknownDebugMode">
+            <item lang="en-US">Bad or unknown "target"</item>
+            <item lang="cs-CZ">Chybný nebo neznámý cíl logování ("target")</item>
+        </string>
+        <string name="_UnknownDebugLevel">
+            <item lang="en-US">Bad or unknown "level"</item>
+            <item lang="cs-CZ">Chybná nebo neznámá úroveň logování ("level")</item>
+        </string>
+        <string name="_FileDebugMissingFile">
+            <item lang="en-US">Missing "file" key for "target = file"</item>
+            <item lang="cs-CZ">Chybí klíč "file" pro "target = file"</item>
+        </string>
+
+        <comment>error code texts</comment>
+        <string name="_E_DeviceUnplugged">
+            <item lang="en-US">Device unplugged (check device power, network cable and IP address/port of PAR file)</item>
+            <item lang="cs-CZ">Zařízení odpojeno (prověřte napájení, síťový kabel a IP adresu a port v PAR souboru)</item>
+        </string>
+        <string name="_E_LCONError">
+            <item lang="en-US">Operation aborted, it was not ACKed</item>
+            <item lang="cs-CZ">Operace ukončena, chyba potvrzení (ACK)</item>
+        </string>
+        <string name="_E_RD_RES_Timeout">
+            <item lang="en-US">Operation aborted, readed device did not respond</item>
+            <item lang="cs-CZ">Operace ukončena, čtené zařízení neodpovědělo</item>
+        </string>
+        <string name="_E_LineBusy">
+            <item lang="en-US">Operation aborted, KNX is busy</item>
+            <item lang="cs-CZ">Operace ukončena, KNX je zaneprázdněna</item>
+        </string>
+        <string name="_E_TransceiverFault">
+            <item lang="en-US">Operation aborted, transceiver is unable to send data</item>
+            <item lang="cs-CZ">Operace ukončena, vysílač není schopen vyslat data</item>
+        </string>
+        <string name="_E_OutputQueueOverflow">
+            <item lang="en-US">Data cannot be sent, output queue length has reached the limit</item>
+            <item lang="cs-CZ">Data nelze odeslat, délka výstupní fronty dosáhla limitu</item>
+        </string>
+        <string name="_E_ReadQueueOverflow">
+            <item lang="en-US">Data cannot be sent, read request queue length has reached the limit</item>
+            <item lang="cs-CZ">Data nelze odeslat, délka fronty požadavků na čtení dosáhla limitu</item>
+        </string>
+        <string name="_E_WriteQueueOverflow">
+            <item lang="en-US">Data cannot be sent, write request queue length has reached the limit</item>
+            <item lang="cs-CZ">Data nelze odeslat, délka fronty požadavků k zápisu dosáhla limitu</item>
+        </string>
+
+        <comment>PAR errors</comment>
+        <string name="_CannotOpenPar">
+            <item lang="en-US">Error during opening configuration file</item>
+            <item lang="cs-CZ">Chyba při otevření konfiguračního souboru</item>
+        </string>
+
+        <comment>Descriptions</comment> 
+        <string name="_StatusComment">
+            <item lang="en-US">Status channel of the driver (information about connection and common actions)</item>
+            <item lang="cs-CZ">Stavový kanál ovladače (informace o komunikaci a obecných akcích)</item>
+        </string>
+        <string name="_WatchDogComment">
+            <item lang="en-US">Watch dog channel (time in seconds written to it extends time of run)</item>
+            <item lang="cs-CZ">Watch dog kanál (zápisem času v sekundách se prodlouží doba běhu)</item>
+        </string>
+        <string name="_InputQueueLengthComment">
+            <item lang="en-US">Length of queue of packets received from the bus without being requested</item>
+            <item lang="cs-CZ">Počet paketů přijatých ze sběrnice bez požadavku na jejich čtení</item>
+        </string>
+        <string name="_OutputQueueLengthComment">
+            <item lang="en-US">Length of queue of packets waiting to be written into the bus</item>
+            <item lang="cs-CZ">Počet paketů čekajících na zápis do sběrnice</item>
+        </string>
+        <string name="_WriteQueueLengthComment">
+            <item lang="en-US">Length of queue of group-write-packets waiting prepared for transmit due to non zero write delay (write_delay parameter)</item>
+            <item lang="cs-CZ">Počet paketů zápisu do skupiny čekajících na odeslání kvůli nenulové prodlevě zápisu do skupiny (write_delay parameter)</item>
+        </string>
+    
+   </strings>
+</resources>

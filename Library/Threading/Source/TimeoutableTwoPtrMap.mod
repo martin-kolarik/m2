@@ -120,7 +120,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       PI^.Counter := TStorage( Counter );
       INC( Counter );
 
-      Insert( PI );
+      SUPER.Add( PI );
    END Add;
 
 //--------------------------------------------------------------------------------

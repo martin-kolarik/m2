@@ -573,7 +573,7 @@ VAR
 BEGIN
    logger()^.LogS( Severity, 0, logPrefix, Text );
 
-   Connection^.RemoteAddress.ToOA( TRUE, OUT address );
+   Connection^.RemoteAddress.ToOA( TRUE, NIL, OUT address );
    logger()^.LogSS( Severity, 0, logPrefix, "  address ", address );
 END Log;
   
