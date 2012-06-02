@@ -3,8 +3,8 @@
     <strings version="1.0">
 
         <string name="_DriverName">
-            <item lang="en-US">EIB/KNX Group Object Driver</item>
-            <item lang="cs-CZ">EIB/KNX Group Object Driver</item>
+            <item lang="en-US">KNX Group Object Driver</item>
+            <item lang="cs-CZ">KNX Group Object Driver</item>
         </string>
 
         <string name="_InitError">
@@ -38,8 +38,8 @@
             <item lang="cs-CZ">Operace ukončena, čtené zařízení neodpovědělo</item>
         </string>
         <string name="_E_LineBusy">
-            <item lang="en-US">Operation aborted, EIB is busy</item>
-            <item lang="cs-CZ">Operace ukončena, EIB je zaneprázdněna</item>
+            <item lang="en-US">Operation aborted, KNX is busy</item>
+            <item lang="cs-CZ">Operace ukončena, KNX je zaneprázdněna</item>
         </string>
         <string name="_E_TransceiverFault">
             <item lang="en-US">Operation aborted, transceiver is unable to send data</item>

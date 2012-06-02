@@ -1,3 +1,6 @@
+Version ?
+- CHG: Renamed to KnxNet
+
 Version 1.0.1817 V1.0 29.5.2012 (without documentation)
 - BUG: #272, fix, another implementation of output queue clearing, now it waits for
        network event (ACK, timeout, NAK, ...)
