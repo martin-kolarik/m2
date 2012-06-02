@@ -17,6 +17,7 @@ IMPORT
    lists,
    Log,
    MIME,
+   nsimpl,
    Strings;
 
 (*--------------------------------------------------------------------------------*)
@@ -37,6 +38,7 @@ CONST
    USER_LOGIN_SOURCE_PAGE = L"sourcePage";
    LANGUAGE = L"language";
    INVALID_LANGUAGE = -1;
+   CONTEXT = L"context";
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -182,7 +184,7 @@ CLASS IMPLEMENTATION CController;
    PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IMvcRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : mvc.TCallResult;
    VAR
       b : BOOLEAN;
-      name, s, value1, value2 : StringsO.CString;
+      context, name, s, value1, value2 : StringsO.CString;
       real1, real2 : LONGREAL;
    BEGIN
       IF FunctionName.EqualsOA( FN_SET ) OR
@@ -192,7 +194,8 @@ CLASS IMPLEMENTATION CController;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
          Parameters.ElementAt( 1, OUT s, OUT value1 );
-         IF _Web^.SetValue( Request.RequestSource, name, value1 ) THEN
+         Request.ModelContainer^.GetStringOA( CONTEXT, OUT context );
+         IF _Web^.SetValue( Request.RequestSource, nsimpl.AddContext( context, name ), value1 ) THEN
             RETURN mvc.crSuccess;
          ELSE
             RETURN mvc.crCallFailed;
@@ -203,7 +206,8 @@ CLASS IMPLEMENTATION CController;
             RETURN mvc.crMissingParameter;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
-         IF NOT _Web^.GetValue( name, OUT value1 ) THEN
+         Request.ModelContainer^.GetStringOA( CONTEXT, OUT context );
+         IF NOT _Web^.GetValue( nsimpl.AddContext( context, name ), OUT value1 ) THEN
             RETURN mvc.crCallFailed;
          ELSIF RetVal <> NIL THEN
             RetVal^.Assign( value1 );
@@ -215,7 +219,8 @@ CLASS IMPLEMENTATION CController;
             RETURN mvc.crMissingParameter;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
-         IF NOT _Web^.GetWixValue( name, OUT value1 ) THEN
+         Request.ModelContainer^.GetStringOA( CONTEXT, OUT context );
+         IF NOT _Web^.GetWixValue( nsimpl.AddContext( context, name ), OUT value1 ) THEN
             RETURN mvc.crCallFailed;
          ELSIF RetVal <> NIL THEN
             RetVal^.Assign( value1 );
@@ -326,6 +331,15 @@ CLASS IMPLEMENTATION CController;
          END;
          RETURN mvc.crSuccess;
          
+      ELSIF FunctionName.Equals( mvc.pageTemplateViewChangeDataContextFunctionName()) THEN
+         IF Parameters.Count < 1 THEN
+            RETURN mvc.crMissingParameter;
+         END;
+         Parameters.ElementAt( 0, OUT s, OUT value1 );
+         Request.ModelContainer^.GetStringOA( CONTEXT, OUT context );
+         Request.ModelContainer^.AddStringOA( CONTEXT, nsimpl.AddContext( context, value1 ));
+         RETURN mvc.crSuccess;
+
       ELSE
          RETURN mvc.crUnknownFunction;
       END;
@@ -351,6 +365,7 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
    VAR
+      contextFunction : StringsO.CString;
       version : StringsO.CString;
    BEGIN
       Container.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
@@ -366,6 +381,12 @@ CLASS IMPLEMENTATION CController;
 
       version.FromOA( ProductVersion );
       Container.AddStringOA( VERSION, version );
+
+      Container.AddStringOA( CONTEXT, _Web^.DefaultDataContext );
+      contextFunction := mvc.pageTemplateViewChangeDataContextFunctionName();
+      IF NOT contextFunction.Empty THEN
+         Container.AddFunctionHandlerOA( OA( contextFunction.Length-1, contextFunction.Data ), ADR( SELF ));
+      END;
    END InitializeModelContainer;
 
 (*--------------------------------------------------------------------------------*)

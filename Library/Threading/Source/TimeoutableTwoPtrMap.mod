@@ -1,19 +1,34 @@
 IMPLEMENTATION MODULE TimeoutableTwoPtrMap;
 
+FROM Debug IMPORT
+   AssertionW;
+
 IMPORT
    Sync;
   
 //================================================================================
 
+// for debug purposes
+TYPE
+   // TStorage = CARD16;
+   // TDifference = INT16;
+   TStorage = CARDINAL;
+   TDifference = INTEGER;
+
 TYPE
   TPTimeoutableItem = POINTER TO CTimeoutableItem;
 
 CLASS CTimeoutableItem( avltree.CAVLTreeElem2 );
-  PUBLIC VAR
-    Key1, Key2 : PTR;
-    Data : PTR;
-    Timeout : CARDINAL;
-    ElapsesOn : CARD64;
+
+   PUBLIC VAR
+      // first key
+      Key1, Key2 : PTR := 0;
+      // second key
+      ElapsesOn : TStorage := 0;
+      Counter : TStorage;
+      // data
+      Data : PTR := 0;
+      Timeout : TStorage := 0;
 
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 
@@ -27,32 +42,48 @@ CLASS IMPLEMENTATION CTimeoutableItem;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  BEGIN
-    IF i = 0 THEN
-      IF Key1 < TPTimeoutableItem( pelem )^.Key1 THEN
-        RETURN -1;
-      ELSIF Key1 > TPTimeoutableItem( pelem )^.Key1 THEN
-        RETURN 1;
-      ELSIF Key2 < TPTimeoutableItem( pelem )^.Key2 THEN
-        RETURN -1;
-      ELSIF Key2 > TPTimeoutableItem( pelem )^.Key2 THEN
-        RETURN 1;
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   VAR
+      difference : TDifference;
+      pe : TPTimeoutableItem := TPTimeoutableItem( pelem );
+   BEGIN
+      IF i = 0 THEN
+         IF Key1 < pe^.Key1 THEN
+            RETURN -1;
+         ELSIF Key1 > pe^.Key1 THEN
+            RETURN 1;
+         ELSIF Key2 < pe^.Key2 THEN
+            RETURN -1;
+         ELSIF Key2 > pe^.Key2 THEN
+            RETURN 1;
+         ELSE
+            RETURN 0;
+         END;
+      ELSIF i = 1 THEN
+         IF Timeout = TStorage( Sync.FOREVER ) THEN
+            // fall down, compare only counters
+         ELSE
+            difference := ElapsesOn - pe^.ElapsesOn;
+            IF difference < 0 THEN
+               RETURN -1;
+            ELSIF difference > 0 THEN
+               RETURN 1;
+            // ELSE -- fall down to compare counters
+            END;
+         END;
+         // for same times compare creation 
+         difference := Counter - pe^.Counter;
+         IF difference < 0 THEN
+            RETURN -1;
+         ELSIF difference > 0 THEN
+            RETURN 1;
+         ELSE
+            RETURN 0;
+         END;
       ELSE
-        RETURN 0;
+         RETURN 1;
       END;
-    ELSIF i = 1 THEN
-      IF ElapsesOn < TPTimeoutableItem( pelem )^.ElapsesOn THEN
-        RETURN -1;
-      ELSIF ElapsesOn > TPTimeoutableItem( pelem )^.ElapsesOn THEN
-        RETURN 1;
-      ELSE
-        RETURN 0;
-      END;
-    ELSE
-      RETURN 1;
-    END;
-  END Compare;
+   END Compare;
 
   // OPERATOR CTaskItem.NEW() : ADDRESS;
   // VAR
@@ -73,11 +104,7 @@ CLASS IMPLEMENTATION CTimeoutableItem;
 //--------------------------------------------------------------------------------
 
 BEGIN
-  Key1 := 0;
-  Key2 := 0;
-  Data := 0;
-  Timeout := 0;
-  ElapsesOn := 0;
+   Counter := 0;
 END CTimeoutableItem;
 
 //================================================================================
@@ -90,19 +117,24 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
    VAR
       PI : TPTimeoutableItem;
    BEGIN
+      IF TStorage( Timeout ) > MAX( TStorage ) DIV 2 THEN // timeout cannot be greater than a half of operated time range
+         Timeout := Sync.FOREVER;
+      END;
+
       NEW( PI );
       PI^.Key1 := Key1;
       PI^.Key2 := Key2;
       PI^.Data := Data;
-      PI^.Timeout := Timeout;
+      PI^.Timeout := TStorage( Timeout );
       IF Timeout = Sync.FOREVER THEN
-         PI^.ElapsesOn := CARD64( Sync.FOREVER ) << 32 OR CARD64( Counter );
+         // do nothing
       ELSIF Timeout = 0 THEN
-         PI^.ElapsesOn := CARD64( CurrentTime + 1 ) << 32 OR CARD64( Counter );
+         PI^.ElapsesOn := TStorage( CurrentTime ) + 1;
       ELSE
-         PI^.ElapsesOn := CARD64( CurrentTime + Timeout ) << 32 OR CARD64( Counter );
+         PI^.ElapsesOn := TStorage( CurrentTime + Timeout );
       END;
-      SUPER.Add( PI );
+      PI^.Counter := TStorage( Counter );
+      Insert( PI );
       INC( Counter );
    END Add;
 
@@ -213,24 +245,25 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
 
    PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout, ElapsesOn : CARDINAL; OUT ElapsesBy : CARDINAL ) : BOOLEAN;
    VAR
+      elapsesBy : TDifference;
       TI : TPTimeoutableItem;
    BEGIN
       IF NOT GetFirst( 1, OUT TI ) THEN
          RETURN FALSE;
-      END;
-      ElapsesOn := CARDINAL( TI^.ElapsesOn >> 32 );
-      IF ElapsesOn = Sync.FOREVER THEN
+      ELSIF TI^.Timeout = TStorage( Sync.FOREVER ) THEN
          RETURN FALSE;
       END;
       Key1 := TI^.Key1;
       Key2 := TI^.Key2;
       Data := TI^.Data;
-      Timeout := TI^.Timeout;
-      IF ElapsesOn <= CurrentTime THEN
+      elapsesBy := TI^.ElapsesOn - TStorage( CurrentTime );
+      IF elapsesBy < 0 THEN // has already elapsed
          ElapsesBy := 0;
       ELSE
-         ElapsesBy := ElapsesOn - CurrentTime;
+         ElapsesBy := CARDINAL( elapsesBy );
       END;
+      Timeout := CARDINAL( TI^.Timeout );
+      ElapsesOn := CARDINAL( TI^.ElapsesOn );
       RETURN TRUE;
   END GetFirstWithTimeout;
 

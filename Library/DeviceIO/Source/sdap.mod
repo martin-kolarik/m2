@@ -603,7 +603,7 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
 
-      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK:", OA( s.Length-1, s.Data ));
 
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
    END ACK;
@@ -619,7 +619,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       n.FromCARD32( subCode, 10 );
       s.Append( n );
       
-      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK:", OA( s.Length-1, s.Data ));
       
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
    END ACKs;
@@ -634,7 +634,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.AppendOA( L" " );
       s.Append( S );
 
-      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK:", OA( s.Length-1, s.Data ));
       
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
    END ACKS;
@@ -648,13 +648,13 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.FromCARD32( CARDINAL( ack ), 10 );
       s.AppendOA( ' 1' );
 
-      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK:", OA( s.Length-1, s.Data ));
       
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
 
       s := address; s.AppendOA( L" " ); s.Append( value.String );
 
-      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "DATA: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "DATA:", OA( s.Length-1, s.Data ));
       
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
    END ACKd;

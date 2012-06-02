@@ -451,7 +451,11 @@ CLASS IMPLEMENTATION CConnection;
          _Logger^.LogSC( ldTrace, 0, DEBUG_PREFIX, L"SEND request when not ready: ", CARDINAL( ChannelId ));
          RETURN Sync.arAlreadyPending;
       END;
+
       SELF.EMI := EMI;
+      IF ( _Mode = cmTunnelingHPAI ) OR ( _Mode = cmTunnelingBlind ) THEN // overwrite local address with connection address
+         SELF.EMI.SetSourceAddress( _PhysicalAddress );
+      END;
 
       IOState := ioWaitTCON1;
 
@@ -729,6 +733,8 @@ CLASS IMPLEMENTATION CConnection;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE OnConnectResponse( CONST packet : transport.ConnectResponse );
+   VAR
+      address : ARRAY [0..31] OF WCHAR;
    BEGIN
       IF packet.Status = transport.E_NO_ERROR THEN
          StopTimer( PTR( tiConnect ));
@@ -738,6 +744,10 @@ CLASS IMPLEMENTATION CConnection;
             HPAIData := packet.DataHPAI;
          // ELSE // cmTunnelingBlind -- data are set in RemoteAddress, RemotePort
          END;
+         _PhysicalAddress := packet.PhysicalAddress;
+
+         _PhysicalAddress.GetPhysicalAddress3( address );
+         _Logger^.LogSS( ldTrace, 0, DEBUG_PREFIX, L"CONNECT physical address: ", address );
          
          ChannelId := packet.ChannelId;
          InSeq := 0;

@@ -2472,7 +2472,7 @@ CLASS IMPLEMENTATION CKNXStackApplicationLayer;
       RETURN; // nothing to send
     END;
 
-	 PSPO^.Pending := TRUE;
+    PSPO^.Pending := TRUE;
     IF NOT ForceConcurrency AND ( A_Parameters.PendingTimeout[ WhatIsPending ] > 0 ) THEN
       A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingTimeout, A_Parameters.PendingTimeout[ WhatIsPending ] ); // timeouter MUST be three times !!!, now it is single, which is BAD !!!
     END;
@@ -2834,19 +2834,7 @@ CLASS IMPLEMENTATION CKNXStack;
     c : CARDINAL;
     t : TRISTATE;
   BEGIN
-    IF EQUALS( L"link.ackMethod", Parameter ) THEN
-      IF EQUALS( Value, kvNone ) THEN
-         // ACKMethod := knx_stack.ackmNone;
-      ELSIF EQUALS( Value, kvKnown ) THEN
-         // ACKMethod := knx_stack.ackmKnown;
-      ELSIF EQUALS( Value, kvAll ) THEN
-         // ACKMethod := knx_stack.ackmAll;
-      ELSE
-         ErrorText := L"Expected none | known | all";
-         RETURN FALSE;
-      END;
-
-    ELSIF EQUALS( L"link.outputQueueLength", Parameter ) THEN
+    IF EQUALS( L"link.outputQueueLength", Parameter ) THEN
       IF NOT Strings.ToCARD32W( Value, 10, OUT TPKNXStackLinkLayer( Layers[ kltLink ] )^.L_Parameters.OutputQueueLength ) THEN
          ErrorText := L"Expected number";
          RETURN FALSE;

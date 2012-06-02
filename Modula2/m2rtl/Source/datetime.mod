@@ -40,6 +40,13 @@ BEGIN
    RETURN LastTimeMS64;
 END UptimeMS64;
 
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE UptimeMS16() : CARD16; // overflows each 65 seconds
+BEGIN
+   RETURN CARD16( UptimeMS());
+END UptimeMS16;
+
 (*================================================================================================*)
 // time span
 

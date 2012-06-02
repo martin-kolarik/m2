@@ -2165,6 +2165,13 @@ BEGIN
    RETURN view;
 END pageTemplateView;
 
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE pageTemplateViewChangeDataContextFunctionName() : StringsO.CString; // helper for template view
+BEGIN
+   RETURN View.ChangeDataContextFunctionName();
+END pageTemplateViewChangeDataContextFunctionName;
+
 (*================================================================================*)
 
 BEGIN

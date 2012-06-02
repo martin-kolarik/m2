@@ -26,6 +26,8 @@ TYPE
 (*================================================================================================*)
 // uptime OS counters
 
+PROCEDURE UptimeMS16() : CARD16; // overflows each 65 seconds, for debug purposes
+
 PROCEDURE UptimeMS32() : CARD32; // returns time from system startup in ms
 PROCEDURE UptimeMS64() : CARD64; // returns time from system startup in ms
 
