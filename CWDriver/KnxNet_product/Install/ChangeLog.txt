@@ -1,5 +1,9 @@
-Version ?
+Version 1.0.1848 V1.0 7.6.2012 (without documentation)
 - CHG: Renamed to KnxNet
+- NEW: #275, KNXNet/IP interface address can be newly supplied with IP address of local network
+       adapter to communicate through. The option is useful for computers having multiple
+       network adapters. The example: "id = knxnet:224.0.24.13:3671->192.168.0.150", where
+       192.168.0.150 is an address of the adapter.
 
 Version 1.0.1817 V1.0 29.5.2012 (without documentation)
 - BUG: #272, fix, another implementation of output queue clearing, now it waits for
