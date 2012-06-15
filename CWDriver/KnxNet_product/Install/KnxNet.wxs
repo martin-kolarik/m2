@@ -5,7 +5,7 @@
         <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1" />
         <Directory Id="TARGETDIR" Name="SourceDir">
             <?if $(var.CLib)=Shared ?>
-            <?if $(var.ConfigurationName)=Debug ?>
+            <?if $(var.Configuration)=Debug ?>
             <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
             <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
             <?else ?>
@@ -84,7 +84,7 @@
                         </Component>
                         <?endif ?>
                         <?if $(var.CLib)=Private ?>
-                        <?if $(var.ConfigurationName)=Debug ?>
+                        <?if $(var.Configuration)=Debug ?>
                         <Directory Id="Microsoft.VC80.DebugCRT" LongName="Microsoft.VC80.DebugCRT" Name="vc80">
                             <Component Id="VC8Runtime" DiskId="1" Guid="B03BBBD8-89E7-4d29-A31B-DF5AECF3858B">
                                 <File Id="Microsoft.VC80.DebugCRT.manifest" LongName="Microsoft.VC80.DebugCRT.manifest" Name="vc80.MAN" Source="$(env.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC80.DebugCRT\Microsoft.VC80.DebugCRT.manifest" />
