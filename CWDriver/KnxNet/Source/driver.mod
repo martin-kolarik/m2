@@ -1032,8 +1032,8 @@ CLASS IMPLEMENTATION CEIBDriver;
       | OP_DISPOSE :
          LogConfig.DisposeAppenderList( REF LogAppenders );
 
+         EventSinks.Unsubscribe( ADR( SELF ));
          SUPER.Dispose();
-         CEIBDriver.FINALLY();
 
       //-----         
       END;
@@ -1138,10 +1138,6 @@ BEGIN
    WriteQueueLengthChannel := MAX( CARDINAL );
 
    WatchDogLeft := MAX( CARDINAL );
-
-FINALLY
-   EventSinks.Unsubscribe( ADR( SELF ));
-
 END CEIBDriver;
 
 (*================================================================================*)
