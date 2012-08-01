@@ -1137,10 +1137,8 @@ CLASS IMPLEMENTATION CDriver;
           rijndael.Encrypt( rijndael.cphmStreamEncrypt, rijndael.rkl256, ck, GlobalKey, OA( len-1, PPacket ), OUT OA( len-1, PPacket ), OUT len );
         END;
 
-        IF PClientLE <> NIL THEN // send single client
-          PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
-        ELSE // send all clients
-          ClientsLock.Lock();
+        ClientsLock.Lock();
+        IF PClientLE = NIL THEN // send all clients
           b := Clients.GetFirst( OUT PClientLE );
           WHILE b DO
             IF ( PClientLE^.PClient <> NIL ) AND ( PClientLE^.Name[0] = L'$' ) AND ( PClientLE^.Group[0] <> L' ' ) THEN
@@ -1148,8 +1146,16 @@ CLASS IMPLEMENTATION CDriver;
             END;
             b := Clients.NextOf( PClientLE, OUT PClientLE );
           END; // WHILE
-          ClientsLock.Unlock();
+        ELSE
+          IF PClientLE^.PClient = NIL THEN
+            SW.FromOA( OAsz( R[ Texts._ClientAlreadyDisconnected ] ));
+            ClientsLock.Unlock(); // extra unlock
+            GOTO Error;
+          ELSE
+            PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
+          END;
         END;
+        ClientsLock.Unlock();
 
       ELSE
         SW.FromOA( OAsz( R[ Texts._UnrecognizedServerCommand ] ));
@@ -1459,8 +1465,8 @@ CLASS IMPLEMENTATION CDriver;
           rijndael.Encrypt( rijndael.cphmStreamEncrypt, rijndael.rkl256, ck, GlobalKey, OA( len-1, PPacket ), OUT OA( len-1, PPacket ), OUT len );
         END;
 
+        ClientsLock.Lock();
         IF PClientLE = NIL THEN // send all clients
-          ClientsLock.Lock();
           b := Clients.GetFirst( OUT PClientLE );
           WHILE b DO
             IF ( PClientLE^.PClient <> NIL ) AND ( PClientLE^.Name[0] <> L'$' ) THEN
@@ -1468,10 +1474,16 @@ CLASS IMPLEMENTATION CDriver;
             END;
             b := Clients.NextOf( PClientLE, OUT PClientLE );
           END; // WHILE
-          ClientsLock.Unlock();
         ELSE
-          PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
+          IF PClientLE^.PClient = NIL THEN
+            SW.FromOA( OAsz( R[ Texts._ClientAlreadyDisconnected ] ));
+            ClientsLock.Unlock(); // extra unlock
+            GOTO Error;
+          ELSE
+            PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
+          END;
         END;
+        ClientsLock.Unlock();
 
       ELSE
         SW.FromOA( OAsz( R[ Texts._UnrecognizedClientCommand ] ));

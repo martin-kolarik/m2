@@ -1,3 +1,7 @@
+Version 1.1.1534 R 1.8.2012
+- BUG: #276, 'server send' and 'client send' commands could access just having
+       disconnected client, what could cause driver crash.
+
 Version 1.1.1532 R 4.9.2011
 - BUG: #248.1, disconnect notification could be processed after client deallocation
        (client leave). Code was changed to use different client-alive detection.
