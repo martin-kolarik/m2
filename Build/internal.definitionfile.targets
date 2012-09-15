@@ -14,7 +14,7 @@
 
     <!-- 3. now, when i know what super component expects from me, create final definitions path if needed -->
     <PropertyGroup>
-        <ComponentDefinitionsPath Condition="$(ComponentType)=='Generic'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
+        <ComponentDefinitionsPath Condition="$(ComponentType)=='Generic' Or $(ComponentType)=='Library'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
     </PropertyGroup>
     
     <!-- 4. create flags for build -->

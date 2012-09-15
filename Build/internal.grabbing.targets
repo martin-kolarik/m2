@@ -16,6 +16,9 @@
     <Target Name="GrabComponent"
             DependsOnTargets="Directories"
             Outputs="@(Grabbed)">
+
+        <Message Text="$(MSBuildProjectName) [$(GrabProcessFile)]" Importance="high"/>
+
         <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
         <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result)" Importance="high"/ -->
 
@@ -226,6 +229,35 @@
                     AdditionalMetadata="Type=InterfaceObjects">
             <Output TaskParameter="Include" ItemName="GrabbedObjects"/>
         </CreateItem>
+    </Target>
+    
+    <Target Name="GrabComponentsExInner"
+            Outputs="@(GrabbedComponentsExOutput)">
+        <CreateItem Include="@(Components)"
+                    Exclude="Debug\Test"
+                    AdditionalMetadata="Definition=$(ComponentDefinitionsPath);Type=$(ComponentType)">
+            <Output TaskParameter="Include" ItemName="ComponentsWithoutTest"/>
+        </CreateItem>
+        <MSBuild Condition="@(ComponentsWithoutTest)!=''"
+                 Projects="@(ComponentsWithoutTest -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+                 Targets="GrabComponentsExInner">
+            <Output TaskParameter="TargetOutputs" ItemName="GrabbedComponentsEx"/>
+        </MSBuild>
+        <CreateItem Include="@(ComponentsWithoutTest)">
+            <Output TaskParameter="Include" ItemName="GrabbedComponentsEx"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(GrabbedComponentsEx)"
+                          Condition="%(Definition)!='x'">
+            <Output TaskParameter="Filtered" ItemName="GrabbedComponentsExOutput"/>
+        </RemoveDuplicates>
+    </Target>
+
+    <Target Name="GrabComponentsEx"
+            DependsOnTargets="GrabComponentsExInner"
+            Outputs="@(GrabbedComponentsExOutput)">
+        <Message Importance="high" Text="======================================"/>
+        <Message Importance="high" Text="$(MSBuildProjectName) -> @(Components)"/>
+        <Message Importance="high" Text="===== grabbed[%(Definition)]: @(GrabbedComponentsExOutput)"/>
     </Target>
 
 </Project>
