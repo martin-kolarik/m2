@@ -36,63 +36,87 @@
         <ProductDisplayName Condition="$(ProductDisplayName)==''">$(ProjectDisplayName)</ProductDisplayName>
         <ProductDescription Condition="$(ProductDescription)==''">$(ProjectDescription)</ProductDescription>
     </PropertyGroup>
-
-    <!-- handle definitions file in separate file for clarity -->
-    <Import Project="internal.definitionfile.targets"/>
-
-    <!-- (constructed properties, DO NOT MODIFY) -->
+    
+    <!-- 1. usage of definition file is determined by DefinitionFileAllowed, thus, it must be computed before deffile is loaded -->
     <Choose>
-        <When Condition="$(ComponentType)=='Generic'">
+        <When Condition="$(ComponentType)=='Generic' Or $(ComponentType)=='Library'">
             <PropertyGroup>
-                <ProductFlag>off</ProductFlag>
-                <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>on</PropagateBuild>
                 <DefinitionFileAllowed>off</DefinitionFileAllowed>
-                <RespectDeepFlag>on</RespectDeepFlag>
-            </PropertyGroup>
-        </When>
-        <When Condition="$(ComponentType)=='Library'">
-            <PropertyGroup>
-                <ProductFlag>off</ProductFlag>
-                <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>off</PropagateBuild>
-                <DefinitionFileAllowed>on</DefinitionFileAllowed>
-                <RespectDeepFlag>on</RespectDeepFlag>
-            </PropertyGroup>
-        </When>
-        <When Condition="$(ComponentType)=='External'">
-            <PropertyGroup>
-                <ProductFlag>off</ProductFlag>
-                <PropagateComponents>off</PropagateComponents>
-                <PropagateBuild>off</PropagateBuild>
-                <DefinitionFileAllowed>on</DefinitionFileAllowed>
-                <RespectDeepFlag>off</RespectDeepFlag>
-            </PropertyGroup>
-        </When>
-        <When Condition="$(ComponentType)=='Product'">
-            <PropertyGroup>
-                <ProductFlag>on</ProductFlag>
-                <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>off</PropagateBuild>
-                <DefinitionFileAllowed>on</DefinitionFileAllowed>
-                <RespectDeepFlag>on</RespectDeepFlag>
-            </PropertyGroup>
-        </When>
-        <When Condition="$(ComponentType)=='Bundle'">
-            <PropertyGroup>
-                <ProductFlag>on</ProductFlag>
-                <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>off</PropagateBuild>
-                <DefinitionFileAllowed>off</DefinitionFileAllowed>
-                <RespectDeepFlag>on</RespectDeepFlag>
             </PropertyGroup>
         </When>
         <Otherwise>
             <PropertyGroup>
-                <ProductFlag>off</ProductFlag>
-                <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>on</PropagateBuild>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
+            </PropertyGroup>
+        </Otherwise>
+    </Choose>
+
+    <!-- 2. handle definitions file in separate file for clarity -->
+    <Import Project="internal.definitionfile.targets"/>
+
+    <!-- 3. (cont 1.) (constructed properties, DO NOT MODIFY) -->
+    <Choose>
+        <When Condition="$(ComponentType)=='Generic'">
+            <PropertyGroup>
+                <PropagateSources>on</PropagateSources>
+                <PropagateDeliverables>off</PropagateDeliverables>
                 <DefinitionFileAllowed>off</DefinitionFileAllowed>
+                <Compilable>on</Compilable>
+                <ProductFlag>off</ProductFlag>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Library'">
+            <PropertyGroup>
+                <PropagateSources>on</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <DefinitionFileAllowed>off</DefinitionFileAllowed>
+                <Compilable>on</Compilable>
+                <ProductFlag>off</ProductFlag>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Cots'">
+            <PropertyGroup>
+                <PropagateSources>on</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
+                <Compilable>on</Compilable>
+                <ProductFlag>off</ProductFlag>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Deliverable'">
+            <PropertyGroup>
+                <PropagateSources>off</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
+                <Compilable>on</Compilable>
+                <ProductFlag>off</ProductFlag>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Product'">
+            <PropertyGroup>
+                <PropagateSources>off</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
+                <Compilable>on</Compilable>
+                <ProductFlag>on</ProductFlag>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Bundle'">
+            <PropertyGroup>
+                <PropagateSources>off</PropagateSources>
+                <PropagateDeliverables>off</PropagateDeliverables>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
+                <Compilable>off</Compilable>
+                <ProductFlag>on</ProductFlag>
+            </PropertyGroup>
+        </When>
+        <Otherwise>
+            <PropertyGroup>
+                <PropagateSources>off</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
+                <Compilable>on</Compilable>
+                <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </Otherwise>
     </Choose>

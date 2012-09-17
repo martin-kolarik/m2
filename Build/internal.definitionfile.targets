@@ -5,7 +5,7 @@
     <PropertyGroup>
         <!-- the assignment should be the same as for LibraryName -->
         <!-- primarily use self definitions (bundle does not have defintions file)... -->
-        <SelfComponentDefinitionsPath Condition="$(ComponentType)!='Bundle'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
+        <SelfComponentDefinitionsPath Condition="$(ComponentType)!='Generic'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
         <ComponentDefinitionsPath>$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
     </PropertyGroup>
 
@@ -14,7 +14,7 @@
 
     <!-- 3. now, when i know what super component expects from me, create final definitions path if needed -->
     <PropertyGroup>
-        <ComponentDefinitionsPath Condition="$(ComponentType)=='Generic' Or $(ComponentType)=='Library'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
+        <ComponentDefinitionsPath Condition="$(DefinitionFileAllowed)=='off'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
     </PropertyGroup>
     
     <!-- 4. create flags for build -->

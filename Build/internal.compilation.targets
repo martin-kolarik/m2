@@ -96,14 +96,23 @@
     </PropertyGroup>
 
     <!-- INPUTS -->
+    <Target Name="SplitComponentsForTools">
+        <CreateItem Condition="%(Grabbed.Type)=='Source'"
+                    Include="@(Grabbed -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')">
+            <Output TaskParameter="Include" ItemName="M2INPUTS"/>
+        </CreateItem>
+        <CreateItem Condition="%(Grabbed.Type)=='Header'"
+                    Include="@(Grabbed -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')">
+            <Output TaskParameter="Include" ItemName="CLINPUTS"/>
+        </CreateItem>
+    </Target>
+
     <PropertyGroup>
-        <M2INPUTS>@(GrabbedSources -> '-I&quot;..\%(Identity)\$(SourceDir)&quot;', ' ')</M2INPUTS>
-        <CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS>
-        <CLINPUTS>$(CLINPUTS) @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</CLINPUTS>
-        <CLINPUTS>$(CLINPUTS) @(GrabbedHeaders -> '-I&quot;..\%(Identity)\Header&quot;', ' ')</CLINPUTS>
-        <CLINPUTS>$(CLINPUTS) -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</CLINPUTS>
-        <RCINPUTS>-I&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
-        <RCINPUTS>$(RCINPUTS) -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</RCINPUTS>
+        <M2INPUTS>@(M2INPUTS, ' ')</M2INPUTS>
+        <!-- CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS -->
+        <CLINPUTS>@(CLINPUTS, ' ') -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</CLINPUTS>
+        <RCINPUTS>-I&quot;..\$(ResourceDir)&quot;</RCINPUTS>
+        <RCINPUTS>$(RCINPUTS) @(CLINPUTS, ' ') -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</RCINPUTS>
         <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot; /LIBPATH:&quot;$(CompilerLib)&quot;</LINKCTRL>
     </PropertyGroup>
 

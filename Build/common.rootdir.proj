@@ -13,7 +13,8 @@
         <RootBuildDir>$(RootDir)\Build</RootBuildDir>
         <RootBuildPath>$(RootPath)\Build</RootBuildPath>
 
-        <Level>0</Level>
+        <!-- the most important property: it allows using self symbolic name in projects without defining it somewhere!! -->
+        <ComponentName>$([MSBuild]::MakeRelative($(RootPath), $(ComponentPath)))</ComponentName>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(ComponentType)=='Product'">

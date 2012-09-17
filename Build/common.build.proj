@@ -2,9 +2,6 @@
 
     <!-- common properties -->
     <PropertyGroup>
-        <!-- main controls -->
-        <DeepFlag>off</DeepFlag><!-- for build -->
-
         <!-- directories -->
         <SourceDir>Source</SourceDir>
         <ResourceDir>Resource</ResourceDir>
@@ -28,8 +25,8 @@
         <HeaderDir>$(HeaderDirName)</HeaderDir>
 
         <!-- recursive child parameters -->
-        <InheritedProperties>InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedManufacturer=$(Manufacturer);InheritedLibraryName=$(LibraryName)</InheritedProperties>
-        <ChildParameters>Level=1+;ProductPath=$(ProductPath);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
+        <InheritedProperties>InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedManufacturer=$(Manufacturer);InheritedLibraryName=$(LibraryName);InheritedProductVersion=$(ProductVersion)</InheritedProperties>
+        <ChildParameters>ProductPath=$(ProductPath);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
         <ChildParameters Condition="$(Test)=='off'">Test=off;$(ChildParameters)</ChildParameters>
 
         <!-- M2 initializing code -->
@@ -338,25 +335,26 @@
             DependsOnTargets="Resources;$(UserPostRES);Objects;$(UserPostOBJ)"
             Inputs="@(Objects);@(ExportToInterfaceObjects);@(RESFile);@(LinkDependencyLibraries);$(LIBEXPORT)"
             Outputs="$(OutputFile)">
-        <Exec Condition="$(Result)=='Dynamic'"
+        <Exec Condition="$(Result)=='Dynamic' And %(Grabbed.Type)=='Library'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) /dll $(LINKDEF) $(LIBEXPORT) @(ExportToInterfaceObjects, ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) /dll $(LINKDEF) $(LIBEXPORT) @(ExportToInterfaceObjects, ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(Grabbed, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Condition="$(Result)=='Static'"
               WorkingDirectory="$(IntermediateDir)"
               Command="$(LIB) $(LIBDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ')"/>
-        <Exec Condition="$(Result)=='Program'"
+        <Exec Condition="$(Result)=='Program' And %(Grabbed.Type)=='Library'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) $(LINKDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) $(LINKDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(Grabbed, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Condition="$(Result)=='Program' Or ($(Result)=='Dynamic' And $(CLib)=='Dynamic')"
               Command="$(MT)"/>
     </Target>
 
     <Target Name="ComponentRuntimes"
             Condition="$(CopyRuntimes)=='on'"
-            Inputs="@(GrabbedRuntimes)"
-            Outputs="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')">
-        <Copy SourceFiles="@(GrabbedRuntimes)"
-              DestinationFiles="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')"
+            Inputs="@(Grabbed)"
+            Outputs="@(Grabbed -> '$(OutputDir)\%(FileName)%(Extension)')">
+        <Copy Condition="%(Grabbed.Type)=='Runtime'"
+              SourceFiles="@(Grabbed)"
+              DestinationFiles="@(Grabbed -> '$(OutputDir)\%(FileName)%(Extension)')"
               SkipUnchangedFiles="true"
               ContinueOnError="false" />
     </Target>
@@ -394,55 +392,46 @@
                 ContinueOnError="true" />
     </Target>
     <Target Name="CleanAll"
-            Condition="$(Level)=='0' Or $(PropagateBuild)=='on' Or ($(DeepFlag)=='on' And $(RespectDeepFlag)=='on')">
-        <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="CleanAll"
-                 Properties="DeepFlag=off;Parameters=%(Components.Parameters);$(ChildParameters)"/>
+            DependsOnTargets="GrabComponents">
+        <MSBuild Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
+                 Projects="@(Grabbed -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+                 Targets="Clean"
+                 Properties="$(ChildParameters)"/>
         <CallTarget Targets="Clean"/>
     </Target>
-    <Target Name="CleanAllComponents">
-        <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="CleanAll"
-                 Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters)"/>
-        <CallTarget Targets="CleanAll"/>
+
+
+    <Target Name="XBuild">
+        <Message Importance="high" Text="Building: xx %(Grabbed.Definition)"/>
     </Target>
 
+    <!-- Target Name="SplitComponentsForTools" is placed in internal.compilation.targes as it is tightly bound to it -->
 
     <Target Name="Build"
-            DependsOnTargets="ProductBuildNumberGet;Environment;GrabComponents;$(UserPreBuild);Component;$(UserPostBuild)"
+            DependsOnTargets="ProductBuildNumberGet;Environment;GrabComponents;SplitComponentsForTools;$(UserPreBuild);Component;$(UserPostBuild)"
             Outputs="$(Compiled)">
-        <CreateProperty Condition="@(Objects)!='' And $(Result)!='Static'"
-                        Value="$(OutputPath)\$(OutputName)">
-            <Output TaskParameter="Value" PropertyName="Compiled"/>
-        </CreateProperty>
+        <CreateItem Condition="@(Objects)!='' And $(Result)!='Static'"
+                    Include="$(OutputPath)\$(OutputName)">
+            <Output TaskParameter="Value" ItemName="Compiled"/>
+        </CreateItem>
     </Target>
     <Target Name="BuildAll"
-            Condition="$(Level)=='0' Or $(PropagateBuild)=='on' Or ($(DeepFlag)=='on' And $(RespectDeepFlag)=='on')"
-            DependsOnTargets="ProductBuildNumberGet">
-        <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="BuildAll"
-                 Properties="DeepFlag=off;Parameters=%(Components.Parameters);$(ChildParameters);InheritedProductVersion=$(ProductVersion)"
+            DependsOnTargets="ProductBuildNumberGet;GrabComponents">
+        <CallTarget Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)==Component"
+                    Targets="Build"/>
+        <!-- MSBuild Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
+                 Projects="@(Grabbed -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+                 Targets="Build"
+                 Properties="$(ChildParameters)"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
-        </MSBuild>
+        </MSBuild -->
         <CallTarget Targets="Build"/>
-    </Target>
-    <Target Name="BuildAllComponents"
-            DependsOnTargets="ProductBuildNumberGet"><!-- duplicite dependency if building BuildAllComponents target for product -->
-        <!-- Exec Command="msbuild -clp:nosummary -v:m -t:RebuildAll -p:DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters);%(Components.Filename)Batch=on @(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"/ -->
-        <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="RebuildAll"
-                 Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters);InheritedProductVersion=$(ProductVersion);%(Components.Filename)Batch=on"
-                 StopOnFirstFailure="true">
-            <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
-        </MSBuild>
-        <CallTarget Targets="Rebuild"/>
     </Target>
 
 
     <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
     <Target Name="RebuildAll" DependsOnTargets="CleanAll;BuildAll" />
-    <Target Name="RebuildAllComponents" DependsOnTargets="BuildAllComponents" />
 
 
     <!-- installation tasks -->
@@ -458,15 +447,16 @@
     <Target Name="SetupClean" DependsOnTargets="CleanSetup" />
     <Target Name="SetupRebuild" DependsOnTargets="CleanSetup;Directories;ProductBuildNumberGet;CreateSetup" />
 
+
     <!-- deploy tasks -->
     <Target Name="DeployDebug">
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="Configuration=Debug" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAll" Properties="Configuration=Debug" StopOnFirstFailure="true" />
         <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Debug;Language=Czech" StopOnFirstFailure="true" />
         <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Debug;Language=English" StopOnFirstFailure="true" />
     </Target>
 
     <Target Name="DeployRelease">
-        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="Configuration=Release" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAll" Properties="Configuration=Release" StopOnFirstFailure="true" />
         <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Release;Language=Czech" StopOnFirstFailure="true" />
         <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="Configuration=Release;Language=English" StopOnFirstFailure="true" />
     </Target>
