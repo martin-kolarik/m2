@@ -15,14 +15,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Source\PJLink.mod">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="Source\iface.mod">
       <Filter>Source Files</Filter>
-    </None>
-    <None Include="Source\PJLink.def">
-      <Filter>Header Files</Filter>
     </None>
     <None Include="Source\iface.def">
       <Filter>Header Files</Filter>
@@ -30,7 +24,13 @@
     <None Include="Source\Texts.xrs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="PJLink.definition.proj" />
-    <None Include="PJLink.proj" />
+    <None Include="Source\Onkyo.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Onkyo.definition.proj" />
+    <None Include="Onkyo.proj" />
+    <None Include="Source\Onkyo.mod">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

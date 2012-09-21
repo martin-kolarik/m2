@@ -8,7 +8,7 @@ FROM Storage IMPORT
 IMPORT
    device,
    helper,
-   PJLink;
+   Onkyo;
 
 (*===========================================================================*)
 
@@ -73,7 +73,7 @@ CLASS IMPLEMENTATION CCreator;
       IF NOT EQUALS( QName, nDeviceIO ) THEN
          RETURN iobject.lrClassNotFound;
       END;
-      Object := ADR( NEW( PJLink.CPJLinkDevice )^.IDevice );
+      Object := ADR( NEW( Onkyo.COnkyoDevice )^.IDevice );
       RETURN iobject.lrSuccess;
    END OnFactory;
 

@@ -73,7 +73,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
       _Connection : rawconnection.ClientTCPConnection;
       _ConnectionCloseTimeoutHandle : threadpool.TPoolHandle;
       _PoolDelegate : threadpool.CSinkDelegate;
-      _Queue : lists.CStringList;
+      _Queue : lists.CBufferList;
       _Reader : TextReader.CTextReader;
 
    // ASocketNotifier
@@ -94,7 +94,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE Dispose();
 
-   PUBLIC PROCEDURE Request( CONST request : StringsO.IString );
+   PUBLIC PROCEDURE Request( CONST request : StorageO.AMemoryBuffer );
    
    // private
    PRIVATE PROCEDURE FlushQueue();
@@ -136,7 +136,7 @@ CLASS CIO( io.AItemizedIO ) IMPLEMENTS threadpool.ITimeoutSink;
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // SELF
-   LOCAL PROCEDURE OnResponse( response : StringsO.CString );
+   LOCAL PROCEDURE OnResponse( CONST response : StorageO.CMemoryBuffer );
 END CIO;
 
 (*---------------------------------------------------------------------------*)
