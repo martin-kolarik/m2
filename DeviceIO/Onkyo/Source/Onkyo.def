@@ -51,7 +51,6 @@ TYPE
    TConnectState = (
       csDisconnected,
       csConnecting,
-      csWaitAuthorization,
       csConnected
    );
 
@@ -65,16 +64,14 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
       _AppenderList : lists.CPtrList;
       _Running : BOOLEAN := FALSE;
       _Lock : Sync.LOCK;
-      _State : TConnectState := csDisconnected; // 0 = disconnected, -1 = connected wait auth, 1 = connected with auth
-      _AuthRequested : BOOLEAN := FALSE;
-      _AuthKey : StringsO.CString;
+      _State : TConnectState := csDisconnected;
       _HostAddress : StringsO.CString;
       _Password : StringsO.CString;
       _Connection : rawconnection.ClientTCPConnection;
       _ConnectionCloseTimeoutHandle : threadpool.TPoolHandle;
       _PoolDelegate : threadpool.CSinkDelegate;
-      _Queue : lists.CBufferList;
-      _Reader : TextReader.CTextReader;
+      _Queue : lists.CStringList;
+      _Buffer : StorageO.CMemoryBuffer;
 
    // ASocketNotifier
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
@@ -94,7 +91,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE Dispose();
 
-   PUBLIC PROCEDURE Request( CONST request : StorageO.AMemoryBuffer );
+   PUBLIC PROCEDURE Request( CONST request : StringsO.CString );
    
    // private
    PRIVATE PROCEDURE FlushQueue();
@@ -136,7 +133,7 @@ CLASS CIO( io.AItemizedIO ) IMPLEMENTS threadpool.ITimeoutSink;
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // SELF
-   LOCAL PROCEDURE OnResponse( CONST response : StorageO.CMemoryBuffer );
+   LOCAL PROCEDURE OnResponse( CONST response : StringsO.CString );
 END CIO;
 
 (*---------------------------------------------------------------------------*)

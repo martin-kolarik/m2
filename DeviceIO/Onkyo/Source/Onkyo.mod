@@ -30,9 +30,10 @@ CONST
    LOG_NAME = L"Onkyo";
    
 CONST
-   DEFAULT_PORT = 60128;
+   DEFAULT_PORT = 10001;
    CONNECTION_DISCONNECT_TIMEOUT = 86400000; // 86400 second, each day the connection is reset
    POLL_TIMEOUT = 20000; // 20 second, in the case of missing connection
+   EOF = 26C;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -190,386 +191,202 @@ END CNS;
 
 (*===========================================================================*)
 
-   PROCEDURE AssemblyCommand( command : TCommand; CONST value : iovalue.Value; OUT request : StorageO.CMemoryBuffer ) : BOOLEAN;
-   CONST
-      D = 16; // Data start
-      V = 18; // Value in data start
+   PROCEDURE AssemblyCommand( command : TCommand; CONST value : iovalue.Value; OUT request : StringsO.IString ) : BOOLEAN;
    VAR
       i : INTEGER;
       s : StringsO.CString;
-      valueLength : CARDINAL;
-      volume : ARRAY [0..7] OF CHAR;
+      volume : ARRAY [0..7] OF WCHAR;
    BEGIN
       request.Size := 64; // reserve space
 
-      TRY
+      // fill command
+      CASE command OF
+      //-----
+      | cmdPower :
+         request.FromOA( L"!1PWR0" );
+         IF value.Boolean THEN
+            request.AppendOA( L"1" );
+         ELSE
+            request.AppendOA( L"0" );
+         END;
+      //-----
+      | cmdPowerQuery :
+         request.FromOA( L"!1PWRQSTN" );
 
-         // fill command
-         CASE command OF
-         //-----
-         | cmdPower :
-            request[V+0] := C'P';
-            request[V+1] := C'W';
-            request[V+2] := C'R';
-            request[V+3] := C'0';
-            IF value.Boolean THEN
-               request[V+4] := C'1';
-            ELSE
-               request[V+4] := C'0';
-            END;
-            valueLength := 5;
-
-         //-----
-         | cmdPowerQuery :
-            request[V+0] := C'P';
-            request[V+1] := C'W';
-            request[V+2] := C'R';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdInputQuery :
-            request[V+0] := C'S';
-            request[V+1] := C'L';
-            request[V+2] := C'I';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdSpeakerA :
-            request[V+0] := C'S';
-            request[V+1] := C'P';
-            request[V+2] := C'A';
-            request[V+3] := C'0';
-            IF value.Boolean THEN
-               request[V+4] := C'1';
-            ELSE
-               request[V+4] := C'0';
-            END;
-            valueLength := 5;
-
-         //-----
-         | cmdSpeakerAQuery :
-            request[V+0] := C'S';
-            request[V+1] := C'P';
-            request[V+2] := C'A';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdSpeakerB :
-            request[V+0] := C'S';
-            request[V+1] := C'P';
-            request[V+2] := C'B';
-            request[V+3] := C'0';
-            IF value.Boolean THEN
-               request[V+4] := C'1';
-            ELSE
-               request[V+4] := C'0';
-            END;
-            valueLength := 5;
-
-         //-----
-         | cmdSpeakerBQuery :
-            request[V+0] := C'S';
-            request[V+1] := C'P';
-            request[V+2] := C'B';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdMasterVolume :
-            request[V+0] := C'M';
-            request[V+1] := C'V';
-            request[V+2] := C'L';
-
-            i := MIN2( 100, MAX2( 0, value.Integer ));
-            IF NOT Strings.FromCARD64A( CARD64( value.Integer ), 16, OUT volume ) THEN
-               RETURN FALSE;
-            END;
-            IF i > 16 THEN
-               request[V+3] := volume[0];
-               request[V+4] := volume[1];
-            ELSE
-               request[V+3] := C'0';
-               request[V+4] := volume[0];
-            END;
-
-            valueLength := 5;
-
-         //-----
-         | cmdMasterVolumeQuery :
-            request[V+0] := C'M';
-            request[V+1] := C'V';
-            request[V+2] := C'L';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdMasterVolumeUp :
-            request[V+0] := C'M';
-            request[V+1] := C'V';
-            request[V+2] := C'L';
-            request[V+3] := C'U';
-            request[V+4] := C'P';
-            valueLength := 5;
-
-         //-----
-         | cmdMasterVolumeDown :
-            request[V+0] := C'M';
-            request[V+1] := C'V';
-            request[V+2] := C'L';
-            request[V+3] := C'D';
-            request[V+4] := C'O';
-            request[V+5] := C'W';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdAudioInfoQuery :
-            request[V+0] := C'I';
-            request[V+1] := C'F';
-            request[V+2] := C'A';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdHDMIOutputQuery :
-            request[V+0] := C'H';
-            request[V+1] := C'D';
-            request[V+2] := C'O';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdZone2Power :
-            request[V+0] := C'Z';
-            request[V+1] := C'P';
-            request[V+2] := C'W';
-            request[V+3] := C'0';
-            IF value.Boolean THEN
-               request[V+4] := C'1';
-            ELSE
-               request[V+4] := C'0';
-            END;
-            valueLength := 5;
-
-         //-----
-         | cmdZone2PowerQuery :
-            request[V+0] := C'Z';
-            request[V+1] := C'P';
-            request[V+2] := C'W';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdZone3Power :
-            request[V+0] := C'P';
-            request[V+1] := C'W';
-            request[V+2] := C'3';
-            request[V+3] := C'0';
-            IF value.Boolean THEN
-               request[V+4] := C'1';
-            ELSE
-               request[V+4] := C'0';
-            END;
-            valueLength := 5;
-
-         //-----
-         | cmdZone3PowerQuery :
-            request[V+0] := C'P';
-            request[V+1] := C'W';
-            request[V+2] := C'3';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdZone4Power :
-            request[V+0] := C'P';
-            request[V+1] := C'W';
-            request[V+2] := C'4';
-            request[V+3] := C'0';
-            IF value.Boolean THEN
-               request[V+4] := C'1';
-            ELSE
-               request[V+4] := C'0';
-            END;
-            valueLength := 5;
-
-         //-----
-         | cmdZone4PowerQuery :
-            request[V+0] := C'P';
-            request[V+1] := C'W';
-            request[V+2] := C'4';
-            request[V+3] := C'Q';
-            request[V+4] := C'S';
-            request[V+5] := C'T';
-            request[V+6] := C'N';
-            valueLength := 7;
-
-         //-----
-         | cmdInput :
-            valueLength := 5;
-            s := value.String;
-            IF s.EqualsOA( INPUT_NAME_VIDEO1 ) THEN
-               request[V+3] := C'0'; 
-               request[V+4] := C'0';
-            ELSIF s.EqualsOA( INPUT_NAME_VIDEO2 ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'1';
-            ELSIF s.EqualsOA( INPUT_NAME_VIDEO3 ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'2';
-            ELSIF s.EqualsOA( INPUT_NAME_VIDEO4 ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'3';
-            ELSIF s.EqualsOA( INPUT_NAME_VIDEO5 ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'4';
-            ELSIF s.EqualsOA( INPUT_NAME_VIDEO6 ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'5';
-            ELSIF s.EqualsOA( INPUT_NAME_VIDEO7 ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'6';
-            ELSIF s.EqualsOA( INPUT_NAME_DVD ) THEN
-               request[V+3] := C'1';
-               request[V+4] := C'0';
-            ELSIF s.EqualsOA( INPUT_NAME_TAPE1 ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'0';
-            ELSIF s.EqualsOA( INPUT_NAME_TAPE2 ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'1';
-            ELSIF s.EqualsOA( INPUT_NAME_PHONO ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'2';
-            ELSIF s.EqualsOA( INPUT_NAME_CD ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'3';
-            ELSIF s.EqualsOA( INPUT_NAME_FM ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'4';
-            ELSIF s.EqualsOA( INPUT_NAME_AM ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'5';
-            ELSIF s.EqualsOA( INPUT_NAME_TUNER ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'6';
-            ELSIF s.EqualsOA( INPUT_NAME_DLNA ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'7';
-            ELSIF s.EqualsOA( INPUT_NAME_INETRADIO ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'8';
-            ELSIF s.EqualsOA( INPUT_NAME_USBFRONT ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'9';
-            ELSIF s.EqualsOA( INPUT_NAME_USBREAR ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'A';
-            ELSIF s.EqualsOA( INPUT_NAME_NETWORK ) THEN
-               request[V+3] := C'2';
-               request[V+4] := C'B';
-            ELSIF s.EqualsOA( INPUT_NAME_UP ) THEN
-               request[V+3] := C'U';
-               request[V+4] := C'P';
-            ELSIF s.EqualsOA( INPUT_NAME_DOWN ) THEN
-               request[V+3] := C'D';
-               request[V+4] := C'O';
-               request[V+5] := C'W';
-               request[V+6] := C'N';
-               valueLength := 7;
-            ELSE
-               RETURN FALSE;
-            END;
-
-            request[V+0] := C'S';
-            request[V+1] := C'L';
-            request[V+2] := C'I';
-
-         //-----
-         | cmdHDMIOutput :
-            valueLength := 5;
-            s := value.String;
-            IF s.EqualsOA( HDMI_OUTPUT_NONE ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'0';
-            ELSIF s.EqualsOA( HDMI_OUTPUT_MAIN ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'1';
-            ELSIF s.EqualsOA( HDMI_OUTPUT_SUB ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'2';
-            ELSIF s.EqualsOA( HDMI_OUTPUT_BOTH ) THEN
-               request[V+3] := C'0';
-               request[V+4] := C'3';
-            ELSIF s.EqualsOA( HDMI_OUTPUT_UP ) THEN
-               request[V+3] := C'U';
-               request[V+4] := C'P';
-            ELSE
-               RETURN FALSE;
-            END;
-
-            request[V+0] := C'H';
-            request[V+1] := C'D';
-            request[V+2] := C'O';
-
+      //-----
+      | cmdInput :
+         request.FromOA( L"!1SLI" );
+         s := value.String;
+         IF s.EqualsOA( INPUT_NAME_VIDEO1 ) THEN
+            request.AppendOA( L"00" );
+         ELSIF s.EqualsOA( INPUT_NAME_VIDEO2 ) THEN
+            request.AppendOA( L"01" );
+         ELSIF s.EqualsOA( INPUT_NAME_VIDEO3 ) THEN
+            request.AppendOA( L"02" );
+         ELSIF s.EqualsOA( INPUT_NAME_VIDEO4 ) THEN
+            request.AppendOA( L"03" );
+         ELSIF s.EqualsOA( INPUT_NAME_VIDEO5 ) THEN
+            request.AppendOA( L"04" );
+         ELSIF s.EqualsOA( INPUT_NAME_VIDEO6 ) THEN
+            request.AppendOA( L"05" );
+         ELSIF s.EqualsOA( INPUT_NAME_VIDEO7 ) THEN
+            request.AppendOA( L"06" );
+         ELSIF s.EqualsOA( INPUT_NAME_DVD ) THEN
+            request.AppendOA( L"10" );
+         ELSIF s.EqualsOA( INPUT_NAME_TAPE1 ) THEN
+            request.AppendOA( L"20" );
+         ELSIF s.EqualsOA( INPUT_NAME_TAPE2 ) THEN
+            request.AppendOA( L"21" );
+         ELSIF s.EqualsOA( INPUT_NAME_PHONO ) THEN
+            request.AppendOA( L"22" );
+         ELSIF s.EqualsOA( INPUT_NAME_CD ) THEN
+            request.AppendOA( L"23" );
+         ELSIF s.EqualsOA( INPUT_NAME_FM ) THEN
+            request.AppendOA( L"24" );
+         ELSIF s.EqualsOA( INPUT_NAME_AM ) THEN
+            request.AppendOA( L"25" );
+         ELSIF s.EqualsOA( INPUT_NAME_TUNER ) THEN
+            request.AppendOA( L"26" );
+         ELSIF s.EqualsOA( INPUT_NAME_DLNA ) THEN
+            request.AppendOA( L"27" );
+         ELSIF s.EqualsOA( INPUT_NAME_INETRADIO ) THEN
+            request.AppendOA( L"28" );
+         ELSIF s.EqualsOA( INPUT_NAME_USBFRONT ) THEN
+            request.AppendOA( L"29" );
+         ELSIF s.EqualsOA( INPUT_NAME_USBREAR ) THEN
+            request.AppendOA( L"2A" );
+         ELSIF s.EqualsOA( INPUT_NAME_NETWORK ) THEN
+            request.AppendOA( L"2B" );
+         ELSIF s.EqualsOA( INPUT_NAME_UP ) THEN
+            request.AppendOA( L"UP" );
+         ELSIF s.EqualsOA( INPUT_NAME_DOWN ) THEN
+            request.AppendOA( L"DOWN" );
          ELSE
             RETURN FALSE;
-         END; // CASE
+         END;
+      //-----
+      | cmdInputQuery :
+         request.FromOA( L"!1SQLQSTN" );
 
-         request[00] := C'I'; request[01] := C'S'; request[02] := C'C'; request[03] := C'P';
-         request[04] := 0;    request[05] := 0;    request[06] := 0;    request[07] := 16;
-         request[08] := 0;    request[09] := 0;    request[10] := 0;    request[11] := 0; // data size
-         request[12] := 1;    request[13] := 0;    request[14] := 0;    request[15] := 0;
+      //-----
+      | cmdSpeakerA :
+         request.FromOA( L"!1SPA0" );
+         IF value.Boolean THEN
+            request.AppendOA( L"1" );
+         ELSE
+            request.AppendOA( L"0" );
+         END;
+      //-----
+      | cmdSpeakerAQuery :
+         request.FromOA( L"!1SPAQSTN" );
 
-         request[D+0] := C'!';
-         request[D+1] := C'1';
+      //-----
+      | cmdSpeakerB :
+         request.FromOA( L"!1SPB0" );
+         IF value.Boolean THEN
+            request.AppendOA( L"1" );
+         ELSE
+            request.AppendOA( L"0" );
+         END;
+      //-----
+      | cmdSpeakerBQuery :
+         request.FromOA( L"!1SPBQSTN" );
 
-         // add stop characters
-         request[V+valueLength+0] := 26;
-         request[V+valueLength+1] := 13;
-         request[V+valueLength+2] := 10;
+      //-----
+      | cmdMasterVolume :
+         request.FromOA( L"!1MVL" );
+         i := MIN2( 100, MAX2( 0, value.Integer ));
+         IF NOT Strings.FromCARD64W( CARD64( value.Integer ), 16, OUT volume ) THEN
+            RETURN FALSE;
+         END;
+         IF i < 16 THEN
+            request.AppendOA( L"0" );
+         END;
+         request.AppendOA( volume );
+      //-----
+      | cmdMasterVolumeQuery :
+         request.FromOA( L"!1MVLQSTN" );
+      //-----
+      | cmdMasterVolumeUp :
+         request.FromOA( L"!1MVLUP" );
+      //-----
+      | cmdMasterVolumeDown :
+         request.FromOA( L"!1MVLDOWN" );
 
-      CATCH : CModula2Exception DO
+      //-----
+      | cmdAudioInfoQuery :
+         request.FromOA( L"!1IFAQSTN" );
+
+      //-----
+      | cmdHDMIOutput :
+         request.FromOA( L"!1HDO" );
+         s := value.String;
+         IF s.EqualsOA( HDMI_OUTPUT_NONE ) THEN
+            request.AppendOA( L"00" );
+         ELSIF s.EqualsOA( HDMI_OUTPUT_MAIN ) THEN
+            request.AppendOA( L"01" );
+         ELSIF s.EqualsOA( HDMI_OUTPUT_SUB ) THEN
+            request.AppendOA( L"02" );
+         ELSIF s.EqualsOA( HDMI_OUTPUT_BOTH ) THEN
+            request.AppendOA( L"03" );
+         ELSIF s.EqualsOA( HDMI_OUTPUT_UP ) THEN
+            request.AppendOA( L"UP" );
+         ELSE
+            RETURN FALSE;
+         END;
+      //-----
+      | cmdHDMIOutputQuery :
+         request.FromOA( L"!1HDOQSTN" );
+
+      //-----
+      | cmdZone2Power :
+         request.FromOA( L"!1ZPW0" );
+         IF value.Boolean THEN
+            request.AppendOA( L"1" );
+         ELSE
+            request.AppendOA( L"0" );
+         END;
+      //-----
+      | cmdZone2PowerQuery :
+         request.FromOA( L"!1ZPWQSTN" );
+
+      //-----
+      | cmdZone3Power :
+         request.FromOA( L"!1PW3" );
+         IF value.Boolean THEN
+            request.AppendOA( L"1" );
+         ELSE
+            request.AppendOA( L"0" );
+         END;
+      //-----
+      | cmdZone3PowerQuery :
+         request.FromOA( L"!1PW3QSTN" );
+
+      //-----
+      | cmdZone4Power :
+         request.FromOA( L"!1PW4" );
+         IF value.Boolean THEN
+            request.AppendOA( L"1" );
+         ELSE
+            request.AppendOA( L"0" );
+         END;
+      //-----
+      | cmdZone4PowerQuery :
+         request.FromOA( L"!1PW4QSTN" );
+
+      ELSE
          RETURN FALSE;
+      END; // CASE
 
-      END; // TRY
+      // add stop characters
+      request.AppendOA( 13W + 10W );
 
       RETURN TRUE;
    END AssemblyCommand;
 
 (*---------------------------------------------------------------------------*)
 
-   PROCEDURE DisassemblyCommand( CONST response : StorageO.CMemoryBuffer; OUT command1, command2 : TCommand; REF value1, value2 : iovalue.Value ) : BOOLEAN;
+   PROCEDURE DisassemblyCommand( CONST response : StringsO.CString; OUT command1, command2 : TCommand; REF value1, value2 : iovalue.Value ) : BOOLEAN;
    VAR
       sCommand : StringsO.CString;
    BEGIN
@@ -642,7 +459,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       al : Sync.AutoLock;
       d : PTR;
-      request : StorageO.CMemoryBuffer;
+      request : StringsO.CString;
    BEGIN
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (request)" );
 
@@ -650,8 +467,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          Logger.LogS( log.ldDebug, 0, LOG_NAME, L"Connection connected" );
 
          StartTimeout( CONNECTION_DISCONNECT_TIMEOUT, TRUE, REF _ConnectionCloseTimeoutHandle );
-         _Reader.StartReading();
-         _State := csWaitAuthorization;
+         _Connection.BufferedStream^.StartReading();
+         _State := csConnected;
 
       ELSE
          Logger.LogSC( log.ldTrace, 0, LOG_NAME, L"Connect failed:", Result );
@@ -660,7 +477,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
          // empty queue
          WHILE _Queue.Dequeue( OUT request, OUT d ) DO
-            Logger.LogSB( log.ldDebug, 0, LOG_NAME, L"Dropped request:", request.Data, request.Length );
+            Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Dropped request:", OA( request.Length-1, request.Data ));
          END; // WHILE
 
       END;
@@ -670,34 +487,53 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
    VAR
-      authError : BOOLEAN;
-      byteLen : CARDINAL;
-      ptext : PWCHAR;
-      response : StorageO.CMemoryBuffer;
+      ch : CHAR;
+      i, l : INTEGER;
+      response : StringsO.CString;
    BEGIN
-      WHILE _Reader.Peek( OUT ptext, OUT byteLen ) DO
-         IF byteLen >= 4 THEN
-            response.FromOA( OA( byteLen DIV 2 - 2, ptext )); // -1 CR, -1 Len to HIGH
+      _Connection.BufferedStream^.ReadBuffer( CARDINAL( _Connection.BufferedStream^.Length ), REF _Buffer, 0 );
+      _Connection.BufferedStream^.StartReading();
 
-            IF _State = csConnected THEN // TODO
-               PIO^.OnResponse( response );
-
-            ELSE
-               Logger.LogSS( log.ldTrace, 0, LOG_NAME, L"Connect response improper:", OA( response.Length-1, response.Data ));
-
-               _Lock.Lock(); // TODO safety
-               StopTimeout( REF _ConnectionCloseTimeoutHandle );
-               _State := csDisconnected;
-               _Connection.Close();
-               _Lock.Unlock();
+      // remove unusable characters
+      i := 0;
+      l := _Buffer.Length;
+      TRY
+         LOOP
+            ch := _Buffer[i];
+            IF ( ch = C'!' ) OR ( i = l ) THEN
+               EXIT;
             END;
+            INC( i );
+         END; // LOOP
+      CATCH : CModula2Exception DO
+         // intentionally left empty, shall not appear
+      END;
+      _Buffer.RemoveStart( i );
 
-         END; // IF
+      LOOP
+         i := 0;
+         l := _Buffer.Length;
+         TRY
+            LOOP
+               ch := _Buffer[i];
+               IF ( ch = EOF ) OR ( i = l ) THEN
+                  EXIT;
+               END;
+               INC( i );
+            END; // LOOP
+         CATCH : CModula2Exception DO
+            // intentionally left empty, shall not appear
+         END;
+         IF i = l THEN // no next data found
+            EXIT;
+         END;
+         
+         // some packet found
+         response.FromOAA( 0, OA( i-1, PCHAR( _Buffer.Data )));
+         PIO^.OnResponse( response );
 
-         _Reader.ReadOut( byteLen ); // read out and signal next reading
-      END; // WHILE
-      
-      _Reader.StartReading();
+         _Buffer.RemoveStart( i );
+      END;
    END OnReadable;
 
 (*---------------------------------------------------------------------------*)
@@ -817,14 +653,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       _Password.Clear();
       _State := csDisconnected;
-      _AuthRequested := FALSE;
 
       LogConfig.DisposeAppenderList( REF _AppenderList );
    END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Request( CONST request : StorageO.AMemoryBuffer );
+   PUBLIC PROCEDURE Request( CONST request : StringsO.CString );
    VAR
       al : Sync.AutoLock;
    BEGIN
@@ -847,18 +682,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PRIVATE PROCEDURE FlushQueue(); // in sync environment
    VAR
-      bHash : StorageO.CMemoryBuffer;
       d : PTR;
-      filled : CARDINAL;
-      request : StorageO.CMemoryBuffer;
+      request : StringsO.CString;
+      writer : TextWriter.CTextWriter;
    BEGIN
+      writer.Stream := _Connection.BufferedStream;
       WHILE _Queue.Dequeue( OUT request, OUT d ) DO
-
-         IF _AuthRequested THEN
-            // TODO
-         END;
-         
-         IF _Connection.BufferedStream^.WriteBuffer( request, OUT consumed, CONNECTION_DISCONNECT_TIMEOUT DIV 2 ) = Sync.arTimeout THEN
+         IF writer.WriteTimeout( request, FALSE, CONNECTION_DISCONNECT_TIMEOUT DIV 2 ) = Sync.arTimeout THEN
             // disconnect
             StopTimeout( REF _ConnectionCloseTimeoutHandle );
             _State := csDisconnected;
@@ -892,8 +722,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 BEGIN
    _Connection.Notifier := ADR( SELF );
-   _Reader.Stream := _Connection.BufferedStream;
-   _Reader.LineEndStyle := TextReader.lesMAC;
    PIO := NIL;
    _ConnectionCloseTimeoutHandle := NIL;
 END CDeviceCommunicator;
@@ -982,12 +810,11 @@ CLASS IMPLEMENTATION CIO;
    PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
       al : Sync.AutoLock;
-      b : StorageO.CMemoryBuffer;
       command : TCommand;
       i : CARDINAL;
       item : nsitem.TPnsItem := NIL;
+      request : StringsO.CString;
       Result : Sync.TAsyncResult := Sync.arCompleted;
-      s : StringsO.CString;
    BEGIN
       item := nsitem.TPnsItem( Item );
       IF ( item^.NameType <> ns.ntValue ) OR ( item^.ValueType = iovalue.vtString ) THEN
@@ -1021,14 +848,14 @@ CLASS IMPLEMENTATION CIO;
 
       ELSE
          IF NOT DeviceCommunicator.Logger.FilteredFastCheck( log.ldTrace, 0 ) THEN
-            s := Value.String;
-            DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item write:", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( s.Length-1, s.Data ));
+            request := Value.String;
+            DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item write:", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( request.Length-1, request.Data ));
          END;
 
-         IF AssemblyCommand( command, Value, OUT b ) THEN
-            DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( s.Length-1, s.Data ));
+         IF AssemblyCommand( command, Value, OUT request ) THEN
+            DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-1, request.Data ));
 
-            DeviceCommunicator.Request( b );
+            DeviceCommunicator.Request( request );
             Delegate^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
             RETURN Sync.arCompleted;
          ELSE
@@ -1048,11 +875,11 @@ CLASS IMPLEMENTATION CIO;
 
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
-      request : StorageO.CMemoryBuffer;
+      request : StringsO.CString;
       value : iovalue.Value;
    BEGIN
       IF AssemblyCommand( cmdPowerQuery, value, OUT request ) THEN
-         DeviceCommunicator.Logger.LogSB( log.ldDebug, 0, LOG_NAME, L"Request to send:", request.Data, request.Length );
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-1, request.Data ));
          DeviceCommunicator.Request( request );
       ELSE
          DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdPowerQuery packet" );
@@ -1061,7 +888,7 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE OnResponse( CONST response : StorageO.CMemoryBuffer );
+   LOCAL PROCEDURE OnResponse( CONST response : StringsO.CString );
    VAR
       al : Sync.AutoLock;
       command1, command2 : TCommand;
@@ -1070,7 +897,7 @@ CLASS IMPLEMENTATION CIO;
       s : StringsO.CString;
       value1, value2 : iovalue.Value;
    BEGIN
-      DeviceCommunicator.Logger.LogSB( log.ldDebug, 0, LOG_NAME, L"Response received:", response.Data, response.Length );
+      DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Response received:", OA( response.Length-1, response.Data ));
 
       IF DisassemblyCommand( response, OUT command1, OUT command2, REF value1, REF value2 ) THEN
          FOR i := 0 TO DataRoot^.Count-1 DO
