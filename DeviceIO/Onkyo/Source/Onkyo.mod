@@ -32,7 +32,7 @@ CONST
 CONST
    DEFAULT_PORT = 10001;
    CONNECTION_DISCONNECT_TIMEOUT = 86400000; // 86400 second, each day the connection is reset
-   POLL_TIMEOUT = 20000; // 20 second, in the case of missing connection
+   POLL_TIMEOUT = 60000; // 60 second
    EOF = 26C;
 
 (*--------------------------------------------------------------------------------*)
@@ -148,7 +148,7 @@ CLASS IMPLEMENTATION CNS;
       item := CreateNewItem( L"Speakers A status", ns.ntValue, iovalue.vtBoolean, PTR( cmdSpeakerAQuery )); DataRoot^.AddChild( item );
 
       item := CreateNewItem( L"Speakers B", ns.ntValue, iovalue.vtBoolean, PTR( cmdSpeakerB )); DataRoot^.AddChild( item );
-      item := CreateNewItem( L"Speakers B", ns.ntValue, iovalue.vtBoolean, PTR( cmdSpeakerBQuery )); DataRoot^.AddChild( item );
+      item := CreateNewItem( L"Speakers B status", ns.ntValue, iovalue.vtBoolean, PTR( cmdSpeakerBQuery )); DataRoot^.AddChild( item );
 
       item := CreateNewItem( L"Master volume", ns.ntValue, iovalue.vtInteger, PTR( cmdMasterVolume )); DataRoot^.AddChild( item );
       item := CreateNewItem( L"Master volume status", ns.ntValue, iovalue.vtInteger, PTR( cmdMasterVolumeQuery )); DataRoot^.AddChild( item );
@@ -160,14 +160,14 @@ CLASS IMPLEMENTATION CNS;
       item := CreateNewItem( L"HDMI output", ns.ntValue, iovalue.vtString, PTR( cmdHDMIOutput )); DataRoot^.AddChild( item ); // expects some HDMI output name, HDMI_OUTPUT_*
       item := CreateNewItem( L"HDMI output status", ns.ntValue, iovalue.vtString, PTR( cmdHDMIOutputQuery )); DataRoot^.AddChild( item );
 
-      item := CreateNewItem( L"Zone2 power", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone2Power )); DataRoot^.AddChild( item );
-      item := CreateNewItem( L"Zone2 power status", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone2PowerQuery )); DataRoot^.AddChild( item );
+      item := CreateNewItem( L"Zone 2 power", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone2Power )); DataRoot^.AddChild( item );
+      item := CreateNewItem( L"Zone 2 power status", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone2PowerQuery )); DataRoot^.AddChild( item );
 
-      item := CreateNewItem( L"Zone3 power", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone3Power )); DataRoot^.AddChild( item );
-      item := CreateNewItem( L"Zone3 power status", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone3PowerQuery )); DataRoot^.AddChild( item );
+      item := CreateNewItem( L"Zone 3 power", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone3Power )); DataRoot^.AddChild( item );
+      item := CreateNewItem( L"Zone 3 power status", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone3PowerQuery )); DataRoot^.AddChild( item );
 
-      item := CreateNewItem( L"Zone4 power", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone4Power )); DataRoot^.AddChild( item );
-      item := CreateNewItem( L"Zone4 power status", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone4PowerQuery )); DataRoot^.AddChild( item )
+      item := CreateNewItem( L"Zone 4 power", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone4Power )); DataRoot^.AddChild( item );
+      item := CreateNewItem( L"Zone 4 power status", ns.ntValue, iovalue.vtBoolean, PTR( cmdZone4PowerQuery )); DataRoot^.AddChild( item )
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -266,7 +266,7 @@ END CNS;
          END;
       //-----
       | cmdInputQuery :
-         request.FromOA( L"!1SQLQSTN" );
+         request.FromOA( L"!1SLIQSTN" );
 
       //-----
       | cmdSpeakerA :
@@ -308,9 +308,15 @@ END CNS;
          request.FromOA( L"!1MVLQSTN" );
       //-----
       | cmdMasterVolumeUp :
+         IF NOT value.Boolean THEN
+            RETURN FALSE;
+         END;
          request.FromOA( L"!1MVLUP" );
       //-----
       | cmdMasterVolumeDown :
+         IF NOT value.Boolean THEN
+            RETURN FALSE;
+         END;
          request.FromOA( L"!1MVLDOWN" );
 
       //-----
@@ -386,39 +392,127 @@ END CNS;
 
 (*---------------------------------------------------------------------------*)
 
-   PROCEDURE DisassemblyCommand( CONST response : StringsO.CString; OUT command1, command2 : TCommand; REF value1, value2 : iovalue.Value ) : BOOLEAN;
+   PROCEDURE DisassemblyCommand( CONST response : StringsO.CString; OUT command : TCommand; REF value : iovalue.Value ) : BOOLEAN;
    VAR
+      i : INTEGER;
+      s : StringsO.CString;
       sCommand : StringsO.CString;
    BEGIN
-      (*
       // check basic properties
-      IF ( response.Length < 8 ) OR ( response[0] <> L"%" ) OR ( response[1] <> L"1" ) THEN
+      IF ( response.Length < 6 ) OR ( response[0] <> L"!" ) OR ( response[1] <> L"1" ) THEN
          RETURN FALSE;
       END;
 
       // determine command
-      response.Substring( 2, 4, OUT sCommand );
+      response.Substring( 2, 3, OUT sCommand );
       sCommand.Capitalize();
-      IF sCommand.EqualsOA( L"POWR" ) THEN
-         command1 := cmdPowerStatus;
-         command2 := cmdPower;
+
+      IF sCommand.EqualsOA( L"PWR" ) THEN
+         command := cmdPowerQuery;
+         value.Boolean := response[6] = L"1";
+
+      ELSIF sCommand.EqualsOA( L"SLI" ) THEN
+         command := cmdInputQuery;
+         response.Substring( 5, 2, OUT s );
+         IF s.EqualsOA( L"00" ) THEN
+            s.FromOA( INPUT_NAME_VIDEO1 );
+         ELSIF s.EqualsOA( L"01" ) THEN
+            s.FromOA( INPUT_NAME_VIDEO2 );
+         ELSIF s.EqualsOA( L"02" ) THEN
+            s.FromOA( INPUT_NAME_VIDEO3 );
+         ELSIF s.EqualsOA( L"03" ) THEN
+            s.FromOA( INPUT_NAME_VIDEO4 );
+         ELSIF s.EqualsOA( L"04" ) THEN
+            s.FromOA( INPUT_NAME_VIDEO5 );
+         ELSIF s.EqualsOA( L"05" ) THEN
+            s.FromOA( INPUT_NAME_VIDEO6 );
+         ELSIF s.EqualsOA( L"06" ) THEN
+            s.FromOA( INPUT_NAME_VIDEO7 );
+         ELSIF s.EqualsOA( L"10" ) THEN
+            s.FromOA( INPUT_NAME_DVD );
+         ELSIF s.EqualsOA( L"20" ) THEN
+            s.FromOA( INPUT_NAME_TAPE1 );
+         ELSIF s.EqualsOA( L"21" ) THEN
+            s.FromOA( INPUT_NAME_TAPE2 );
+         ELSIF s.EqualsOA( L"22" ) THEN
+            s.FromOA( INPUT_NAME_PHONO );
+         ELSIF s.EqualsOA( L"23" ) THEN
+            s.FromOA( INPUT_NAME_CD );
+         ELSIF s.EqualsOA( L"24" ) THEN
+            s.FromOA( INPUT_NAME_FM );
+         ELSIF s.EqualsOA( L"25" ) THEN
+            s.FromOA( INPUT_NAME_AM );
+         ELSIF s.EqualsOA( L"26" ) THEN
+            s.FromOA( INPUT_NAME_TUNER );
+         ELSIF s.EqualsOA( L"27" ) THEN
+            s.FromOA( INPUT_NAME_DLNA );
+         ELSIF s.EqualsOA( L"28" ) THEN
+            s.FromOA( INPUT_NAME_INETRADIO );
+         ELSIF s.EqualsOA( L"29" ) THEN
+            s.FromOA( INPUT_NAME_USBFRONT );
+         ELSIF s.EqualsOA( L"2A" ) THEN
+            s.FromOA( INPUT_NAME_USBREAR );
+         ELSIF s.EqualsOA( L"2B" ) THEN
+            s.FromOA( INPUT_NAME_NETWORK );
+         ELSE
+            s.FromOA( INPUT_NAME_UNKNOWN );
+         END;
+         value.String := s;
+
+      ELSIF sCommand.EqualsOA( L"SPA" ) THEN
+         command := cmdSpeakerAQuery;
+         value.Boolean := response[6] = L"1";
+
+      ELSIF sCommand.EqualsOA( L"SPB" ) THEN
+         command := cmdSpeakerBQuery;
+         value.Boolean := response[6] = L"1";
+
+      ELSIF sCommand.EqualsOA( L"MVL" ) THEN
+         command := cmdMasterVolumeQuery;
+         response.Substring( 5, 2, OUT s );
+         IF NOT s.ToINT32( 16, OUT i ) THEN
+            RETURN FALSE;
+         END;
+         value.Integer := i;
+
+      ELSIF sCommand.EqualsOA( L"IFA" ) THEN
+         command := cmdAudioInfoQuery;
+         response.Substring( 5, response.Length-1-5, OUT s );
+         value.String := s;
+
+      ELSIF sCommand.EqualsOA( L"HDO" ) THEN
+         command := cmdHDMIOutputQuery;
+         response.Substring( 5, 2, OUT s );
+         IF s.EqualsOA( L"00" ) THEN
+            s.FromOA( HDMI_OUTPUT_NONE );
+         ELSIF s.EqualsOA( L"01" ) THEN
+            s.FromOA( HDMI_OUTPUT_MAIN );
+         ELSIF s.EqualsOA( L"02" ) THEN
+            s.FromOA( HDMI_OUTPUT_SUB );
+         ELSIF s.EqualsOA( L"03" ) THEN
+            s.FromOA( HDMI_OUTPUT_BOTH );
+         ELSE
+            s.FromOA( HDMI_OUTPUT_UNKNOWN );
+         END;
+         value.String := s;
+
+      ELSIF sCommand.EqualsOA( L"ZPW" ) THEN
+         command := cmdZone2PowerQuery;
+         value.Boolean := response[6] = L"1";
+
+      ELSIF sCommand.EqualsOA( L"PW3" ) THEN
+         command := cmdZone3PowerQuery;
+         value.Boolean := response[6] = L"1";
+
+      ELSIF sCommand.EqualsOA( L"PW4" ) THEN
+         command := cmdZone4PowerQuery;
+         value.Boolean := response[6] = L"1";
+
       ELSE
          RETURN FALSE;
       END;
 
-      CASE response[7] OF
-      | L"0" : value1.Integer := 0;
-      | L"1" : value1.Integer := 1;
-      | L"2" : value1.Integer := 2;
-      | L"3" : value1.Integer := 3;
-      ELSE
-         RETURN FALSE; // it covers ERRx and OK
-      END;
-      // fallen down
-      value2.Boolean := value1.Integer = 1;
-      *)
-
-      RETURN FALSE;
+      RETURN TRUE;
    END DisassemblyCommand;
 
 (*---------------------------------------------------------------------------*)
@@ -495,28 +589,37 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       _Connection.BufferedStream^.StartReading();
 
       // remove unusable characters
-      i := 0;
-      l := _Buffer.Length;
-      TRY
-         LOOP
-            ch := _Buffer[i];
-            IF ( ch = C'!' ) OR ( i = l ) THEN
-               EXIT;
-            END;
-            INC( i );
-         END; // LOOP
-      CATCH : CModula2Exception DO
-         // intentionally left empty, shall not appear
-      END;
-      _Buffer.RemoveStart( i );
-
       LOOP
          i := 0;
          l := _Buffer.Length;
          TRY
             LOOP
+               IF i = l THEN
+                  EXIT;
+               END;
                ch := _Buffer[i];
-               IF ( ch = EOF ) OR ( i = l ) THEN
+               IF ch = C'!' THEN
+                  EXIT;
+               END;
+               INC( i );
+            END; // LOOP
+         CATCH : CModula2Exception DO
+            // intentionally left empty, shall not appear
+         END;
+         _Buffer.RemoveStart( i );
+         IF i = l THEN // no start found
+            EXIT;
+         END;
+
+         i := 0;
+         l := _Buffer.Length;
+         TRY
+            LOOP
+               IF i = l THEN
+                  EXIT;
+               END;
+               ch := _Buffer[i];
+               IF ch = EOF THEN
                   EXIT;
                END;
                INC( i );
@@ -527,6 +630,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF i = l THEN // no next data found
             EXIT;
          END;
+         INC( i ); // change last index to length
          
          // some packet found
          response.FromOAA( 0, OA( i-1, PCHAR( _Buffer.Data )));
@@ -668,8 +772,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       _Queue.Enqueue( request, 0 );
       IF _State = csConnecting THEN
          // do nothing, wait connected
+
       ELSIF _State = csConnected THEN
          FlushQueue();
+
       ELSIF _State = csDisconnected THEN
          _State := csConnecting;
 
@@ -817,7 +923,7 @@ CLASS IMPLEMENTATION CIO;
       Result : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN
       item := nsitem.TPnsItem( Item );
-      IF ( item^.NameType <> ns.ntValue ) OR ( item^.ValueType = iovalue.vtString ) THEN
+      IF item^.NameType <> ns.ntValue THEN
          RETURN Sync.arCannotStart;
       END;
 
@@ -853,7 +959,7 @@ CLASS IMPLEMENTATION CIO;
          END;
 
          IF AssemblyCommand( command, Value, OUT request ) THEN
-            DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-1, request.Data ));
+            DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
 
             DeviceCommunicator.Request( request );
             Delegate^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
@@ -879,10 +985,73 @@ CLASS IMPLEMENTATION CIO;
       value : iovalue.Value;
    BEGIN
       IF AssemblyCommand( cmdPowerQuery, value, OUT request ) THEN
-         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-1, request.Data ));
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
          DeviceCommunicator.Request( request );
       ELSE
          DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdPowerQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdInputQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdInputQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdSpeakerAQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdSpeakerAQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdSpeakerBQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdSpeakerBQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdMasterVolumeQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdMasterVolumeQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdAudioInfoQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdAudioInfoQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdHDMIOutputQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdHDMIOutputQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdZone2PowerQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdZone2PowerQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdZone3PowerQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdZone3PowerQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdZone4PowerQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdZone4PowerQuery packet" );
       END;
    END OnTimeout;
 
@@ -891,53 +1060,35 @@ CLASS IMPLEMENTATION CIO;
    LOCAL PROCEDURE OnResponse( CONST response : StringsO.CString );
    VAR
       al : Sync.AutoLock;
-      command1, command2 : TCommand;
+      command : TCommand;
       i : CARDINAL;
-      item1, item2 : nsitem.TPnsItem := NIL;
+      item : nsitem.TPnsItem := NIL;
       s : StringsO.CString;
-      value1, value2 : iovalue.Value;
+      value : iovalue.Value;
    BEGIN
       DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Response received:", OA( response.Length-1, response.Data ));
 
-      IF DisassemblyCommand( response, OUT command1, OUT command2, REF value1, REF value2 ) THEN
+      IF DisassemblyCommand( response, OUT command, REF value ) THEN
          FOR i := 0 TO DataRoot^.Count-1 DO
-            IF DataRoot^[i]^.Data = PTR( command1 ) THEN
-               item1 := nsitem.TPnsItem( DataRoot^[i] );
+            IF DataRoot^[i]^.Data = PTR( command ) THEN
+               item := nsitem.TPnsItem( DataRoot^[i] );
                EXIT;
             END;
          END;
-         FOR i := 0 TO DataRoot^.Count-1 DO
-            IF DataRoot^[i]^.Data = PTR( command2 ) THEN
-               item2 := nsitem.TPnsItem( DataRoot^[i] );
-               EXIT;
-            END;
-         END;
-         IF ( item1 = NIL ) AND ( item2 = NIL ) THEN
+         IF item = NIL THEN
             RETURN;
          END;
       
-         IF item1 <> NIL THEN
+         IF item <> NIL THEN
             IF NOT DeviceCommunicator.Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
-               s := value1.String;
-               DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item value accepted:", OA( item1^.Name^.Length-1, item1^.Name^.Data ), OA( s.Length-1, s.Data ));
+               s := value.String;
+               DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item value accepted:", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( s.Length-1, s.Data ));
             END;
 
             al.TakeSafe( REF _Lock, L"Unable to lock data area" );
-            item1^.Value^.Undefined := FALSE;
-            item1^.Value^ := value1;
+            item^.Value^.Undefined := FALSE;
+            item^.Value^ := value;
          END; // IF item1
-
-         IF item2 <> NIL THEN
-            IF NOT DeviceCommunicator.Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
-               s := value2.String;
-               DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item value accepted:", OA( item2^.Name^.Length-1, item2^.Name^.Data ), OA( s.Length-1, s.Data ));
-            END;
-
-            al.TakeSafe( REF _Lock, L"Unable to lock data area" );
-            item2^.Value^.Undefined := FALSE;
-            item2^.Value^ := value2;
-         END; // IF item1
-
       END;
    END OnResponse;
 
