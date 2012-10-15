@@ -174,7 +174,7 @@
 
         <!-- 1. add self to components -->
         <CreateItem Include="$(ComponentName)"
-                    AdditionalMetadata="Definition=$(ComponentDefinitionsSource);Type=Component;ComponentType=$(ComponentType);DefinitionPath=$(ComponentDefinitionsPath);AdditionalProperties=InheritedLibraryName=$(LibraryName)">
+                    AdditionalMetadata="Definition=$(ComponentDefinitionsSource);Type=Component;ComponentType=$(ComponentType);DefinitionPath=$(ComponentDefinitionsPath);AdditionalProperties=InheritedLibraryName=$(LibraryName);AdditionalProperties=InheritedPublishExports=$(InheritedPublishExports)">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
 
@@ -270,7 +270,9 @@
                  Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )"/>
         
         <PropertyGroup>
-            <InheritedComponentProperties>InheritedComponentDefinitionsSource=$(ComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedLibraryName=$(LibraryName)</InheritedComponentProperties>
+            <InheritedPublishExportsValue>off</InheritedPublishExportsValue>
+            <InheritedPublishExportsValue Condition="$(PublishExports)=='on' And $(PropagateSources)=='on'">on</InheritedPublishExportsValue>
+            <InheritedComponentProperties>InheritedComponentDefinitionsSource=$(ComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedLibraryName=$(LibraryName);InheritedPublishExports=$(InheritedPublishExportsValue)</InheritedComponentProperties>
             <InheritedGrabbingProperties>InheritedGrabProcessFile=$(GrabProcessFile)</InheritedGrabbingProperties>
         </PropertyGroup>
 

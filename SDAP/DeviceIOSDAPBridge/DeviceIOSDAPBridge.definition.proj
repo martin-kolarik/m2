@@ -3,7 +3,6 @@
 
     <PropertyGroup>
         <Manufacturer>NeNo</Manufacturer>
-        <PublishExports>on</PublishExports>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='DeviceIOSDAPBridge'">

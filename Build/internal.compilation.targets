@@ -89,8 +89,8 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <M2CTRL Condition ="$(PublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
-        <M2CTRL Condition ="$(PublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
+        <M2CTRL Condition ="$(InheritedPublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(InheritedPublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
         <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(LibraryName) -LD</M2TESTCTRL>
         <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(LibraryName)_test -LD</M2TESTCTRL>
     </PropertyGroup>

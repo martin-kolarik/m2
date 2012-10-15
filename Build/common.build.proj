@@ -105,7 +105,7 @@
 
     <!-- intermediates -->
     <ItemGroup>
-        <EnclosedComponents Condition="$(ComponentType)=='Library'" Include="@(Components)"/>
+        <EnclosedComponents Condition="$(ComponentType)=='Library' Or $(ComponentType)=='Cots'" Include="@(Components)"/>
         <!-- Library type component is component, which condensates together more generic components to single library (DLL), it
              must propagate interfaces (DEF, H) to users transparently -->
         
