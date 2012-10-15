@@ -24,11 +24,6 @@
         <!-- HeaderDirName>%40Header</HeaderDirName -->
         <HeaderDir>$(HeaderDirName)</HeaderDir>
 
-        <!-- recursive child parameters -->
-        <InheritedProperties>InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedManufacturer=$(Manufacturer);InheritedLibraryName=$(LibraryName);InheritedProductVersion=$(ProductVersion)</InheritedProperties>
-        <ChildParameters>ProductPath=$(ProductPath);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
-        <ChildParameters Condition="$(Test)=='off'">Test=off;$(ChildParameters)</ChildParameters>
-
         <!-- M2 initializing code -->
         <Modula2InitCode>$(RootDir)\Modula2\Modula2\Header\m2init.cpp</Modula2InitCode>
 
@@ -69,6 +64,14 @@
     <!-- grabbing data from used components -->
     <Import Project="internal.grabbing.targets"/>
     
+    <!-- build control -->
+    <PropertyGroup>
+        <!-- recursive child parameters -->
+        <InheritedProperties>InheritedManufacturer=$(Manufacturer);InheritedProductVersion=$(ProductVersion);InheritedLibraryName=$(LibraryName);InheritedBuildDependenciesFile=$(BuildDependenciesFile)</InheritedProperties>
+        <ChildParameters>ProductId=$(ProductId);$(InheritedProperties)</ChildParameters>
+        <ChildParameters Condition="$(Test)=='off'">Test=off;$(ChildParameters)</ChildParameters>
+    </PropertyGroup>
+    
     <!-- file names, sources, outputs -->
     <ItemGroup>
         <!-- resources -->
@@ -102,8 +105,8 @@
 
     <!-- intermediates -->
     <ItemGroup>
-        <ExportToInterface Condition="$(ComponentType)=='Library'" Include="@(Components)"/>
-        <!-- library component is component, which condensates together more generic components to single library (DLL), it
+        <EnclosedComponents Condition="$(ComponentType)=='Library'" Include="@(Components)"/>
+        <!-- Library type component is component, which condensates together more generic components to single library (DLL), it
              must propagate interfaces (DEF, H) to users transparently -->
         
         <CPPs Include="@(MODFiles -> '%(Filename).cpp')" />
@@ -113,23 +116,19 @@
 
         <Objects Include="@(MODFiles -> '$(IntermediateDir)\%(Filename).obj')" />
         <Objects Condition="$(TypeLibOBJ) !=''" Include="$(TypeLibOBJ)" />
-        <Objects Condition="$(Grabbing)!='on' And $(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='') And $(Modula2InitCode)!=''"
+        <Objects Condition="$(Grabbing)!='on' And $(Result)!='Static' And (@(EnclosedComponents)!='' Or @(Objects)!='') And $(Modula2InitCode)!=''"
                  Include="$(IntermediateDir)\m2init.obj"/>
 
-        <RESFile Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='')"
+        <RESFile Condition="$(Result)!='Static' And (@(EnclosedComponents)!='' Or @(Objects)!='')"
                  Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
 
-        <SelfInterface Condition="$(Result)!='Program' And (@(ExportToInterface)!='' Or @(MODFiles)!='' Or $(LIBEXPORT)!='')" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
+        <SelfInterface Condition="$(Result)!='Program' And (@(EnclosedComponents)!='' Or @(MODFiles)!='' Or $(ExportPath)!='')" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
         <!-- SelfInterface/Interface: Interface could be extended by project to export some interfaces, e.g. Ws32, msxml, etc. -->
-        <Interface Include="@(SelfInterface)"/>
 
         <MessagesBin Condition="@(Messages)!=''" Include="@(Messages -> '$(IntermediateDir)\$(MSBuildProjectName).%(FileName).brs')"/>
 
-        <Components Condition="$(ClientLicensing)=='on' And $(LicensingComponent)!=''"
-                    Include="$(LicensingComponent)"/>
-
         <Components Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And $(LibraryName)!=$(LeakDetectorComponentName) And
-                               (@(ExportToInterface)!='' Or @(Objects)!='')"
+                               (@(EnclosedComponents)!='' Or @(Objects)!='')"
                     Include="$(LeakDetectorComponent)"/>
 
     </ItemGroup>
@@ -139,16 +138,15 @@
         <Error Condition="@(Objects)!='' And $(ProjectDescription)==''"
                Text="Required 'ProjectDescription' property is not defined (project $(MSBuildProjectName))."
                HelpKeyword ="ProjectDescription"/>
-        <Error Condition="@(ExportToInterface)!='' And $(OriginalExport)!=''"
-               Text="Both 'ExportToInterface' and 'Export' keys are defined, this is not allowed. Select only one of them. (project $(MSBuildProjectName))."
-               HelpKeyword ="ExportToInterface"/>
-        <Warning Condition="$(DefinitionFileAllowed)=='off' And $(SelfDefinitionFileExists)=='on'"
+        <Error Condition="@(EnclosedComponents)!='' And $(OriginalExport)!=''"
+               Text="Both 'EnclosedComponents' and 'Export' keys are defined, this is not allowed. Select only one of them. (project $(MSBuildProjectName))."
+               HelpKeyword ="EnclosedComponents"/>
+        <Warning Condition="$(DefinitionsFileAllowed)=='off' And $(SelfDefinitionsFileExists)=='on'"
                  Text="Definition file $(ComponentDefinitionsPath) will not be used, component type or owning component denies it."
                  HelpKeyword ="ComponentType, *.definition.proj"/>
         <Error Condition="$(CPPExceptions)=='on' And $(CLib)=='Private'"
                Text="Private CLib does not support native CPP exceptions, switch native exceptions off or use Static or Dynamic CLib."
                HelpKeyword ="CLib"/>
-        <!-- Exec Command="$(RootDir)\setenv.bat"/ -->
     </Target>
 
 
@@ -244,14 +242,15 @@
     </Target>
 
 
-    <Target Name="CPPs" Condition="(@(DEFFiles)!='' or @(MODFiles)!='')"
+    <Target Name="ComponentCPPs" Condition="(@(DEFFiles)!='' or @(MODFiles)!='')"
             Inputs="@(DEFFilesDir);@(MODFilesDir)"
             Outputs="@(DEFFilesDir -> '$(HeaderDir)\%(Filename).h');@(MODFilesDir -> '$(IntermediateDir)\%(Filename).cpp')">
         <Exec WorkingDirectory="$(SourceDir)"
               Command="$(M2) $(M2PROD) $(M2DEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFilesDir -> '%(FileName).def', ' ') @(MODFilesDir -> '%(FileName).mod', ' ')"/>
     </Target>
 
-    <Target Name="Modula2InitCPP" Condition="$(Modula2InitCode)!=''"
+    <Target Name="Modula2InitCPP"
+            Condition="$(Result)!='Static' And $(Modula2InitCode)!=''"
             Inputs="$(Modula2InitCode)"
             Outputs="$(IntermediateDir)\m2init.cpp">
         <Copy SourceFiles="$(Modula2InitCode)"
@@ -259,9 +258,9 @@
     </Target>
 
     <PropertyGroup>
-        <CompileCPPsDEP>$(UserPreCPP);Modula2InitCPP;CPPs</CompileCPPsDEP>
+        <CompileCPPsDEP>$(UserPreCPP);Modula2InitCPP;ComponentCPPs</CompileCPPsDEP>
     </PropertyGroup>
-    <Target Name="Objects" Condition="@(CPPs)!='' Or @(ExportToInterface)!=''"
+    <Target Name="ComponentObjects" Condition="@(CPPsDir)!=''"
             DependsOnTargets="$(UserPreCompile);MessagesDef;LicensingSource;GrabOutOfDateFiles;TouchOutOfDateFiles;$(CompileCPPsDEP);$(UserPostCPP);$(UserPreOBJ)"
             Inputs="@(CPPsDir)" Outputs="@(CPPsDir -> '$(IntermediateDir)\%(Filename).obj')">
         <Exec WorkingDirectory="$(IntermediateDir)"
@@ -314,42 +313,43 @@
     <Target Name="Resources" DependsOnTargets="MessagesBin;CheckRevision;CreateRCFileInput;BuildResources" />
 
 
-    <Target Name="ComponentInterface"
-            Condition="@(ExportToInterface)!=''">
-        <MSBuild Projects="@(ExportToInterface -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+    <Target Name="GetEnclosedComponentsObjects"
+            Condition="@(EnclosedComponents)!=''"
+            Outputs="@(EnclosedComponentsObjects)">
+        <MSBuild Projects="@(EnclosedComponents -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Properties="Grabbing=on;$(ChildParameters)"
-                 Targets="GrabComponentInterface">
-            <Output TaskParameter="TargetOutputs" ItemName="ExportToInterfaceObjects"/>
+                 Targets="GrabEnclosedComponentsObjects">
+            <Output TaskParameter="TargetOutputs" ItemName="EnclosedComponentsObjects"/>
         </MSBuild>
 
-        <!-- Message Text="## @(ExportToInterfaceObjects)" Importance="high" / -->
+        <!-- Message Text="## @(EnclosedComponentsObjects)" Importance="high" /-->
     </Target>
 
     <Target Name="ComponentTestIncludes"
-            DependsOnTargets="CPPs;TestCPPs">
+            DependsOnTargets="ComponentCPPs;TestCPPs">
         <!-- here CPPs are noted (and it is not left for automatic dependency by Object), because .h files from standalone .def files must be built too -->        
     </Target>
 
     <Target Name="ComponentCode"
-            Condition="@(ExportToInterface)!='' Or @(Objects)!='' Or $(LIBEXPORT)!=''"
-            DependsOnTargets="Resources;$(UserPostRES);Objects;$(UserPostOBJ)"
-            Inputs="@(Objects);@(ExportToInterfaceObjects);@(RESFile);@(LinkDependencyLibraries);$(LIBEXPORT)"
+            Condition="@(EnclosedComponents)!='' Or @(Objects)!='' Or $(ExportPath)!=''"
+            DependsOnTargets="Resources;$(UserPostRES);ComponentObjects;$(UserPostOBJ)"
+            Inputs="@(Objects);@(EnclosedComponentsObjects);@(RESFile);@(LinkDependencyLibraries);$(ExportPath)"
             Outputs="$(OutputFile)">
-        <Exec Condition="$(Result)=='Dynamic' And %(Grabbed.Type)=='Library'"
+        <Exec Condition="$(Result)=='Dynamic'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) /dll $(LINKDEF) $(LIBEXPORT) @(ExportToInterfaceObjects, ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(Grabbed, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) /dll $(LINKDEF) $(LIBEXPORT) @(EnclosedComponentsObjects -> '..\%(Identity)', ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Condition="$(Result)=='Static'"
               WorkingDirectory="$(IntermediateDir)"
               Command="$(LIB) $(LIBDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ')"/>
-        <Exec Condition="$(Result)=='Program' And %(Grabbed.Type)=='Library'"
+        <Exec Condition="$(Result)=='Program'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) $(LINKDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(Grabbed, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) $(LINKDEF) $(LIBEXPORT) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Condition="$(Result)=='Program' Or ($(Result)=='Dynamic' And $(CLib)=='Dynamic')"
               Command="$(MT)"/>
     </Target>
 
     <Target Name="ComponentRuntimes"
-            Condition="$(CopyRuntimes)=='on'"
+            Condition="False And $(CopyRuntimes)=='on'"
             Inputs="@(Grabbed)"
             Outputs="@(Grabbed -> '$(OutputDir)\%(FileName)%(Extension)')">
         <Copy Condition="%(Grabbed.Type)=='Runtime'"
@@ -370,16 +370,58 @@
     <Target Name="ComponentSign"
             Condition="$(Sign)!='off' And
                        $(SignCertificatePath)!='' And (
-                         @(ExportToInterface)!='' Or @(Objects)!=''
+                         @(EnclosedComponents)!='' Or @(Objects)!=''
                        )"
-            DependsOnTargets="ComponentCode">
+            DependsOnTargets="ComponentCode"
+            Inputs="$(OutputFile)"
+            Outputs="$(IntermediateDir)\sign.timestamp">
         <Exec Condition="$(Result)=='Program' Or $(Result)=='Dynamic'"
               Command="&quot;$(SDKCommonBin)\signtool&quot; sign /f $(SignCertificatePath) /p $(SignCertificatePassword) /t http://timestamp.comodoca.com/authenticode $(OutputFile)"
               ContinueOnError="true"/>
+        <WriteLinesToFile File="$(IntermediateDir)\sign.timestamp"
+                          Lines="---"
+                          Overwrite="true"/>
     </Target>
 
     <Target Name="Component"
-            DependsOnTargets="ComponentInterface;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTestIncludes;ComponentTestBuild;ComponentTestExec;BuildProductLicence"/>
+            DependsOnTargets="GetEnclosedComponentsObjects;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTestIncludes;ComponentTestBuild;ComponentTestExec;BuildProductLicence"/>
+
+
+    <Target Name="CleanIfDefinitionsSourceHasChanged">
+        <!-- check what was compiled for last -->
+        <ReadLinesFromFile File="$(IntermediateDir)\internal.builtFor">
+            <Output TaskParameter="Lines" ItemName="LastCompiledFor"/>
+        </ReadLinesFromFile>
+        <!-- clean self I was compiled for somebody else - embedded clean -->
+        <RemoveDir Condition="@(LastCompiledFor)!=$(ComponentDefinitionsSource)"
+                   Directories="$(HeaderDir);$(IntermediateDir)"
+                   ContinueOnError="true" />
+        <Delete Condition="@(LastCompiledFor)!=$(ComponentDefinitionsSource) And $(ClientLicensing)=='on'"
+                Files="@(LicensingSourceFiles)"
+                ContinueOnError="true" />
+        <MakeDir Condition="@(LastCompiledFor)!=$(ComponentDefinitionsSource)"
+                 Directories="$(HeaderDir);$(IntermediateDir)" />
+        <!-- mark definitions file I am build for -->
+        <WriteLinesToFile File="$(IntermediateDir)\internal.builtFor"
+                          Lines="$(ComponentDefinitionsSource)"
+                          Overwrite="true"/>
+    </Target>
+    
+    <Target Name="DisplayComponentsToBuild">
+        <Message Condition="$(ComponentDefinitionsSource)==''" Importance="high" Text="Building: $(MSBuildProjectName) (no def file)" />
+        <Message Condition="$(ComponentDefinitionsSource)!=''" Importance="high" Text="Building: $(MSBuildProjectName) for $(ComponentDefinitionsSource)" />
+        <!-- Message Importance="high" Text="Dependencies: $(BuildDependenciesFile)" / -->
+        <!-- Message Importance="high" Text="Sources: @(M2INPUTS)" / -->
+    </Target>
+    
+    <Target Name="BuildWithPreparedDependencies"
+            DependsOnTargets="Environment;CleanIfDefinitionsSourceHasChanged;SplitComponentsForTools;DisplayComponentsToBuild;$(UserPreBuild);Component;$(UserPostBuild)"
+            Outputs="@(Compiled)">
+        <CreateItem Condition="@(Objects)!='' And $(Result)!='Static'"
+                    Include="$(OutputPath)\$(OutputName)">
+            <Output TaskParameter="Include" ItemName="Compiled"/>
+        </CreateItem>
+    </Target>
 
 
     <!-- outer, visible targets -->
@@ -391,41 +433,57 @@
                 Files="@(LicensingSourceFiles)"
                 ContinueOnError="true" />
     </Target>
+
     <Target Name="CleanAll"
             DependsOnTargets="GrabComponents">
-        <MSBuild Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
-                 Projects="@(Grabbed -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="Clean"
-                 Properties="$(ChildParameters)"/>
+        <!-- flatten components to list of all components (notwithstanding the fact they can belong to many definition files) -->
+        <CreateItem Condition="%(Grabbed.Type)=='Component'"
+                    Include="@(Grabbed)">
+            <Output TaskParameter="Include" ItemName="ToCleanUnflattened"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(ToCleanUnflattened)">
+            <Output TaskParameter="Filtered" ItemName="ToClean"/>
+        </RemoveDuplicates>
+        
+        <!-- clean them all -->
+        <Message Importance="high"
+                 Text="Components to clean: @(ToClean -> '%(FileName)', ' ' )"/>
+        <MSBuild Projects="@(ToClean -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+                 Targets="Clean"/>
+
+        <!-- clean self too -->
         <CallTarget Targets="Clean"/>
     </Target>
 
 
-    <Target Name="XBuild">
-        <Message Importance="high" Text="Building: xx %(Grabbed.Definition)"/>
-    </Target>
-
-    <!-- Target Name="SplitComponentsForTools" is placed in internal.compilation.targes as it is tightly bound to it -->
-
     <Target Name="Build"
-            DependsOnTargets="ProductBuildNumberGet;Environment;GrabComponents;SplitComponentsForTools;$(UserPreBuild);Component;$(UserPostBuild)"
-            Outputs="$(Compiled)">
-        <CreateItem Condition="@(Objects)!='' And $(Result)!='Static'"
-                    Include="$(OutputPath)\$(OutputName)">
-            <Output TaskParameter="Value" ItemName="Compiled"/>
-        </CreateItem>
-    </Target>
-    <Target Name="BuildAll"
-            DependsOnTargets="ProductBuildNumberGet;GrabComponents">
-        <CallTarget Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)==Component"
-                    Targets="Build"/>
-        <!-- MSBuild Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
-                 Projects="@(Grabbed -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="Build"
-                 Properties="$(ChildParameters)"
-                 StopOnFirstFailure="true">
+            DependsOnTargets="Directories;ProductBuildNumberGet;GrabComponents"
+            Outputs="@(Compiled)">
+        <!-- use msbuild and not to call target to load dependencies file!! -->
+        <MSBuild Projects="$(MSBuildProjectFile)"
+                 Targets="BuildWithPreparedDependencies"
+                 StopOnFirstFailure="true" >
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
-        </MSBuild -->
+        </MSBuild>
+    </Target>
+
+    <Target Name="BuildAll"
+            DependsOnTargets="Directories;ProductBuildNumberGet;GrabComponents"
+            Outputs="@(Compiled)">
+        <!-- build all components in groups per definition file -->
+        <Message Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
+                 Importance="high"
+                 Text="Components to build for %(Grabbed.Definition): @(Grabbed -> '%(Filename)', ' ' )"/>
+        
+        <MSBuild Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
+                 Projects="@(Grabbed -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+                 Targets="BuildWithPreparedDependencies"
+                 Properties="$(ChildParameters);InheritedComponentDefinitionsSource=%(Grabbed.Definition);InheritedComponentDefinitionsPath=%(Grabbed.DefinitionPath)"
+                 StopOnFirstFailure="true" >
+            <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
+        </MSBuild>
+
+        <!-- build me too -->
         <CallTarget Targets="Build"/>
     </Target>
 

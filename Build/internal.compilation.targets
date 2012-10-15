@@ -9,8 +9,8 @@
 
         <CL>&quot;$(CompilerBin)\cl&quot; /nologo /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
         <LINK>&quot;$(CompilerBin)\link&quot; /nologo /map /nodefaultlib</LINK>
-        <LIB>&quot;$(CompilerBin)\lib&quot; /nodefaultlib</LIB>
-        <RC>&quot;$(SDKBin)\rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
+        <LIB>&quot;$(CompilerBin)\lib&quot; /nologo /nodefaultlib</LIB>
+        <RC>&quot;$(SDKBin)\rc&quot; /nologo -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
 
         <MT>&quot;$(SDKBin)\mt&quot; -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
         <MTT>&quot;$(SDKBin)\mt&quot; -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
@@ -97,36 +97,38 @@
 
     <!-- INPUTS -->
     <Target Name="SplitComponentsForTools">
-        <CreateItem Condition="%(Grabbed.Type)=='Source'"
-                    Include="@(Grabbed -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')">
+        <CreateItem Condition="%(Source.Definition)==$(ComponentDefinitionsSource)"
+                    Include="@(Source -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')">
             <Output TaskParameter="Include" ItemName="M2INPUTS"/>
         </CreateItem>
-        <CreateItem Condition="%(Grabbed.Type)=='Header'"
-                    Include="@(Grabbed -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')">
+        <CreateItem Condition="%(Header.Definition)==$(ComponentDefinitionsSource)"
+                    Include="@(Header -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')">
             <Output TaskParameter="Include" ItemName="CLINPUTS"/>
+        </CreateItem>
+        <CreateItem Condition="%(Library.Definition)==$(ComponentDefinitionsSource)"
+                    Include="@(Library -> '%(Identity)')"
+                    Exclude="@(SelfInterface -> '%(Identity).lib')"><!-- if linking, self lib cannot be used as source for objs, self is just going to be created -->
+            <Output TaskParameter="Include" ItemName="LINKINPUTLIBS"/>
+        </CreateItem>
+        <CreateItem Condition="%(Message.Definition)==$(ComponentDefinitionsSource) And %(Message.LibraryName)==$(LibraryName)"
+                    Include="@(Message)">
+            <Output TaskParameter="Include" ItemName="GrabbedMessages"/>
         </CreateItem>
     </Target>
 
     <PropertyGroup>
         <M2INPUTS>@(M2INPUTS, ' ')</M2INPUTS>
-        <!-- CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS -->
         <CLINPUTS>@(CLINPUTS, ' ') -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</CLINPUTS>
         <RCINPUTS>-I&quot;..\$(ResourceDir)&quot;</RCINPUTS>
         <RCINPUTS>$(RCINPUTS) @(CLINPUTS, ' ') -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</RCINPUTS>
-        <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot; /LIBPATH:&quot;$(CompilerLib)&quot;</LINKCTRL>
+        <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot; /LIBPATH:&quot;$(CompilerLib)&quot; @(LINKINPUTLIBS, ' ')</LINKCTRL>
     </PropertyGroup>
 
     <!-- OUTPUT -->
     <PropertyGroup>
         <BUILDOUTPUT>/out:..\$(OutputFile)</BUILDOUTPUT>
-        <LIBEXPORT Condition="$(Export)!=''">/def:..\$(SourceDir)\$(Export).def</LIBEXPORT>
-    </PropertyGroup>
-
-    <PropertyGroup Condition ="$(ProductLinkMapFilePath)==''">
-        <ProductLinkMapFilePath>$(ProductBuildPath)\Base.map</ProductLinkMapFilePath>
-    </PropertyGroup> 
-    <PropertyGroup Condition ="Exists('$(ProductLinkMapFilePath)')">
-        <LINKBASE>/base:@$(ProductLinkMapFilePath),$(MSBuildProjectName)</LINKBASE>
+        <ExportPath Condition="$(Export)!=''">$(SourceDir)\$(Export).def</ExportPath>
+        <LIBEXPORT Condition="$(ExportPath)!=''">/def:&quot;..\$(ExportPath)&quot;</LIBEXPORT>
     </PropertyGroup>
 
     <!-- LANGUAGES -->
@@ -160,7 +162,7 @@
         <M2TESTDEF>$(M2TESTCTRL) $(M2LANG) $(M2INPUTS)</M2TESTDEF>
         <CLDEF>$(CLCTRL) $(CLLANG) $(CLINPUTS)</CLDEF>
         <RCDEF>$(RCCTRL) $(RCLANG) $(RCINPUTS)</RCDEF>
-        <LINKDEF>$(LINKCTRL) $(BUILDOUTPUT) $(LINKBASE)</LINKDEF>
+        <LINKDEF>$(LINKCTRL) $(BUILDOUTPUT)</LINKDEF>
         <LINKTEST>$(LINKCTRL)</LINKTEST>
         <LIBDEF>$(LIBDEF) $(BUILDOUTPUT)</LIBDEF>
     </PropertyGroup>

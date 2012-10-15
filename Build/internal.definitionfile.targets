@@ -5,35 +5,35 @@
     <PropertyGroup>
         <!-- the assignment should be the same as for LibraryName -->
         <!-- primarily use self definitions (bundle does not have defintions file)... -->
-        <SelfComponentDefinitionsPath Condition="$(ComponentType)!='Generic'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
-        <ComponentDefinitionsPath>$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
+        <SelfComponentDefinitionsPath Condition="$(DefinitionsFileAllowed)=='on'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
     </PropertyGroup>
 
-    <!-- 2. load existing definition file to adjust settings for self too (e.g., super component requires me to behave differently than me -->
-    <Import Condition="Exists('$(InheritedComponentDefinitionsPath)')" Project="$(InheritedComponentDefinitionsPath)"/>
-
-    <!-- 3. now, when i know what super component expects from me, create final definitions path if needed -->
+    <!-- 2. create flags for build -->
     <PropertyGroup>
-        <ComponentDefinitionsPath Condition="$(DefinitionFileAllowed)=='off'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
+        <SelfDefinitionsFileExists>off</SelfDefinitionsFileExists>
+        <SelfDefinitionsFileExists Condition="Exists('$(SelfComponentDefinitionsPath)')">on</SelfDefinitionsFileExists>
+        <InheritedDefinitionsFileExists>off</InheritedDefinitionsFileExists>
+        <InheritedDefinitionsFileExists Condition="Exists('$(InheritedComponentDefinitionsPath)')">on</InheritedDefinitionsFileExists>
+    </PropertyGroup>
+
+    <!-- 3. load mine definition file, the file sets component default, which can be later overwritten with some ancestor's one -->
+    <Import Condition="$(SelfDefinitionsFileExists)=='on'" Project="$(SelfComponentDefinitionsPath)"/>
+
+    <!-- 4. load ancestor definition file, it has always precedence -->
+    <Import Condition="$(InheritedComponentDefinitionsFileExists)=='on'" Project="$(InheritedComponentsDefinitionsPath)"/>
+
+    <!-- 5. setup final variables -->
+    <PropertyGroup>
+        <ComponentDefinitionsSource Condition="$(SelfDefinitionsFileExists)=='on'">$(ComponentName)</ComponentDefinitionsSource>
+        <ComponentDefinitionsSource Condition="$(DefinitionsFileAllowed)=='off' And $(InheritedDefinitionsFileExists)=='on'">$(InheritedComponentDefinitionsSource)</ComponentDefinitionsSource>
+        <ComponentDefinitionsPath Condition="$(SelfDefinitionsFileExists)=='on'">$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
+        <ComponentDefinitionsPath Condition="$(DefinitionsFileAllowed)=='off' And $(InheritedDefinitionsFileExists)=='on'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
     </PropertyGroup>
     
-    <!-- 4. create flags for build -->
-    <PropertyGroup>
-        <SelfDefinitionFileExists>off</SelfDefinitionFileExists>
-        <SelfDefinitionFileExists Condition="Exists('$(SelfComponentDefinitionsPath)')">on</SelfDefinitionFileExists>
-        <DefintionFileExists>off</DefintionFileExists>
-        <DefinitionFileExists Condition="Exists('$(ComponentDefinitionsPath)')">on</DefinitionFileExists>
-    </PropertyGroup>
-
-    <!-- 5. load final definition file -->
-    <Import Condition="$(DefinitionFileExists)=='on' And $(InheritedComponentDefinitionsPath)!=$(ComponentDefinitionsPath)" Project="$(ComponentDefinitionsPath)"/>
-
     <!-- 6. solve LibraryName -->
     <PropertyGroup>
-        <!-- the assignment should be the same as for ComponentDefinitionsPath -->
-        <LibraryName Condition="$(ComponentType)!='Bundle'">$(ResultName)</LibraryName>
         <LibraryName Condition="$(ComponentType)=='Generic'">$(InheritedLibraryName)</LibraryName>
         <LibraryName Condition="$(LibraryName)==''">$(ResultName)</LibraryName>
     </PropertyGroup>
-
+    
 </Project>
