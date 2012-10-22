@@ -15,6 +15,8 @@
 
         <!-- the most important property: it allows using self symbolic name in projects without defining it somewhere!! -->
         <ComponentName>$([MSBuild]::MakeRelative($(RootPath), $(ComponentPath)))</ComponentName>
+        
+        <ComponentRelativePath>$(RootDir)\$(ComponentName)</ComponentRelativePath>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(ComponentType)=='Product'">
@@ -22,10 +24,6 @@
 
         <ProductBuildPath>$(MSBuildProjectDirectory)</ProductBuildPath>
         <ProductBuildFile>$(ProductBuildPath)\$(MSBuildProjectName).proj</ProductBuildFile>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <ResultName Condition="$(ResultName)==''">$(MSBuildProjectName)</ResultName>
     </PropertyGroup>
 
 </Project>

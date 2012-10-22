@@ -89,31 +89,25 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <M2CTRL Condition ="$(InheritedPublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
-        <M2CTRL Condition ="$(InheritedPublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
-        <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(LibraryName) -LD</M2TESTCTRL>
-        <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(LibraryName)_test -LD</M2TESTCTRL>
+        <M2CTRL Condition ="$(CompilePublishExports)=='on'">$(M2CTRL) -LN$(CompileLibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(CompilePublishExports)!='on'">$(M2CTRL) -LN$(CompileLibraryName)</M2CTRL>
+        <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(CompileLibraryName) -LD</M2TESTCTRL>
+        <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(CompileLibraryName)_test -LD</M2TESTCTRL>
     </PropertyGroup>
 
     <!-- INPUTS -->
     <Target Name="SplitComponentsForTools">
-        <CreateItem Condition="%(Source.Definition)==$(ComponentDefinitionsSource)"
-                    Include="@(Source -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')">
-            <Output TaskParameter="Include" ItemName="M2INPUTS"/>
-        </CreateItem>
-        <CreateItem Condition="%(Header.Definition)==$(ComponentDefinitionsSource)"
-                    Include="@(Header -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')">
-            <Output TaskParameter="Include" ItemName="CLINPUTS"/>
-        </CreateItem>
-        <CreateItem Condition="%(Library.Definition)==$(ComponentDefinitionsSource)"
-                    Include="@(Library -> '%(Identity)')"
-                    Exclude="@(SelfInterface -> '%(Identity).lib')"><!-- if linking, self lib cannot be used as source for objs, self is just going to be created -->
-            <Output TaskParameter="Include" ItemName="LINKINPUTLIBS"/>
-        </CreateItem>
-        <CreateItem Condition="%(Message.Definition)==$(ComponentDefinitionsSource) And %(Message.LibraryName)==$(LibraryName)"
-                    Include="@(Message)">
-            <Output TaskParameter="Include" ItemName="GrabbedMessages"/>
-        </CreateItem>
+        <ItemGroup>
+            <M2INPUTS Condition="%(Source.Definition)==$(ComponentDefinitionsSource)"
+                      Include="@(Source -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')" />
+            <CLINPUTS Condition="%(Header.Definition)==$(ComponentDefinitionsSource)"
+                      Include="@(Header -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')" />
+            <LINKINPUTLIBS Condition="%(Library.Definition)==$(ComponentDefinitionsSource)"
+                        Include="@(Library -> '%(Identity)')"
+                        Exclude="@(SelfInterface -> '%(Identity).lib')" /><!-- if linking, self lib cannot be used as source for objs, self is just going to be created -->
+            <GrabbedMessages Condition="%(Message.Definition)==$(ComponentDefinitionsSource) And %(Message.LibraryName)==$(CompileLibraryName)"
+                             Include="@(Message)" />
+        </ItemGroup>
     </Target>
 
     <PropertyGroup>

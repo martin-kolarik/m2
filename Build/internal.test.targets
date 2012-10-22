@@ -9,19 +9,6 @@
 
     <!-- outputs -->
     <PropertyGroup>
-        <OutputName Condition="$(OutputName)=='' And $(Result)=='Static'">$(ResultName).lib</OutputName>
-        <OutputName Condition="$(OutputName)=='' And $(Result)=='Dynamic'">$(ResultName).dll</OutputName>
-        <OutputName Condition="$(OutputName)=='' And $(Result)=='Program'">$(ResultName).exe</OutputName>
-        <OutputPDBName Condition="$(OutputPDBName)=='' And $(Result)!='Static'">$(ResultName).pdb</OutputPDBName>
-        <OutputMAPName Condition="$(OutputMAPName)=='' And $(Result)!='Static'">$(ResultName).map</OutputMAPName>
-        <OutputFile>$(OutputDir)\$(OutputName)</OutputFile>
-        <OutputFilePath>$(OutputPath)\$(OutputName)</OutputFilePath>
-        <OutputPDBFilePath Condition="$(OutputPDBName)!=''">$(OutputPath)\$(OutputPDBName)</OutputPDBFilePath>
-        <OutputMAPFilePath Condition="$(OutputMAPName)!=''">$(OutputPath)\$(OutputMAPName)</OutputMAPFilePath>
-        <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
-        <!-- !! without .lib -->
-        <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
-
         <TestOutput>$(OutputDir)\$(MSBuildProjectName).test.dll</TestOutput>
         <TestDLL>$(RootDir)\$(TestComponent)\$(OutputDir)\test.dll</TestDLL><!-- TODO, test.dll should be a symbolic name -->
         <TestFactoryDir>$(RootDir)\$(TestComponent)\$(SourceDir)</TestFactoryDir>
@@ -40,7 +27,7 @@
         <TestCPPFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp');m2init.cpp"/>
         <TestOBJFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).obj');m2init.obj"/>
 
-        <Components Condition="$(Test)=='on' And $(TestComponent)!='' And $(LibraryName)!=$(TestComponentName)"
+        <Components Condition="$(Test)=='on' And $(TestComponent)!='' And $(ResultName)!=$(TestComponentName)"
                     Include="$(TestComponent)"/>
     </ItemGroup>
 

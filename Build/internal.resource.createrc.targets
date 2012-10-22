@@ -79,9 +79,9 @@ LANGUAGE $(LangName), $(SubLangName)
     </Target>
 
     <Target Name="CreateRCFileInput">
-        <CreateProperty Condition="!Exists('$(RCFile)')" Value="$(RCFile);$(RCFileDependency)">
-            <Output TaskParameter="Value" PropertyName="RCFileDependency"/>
-        </CreateProperty>
+        <PropertyGroup>
+            <RCFileDependency Condition="!Exists('$(RCFile)')">$(RCFile);$(RCFileDependency)</RCFileDependency>
+        </PropertyGroup>
     </Target>
     
     <Target Name="CreateRCFile"
@@ -89,12 +89,10 @@ LANGUAGE $(LangName), $(SubLangName)
             Inputs="$(RCFileDependency)"
             Outputs="$(RCFile)">
         <!-- operate build numbers -->
-        <CreateProperty Condition="$(ProductVersionBuild)==''" Value="$(ProjectVersionBuild)">
-            <Output TaskParameter="Value" PropertyName="ProductVersionBuild"></Output>
-        </CreateProperty>
-        <CreateProperty Value="@(ProjectRevisionIds)">
-            <Output TaskParameter="Value" PropertyName="ProjectRevisionId"/>
-        </CreateProperty>
+        <PropertyGroup>
+            <ProductVersionBuild Condition="$(ProductVersionBuild)==''">$(ProjectVersionBuild)</ProductVersionBuild>
+            <ProjectRevisionId>@(ProjectRevisionIds)</ProjectRevisionId>
+        </PropertyGroup>
         <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;ProjectVersionBuild;ProjectRevisionId" Patches="$(ProductVersionBuild);$(ProjectVersionBuild);$(ProjectRevisionId)"><!-- patch property -->
             <Output TaskParameter="Value" PropertyName="RCFileContents"/>
         </Patch>

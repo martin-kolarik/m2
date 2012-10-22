@@ -17,12 +17,10 @@
         <OutputPath>$(ComponentPath)\$(OutputDirName)</OutputPath>
 
         <IntermediateDir>$(IntermediateDirName)</IntermediateDir>
-
+        <HeaderDir>$(HeaderDirName)</HeaderDir>
+        
         <!-- default entered export is overwritten -->
         <OriginalExport>$(Export)</OriginalExport>
-
-        <!-- HeaderDirName>%40Header</HeaderDirName -->
-        <HeaderDir>$(HeaderDirName)</HeaderDir>
 
         <!-- M2 initializing code -->
         <Modula2InitCode>$(RootDir)\Modula2\Modula2\Header\m2init.cpp</Modula2InitCode>
@@ -41,6 +39,11 @@
 
     <!-- outputs -->
     <PropertyGroup>
+        <InterfaceName>$(ComponentRelativePath)\$(OutputDir)\$(MSBuildProjectName)</InterfaceName><!-- !! without .lib -->
+
+        <!-- result name may be changed by owned project -->
+        <ResultName Condition="$(ResultName)==''">$(MSBuildProjectName)</ResultName>
+
         <OutputName Condition="$(OutputName)=='' And $(Result)=='Static'">$(ResultName).lib</OutputName>
         <OutputName Condition="$(OutputName)=='' And $(Result)=='Dynamic'">$(ResultName).dll</OutputName>
         <OutputName Condition="$(OutputName)=='' And $(Result)=='Program'">$(ResultName).exe</OutputName>
@@ -50,9 +53,6 @@
         <OutputFilePath>$(OutputPath)\$(OutputName)</OutputFilePath>
         <OutputPDBFilePath Condition="$(OutputPDBName)!=''">$(OutputPath)\$(OutputPDBName)</OutputPDBFilePath>
         <OutputMAPFilePath Condition="$(OutputMAPName)!=''">$(OutputPath)\$(OutputMAPName)</OutputMAPFilePath>
-        <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
-        <!-- !! without .lib -->
-        <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
     </PropertyGroup>
 
     <!-- testing support -->
@@ -67,13 +67,16 @@
     <!-- build control -->
     <PropertyGroup>
         <!-- recursive child parameters -->
-        <InheritedProperties>InheritedManufacturer=$(Manufacturer);InheritedProductVersion=$(ProductVersion);InheritedLibraryName=$(LibraryName);InheritedBuildDependenciesFile=$(BuildDependenciesFile)</InheritedProperties>
+        <InheritedProperties>InheritedManufacturer=$(Manufacturer);InheritedProductVersion=$(ProductVersion);InheritedBuildDependenciesFile=$(BuildDependenciesFile)</InheritedProperties>
         <ChildParameters>ProductId=$(ProductId);$(InheritedProperties)</ChildParameters>
         <ChildParameters Condition="$(Test)=='off'">Test=off;$(ChildParameters)</ChildParameters>
     </PropertyGroup>
     
     <!-- file names, sources, outputs -->
     <ItemGroup>
+        <TemporaryDirectories Condition="$(HeaderDirName)!=$(IntermediateDirName)" Include="$(HeaderDir);$(IntermediateDir)" />
+        <TemporaryDirectories Condition="$(HeaderDirName)==$(IntermediateDirName)" Include="$(IntermediateDir)" />
+
         <!-- resources -->
         <MessagesDir Include="@(Messages -> '$(SourceDir)\%(Filename).xrs')"/>
         <MessagesDefDir Include="@(Messages -> '$(SourceDir)\%(Filename).def')"/>
@@ -105,7 +108,7 @@
 
     <!-- intermediates -->
     <ItemGroup>
-        <EnclosedComponents Condition="$(ComponentType)=='Library' Or $(ComponentType)=='Cots'" Include="@(Components)"/>
+        <EnclosedComponents Condition="($(ComponentType)=='Library' Or $(ComponentType)=='Cots') And $(Result)=='Dynamic'" Include="@(Components)"/>
         <!-- Library type component is component, which condensates together more generic components to single library (DLL), it
              must propagate interfaces (DEF, H) to users transparently -->
         
@@ -122,12 +125,12 @@
         <RESFile Condition="$(Result)!='Static' And (@(EnclosedComponents)!='' Or @(Objects)!='')"
                  Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
 
-        <SelfInterface Condition="$(Result)!='Program' And (@(EnclosedComponents)!='' Or @(MODFiles)!='' Or $(ExportPath)!='')" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
+        <SelfInterface Condition="$(Result)!='Program' And (@(EnclosedComponents)!='' Or @(MODFiles)!='' Or $(ExportPath)!='')" Include="..\$(InterfaceName)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
         <!-- SelfInterface/Interface: Interface could be extended by project to export some interfaces, e.g. Ws32, msxml, etc. -->
 
         <MessagesBin Condition="@(Messages)!=''" Include="@(Messages -> '$(IntermediateDir)\$(MSBuildProjectName).%(FileName).brs')"/>
 
-        <Components Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And $(LibraryName)!=$(LeakDetectorComponentName) And
+        <Components Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And $(ResultName)!=$(LeakDetectorComponentName) And
                                (@(EnclosedComponents)!='' Or @(Objects)!='')"
                     Include="$(LeakDetectorComponent)"/>
 
@@ -170,22 +173,22 @@
         <MinMax Input="@(ProductVersionBuilds)">
             <Output TaskParameter="Maximum" PropertyName="ProductVersionBuild"/>
         </MinMax>
-        <CreateProperty Value="$(ProductVersionMajor).$(ProductVersionMinor).$(ProductVersionBuild)">
-            <Output TaskParameter="Value" PropertyName="ProductVersion"></Output>
-        </CreateProperty>
+        <PropertyGroup>
+            <ProductVersion>$(ProductVersionMajor).$(ProductVersionMinor).$(ProductVersionBuild)</ProductVersion>
+        </PropertyGroup>
     </Target>
 
     <Target Name="DoDummyProductBuildNumberGet" Condition="$(ComponentType)!='Product'">
-        <CreateProperty Condition="$(InheritedProductVersion)!=''" Value="$(InheritedProductVersion)">
-            <Output TaskParameter="Value" PropertyName="ProductVersion"></Output>
-        </CreateProperty>
+        <PropertyGroup>
+            <ProductVersion Condition="$(InheritedProductVersion)!=''">$(InheritedProductVersion)</ProductVersion>
+        </PropertyGroup>
     </Target>
 
     <Target Name="ProductBuildNumberGet"
             DependsOnTargets="DoDummyProductBuildNumberGet;DoProductBuildNumberGet">
-        <CreateProperty Value="-DProductId:$(CompileProductId) -DProductVersion:$(ProductVersion)">
-            <Output TaskParameter="Value" PropertyName="M2PROD"></Output>
-        </CreateProperty>
+        <PropertyGroup>
+            <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(ProductVersion)</M2PROD>
+        </PropertyGroup>
     </Target>
 
     <!-- resources default -->
@@ -198,7 +201,7 @@
 
     <!-- start of pure build targets -->
     <Target Name="Directories">
-        <MakeDir Directories="$(IntermediateDir);$(OutputDir)" />
+        <MakeDir Directories="@(TemporaryDirectories)" />
     </Target>
 
 
@@ -349,12 +352,12 @@
     </Target>
 
     <Target Name="ComponentRuntimes"
-            Condition="False And $(CopyRuntimes)=='on'"
-            Inputs="@(Grabbed)"
-            Outputs="@(Grabbed -> '$(OutputDir)\%(FileName)%(Extension)')">
-        <Copy Condition="%(Grabbed.Type)=='Runtime'"
-              SourceFiles="@(Grabbed)"
-              DestinationFiles="@(Grabbed -> '$(OutputDir)\%(FileName)%(Extension)')"
+            Condition="$(CopyRuntimes)=='on'"
+            Inputs="@(Runtime)"
+            Outputs="@(Runtime -> '$(OutputDir)\%(FileName)%(Extension)')">
+        <Copy Condition="%(Runtime.Definition)==$(ComponentDefinitionsSource)"
+              SourceFiles="@(Runtime)"
+              DestinationFiles="@(Runtime -> '$(OutputDir)\%(FileName)%(Extension)')"
               SkipUnchangedFiles="true"
               ContinueOnError="false" />
     </Target>
@@ -393,14 +396,15 @@
             <Output TaskParameter="Lines" ItemName="LastCompiledFor"/>
         </ReadLinesFromFile>
         <!-- clean self I was compiled for somebody else - embedded clean -->
-        <RemoveDir Condition="@(LastCompiledFor)!=$(ComponentDefinitionsSource)"
-                   Directories="$(HeaderDir);$(IntermediateDir)"
+        <RemoveDir Condition="@(LastCompiledFor)!='' And @(LastCompiledFor)!=$(ComponentDefinitionsSource)"
+                   Directories="@(TemporaryDirectories)"
                    ContinueOnError="true" />
+        <Error Condition="@(LastCompiledFor)!='' And @(LastCompiledFor)!=$(ComponentDefinitionsSource)" />
         <Delete Condition="@(LastCompiledFor)!=$(ComponentDefinitionsSource) And $(ClientLicensing)=='on'"
                 Files="@(LicensingSourceFiles)"
                 ContinueOnError="true" />
         <MakeDir Condition="@(LastCompiledFor)!=$(ComponentDefinitionsSource)"
-                 Directories="$(HeaderDir);$(IntermediateDir)" />
+                 Directories="@(TemporaryDirectories)" />
         <!-- mark definitions file I am build for -->
         <WriteLinesToFile File="$(IntermediateDir)\internal.builtFor"
                           Lines="$(ComponentDefinitionsSource)"
@@ -408,8 +412,8 @@
     </Target>
     
     <Target Name="DisplayComponentsToBuild">
-        <Message Condition="$(ComponentDefinitionsSource)==''" Importance="high" Text="Building: $(MSBuildProjectName) (no def file)" />
-        <Message Condition="$(ComponentDefinitionsSource)!=''" Importance="high" Text="Building: $(MSBuildProjectName) for $(ComponentDefinitionsSource)" />
+        <Message Condition="$(ComponentDefinitionsSource)==''" Importance="high" Text="Building (for no def file): $(MSBuildProjectName)" />
+        <Message Condition="$(ComponentDefinitionsSource)!=''" Importance="high" Text="Building (for $(ComponentDefinitionsSource)): $(MSBuildProjectName)" />
         <!-- Message Importance="high" Text="Dependencies: $(BuildDependenciesFile)" / -->
         <!-- Message Importance="high" Text="Sources: @(M2INPUTS)" / -->
     </Target>
@@ -417,17 +421,21 @@
     <Target Name="BuildWithPreparedDependencies"
             DependsOnTargets="Environment;CleanIfDefinitionsSourceHasChanged;SplitComponentsForTools;DisplayComponentsToBuild;$(UserPreBuild);Component;$(UserPostBuild)"
             Outputs="@(Compiled)">
-        <CreateItem Condition="@(Objects)!='' And $(Result)!='Static'"
-                    Include="$(OutputPath)\$(OutputName)">
-            <Output TaskParameter="Include" ItemName="Compiled"/>
-        </CreateItem>
+        <ItemGroup>
+            <Compiled Condition="@(Objects)!='' And $(Result)!='Static'"
+                      Include="$(OutputPath)\$(OutputName)" />
+        </ItemGroup>
+
+        <Message Condition="$(ComponentDefinitionsSource)==''" Importance="high" Text="Built (for no def file): $(MSBuildProjectName)" />
+        <Message Condition="$(ComponentDefinitionsSource)!=''" Importance="high" Text="Built (for $(ComponentDefinitionsSource)): $(MSBuildProjectName)" />
+        <Message Importance="high" Text=" " />
     </Target>
 
 
     <!-- outer, visible targets -->
 
     <Target Name="Clean">
-        <RemoveDir Directories="$(HeaderDir);$(IntermediateDir)"
+        <RemoveDir Directories="@(TemporaryDirectories)"
                    ContinueOnError="true" />
         <Delete Condition="$(ClientLicensing)=='on'"
                 Files="@(LicensingSourceFiles)"
@@ -437,10 +445,10 @@
     <Target Name="CleanAll"
             DependsOnTargets="GrabComponents">
         <!-- flatten components to list of all components (notwithstanding the fact they can belong to many definition files) -->
-        <CreateItem Condition="%(Grabbed.Type)=='Component'"
-                    Include="@(Grabbed)">
-            <Output TaskParameter="Include" ItemName="ToCleanUnflattened"/>
-        </CreateItem>
+        <ItemGroup>
+            <ToCleanUnflattened Condition="%(Grabbed.Type)=='Component'"
+                                Include="@(Grabbed)" />
+        </ItemGroup>
         <RemoveDuplicates Inputs="@(ToCleanUnflattened)">
             <Output TaskParameter="Filtered" ItemName="ToClean"/>
         </RemoveDuplicates>

@@ -3,7 +3,6 @@
 
     <!-- 1. compute paths, if I am bundle, ignore self and respect definitions of sub projects (usually modules or products -->
     <PropertyGroup>
-        <!-- the assignment should be the same as for LibraryName -->
         <!-- primarily use self definitions (bundle does not have defintions file)... -->
         <SelfComponentDefinitionsPath Condition="$(DefinitionsFileAllowed)=='on'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
     </PropertyGroup>
@@ -20,7 +19,7 @@
     <Import Condition="$(SelfDefinitionsFileExists)=='on'" Project="$(SelfComponentDefinitionsPath)"/>
 
     <!-- 4. load ancestor definition file, it has always precedence -->
-    <Import Condition="$(InheritedComponentDefinitionsFileExists)=='on'" Project="$(InheritedComponentsDefinitionsPath)"/>
+    <Import Condition="$(InheritedDefinitionsFileExists)=='on'" Project="$(InheritedComponentDefinitionsPath)"/>
 
     <!-- 5. setup final variables -->
     <PropertyGroup>
@@ -28,12 +27,6 @@
         <ComponentDefinitionsSource Condition="$(DefinitionsFileAllowed)=='off' And $(InheritedDefinitionsFileExists)=='on'">$(InheritedComponentDefinitionsSource)</ComponentDefinitionsSource>
         <ComponentDefinitionsPath Condition="$(SelfDefinitionsFileExists)=='on'">$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
         <ComponentDefinitionsPath Condition="$(DefinitionsFileAllowed)=='off' And $(InheritedDefinitionsFileExists)=='on'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
-    </PropertyGroup>
-    
-    <!-- 6. solve LibraryName -->
-    <PropertyGroup>
-        <LibraryName Condition="$(ComponentType)=='Generic'">$(InheritedLibraryName)</LibraryName>
-        <LibraryName Condition="$(LibraryName)==''">$(ResultName)</LibraryName>
     </PropertyGroup>
     
 </Project>
