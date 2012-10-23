@@ -112,7 +112,9 @@
   <ItemGroup>
     <None Include="Source\knxcore.mod" />
     <None Include="Source\knxcore.def" />
-    <None Include="knxcore.proj" />
+    <None Include="knxcore.proj">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Source\Texts.xrs">
       <SubType>Designer</SubType>
     </None>

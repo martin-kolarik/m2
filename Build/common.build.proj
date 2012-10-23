@@ -1,4 +1,5 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
+         DefaultTargets="Build">
 
     <!-- common properties -->
     <PropertyGroup>
@@ -164,7 +165,7 @@
     </PropertyGroup>
 
     <!-- build number -->
-    <Target Name="DoProductBuildNumberGet" Condition="$(ComponentType)=='Product'">
+    <Target Name="DoProductBuildNumberGet" Condition="$(ProductFlag)=='on'">
         <HgVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource)">
             <Output TaskParameter="Revision" ItemName="ProductVersionBuilds"/>
             <Output TaskParameter="RevisionId" ItemName="RevisionIds"/>
@@ -213,7 +214,7 @@
     <Target Condition="$(ClientLicensing)=='on' And !Exists(@(LicensingSourceDef))"
             Name="LicensingSource"
             Outputs="@(LicensingSourceFiles)">
-        <Message Importance="high" Text="$(ClientLicensingType)=='Host': $(ProductId) else: $(ProjectId)" />
+        <!-- Message Importance="high" Text="$(ClientLicensingType)=='Host': $(ProductId) else: $(ProjectId)" / -->
         <Exec Condition="$(ClientLicensingType)=='Host'"
               WorkingDirectory="$(LicensingSourceDir)"
               Command="$(LICSRC) $(ProductId)"/>
@@ -355,7 +356,7 @@
             Condition="$(CopyRuntimes)=='on'"
             Inputs="@(Runtime)"
             Outputs="@(Runtime -> '$(OutputDir)\%(FileName)%(Extension)')">
-        <Copy Condition="%(Runtime.Definition)==$(ComponentDefinitionsSource)"
+        <Copy Condition="%(Runtime.Definition)==$(ComponentDefinitionsSource) And %(Runtime.LibraryName)==$(CompileLibraryName)"
               SourceFiles="@(Runtime)"
               DestinationFiles="@(Runtime -> '$(OutputDir)\%(FileName)%(Extension)')"
               SkipUnchangedFiles="true"
@@ -395,16 +396,23 @@
         <ReadLinesFromFile File="$(IntermediateDir)\internal.builtFor">
             <Output TaskParameter="Lines" ItemName="LastCompiledFor"/>
         </ReadLinesFromFile>
+        <PropertyGroup>
+            <NeedToClean>off</NeedToClean>
+            <NeedToClean Condition="@(LastCompiledFor)!='' And @(LastCompiledFor)!=$(ComponentDefinitionsSource)">on</NeedToClean>
+        </PropertyGroup>
+
         <!-- clean self I was compiled for somebody else - embedded clean -->
-        <RemoveDir Condition="@(LastCompiledFor)!='' And @(LastCompiledFor)!=$(ComponentDefinitionsSource)"
+        <Message Condition="$(NeedToClean)=='on'" Importance="high" Text=" "/>
+        <Message Condition="$(NeedToClean)=='on'" Importance="high" Text="Cleaning to force new compile, found: @(LastCompiledFor), needed: $(ComponentDefinitionsSource)"/>
+
+        <RemoveDir Condition="$(NeedToClean)=='on'"
                    Directories="@(TemporaryDirectories)"
                    ContinueOnError="true" />
-        <Error Condition="@(LastCompiledFor)!='' And @(LastCompiledFor)!=$(ComponentDefinitionsSource)" />
-        <Delete Condition="@(LastCompiledFor)!=$(ComponentDefinitionsSource) And $(ClientLicensing)=='on'"
+        <Delete Condition="$(NeedToClean)=='on'"
                 Files="@(LicensingSourceFiles)"
                 ContinueOnError="true" />
-        <MakeDir Condition="@(LastCompiledFor)!=$(ComponentDefinitionsSource)"
-                 Directories="@(TemporaryDirectories)" />
+        <CallTarget Targets="Directories" />
+
         <!-- mark definitions file I am build for -->
         <WriteLinesToFile File="$(IntermediateDir)\internal.builtFor"
                           Lines="$(ComponentDefinitionsSource)"
@@ -419,7 +427,7 @@
     </Target>
     
     <Target Name="BuildWithPreparedDependencies"
-            DependsOnTargets="Environment;CleanIfDefinitionsSourceHasChanged;SplitComponentsForTools;DisplayComponentsToBuild;$(UserPreBuild);Component;$(UserPostBuild)"
+            DependsOnTargets="Environment;CleanIfDefinitionsSourceHasChanged;Directories;SplitComponentsForTools;DisplayComponentsToBuild;$(UserPreBuild);Component;$(UserPostBuild)"
             Outputs="@(Compiled)">
         <ItemGroup>
             <Compiled Condition="@(Objects)!='' And $(Result)!='Static'"
@@ -430,8 +438,11 @@
         <Message Condition="$(ComponentDefinitionsSource)!=''" Importance="high" Text="Built (for $(ComponentDefinitionsSource)): $(MSBuildProjectName)" />
         <Message Importance="high" Text=" " />
     </Target>
-
-
+    
+    <Target Name="OnErrorHandler">
+        <Error Text="Build FAILED." />
+    </Target>
+    
     <!-- outer, visible targets -->
 
     <Target Name="Clean">
@@ -455,7 +466,8 @@
         
         <!-- clean them all -->
         <Message Importance="high"
-                 Text="Components to clean: @(ToClean -> '%(FileName)', ' ' )"/>
+                 Text="Components to clean for $(ComponentName): @(ToClean -> '%(FileName)', ' ' )"/>
+        <Message Importance="high" Text=" " />
         <MSBuild Projects="@(ToClean -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="Clean"/>
 
@@ -465,7 +477,7 @@
 
 
     <Target Name="Build"
-            DependsOnTargets="Directories;ProductBuildNumberGet;GrabComponents"
+            DependsOnTargets="ProductBuildNumberGet;GrabComponents"
             Outputs="@(Compiled)">
         <!-- use msbuild and not to call target to load dependencies file!! -->
         <MSBuild Projects="$(MSBuildProjectFile)"
@@ -473,15 +485,18 @@
                  StopOnFirstFailure="true" >
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
+
+        <OnError ExecuteTargets="OnErrorHandler" />
     </Target>
 
     <Target Name="BuildAll"
-            DependsOnTargets="Directories;ProductBuildNumberGet;GrabComponents"
+            DependsOnTargets="ProductBuildNumberGet;GrabComponents"
             Outputs="@(Compiled)">
         <!-- build all components in groups per definition file -->
         <Message Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
                  Importance="high"
                  Text="Components to build for %(Grabbed.Definition): @(Grabbed -> '%(Filename)', ' ' )"/>
+        <Message Importance="high" Text=" " />
         
         <MSBuild Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
                  Projects="@(Grabbed -> '$(RootDir)\%(Identity)\%(Filename).proj')"
@@ -493,6 +508,9 @@
 
         <!-- build me too -->
         <CallTarget Targets="Build"/>
+        
+        <Message Importance="high" Text="Build SUCCEEDED." />
+        <OnError ExecuteTargets="OnErrorHandler" />
     </Target>
 
 

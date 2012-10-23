@@ -16,6 +16,9 @@ note = $(ProductNote)</ProductLicenceFileContents>
     <Target Name="CreateProductLicenceFile"
             Inputs="$(RCFile);$(ProductBuildFile)"
             Outputs="$(ProductLicenceFile)">
+        
+        <!-- Message Importance="high" Text="#-$(ProductVersionBuild)-#" / -->
+        
         <Patch Value="$(ProductLicenceFileContents)" Keys="ProductVersionBuild" Patches="$(ProductVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductLicenceFileContents"/>
         </Patch>

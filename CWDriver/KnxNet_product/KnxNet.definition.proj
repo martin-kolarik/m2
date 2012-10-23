@@ -5,8 +5,12 @@
         <Result>Program</Result>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='KnxNet' Or $(MSBuildProjectName)=='sccore'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='KnxNet'">
         <Result>Dynamic</Result>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
+        <Result>Static</Result>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='LicTool'">

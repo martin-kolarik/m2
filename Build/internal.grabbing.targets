@@ -15,12 +15,16 @@
 
     <PropertyGroup>
         <!-- recursive dependencies parameters -->
-        <SelfBuildDependenciesDir>$(ComponentPath)\$(IntermediateDirName)</SelfBuildDependenciesDir>
-        <SelfBuildDependenciesFile>$(SelfBuildDependenciesDir)\Dependencies.targets</SelfBuildDependenciesFile>
+        <SelfBuildDependenciesDir>$(ComponentPath)\$(OutputDirName)</SelfBuildDependenciesDir>
+        <SelfBuildDependenciesFile>$(SelfBuildDependenciesDir)\dependencies.targets</SelfBuildDependenciesFile>
         <BuildDependenciesFile>$(SelfBuildDependenciesFile)</BuildDependenciesFile>
         <BuildDependenciesFile Condition="$(InheritedBuildDependenciesFile)!=''">$(InheritedBuildDependenciesFile)</BuildDependenciesFile>
     </PropertyGroup>
     
+    <Target Name="GrabDirectories"><!-- Duplicate to Directories task, it exists to avoid skipping Directories task as being already done -->
+        <MakeDir Directories="@(TemporaryDirectories)" />
+    </Target>
+
     <!-- out of recursion, (new) grab file is created always, because each component needs grab self dependencies -->
     <Target Name="DeleteGrabProcessFile">
         <Delete Files="@(GrabProcessFile)" ContinueOnError="true"/>
@@ -55,7 +59,7 @@
     </Target>
     
     <Target Name="GrabComponent"
-            DependsOnTargets="Directories;PrepareLibraryName"
+            DependsOnTargets="GrabDirectories;PrepareLibraryName"
             Condition="$(PropagateSources)=='on' Or $(PropagateDeliverables)=='on'"
             Returns="@(Grabbed)">
         
@@ -100,7 +104,7 @@
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
             </Grabbed>
             <!-- 3b. H reference statically stated -->
-            <Grabbed Condition="$(PropagateSources)=='on' And Exists( 'Header' )"
+            <Grabbed Condition="$(PropagateSources)=='on' And Exists('Header')"
                      Include="$(ComponentName)\Header">
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Header</Type>
@@ -221,10 +225,10 @@
     <Target Name="WriteGrabbedComponentsToBuildDependeciesFile"
             Outputs="$(BuildDependenciesFile)">
         <ItemGroup>
-            <Dependencies Condition="%(Grabbed.Type)!='Definition' And %(Grabbed.Type)!='Component' And %(Grabbed.Type)!='Message'"
-                          Include="@(Grabbed -> '&lt;%(Type) Include=&quot;%(Identity)&quot;&gt;&lt;Definition&gt;%(Definition)&lt;/Definition&gt;&lt;/%(Type)&gt;')" />
-            <Dependencies Condition="%(Grabbed.Type)=='Message'"
+            <Dependencies Condition="%(Grabbed.Type)=='Message' Or %(Grabbed.Type)=='Runtime'"
                           Include="@(Grabbed -> '&lt;%(Type) Include=&quot;%(Identity)&quot;&gt;&lt;Definition&gt;%(Definition)&lt;/Definition&gt;&lt;LibraryName&gt;%(LibraryName)&lt;/LibraryName&gt;&lt;/%(Type)&gt;')" />
+            <Dependencies Condition="%(Grabbed.Type)!='Definition' And %(Grabbed.Type)!='Component' And %(Grabbed.Type)!='Message' And %(Grabbed.Type)!='Runtime'"
+                          Include="@(Grabbed -> '&lt;%(Type) Include=&quot;%(Identity)&quot;&gt;&lt;Definition&gt;%(Definition)&lt;/Definition&gt;&lt;/%(Type)&gt;')" />
         </ItemGroup>
 
         <PropertyGroup>
@@ -263,8 +267,15 @@
             <Runtime Condition="%(Grabbed.Type)=='Runtime'"
                      Include="%(Identity)">
                 <Definition>%(Definition)</Definition>
+                <LibraryName>%(LibraryName)</LibraryName>
             </Runtime>
         </ItemGroup>
+    </Target>
+    
+    <Target Name="GrabEntryMessage">
+        <Message Importance="high" Text=" " />
+        <Message Importance="high"
+                 Text="Grabbing of components for $(ComponentName) started."/>
     </Target>
     
     <Target Name="CheckUnexpectedCall">
@@ -272,9 +283,12 @@
     </Target>
     
     <Target Name="GrabComponents"
-            DependsOnTargets="CheckUnexpectedCall;DeleteGrabProcessFile;Directories;GrabComponentsRecursion;DebugDisplayGrabbedComponent;WriteGrabbedComponentsToBuildDependeciesFile;PrepareDependenciesForCurrentProject"
+            DependsOnTargets="GrabEntryMessage;CheckUnexpectedCall;DeleteGrabProcessFile;GrabDirectories;GrabComponentsRecursion;DebugDisplayGrabbedComponent;WriteGrabbedComponentsToBuildDependeciesFile;PrepareDependenciesForCurrentProject"
             Returns="@(Grabbed)">
         <!-- Grabbed is returned as a whole, even if it is duplicate to the build dependencies file. Grabbed may be used, for example, for cleaning etc. -->
+        <Message Importance="high"
+                 Text="Grabbing of components for $(ComponentName) finished."/>
+        <Message Importance="high" Text=" " />
     </Target>
     
     <Import Condition="Exists('$(BuildDependenciesFile)')"
