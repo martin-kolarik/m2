@@ -9,11 +9,11 @@
         <Result>Dynamic</Result>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
+    <PropertyGroup Condition="$(ComponentName)=='Component\sccore'">
         <Result>Static</Result>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='LicTool'">
+    <PropertyGroup Condition="$(ComponentName)=='Licensing\LicTool'">
         <ProductVariant>Activator</ProductVariant>
     </PropertyGroup>
 

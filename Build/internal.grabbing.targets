@@ -74,14 +74,16 @@
         <ItemGroup>
             <!-- 1. add self to components -->
             <Grabbed Include="$(ComponentName)">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <DefinitionPath>$(ComponentDefinitionsPath)</DefinitionPath>
                 <Type>Component</Type>
                 <ComponentType>Component</ComponentType>
-                <AdditionalProperties>CompilePublishExports=$(GrabbingPublishExports);CompileLibraryName=$(LibraryNameToGrab)</AdditionalProperties>
+                <AdditionalProperties>CompilePublishExports=$(GrabbingPublishExports);CompileLibraryName=$(LibraryNameToGrab);InheritedComponentDefinitionsSource=$(InheritedComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(InheritedComponentDefinitionsPath);Inherited2ComponentDefinitionsPath=$(Inherited2ComponentDefinitionsPath);Inherited3ComponentDefinitionsPath=$(Inherited3ComponentDefinitionsPath);Inherited4ComponentDefinitionsPath=$(Inherited4ComponentDefinitionsPath)</AdditionalProperties>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
             </Grabbed>
             <Grabbed Include="$(ComponentDefinitionsSource)">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <DefinitionPath>$(ComponentDefinitionsPath)</DefinitionPath>
                 <Type>Definition</Type>
@@ -91,6 +93,7 @@
             <!-- 2. DEF reference -->
             <Grabbed Condition="$(PropagateSources)=='on' And Exists('$(SourceDir)')"
                      Include="$(ComponentName)\$(SourceDir)">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Source</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
@@ -99,6 +102,7 @@
             <!-- 3a. H reference dynamically created -->
             <Grabbed Condition="$(PropagateSources)=='on'"
                      Include="$(ComponentName)\$(IntermediateDirName)">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Header</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
@@ -106,6 +110,7 @@
             <!-- 3b. H reference statically stated -->
             <Grabbed Condition="$(PropagateSources)=='on' And Exists('Header')"
                      Include="$(ComponentName)\Header">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Header</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
@@ -114,6 +119,7 @@
             <!-- 4. add messages -->
             <Grabbed Condition="$(PropagateSources)=='on' And $(Result)=='Static' And @(Messages)!=''"
                      Include="@(MessagesBin -> '$(ComponentPath)\%(Identity)')">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Message</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
@@ -122,6 +128,7 @@
             <!-- 5a. LIB used by me normally loaded. -->
             <Grabbed Condition="$(PropagateSources)=='on' And $(Result)!='Program'"
                      Include="@(Interface -> '%(Identity).lib')">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Library</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
@@ -129,6 +136,7 @@
             <!-- 5b. LIB used by me delayed in load -->
             <Grabbed Condition="$(PropagateSources)=='on' And $(Result)!='Program'"
                      Include="@(InterfaceWithDelayLoad -> '%(Identity).lib /delayload:%(FileName).dll')">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Library</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
@@ -138,15 +146,16 @@
             <!-- SelfInterface in condition prevents adding lib file for enclosing components not doing any enclosing at the time -->
             <Grabbed Condition="$(GrabbingPublishExports)!='on' And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
                      Include="@(SelfInterface -> '%(Identity).lib')">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Library</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
             </Grabbed>
 
             <!-- 6. components which are not built must offer their runtimes -->
-            <!-- SelfInterface in condition prevents adding lib file for enclosing components not doing any enclosing at the time -->
-            <Grabbed Condition="$(PropagateDeliverables)=='on' And @(SelfInterface)!=''"
-                        Include="$(OutputFilePath);$(OutputPDBFilePath);$(OutputMAPFilePath)">
+            <Grabbed Condition="$(PropagateDeliverables)=='on'"
+                     Include="$(OutputFilePath);$(OutputPDBFilePath);$(OutputMAPFilePath)">
+                <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Runtime</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
@@ -185,12 +194,29 @@
         <Message Condition="@(ComponentsToParse)!=''"
                  Importance="normal"
                  Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )"/>
-        
+
+        <!-- If definition changes, push it into the stack. Only 5 levels are allowed. -->
+        <PropertyGroup Condition="$(ComponentDefinitionsSource)!=$(InheritedComponentDefinitionsSource)">
+            <InheritingError>off</InheritingError>
+            <InheritingError Condition="$(Inherited4ComponentDefinitionsPath)!=''">on</InheritingError>
+            <InheritedPath4Value>$(Inherited3ComponentDefinitionsPath)</InheritedPath4Value>
+            <InheritedPath3Value>$(Inherited2ComponentDefinitionsPath)</InheritedPath3Value>
+            <InheritedPath2Value>$(InheritedComponentDefinitionsPath)</InheritedPath2Value>
+            <InheritedPath1Value>$(ComponentDefinitionsPath)</InheritedPath1Value>
+        </PropertyGroup>
+        <PropertyGroup Condition="$(ComponentDefinitionsSource)==$(InheritedComponentDefinitionsSource)">
+            <InheritingError>off</InheritingError>
+            <InheritedPath4Value>$(Inherited4ComponentDefinitionsPath)</InheritedPath4Value>
+            <InheritedPath3Value>$(Inherited3ComponentDefinitionsPath)</InheritedPath3Value>
+            <InheritedPath2Value>$(Inherited2ComponentDefinitionsPath)</InheritedPath2Value>
+            <InheritedPath1Value>$(InheritedComponentDefinitionsPath)</InheritedPath1Value>
+        </PropertyGroup>
+        <Error Condition="$(InheritingError)=='on'" Text="Too many levels of definition files." />
         <PropertyGroup>
             <PublishExportsValueToGrab>off</PublishExportsValueToGrab>
             <PublishExportsValueToGrab Condition="$(PublishExports)=='on' And $(PropagateSources)=='on'">on</PublishExportsValueToGrab>
-
-            <InheritedComponentProperties>InheritedComponentDefinitionsSource=$(ComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath)</InheritedComponentProperties>
+            
+            <InheritedDefinitionsProperties>InheritedComponentDefinitionsSource=$(ComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(InheritedPath1Value);Inherited2ComponentDefinitionsPath=$(InheritedPath2Value);Inherited3ComponentDefinitionsPath=$(InheritedPath3Value);Inherited4ComponentDefinitionsPath=$(InheritedPath4Value)</InheritedDefinitionsProperties>
             <InheritedGrabbingProperties>GrabbingGrabProcessFile=$(GrabProcessFile);GrabbingLibraryName=$(LibraryNameToGrab);GrabbingPublishExports=$(PublishExportsValueToGrab)</InheritedGrabbingProperties>
         </PropertyGroup>
 
@@ -200,16 +226,29 @@
         
         <MSBuild Condition="@(ComponentsToParse)!=''"
                  Projects="@(ComponentsToParse -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Properties="$(ChildParameters);Grabbing=on;$(InheritedComponentProperties);$(InheritedGrabbingProperties)"
+                 Properties="$(ChildParameters);Grabbing=on;$(InheritedDefinitionsProperties);$(InheritedGrabbingProperties)"
                  Targets="GrabComponentsRecursion;GrabComponent"><!-- first do childs to get proper build order -->
             <Output TaskParameter="TargetOutputs" ItemName="GrabbedFromChilds"/>
         </MSBuild>
+
+        <!-- 7. runtimes must be hierarchicaly grabbed to upper components (because they need runtimes of all nested components). -->
+        <ItemGroup>
+            <GrabbedFromChilds Condition="%(GrabbedFromChilds.Type)=='Runtime'"
+                               Include="@(GrabbedFromChilds)">
+                <Definition>$(ComponentDefinitionsSource)</Definition>
+                <Type>Runtime</Type>
+                <LibraryName>$(LibraryNameToGrab)</LibraryName>
+            </GrabbedFromChilds>
+        </ItemGroup>
 
         <!-- cleanup output -->
         <RemoveDuplicates Condition="@(ComponentsToParse)!='' And '%(GrabbedFromChilds.Definition)%(GrabbedFromChilds.Type)'!='.'"
                           Inputs="@(GrabbedFromChilds)"><!-- definition file cannot be '.', so using it as a neg-condition forces emitting all items -->
             <Output TaskParameter="Filtered" ItemName="Grabbed"/>
         </RemoveDuplicates>
+    </Target>
+    
+    <Target Name="GrabRuntimesForRoot">
     </Target>
     
     <Target Name="DebugDisplayGrabbedComponent" Condition="off">
@@ -220,15 +259,18 @@
         <Message Importance="high" Text="  Headers:    grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Header'"/>
         <Message Importance="high" Text="  Messages:   grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Message'"/>
         <Message Importance="high" Text="  Libraries:  grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Library'"/>
+        <Message Importance="high" Text="  Runtime:    grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Runtime'"/>
     </Target>
 
     <Target Name="WriteGrabbedComponentsToBuildDependeciesFile"
             Outputs="$(BuildDependenciesFile)">
         <ItemGroup>
-            <Dependencies Condition="%(Grabbed.Type)=='Message' Or %(Grabbed.Type)=='Runtime'"
+            <Dependencies Condition="%(Grabbed.Type)=='Message'"
                           Include="@(Grabbed -> '&lt;%(Type) Include=&quot;%(Identity)&quot;&gt;&lt;Definition&gt;%(Definition)&lt;/Definition&gt;&lt;LibraryName&gt;%(LibraryName)&lt;/LibraryName&gt;&lt;/%(Type)&gt;')" />
             <Dependencies Condition="%(Grabbed.Type)!='Definition' And %(Grabbed.Type)!='Component' And %(Grabbed.Type)!='Message' And %(Grabbed.Type)!='Runtime'"
                           Include="@(Grabbed -> '&lt;%(Type) Include=&quot;%(Identity)&quot;&gt;&lt;Definition&gt;%(Definition)&lt;/Definition&gt;&lt;/%(Type)&gt;')" />
+            <Dependencies Condition="%(Grabbed.Type)=='Runtime'"
+                          Include="@(Grabbed -> '&lt;%(Type) Include=&quot;%(Identity)&quot;&gt;&lt;Definition&gt;%(Definition)&lt;/Definition&gt;&lt;OfComponent&gt;%(OfComponent)&lt;/OfComponent&gt;&lt;/%(Type)&gt;')" />
         </ItemGroup>
 
         <PropertyGroup>
@@ -267,7 +309,7 @@
             <Runtime Condition="%(Grabbed.Type)=='Runtime'"
                      Include="%(Identity)">
                 <Definition>%(Definition)</Definition>
-                <LibraryName>%(LibraryName)</LibraryName>
+                <OfComponent>%(OfComponent)</OfComponent>
             </Runtime>
         </ItemGroup>
     </Target>
@@ -283,7 +325,7 @@
     </Target>
     
     <Target Name="GrabComponents"
-            DependsOnTargets="GrabEntryMessage;CheckUnexpectedCall;DeleteGrabProcessFile;GrabDirectories;GrabComponentsRecursion;DebugDisplayGrabbedComponent;WriteGrabbedComponentsToBuildDependeciesFile;PrepareDependenciesForCurrentProject"
+            DependsOnTargets="GrabEntryMessage;CheckUnexpectedCall;DeleteGrabProcessFile;GrabDirectories;GrabComponentsRecursion;GrabRuntimesForRoot;DebugDisplayGrabbedComponent;WriteGrabbedComponentsToBuildDependeciesFile;PrepareDependenciesForCurrentProject"
             Returns="@(Grabbed)">
         <!-- Grabbed is returned as a whole, even if it is duplicate to the build dependencies file. Grabbed may be used, for example, for cleaning etc. -->
         <Message Importance="high"

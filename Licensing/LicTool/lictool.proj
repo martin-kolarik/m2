@@ -20,6 +20,8 @@
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
     <PropertyGroup>
+        <ProductM2Control Condition="$(ProductM2Control)==''">-DTarget:&quot;$(ProductVariant)&quot;</ProductM2Control>
+
         <ResultName Condition="$(ProductVariant)=='Supervisor'">lictool</ResultName>
         <ResultName Condition="$(ProductVariant)=='Builder'">licbuild</ResultName>
         <ResultName Condition="$(ProductVariant)=='Licensor'">licgen</ResultName>

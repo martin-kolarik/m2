@@ -11,15 +11,28 @@
     <PropertyGroup>
         <SelfDefinitionsFileExists>off</SelfDefinitionsFileExists>
         <SelfDefinitionsFileExists Condition="Exists('$(SelfComponentDefinitionsPath)')">on</SelfDefinitionsFileExists>
+
         <InheritedDefinitionsFileExists>off</InheritedDefinitionsFileExists>
         <InheritedDefinitionsFileExists Condition="Exists('$(InheritedComponentDefinitionsPath)')">on</InheritedDefinitionsFileExists>
+
+        <Inherited2DefinitionsFileExists>off</Inherited2DefinitionsFileExists>
+        <Inherited2DefinitionsFileExists Condition="Exists('$(Inherited2ComponentDefinitionsPath)')">on</Inherited2DefinitionsFileExists>
+
+        <Inherited3DefinitionsFileExists>off</Inherited3DefinitionsFileExists>
+        <Inherited3DefinitionsFileExists Condition="Exists('$(Inherited3ComponentDefinitionsPath)')">on</Inherited3DefinitionsFileExists>
+
+        <Inherited4DefinitionsFileExists>off</Inherited4DefinitionsFileExists>
+        <Inherited4DefinitionsFileExists Condition="Exists('$(Inherited4ComponentDefinitionsPath)')">on</Inherited4DefinitionsFileExists>
     </PropertyGroup>
 
     <!-- 3. load mine definition file, the file sets component default, which can be later overwritten with some ancestor's one -->
     <Import Condition="$(SelfDefinitionsFileExists)=='on'" Project="$(SelfComponentDefinitionsPath)"/>
 
-    <!-- 4. load ancestor definition file, it has always precedence -->
+    <!-- 4. load ancestor(s) definition file, it has always precedence -->
     <Import Condition="$(InheritedDefinitionsFileExists)=='on'" Project="$(InheritedComponentDefinitionsPath)"/>
+    <Import Condition="$(Inherited2DefinitionsFileExists)=='on'" Project="$(Inherited2ComponentDefinitionsPath)"/>
+    <Import Condition="$(Inherited3DefinitionsFileExists)=='on'" Project="$(Inherited3ComponentDefinitionsPath)"/>
+    <Import Condition="$(Inherited4DefinitionsFileExists)=='on'" Project="$(Inherited4ComponentDefinitionsPath)"/>
 
     <!-- 5. setup final variables -->
     <PropertyGroup>

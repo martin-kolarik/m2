@@ -353,10 +353,10 @@
     </Target>
 
     <Target Name="ComponentRuntimes"
-            Condition="$(CopyRuntimes)=='on'"
+            Condition="$(ProductFlag)=='on'"
             Inputs="@(Runtime)"
             Outputs="@(Runtime -> '$(OutputDir)\%(FileName)%(Extension)')">
-        <Copy Condition="%(Runtime.Definition)==$(ComponentDefinitionsSource) And %(Runtime.LibraryName)==$(CompileLibraryName)"
+        <Copy Condition="%(Runtime.Definition)==$(ComponentDefinitionsSource) And %(Runtime.Definition)!=%(Runtime.OfComponent)"
               SourceFiles="@(Runtime)"
               DestinationFiles="@(Runtime -> '$(OutputDir)\%(FileName)%(Extension)')"
               SkipUnchangedFiles="true"
@@ -402,8 +402,7 @@
         </PropertyGroup>
 
         <!-- clean self I was compiled for somebody else - embedded clean -->
-        <Message Condition="$(NeedToClean)=='on'" Importance="high" Text=" "/>
-        <Message Condition="$(NeedToClean)=='on'" Importance="high" Text="Cleaning to force new compile, found: @(LastCompiledFor), needed: $(ComponentDefinitionsSource)"/>
+        <Message Condition="$(NeedToClean)=='on'" Importance="high" Text="Cleaning to force new compile, previously built for: @(LastCompiledFor)"/>
 
         <RemoveDir Condition="$(NeedToClean)=='on'"
                    Directories="@(TemporaryDirectories)"
@@ -411,7 +410,7 @@
         <Delete Condition="$(NeedToClean)=='on'"
                 Files="@(LicensingSourceFiles)"
                 ContinueOnError="true" />
-        <CallTarget Targets="Directories" />
+        <MakeDir Directories="@(TemporaryDirectories)" /><!-- CallTarget Targets="Directories" is unusable as it could be considered as done, even if folders do not exist -->
 
         <!-- mark definitions file I am build for -->
         <WriteLinesToFile File="$(IntermediateDir)\internal.builtFor"
@@ -427,7 +426,7 @@
     </Target>
     
     <Target Name="BuildWithPreparedDependencies"
-            DependsOnTargets="Environment;CleanIfDefinitionsSourceHasChanged;Directories;SplitComponentsForTools;DisplayComponentsToBuild;$(UserPreBuild);Component;$(UserPostBuild)"
+            DependsOnTargets="Environment;DisplayComponentsToBuild;CleanIfDefinitionsSourceHasChanged;Directories;SplitComponentsForTools;$(UserPreBuild);Component;$(UserPostBuild)"
             Outputs="@(Compiled)">
         <ItemGroup>
             <Compiled Condition="@(Objects)!='' And $(Result)!='Static'"
@@ -440,7 +439,7 @@
     </Target>
     
     <Target Name="OnErrorHandler">
-        <Error Text="Build FAILED." />
+        <Error Text="Build FAILED.%07" />
     </Target>
     
     <!-- outer, visible targets -->
@@ -469,7 +468,7 @@
                  Text="Components to clean for $(ComponentName): @(ToClean -> '%(FileName)', ' ' )"/>
         <Message Importance="high" Text=" " />
         <MSBuild Projects="@(ToClean -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="Clean"/>
+                 Targets="Clean" />
 
         <!-- clean self too -->
         <CallTarget Targets="Clean"/>
@@ -501,7 +500,7 @@
         <MSBuild Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
                  Projects="@(Grabbed -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="BuildWithPreparedDependencies"
-                 Properties="$(ChildParameters);InheritedComponentDefinitionsSource=%(Grabbed.Definition);InheritedComponentDefinitionsPath=%(Grabbed.DefinitionPath)"
+                 Properties="$(ChildParameters)"
                  StopOnFirstFailure="true" >
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
@@ -509,7 +508,7 @@
         <!-- build me too -->
         <CallTarget Targets="Build"/>
         
-        <Message Importance="high" Text="Build SUCCEEDED." />
+        <Message Importance="high" Text="Build SUCCEEDED.%07" />
         <OnError ExecuteTargets="OnErrorHandler" />
     </Target>
 

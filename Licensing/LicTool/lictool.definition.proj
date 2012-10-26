@@ -10,15 +10,4 @@
         <Result>Static</Result>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
-        <ComponentType>Generic</ComponentType>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <ProductM2Control Condition="$(ProductM2Control)==''">-DTarget:&quot;$(ProductVariant)&quot;</ProductM2Control>
-        <ProductCLControl></ProductCLControl>
-        <ProductRCControl></ProductRCControl>
-        <ProductLNControl></ProductLNControl>
-    </PropertyGroup>
-
 </Project>
