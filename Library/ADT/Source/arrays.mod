@@ -86,8 +86,9 @@ CLASS IMPLEMENTATION CIntegerArray;
 
    PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPIntegerArrayIterator;
    VAR
-      iterator : TPIntegerArrayIterator := NEW( CIntegerArrayIterator );
+      iterator : TPIntegerArrayIterator;
    BEGIN
+      iterator := NEW( CIntegerArrayIterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;
@@ -229,8 +230,9 @@ CLASS IMPLEMENTATION CPtrArray;
 
    PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPPtrArrayIterator;
    VAR
-      iterator : TPPtrArrayIterator := NEW( CPtrArrayIterator );
+      iterator : TPPtrArrayIterator;
    BEGIN
+      iterator := NEW( CPtrArrayIterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;

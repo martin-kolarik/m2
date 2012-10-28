@@ -75,7 +75,7 @@ CLASS IMPLEMENTATION CList;
 
    PUBLIC VIRTUAL PROCEDURE colGetIterator( direction : collection.TDirection ) : collection.TPIterator;
    BEGIN
-      RETURN GetIterator( direction );
+      RETURN collection.TPIterator( GetIterator( direction ));
    END colGetIterator;
 
 (*---------------------------------------------------------------------------*)
@@ -290,8 +290,9 @@ CLASS IMPLEMENTATION CList;
 
    PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPListIterator;
    VAR
-      iterator : TPListIterator := NEW( CListIterator );
+      iterator : POINTER TO CListIterator;
    BEGIN
+      NEW( iterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;

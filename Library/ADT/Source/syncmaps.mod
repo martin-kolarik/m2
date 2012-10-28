@@ -99,8 +99,9 @@ CLASS IMPLEMENTATION CPtrPtrSyncMap;
 
    PUBLIC PROCEDURE GetIterator() : TPPtrPtrSyncMapIterator;
    VAR
-      iterator : POINTER TO CPtrPtrSyncMapIterator := NEW( CPtrPtrSyncMapIterator );
+      iterator : POINTER TO CPtrPtrSyncMapIterator;
    BEGIN
+      iterator := NEW( CPtrPtrSyncMapIterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END GetIterator;
@@ -231,8 +232,9 @@ CLASS IMPLEMENTATION CStringPtrSyncMap;
 
    PUBLIC PROCEDURE GetIterator() : TPStringPtrSyncMapIterator;
    VAR
-      iterator : POINTER TO CStringPtrSyncMapIterator := NEW( CStringPtrSyncMapIterator );
+      iterator : POINTER TO CStringPtrSyncMapIterator;
    BEGIN
+      iterator := NEW( CStringPtrSyncMapIterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END GetIterator;
