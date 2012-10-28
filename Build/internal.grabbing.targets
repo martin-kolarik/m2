@@ -228,7 +228,7 @@
         <Error Condition="$(InheritingError)=='on'" Text="Too many levels of definition files." />
         <PropertyGroup>
             <PublishExportsValueToGrab>off</PublishExportsValueToGrab>
-            <PublishExportsValueToGrab Condition="$(EncloseComponents)=='on' And $(PropagateSources)=='on'">on</PublishExportsValueToGrab>
+            <PublishExportsValueToGrab Condition="$(PublishExports)=='on' And $(EncloseComponents)=='on' And $(PropagateSources)=='on'">on</PublishExportsValueToGrab>
             
             <InheritedDefinitionsProperties>InheritedComponentDefinitionsSource=$(ComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(InheritedPath1Value);Inherited2ComponentDefinitionsPath=$(InheritedPath2Value);Inherited3ComponentDefinitionsPath=$(InheritedPath3Value);Inherited4ComponentDefinitionsPath=$(InheritedPath4Value)</InheritedDefinitionsProperties>
             <InheritedGrabbingProperties>GrabbingGrabProcessFile=$(GrabProcessFile);GrabbingLibraryName=$(LibraryNameToGrab);GrabbingPublishExports=$(PublishExportsValueToGrab)</InheritedGrabbingProperties>
@@ -263,7 +263,7 @@
         </RemoveDuplicates>
     </Target>
     
-    <Target Name="DebugDisplayGrabbedComponent" Condition="on">
+    <Target Name="DebugDisplayGrabbedComponent" Condition="off">
         <Message Importance="high" Text="============================================================================"/>
         <Message Importance="high" Text="Project: $(MSBuildProjectName) -> @(Components)"/>
         <Message Importance="high" Text="----------------------------------------------------------------------------"/>
