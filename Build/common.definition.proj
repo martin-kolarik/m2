@@ -14,11 +14,9 @@
     <PropertyGroup>
         <LicensingComponent>Licensing\Core</LicensingComponent>
 
-        <LeakDetectorComponentName>LeakDetector</LeakDetectorComponentName>
-        <LeakDetectorComponent>Debug\$(LeakDetectorComponentName)</LeakDetectorComponent>
+        <LeakDetectorComponent>Debug\LeakDetector</LeakDetectorComponent>
 
-        <TestComponentName>Test</TestComponentName>
-        <TestComponent>Debug\$(TestComponentName)</TestComponent>
+        <TestComponent>Debug\Test</TestComponent>
         <TestFactoryName>testfactory</TestFactoryName>
     </PropertyGroup>
 
@@ -39,7 +37,7 @@
     
     <!-- 1. UGLY SHORTCUT: usage of definition file is determined by DefinitionsFileAllowed, thus, it must be computed before deffile is loaded -->
     <Choose>
-        <When Condition="$(ComponentType)=='Generic' Or $(ComponentType)=='Library' Or $(ComponentType)=='Cots'">
+        <When Condition="$(ComponentType)=='Generic' Or $(ComponentType)=='Library' Or $(ComponentType)=='SupportLibrary'">
             <PropertyGroup>
                 <DefinitionsFileAllowed>off</DefinitionsFileAllowed>
             </PropertyGroup>
@@ -55,67 +53,79 @@
     <Import Project="internal.definitionfile.targets"/>
 
     <!-- 3. (cont 1.) (constructed properties, DO NOT MODIFY) -->
+    <!-- meaning properties: -->
+    <!--   PropagateComponents = allows GrabRecursion to nest deeply, it looks for child components of grabbed components. Usually wanted, but e.g. LeakDetector in some configurations need not offer them -->
+    <!--   PropagateSources = component's DEF/H files will be available for descendant components -->
+    <!--   PropagateDeliverables = component's binaries will be available for descendant components -->
+    <!--   EncloseComponents = component XX is able to grab all childs YY and offer them as being XX -->
     <Choose>
         <When Condition="$(ComponentType)=='Generic'">
             <PropertyGroup>
+                <PropagateComponents>on</PropagateComponents>
                 <PropagateSources>on</PropagateSources>
                 <PropagateDeliverables>off</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
                 <DefinitionsFileAllowed>off</DefinitionsFileAllowed>
-                <Compilable>on</Compilable>
                 <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Library'">
             <PropertyGroup>
+                <PropagateComponents>on</PropagateComponents>
                 <PropagateSources>on</PropagateSources>
                 <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>on</EncloseComponents>
                 <DefinitionsFileAllowed>off</DefinitionsFileAllowed>
-                <Compilable>on</Compilable>
                 <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>
-        <When Condition="$(ComponentType)=='Cots'">
+        <When Condition="$(ComponentType)=='SupportLibrary'"><!--library intended to be independent, usually not a part of product, e.g. for debug purposes -->
             <PropertyGroup>
+                <PropagateComponents>off</PropagateComponents>
                 <PropagateSources>on</PropagateSources>
                 <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
                 <DefinitionsFileAllowed>off</DefinitionsFileAllowed>
-                <Compilable>on</Compilable>
                 <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Deliverable'">
             <PropertyGroup>
+                <PropagateComponents>on</PropagateComponents>
                 <PropagateSources>off</PropagateSources>
                 <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
                 <DefinitionsFileAllowed>on</DefinitionsFileAllowed>
-                <Compilable>on</Compilable>
                 <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Product'">
             <PropertyGroup>
+                <PropagateComponents>on</PropagateComponents>
                 <PropagateSources>off</PropagateSources>
                 <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
                 <DefinitionsFileAllowed>on</DefinitionsFileAllowed>
-                <Compilable>on</Compilable>
                 <ProductFlag>on</ProductFlag>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Bundle'">
             <PropertyGroup>
+                <PropagateComponents>on</PropagateComponents>
                 <PropagateSources>off</PropagateSources>
                 <PropagateDeliverables>off</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
                 <DefinitionsFileAllowed>on</DefinitionsFileAllowed>
-                <Compilable>off</Compilable>
                 <ProductFlag>on</ProductFlag>
             </PropertyGroup>
         </When>
         <Otherwise>
             <PropertyGroup>
+                <PropagateComponents>off</PropagateComponents>
                 <PropagateSources>off</PropagateSources>
                 <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
                 <DefinitionsFileAllowed>off</DefinitionsFileAllowed>
-                <Compilable>on</Compilable>
                 <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </Otherwise>

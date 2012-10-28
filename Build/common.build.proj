@@ -70,7 +70,6 @@
         <!-- recursive child parameters -->
         <InheritedProperties>InheritedManufacturer=$(Manufacturer);InheritedProductVersion=$(ProductVersion);InheritedBuildDependenciesFile=$(BuildDependenciesFile)</InheritedProperties>
         <ChildParameters>ProductId=$(ProductId);$(InheritedProperties)</ChildParameters>
-        <ChildParameters Condition="$(Test)=='off'">Test=off;$(ChildParameters)</ChildParameters>
     </PropertyGroup>
     
     <!-- file names, sources, outputs -->
@@ -109,8 +108,9 @@
 
     <!-- intermediates -->
     <ItemGroup>
-        <EnclosedComponents Condition="($(ComponentType)=='Library' Or $(ComponentType)=='Cots') And $(Result)=='Dynamic'" Include="@(Components)"/>
-        <!-- Library type component is component, which condensates together more generic components to single library (DLL), it
+        <EnclosedComponents Condition="$(EncloseComponents)=='on' And $(Result)=='Dynamic'"
+                            Include="@(Components)"/>
+        <!-- EncloseComponent component is component, which condensates together more generic components to single library (DLL), it
              must propagate interfaces (DEF, H) to users transparently -->
         
         <CPPs Include="@(MODFiles -> '%(Filename).cpp')" />
@@ -130,11 +130,6 @@
         <!-- SelfInterface/Interface: Interface could be extended by project to export some interfaces, e.g. Ws32, msxml, etc. -->
 
         <MessagesBin Condition="@(Messages)!=''" Include="@(Messages -> '$(IntermediateDir)\$(MSBuildProjectName).%(FileName).brs')"/>
-
-        <Components Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And $(ResultName)!=$(LeakDetectorComponentName) And
-                               (@(EnclosedComponents)!='' Or @(Objects)!='')"
-                    Include="$(LeakDetectorComponent)"/>
-
     </ItemGroup>
 
     <!-- inner, invisible targets -->
@@ -329,11 +324,6 @@
         <!-- Message Text="## @(EnclosedComponentsObjects)" Importance="high" /-->
     </Target>
 
-    <Target Name="ComponentTestIncludes"
-            DependsOnTargets="ComponentCPPs;TestCPPs">
-        <!-- here CPPs are noted (and it is not left for automatic dependency by Object), because .h files from standalone .def files must be built too -->        
-    </Target>
-
     <Target Name="ComponentCode"
             Condition="@(EnclosedComponents)!='' Or @(Objects)!='' Or $(ExportPath)!=''"
             DependsOnTargets="Resources;$(UserPostRES);ComponentObjects;$(UserPostOBJ)"
@@ -363,14 +353,6 @@
               ContinueOnError="false" />
     </Target>
 
-    <Import Project="internal.licence.targets"/>
-    <Target Name="BuildProductLicence"
-            Condition="$(SetupLicensing)=='on'"
-            DependsOnTargets="CreateProductLicenceFile">
-        <Exec WorkingDirectory="$(OutputDir)"
-              Command="$(LICSIGN) *.tlic"/>
-    </Target>
-    
     <Target Name="ComponentSign"
             Condition="$(Sign)!='off' And
                        $(SignCertificatePath)!='' And (
@@ -387,8 +369,19 @@
                           Overwrite="true"/>
     </Target>
 
+    <Import Project="internal.licence.targets"/>
+    <Target Name="BuildProductLicence"
+            Condition="$(SetupLicensing)=='on'"
+            DependsOnTargets="CreateProductLicenceFile">
+        <Exec WorkingDirectory="$(OutputDir)"
+              Command="$(LICSIGN) *.tlic"/>
+    </Target>
+    
+    <Target Name="ComponentTest"
+            DependsOnTargets="ComponentTestIncludes;ComponentTestBuild;ComponentTestExec"/>
+
     <Target Name="Component"
-            DependsOnTargets="GetEnclosedComponentsObjects;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTestIncludes;ComponentTestBuild;ComponentTestExec;BuildProductLicence"/>
+            DependsOnTargets="GetEnclosedComponentsObjects;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTest;BuildProductLicence"/>
 
 
     <Target Name="CleanIfDefinitionsSourceHasChanged">
@@ -478,9 +471,11 @@
     <Target Name="Build"
             DependsOnTargets="ProductBuildNumberGet;GrabComponents"
             Outputs="@(Compiled)">
-        <!-- use msbuild and not to call target to load dependencies file!! -->
+        <!-- Use msbuild with properties to load dependencies file!!, also properties normally coming from Grabbed must be supplied.
+             If Properties were not specified, MSBuild would not to reload file/dependecies, what is innapropriate!! -->
         <MSBuild Projects="$(MSBuildProjectFile)"
                  Targets="BuildWithPreparedDependencies"
+                 Properties="Root=true;CompilePublishExports=$(PublishExports);CompileLibraryName=$(ResultName)"
                  StopOnFirstFailure="true" >
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
@@ -500,7 +495,7 @@
         <MSBuild Condition="%(Grabbed.Definition)!='.' And %(Grabbed.Type)=='Component'"
                  Projects="@(Grabbed -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="BuildWithPreparedDependencies"
-                 Properties="$(ChildParameters)"
+                 Properties="Root=false;$(ChildParameters)"
                  StopOnFirstFailure="true" >
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>

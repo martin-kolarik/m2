@@ -88,10 +88,10 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <M2CTRL Condition ="$(CompilePublishExports)=='on'">$(M2CTRL) -LN$(CompileLibraryName) -LD</M2CTRL>
-        <M2CTRL Condition ="$(CompilePublishExports)!='on'">$(M2CTRL) -LN$(CompileLibraryName)</M2CTRL>
         <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(CompileLibraryName) -LD</M2TESTCTRL>
         <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(CompileLibraryName)_test -LD</M2TESTCTRL>
+        <M2CTRL Condition ="$(CompilePublishExports)=='on'">$(M2CTRL) -LN$(CompileLibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(CompilePublishExports)!='on'">$(M2CTRL) -LN$(CompileLibraryName)</M2CTRL>
     </PropertyGroup>
 
     <!-- INPUTS -->

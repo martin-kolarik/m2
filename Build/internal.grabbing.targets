@@ -69,11 +69,12 @@
         <!-- Message Importance="high" Text="Definition rslt: $(ComponentDefinitionsSource) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="@(GrabProcessFile)" / -->
         
-        <!-- Message Importance="high" Text="$(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports)" / -->
+        <!-- Message Importance="high" Text="$(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports), @(SelfInterface)" / -->
         
         <ItemGroup>
             <!-- 1. add self to components -->
-            <Grabbed Include="$(ComponentName)">
+            <Grabbed Condition="$(PropagateComponents)=='on'"
+                     Include="$(ComponentName)">
                 <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <DefinitionPath>$(ComponentDefinitionsPath)</DefinitionPath>
@@ -82,7 +83,8 @@
                 <AdditionalProperties>CompilePublishExports=$(GrabbingPublishExports);CompileLibraryName=$(LibraryNameToGrab);InheritedComponentDefinitionsSource=$(InheritedComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(InheritedComponentDefinitionsPath);Inherited2ComponentDefinitionsPath=$(Inherited2ComponentDefinitionsPath);Inherited3ComponentDefinitionsPath=$(Inherited3ComponentDefinitionsPath);Inherited4ComponentDefinitionsPath=$(Inherited4ComponentDefinitionsPath)</AdditionalProperties>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
             </Grabbed>
-            <Grabbed Include="$(ComponentDefinitionsSource)">
+            <Grabbed Condition="$(PropagateComponents)=='on'"
+                     Include="$(ComponentDefinitionsSource)">
                 <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <DefinitionPath>$(ComponentDefinitionsPath)</DefinitionPath>
@@ -161,7 +163,11 @@
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
             </Grabbed>
         </ItemGroup>
-       
+        
+        <Message Condition="False And '%(Grabbed.Definition)%(Grabbed.Type)'!='.'"
+                 Importance="high"
+                 Text="##1 $(ComponentType)|$(ComponentName) [%(Grabbed.Definition)|%(Grabbed.Type)] @(Grabbed)"/>
+        
         <!-- mark me as parsed as soon as I know it -->
         <MakeDir Condition="!Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
                  Directories="@(GrabProcessFile -> '%(RootDir)%(Directory)')" />
@@ -169,19 +175,27 @@
                           Lines="$(ComponentName)"/>
     </Target>
     
-    <Target Condition="@(Components)!='' Or ($(ClientLicensing)=='on' And $(LicensingComponent)!='')"
+    <!-- If the component is built from top, it must be allowed to go through its dependencies. Therefore there is test to CN=CDS (for components having def file),
+         test to CDS='' (for components not having def file) and finally test for PC='on' for using the component deeply in recursion -->
+    <Target Condition="($(PropagateComponents)=='on' Or $(ComponentDefinitionsSource)=='' Or $(ComponentName)==$(ComponentDefintionsSource)) And
+                       (@(Components)!='' Or ($(ClientLicensing)=='on' And $(LicensingComponent)!=''))"
             Name="GrabComponentsRecursion"
             DependsOnTargets="DeleteGrabProcessFileIfAllowed;PrepareLibraryName"
             Returns="@(Grabbed)">
-        <!-- adjust list of components with internally added ones -->
-        <ItemGroup Condition="$(ClientLicensing)=='on' And $(LicensingComponent)!=''">
-            <InternalComponents Include="$(LicensingComponent)"/>
-        </ItemGroup>
-
-        <!-- filter already grabbed components -->
+        <!-- prepare filter for already grabbed components -->
         <ReadLinesFromFile File="$(GrabProcessFile)">
             <Output TaskParameter="Lines" ItemName="ComponentsParsed"/>
         </ReadLinesFromFile>
+
+        <!-- adjust list of components with internally added ones -->
+        <ItemGroup Condition="$(ClientLicensing)=='on' And $(LicensingComponent)!=''">
+            <InternalComponents Include="$(LicensingComponent)" />
+        </ItemGroup>
+        <ItemGroup Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And @(Components)!=''">
+            <InternalComponents Include="$(LeakDetectorComponent)" />
+        </ItemGroup>
+
+        <!-- create new not-yet-grabbed components list -->
         <ItemGroup>
             <ComponentsToParse Include="@(InternalComponents);@(Components)"
                                Exclude="@(ComponentsParsed)" />
@@ -191,8 +205,8 @@
         <ItemGroup Condition="@(ComponentsToParse)!=''">
             <DefinitionToDisplay Include="$(ComponentDefinitionsSource)"/>
         </ItemGroup>
-        <Message Condition="@(ComponentsToParse)!=''"
-                 Importance="normal"
+        <Message Condition="False And @(ComponentsToParse)!=''"
+                 Importance="high"
                  Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )"/>
 
         <!-- If definition changes, push it into the stack. Only 5 levels are allowed. -->
@@ -214,20 +228,21 @@
         <Error Condition="$(InheritingError)=='on'" Text="Too many levels of definition files." />
         <PropertyGroup>
             <PublishExportsValueToGrab>off</PublishExportsValueToGrab>
-            <PublishExportsValueToGrab Condition="$(PublishExports)=='on' And $(PropagateSources)=='on'">on</PublishExportsValueToGrab>
+            <PublishExportsValueToGrab Condition="$(EncloseComponents)=='on' And $(PropagateSources)=='on'">on</PublishExportsValueToGrab>
             
             <InheritedDefinitionsProperties>InheritedComponentDefinitionsSource=$(ComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(InheritedPath1Value);Inherited2ComponentDefinitionsPath=$(InheritedPath2Value);Inherited3ComponentDefinitionsPath=$(InheritedPath3Value);Inherited4ComponentDefinitionsPath=$(InheritedPath4Value)</InheritedDefinitionsProperties>
             <InheritedGrabbingProperties>GrabbingGrabProcessFile=$(GrabProcessFile);GrabbingLibraryName=$(LibraryNameToGrab);GrabbingPublishExports=$(PublishExportsValueToGrab)</InheritedGrabbingProperties>
         </PropertyGroup>
 
-        <Message Condition="@(ComponentsToParse)!=''"
-                 Importance="normal"
+        <Message Condition="False And @(ComponentsToParse)!=''"
+                 Importance="high"
                  Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )"/>
         
         <MSBuild Condition="@(ComponentsToParse)!=''"
                  Projects="@(ComponentsToParse -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Properties="$(ChildParameters);Grabbing=on;$(InheritedDefinitionsProperties);$(InheritedGrabbingProperties)"
-                 Targets="GrabComponentsRecursion;GrabComponent"><!-- first do childs to get proper build order -->
+                 Targets="GrabComponentsRecursion;GrabComponent"
+                 UseResultsCache="false"><!-- first do childs to get proper build order -->
             <Output TaskParameter="TargetOutputs" ItemName="GrabbedFromChilds"/>
         </MSBuild>
 
@@ -248,18 +263,23 @@
         </RemoveDuplicates>
     </Target>
     
-    <Target Name="GrabRuntimesForRoot">
-    </Target>
-    
-    <Target Name="DebugDisplayGrabbedComponent" Condition="off">
-        <Message Importance="high" Text="======================================"/>
-        <Message Importance="high" Text="Project:      $(MSBuildProjectName) -> @(Components)"/>
-        <Message Importance="high" Text="  Components: grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Component'"/>
-        <Message Importance="high" Text="  Sources:    grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Source'"/>
-        <Message Importance="high" Text="  Headers:    grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Header'"/>
-        <Message Importance="high" Text="  Messages:   grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Message'"/>
-        <Message Importance="high" Text="  Libraries:  grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Library'"/>
-        <Message Importance="high" Text="  Runtime:    grabbed[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Runtime'"/>
+    <Target Name="DebugDisplayGrabbedComponent" Condition="on">
+        <Message Importance="high" Text="============================================================================"/>
+        <Message Importance="high" Text="Project: $(MSBuildProjectName) -> @(Components)"/>
+        <Message Importance="high" Text="----------------------------------------------------------------------------"/>
+        <Message Importance="high" Text="[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Component'"/>
+        <Message Importance="high" Text="----------------------------------------------------------------------------"/>
+        <Message Importance="high" Text="[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Source'"/>
+        <Message Importance="high" Text="----------------------------------------------------------------------------"/>
+        <Message Importance="high" Text="[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Header'"/>
+        <Message Importance="high" Text="----------------------------------------------------------------------------"/>
+        <Message Importance="high" Text="[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Message'"/>
+        <Message Importance="high" Text="----------------------------------------------------------------------------"/>
+        <Message Importance="high" Text="[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Library'"/>
+        <Message Importance="high" Text="----------------------------------------------------------------------------"/>
+        <Message Importance="high" Text="[%(Type)||%(Definition)]: @(Grabbed)" Condition="%(Type)=='Runtime'"/>
+        <Message Importance="high" Text="============================================================================"/>
+        <Message Importance="high" Text=" "/>
     </Target>
 
     <Target Name="WriteGrabbedComponentsToBuildDependeciesFile"
@@ -283,37 +303,6 @@
                           Overwrite="true"/>
     </Target>
     
-    <Target Name="PrepareDependenciesForCurrentProject">
-        <ItemGroup>
-            <Header Condition="%(Grabbed.Type)=='Header'"
-                    Include="%(Identity)">
-                <Definition>%(Definition)</Definition>
-            </Header>
-
-            <Source Condition="%(Grabbed.Type)=='Source'"
-                    Include="%(Identity)">
-                <Definition>%(Definition)</Definition>
-            </Source>
-
-            <Message Condition="%(Grabbed.Type)=='Message'"
-                        Include="%(Identity)">
-                <Definition>%(Definition)</Definition>
-                <LibraryName>%(LibraryName)</LibraryName>
-            </Message>
-
-            <Library Condition="%(Grabbed.Type)=='Library'"
-                     Include="%(Identity)">
-                <Definition>%(Definition)</Definition>
-            </Library>
-
-            <Runtime Condition="%(Grabbed.Type)=='Runtime'"
-                     Include="%(Identity)">
-                <Definition>%(Definition)</Definition>
-                <OfComponent>%(OfComponent)</OfComponent>
-            </Runtime>
-        </ItemGroup>
-    </Target>
-    
     <Target Name="GrabEntryMessage">
         <Message Importance="high" Text=" " />
         <Message Importance="high"
@@ -325,7 +314,7 @@
     </Target>
     
     <Target Name="GrabComponents"
-            DependsOnTargets="GrabEntryMessage;CheckUnexpectedCall;DeleteGrabProcessFile;GrabDirectories;GrabComponentsRecursion;GrabRuntimesForRoot;DebugDisplayGrabbedComponent;WriteGrabbedComponentsToBuildDependeciesFile;PrepareDependenciesForCurrentProject"
+            DependsOnTargets="GrabEntryMessage;CheckUnexpectedCall;DeleteGrabProcessFile;GrabDirectories;GrabComponentsRecursion;DebugDisplayGrabbedComponent;WriteGrabbedComponentsToBuildDependeciesFile"
             Returns="@(Grabbed)">
         <!-- Grabbed is returned as a whole, even if it is duplicate to the build dependencies file. Grabbed may be used, for example, for cleaning etc. -->
         <Message Importance="high"

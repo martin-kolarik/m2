@@ -27,7 +27,7 @@
         <TestCPPFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp');m2init.cpp"/>
         <TestOBJFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).obj');m2init.obj"/>
 
-        <Components Condition="$(Test)=='on' And $(TestComponent)!='' And $(ResultName)!=$(TestComponentName)"
+        <Components Condition="$(Test)=='on' And $(TestComponent)!='' And $(ComponentName)!=$(TestComponentName)"
                     Include="$(TestComponent)"/>
     </ItemGroup>
 
@@ -42,19 +42,25 @@
 
     <Target Name="TestObjects" Condition="@(TestDEFFiles)!='' or @(TestMODFiles)!=''"
             DependsOnTargets="Modula2InitCPP;TestCPPs"
-            Inputs="@(TestCPPFiles)" Outputs="@(TestCPPFiles -> '$(IntermediateDir)\%(Filename).obj')">
+            Inputs="@(TestCPPFiles)" Outputs="@(TestOBJFiles)">
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="$(CL) $(CLDEF) @(TestCPPFiles ->'%(FileName)%(Extension)', ' ')"/>
     </Target>
 
     
+    <Target Name="ComponentTestIncludes"
+            DependsOnTargets="ComponentCPPs;TestCPPs">
+        <!-- here CPPs are noted (and it is not left for automatic dependency by Object), because .h files from standalone .def files must be built too -->        
+    </Target>
+
+
     <Target Name="ComponentTestBuild"
         Condition="(@(TestDEFFiles)!='' or @(TestMODFiles)!='') And $(Test)!='off'"
         DependsOnTargets="TestObjects"
         Inputs="@(TestOBJFiles);@(LinkDependencyLibraries)"
         Outputs="$(TestOutput)">
         <Exec WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) /dll $(LINKTEST) /out:..\$(TestOutput) @(Objects -> '%(Filename).obj', ' ') @(TestOBJFiles -> '%(Filename).obj', ' ') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ') @(SelfInterface -> '%(Identity).lib')"/>
+              Command="$(LINK) /dll $(LINKTEST) /out:..\$(TestOutput) @(Objects -> '%(Filename).obj', ' ') @(TestOBJFiles -> '%(Filename).obj', ' ') @(Libraries -> '%(Filename).lib', ' ') @(SelfInterface -> '%(Identity).lib')"/>
         <!-- LINK SelfInterface.lib is manually added as Libraries do not include self product -->
         <Exec Condition="$(CLib)=='Dynamic'"
               Command="$(MTT)"/>
