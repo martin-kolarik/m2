@@ -255,7 +255,7 @@
     </Target>
 
     <Target Name="Modula2InitCPP"
-            Condition="$(Result)!='Static' And $(Modula2InitCode)!=''"
+            Condition="($(Result)!='Static' Or $(Test)=='on') And $(Modula2InitCode)!=''"
             Inputs="$(Modula2InitCode)"
             Outputs="$(IntermediateDir)\m2init.cpp">
         <Copy SourceFiles="$(Modula2InitCode)"
@@ -287,7 +287,7 @@
             <Output TaskParameter="Output" PropertyName="ProjectRevisionId"/>
         </Item>
 
-        <ReadLinesFromFile File="$(IntermediateDir)\internal.lastRev" ContinueOnError="true">
+        <ReadLinesFromFile File="$(IntermediateDir)\internal.buildRevision" ContinueOnError="true">
             <Output TaskParameter="Lines" PropertyName="LastRev"/>
         </ReadLinesFromFile>
 
@@ -301,7 +301,7 @@
                 ContinueOnError="true"/>
 
         <WriteLinesToFile Condition="$(ProjectVersionBuild)!=$(LastRev)"
-                          File="$(IntermediateDir)\internal.lastRev"
+                          File="$(IntermediateDir)\internal.buildRevision"
                           Lines="$(ProjectVersionBuild)"
                           Overwrite="true"/>
     </Target>
@@ -389,7 +389,7 @@
     </Target>
     
     <Target Name="ComponentTest"
-            DependsOnTargets="ComponentTestIncludes;ComponentTestBuild;ComponentTestExec"/>
+            DependsOnTargets="ComponentTestMessage;ComponentTestIncludes;ComponentTestBuild;ComponentTestExec"/>
 
     <Target Name="Component"
             DependsOnTargets="CheckRevision;GetEnclosedComponentsObjects;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTest;BuildProductLicence"/>

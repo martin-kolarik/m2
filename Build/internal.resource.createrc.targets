@@ -91,7 +91,7 @@ LANGUAGE $(LangName), $(SubLangName)
         <!-- operate build numbers -->
         <PropertyGroup>
             <ProductVersionBuild Condition="$(ProductVersionBuild)==''">$(ProjectVersionBuild)</ProductVersionBuild>
-            <ProjectRevisionId>@(ProjectRevisionIds)</ProjectRevisionId>
+            <ProjectRevisionId>@(RevisionIds)</ProjectRevisionId>
         </PropertyGroup>
         <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;ProjectVersionBuild;ProjectRevisionId" Patches="$(ProductVersionBuild);$(ProjectVersionBuild);$(ProjectRevisionId)"><!-- patch property -->
             <Output TaskParameter="Value" PropertyName="RCFileContents"/>

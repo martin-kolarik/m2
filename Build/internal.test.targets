@@ -27,7 +27,7 @@
         <TestCPPFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp');m2init.cpp"/>
         <TestOBJFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).obj');m2init.obj"/>
 
-        <Components Condition="$(Test)=='on' And $(TestComponent)!='' And $(ComponentName)!=$(TestComponentName)"
+        <Components Condition="$(Test)=='on' And $(TestComponent)!='' And $(ComponentName)!=$(TestComponent)"
                     Include="$(TestComponent)"/>
     </ItemGroup>
 
@@ -48,6 +48,14 @@
     </Target>
 
     
+    <Target Name="ComponentTestMessage"
+           Condition="(@(TestDEFFiles)!='' or @(TestMODFiles)!='') And $(Test)!='off'">
+        <Message Importance="high" Text=" " />
+        <Message Condition="$(ComponentDefinitionsSource)==''" Importance="high" Text="Building tests (for no def file): $(MSBuildProjectName)" />
+        <Message Condition="$(ComponentDefinitionsSource)!=''" Importance="high" Text="Building tests (for $(ComponentDefinitionsSource)): $(MSBuildProjectName)" />
+    </Target>
+    
+    
     <Target Name="ComponentTestIncludes"
             DependsOnTargets="ComponentCPPs;TestCPPs">
         <!-- here CPPs are noted (and it is not left for automatic dependency by Object), because .h files from standalone .def files must be built too -->        
@@ -55,10 +63,10 @@
 
 
     <Target Name="ComponentTestBuild"
-        Condition="(@(TestDEFFiles)!='' or @(TestMODFiles)!='') And $(Test)!='off'"
-        DependsOnTargets="TestObjects"
-        Inputs="@(TestOBJFiles);@(LinkDependencyLibraries)"
-        Outputs="$(TestOutput)">
+            Condition="(@(TestDEFFiles)!='' or @(TestMODFiles)!='') And $(Test)!='off'"
+            DependsOnTargets="TestObjects"
+            Inputs="@(TestOBJFiles);@(LinkDependencyLibraries)"
+            Outputs="$(TestOutput)">
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="$(LINK) /dll $(LINKTEST) /out:..\$(TestOutput) @(Objects -> '%(Filename).obj', ' ') @(TestOBJFiles -> '%(Filename).obj', ' ') @(Libraries -> '%(Filename).lib', ' ') @(SelfInterface -> '%(Identity).lib')"/>
         <!-- LINK SelfInterface.lib is manually added as Libraries do not include self product -->
@@ -69,8 +77,8 @@
 
 
     <Target Name="ComponentTestExec"
-        Condition="$(Test)!='off' And $(TestExec)!='off'"
-        DependsOnTargets="ComponentTestBuild">
+            Condition="$(Test)!='off' And $(TestExec)!='off'"
+            DependsOnTargets="ComponentTestBuild">
         <Exec Condition="Exists('$(TestOutput)')" 
               WorkingDirectory="$(OutputDir)"
               Command="$(RUNTEST) $(MSBuildProjectName).test.dll"/>

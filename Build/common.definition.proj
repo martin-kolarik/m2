@@ -42,6 +42,9 @@
     <PropertyGroup Condition="$(LeakChecking)=='on' And $(ComponentName)==$(LeakDetectorComponent)">
         <Result>Dynamic</Result><!-- LeakDetector must always be dynamic (it uses DllMain heavily). -->
     </PropertyGroup>
+    <PropertyGroup Condition="$(Test)=='on' And $(ComponentName)==$(TestComponent)">
+        <Result>Dynamic</Result><!-- Test must always be dynamic. -->
+    </PropertyGroup>
     
     <!-- 2. constructed properties, DO NOT MODIFY -->
     <!-- meaning properties: -->

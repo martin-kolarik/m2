@@ -71,14 +71,25 @@
         <!-- Message Importance="high" Text="$(InheritedLevel) Grabbing: $(ComponentName)"/ -->
         <!-- Message Importance="high" Text="Definition self: $(SelfComponentDefinitionsPath) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="Definition inhr: $(InheritedComponentDefinitionsSource) for [$(ComponentName)]"/ -->
-        <!-- Message Importance="high" Text="Definition rslt: $(ComponentDefinitionsSource) for [$(ComponentName)]"/ -->
+        <Message Importance="high" Text="Definition rslt: $(ComponentDefinitionsSource) for [$(ComponentName)]"/>
         <!-- Message Importance="high" Text="  inh1: $(InheritedComponentDefinitionsPath) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="  inh2: $(Inherited2ComponentDefinitionsPath) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="  inh3: $(Inherited3ComponentDefinitionsPath) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="  inh4: $(Inherited4ComponentDefinitionsPath) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="@(GrabProcessFile)" / -->
         
-        <!-- Message Importance="high" Text="  $(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports), @(SelfInterface)" / -->
+        <Message Importance="high" Text="  $(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports), @(SelfInterface)" />
+        
+        <PropertyGroup>
+            <PublishAcrossDefinitions>off</PublishAcrossDefinitions>
+            <PublishAcrossDefinitions Condition="$(PublishExports)=='on' And ($(EncloseComponents)=='on' Or $(Shared)=='on')">on</PublishAcrossDefinitions>
+            
+            <!-- The union stands for enclosing components. Their childer are sensitive to GrabbingPublishExports (it is set), the component itself
+                 is sensitive to PublishExport (it is set and GrabbingPublishExports is not set). So to be able to peek source from definition
+                 to definition for the component itself (Test\Source) the union must be used. -->
+            <EnclosedExportedUnion>off</EnclosedExportedUnion>
+            <EnclosedExportedUnion Condition="$(PublishAcrossDefinitions)=='on' Or $(GrabbingPublishExports)=='on'">on</EnclosedExportedUnion>
+        </PropertyGroup>
         
         <ItemGroup>
             <!-- 1. add self to components -->
@@ -108,7 +119,7 @@
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Source</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
-                <EnclosedExported>$(GrabbingPublishExports)</EnclosedExported>
+                <EnclosedExported>$(EnclosedExportedUnion)</EnclosedExported>
             </Grabbed>
 
             <!-- 3a. H reference dynamically created -->
@@ -118,7 +129,7 @@
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Header</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
-                <EnclosedExported>$(GrabbingPublishExports)</EnclosedExported>
+                <EnclosedExported>$(EnclosedExportedUnion)</EnclosedExported>
             </Grabbed>
             <!-- 3b. H reference statically stated -->
             <Grabbed Condition="$(PropagateSources)=='on' And Exists('Header')"
@@ -127,7 +138,7 @@
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Header</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
-                <EnclosedExported>$(GrabbingPublishExports)</EnclosedExported>
+                <EnclosedExported>$(EnclosedExportedUnion)</EnclosedExported>
             </Grabbed>
 
             <!-- 4. add messages -->
@@ -159,7 +170,7 @@
             <!-- if GrabbingPublishExports is on then my owner publishes mine symbols so I must not add myself to the list of libraries to be linked with -->
             <!-- SelfInterface in condition prevents adding lib file for components having no output at the time -->
             <!-- Shared=on means I am not a component, which could be enclosed by anybody. I must offers mine interface always. -->
-            <Grabbed Condition="$(GrabbingPublishExports)!='on' And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
+            <Grabbed Condition="$(PublishAcrossDefinitions)!='on' And $(GrabbingPublishExports)!='on' And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
                      Include="@(SelfInterface -> '%(Identity).lib')">
                 <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
@@ -171,7 +182,7 @@
             <!-- EncloseComponent means that component offers childs, and therefore its iface must be offered. Shared means that component is standalone, not built under mine tree,
                  so it must be offered too. Otherwise I would not build. -->
             <!-- SelfInterface in condition prevents adding lib file for enclosing components not doing any enclosing at the time -->
-            <Grabbed Condition="$(PublishExports)=='on' And ($(EncloseComponents)=='on' Or $(Shared)=='on') And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
+            <Grabbed Condition="$(PublishAcrossDefinitions)=='on' And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
                      Include="@(SelfInterface -> '%(Identity).lib')">
                 <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
@@ -193,9 +204,9 @@
         <!-- Message Condition="$(GrabbingPublishExports)!='on' And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
                  Importance="high"
                  Text="  ++ @(SelfInterface)" / -->
-        <!-- Message Condition="True And '%(Grabbed.Definition)%(Grabbed.Type)'!='.'"
+        <Message Condition="True And '%(Grabbed.Definition)%(Grabbed.Type)'!='.'"
                  Importance="high"
-                 Text="##1 $(ComponentType)|$(ComponentName) [%(Grabbed.Definition)|%(Grabbed.Type)] @(Grabbed)"/ -->
+                 Text="##1 $(ComponentType)|$(ComponentName) [%(Grabbed.Definition)|%(Grabbed.Type)] @(Grabbed)"/>
         
         <!-- mark me as parsed as soon as I know it -->
         <MakeDir Condition="!Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
@@ -204,9 +215,9 @@
                           Lines="$(ComponentName)"/>
     </Target>
     
-    <!-- If the component is built from top, it must be allowed to go through its dependencies. Therefore there is test to CN=CDS (for components having def file),
-         test to CDS='' (for components not having def file) and finally test for PC='on' for using the component deeply in recursion -->
-    <Target Condition="($(PropagateComponents)=='on' Or $(ComponentDefinitionsSource)=='' Or $(ComponentName)==$(ComponentDefintionsSource)) And
+    <!-- If the component is built from top, it must be allowed to go through its dependencies. Therefore there is test to CDS=CN & ICDS=''
+         and test for PC='on' for components grabbed deeply in recursion -->
+    <Target Condition="($(PropagateComponents)=='on' Or ($(ComponentDefinitionsSource)==$(ComponentName) And $(InheritedComponentDefinitionsSource)=='')) And
                        (@(Components)!='' Or ($(ClientLicensing)=='on' And $(LicensingComponent)!=''))"
             Name="GrabComponentsRecursion"
             DependsOnTargets="DeleteGrabProcessFileIfAllowed;PrepareLibraryName"
@@ -266,15 +277,14 @@
 
         <!-- Message Importance="high"
                  Text="WW $(ComponentDefinitionsSource) VS $(InheritedComponentDefinitionsSource)" / -->
-        <!-- Message Condition="False And @(ComponentsToParse)!=''"
+        <Message Condition="True And @(ComponentsToParse)!=''"
                  Importance="high"
-                 Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )" / -->
+                 Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )" />
         
         <MSBuild Condition="@(ComponentsToParse)!=''"
                  Projects="@(ComponentsToParse -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Properties="$(ChildParameters);Grabbing=on;$(InheritedDefinitionsProperties);$(InheritedGrabbingProperties)"
-                 Targets="GrabComponentsRecursion;GrabComponent"
-                 UseResultsCache="false"><!-- first do childs to get proper build order -->
+                 Targets="GrabComponentsRecursion;GrabComponent"><!-- first do childs to get proper build order -->
             <Output TaskParameter="TargetOutputs" ItemName="GrabbedFromChilds"/>
         </MSBuild>
 
@@ -308,7 +318,7 @@
         </RemoveDuplicates>
     </Target>
     
-    <Target Name="DebugDisplayGrabbedComponent" Condition="off">
+    <Target Name="DebugDisplayGrabbedComponent" Condition="on">
         <Message Importance="high" Text="============================================================================"/>
         <Message Importance="high" Text="Project: $(MSBuildProjectName) -> @(Components)"/>
         <Message Importance="high" Text="----------------------------------------------------------------------------"/>
