@@ -160,13 +160,19 @@
     </PropertyGroup>
 
     <!-- build number -->
-    <Target Name="DoProductBuildNumberGet" Condition="$(ProductFlag)=='on'">
+    <Target Name="LoadRevisions">
         <HgVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource -> '$(RootDir)\%(Identity)')">
-            <Output TaskParameter="Revision" ItemName="ProductVersionBuilds"/>
+            <Output TaskParameter="Revision" ItemName="VersionBuilds"/>
             <Output TaskParameter="RevisionId" ItemName="RevisionIds"/>
         </HgVersion>
-        <Error Condition="@(RevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get product revision (check case of referenced project names)." />
-        <MinMax Input="@(ProductVersionBuilds)">
+        <Error Condition="@(RevisionIds)=='&lt;unversioned&gt;'"
+               Text="@(BuildVersionSource) is not versioned, unable to get product revision (check case of referenced project names)." />
+    </Target>
+    
+    <Target Name="DoProductBuildNumberGet"
+            Condition="$(ProductFlag)=='on'"
+            DependsOnTargets="LoadRevisions">
+        <MinMax Input="@(VersionBuilds)">
             <Output TaskParameter="Maximum" PropertyName="ProductVersionBuild"/>
         </MinMax>
         <PropertyGroup>
@@ -271,22 +277,20 @@
         <Exec Command="$(XRSBIN) @(MessagesDir, ' ')"/>
     </Target>
 
-    <Target Name="CheckRevision">
-        <HgVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource -> '$(RootDir)\%(Identity)')">
-            <Output TaskParameter="Revision" ItemName="ProjectVersionBuilds"/>
-            <Output TaskParameter="RevisionId" ItemName="ProjectRevisionIds"/>
-        </HgVersion>
-        <Error Condition="@(ProjectRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
-        <MinMax Input="@(ProjectVersionBuilds)">
+    <Target Name="CheckRevision"
+            DependsOnTargets="LoadRevisions">
+        <MinMax Input="@(VersionBuilds)">
             <Output TaskParameter="Maximum" PropertyName="ProjectVersionBuild"/>
             <Output TaskParameter="MaximumIndex" PropertyName="ProductVersionBuildIndex"/>
         </MinMax>
-        <Item Input="@(ProjectRevisionIds)" Index="$(ProductVersionBuildIndex)">
+        <Item Input="@(RevisionIds)" Index="$(ProductVersionBuildIndex)">
             <Output TaskParameter="Output" PropertyName="ProjectRevisionId"/>
         </Item>
-        <ReadLinesFromFile File="$(IntermediateDir\internal.lastRev" ContinueOnError="true">
+
+        <ReadLinesFromFile File="$(IntermediateDir)\internal.lastRev" ContinueOnError="true">
             <Output TaskParameter="Lines" PropertyName="LastRev"/>
         </ReadLinesFromFile>
+
         <Delete Condition="$(ProjectVersionBuild)!=$(LastRev)"
                 Files="$(RCFile)"/>
         <Delete Condition="$(ProjectVersionBuild)!=$(LastRev) And $(ClientLicensing)"
@@ -295,6 +299,11 @@
         <Delete Condition="$(ProjectVersionBuild)!=$(LastRev) And $(SetupLicensing)"
                 Files="$(ProductLicenceFile)"
                 ContinueOnError="true"/>
+
+        <WriteLinesToFile Condition="$(ProjectVersionBuild)!=$(LastRev)"
+                          File="$(IntermediateDir)\internal.lastRev"
+                          Lines="$(ProjectVersionBuild)"
+                          Overwrite="true"/>
     </Target>
 
     <Target Name="BuildResources"
@@ -304,12 +313,9 @@
             Outputs="@(RESFile)">
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="$(RC) $(RCDEF) /fo&quot;@(RESFile -> '%(Filename).res')&quot; ..\$(RCFile)"/>
-        <WriteLinesToFile File="$(IntermediateDir\internal.lastRev"
-                          Lines="$(ProjectVersionBuild)"
-                          Overwrite="true"/>
     </Target>
 
-    <Target Name="Resources" DependsOnTargets="MessagesBin;CheckRevision;CreateRCFileInput;BuildResources" />
+    <Target Name="Resources" DependsOnTargets="MessagesBin;CreateRCFileInput;BuildResources" />
 
 
     <Target Name="GetEnclosedComponentsObjects"
@@ -386,7 +392,7 @@
             DependsOnTargets="ComponentTestIncludes;ComponentTestBuild;ComponentTestExec"/>
 
     <Target Name="Component"
-            DependsOnTargets="GetEnclosedComponentsObjects;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTest;BuildProductLicence"/>
+            DependsOnTargets="CheckRevision;GetEnclosedComponentsObjects;ComponentCode;ComponentRuntimes;ComponentSign;ComponentTest;BuildProductLicence"/>
 
 
     <Target Name="CleanIfDefinitionsSourceHasChanged">
