@@ -371,6 +371,9 @@
             Project="$(BuildDependenciesFile)"/>
     
     <!-- The targets prevent aliving/loading of the file when new build is run anytime later. -->
+    <UsingTask TaskName="Microsoft.Build.Tasks.Move" 
+               AssemblyName="Microsoft.Build.Tasks.v4.0, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"/>
+
     <Target Name="CleanupDependenciesFile">
         <Delete Files="$(BuildDependenciesFile).lastbuild"/>
         <Move SourceFiles="$(BuildDependenciesFile)"

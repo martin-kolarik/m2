@@ -25,7 +25,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxcore;$(RootPath)\CWDriver\KnxNet_product"/>
+        <BuildVersionSource Include="Component\sccore;KNX\knxstack_knxnet;KNX\knxcore;CWDriver\KnxNet_product"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Component\sccore"/>

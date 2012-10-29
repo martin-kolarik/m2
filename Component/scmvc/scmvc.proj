@@ -17,7 +17,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Library;$(RootPath)\Modula2"/>
+        <BuildVersionSource Include="Library;Modula2"/>
 
         <Components Include="Library\HttpSrv;Library\MVC"/>
     </ItemGroup>

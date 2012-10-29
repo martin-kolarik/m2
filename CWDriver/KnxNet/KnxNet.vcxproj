@@ -65,7 +65,9 @@
     <None Include="Source\driver.mod" />
     <None Include="Source\export.def" />
     <None Include="Source\Texts.xrs" />
-    <None Include="KnxNet.definition.proj" />
+    <None Include="KnxNet.definition.proj">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="KnxNet.proj">
       <SubType>Designer</SubType>
     </None>

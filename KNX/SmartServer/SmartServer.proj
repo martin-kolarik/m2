@@ -23,7 +23,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\KNX\knxstack_knxnet;$(RootPath)\KNX\knxsvc;$(RootPath)\KNX\KnxSvcWeb;$(RootPath)\KNX\SmartServer"/>
+        <BuildVersionSource Include="Component\sccore;KNX\knxstack_knxnet;KNX\knxsvc;KNX\KnxSvcWeb;KNX\SmartServer"/>
 
         <Components Include="Licensing\LicTool;Tools\svcinst;Component\sccore;Component\scmvc;KNX\knxsvc;KNX\discover;KNX\checkcfg;KNX\busmon"/>
     </ItemGroup>

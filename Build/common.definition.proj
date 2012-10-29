@@ -148,7 +148,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <BuildVersionSource Condition="@(BuildVersionSource)==''" Include="$(ComponentPath)"/><!-- if some component uses version from another source, e.g. SCCore from Library, fill it -->
+        <BuildVersionSource Condition="@(BuildVersionSource)==''" Include="$(ComponentName)"/><!-- if some component uses version from another source, e.g. SCCore from Library, fill it -->
     </ItemGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->
