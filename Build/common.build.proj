@@ -136,16 +136,16 @@
     <Target Name="Environment">
         <Error Condition="@(Objects)!='' And $(ProjectDescription)==''"
                Text="Required 'ProjectDescription' property is not defined (project $(MSBuildProjectName))."
-               HelpKeyword ="ProjectDescription"/>
+               HelpKeyword="ProjectDescription"/>
         <Error Condition="@(EnclosedComponents)!='' And $(OriginalExport)!=''"
                Text="Both 'EnclosedComponents' and 'Export' keys are defined, this is not allowed. Select only one of them. (project $(MSBuildProjectName))."
-               HelpKeyword ="EnclosedComponents"/>
-        <Warning Condition="$(DefinitionsFileAllowed)=='off' And $(SelfDefinitionsFileExists)=='on'"
-                 Text="Definition file $(ComponentDefinitionsPath) will not be used, component type or owning component denies it."
-                 HelpKeyword ="ComponentType, *.definition.proj"/>
+               HelpKeyword="EnclosedComponents"/>
         <Error Condition="$(CPPExceptions)=='on' And $(CLib)=='Private'"
                Text="Private CLib does not support native CPP exceptions, switch native exceptions off or use Static or Dynamic CLib."
-               HelpKeyword ="CLib"/>
+               HelpKeyword="CLib"/>
+        <Error Condition="$(ComponentName)==$(LeakDetectorComponent) And $(Result)!='Dynamic'"
+               Text="LeakDetector must always be a DLL, it cannot be used as a Library"
+               HelpKeyword="LeakDetector"/>
     </Target>
 
 
@@ -432,7 +432,9 @@
     </Target>
     
     <Target Name="OnErrorHandler">
-        <Error Text="Build FAILED.%07" />
+        <!-- Cleanup -->
+        <CallTarget Targets="CleanupDependenciesFile"/>
+        <Message Importance="high" Text="Build FAILED.%07%07" />
     </Target>
     
     <!-- outer, visible targets -->
@@ -479,6 +481,9 @@
                  StopOnFirstFailure="true" >
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
+
+        <!-- Cleanup -->
+        <CallTarget Targets="CleanupDependenciesFile"/>
 
         <OnError ExecuteTargets="OnErrorHandler" />
     </Target>

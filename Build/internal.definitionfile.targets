@@ -1,14 +1,9 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <!-- The file handles loading of configuration depended on top-component definition. -->
 
-    <!-- 1. compute paths, if I am bundle, ignore self and respect definitions of sub projects (usually modules or products -->
+    <!-- 1. compute paths, respect definitions of sub projects (usually modules or products -->
     <PropertyGroup>
-        <!-- primarily use self definitions (bundle does not have defintions file)... -->
-        <SelfComponentDefinitionsPath Condition="$(DefinitionsFileAllowed)=='on'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
-    </PropertyGroup>
-
-    <!-- 2. create flags for build -->
-    <PropertyGroup>
+        <SelfComponentDefinitionsPath>$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
         <SelfDefinitionsFileExists>off</SelfDefinitionsFileExists>
         <SelfDefinitionsFileExists Condition="Exists('$(SelfComponentDefinitionsPath)')">on</SelfDefinitionsFileExists>
 
@@ -25,21 +20,13 @@
         <Inherited4DefinitionsFileExists Condition="Exists('$(Inherited4ComponentDefinitionsPath)')">on</Inherited4DefinitionsFileExists>
     </PropertyGroup>
 
-    <!-- 3. load mine definition file, the file sets component default, which can be later overwritten with some ancestor's one -->
+    <!-- 2. load mine definition file, the file sets component default, which can be later overwritten with some ancestor's one -->
     <Import Condition="$(SelfDefinitionsFileExists)=='on'" Project="$(SelfComponentDefinitionsPath)"/>
 
-    <!-- 4. load ancestor(s) definition file, it has always precedence -->
+    <!-- 3. load ancestor(s) definition file, it has always precedence -->
     <Import Condition="$(InheritedDefinitionsFileExists)=='on'" Project="$(InheritedComponentDefinitionsPath)"/>
     <Import Condition="$(Inherited2DefinitionsFileExists)=='on'" Project="$(Inherited2ComponentDefinitionsPath)"/>
     <Import Condition="$(Inherited3DefinitionsFileExists)=='on'" Project="$(Inherited3ComponentDefinitionsPath)"/>
     <Import Condition="$(Inherited4DefinitionsFileExists)=='on'" Project="$(Inherited4ComponentDefinitionsPath)"/>
 
-    <!-- 5. setup final variables -->
-    <PropertyGroup>
-        <ComponentDefinitionsSource Condition="$(SelfDefinitionsFileExists)=='on'">$(ComponentName)</ComponentDefinitionsSource>
-        <ComponentDefinitionsSource Condition="$(DefinitionsFileAllowed)=='off' And $(InheritedDefinitionsFileExists)=='on'">$(InheritedComponentDefinitionsSource)</ComponentDefinitionsSource>
-        <ComponentDefinitionsPath Condition="$(SelfDefinitionsFileExists)=='on'">$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
-        <ComponentDefinitionsPath Condition="$(DefinitionsFileAllowed)=='off' And $(InheritedDefinitionsFileExists)=='on'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
-    </PropertyGroup>
-    
 </Project>

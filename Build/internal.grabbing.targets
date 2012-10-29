@@ -4,9 +4,9 @@
     <PropertyGroup>
         <!-- recursive child parameters -->
         <Grabbing>off</Grabbing>
-        <GrabProcessFileName>GrabbedComponents.tmp</GrabProcessFileName>
+        <GrabProcessFileName>internal.grabbedComponents</GrabProcessFileName>
         <GrabProcessFile>$(ComponentPath)\$(IntermediateDirName)\$(GrabProcessFileName)</GrabProcessFile>
-        <GrabProcessFile Condition="$(DefinitionsFileAllowed)=='off' And $(GrabbingGrabProcessFile)!=''">$(GrabbingGrabProcessFile)</GrabProcessFile>
+        <GrabProcessFile Condition="$(Shared)=='off' And $(GrabbingGrabProcessFile)!=''">$(GrabbingGrabProcessFile)</GrabProcessFile>
     </PropertyGroup>
     
     <ItemGroup>
@@ -16,7 +16,7 @@
     <PropertyGroup>
         <!-- recursive dependencies parameters -->
         <SelfBuildDependenciesDir>$(ComponentPath)\$(OutputDirName)</SelfBuildDependenciesDir>
-        <SelfBuildDependenciesFile>$(SelfBuildDependenciesDir)\dependencies.targets</SelfBuildDependenciesFile>
+        <SelfBuildDependenciesFile>$(SelfBuildDependenciesDir)\internal.dependenciesTargets</SelfBuildDependenciesFile>
         <BuildDependenciesFile>$(SelfBuildDependenciesFile)</BuildDependenciesFile>
         <BuildDependenciesFile Condition="$(InheritedBuildDependenciesFile)!=''">$(InheritedBuildDependenciesFile)</BuildDependenciesFile>
     </PropertyGroup>
@@ -32,7 +32,7 @@
     
     <!-- in recursion, (new) grab file is created (old deleted) only for components allowing self definitions -->
     <Target Name="DeleteGrabProcessFileIfAllowed"
-            Condition="$(DefinitionsFileAllowed)=='on'">
+            Condition="$(Shared)=='on'">
         <Delete Files="@(GrabProcessFile)" ContinueOnError="true"/>
     </Target>
 
@@ -63,13 +63,22 @@
             Condition="$(PropagateSources)=='on' Or $(PropagateDeliverables)=='on'"
             Returns="@(Grabbed)">
         
+        <!-- optional error, now it is solved with adjusting component result in common.definition.proj -->
+        <!-- Error Condition="$(LeakChecking)=='on' And $(ComponentName)==$(LeakDetectorComponent) And $(Result)!='Dynamic'"
+               Text="LeakDetector must always be a DLL, it cannot be used as a Library"
+               HelpKeyword="LeakDetector"/ -->
+
         <!-- Message Importance="high" Text="$(InheritedLevel) Grabbing: $(ComponentName)"/ -->
-        <!-- Message Importance="high" Text="Definition self: $(SelfComponentDefinitionsSource) for [$(ComponentName)]"/ -->
+        <!-- Message Importance="high" Text="Definition self: $(SelfComponentDefinitionsPath) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="Definition inhr: $(InheritedComponentDefinitionsSource) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="Definition rslt: $(ComponentDefinitionsSource) for [$(ComponentName)]"/ -->
+        <!-- Message Importance="high" Text="  inh1: $(InheritedComponentDefinitionsPath) for [$(ComponentName)]"/ -->
+        <!-- Message Importance="high" Text="  inh2: $(Inherited2ComponentDefinitionsPath) for [$(ComponentName)]"/ -->
+        <!-- Message Importance="high" Text="  inh3: $(Inherited3ComponentDefinitionsPath) for [$(ComponentName)]"/ -->
+        <!-- Message Importance="high" Text="  inh4: $(Inherited4ComponentDefinitionsPath) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="@(GrabProcessFile)" / -->
         
-        <!-- Message Importance="high" Text="$(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports), @(SelfInterface)" / -->
+        <!-- Message Importance="high" Text="  $(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports), @(SelfInterface)" / -->
         
         <ItemGroup>
             <!-- 1. add self to components -->
@@ -99,6 +108,7 @@
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Source</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
+                <EnclosedExported>$(GrabbingPublishExports)</EnclosedExported>
             </Grabbed>
 
             <!-- 3a. H reference dynamically created -->
@@ -108,6 +118,7 @@
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Header</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
+                <EnclosedExported>$(GrabbingPublishExports)</EnclosedExported>
             </Grabbed>
             <!-- 3b. H reference statically stated -->
             <Grabbed Condition="$(PropagateSources)=='on' And Exists('Header')"
@@ -116,6 +127,7 @@
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Header</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
+                <EnclosedExported>$(GrabbingPublishExports)</EnclosedExported>
             </Grabbed>
 
             <!-- 4. add messages -->
@@ -145,13 +157,27 @@
             </Grabbed>
             <!-- 5c. my output LIB -->
             <!-- if GrabbingPublishExports is on then my owner publishes mine symbols so I must not add myself to the list of libraries to be linked with -->
-            <!-- SelfInterface in condition prevents adding lib file for enclosing components not doing any enclosing at the time -->
+            <!-- SelfInterface in condition prevents adding lib file for components having no output at the time -->
+            <!-- Shared=on means I am not a component, which could be enclosed by anybody. I must offers mine interface always. -->
             <Grabbed Condition="$(GrabbingPublishExports)!='on' And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
                      Include="@(SelfInterface -> '%(Identity).lib')">
                 <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Library</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
+            </Grabbed>
+            <!-- 5d. enclosing output LIB -->
+            <!-- enclosing output LIB must be added explicitely as for it GrabbingPublishExports has no sense (it is for children). At the same time, the LIB must be marked as EnclosedExported to be grabbable in ancestor. -->
+            <!-- EncloseComponent means that component offers childs, and therefore its iface must be offered. Shared means that component is standalone, not built under mine tree,
+                 so it must be offered too. Otherwise I would not build. -->
+            <!-- SelfInterface in condition prevents adding lib file for enclosing components not doing any enclosing at the time -->
+            <Grabbed Condition="$(PublishExports)=='on' And ($(EncloseComponents)=='on' Or $(Shared)=='on') And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
+                     Include="@(SelfInterface -> '%(Identity).lib')">
+                <OfComponent>$(ComponentName)</OfComponent>
+                <Definition>$(ComponentDefinitionsSource)</Definition>
+                <Type>Library</Type>
+                <LibraryName>$(LibraryNameToGrab)</LibraryName>
+                <EnclosedExported>on</EnclosedExported>
             </Grabbed>
 
             <!-- 6. components which are not built must offer their runtimes -->
@@ -164,9 +190,12 @@
             </Grabbed>
         </ItemGroup>
         
-        <Message Condition="False And '%(Grabbed.Definition)%(Grabbed.Type)'!='.'"
+        <!-- Message Condition="$(GrabbingPublishExports)!='on' And $(PropagateSources)=='on' And @(SelfInterface)!='' And $(Result)!='Program'"
                  Importance="high"
-                 Text="##1 $(ComponentType)|$(ComponentName) [%(Grabbed.Definition)|%(Grabbed.Type)] @(Grabbed)"/>
+                 Text="  ++ @(SelfInterface)" / -->
+        <!-- Message Condition="True And '%(Grabbed.Definition)%(Grabbed.Type)'!='.'"
+                 Importance="high"
+                 Text="##1 $(ComponentType)|$(ComponentName) [%(Grabbed.Definition)|%(Grabbed.Type)] @(Grabbed)"/ -->
         
         <!-- mark me as parsed as soon as I know it -->
         <MakeDir Condition="!Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
@@ -182,6 +211,7 @@
             Name="GrabComponentsRecursion"
             DependsOnTargets="DeleteGrabProcessFileIfAllowed;PrepareLibraryName"
             Returns="@(Grabbed)">
+
         <!-- prepare filter for already grabbed components -->
         <ReadLinesFromFile File="$(GrabProcessFile)">
             <Output TaskParameter="Lines" ItemName="ComponentsParsed"/>
@@ -205,9 +235,9 @@
         <ItemGroup Condition="@(ComponentsToParse)!=''">
             <DefinitionToDisplay Include="$(ComponentDefinitionsSource)"/>
         </ItemGroup>
-        <Message Condition="False And @(ComponentsToParse)!=''"
+        <!-- Message Condition="False And @(ComponentsToParse)!=''"
                  Importance="high"
-                 Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )"/>
+                 Text="@(DefinitionToDisplay -> '%(FileName)')($(ComponentName)[$(Shared)]) &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )"/ -->
 
         <!-- If definition changes, push it into the stack. Only 5 levels are allowed. -->
         <PropertyGroup Condition="$(ComponentDefinitionsSource)!=$(InheritedComponentDefinitionsSource)">
@@ -234,9 +264,11 @@
             <InheritedGrabbingProperties>GrabbingGrabProcessFile=$(GrabProcessFile);GrabbingLibraryName=$(LibraryNameToGrab);GrabbingPublishExports=$(PublishExportsValueToGrab)</InheritedGrabbingProperties>
         </PropertyGroup>
 
-        <Message Condition="False And @(ComponentsToParse)!=''"
+        <!-- Message Importance="high"
+                 Text="WW $(ComponentDefinitionsSource) VS $(InheritedComponentDefinitionsSource)" / -->
+        <!-- Message Condition="False And @(ComponentsToParse)!=''"
                  Importance="high"
-                 Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )"/>
+                 Text="@(DefinitionToDisplay -> '%(FileName)') &lt;- @(ComponentsToParse -> '%(FileName)', ' ' )" / -->
         
         <MSBuild Condition="@(ComponentsToParse)!=''"
                  Projects="@(ComponentsToParse -> '$(RootDir)\%(Identity)\%(Filename).proj')"
@@ -246,13 +278,26 @@
             <Output TaskParameter="TargetOutputs" ItemName="GrabbedFromChilds"/>
         </MSBuild>
 
-        <!-- 7. runtimes must be hierarchicaly grabbed to upper components (because they need runtimes of all nested components). -->
+        <!-- 7. runtimes must be hierarchicaly grabbed to upper components (because they need runtimes of all nested components).
+                The same is valid for DEF/H of enclosed components - they are grouped to DLL, but their DEF/H must still be available
+                for all ancestors. -->
         <ItemGroup>
             <GrabbedFromChilds Condition="%(GrabbedFromChilds.Type)=='Runtime'"
                                Include="@(GrabbedFromChilds)">
+                <OfComponent>%(GrabbedFromChilds.OfComponent)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Runtime</Type>
                 <LibraryName>$(LibraryNameToGrab)</LibraryName>
+            </GrabbedFromChilds>
+
+            <GrabbedFromChilds Condition="%(GrabbedFromChilds.EnclosedExported)=='on' And
+                                          (%(GrabbedFromChilds.Type)=='Source' Or %(GrabbedFromChilds.Type)=='Header' Or %(GrabbedFromChilds.Type)=='Library')"
+                               Include="@(GrabbedFromChilds)">
+                <OfComponent>%(GrabbedFromChilds.OfComponent)</OfComponent>
+                <Definition>$(ComponentDefinitionsSource)</Definition>
+                <Type>%(GrabbedFromChilds.Type)</Type>
+                <LibraryName>$(LibraryNameToGrab)</LibraryName>
+                <EnclosedExported>off</EnclosedExported><!-- not to offer mine components' directories to ancestor components -->
             </GrabbedFromChilds>
         </ItemGroup>
 
@@ -324,5 +369,12 @@
     
     <Import Condition="Exists('$(BuildDependenciesFile)')"
             Project="$(BuildDependenciesFile)"/>
+    
+    <!-- The targets prevent aliving/loading of the file when new build is run anytime later. -->
+    <Target Name="CleanupDependenciesFile">
+        <Delete Files="$(BuildDependenciesFile).lastbuild"/>
+        <Move SourceFiles="$(BuildDependenciesFile)"
+              DestinationFiles="$(BuildDependenciesFile).lastbuild"/>
+    </Target>
 
 </Project>

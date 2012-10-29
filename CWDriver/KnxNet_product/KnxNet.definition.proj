@@ -9,6 +9,10 @@
         <Result>Dynamic</Result>
     </PropertyGroup>
 
+    <PropertyGroup Condition="False And $(ComponentName)=='Component\sccore'">
+        <ComponentType>Deliverable</ComponentType>
+        <Result>Dynamic</Result>
+    </PropertyGroup>
     <PropertyGroup Condition="$(ComponentName)=='Component\sccore'">
         <Result>Static</Result>
     </PropertyGroup>
