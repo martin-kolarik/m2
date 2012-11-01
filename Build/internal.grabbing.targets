@@ -22,7 +22,7 @@
     </PropertyGroup>
     
     <Target Name="GrabDirectories"><!-- Duplicate to Directories task, it exists to avoid skipping Directories task as being already done -->
-        <MakeDir Directories="@(TemporaryDirectories)" />
+        <MakeDir Directories="@(TemporaryDirectories);$(OutputDir)" />
     </Target>
 
     <!-- out of recursion, (new) grab file is created always, because each component needs grab self dependencies -->
@@ -209,8 +209,8 @@
                  Text="##1 $(ComponentType)|$(ComponentName) [%(Grabbed.Definition)|%(Grabbed.Type)] @(Grabbed)"/>
         
         <!-- mark me as parsed as soon as I know it -->
-        <MakeDir Condition="!Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
-                 Directories="@(GrabProcessFile -> '%(RootDir)%(Directory)')" />
+        <!-- ?? MakeDir Condition="!Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
+                 Directories="@(GrabProcessFile -> '%(RootDir)%(Directory)')" / -->
         <WriteLinesToFile File="$(GrabProcessFile)"
                           Lines="$(ComponentName)"/>
     </Target>
@@ -236,8 +236,8 @@
             <InternalComponents Include="$(LeakDetectorComponent)" />
         </ItemGroup>
         <!-- ?? -->
-        <MakeDir Condition="@(InternalComponents)!='' And !Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
-                 Directories="@(GrabProcessFile -> '%(RootDir)%(Directory)')" />
+        <!-- ?? MakeDir Condition="@(InternalComponents)!='' And !Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
+                 Directories="@(GrabProcessFile -> '%(RootDir)%(Directory)')" / -->
         <WriteLinesToFile Condition="@(InternalComponents)!=''"
                           File="$(GrabProcessFile)"
                           Lines="$(ComponentName)"/>

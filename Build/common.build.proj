@@ -203,7 +203,7 @@
 
     <!-- start of pure build targets -->
     <Target Name="Directories">
-        <MakeDir Directories="@(TemporaryDirectories)" />
+        <MakeDir Directories="@(TemporaryDirectories);$(OutputDir)" />
     </Target>
 
 
