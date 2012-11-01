@@ -3,7 +3,6 @@
 
     <PropertyGroup>
         <Manufacturer Condition="$(InheritedManufacturer)!=''">$(InheritedManufacturer)</Manufacturer>
-        <PublishExports>on</PublishExports>
     </PropertyGroup>
 
     <PropertyGroup>

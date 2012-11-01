@@ -6,10 +6,6 @@
         <CLib>Static</CLib>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='SDAPClientCPPStandalone'">
-        <PublishExports>on</PublishExports>
-    </PropertyGroup>
-    
     <PropertyGroup>
         <ProductM2Control></ProductM2Control>
         <ProductCLControl></ProductCLControl>

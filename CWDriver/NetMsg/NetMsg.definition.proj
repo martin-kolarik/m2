@@ -12,7 +12,6 @@
     </PropertyGroup>
     <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
         <ComponentType>Generic</ComponentType>
-        <PublishExports>off</PublishExports>
     </PropertyGroup>
 
     <PropertyGroup>

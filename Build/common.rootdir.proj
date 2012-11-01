@@ -4,7 +4,7 @@
     <PropertyGroup>
         <ComponentDir></ComponentDir>
         <ComponentPath>$(MSBuildProjectDirectory)</ComponentPath>
-        <ComponentType Condition="$(ComponentType)==''">Generic</ComponentType><!-- Generic Library External Product Bundle -->
+        <ComponentType Condition="$(ComponentType)==''">Generic</ComponentType><!-- Generic Library SupportLibrary Deliverable Product Bundle -->
 
         <!-- RootDir>$(ComponentDir)\..\..</RootDir -->
         <RootDir Condition="$(RootDir)==''">..\..</RootDir>
@@ -13,7 +13,10 @@
         <RootBuildDir>$(RootDir)\Build</RootBuildDir>
         <RootBuildPath>$(RootPath)\Build</RootBuildPath>
 
-        <Level>0</Level>
+        <!-- the most important property: it allows using self symbolic name in projects without defining it somewhere!! -->
+        <ComponentName>$([MSBuild]::MakeRelative($(RootPath), $(ComponentPath)))</ComponentName>
+        
+        <ComponentRelativePath>$(RootDir)\$(ComponentName)</ComponentRelativePath>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(ComponentType)=='Product'">
@@ -21,10 +24,6 @@
 
         <ProductBuildPath>$(MSBuildProjectDirectory)</ProductBuildPath>
         <ProductBuildFile>$(ProductBuildPath)\$(MSBuildProjectName).proj</ProductBuildFile>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <ResultName Condition="$(ResultName)==''">$(MSBuildProjectName)</ResultName>
     </PropertyGroup>
 
 </Project>

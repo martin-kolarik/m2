@@ -212,8 +212,9 @@ CLASS IMPLEMENTATION CIntegerPtrMap;
 
    PUBLIC PROCEDURE CIntegerPtrMap.GetIterator() : TPIntegerPtrMapIterator;
    VAR
-      iterator : TPIntegerPtrMapIterator := NEW( CIntegerPtrMapIterator );
+      iterator : TPIntegerPtrMapIterator;
    BEGIN
+      iterator := NEW( CIntegerPtrMapIterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END CIntegerPtrMap.GetIterator;
@@ -428,8 +429,9 @@ CLASS IMPLEMENTATION CIntegerStringMap;
 
    PUBLIC PROCEDURE CIntegerStringMap.GetIterator() : TPIntegerStringMapIterator;
    VAR
-      iterator : TPIntegerStringMapIterator := NEW( CIntegerStringMapIterator );
+      iterator : TPIntegerStringMapIterator;
    BEGIN
+      iterator := NEW( CIntegerStringMapIterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END CIntegerStringMap.GetIterator;
@@ -635,8 +637,9 @@ CLASS IMPLEMENTATION CPtrPtrMap;
 
    PUBLIC PROCEDURE CPtrPtrMap.GetIterator() : TPPtrPtrMapIterator;
    VAR
-      iterator : TPPtrPtrMapIterator := NEW( CPtrPtrMapIterator );
+      iterator : TPPtrPtrMapIterator;
    BEGIN
+      iterator := NEW( CPtrPtrMapIterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END CPtrPtrMap.GetIterator;
@@ -843,8 +846,9 @@ CLASS IMPLEMENTATION CStringPtrMap;
 
    PUBLIC PROCEDURE CStringPtrMap.GetIterator() : TPStringPtrMapIterator;
    VAR
-      iterator : TPStringPtrMapIterator := NEW( CStringPtrMapIterator );
+      iterator : TPStringPtrMapIterator;
    BEGIN
+      iterator := NEW( CStringPtrMapIterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END CStringPtrMap.GetIterator;
@@ -1051,8 +1055,9 @@ CLASS IMPLEMENTATION CStringStringMap;
 
    PUBLIC PROCEDURE CStringStringMap.GetIterator() : TPStringStringMapIterator;
    VAR
-      iterator : TPStringStringMapIterator := NEW( CStringStringMapIterator );
+      iterator : TPStringStringMapIterator;
    BEGIN
+      iterator := NEW( CStringStringMapIterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END CStringStringMap.GetIterator;

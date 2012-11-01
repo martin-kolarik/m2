@@ -113,7 +113,7 @@ CLASS IMPLEMENTATION CAVLTree;
 
    PUBLIC VIRTUAL PROCEDURE colGetIterator( direction : collection.TDirection ) : collection.TPIterator;
    BEGIN
-      RETURN GetIterator( direction );
+      RETURN collection.TPIterator( GetIterator( direction ));
    END colGetIterator;
 
 (*---------------------------------------------------------------------------*)
@@ -596,8 +596,9 @@ CLASS IMPLEMENTATION CAVLTree;
 
    PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPAVLTreeIterator;
    VAR
-      iterator : TPAVLTreeIterator := NEW( CAVLTreeIterator );
+      iterator : POINTER TO CAVLTreeIterator;
    BEGIN
+      NEW( iterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;

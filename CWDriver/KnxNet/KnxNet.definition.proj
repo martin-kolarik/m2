@@ -1,6 +1,10 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='KnxNet' Or $(MSBuildProjectName)=='sccore'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='KnxNet'">
+        <Result>Dynamic</Result>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(ComponentName)=='Component\sccore'">
         <Result>Dynamic</Result>
     </PropertyGroup>
 
