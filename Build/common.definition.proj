@@ -38,14 +38,6 @@
     <!-- 1. handle definitions file in separate file for clarity -->
     <Import Project="internal.definitionfile.targets"/>
     
-    <!-- 1b. adjust internal components -->
-    <PropertyGroup Condition="$(LeakChecking)=='on' And $(ComponentName)==$(LeakDetectorComponent)">
-        <Result>Dynamic</Result><!-- LeakDetector must always be dynamic (it uses DllMain heavily). -->
-    </PropertyGroup>
-    <PropertyGroup Condition="$(Test)=='on' And $(ComponentName)==$(TestComponent)">
-        <Result>Dynamic</Result><!-- Test must always be dynamic. -->
-    </PropertyGroup>
-    
     <!-- 2. constructed properties, DO NOT MODIFY -->
     <!-- meaning properties: -->
     <!--   PropagateComponents = allows GrabRecursion to nest deeply, it looks for child components of grabbed components. Usually wanted, but e.g. LeakDetector in some configurations need not offer them -->
@@ -147,6 +139,7 @@
         <LicenceMachineId Condition="$(LicenceMachineId)==''">M</LicenceMachineId><!-- M = MAC, D = disc, MD = MAC + Disc -->
         <StackReservation Condition="$(StackReservation)==''">65536</StackReservation>
         <UACElevation Condition="$(UACElevation)==''">off</UACElevation>
+        <Test Condition="$(Test)=='' And $(ComponentName)==$(TestComponent)">off</Test><!-- do not refer test to test -->
         <Test Condition="$(Test)==''">on</Test>
     </PropertyGroup>
 
@@ -154,6 +147,14 @@
         <BuildVersionSource Condition="@(BuildVersionSource)==''" Include="$(ComponentName)"/><!-- if some component uses version from another source, e.g. SCCore from Library, fill it -->
     </ItemGroup>
 
+    <!-- 4b. adjust internal components -->
+    <PropertyGroup Condition="$(ComponentName)==$(LeakDetectorComponent)">
+        <Result>Dynamic</Result><!-- LeakDetector must always be dynamic (it uses DllMain heavily). -->
+    </PropertyGroup>
+    <PropertyGroup Condition="$(ComponentName)==$(TestComponent)">
+        <Result>Dynamic</Result><!-- Test must always be dynamic. -->
+    </PropertyGroup>
+    
     <!-- (constructed properties, DO NOT MODIFY) -->
     <PropertyGroup>
         <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductId)==''">off</ClientLicensing>

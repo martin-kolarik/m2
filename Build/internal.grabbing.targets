@@ -78,7 +78,7 @@
         <!-- Message Importance="high" Text="  inh4: $(Inherited4ComponentDefinitionsPath) for [$(ComponentName)]"/ -->
         <!-- Message Importance="high" Text="@(GrabProcessFile)" / -->
         
-        <Message Importance="high" Text="  $(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports), @(SelfInterface)" />
+        <Message Importance="high" Text="  $(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports), $(Result), $(ResultTest), $(ResultTestX), @(SelfInterface)" />
         
         <PropertyGroup>
             <PublishAcrossDefinitions>off</PublishAcrossDefinitions>
@@ -235,6 +235,12 @@
         <ItemGroup Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And @(Components)!=''">
             <InternalComponents Include="$(LeakDetectorComponent)" />
         </ItemGroup>
+        <!-- ?? -->
+        <MakeDir Condition="@(InternalComponents)!='' And !Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
+                 Directories="@(GrabProcessFile -> '%(RootDir)%(Directory)')" />
+        <WriteLinesToFile Condition="@(InternalComponents)!=''"
+                          File="$(GrabProcessFile)"
+                          Lines="$(ComponentName)"/>
 
         <!-- create new not-yet-grabbed components list -->
         <ItemGroup>
