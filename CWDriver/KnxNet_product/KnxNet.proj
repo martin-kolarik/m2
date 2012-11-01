@@ -27,7 +27,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="Component\sccore;KNX\knxstack_knxnet;KNX\knxcore;CWDriver\KnxNet;CWDriver\KnxNet_product"/>
+        <BuildVersionSource Include="Build;Component\sccore;KNX\knxstack_knxnet;KNX\knxcore;CWDriver\KnxNet;CWDriver\KnxNet_product"/>
 
         <Components Include="CWDriver\KnxNet;KNX\checkcfg;KNX\discover;Licensing\LicTool"/>
     </ItemGroup>

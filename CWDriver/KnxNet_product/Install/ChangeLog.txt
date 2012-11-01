@@ -1,4 +1,4 @@
-Version 1.0.1869 V1.0 31.10.2012 (without documentation)
+Version 1.0.1870 V1.0 31.10.2012 (without documentation)
 - CHG: KnxNet.dll (and all EXEs) is no more dependent on SCCore.dll. This avoids conflicts
        caused with multiple SCCore.dll versions loaded to the process
 - BUG: #277, assertion on collection changed during iterating resolved with earlier assigning

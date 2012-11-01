@@ -30,11 +30,6 @@
         <TestExec Condition="$(TestExec)==''">off</TestExec>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(ComponentType)=='Product'">
-        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(ProjectDisplayName)</ProductDisplayName>
-        <ProductDescription Condition="$(ProductDescription)==''">$(ProjectDescription)</ProductDescription>
-    </PropertyGroup>
-    
     <!-- 1. handle definitions file in separate file for clarity -->
     <Import Project="internal.definitionfile.targets"/>
     
@@ -153,6 +148,12 @@
     </PropertyGroup>
     <PropertyGroup Condition="$(ComponentName)==$(TestComponent)">
         <Result>Dynamic</Result><!-- Test must always be dynamic. -->
+    </PropertyGroup>
+    
+    <!-- (constructed properties, DO NOT MODIFY) -->
+    <PropertyGroup Condition="$(ProductFlag)=='on'">
+        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(ProjectDisplayName)</ProductDisplayName>
+        <ProductDescription Condition="$(ProductDescription)==''">$(ProjectDescription)</ProductDescription>
     </PropertyGroup>
     
     <!-- (constructed properties, DO NOT MODIFY) -->
