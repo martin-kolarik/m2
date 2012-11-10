@@ -37,7 +37,6 @@ CONST
    USER_LOGIN_SOURCE_PAGE = L"sourcePage";
    LANGUAGE = L"language";
    INVALID_LANGUAGE = -1;
-   CONTEXT = L"context";
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -193,7 +192,8 @@ CLASS IMPLEMENTATION CController;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
          Parameters.ElementAt( 1, OUT s, OUT value1 );
-         Request.ModelContainer^.GetStringOA( CONTEXT, OUT context );
+         s := mvc.pageTemplateViewDataStorageContextName();
+         Request.RequestContainer^.GetStringOA( OA( s.Length-1, s.Data ), OUT context );
          IF _Web^.SetValue( Request.RequestSource, nsimpl.AddContext( context, name ), value1 ) THEN
             RETURN mvc.crSuccess;
          ELSE
@@ -205,7 +205,8 @@ CLASS IMPLEMENTATION CController;
             RETURN mvc.crMissingParameter;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
-         Request.ModelContainer^.GetStringOA( CONTEXT, OUT context );
+         s := mvc.pageTemplateViewDataStorageContextName();
+         Request.RequestContainer^.GetStringOA( OA( s.Length-1, s.Data ), OUT context );
          IF NOT _Web^.GetValue( nsimpl.AddContext( context, name ), OUT value1 ) THEN
             RETURN mvc.crCallFailed;
          ELSIF RetVal <> NIL THEN
@@ -218,7 +219,8 @@ CLASS IMPLEMENTATION CController;
             RETURN mvc.crMissingParameter;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
-         Request.ModelContainer^.GetStringOA( CONTEXT, OUT context );
+         s := mvc.pageTemplateViewDataStorageContextName();
+         Request.RequestContainer^.GetStringOA( OA( s.Length-1, s.Data ), OUT context );
          IF NOT _Web^.GetWixValue( nsimpl.AddContext( context, name ), OUT value1 ) THEN
             RETURN mvc.crCallFailed;
          ELSIF RetVal <> NIL THEN
@@ -330,15 +332,6 @@ CLASS IMPLEMENTATION CController;
          END;
          RETURN mvc.crSuccess;
          
-      ELSIF FunctionName.Equals( mvc.pageTemplateViewChangeDataContextFunctionName()) THEN
-         IF Parameters.Count < 1 THEN
-            RETURN mvc.crMissingParameter;
-         END;
-         Parameters.ElementAt( 0, OUT s, OUT value1 );
-         Request.ModelContainer^.GetStringOA( CONTEXT, OUT context );
-         Request.ModelContainer^.AddStringOA( CONTEXT, nsimpl.AddContext( context, value1 ));
-         RETURN mvc.crSuccess;
-
       ELSE
          RETURN mvc.crUnknownFunction;
       END;
@@ -362,35 +355,45 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
+   PUBLIC VIRTUAL PROCEDURE InitializeRequestContainer( REF StorageContainer : mvc.IStorageContainer );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s := mvc.pageTemplateViewDataStorageContextName();
+      StorageContainer.AddStringOA( OA( s.Length-1, s.Data ), _Web^.DefaultDataContext );
+   END InitializeRequestContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE CleanupRequestContainer( REF StorageContainer : mvc.IStorageContainer );
+   BEGIN
+   END CleanupRequestContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF ModelContainer : mvc.IModelContainer );
    VAR
       contextFunction : StringsO.CString;
       version : StringsO.CString;
    BEGIN
-      Container.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
-      Container.AddFunctionHandlerOA( FN_SETV, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
+      ModelContainer.AddFunctionHandlerOA( FN_SETV, ADR( SELF ));
 
       version.FromOA( ProductVersion );
-      Container.AddStringOA( VERSION, version );
-
-      Container.AddStringOA( CONTEXT, _Web^.DefaultDataContext );
-      contextFunction := mvc.pageTemplateViewChangeDataContextFunctionName();
-      IF NOT contextFunction.Empty THEN
-         Container.AddFunctionHandlerOA( OA( contextFunction.Length-1, contextFunction.Data ), ADR( SELF ));
-      END;
+      ModelContainer.AddStringOA( VERSION, version );
    END InitializeModelContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : mvc.IContainer );
+   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF ModelContainer : mvc.IModelContainer );
    BEGIN
    END CleanupModelContainer;
 
@@ -419,7 +422,7 @@ CLASS IMPLEMENTATION CController;
          InvalidateUser( REF Request );
          role := KnxSvcWeb.roleGuest;
       END;
-      
+
       // process parameters not known to views' models
       IF uriParameters^.GetOA( LANGUAGE, OUT s ) THEN // override language
          SetOverriddenLanguage( Request, s );

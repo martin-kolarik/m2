@@ -245,7 +245,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
 END CPageTemplateView;
 
 // static
-PROCEDURE ChangeDataContextFunctionName() : StringsO.CString;
+PROCEDURE DataContextStorageName() : StringsO.CString;
 
 (*--------------------------------------------------------------------------------*)
 

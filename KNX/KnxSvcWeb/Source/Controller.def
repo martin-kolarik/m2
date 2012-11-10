@@ -46,8 +46,10 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PUBLIC VIRTUAL PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 
    // IController
-   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : mvc.IContainer );
-   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : mvc.IContainer );
+   PUBLIC VIRTUAL PROCEDURE InitializeRequestContainer( REF StorageContainer : mvc.IStorageContainer );
+   PUBLIC VIRTUAL PROCEDURE CleanupRequestContainer( REF StorageContainer : mvc.IStorageContainer );
+   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF ModelContainer : mvc.IModelContainer );
+   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF ModelContainer : mvc.IModelContainer );
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : mvc.IMvcRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
 
    // SELF
