@@ -63,6 +63,9 @@ TYPE
       cmdMasterVolumeUp,
       cmdMasterVolumeDown,
 
+      cmdMute,
+      cmdMuteQuery,
+
       cmdAudioInfoQuery,
 
       cmdHDMIOutput, // expects some HDMI output name, HDMI_OUTPUT_*
@@ -154,6 +157,9 @@ CLASS IMPLEMENTATION CNS;
       item := CreateNewItem( L"Master volume status", ns.ntValue, iovalue.vtInteger, PTR( cmdMasterVolumeQuery )); DataRoot^.AddChild( item );
       item := CreateNewItem( L"Master volume up", ns.ntValue, iovalue.vtBoolean, PTR( cmdMasterVolumeUp )); DataRoot^.AddChild( item );
       item := CreateNewItem( L"Master volume down", ns.ntValue, iovalue.vtBoolean, PTR( cmdMasterVolumeDown )); DataRoot^.AddChild( item );
+
+      item := CreateNewItem( L"Mute", ns.ntValue, iovalue.vtBoolean, PTR( cmdMute )); DataRoot^.AddChild( item );
+      item := CreateNewItem( L"Mute status", ns.ntValue, iovalue.vtBoolean, PTR( cmdMuteQuery )); DataRoot^.AddChild( item );
 
       item := CreateNewItem( L"Audio info", ns.ntValue, iovalue.vtString, PTR( cmdAudioInfoQuery )); DataRoot^.AddChild( item );
 
@@ -320,8 +326,20 @@ END CNS;
          request.FromOA( L"!1MVLDOWN" );
 
       //-----
+      | cmdMute :
+         request.FromOA( L"!1AMT0" );
+         IF value.Boolean THEN
+            request.AppendOA( L"1" );
+         ELSE
+            request.AppendOA( L"0" );
+         END;
+      //-----
+      | cmdMuteQuery :
+         request.FromOA( L"!1AMTQSTN" );
+
+      //-----
       | cmdAudioInfoQuery :
-         request.FromOA( L"!1IFAQSTN" );
+         request.FromOA( L"!1IVFQSTN" ); // request.FromOA( L"!1IFAQSTN" );
 
       //-----
       | cmdHDMIOutput :
@@ -475,7 +493,7 @@ END CNS;
          END;
          value.Integer := i;
 
-      ELSIF sCommand.EqualsOA( L"IFA" ) THEN
+      ELSIF sCommand.EqualsOA( L"IFV" ) THEN // IFA
          command := cmdAudioInfoQuery;
          response.Substring( 5, response.Length-1-5, OUT s );
          value.String := s;
@@ -496,6 +514,10 @@ END CNS;
          END;
          value.String := s;
 
+      ELSIF sCommand.EqualsOA( L"AMT" ) THEN
+         command := cmdMuteQuery;
+         value.Boolean := response[6] = L"1";
+
       ELSIF sCommand.EqualsOA( L"ZPW" ) THEN
          command := cmdZone2PowerQuery;
          value.Boolean := response[6] = L"1";
@@ -514,34 +536,6 @@ END CNS;
 
       RETURN TRUE;
    END DisassemblyCommand;
-
-(*---------------------------------------------------------------------------*)
-
-   PROCEDURE DisassemblyConnectResponse( CONST response : StringsO.IString; OUT authError, authRequired : BOOLEAN; OUT authKey : StringsO.IString ) : BOOLEAN;
-   VAR
-      sCommand : StringsO.CString;
-   BEGIN
-      // check basic properties
-      IF response.Length < 8 THEN
-         RETURN FALSE;
-      END;
-
-      // determine command
-      response.Substring( 0, 6, OUT sCommand );
-      sCommand.Capitalize();
-      IF NOT sCommand.EqualsOA( L"PJLINK" ) THEN
-         RETURN FALSE;
-      ELSIF response[7] = L"E" THEN // error
-         authError := TRUE;
-         RETURN TRUE;
-      END;
-
-      authError := FALSE;
-      authRequired := response[7] = L"1";
-      response.Substring( 9, -1, OUT authKey );
-
-      RETURN TRUE;
-   END DisassemblyConnectResponse;
 
 (*===========================================================================*)
 
@@ -1017,6 +1011,13 @@ CLASS IMPLEMENTATION CIO;
          DeviceCommunicator.Request( request );
       ELSE
          DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdMasterVolumeQuery packet" );
+      END;
+
+      IF AssemblyCommand( cmdMuteQuery, value, OUT request ) THEN
+         DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Request to send:", OA( request.Length-3, request.Data )); // trim trailing CRLF using -3 instead of -1
+         DeviceCommunicator.Request( request );
+      ELSE
+         DeviceCommunicator.Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Cannot assembly cmdMuteQuery packet" );
       END;
 
       IF AssemblyCommand( cmdAudioInfoQuery, value, OUT request ) THEN
