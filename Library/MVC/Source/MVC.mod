@@ -43,10 +43,9 @@ TYPE
 
 (*================================================================================*)
 
-CLASS CContainer IMPLEMENTS IContainer;
-   PRIVATE VAR
-      Models : maps.CStringPtrMap;
+CLASS CContainer IMPLEMENTS IModelContainer;
 
+   // IStorageContainer
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
 
@@ -54,15 +53,17 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // creates string in model
    PUBLIC VIRTUAL PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model
    PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
-   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
-
-   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
 
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
+
+   // IModelContainer
+   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
 
    PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
@@ -74,6 +75,11 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
    PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IMvcRequest; CONST ControllerURI : StringsO.IString );
+
+   // SELF
+   PRIVATE VAR
+      Models : maps.CStringMap;
+
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -217,37 +223,6 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
-   VAR
-      name : StringsO.CString;
-   BEGIN
-      name.FromOA( L"f." );
-      name.AppendOA( Name );
-      IF Models.Contains( name ) THEN
-         Models.Remove( name );
-      END;
-      Models.Add( name, PTR( Handler ), 0 );
-   END AddFunctionHandlerOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
-   VAR
-      d : PTR;
-      model : POINTER TO StringsO.CString;
-      name : StringsO.CString;
-   BEGIN
-      name.FromOA( L"v." );
-      name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model, OUT d ) THEN
-         NEW( model );
-         Models.Add( name, model, 0 );
-      END;
-      model^.Assign( Model );
-   END AddVariable;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    VAR
       d : PTR;
@@ -325,6 +300,20 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
+   VAR
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"f." );
+      name.AppendOA( Name );
+      IF Models.Contains( name ) THEN
+         Models.Remove( name );
+      END;
+      Models.Add( name, PTR( Handler ));
+   END AddFunctionHandlerOA;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
    VAR
       d : PTR;
@@ -339,6 +328,22 @@ CLASS IMPLEMENTATION CContainer;
       Handler := model;
       RETURN TRUE;
    END GetFunctionHandlerOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
+   VAR
+      model : POINTER TO StringsO.CString;
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"v." );
+      name.AppendOA( Name );
+      IF NOT Models.Get( name, OUT model ) THEN
+         NEW( model );
+         Models.Add( name, model );
+      END;
+      model^.Assign( Model );
+   END AddVariable;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -768,11 +773,9 @@ END CContainer;
 
 (*================================================================================*)
 
-CLASS CSynchronizedContainer IMPLEMENTS IContainer;
-   PRIVATE VAR
-      Container : CContainer;
-      Lock : Sync.RWLOCK;
+CLASS CSynchronizedContainer IMPLEMENTS IModelContainer;
 
+   // IStorageContainer
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
 
@@ -780,14 +783,16 @@ CLASS CSynchronizedContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // creates string in model
    PUBLIC VIRTUAL PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model
    PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
-   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
-
-   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
 
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
+
+   // IModelContainer
+   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
+
+   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IMvcRequest; MessageSource : TPMessageSource; language : Languages.TLanguage; CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
@@ -800,11 +805,17 @@ CLASS CSynchronizedContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
    PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IMvcRequest; CONST ControllerURI : StringsO.IString );
-   
+
+   // SELF   
+   PRIVATE VAR
+      Container : CContainer;
+      Lock : Sync.RWLOCK;
+
    PRIVATE PROCEDURE LockWrite() : BOOLEAN;
    PRIVATE PROCEDURE UnlockWrite();
    PRIVATE PROCEDURE LockRead() : BOOLEAN;
    PRIVATE PROCEDURE UnlockRead();
+
 END CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -873,26 +884,6 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
-   BEGIN
-      IF LockWrite() THEN
-         Container.AddFunctionHandlerOA( Name, Handler );
-         UnlockWrite();
-      END;
-   END AddFunctionHandlerOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
-   BEGIN
-      IF LockWrite() THEN
-         Container.AddVariable( Name, Model );
-         UnlockWrite();
-      END;
-   END AddVariable;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    VAR
       b : BOOLEAN := FALSE;
@@ -945,6 +936,16 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
+   BEGIN
+      IF LockWrite() THEN
+         Container.AddFunctionHandlerOA( Name, Handler );
+         UnlockWrite();
+      END;
+   END AddFunctionHandlerOA;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
    VAR
       b : BOOLEAN := FALSE;
@@ -955,6 +956,16 @@ CLASS IMPLEMENTATION CSynchronizedContainer;
       END;
       RETURN b;
    END GetFunctionHandlerOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
+   BEGIN
+      IF LockWrite() THEN
+         Container.AddVariable( Name, Model );
+         UnlockWrite();
+      END;
+   END AddVariable;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1101,7 +1112,8 @@ CLASS CMvcRequest IMPLEMENTS IMvcRequest;
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
       Language : Languages.TLanguage;
-      ModelContainer : TPContainer;
+      RequestContainer : TPStorageContainer;
+      ModelContainer : TPModelContainer;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
       URIParameters : lists.TPStringStringList; // URI parameters not known to MVC and thus not assigned to controller's container
@@ -1113,12 +1125,13 @@ CLASS CMvcRequest IMPLEMENTS IMvcRequest;
       _Connection : HttpConnection.TPHttpSrvConnection;
       _Session : HttpSrv.TPSession;
       _ControllerURI : StringsO.CString;
-      _Container : TPContainer;
+      _RequestContainer : CContainer;
+      _ModelContainer : TPModelContainer;
       _MessageSource : TPMessageSource;
       _Language : Languages.TLanguage;
       _URIParameters : lists.CStringStringList;
 
-   LOCAL PROCEDURE Init( CONST RequestURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer;  CONST MessageSource : TPMessageSource );
+   LOCAL PROCEDURE Init( CONST RequestURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPModelContainer;  CONST MessageSource : TPMessageSource );
    
 END CMvcRequest;
 
@@ -1193,9 +1206,16 @@ CLASS IMPLEMENTATION CMvcRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY ModelContainer GET : TPContainer;
+   PUBLIC VIRTUAL PROPERTY RequestContainer GET : TPStorageContainer;
    BEGIN
-      RETURN _Container;
+      RETURN ADR( _RequestContainer );
+   END RequestContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ModelContainer GET : TPModelContainer;
+   BEGIN
+      RETURN _ModelContainer;
    END ModelContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -1232,12 +1252,12 @@ CLASS IMPLEMENTATION CMvcRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( CONST ControllerURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer; CONST MessageSource : TPMessageSource );
+   LOCAL PROCEDURE Init( CONST ControllerURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST ModelContainer : TPModelContainer; CONST MessageSource : TPMessageSource );
    BEGIN
       _ControllerURI := ControllerURI;
       _Connection := Connection;
       _Session := Session;
-      _Container := Container;
+      _ModelContainer := ModelContainer;
       _MessageSource := MessageSource;
    END Init;
 
@@ -1246,9 +1266,11 @@ CLASS IMPLEMENTATION CMvcRequest;
 BEGIN
    _Connection := NIL;
    _Session := NIL;
-   _Container := NIL;
+   _ModelContainer := NIL;
    _MessageSource := NIL;
    _Language := -1;
+FINALLY
+   _RequestContainer.Dispose();
 END CMvcRequest;
 
 (*================================================================================*)
@@ -1267,16 +1289,18 @@ CLASS CMvcResponse IMPLEMENTS IMvcResponse;
 
    PUBLIC VIRTUAL READONLY PROPERTY
       ResponseHeaders : HttpCommon.TPHttpHeaders;
-      ModelContainer : TPContainer;
+      RequestContainer : TPStorageContainer;
+      ModelContainer : TPModelContainer;
       Session : HttpSrv.TPSession;
       
    // SELF
    PRIVATE VAR
       _Connection : HttpConnection.TPHttpSrvConnection;
       _Session : HttpSrv.TPSession;
-      _Container : TPContainer;
+      _RequestContainer : TPStorageContainer;
+      _ModelContainer : TPModelContainer;
 
-   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST RequestContainer : TPStorageContainer; CONST ModelContainer : TPModelContainer );
 
 END CMvcResponse;
 
@@ -1394,9 +1418,16 @@ CLASS IMPLEMENTATION CMvcResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY ModelContainer GET : TPContainer;
+   PUBLIC VIRTUAL PROPERTY RequestContainer GET : TPStorageContainer;
    BEGIN
-      RETURN _Container;
+      RETURN _RequestContainer;
+   END RequestContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ModelContainer GET : TPModelContainer;
+   BEGIN
+      RETURN _ModelContainer;
    END ModelContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -1408,11 +1439,12 @@ CLASS IMPLEMENTATION CMvcResponse;
       
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST RequestContainer : TPStorageContainer; CONST ModelContainer : TPModelContainer );
    BEGIN
       _Connection := Connection;
       _Session := Session;
-      _Container := Container;
+      _RequestContainer := RequestContainer;
+      _ModelContainer := ModelContainer;
    END Init;
 
 (*--------------------------------------------------------------------------------*)
@@ -1420,7 +1452,8 @@ CLASS IMPLEMENTATION CMvcResponse;
 BEGIN
    _Connection := NIL;
    _Session := NIL;
-   _Container := NIL;   
+   _RequestContainer := NIL;
+   _ModelContainer := NIL;
 END CMvcResponse;
 
 (*================================================================================*)
@@ -1592,6 +1625,9 @@ CLASS IMPLEMENTATION CMVC;
          ASSERTLOG( FALSE, L"Unknown HTTP verb when processing MVC request" );
       END;
 
+      // allow controller to initialize request with self data
+      controller^.InitializeRequestContainer( REF request.RequestContainer^ );
+
       // prepare request data
       request.Init( controllerURI, Connection, Session, container, ADR( SELF ));
       uriParameters := request.URIParameters;
@@ -1611,7 +1647,7 @@ CLASS IMPLEMENTATION CMVC;
       container^.ResetModelInViewNames( controllerURI );
       
       // prepare response data
-      response.Init( Connection, Session, container );
+      response.Init( Connection, Session, request.RequestContainer, container );
       buffer.Size := 16384; // initial size
       view := NIL;
       
@@ -1667,6 +1703,9 @@ CLASS IMPLEMENTATION CMVC;
 
          view^.Release();
       END;
+
+      // cleanup request
+      controller^.CleanupRequestContainer( REF request.RequestContainer^ );
    END ProcessRequest;
 
 //--------------------------------------------------------------------------------
@@ -2167,10 +2206,10 @@ END pageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE pageTemplateViewChangeDataContextFunctionName() : StringsO.CString; // helper for template view
+PROCEDURE pageTemplateViewDataStorageContextName() : StringsO.CString; // helper for template view
 BEGIN
-   RETURN View.ChangeDataContextFunctionName();
-END pageTemplateViewChangeDataContextFunctionName;
+   RETURN View.DataContextStorageName();
+END pageTemplateViewDataStorageContextName;
 
 (*================================================================================*)
 

@@ -1079,6 +1079,7 @@ CLASS IMPLEMENTATION HttpWorker;
       logger : Log.TPILogger := NIL;
       s : StringsO.CString;
       sOA : ARRAY [0..255] OF WCHAR;
+      start : datetime.TTime64;
    BEGIN
       IF ( _Session <> NIL ) AND _Session^.New THEN
          _Stream^.ResponseHeaders^.Add( HttpCommon.SetCookie, httptools.FormatSIDCookie( _Session^.SID, dt, _Session^.RootPath, s ));
@@ -1087,6 +1088,9 @@ CLASS IMPLEMENTATION HttpWorker;
       IF _Processor = NIL THEN
          ASSERTLOG( _Stream^.StatusCode <> HttpCommon.httpres_200 );
       ELSE
+         dt.SetNowUTC(); // catch the time of request processing start
+         start := datetime.GetHiResTicks();
+
          Connection.FromStream( _Stream );
          IF _Processor^.AllowedFor( ADR( Connection )) THEN
             _Processor^.ProcessRequest( ADR( Connection ), _Session );
@@ -1104,7 +1108,6 @@ CLASS IMPLEMENTATION HttpWorker;
          s.FromOA( sOA );
          s.AppendOA( L" - - [" );
 
-         dt.SetNowUTC();
          IF dt.ToLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), HTTP_COMMON_LOG_TIME_FORMAT, TRUE, TRUE, OUT sOA ) THEN
             s.AppendOA( sOA );
          END;
@@ -1138,6 +1141,10 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( L" " );
             s.AppendOA( sOA );
          END; // IF chunked
+
+         Strings.FromLONGREALExtW( datetime.HiResTicksToLRMS( datetime.GetHiResDifference( REF start )), -1, 1, FALSE, L".", OUT sOA );
+         s.AppendOA( L" " );
+         s.AppendOA( sOA );
 
          logger^.LogS( lcError, 0, LOG_HTTP, OA( s.Length-1, s.Data ));
       END;

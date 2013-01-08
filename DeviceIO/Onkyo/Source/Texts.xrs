@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <comment>CFG errors</comment>
+        <string name="_ConfigurationSectionMissing">
+            <item xml:space="preserve" lang="en-US">Section to load configuration of Onkyo is missing: </item>
+            <item xml:space="preserve" lang="cs-CZ">Sekce pro konfiguraci Onkyo chybí: </item>
+        </string>
+        <string name="_HostKeyMissing">
+            <item lang="en-US">&quot;host&quot; key (AV receiver) is missing</item>
+            <item lang="cs-CZ">Chybí parameter &quot;host&quot; (AV receiver)</item>
+        </string>
+        
+    </strings>
+</resources>

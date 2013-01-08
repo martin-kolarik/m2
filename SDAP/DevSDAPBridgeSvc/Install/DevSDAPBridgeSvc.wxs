@@ -48,6 +48,10 @@
                             <File Id="PJLink.DLL" Name="PJLink.dll" Source="PJLink.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             <ServiceControl Id="SVCControlPJLinkLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
+                        <Component Guid="9EAEF913-C8A7-4D49-A5D9-027DAC1E7889" Id="OnkyoLib">
+                            <File Id="Onkyo.DLL" Name="Onkyo.dll" Source="Onkyo.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlOnkyoLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
                         <Component Guid="E221959E-E8C4-412d-95A4-018C096D2A2F" Id="ToolSvcInst">
                             <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -77,6 +81,9 @@
                         </Component>
                         <Component Id="DefaultPJLinkCfg" Guid="A42B78AD-6C65-49E7-8843-5AE996B342F1">
                             <File Id="default.pjlink.cfg" Name="defaultp.cfg" LongName="default.pjlink.cfg" Source="default.pjlink.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Id="DefaultOnkyoCfg" Guid="1C563EC0-DFFB-4D4E-9740-9AA775949206">
+                            <File Id="default.onkyo.cfg" Name="defaulto.cfg" LongName="default.onkyo.cfg" Source="default.onkyo.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
                         <Component Id="DefaultCombinationCfg" Guid="E69A6EFC-FD99-4A88-96B7-65CEE31F7B64">
                             <File Id="default.combination.cfg" Name="defaultc.cfg" LongName="default.combination.cfg" Source="default.combination.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
@@ -129,6 +136,7 @@
             <ComponentRef Id="AirMotionLib" />
             <ComponentRef Id="IntegraLib" />
             <ComponentRef Id="PJLinkLib" />
+            <ComponentRef Id="OnkyoLib" />
             <ComponentRef Id="Licence" />
             <ComponentRef Id="ToolSvcInst" />
             <ComponentRef Id="Documentation" />
@@ -137,6 +145,7 @@
             <ComponentRef Id="DefaultAirmotionCfg" />
             <ComponentRef Id="DefaultIntegraCfg" />
             <ComponentRef Id="DefaultPJLinkCfg" />
+            <ComponentRef Id="DefaultOnkyoCfg" />
             <ComponentRef Id="DefaultCombinationCfg" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
