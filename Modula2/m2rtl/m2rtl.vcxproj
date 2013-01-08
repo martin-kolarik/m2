@@ -175,7 +175,9 @@
     <None Include="Test\TryThrowCatchSpeed.mod" />
     <None Include="Test\TSEH.mod" />
     <None Include="Test\TStringReplaceCharacters.mod" />
-    <None Include="m2rtl.proj" />
+    <None Include="m2rtl.proj">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Test\TTimeSpan.mod" />
     <None Include="Test\TTls.mod" />
   </ItemGroup>

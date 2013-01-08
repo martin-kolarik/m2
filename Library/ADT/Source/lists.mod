@@ -218,8 +218,9 @@ CLASS IMPLEMENTATION CIntegerList;
 
    PUBLIC PROCEDURE CIntegerList.GetIterator( Direction : collection.TDirection ) : TPIntegerListIterator;
    VAR
-      iterator : TPIntegerListIterator := NEW( CIntegerListIterator );
+      iterator : TPIntegerListIterator;
    BEGIN
+      iterator := NEW( CIntegerListIterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END CIntegerList.GetIterator;
@@ -458,8 +459,9 @@ CLASS IMPLEMENTATION CPtrList;
 
    PUBLIC PROCEDURE CPtrList.GetIterator( Direction : collection.TDirection ) : TPPtrListIterator;
    VAR
-      iterator : TPPtrListIterator := NEW( CPtrListIterator );
+      iterator : TPPtrListIterator;
    BEGIN
+      iterator := NEW( CPtrListIterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END CPtrList.GetIterator;
@@ -698,8 +700,9 @@ CLASS IMPLEMENTATION CStringList;
 
    PUBLIC PROCEDURE CStringList.GetIterator( Direction : collection.TDirection ) : TPStringListIterator;
    VAR
-      iterator : TPStringListIterator := NEW( CStringListIterator );
+      iterator : TPStringListIterator;
    BEGIN
+      iterator := NEW( CStringListIterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END CStringList.GetIterator;
@@ -937,8 +940,9 @@ CLASS IMPLEMENTATION CStringStringList;
 
    PUBLIC PROCEDURE CStringStringList.GetIterator( Direction : collection.TDirection ) : TPStringStringListIterator;
    VAR
-      iterator : TPStringStringListIterator := NEW( CStringStringListIterator );
+      iterator : TPStringStringListIterator;
    BEGIN
+      iterator := NEW( CStringStringListIterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END CStringStringList.GetIterator;
@@ -1372,8 +1376,9 @@ CLASS IMPLEMENTATION CBufferList;
 
    PUBLIC PROCEDURE CBufferList.GetIterator( Direction : collection.TDirection ) : TPBufferListIterator;
    VAR
-      iterator : TPBufferListIterator := NEW( CBufferListIterator );
+      iterator : TPBufferListIterator;
    BEGIN
+      iterator := NEW( CBufferListIterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END CBufferList.GetIterator;

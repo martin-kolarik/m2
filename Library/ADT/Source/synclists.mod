@@ -122,8 +122,9 @@ CLASS IMPLEMENTATION CPtrSyncList;
 
    PUBLIC PROCEDURE GetIterator() : TPPtrSyncListIterator;
    VAR
-      iterator : POINTER TO CPtrSyncListIterator := NEW( CPtrSyncListIterator );
+      iterator : POINTER TO CPtrSyncListIterator;
    BEGIN
+      iterator := NEW( CPtrSyncListIterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END GetIterator;

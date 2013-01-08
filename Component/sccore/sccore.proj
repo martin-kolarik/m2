@@ -17,7 +17,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Library;$(RootPath)\Modula2"/>
+        <BuildVersionSource Include="Library;Modula2"/>
 
         <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\Event;Library\COM;Library\Resources;Library\Registry;Library\Text;Library\LogConfig"/>
         <Components Include="Library\Ciphering;Library\Threading;Library\Network;Library\XML;Library\Service;Library\Plugin"/>

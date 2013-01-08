@@ -13,7 +13,7 @@
 
     <!-- 4 -->
     <ItemGroup>
-        <Interface Include="$(InterfaceNamePath)"/>
+        <Interface Include="..\$(InterfaceName)"/>
     </ItemGroup>
 
 </Project>

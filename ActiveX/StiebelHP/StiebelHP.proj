@@ -19,12 +19,10 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2"/>
-        <Components Include="API\clib">
-            <Parameters>Dynamic</Parameters>
-        </Components>
+        <Components Include="API\clib" />
         <Components Include="API\win32;Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\DeviceIO;:ibrary\Serial;Library\com"/>
-				<Definitions Include="TypeLib"/>
-				<!-- Modules Include="StiebelHP;StiebelHPsAx"/ -->
+                <Definitions Include="TypeLib"/>
+                <!-- Modules Include="StiebelHP;StiebelHPsAx"/ -->
         <Program Include="CmdLine"/>
         <!-- Messages Include="Texts"/ -->
     </ItemGroup>

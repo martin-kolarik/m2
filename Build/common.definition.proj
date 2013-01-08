@@ -14,11 +14,9 @@
     <PropertyGroup>
         <LicensingComponent>Licensing\Core</LicensingComponent>
 
-        <LeakDetectorComponentName>LeakDetector</LeakDetectorComponentName>
-        <LeakDetectorComponent>Debug\$(LeakDetectorComponentName)</LeakDetectorComponent>
+        <LeakDetectorComponent>Debug\LeakDetector</LeakDetectorComponent>
 
-        <TestComponentName>Test</TestComponentName>
-        <TestComponent>Debug\$(TestComponentName)</TestComponent>
+        <TestComponent>Debug\Test</TestComponent>
         <TestFactoryName>testfactory</TestFactoryName>
     </PropertyGroup>
 
@@ -32,72 +30,98 @@
         <TestExec Condition="$(TestExec)==''">off</TestExec>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(ComponentType)=='Product'">
-        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(ProjectDisplayName)</ProductDisplayName>
-        <ProductDescription Condition="$(ProductDescription)==''">$(ProjectDescription)</ProductDescription>
-    </PropertyGroup>
-
-    <!-- handle definitions file in separate file for clarity -->
+    <!-- 1. handle definitions file in separate file for clarity -->
     <Import Project="internal.definitionfile.targets"/>
-
-    <!-- (constructed properties, DO NOT MODIFY) -->
+    
+    <!-- 2. constructed properties, DO NOT MODIFY -->
+    <!-- meaning properties: -->
+    <!--   PropagateComponents = allows GrabRecursion to nest deeply, it looks for child components of grabbed components. Usually wanted, but e.g. LeakDetector in some configurations need not offer them -->
+    <!--   PropagateSources = component's DEF/H files will be available for descendant components -->
+    <!--   PropagateDeliverables = component's binaries will be available for descendant components -->
+    <!--   EncloseComponents = component XX is able to grab all childs YY and offer them as being XX -->
+    <!--   Shared = component is shared among others upper components, it build only once in dependency tree -->
     <Choose>
         <When Condition="$(ComponentType)=='Generic'">
             <PropertyGroup>
-                <ProductFlag>off</ProductFlag>
                 <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>on</PropagateBuild>
-                <DefinitionFileAllowed>off</DefinitionFileAllowed>
-                <RespectDeepFlag>on</RespectDeepFlag>
+                <PropagateSources>on</PropagateSources>
+                <PropagateDeliverables>off</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
+                <Shared>off</Shared>
+                <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Library'">
             <PropertyGroup>
-                <ProductFlag>off</ProductFlag>
                 <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>off</PropagateBuild>
-                <DefinitionFileAllowed>on</DefinitionFileAllowed>
-                <RespectDeepFlag>on</RespectDeepFlag>
+                <PropagateSources>on</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>on</EncloseComponents>
+                <Shared>off</Shared>
+                <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>
-        <When Condition="$(ComponentType)=='External'">
+        <When Condition="$(ComponentType)=='SupportLibrary'"><!--library intended to be independent, usually not a part of product, e.g. for debug purposes -->
             <PropertyGroup>
-                <ProductFlag>off</ProductFlag>
                 <PropagateComponents>off</PropagateComponents>
-                <PropagateBuild>off</PropagateBuild>
-                <DefinitionFileAllowed>on</DefinitionFileAllowed>
-                <RespectDeepFlag>off</RespectDeepFlag>
+                <PropagateSources>on</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
+                <Shared>on</Shared>
+                <ProductFlag>off</ProductFlag>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Deliverable'">
+            <PropertyGroup>
+                <PropagateComponents>on</PropagateComponents>
+                <PropagateSources>on</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>on</EncloseComponents>
+                <Shared>on</Shared>
+                <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Product'">
             <PropertyGroup>
-                <ProductFlag>on</ProductFlag>
                 <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>off</PropagateBuild>
-                <DefinitionFileAllowed>on</DefinitionFileAllowed>
-                <RespectDeepFlag>on</RespectDeepFlag>
+                <PropagateSources>off</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
+                <Shared>on</Shared>
+                <ProductFlag>on</ProductFlag>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Bundle'">
             <PropertyGroup>
-                <ProductFlag>on</ProductFlag>
                 <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>off</PropagateBuild>
-                <DefinitionFileAllowed>off</DefinitionFileAllowed>
-                <RespectDeepFlag>on</RespectDeepFlag>
+                <PropagateSources>off</PropagateSources>
+                <PropagateDeliverables>off</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
+                <Shared>on</Shared>
+                <ProductFlag>on</ProductFlag>
             </PropertyGroup>
         </When>
         <Otherwise>
             <PropertyGroup>
+                <PropagateComponents>off</PropagateComponents>
+                <PropagateSources>off</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
+                <Shared>off</Shared>
                 <ProductFlag>off</ProductFlag>
-                <PropagateComponents>on</PropagateComponents>
-                <PropagateBuild>on</PropagateBuild>
-                <DefinitionFileAllowed>off</DefinitionFileAllowed>
             </PropertyGroup>
         </Otherwise>
     </Choose>
 
-    <!-- default compilation control, CAN BE MODIFIED here as GLOBAL, or in product $(ComponentDefinitions) file -->
+    <!-- 3. setup final component sources variables -->
+    <PropertyGroup>
+        <ComponentDefinitionsSource Condition="$(Shared)=='on'">$(ComponentName)</ComponentDefinitionsSource>
+        <ComponentDefinitionsSource Condition="$(Shared)=='off' And $(InheritedDefinitionsFileExists)=='on'">$(InheritedComponentDefinitionsSource)</ComponentDefinitionsSource>
+        <ComponentDefinitionsPath Condition="$(SelfDefinitionsFileExists)=='on'">$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
+        <ComponentDefinitionsPath Condition="$(SelfDefinitionsFileExists)=='off' And $(InheritedDefinitionsFileExists)=='on'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
+    </PropertyGroup>
+    
+    <!-- 4. default compilation control, CAN BE MODIFIED here as GLOBAL, or in product $(ComponentDefinitions) file -->
     <PropertyGroup>
         <Platform Condition="$(Platform)==''">x86</Platform><!-- x86 x64 -->
         <Configuration Condition="$(Configuration)==''">Debug</Configuration><!-- Release Debug -->
@@ -106,20 +130,32 @@
         <CLib Condition="$(CLib)==''">Private</CLib><!-- Static Dynamic Private --><!-- Static = LIBC, Dynamic = MSVCRT, Private = CCppSupp -->
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
         <ResultSubsystem Condition="$(ResultSubsystem)==''">Console</ResultSubsystem><!-- Console GUI -->
-        <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
         <CPPExceptions Condition="$(CPPExceptions)==''">off</CPPExceptions>
-        <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
         <LicenceMachineId Condition="$(LicenceMachineId)==''">M</LicenceMachineId><!-- M = MAC, D = disc, MD = MAC + Disc -->
         <StackReservation Condition="$(StackReservation)==''">65536</StackReservation>
         <UACElevation Condition="$(UACElevation)==''">off</UACElevation>
-
+        <Test Condition="$(Test)=='' And $(ComponentName)==$(TestComponent)">off</Test><!-- do not refer test to test -->
         <Test Condition="$(Test)==''">on</Test>
     </PropertyGroup>
 
     <ItemGroup>
-        <BuildVersionSource Condition="@(BuildVersionSource)==''" Include="$(ComponentPath)"/><!-- if some component uses version from another source, e.g. SCCore from Library, fill it -->
+        <BuildVersionSource Condition="@(BuildVersionSource)==''" Include="$(ComponentName)"/><!-- if some component uses version from another source, e.g. SCCore from Library, fill it -->
     </ItemGroup>
 
+    <!-- 4b. adjust internal components -->
+    <PropertyGroup Condition="$(ComponentName)==$(LeakDetectorComponent)">
+        <Result>Dynamic</Result><!-- LeakDetector must always be dynamic (it uses DllMain heavily). -->
+    </PropertyGroup>
+    <PropertyGroup Condition="$(ComponentName)==$(TestComponent)">
+        <Result>Dynamic</Result><!-- Test must always be dynamic. -->
+    </PropertyGroup>
+    
+    <!-- (constructed properties, DO NOT MODIFY) -->
+    <PropertyGroup Condition="$(ProductFlag)=='on'">
+        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(ProjectDisplayName)</ProductDisplayName>
+        <ProductDescription Condition="$(ProductDescription)==''">$(ProjectDescription)</ProductDescription>
+    </PropertyGroup>
+    
     <!-- (constructed properties, DO NOT MODIFY) -->
     <PropertyGroup>
         <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductId)==''">off</ClientLicensing>
@@ -129,7 +165,7 @@
         <SetupLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</SetupLicensing>
 
         <PublishExports Condition="$(PublishExports)=='' And $(Result)=='Dynamic'">on</PublishExports>
-        <PublishExports Condition="$(PublishExports)=='' And $(Result)!='Dynamic'">off</PublishExports>
+        <PublishExports Condition="$(PublishExports)==''">off</PublishExports>
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->

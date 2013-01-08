@@ -14,8 +14,11 @@ note = $(ProductNote)</ProductLicenceFileContents>
 
     <UsingTask TaskName="Patch" AssemblyFile="$(BuildTask)"/>
     <Target Name="CreateProductLicenceFile"
-            Inputs="$(RCFile);$(ProductBuildFile)"
+            Inputs="$(IntermediateDir)\internal.buildRevision;$(ProductBuildFile)"
             Outputs="$(ProductLicenceFile)">
+        
+        <!-- Message Importance="high" Text="#-$(ProductVersionBuild)-#" / -->
+        
         <Patch Value="$(ProductLicenceFileContents)" Keys="ProductVersionBuild" Patches="$(ProductVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductLicenceFileContents"/>
         </Patch>

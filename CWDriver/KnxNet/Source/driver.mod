@@ -171,6 +171,7 @@ CLASS CEIBDriver( knxcore.CKNXServer ) IMPLEMENTS diface.ICWDriver, knxcore.IKNX
    CallbackProc             : drv_def.TDriverCallbackW;
    ClientName               : ARRAY [0..63] OF WCHAR;
    LogAppenders             : lists.CPtrList;
+   oobCache                 : lists.CBufferList;
    oobIterator              : lists.CBufferListIterator;
 
    LicenceResult            : lec.CResult;
@@ -561,18 +562,29 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
    BEGIN
-      QueueLock.Lock();
-      IF ( CARDINAL( EnumerateState ) >= oobData.Count ) OR LicenceResult.Counted OR LicenceResult.Expired THEN
+      IF CARDINAL( EnumerateState ) >= oobCache.Count THEN
          EXCL( RStatus, knxcore.rsProcessingOOB );
+         oobCache.Dispose();
+         RETURN FALSE;
+
+      ELSIF LicenceResult.Counted OR LicenceResult.Expired THEN
+         EXCL( RStatus, knxcore.rsProcessingOOB );
+         QueueLock.Lock();
          oobData.Dispose();
+         oobCache.Dispose();
          QueueLock.Unlock();
          RETURN FALSE;
+
       ELSIF knxcore.rsProcessingOOB NOT IN RStatus THEN
          INCL( RStatus, knxcore.rsProcessingOOB );
-         oobIterator.Init( oobData, collection.dirForward );
+
+         QueueLock.Lock();
+         oobCache.AppendList( REF oobData );
+         QueueLock.Unlock();
+
+         oobIterator.Init( oobCache, collection.dirForward );
       END;
       oobIterator.MoveNext();
-      QueueLock.Unlock();
 
       DriverIndex := knxcore.TPObject( oobIterator.Data )^.LogNumber();
       EnumerateState := CARDINAL( EnumerateState ) + 1;
@@ -604,7 +616,7 @@ CLASS IMPLEMENTATION CEIBDriver;
                INCL( Status, schiInputQueueOverflow );
             END;
          ELSE
-            IF oobData.Count >= InputQueueLength THEN
+            IF oobData.Count + oobCache.Count >= InputQueueLength THEN
                INCL( Status, schiInputQueueOverflow );
             END;
          END;
@@ -632,7 +644,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          ErrorCode := drv_def.ecSuccess;
 
          QueueLock.Lock();
-         InValue.Integer := oobData.Count;
+         InValue.Integer := oobData.Count + oobCache.Count;
          QueueLock.Unlock();
 
       ELSIF DriverIndex = OutputQueueLengthChannel THEN
@@ -1032,8 +1044,8 @@ CLASS IMPLEMENTATION CEIBDriver;
       | OP_DISPOSE :
          LogConfig.DisposeAppenderList( REF LogAppenders );
 
+         EventSinks.Unsubscribe( ADR( SELF ));
          SUPER.Dispose();
-         CEIBDriver.FINALLY();
 
       //-----         
       END;
@@ -1084,6 +1096,9 @@ CLASS IMPLEMENTATION CEIBDriver;
       IF PromiscuousQueue THEN
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
       ELSIF OOBQueue THEN
+         
+         // copy the queue to own queue to allow source queue filling independently on dequeueing
+
          CallbackProc( CallbackId, drv_def.dcfOOBDataAdvise, NIL );
       END;
    END OnInputQueueAdd;
@@ -1130,6 +1145,7 @@ BEGIN
 
    Result := ADR( LicenceResult );
    EventSinks.Subscribe( ADR( IKNXServerSink ));
+   oobCache.ItemType := lists.blitSlot32;
    
    StatusChannel := MAX( CARDINAL );
    WatchDogChannel := MAX( CARDINAL );
@@ -1138,10 +1154,6 @@ BEGIN
    WriteQueueLengthChannel := MAX( CARDINAL );
 
    WatchDogLeft := MAX( CARDINAL );
-
-FINALLY
-   EventSinks.Unsubscribe( ADR( SELF ));
-
 END CEIBDriver;
 
 (*================================================================================*)

@@ -1,10 +1,6 @@
 <Project
     xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
 
-    <PropertyGroup>
-        <Test>off</Test><!-- not to compile self -->
-    </PropertyGroup>
-
     <PropertyGroup Condition="$(MSBuildProjectName)=='SCCore'">
         <ComponentType>Generic</ComponentType>
     </PropertyGroup>

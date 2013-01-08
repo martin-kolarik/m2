@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CArray;
 
    PUBLIC VIRTUAL PROCEDURE colGetIterator( direction : collection.TDirection ) : collection.TPIterator;
    BEGIN
-      RETURN GetIterator( direction );
+      RETURN collection.TPIterator( GetIterator( direction ));
    END colGetIterator;
 
 (*---------------------------------------------------------------------------*)
@@ -240,8 +240,9 @@ CLASS IMPLEMENTATION CArray;
 
    PUBLIC PROCEDURE GetIterator( Direction : collection.TDirection ) : TPArrayIterator;
    VAR
-      iterator : TPArrayIterator := NEW( CArrayIterator );
+      iterator : POINTER TO CArrayIterator;
    BEGIN
+      NEW( iterator );
       iterator^.Init( SELF, Direction );
       RETURN iterator;
    END GetIterator;

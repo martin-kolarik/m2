@@ -647,8 +647,9 @@ CLASS IMPLEMENTATION CINETADDRPtrMap;
 
    PUBLIC PROCEDURE CINETADDRPtrMap.GetIterator() : TPINETADDRPtrMapIterator;
    VAR
-      iterator : TPINETADDRPtrMapIterator := NEW( CINETADDRPtrMapIterator );
+      iterator : POINTER TO CINETADDRPtrMapIterator;
    BEGIN
+      NEW( iterator );
       iterator^.Init( SELF, collection.dirForward );
       RETURN iterator;
    END CINETADDRPtrMap.GetIterator;

@@ -9,8 +9,8 @@
 
         <CL>&quot;$(CompilerBin)\cl&quot; /nologo /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
         <LINK>&quot;$(CompilerBin)\link&quot; /nologo /map /nodefaultlib</LINK>
-        <LIB>&quot;$(CompilerBin)\lib&quot; /nodefaultlib</LIB>
-        <RC>&quot;$(SDKBin)\rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
+        <LIB>&quot;$(CompilerBin)\lib&quot; /nologo /nodefaultlib</LIB>
+        <RC>&quot;$(SDKBin)\rc&quot; /nologo -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
 
         <MT>&quot;$(SDKBin)\mt&quot; -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
         <MTT>&quot;$(SDKBin)\mt&quot; -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
@@ -24,7 +24,6 @@
         <LICSRC Condition="$(ClientLicensingType)=='Plugin'">&quot;$(RootBuildPath)\Bin\licbuild&quot; -Mp</LICSRC>
         <LICSIGN>&quot;$(RootBuildPath)\Bin\licbuild&quot; -S</LICSIGN>
         <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
-        <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
         <RUNTEST>&quot;$(RootBuildPath)\Bin\runtest&quot; -F</RUNTEST>
         
         <!-- M2PROD takes here self initial value -->
@@ -89,35 +88,40 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <M2CTRL Condition ="$(PublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
-        <M2CTRL Condition ="$(PublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
-        <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(LibraryName) -LD</M2TESTCTRL>
-        <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(LibraryName)_test -LD</M2TESTCTRL>
+        <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(CompileLibraryName) -LD</M2TESTCTRL>
+        <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(CompileLibraryName)_test -LD</M2TESTCTRL>
+        <M2CTRL Condition ="$(CompilePublishExports)=='on'">$(M2CTRL) -LN$(CompileLibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(CompilePublishExports)!='on'">$(M2CTRL) -LN$(CompileLibraryName)</M2CTRL>
     </PropertyGroup>
 
     <!-- INPUTS -->
+    <Target Name="SplitComponentsForTools">
+        <ItemGroup>
+            <M2INPUTS Condition="%(Source.Definition)==$(ComponentDefinitionsSource)"
+                      Include="@(Source -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')" />
+            <CLINPUTS Condition="%(Header.Definition)==$(ComponentDefinitionsSource)"
+                      Include="@(Header -> '-I&quot;$(RootDir)\..\%(Identity)&quot;')" />
+            <LINKINPUTLIBS Condition="%(Library.Definition)==$(ComponentDefinitionsSource)"
+                        Include="@(Library -> '%(Identity)')"
+                        Exclude="@(SelfInterface -> '%(Identity).lib')" /><!-- if linking, self lib cannot be used as source for objs, self is just going to be created -->
+            <GrabbedMessages Condition="%(Message.Definition)==$(ComponentDefinitionsSource) And %(Message.LibraryName)==$(CompileLibraryName)"
+                             Include="@(Message)" />
+        </ItemGroup>
+    </Target>
+
     <PropertyGroup>
-        <M2INPUTS>@(GrabbedSources -> '-I&quot;..\%(Identity)\$(SourceDir)&quot;', ' ')</M2INPUTS>
-        <CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS>
-        <CLINPUTS>$(CLINPUTS) @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</CLINPUTS>
-        <CLINPUTS>$(CLINPUTS) @(GrabbedHeaders -> '-I&quot;..\%(Identity)\Header&quot;', ' ')</CLINPUTS>
-        <CLINPUTS>$(CLINPUTS) -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</CLINPUTS>
-        <RCINPUTS>-I&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
-        <RCINPUTS>$(RCINPUTS) -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</RCINPUTS>
-        <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot; /LIBPATH:&quot;$(CompilerLib)&quot;</LINKCTRL>
+        <M2INPUTS>@(M2INPUTS, ' ')</M2INPUTS>
+        <CLINPUTS>@(CLINPUTS, ' ') -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</CLINPUTS>
+        <RCINPUTS>-I&quot;..\$(ResourceDir)&quot;</RCINPUTS>
+        <RCINPUTS>$(RCINPUTS) @(CLINPUTS, ' ') -I&quot;$(SDKInclude)&quot; -I&quot;$(CompilerInclude)&quot;</RCINPUTS>
+        <LINKCTRL>$(LINKCTRL) /LIBPATH:&quot;$(SDKLib)&quot; /LIBPATH:&quot;$(CompilerLib)&quot; @(LINKINPUTLIBS, ' ')</LINKCTRL>
     </PropertyGroup>
 
     <!-- OUTPUT -->
     <PropertyGroup>
         <BUILDOUTPUT>/out:..\$(OutputFile)</BUILDOUTPUT>
-        <LIBEXPORT Condition="$(Export)!=''">/def:..\$(SourceDir)\$(Export).def</LIBEXPORT>
-    </PropertyGroup>
-
-    <PropertyGroup Condition ="$(ProductLinkMapFilePath)==''">
-        <ProductLinkMapFilePath>$(ProductBuildPath)\Base.map</ProductLinkMapFilePath>
-    </PropertyGroup> 
-    <PropertyGroup Condition ="Exists('$(ProductLinkMapFilePath)')">
-        <LINKBASE>/base:@$(ProductLinkMapFilePath),$(MSBuildProjectName)</LINKBASE>
+        <ExportPath Condition="$(Export)!=''">$(SourceDir)\$(Export).def</ExportPath>
+        <LIBEXPORT Condition="$(ExportPath)!=''">/def:&quot;..\$(ExportPath)&quot;</LIBEXPORT>
     </PropertyGroup>
 
     <!-- LANGUAGES -->
@@ -151,7 +155,7 @@
         <M2TESTDEF>$(M2TESTCTRL) $(M2LANG) $(M2INPUTS)</M2TESTDEF>
         <CLDEF>$(CLCTRL) $(CLLANG) $(CLINPUTS)</CLDEF>
         <RCDEF>$(RCCTRL) $(RCLANG) $(RCINPUTS)</RCDEF>
-        <LINKDEF>$(LINKCTRL) $(BUILDOUTPUT) $(LINKBASE)</LINKDEF>
+        <LINKDEF>$(LINKCTRL) $(BUILDOUTPUT)</LINKDEF>
         <LINKTEST>$(LINKCTRL)</LINKTEST>
         <LIBDEF>$(LIBDEF) $(BUILDOUTPUT)</LIBDEF>
     </PropertyGroup>

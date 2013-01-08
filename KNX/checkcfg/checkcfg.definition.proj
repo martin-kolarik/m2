@@ -5,6 +5,10 @@
         <Result>Program</Result>
     </PropertyGroup>
 
+    <PropertyGroup Condition="$(MSBuildProjectName)=='xsccore'">
+        <Result>Static</Result>
+    </PropertyGroup>
+
     <PropertyGroup>
         <ProductM2Control></ProductM2Control>
         <ProductCLControl></ProductCLControl>
