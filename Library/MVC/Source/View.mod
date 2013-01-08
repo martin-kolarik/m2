@@ -529,7 +529,7 @@ CONST
       PT_SOURCE = L"source";
    PT_CONTEXT = L"context";
 
-   DATA_CONTEXT_CHANGE_FUNCTION = L"changeDataContext";
+   DATA_CONTEXT_STORAGE_NAME = L"i.context";
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1821,26 +1821,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE ParseContext( isEmpty : BOOLEAN ) : BOOLEAN;
    VAR
-      functionHandler : MVC.TPFunctionHandler;
-      parameterList : lists.CStringStringList;
       source : StringsO.CString;
    BEGIN
-      IF NOT Request^.ModelContainer^.GetFunctionHandlerOA( DATA_CONTEXT_CHANGE_FUNCTION, OUT functionHandler ) THEN
-         source.FromOA( L"(pt:)context" );
-         SetError( source, NIL, L"'pt:context' support is missing." );
-         RETURN FALSE;
-      END;
-
-      IF isEmpty THEN
-         parameterList.Add( StringsO.Empty(), StringsO.Empty() );
-      ELSIF LoadTextContents( OUT source ) THEN
-         parameterList.Add( StringsO.Empty(), source );
-
+      IF isEmpty OR LoadTextContents( OUT source ) THEN
+         Request^.RequestContainer^.AddStringOA( DATA_CONTEXT_STORAGE_NAME, source );
+         RETURN TRUE;
       ELSE
          RETURN FALSE;
       END;
-
-      RETURN functionHandler^.Call( Request^, ChangeDataContextFunctionName(), REF parameterList, NIL ) IN MVC.crsCalled;
    END ParseContext;
 
 (*--------------------------------------------------------------------------------*)
@@ -2207,10 +2195,10 @@ END CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE ChangeDataContextFunctionName() : StringsO.CString;
+PROCEDURE DataContextStorageName() : StringsO.CString;
 BEGIN
-   RETURN StringsO.FromOA( DATA_CONTEXT_CHANGE_FUNCTION );
-END ChangeDataContextFunctionName;
+   RETURN StringsO.FromOA( DATA_CONTEXT_STORAGE_NAME );
+END DataContextStorageName;
 
 (*================================================================================*)
 

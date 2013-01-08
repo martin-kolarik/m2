@@ -1,3 +1,9 @@
+Version 2.0.1846/beta 10.11.2012
+- BUG: #278, functions called using URI took very long time and can caused server
+       crash. Server process consumed all CPU.
+- ISS: Routing mode requires disabling firewall.
+- ISS: Installer sometimes does not uninstall the product.
+
 Version 2.0.1807/beta 29.4.2012
 - BUG: #271, installation contained obsolete parts
 - NEW: #270, pt.xml files can use <pt:context> tag for changing default data context

@@ -34,8 +34,8 @@ END CTest;
 (*---------------------------------------------------------------------------*)
 
 CLASS CController IMPLEMENTS MVC.IController;
-   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : MVC.IContainer );
-   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : MVC.IContainer );
+   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : MVC.IModelContainer );
+   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : MVC.IModelContainer );
 
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; REF Request : MVC.IMvcRequest; OUT View : MVC.TPView ) : BOOLEAN;
 END CController;
@@ -143,13 +143,13 @@ CLASS IMPLEMENTATION CController;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : MVC.IContainer );
+   PUBLIC VIRTUAL PROCEDURE InitializeModelContainer( REF Container : MVC.IModelContainer );
    BEGIN
    END InitializeModelContainer;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : MVC.IContainer );
+   PUBLIC VIRTUAL PROCEDURE CleanupModelContainer( REF Container : MVC.IModelContainer );
    BEGIN
    END CleanupModelContainer;
 
