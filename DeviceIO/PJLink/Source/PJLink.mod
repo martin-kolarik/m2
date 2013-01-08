@@ -42,8 +42,10 @@ CONST
 
 TYPE
    TCommand = (
+      cmdUnknown,
       cmdPower,
-      cmdPowerQuery
+      cmdPowerQuery,
+      cmdPowerStatus
    );
 
 CLASS IMPLEMENTATION CNS;
@@ -74,6 +76,7 @@ CLASS IMPLEMENTATION CNS;
       Root^.AddChild( DataRoot );
 
 		item := CreateNewItem( L"Power", ns.ntValue, iovalue.vtBoolean, PTR( cmdPower )); DataRoot^.AddChild( item );
+		item := CreateNewItem( L"Power status", ns.ntValue, iovalue.vtInteger, PTR( cmdPowerStatus )); DataRoot^.AddChild( item );
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -135,7 +138,7 @@ END CNS;
 
 (*---------------------------------------------------------------------------*)
 
-   PROCEDURE DisassemblyCommand( CONST response : StringsO.CString; OUT command : TCommand; REF value : iovalue.Value ) : BOOLEAN;
+   PROCEDURE DisassemblyCommand( CONST response : StringsO.CString; OUT command1, command2 : TCommand; REF value1, value2 : iovalue.Value ) : BOOLEAN;
    VAR
       sCommand : StringsO.CString;
    BEGIN
@@ -148,21 +151,23 @@ END CNS;
       response.Substring( 2, 4, OUT sCommand );
       sCommand.Capitalize();
       IF sCommand.EqualsOA( L"POWR" ) THEN
-         command := cmdPower;
+         command1 := cmdPowerStatus;
+         command2 := cmdPower;
       ELSE
          RETURN FALSE;
       END;
 
       CASE response[7] OF
-      | L"0", L"2", L"3" : 
-         value.Boolean := FALSE;
-         RETURN TRUE;
-      | L"1" :
-         value.Boolean := TRUE;
-         RETURN TRUE;
+      | L"0" : value1.Integer := 0;
+      | L"1" : value1.Integer := 1;
+      | L"2" : value1.Integer := 2;
+      | L"3" : value1.Integer := 3;
       ELSE
          RETURN FALSE; // it covers ERRx and OK
       END;
+      // fallen down
+      value2.Boolean := value1.Integer = 1;
+      RETURN TRUE;
    END DisassemblyCommand;
 
 (*---------------------------------------------------------------------------*)
@@ -212,10 +217,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
          StartTimeout( CONNECTION_DISCONNECT_TIMEOUT, TRUE, REF _ConnectionCloseTimeoutHandle );
          _Reader.StartReading();
-         _State := -1;
+         _State := csWaitAuthorization;
 
       ELSE
          Logger.LogSC( log.ldTrace, 0, LOG_NAME, L"Connect failed:", Result );
+
+         _State := csDisconnected;
 
          // empty queue
          WHILE _Queue.Dequeue( OUT request, OUT d ) DO
@@ -245,12 +252,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
                   Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Connect response:", OA( response.Length-1, response.Data ));
 
                   _Lock.Lock(); // TODO safety
-                  _State := 1;
+                  _State := csConnected;
                   FlushQueue();
                   _Lock.Unlock();
                END;
 
-            ELSIF _State = 1 THEN
+            ELSIF _State = csConnected THEN
                PIO^.OnResponse( response );
 
             ELSE
@@ -258,7 +265,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
                _Lock.Lock(); // TODO safety
                StopTimeout( REF _ConnectionCloseTimeoutHandle );
-               _State := 0;
+               _State := csDisconnected;
                _Connection.Close();
                _Lock.Unlock();
             END;
@@ -307,7 +314,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (stop)" );
 
       StopTimeout( REF _ConnectionCloseTimeoutHandle );
-      _State := 0;
+      _State := csDisconnected;
       _Connection.Close();
 
       Logger.LogS( log.ldMessage, 0, LOG_NAME, L"Stopped" );
@@ -323,7 +330,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          al.TakeSafe( REF _Lock, L"Unable to lock communicator (timeout)" );
 
          _ConnectionCloseTimeoutHandle := NIL; // can be StopTimeout, but calling Abort is not necessary here
-         _State := 0;
+         _State := csDisconnected;
          _Connection.Close();
 
          Logger.LogS( log.ldDebug, 0, LOG_NAME, L"Connection closed" );
@@ -387,7 +394,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    PUBLIC PROCEDURE Dispose();
    BEGIN
       _Password.Clear();
-      _State := 0;
+      _State := csDisconnected;
       _AuthRequested := FALSE;
 
       LogConfig.DisposeAppenderList( REF _AppenderList );
@@ -402,9 +409,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       al.TakeSafe( REF _Lock, L"Unable to lock communicator (request)" );
 
       _Queue.Enqueue( request, 0 );
-      IF _State = 1 THEN
+      IF _State = csConnecting THEN
+         // do nothing, wait connected
+      ELSIF _State = csConnected THEN
          FlushQueue();
-      ELSIF _State = 0 THEN
+      ELSIF _State = csDisconnected THEN
+         _State := csConnecting;
+
          Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Connecting to:", OA( _HostAddress.Length-1, _HostAddress.Data ));
          _Connection.OpenS( _HostAddress, DEFAULT_PORT, FALSE, 0 );
       END;
@@ -449,7 +460,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          IF Writer.WriteTimeout( request, FALSE, CONNECTION_DISCONNECT_TIMEOUT DIV 2 ) = Sync.arTimeout THEN
             // disconnect
             StopTimeout( REF _ConnectionCloseTimeoutHandle );
-            _State := 0;
+            _State := csDisconnected;
             _Connection.Close();
             // requeue the request
             _Queue.Enqueue( request, 0 );
@@ -600,7 +611,7 @@ CLASS IMPLEMENTATION CIO;
             Result := Sync.arNoData;
          ELSE
             Value := item^.Value^;
-            DeviceCommunicator.Logger.LogSSC( log.ldTrace, 0, LOG_NAME, L"Item read:", OA( item^.Name^.Length-1, item^.Name^.Data ), CARDINAL( Value.Boolean ));
+            DeviceCommunicator.Logger.LogSSC( log.ldTrace, 0, LOG_NAME, L"Item read:", OA( item^.Name^.Length-1, item^.Name^.Data ), Value.Integer );
          END;
 
          Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
@@ -651,33 +662,53 @@ CLASS IMPLEMENTATION CIO;
 	LOCAL PROCEDURE OnResponse( response : StringsO.CString );
    VAR
       al : Sync.AutoLock;
-      command : TCommand;
+      command1, command2 : TCommand;
       i : CARDINAL;
-      item : nsitem.TPnsItem;
+      item1, item2 : nsitem.TPnsItem := NIL;
       s : StringsO.CString;
-      value : iovalue.Value;
+      value1, value2 : iovalue.Value;
    BEGIN
       DeviceCommunicator.Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Response received:", OA( response.Length-1, response.Data ));
 
-      IF DisassemblyCommand( response, OUT command, REF value ) THEN
+      IF DisassemblyCommand( response, OUT command1, OUT command2, REF value1, REF value2 ) THEN
          FOR i := 0 TO DataRoot^.Count-1 DO
-            IF DataRoot^[i]^.Data = PTR( command ) THEN
-               item := nsitem.TPnsItem( DataRoot^[i] );
+            IF DataRoot^[i]^.Data = PTR( command1 ) THEN
+               item1 := nsitem.TPnsItem( DataRoot^[i] );
                EXIT;
             END;
          END;
-         IF item = NIL THEN
+         FOR i := 0 TO DataRoot^.Count-1 DO
+            IF DataRoot^[i]^.Data = PTR( command2 ) THEN
+               item2 := nsitem.TPnsItem( DataRoot^[i] );
+               EXIT;
+            END;
+         END;
+         IF ( item1 = NIL ) AND ( item2 = NIL ) THEN
             RETURN;
-         ELSE
+         END;
+      
+         IF item1 <> NIL THEN
             IF NOT DeviceCommunicator.Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
-               s := value.String;
-               DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item value accepted:", OA( item^.Name^.Length-1, item^.Name^.Data ), OA( s.Length-1, s.Data ));
+               s := value1.String;
+               DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item value accepted:", OA( item1^.Name^.Length-1, item1^.Name^.Data ), OA( s.Length-1, s.Data ));
             END;
 
             al.TakeSafe( REF _Lock, L"Unable to lock data area" );
-            item^.Value^.Undefined := FALSE;
-            item^.Value^ := value;
-         END; // CASE
+            item1^.Value^.Undefined := FALSE;
+            item1^.Value^ := value1;
+         END; // IF item1
+
+         IF item2 <> NIL THEN
+            IF NOT DeviceCommunicator.Logger.FilteredFastCheck( log.ldDebug, 0 ) THEN
+               s := value2.String;
+               DeviceCommunicator.Logger.LogSSS( log.ldTrace, 0, LOG_NAME, L"Item value accepted:", OA( item2^.Name^.Length-1, item2^.Name^.Data ), OA( s.Length-1, s.Data ));
+            END;
+
+            al.TakeSafe( REF _Lock, L"Unable to lock data area" );
+            item2^.Value^.Undefined := FALSE;
+            item2^.Value^ := value2;
+         END; // IF item1
+
       END;
    END OnResponse;
 
