@@ -32,9 +32,6 @@
                         <Component Guid="5E7580BB-9458-476e-8758-F7545A78B927" Id="Program">
                             <File DiskId="1" Id="KnxNet.DLL" Name="KnxNet.dll" Source="KnxNet.dll" Vital="yes" KeyPath="yes" />
                         </Component>
-                        <Component Guid="926A58B0-D728-4e9c-BED8-E1EA41CD80E4" Id="RuntimeLib">
-                            <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
-                        </Component>
                         <Component Guid="E29B4EA2-EB20-4080-99F1-640E951169D3" Id="ToolActivator">
                             <File Id="Activate.EXE" Name="Activate.exe" Source="Activate.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -46,9 +43,13 @@
                         </Component>
                         <Component Guid="{4707C82D-BFEC-4985-A8E2-9F6A0C37C7D5}" Id="DebugInfo">
                             <File Id="KnxNet.PDB" Name="KnxNet.pdb" Source="KnxNet.pdb" DiskId="1" KeyPath="yes"/>
-                            <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
                             <File Id="KnxNet.MAP" Name="KnxNet.map" Source="KnxNet.map" DiskId="1" />
-                            <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
+                            <File Id="Discover.PDB" Name="Discover.pdb" Source="Discover.pdb" DiskId="1" />
+                            <File Id="Discover.MAP" Name="Discover.map" Source="Discover.map" DiskId="1" />
+                            <File Id="Checkcfg.PDB" Name="Checkcfg.pdb" Source="Checkcfg.pdb" DiskId="1" />
+                            <File Id="Checkcfg.MAP" Name="Checkcfg.map" Source="Checkcfg.map" DiskId="1" />
+                            <File Id="Activate.PDB" Name="Activate.pdb" Source="Activate.pdb" DiskId="1" />
+                            <File Id="Activate.MAP" Name="Activate.map" Source="Activate.map" DiskId="1" />
                         </Component>
                         <Component Id="Licence" Guid="6FFD29EB-7F31-49e2-A5CF-5AC4B9C83628">
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
@@ -115,8 +116,8 @@
         </Feature>
         <?endif ?>
         <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
+            <ComponentRef Id="CommonAppFolderPermissions" />
             <ComponentRef Id="Program" />
-            <ComponentRef Id="RuntimeLib" />
             <ComponentRef Id="Licence" />
             <ComponentRef Id="Documentation" />
             <ComponentRef Id="ToolActivator" />
