@@ -49,6 +49,9 @@ CLASS CMessageHandler( Win32msg.Win32MessageHandler ) IMPLEMENTS thread.IRunnabl
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : OSALmsg.IMessage; OUT Result : PTR ) : BOOLEAN;
 
    // SELF
+   PUBLIC WRITEONLY PROPERTY
+      LogPath : StringsO.CString;
+
    PUBLIC PROCEDURE Init();
 
    PUBLIC PROCEDURE EnqueueLLHook( message : PTR; event : windows.PMSLLHOOKSTRUCT );
@@ -155,6 +158,18 @@ CLASS IMPLEMENTATION CMessageHandler;
       RETURN TRUE;
    END OnMessage;
 
+   PUBLIC PROPERTY LogPath SET( CONST value : StringsO.CString );
+   VAR
+      cs : StringsO.CString := value;
+      dt : datetime.DateTime;
+      s : ARRAY [0..31] OF WCHAR;
+   BEGIN
+      dt.SetNowUTC();
+      dt.ToStringOA( L".yyyyMMddHHmm.", TRUE, TRUE, OUT s );
+      cs.ReplaceOA( ".", s );
+      _Logger.SetLogFile( OA( cs.Length-1, cs.Data ));
+   END LogPath;
+
    PUBLIC PROCEDURE Init();
    VAR
       point : windows.POINT;
@@ -190,7 +205,9 @@ CLASS IMPLEMENTATION CMessageHandler;
 
       IF al.TakeSafe( REF _Lock, L"Unable to lock event queue" ) = Sync.arCompleted THEN
          _Queue.EnqueueOA( event, 1 );
-         _Signal.Signal();
+         IF _Queue.Count = 1 THEN
+            _Signal.Signal();
+         END;
          al.Unlock();
       END;
    END EnqueueLLHook;
@@ -380,7 +397,7 @@ BEGIN
    _Logger.TimeStamps := FALSE;
    _Logger.Output := log.outsFile;
    _Logger.SetName( L"trk" );
-   _Logger.SetLogFile( L"D:\Work\Temp\Mouse.log" );
+   _Logger.SetLogFile( L"C:\Mouse.log" );
 
    _RawInputAbsX := 0;
    _RawInputAbsY := 0;
@@ -404,7 +421,7 @@ END MouseLLHook;
 TYPE
   TParamStringArray  = ARRAY [0..0] OF POINTER TO ARRAY [0..511] OF WCHAR;
   TPParamStringArray = POINTER TO TParamStringArray;
-  
+
 # save, call( convention => cdecl )
 PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 # restore
@@ -415,10 +432,19 @@ VAR
    hook : windows.HANDLE;
    i : INTEGER;
    msg : windows.MSG;
+   path : ARRAY [0..511] OF WCHAR;
    Result : INTEGER := 0;
    rid : windows.RAWINPUTDEVICE;
+   start : CARD32;
 BEGIN
    wincon.AttachConsole( -1 );
+
+   IF argc < 2 THEN
+      errout^.LineEnd();
+      errout^.LineEnd();
+      errout^.WriteOA( L"MouseTracker: missing output file specification", TRUE );
+      GOTO Error;
+   END;
 
    i := 1;
    WHILE i < argc DO
@@ -428,10 +454,15 @@ BEGIN
          | L'l' :
             INC( i );
             IF i >= argc THEN // error
+               errout^.LineEnd();
+               errout^.LineEnd();
                errout^.WriteOA( L"MouseTracker: missing file path", TRUE );
                GOTO Error;
             END;
+            ASSIGNsz( path, PWCHAR( argp^[i] ));
          ELSE
+            errout^.LineEnd();
+            errout^.LineEnd();
             errout^.WriteOA( L"MouseTracker: invalid option ", FALSE ); errout^.WriteOA( argp^[i]^, TRUE );
             GOTO Error;
          END;
@@ -440,6 +471,7 @@ BEGIN
       
       INC( i );
    END; // WHILE
+   gMessageHandler.LogPath := StringsO.FromOA( path );
 
    // startup
    Win32msgqueuethread.Startup();
@@ -463,12 +495,25 @@ BEGIN
       END;
    END;
 
-   // run main thread loop?? or sleep??
-   // Sync.Sleep( Sync.FOREVER );
-   WHILE windows.GetMessage( ADR( msg ), NIL, 0, 0 ) = windows.True DO
-      windows.TranslateMessage( ADR( msg ));
-      windows.DispatchMessage( ADR( msg ));
-   END;
+   // run main thread loop, max for 2 hours
+   start := datetime.UptimeMS32();
+   LOOP
+      windows.MsgWaitForMultipleObjectsEx( 0, NIL, 60 * 1000, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE );
+      WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+         windows.TranslateMessage( ADR( msg ));
+         windows.DispatchMessage( ADR( msg ));
+      END;
+      IF datetime.UptimeMS32() - start > 60 * 60 * 1000 THEN
+
+         windows.Beep( 1000, 250 );
+         Sync.Sleep( 150 );
+         windows.Beep( 1000, 250 );
+         Sync.Sleep( 150 );
+         windows.Beep( 1000, 250 );
+
+         EXIT;
+      END;
+   END; // LOOP
 
    windows.UnhookWindowsHookEx( hook );
 
