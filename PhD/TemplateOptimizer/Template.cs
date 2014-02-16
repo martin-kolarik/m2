@@ -7,6 +7,12 @@ namespace TemplateOptimizer
 {
     class Template : Vector
     {
+        public enum DistanceType
+        {
+            Manhattan,
+            Euclidean
+        }
+
         public Template( int componentCount ) :
             base( componentCount )
         {
@@ -17,14 +23,26 @@ namespace TemplateOptimizer
         {
         }
 
-        public double Distance( Template from, Weights weights )
+        public double Distance( Template from, Distance distance, Weights weights )
+        {
+            return Distance( from, distance.Type, weights );
+        }
+
+        public double Distance( Template from, DistanceType distanceType, Weights weights )
         {
             var distance = 0.0;
             for( var i = 0; i < ComponentCount; i++ )
             {
                 var wi = weights[i];
                 var di = from[i] - this[i];
-                distance += wi * wi * di * di;
+                if( distanceType == DistanceType.Manhattan )
+                {
+                    distance += wi * Math.Abs( di );
+                }
+                else
+                {
+                    distance += wi * wi * di * di;
+                }
             }
             return Math.Sqrt( distance );
         }

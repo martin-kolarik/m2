@@ -7,29 +7,14 @@ using Troschuetz.Random;
 
 namespace TemplateOptimizer
 {
-    class SimulationFiller
+    class PopulationCreator
     {
-        public enum ComponentType
-        {
-            Deterministic,
-            RandomNormal,
-            RandomPearson,
-            RandomUniform,
-            RandomWeibull
-        }
-
         private MT19937Generator rng;
         private object[] sources;
         private int templateCount;
         private int componentCount;
 
-        // Tuple<double, double> contains:
-        // -- mi, sigma for RandomNormal
-        // -- c, lambda for Weibull
-        // -- a, b for Uniform
-        // -- n for Pearson
-        // -- y for Deterministic
-        public SimulationFiller( int templateCount, int templateComponentCount, Func<int, ComponentType> componentType, Func<int, Tuple<double, double>> componentParameter, Func<int /* template */, int /* component */, double> componentValue = null)
+        public PopulationCreator( int templateCount, int templateComponentCount, Func<int, ComponentDefinition> componentDefinition)
         {
             this.templateCount = templateCount;
             this.componentCount = templateComponentCount;
@@ -38,25 +23,25 @@ namespace TemplateOptimizer
             sources = new object[templateComponentCount];
             for( var i = 0; i < templateComponentCount; i++ )
             {
-                if( componentValue == null )
+                var definition = componentDefinition( i );
+                if( definition.Generator == null )
                 {
-                    var parameters = componentParameter( i );
                     Distribution distribution;
-                    switch( componentType( i ) )
+                    switch( definition.Type )
                     {
                         case ComponentType.Deterministic:
                             throw new Exception( "Unexpected component type, Deterministic must specify 'componentValue' member" );
                         case ComponentType.RandomNormal:
-                            distribution = new NormalDistribution( rng ) { Mu = parameters.Item1, Sigma = parameters.Item2 };
+                            distribution = new NormalDistribution( rng ) { Mu = definition.Mu, Sigma = definition.Sigma };
                             break;
                         case ComponentType.RandomPearson:
-                            distribution = new ChiSquareDistribution( rng ) { Alpha = (int)parameters.Item1 };
+                            distribution = new ChiSquareDistribution( rng ) { Alpha = (int)definition.N };
                             break;
                         case ComponentType.RandomUniform:
-                            distribution = new ContinuousUniformDistribution( rng ) { Alpha = parameters.Item1, Beta = parameters.Item2 };
+                            distribution = new ContinuousUniformDistribution( rng ) { Alpha = definition.A, Beta = definition.B };
                             break;
                         case ComponentType.RandomWeibull:
-                            distribution = new WeibullDistribution( rng ) { Alpha = parameters.Item1, Lambda = parameters.Item2 };
+                            distribution = new WeibullDistribution( rng ) { Alpha = definition.C, Lambda = definition.Lambda };
                             break;
                         default:
                             throw new Exception( "Unknown component type" );
@@ -65,14 +50,14 @@ namespace TemplateOptimizer
                 }
                 else
                 {
-                    sources[i] = componentValue;
+                    sources[i] = componentDefinition( i ).Generator;
                 }
             }
         }
 
-        public Space Populate()
+        public Population Populate()
         {
-            var space = new Space();
+            var space = new Population();
 
             for( var i = 0; i < templateCount; i++ )
             {
@@ -86,7 +71,7 @@ namespace TemplateOptimizer
                     }
                     else
                     {
-                        template[j] = ( (Func<int, int, double>)sources[j] )( i, j );
+                        template[j] = ( (Func<int, double>)sources[j] )( i );
                     }
                 }
 
