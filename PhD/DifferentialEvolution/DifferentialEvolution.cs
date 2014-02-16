@@ -9,7 +9,7 @@ namespace DifferentialEvolution
     {
         // class members
         public delegate OutputFunction FunctionPointer(double[] paras, InputStructure S_in);
-        private static FunctionPointer minimizingfunction;
+        private FunctionPointer minimizingfunction;
         //public FileWrite fwrite1;
 
         // constructor
