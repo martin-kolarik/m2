@@ -20,13 +20,6 @@ namespace TemplateOptimizer
             const int COMPONENT_COUNT = 5;
             var weights = Weights.Uniform( COMPONENT_COUNT );
 
-            // variables for catching result
-            double PlainObjective;
-            double PCAObjective;
-            Weights PCAWeights;
-            double DEObjective;
-            Weights DEWeights;
-
             //==========
             // test distance computation, dS = 12, dA = 4
             Population population = new Population();
@@ -55,16 +48,9 @@ namespace TemplateOptimizer
             population.AddTemplate( new Template( new double[] { 0.4, 0.04, 0.05, 0.8 } ) );
             population.AddTemplate( new Template( new double[] { 0.5, 0.05, 0.02, 0.9 } ) );
 
-            var experiment = new Experiment( population );
-            experiment.DERuns = 1;
-            experiment.Run( ( t, p, i, d, r, dp, dc, wc, dd, wd ) =>
-            {
-                PlainObjective = dp;
-                PCAObjective = dc;
-                PCAWeights = wc;
-                DEObjective = dd;
-                DEWeights = wd;
-            } );
+            var parameters = new ExperimentParameters() { DERuns = 1 };
+            var experiment = new Experiment( parameters, population );
+            var result = experiment.Run();
 
             //==========
             population = new Population();
@@ -93,23 +79,18 @@ namespace TemplateOptimizer
             );
             population = creator.Populate();
 
-            experiment = new Experiment( population );
-            experiment.DistanceTypes = new Distance[] {
-                new Distance( Template.DistanceType.Manhattan ),
-                new Distance( Population.DistanceProcessing.Average ),
-                new Distance( Population.DistanceProcessing.Minimum ),
-                new Distance( Population.DistanceProcessing.Median ),
-                new Distance( Population.DistanceProcessing.MinimumTimesMedian )
-            };
-            experiment.DERuns = 10;
-            experiment.Run( ( t, p, i, d, r, dp, dc, wc, dd, wd ) =>
+            parameters = new ExperimentParameters()
             {
-                PlainObjective = dp;
-                PCAObjective = dc;
-                PCAWeights = wc;
-                DEObjective = dd;
-                DEWeights = wd;
-            } );
+                DistanceTypes = new Distance[] {
+                    new Distance( Template.DistanceType.Manhattan ),
+                    new Distance( Population.DistanceProcessing.Average ),
+                    new Distance( Population.DistanceProcessing.Minimum ),
+                    new Distance( Population.DistanceProcessing.Median ),
+                    new Distance( Population.DistanceProcessing.MinimumTimesMedian )
+                }
+            };
+            experiment = new Experiment( parameters, population );
+            result = experiment.Run();
 
             Executor.Stop();
         }

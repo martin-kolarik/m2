@@ -12,100 +12,39 @@ namespace TemplateOptimizer
     {
         // private
         private Population Population;
-        private Weights PlainWeights;
-        private Dictionary<Distance, double> Distances = new Dictionary<Distance, double>();
-        private Dictionary<Distance, double> PCADistances = new Dictionary<Distance, double>();
-        private Weights PCAWeights;
+        private ExperimentParameters Parameters;
+        private Population NormalizedPopulation;
 
-        public Experiment()
+        public Experiment( ExperimentParameters parameters = null, Population population = null )
         {
-            // DE related parameters
-            DETypes = new int[] { 2 };
-            DEPopulationCounts = new int[] { 50 };
-            DEIterationCounts = new int[] { 50 };
-            DERuns = 10;
-
-            // population related parameters
-            DistanceTypes = new Distance[] { new Distance() };
-            PopulationCount = 75;
-            ComponentCount = 75;
-            Normalization = Population.NormalizationType.None;
-            Components = null;
-            PCARecompositionThreshold = 0.95;
+            Parameters = parameters != null ? parameters : new ExperimentParameters();
+            Population = population != null ? population : new PopulationCreator( Parameters.PopulationCount, Parameters.ComponentCount, ( i ) => GetComponent( i ) ).Populate();
         }
-
-        public Experiment( Population population ) :
-            this()
-        {
-            this.Population = population;
-        }
-
-        // DE related parameters
-        public int[] DETypes { get; set; }
-
-        public int[] DEPopulationCounts { get; set; }
-
-        public int[] DEIterationCounts { get; set; }
-
-        public int DERuns { get; set; }
-
-        // population related parameters
-        public Distance[] DistanceTypes { get; set; }
-
-        public int PopulationCount { get; set; }
-
-        public int ComponentCount { get; set; }
-
-        public Population.NormalizationType Normalization { get; set; }
-
-        public ComponentDefinition[] Components { get; set; }
-
-        public double PCARecompositionThreshold { get; set; }
-
-        // callback to catch intermediate results
-        // DEType, PopulationCount, IterationCount, DistanceType, RunNumber, Distance, PCADistance, PCAWeights, DEDistance, DEWeights
-        private Action<int, int, int, Distance, int, double, double, Weights, double, Weights> ResultCatcher { get; set; }
 
         // executive methods
-        public void Run( Action<int, int, int, Distance, int, double, double, Weights, double, Weights> resultCatcher = null )
+        public ExperimentResult Run()
         {
-            ResultCatcher = resultCatcher;
-            DumpParameters();
+            NormalizedPopulation = Population.Normalize( Parameters.Normalization );
 
-            CreatePopulation();
-            PlainWeights = Weights.Uniform( Population.ComponentCount );
-
-            RunPlain();
-
-            RunPCA();
-
-            RunDEs();
+            var result = new ExperimentResult( Parameters, Population, NormalizedPopulation );
+            RunPlain( result );
+            RunPCA( result );
+            RunDEs( result );
             Executor.WaitForCompletion( this );
+
+            return result;
         }
 
-        private void CreatePopulation()
+        private void RunPlain( ExperimentResult result )
         {
-            if( Population == null )
+            var plainWeights = Weights.Uniform( Population.ComponentCount );
+            foreach( var distanceType in Parameters.DistanceTypes )
             {
-                Population = new PopulationCreator( PopulationCount, ComponentCount, ( i ) => GetComponent( i ) ).Populate();
+                result.AddPlainDistance( distanceType, Population.Distance( distanceType, plainWeights ));
             }
-
-            DumpPopulation();
-
-            Population = Population.Normalize( Normalization );
         }
 
-        private void RunPlain()
-        {
-            foreach( var distanceType in DistanceTypes )
-            {
-                Distances[distanceType] = Population.Distance( distanceType, PlainWeights );
-            }
-
-            DumpPlain();
-        }
-
-        private void RunPCA()
+        private void RunPCA( ExperimentResult result )
         {
             var pca = new PrincipalComponentAnalysis( new PCAAdapter( Population ).Table );
             pca.Compute();
@@ -117,36 +56,41 @@ namespace TemplateOptimizer
                 {
                     weights[i] += component.Proportion * component.Eigenvector[i] * component.Eigenvector[i];
                 }
-                if( component.CumulativeProportion > PCARecompositionThreshold )
+                if( component.CumulativeProportion > Parameters.PCARecompositionThreshold )
                 {
                     break;
                 }
             }
-            PCAWeights = weights.Weigh();
-            foreach( var distanceType in DistanceTypes )
+            result.PCAComponents = pca.Components;
+            result.PCAWeights = weights.Weigh();
+            foreach( var distanceType in Parameters.DistanceTypes )
             {
-                PCADistances[distanceType] = Population.Distance( distanceType, PCAWeights );
+                result.AddPCADistance( distanceType, Population.Distance( distanceType, result.PCAWeights ) );
             }
-
-            DumpPCA();
         }
 
-        private void RunDEs() // run all combinations
+        private void RunDEs( ExperimentResult result ) // run all combinations
         {
-            foreach( var deType in DETypes )
+            foreach( var deType in Parameters.DETypes )
             {
-                foreach( var dePopulationCount in DEPopulationCounts )
+                foreach( var deWeight in Parameters.DEWeights )
                 {
-                    foreach( var deIterationCount in DEIterationCounts )
+                    foreach( var deCrossover in Parameters.DECrossoverProbabilities )
                     {
-                        foreach( var distanceType in DistanceTypes )
+                        foreach( var dePopulationCount in Parameters.DEPopulationCounts )
                         {
-                            for( var run = 0; run < DERuns; run++ )
+                            foreach( var deIterationCount in Parameters.DEIterationCounts )
                             {
-                                Executor.Queue( this, () =>
+                                foreach( var distanceType in Parameters.DistanceTypes )
                                 {
-                                    RunDE( deType, dePopulationCount, deIterationCount, distanceType, run );
-                                } );
+                                    for( var run = 0; run < Parameters.DERuns; run++ )
+                                    {
+                                        Executor.Queue( this, () =>
+                                        {
+                                            RunDE( result, deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distanceType, run );
+                                        } );
+                                    }
+                                }
                             }
                         }
                     }
@@ -154,58 +98,33 @@ namespace TemplateOptimizer
             }
         }
 
-        private void RunDE( int deType, int dePopulationCount, int deIterationCount, Distance distance, int run )
+        private void RunDE( ExperimentResult result, int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance, int run )
         {
-            var deAdapter = new DEAdapter( Population, deType, dePopulationCount, deIterationCount, distance );
+            var deAdapter = new DEAdapter( Population, deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distance );
             var de = new DE.DifferentialEvolution( deAdapter.Objective );
 
             var deOutput = de.Optimizer( deAdapter.InputStructure );
             var bestObjective = -deOutput.S_bestval.FVr_oa[0];
             var bestWeights = new Weights( deOutput.FVr_bestmem, Weights.NormalizationMode.Weigh );
 
-            if( ResultCatcher != null )
-            {
-                ResultCatcher( deType, dePopulationCount, deIterationCount, distance, run, Distances[distance], PCADistances[distance], PCAWeights, bestObjective, bestWeights );
-            }
-
-            DumpDE( bestObjective, bestWeights );
+            result.AddDEResult( new ExperimentResult.DEResult( deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distance, run, bestObjective, bestWeights ));
         }
 
         // helpers
         private ComponentDefinition GetComponent( int index )
         {
-            if( Components == null || Components.Count() == 0 )
+            if( Parameters.Components == null || Parameters.ComponentCount == 0 )
             {
                 return new ComponentDefinition( ComponentType.RandomNormal, 0, 1 );
             }
-            else if( index >= Components.Count() )
+            else if( index >= Parameters.ComponentCount )
             {
-                return Components[Components.Count()-1];
+                return Parameters.Components[Parameters.ComponentCount-1];
             }
             else
             {
-                return Components[index];
+                return Parameters.Components[index];
             }
-        }
-
-        private void DumpParameters()
-        {
-        }
-
-        private void DumpPopulation()
-        {
-        }
-
-        private void DumpPlain()
-        {
-        }
-
-        private void DumpPCA()
-        {
-        }
-
-        private void DumpDE( double bestObjective, Weights bestWeights )
-        {
         }
     }
 }

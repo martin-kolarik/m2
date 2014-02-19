@@ -11,14 +11,18 @@ namespace TemplateOptimizer
     {
         private Population Population;
         private int DEType;
+        private double DEWeight;
+        private double DECrossover;
         private int DEPopulationCount;
         private int DEIterationCount;
         private Distance Distance;
 
-        public DEAdapter( Population population, int deType, int dePopulationCount, int deIterationCount, Distance distance )
+        public DEAdapter( Population population, int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance )
         {
             this.Population = population;
             DEType = deType;
+            DEWeight = deWeight;
+            DECrossover = deCrossover;
             DEPopulationCount = dePopulationCount;
             DEIterationCount = deIterationCount;
             Distance = distance;
@@ -45,8 +49,8 @@ namespace TemplateOptimizer
 
                 inputStructure.I_NP = DEPopulationCount;
                 inputStructure.I_itermax = DEIterationCount;
-                inputStructure.F_weight = 0.85;
-                inputStructure.F_CR = 1;
+                inputStructure.F_weight = DEWeight;
+                inputStructure.F_CR = DECrossover;
                 inputStructure.I_strategy = DEType;
                 inputStructure.I_refresh = 0;
 
