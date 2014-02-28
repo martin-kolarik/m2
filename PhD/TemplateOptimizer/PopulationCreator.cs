@@ -23,35 +23,26 @@ namespace TemplateOptimizer
             sources = new object[templateComponentCount];
             for( var i = 0; i < templateComponentCount; i++ )
             {
+                Distribution distribution;
                 var definition = componentDefinition( i );
-                if( definition.Generator == null )
+                switch( definition.Type )
                 {
-                    Distribution distribution;
-                    switch( definition.Type )
-                    {
-                        case ComponentType.Deterministic:
-                            throw new Exception( "Unexpected component type, Deterministic must specify 'componentValue' member" );
-                        case ComponentType.RandomNormal:
-                            distribution = new NormalDistribution( rng ) { Mu = definition.Mu, Sigma = definition.Sigma };
-                            break;
-                        case ComponentType.RandomPearson:
-                            distribution = new ChiSquareDistribution( rng ) { Alpha = (int)definition.N };
-                            break;
-                        case ComponentType.RandomUniform:
-                            distribution = new ContinuousUniformDistribution( rng ) { Alpha = definition.A, Beta = definition.B };
-                            break;
-                        case ComponentType.RandomWeibull:
-                            distribution = new WeibullDistribution( rng ) { Alpha = definition.C, Lambda = definition.Lambda };
-                            break;
-                        default:
-                            throw new Exception( "Unknown component type" );
-                    }
-                    sources[i] = distribution;
+                    case ComponentType.RandomNormal:
+                        distribution = new NormalDistribution( rng ) { Mu = definition.Mu, Sigma = definition.Sigma };
+                        break;
+                    case ComponentType.RandomPearson:
+                        distribution = new ChiSquareDistribution( rng ) { Alpha = (int)definition.N };
+                        break;
+                    case ComponentType.RandomUniform:
+                        distribution = new ContinuousUniformDistribution( rng ) { Alpha = definition.A, Beta = definition.B };
+                        break;
+                    case ComponentType.RandomWeibull:
+                        distribution = new WeibullDistribution( rng ) { Alpha = definition.C, Lambda = definition.Lambda };
+                        break;
+                    default:
+                        throw new Exception( "Unknown component type" );
                 }
-                else
-                {
-                    sources[i] = componentDefinition( i ).Generator;
-                }
+                sources[i] = distribution;
             }
         }
 

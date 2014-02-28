@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Accord.Statistics.Analysis;
 using DE = DifferentialEvolution;
@@ -10,12 +11,124 @@ namespace TemplateOptimizer
 {
     class Program
     {
-        static void MainXXX( string[] args )
+        static void Main( string[] args )
         {
-            var experiment = new Experiment();
+            Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+            Experiments();
+
+            Executor.Stop();
         }
 
-        static void Main( string[] args )
+        static void Experiments()
+        {
+            TwoRandomVariablesUnitGain( false );
+            TwoRandomVariablesVaryingGain( false );
+        }
+
+        static void TwoRandomVariablesUnitGain( bool dumpInvidivuals = true, bool dumpGrouped = true )
+        {
+            // two variables, permutted types, normalized values
+            CSVDumper dumper;
+            List<ExperimentResult> results;
+            
+            results = new List<ExperimentResult>();
+            foreach( var permutation in ComponentType.RandomNormal.Permutation() )
+            {
+                var parameters = new ExperimentParameters();
+                parameters.Components = new ComponentDefinition[] { new ComponentDefinition( permutation.Item1 ), new ComponentDefinition( permutation.Item2 ) };
+                new Experiment( parameters ).Run( ( result ) =>
+                {
+                    results.Add( result );
+                    if( dumpInvidivuals )
+                    {
+                        dumper = new CSVDumper( result );
+                        dumper.Dump( "Two random variables, unit gain", "", ExperimentType.TwoRandomVariablesUnitGain, true, true );
+                    }
+                } );
+            }
+            Experiment.Complete();
+
+            if( dumpGrouped )
+            {
+                dumper = new CSVDumper();
+                dumper.Dump( "Two random variables, unit gain, comparison", "", ExperimentType.TwoRandomVariablesUnitGain, false, false, ( d ) =>
+                {
+                    var CS = dumper.CellSeparator;
+                    d.CellsE( "variables", results.Select( ( r ) => r.Parameters.Components[0].Type.ToString() + " (1)" + CS + r.Parameters.Components[1].Type.ToString() + " (2)" ) );
+                    d.Cell( "distances" );
+                    d.CellsE( "D plain", results.Select( ( r ) => r.PlainDistances.First().Value.ToString() + CS ) );
+                    d.CellsE( "D PCA", results.Select( ( r ) => r.PCADistances.First().Value.ToString() + CS ) );
+                    d.CellsE( "D DE (avg)", results.Select( ( r ) => r.DEResults.Select( ( der ) => der.DEDistance ).Average().ToString() + CS ) );
+                    d.CellsE( "D PCA ratio", results.Select( ( r ) => ( r.PCADistances.First().Value / r.PlainDistances.First().Value ).ToString() + CS ) );
+                    d.CellsE( "D DE (avg) ratio", results.Select( ( r ) => ( r.DEResults.Select( ( der ) => der.DEDistance ).Average() / r.PlainDistances.First().Value ).ToString() + CS ) );
+                    d.Cell( "weights" );
+                    d.CellsE( "W PCA", results.Select( ( r ) => r.PCAWeights[0].ToString() + CS + r.PCAWeights[1].ToString() ) );
+                    d.CellsE( "W DE (avg)", results.Select( ( r ) => r.DEResults.Select( ( der ) => der.DEWeights[0] ).Average() + CS + r.DEResults.Select( ( der ) => der.DEWeights[1] ).Average() ) );
+                } );
+            }
+        }
+
+        static void TwoRandomVariablesVaryingGain( bool dumpInvidivuals = true, bool dumpGrouped = true )
+        {
+            // two variables, permutted types, scaled values
+            CSVDumper dumper;
+            List<ExperimentResult> results;
+
+            var scale = 1.0;
+            var coefficient = Math.Pow( 2.0, 1.0/3.0 );
+            foreach( var permutation in ComponentType.RandomNormal.Permutation() )
+            {
+                results = new List<ExperimentResult>();
+                while( scale <= 130 )
+                {
+                    var parameters = new ExperimentParameters();
+                    parameters.Components = new ComponentDefinition[] { new ComponentDefinition( permutation.Item1, scale, 0.0 ), new ComponentDefinition( permutation.Item2 ) };
+                    new Experiment( parameters ).Run( ( result ) =>
+                    {
+                        var lscale = scale;
+
+                        result.SetAuxiliaryData( "scale", lscale );
+                        results.Add( result );
+
+                        if( dumpInvidivuals )
+                        {
+                            dumper = new CSVDumper( result );
+                            dumper.Dump( "Two random variables, variable gain", "", ExperimentType.TwoRandomVariablesVaryingGain, true, true, ( d ) =>
+                            {
+                                d.Cell( "GAIN" );
+                                d.Cell( lscale.ToString( "G2" ) );
+                            } );
+                        }
+                    } );
+
+                    scale *= coefficient;
+                }
+                Experiment.Complete();
+
+                if( dumpGrouped )
+                {
+                    dumper = new CSVDumper();
+                    dumper.Dump( "Two random variables, variable gain", "Comparison by gain", ExperimentType.TwoRandomVariablesUnitGain, false, false, ( d ) =>
+                    {
+                        var CS = dumper.CellSeparator;
+                        d.CellsVA( "variables", permutation.Item1, permutation.Item2 );
+                        d.CellsE( "scale", results.Select( ( r ) => r.GetAuxiliaryData( "scale" ).ToString() + CS ) );
+                        d.Cell( "distances" );
+                        d.CellsE( "D plain", results.Select( ( r ) => r.PlainDistances.First().Value.ToString() + CS ) );
+                        d.CellsE( "D PCA", results.Select( ( r ) => r.PCADistances.First().Value.ToString() + CS ) );
+                        d.CellsE( "D DE (avg)", results.Select( ( r ) => r.DEResults.Select( ( der ) => der.DEDistance ).Average().ToString() + CS ) );
+                        d.CellsE( "D PCA ratio", results.Select( ( r ) => ( r.PCADistances.First().Value / r.PlainDistances.First().Value ).ToString() + CS ) );
+                        d.CellsE( "D DE (avg) ratio", results.Select( ( r ) => ( r.DEResults.Select( ( der ) => der.DEDistance ).Average() / r.PlainDistances.First().Value ).ToString() + CS ) );
+                        d.Cell( "weights" );
+                        d.CellsE( "W PCA", results.Select( ( r ) => r.PCAWeights[0].ToString() + CS + r.PCAWeights[1].ToString() ) );
+                        d.CellsE( "W DE (avg)", results.Select( ( r ) => r.DEResults.Select( ( der ) => der.DEWeights[0] ).Average() + CS + r.DEResults.Select( ( der ) => der.DEWeights[1] ).Average() ) );
+                    } );
+                }
+            }
+        }
+
+        static void Tests()
         {
             const int COMPONENT_COUNT = 5;
             var weights = Weights.Uniform( COMPONENT_COUNT );
@@ -50,7 +163,9 @@ namespace TemplateOptimizer
 
             var parameters = new ExperimentParameters() { DERuns = 1 };
             var experiment = new Experiment( parameters, population );
-            var result = experiment.Run();
+            experiment.Run( ( result ) =>
+            {
+            } );
 
             //==========
             population = new Population();
@@ -90,9 +205,11 @@ namespace TemplateOptimizer
                 }
             };
             experiment = new Experiment( parameters, population );
-            result = experiment.Run();
+            experiment.Run( ( result ) =>
+            {
+                var avgmed = result.DEResults.Where( r => r.Distance.Item2 == Population.DistanceProcessing.Median ).Select( r => r.DEDistance ).Average();
+            } );
 
-            Executor.Stop();
         }
     }
 }

@@ -7,20 +7,15 @@ using System.Threading.Tasks;
 namespace TemplateOptimizer
 {
     class ComponentDefinition :
-        Tuple<ComponentType, double, double, Func<int, double>>
+        Tuple<ComponentType, double, double>
     {
         public ComponentDefinition( ComponentType componentType ) :
-            base( componentType, DefaultParameter( componentType, 0 ), DefaultParameter( componentType, 0 ), null )
+            base( componentType, DefaultParameter( componentType, 0 ), DefaultParameter( componentType, 1 ) )
         {
         }
 
         public ComponentDefinition( ComponentType componentType, double parameter1, double parameter2 ) :
-            base( componentType, parameter1, parameter2, null )
-        {
-        }
-
-        public ComponentDefinition( ComponentType componentType, Func<int, double> componentValue ) : // int templateIndex
-            base( componentType, 0, 0, componentValue )
+            base( componentType, parameter1, parameter2 )
         {
         }
 
@@ -28,8 +23,6 @@ namespace TemplateOptimizer
         {
             switch( componentType )
             {
-                case ComponentType.Deterministic :
-                    throw new ArgumentException( "Deterministic component cannot be created without generating function" );
                 case ComponentType.RandomNormal :
                     return parameterIndex == 0 ? 0.0 : 1.0;
                 case ComponentType.RandomPearson :
@@ -46,12 +39,6 @@ namespace TemplateOptimizer
         public ComponentType Type
         {
             get { return Item1; }
-        }
-
-        // deterministic
-        public Func<int, double> Generator
-        {
-            get { return Type == ComponentType.Deterministic ? Item4 : null; }
         }
 
         // -- mi, sigma for RandomNormal

@@ -76,5 +76,18 @@ namespace TemplateOptimizer
         {
             DEResults.Add( result );
         }
+
+        // user data
+        private Dictionary<string, object> auxiliaryData = new Dictionary<string, object>();
+        public void SetAuxiliaryData( string key, object value )
+        {
+            auxiliaryData[key] = value;
+        }
+
+        public object GetAuxiliaryData( string key )
+        {
+            object value;
+            return auxiliaryData.TryGetValue( key, out value ) ? value : null;
+        }
     }
 }

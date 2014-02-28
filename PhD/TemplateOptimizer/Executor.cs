@@ -9,8 +9,9 @@ namespace TemplateOptimizer
 {
     static class Executor
     {
-        private class ExperimentProxy
+        private class ExperimentProxy : IDisposable
         {
+            private Action completionHandler = null;
             private ManualResetEvent Signal = new ManualResetEvent( false );
             int Tasks = 0;
 
@@ -23,13 +24,49 @@ namespace TemplateOptimizer
             {
                 if( Interlocked.Decrement( ref Tasks ) == 0 )
                 {
+                    Action handler = null;
+                    lock( this )
+                    {
+                        if( completionHandler != null )
+                        {
+                            handler = completionHandler;
+                            completionHandler = null;
+                        }
+                    }
                     Signal.Set();
+                    if( handler != null )
+                    {
+                        handler();
+                    }
                 }
             }
 
-            public void WaitForCompletion()
+            public void Complete( bool wait = true, Action completionHandler = null )
             {
-                Signal.WaitOne();
+                if( wait )
+                {
+                    Signal.WaitOne();
+                }
+                else
+                {
+                    lock( this )
+                    {
+                        if( !Signal.WaitOne( 0 ))
+                        {
+                            this.completionHandler = completionHandler; // If Signal is not set, something is still pending and I am able to schedule completion routine.
+                            completionHandler = null; // Localy the routine must not run.
+                        }
+                    }
+                }
+                if( completionHandler != null )
+                {
+                    completionHandler();
+                }
+            }
+
+            public void Dispose()
+            {
+                Signal.Dispose();
             }
         }
 
@@ -47,8 +84,36 @@ namespace TemplateOptimizer
             }
         }
 
+        public static void Complete()
+        {
+            // wait until everything finishes
+            for( ; ; )
+            {
+                ExperimentProxy proxy;
+                Experiment experiment;
+                lock( Tasks )
+                {
+                    if( Proxies.Count == 0 )
+                    {
+                        break;
+                    }
+                    experiment = Proxies.Keys.First();
+                    proxy = Proxies[experiment];
+                }
+                proxy.Complete( true, () =>
+                {
+                    lock( Tasks )
+                    {
+                        Proxies.Remove( experiment );
+                        proxy.Dispose();
+                    }
+                } );
+            }
+        }
+
         public static void Stop()
         {
+            Complete();
             Exit.Set();
         }
 
@@ -68,7 +133,7 @@ namespace TemplateOptimizer
             Consume.Release();
         }
 
-        public static void WaitForCompletion( Experiment experiment )
+        public static void ScheduleCompletion( Experiment experiment, Action completionHandler )
         {
             ExperimentProxy proxy;
             lock( Tasks )
@@ -78,15 +143,23 @@ namespace TemplateOptimizer
                     return;
                 }
             }
-            proxy.WaitForCompletion();
-            lock( Tasks )
+            proxy.Complete( false, () =>
             {
-                Proxies.Remove( experiment );
-            }
+                if( completionHandler != null )
+                {
+                    completionHandler();
+                }
+                lock( Tasks )
+                {
+                    Proxies.Remove( experiment );
+                    proxy.Dispose();
+                }
+            } );
         }
 
         private static void Execute()
         {
+            Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             for( ; ; )
             {
                 switch( EventWaitHandle.WaitAny( new WaitHandle[] { Exit, Consume } ) )

@@ -16,13 +16,12 @@ namespace TemplateOptimizer
             DEWeights = new double[] { 0.85 };
             DEPopulationCounts = new int[] { 50 };
             DEIterationCounts = new int[] { 50 };
-            DERuns = 10;
+            DERuns = 1; // TODO
 
             // population related parameters
             DistanceTypes = new Distance[] { new Distance() };
-            PopulationCount = 75;
-            ComponentCount = 75;
-            Normalization = Population.NormalizationType.None;
+            PopulationCount = 50;
+            Normalization = Population.NormalizationType.Center;
             Components = null;
             PCARecompositionThreshold = 0.95;
         }
@@ -45,7 +44,7 @@ namespace TemplateOptimizer
 
         public int PopulationCount { get; set; }
 
-        public int ComponentCount { get; set; }
+        public int ComponentCount { get { return Components == null ? 0 : Components.Length; } }
 
         public Population.NormalizationType Normalization { get; set; }
 

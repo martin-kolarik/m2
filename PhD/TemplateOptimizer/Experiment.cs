@@ -22,7 +22,7 @@ namespace TemplateOptimizer
         }
 
         // executive methods
-        public ExperimentResult Run()
+        public void Run( Action<ExperimentResult> completionHandler )
         {
             NormalizedPopulation = Population.Normalize( Parameters.Normalization );
 
@@ -30,9 +30,15 @@ namespace TemplateOptimizer
             RunPlain( result );
             RunPCA( result );
             RunDEs( result );
-            Executor.WaitForCompletion( this );
+            Executor.ScheduleCompletion( this, () =>
+            {
+                completionHandler( result );
+            } );
+        }
 
-            return result;
+        public static void Complete()
+        {
+            Executor.Complete();
         }
 
         private void RunPlain( ExperimentResult result )
@@ -85,9 +91,16 @@ namespace TemplateOptimizer
                                 {
                                     for( var run = 0; run < Parameters.DERuns; run++ )
                                     {
+                                        var ldeType = deType;
+                                        var ldeWeight = deWeight;
+                                        var ldeCrossover = deCrossover;
+                                        var ldePopulationCount = dePopulationCount;
+                                        var ldeIterationCount = deIterationCount;
+                                        var ldistanceType = distanceType;
+                                        var lrun = run;
                                         Executor.Queue( this, () =>
                                         {
-                                            RunDE( result, deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distanceType, run );
+                                            RunDE( result, ldeType, ldeWeight, ldeCrossover, ldePopulationCount, ldeIterationCount, ldistanceType, lrun );
                                         } );
                                     }
                                 }

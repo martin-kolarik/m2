@@ -48,11 +48,13 @@
   <ItemGroup>
     <Compile Include="ComponentDefinition.cs" />
     <Compile Include="ComponentType.cs" />
+    <Compile Include="CSVDumper.cs" />
     <Compile Include="DEAdapter.cs" />
     <Compile Include="Distance.cs" />
     <Compile Include="Executor.cs" />
     <Compile Include="Experiment.cs" />
     <Compile Include="ExperimentParameters.cs" />
+    <Compile Include="ExperimentType.cs" />
     <Compile Include="PCAAdapter.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
