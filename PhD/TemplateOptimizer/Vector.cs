@@ -77,22 +77,7 @@ namespace TemplateOptimizer
 
         public string ToString( string leading, string separator, string trailing )
         {
-            var any = false;
-            var s = new StringBuilder( leading );
-            foreach( var component in components )
-            {
-                if( any )
-                {
-                    s.Append( separator );
-                }
-                else
-                {
-                    any = true;
-                }
-                s.Append( component.ToString() );
-            }
-            s.Append( trailing );
-            return s.ToString();
+            return leading + String.Join( separator, components ) + trailing;
         }
     }
 }

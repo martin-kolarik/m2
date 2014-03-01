@@ -9,13 +9,10 @@ namespace TemplateOptimizer
     class ComponentDefinition :
         Tuple<ComponentType, double, double>
     {
-        public ComponentDefinition( ComponentType componentType ) :
-            base( componentType, DefaultParameter( componentType, 0 ), DefaultParameter( componentType, 1 ) )
-        {
-        }
-
-        public ComponentDefinition( ComponentType componentType, double parameter1, double parameter2 ) :
-            base( componentType, parameter1, parameter2 )
+        public ComponentDefinition( ComponentType componentType, double? parameter1 = null, double? parameter2 = null ) :
+            base( componentType,
+                  parameter1.HasValue ? parameter1.Value : DefaultParameter( componentType, 0 ),
+                  parameter2.HasValue ? parameter2.Value : DefaultParameter( componentType, 1 ) )
         {
         }
 
@@ -24,13 +21,13 @@ namespace TemplateOptimizer
             switch( componentType )
             {
                 case ComponentType.RandomNormal :
-                    return parameterIndex == 0 ? 0.0 : 1.0;
+                    return parameterIndex == 0 ? 0.0 : 1.0; // standardized is Mu = 0, Sigma = 1
                 case ComponentType.RandomPearson :
-                    return parameterIndex == 0 ? 0.0 : 1.0;
+                    return parameterIndex == 0 ? 1.0 : 0.0; // standardized is N = 1, others have no sense
                 case ComponentType.RandomUniform :
                     return parameterIndex == 0 ? 0.0 : 1.0;
                 case ComponentType.RandomWeibull :
-                    return parameterIndex == 0 ? 0.0 : 1.0;
+                    return parameterIndex == 0 ? 1.0 : 1.0; // exponential is C = 1, standard exponential is Lambda = 1
                 default:
                     return 0.0;
             }
@@ -52,8 +49,8 @@ namespace TemplateOptimizer
         public double A { get { return Item2; } }
         public double B { get { return Item3; } }
 
-        // -- c, lambda for Weibull
-        public double C { get { return Item2; } }
-        public double Lambda { get { return Item3; } }
+        // -- lambda, c for Weibull
+        public double Lambda { get { return Item2; } }
+        public double C { get { return Item3; } }
     }
 }

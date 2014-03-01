@@ -8,7 +8,8 @@ namespace TemplateOptimizer
 {
     enum ExperimentType
     {
-        TwoRandomVariablesUnitGain = 1,
-        TwoRandomVariablesVaryingGain = 2
+        FewRandomVariablesUnitGainAndVariance = 1,
+        FewRandomVariablesVaryingGain = 2,
+        FewRandomVariablesVaryingVariance = 3
     }
 }

@@ -54,6 +54,7 @@
     <Compile Include="Executor.cs" />
     <Compile Include="Experiment.cs" />
     <Compile Include="ExperimentParameters.cs" />
+    <Compile Include="Experiments\FewRandomVariables.cs" />
     <Compile Include="ExperimentType.cs" />
     <Compile Include="PCAAdapter.cs" />
     <Compile Include="Program.cs" />
@@ -75,6 +76,7 @@
       <Name>Random</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

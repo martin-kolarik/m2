@@ -38,5 +38,10 @@ namespace TemplateOptimizer
         {
             get { return Item2; }
         }
+
+        public override string ToString()
+        {
+            return Item1.ToString() + "(" + Item2.ToString() + ")";
+        }
     }
 }

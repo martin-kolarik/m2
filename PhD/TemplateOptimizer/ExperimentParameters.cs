@@ -16,7 +16,7 @@ namespace TemplateOptimizer
             DEWeights = new double[] { 0.85 };
             DEPopulationCounts = new int[] { 50 };
             DEIterationCounts = new int[] { 50 };
-            DERuns = 1; // TODO
+            DERuns = 1;
 
             // population related parameters
             DistanceTypes = new Distance[] { new Distance() };

@@ -18,6 +18,11 @@ namespace TemplateOptimizer
                 this.dumper = dumper;
             }
 
+            public void DumpParameters( ExperimentResult result )
+            {
+                dumper.DumpParameters( result );
+            }
+
             public void Cell( object cell )
             {
                 dumper.Cell( cell );
@@ -49,6 +54,7 @@ namespace TemplateOptimizer
             get;
             set;
         }
+
         public string Directory
         {
             get;
@@ -63,13 +69,13 @@ namespace TemplateOptimizer
         public CSVDumper( ExperimentResult result )
         {
             this.result = result;
-            CellSeparator = ";";
-            Directory = ".";
+            CellSeparator = @";";
+            Directory = @".\res";
         }
 
-        public void Dump( string title, string focusOn, ExperimentType type, bool dumpParameters = true, bool dumpCommon = true, Action<CSVParticularResultDumper> particularResultDumper = null )
+        public void Dump( string fileMark, string title, string focusOn, ExperimentType type, bool dumpParameters = true, bool dumpCommon = true, Action<CSVParticularResultDumper> particularResultDumper = null )
         {
-            CreateFile( type );
+            CreateFile( fileMark, type );
 
             Cell( "TITLE", title );
             Cell( "FOCUS ON", focusOn );
@@ -78,7 +84,7 @@ namespace TemplateOptimizer
             if( dumpParameters )
             {
                 Cell( "PARAMETERS" );
-                DumpParameters();
+                DumpParameters( result );
             }
 
             if( dumpCommon || particularResultDumper != null )
@@ -137,15 +143,17 @@ namespace TemplateOptimizer
             CellsE( null, cells );
         }
 
-        private void CreateFile( ExperimentType type )
+        private void CreateFile( string fileMark, ExperimentType type )
         {
-            string name = DateTime.Now.ToString( "EXPyyyyMMdd" ) + ( (int)type ).ToString( "D2" );
+            string name = DateTime.Now.ToString( "EXP[" + fileMark + "]yyyyMMdd" ) + ( (int)type ).ToString( "D2" );
             string path;
 
             lock( fileLock )
             {
                 for( ; ; )
                 {
+                    System.IO.Directory.CreateDirectory( Directory );
+
                     path = Path.Combine( Directory, name + counter.ToString( "D3" ) );
                     path = Path.ChangeExtension( path, "csv" );
                     if( !File.Exists( path ) )
@@ -166,7 +174,7 @@ namespace TemplateOptimizer
             writer = null;
         }
 
-        private void DumpParameters()
+        private void DumpParameters( ExperimentResult result )
         {
             var p = result.Parameters;
 
@@ -186,7 +194,7 @@ namespace TemplateOptimizer
             var p = r.Parameters;
 
             Cell( "distance" );
-            CellsE( "which", p.DistanceTypes.Select( ( distance ) => distance.Type.ToString() + "(" + distance.Processing.ToString() + ")" ) );
+            CellsE( "which", p.DistanceTypes.Select( ( distance ) => distance ) );
             CellsE( "plain", p.DistanceTypes.Select( ( distance ) => (object)r.PlainDistances[distance] ) );
             CellsE( "PCA", p.DistanceTypes.Select( ( distance ) => (object)r.PCADistances[distance] ) );
             for( var run = 0; run < p.DERuns; run++ )
@@ -194,20 +202,23 @@ namespace TemplateOptimizer
                 CellsE( "DE" + run.ToString( "D2" ), p.DistanceTypes.Join( r.DEResults.Where( ( item ) => item.Run == run ), ( distance ) => distance, ( item ) => item.Distance, ( distance, item ) => (object)item.DEDistance ) );
             }
 
+            Cell( "differential evolutions parameters" );
+            CellsVA( "type", "parentWeight", "crossover", "population", "iterations", "distance" );
+            foreach( var de in r.DEResults )
+            {
+                CellsVA( de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance );
+            }
+            CellsVA( "differential evolutions component weights" );
+            int index = 1;
+            foreach( var de in r.DEResults )
+            {
+                CellsE( index.ToString(), de.DEWeights.Components.Cast<object>() );
+                index++;
+            }
+
             /*
-        public PrincipalComponentCollection PCAComponents { get; set; }
+             * public PrincipalComponentCollection PCAComponents { get; set; }
         public Weights PCAWeights { get; set; }
-
-            public int Type { get; private set; }
-            public double Weight { get; private set; }
-            public double Crossover { get; private set; }
-            public int PopulationCount { get; private set; }
-            public int IterationCount { get; private set; }
-            public Distance Distance { get; private set; }
-            public int Run { get; private set; }
-
-            public double DEDistance { get; private set; }
-            public Weights DEWeights { get; private set; }
 
         public Population Population { get; private set; }
         public Population NormalizedPopulation { get; private set; }
