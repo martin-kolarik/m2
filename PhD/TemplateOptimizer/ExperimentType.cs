@@ -10,6 +10,10 @@ namespace TemplateOptimizer
     {
         FewRandomVariablesUnitGainAndVariance = 1,
         FewRandomVariablesVaryingGain = 2,
-        FewRandomVariablesVaryingVariance = 3
+        FewRandomVariablesVaryingVariance = 3,
+
+        SingleAmongManyVaryingGain = 4,
+
+        DEVariants = 5
     }
 }

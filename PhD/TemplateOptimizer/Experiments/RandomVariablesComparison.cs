@@ -6,10 +6,19 @@ using System.Threading.Tasks;
 
 namespace TemplateOptimizer.Experiments
 {
-    static class FewRandomVariables
+    static class RandomVariablesComparison
     {
+        public static bool HasRun
+        {
+            get { return true; }
+        }
+
         public static void Execute( string fileMark, int numberOfVariables, int repeatCount, Distance distance, bool dumpIndividuals = true, bool dumpGrouped = true )
         {
+            if( HasRun )
+            {
+                return;
+            }
             VariablesUnitGainAndVariance( fileMark, numberOfVariables, repeatCount, distance, dumpIndividuals, dumpGrouped );
             VariablesVaryingGain( fileMark, numberOfVariables, repeatCount, distance, dumpIndividuals, dumpGrouped );
             VariablesVaryingVariance( fileMark, numberOfVariables, repeatCount, distance, dumpIndividuals, dumpGrouped );
@@ -29,6 +38,7 @@ namespace TemplateOptimizer.Experiments
                     var parameters = new ExperimentParameters();
                     parameters.DistanceTypes = new Distance[] { distance };
                     parameters.DERuns = 5;
+                    parameters.ComponentCount = numberOfComponents;
                     parameters.Components = new ComponentDefinition[] { new ComponentDefinition( permutation.Item1 ), new ComponentDefinition( permutation.Item2 ) };
 
                     var lrepeat = repeat; // prepare closure
@@ -63,28 +73,9 @@ namespace TemplateOptimizer.Experiments
 
                     index = 1;
                     d.CellsE( "result", results.Select( ( r ) => ( index++ ).ToString() + " " + String.Join( ", ", r.Parameters.Components.Select( ( c ) => c.Type.ToString() ) ) ) );
-                    d.Cell( "distances" );
-                    d.CellsE( "D plain", results.Select( ( r ) => r.PlainDistances.First().Value.ToString() ) );
-                    d.CellsE( "D PCA", results.Select( ( r ) => r.PCADistances.First().Value.ToString() ) );
-                    d.CellsE( "D DE (avg)", results.Select( ( r ) => r.DEResults.Select( ( der ) => der.DEDistance ).Average().ToString() ) );
-                    d.CellsE( "D PCA ratio", results.Select( ( r ) => ( r.PCADistances.First().Value / r.PlainDistances.First().Value ).ToString() ) );
-                    d.CellsE( "D DE (avg) ratio", results.Select( ( r ) => ( r.DEResults.Select( ( der ) => der.DEDistance ).Average() / r.PlainDistances.First().Value ).ToString() ) );
 
-                    d.CellsE( "weights", results.Select( ( r ) =>
-                    {
-                        index = 1;
-                        return String.Join( CS, r.Parameters.Components.Select( ( c ) => c.Type.ToString() + " (" + ( index++ ).ToString() + ")" ) );
-                    } ) );
-                    d.CellsE( "W PCA", results.Select( ( r ) => String.Join( CS, r.PCAWeights.Components ) ) );
-                    var avgWeightsPreResultPerComponent = new List<object>();
-                    foreach( var result in results )
-                    {
-                        for( var component = 0; component < results[0].Parameters.ComponentCount; component++ )
-                        {
-                            avgWeightsPreResultPerComponent.Add( result.DEResults.Select( ( der ) => der.DEWeights[component] ).Average() );
-                        }
-                    }
-                    d.CellsE( "W DE (avg)", avgWeightsPreResultPerComponent );
+                    PrintDistances( d, results );
+                    PrintWeights( d, results );
                 } );
             }
         }
@@ -112,6 +103,7 @@ namespace TemplateOptimizer.Experiments
                         var parameters = new ExperimentParameters();
                         parameters.DistanceTypes = new Distance[] { distance };
                         parameters.DERuns = 5;
+                        parameters.ComponentCount = numberOfComponents;
                         if( permutation.Item1 == ComponentType.RandomWeibull ) // for Weibull/Exponential, E(x) = 1/Lambda so let's invert gain
                         {
                             parameters.Components = new ComponentDefinition[] { new ComponentDefinition( permutation.Item1 ), new ComponentDefinition( permutation.Item2, 1.0 / gain ) };
@@ -165,28 +157,9 @@ namespace TemplateOptimizer.Experiments
                         index = 1;
                         d.CellsE( "result", sorted.Select( ( r ) => ( index++ ).ToString() + " " + String.Join( ", ", r.Parameters.Components.Select( ( c ) => c.Type.ToString() ) ) ) );
                         d.CellsE( "gain", sorted.Select( ( r ) => r.GetAuxiliaryData( "gain" ).ToString() ) );
-                        d.Cell( "distances" );
-                        d.CellsE( "D plain", sorted.Select( ( r ) => r.PlainDistances.First().Value.ToString() ) );
-                        d.CellsE( "D PCA", sorted.Select( ( r ) => r.PCADistances.First().Value.ToString() ) );
-                        d.CellsE( "D DE (avg)", sorted.Select( ( r ) => r.DEResults.Select( ( der ) => der.DEDistance ).Average().ToString() ) );
-                        d.CellsE( "D PCA ratio", sorted.Select( ( r ) => ( r.PCADistances.First().Value / r.PlainDistances.First().Value ).ToString() ) );
-                        d.CellsE( "D DE (avg) ratio", sorted.Select( ( r ) => ( r.DEResults.Select( ( der ) => der.DEDistance ).Average() / r.PlainDistances.First().Value ).ToString() ) );
 
-                        d.CellsE( "weights", results.Select( ( r ) =>
-                        {
-                            index = 1;
-                            return String.Join( CS, r.Parameters.Components.Select( ( c ) => c.Type.ToString() + " (" + ( index++ ).ToString() + ")" ) );
-                        } ) );
-                        d.CellsE( "W PCA", results.Select( ( r ) => String.Join( CS, r.PCAWeights.Components ) ) );
-                        var avgWeightsPreResultPerComponent = new List<object>();
-                        foreach( var result in results )
-                        {
-                            for( var component = 0; component < results[0].Parameters.ComponentCount; component++ )
-                            {
-                                avgWeightsPreResultPerComponent.Add( result.DEResults.Select( ( der ) => der.DEWeights[component] ).Average() );
-                            }
-                        }
-                        d.CellsE( "W DE (avg)", avgWeightsPreResultPerComponent );
+                        PrintDistances( d, sorted );
+                        PrintWeights( d, sorted );
                     } );
                 }
             }
@@ -215,6 +188,7 @@ namespace TemplateOptimizer.Experiments
                         var parameters = new ExperimentParameters();
                         parameters.DistanceTypes = new Distance[] { distance };
                         parameters.DERuns = 5;
+                        parameters.ComponentCount = numberOfComponents;
                         parameters.Components = new ComponentDefinition[] { new ComponentDefinition( permutation.Item1 ), new ComponentDefinition( permutation.Item2, 1.0, variance ) };
 
                         var lrepeat = repeat; // prepare closure
@@ -261,31 +235,44 @@ namespace TemplateOptimizer.Experiments
                         index = 1;
                         d.CellsE( "result", sorted.Select( ( r ) => ( index++ ).ToString() + " " + String.Join( ", ", r.Parameters.Components.Select( ( c ) => c.Type.ToString() ) ) ) );
                         d.CellsE( "variance", sorted.Select( ( r ) => r.GetAuxiliaryData( "variance" ).ToString() ) );
-                        d.Cell( "distances" );
-                        d.CellsE( "D plain", sorted.Select( ( r ) => r.PlainDistances.First().Value.ToString() ) );
-                        d.CellsE( "D PCA", sorted.Select( ( r ) => r.PCADistances.First().Value.ToString() ) );
-                        d.CellsE( "D DE (avg)", sorted.Select( ( r ) => r.DEResults.Select( ( der ) => der.DEDistance ).Average().ToString() ) );
-                        d.CellsE( "D PCA ratio", sorted.Select( ( r ) => ( r.PCADistances.First().Value / r.PlainDistances.First().Value ).ToString() ) );
-                        d.CellsE( "D DE (avg) ratio", sorted.Select( ( r ) => ( r.DEResults.Select( ( der ) => der.DEDistance ).Average() / r.PlainDistances.First().Value ).ToString() ) );
 
-                        d.CellsE( "weights", results.Select( ( r ) =>
-                        {
-                            index = 1;
-                            return String.Join( CS, r.Parameters.Components.Select( ( c ) => c.Type.ToString() + " (" + ( index++ ).ToString() + ")" ) );
-                        } ) );
-                        d.CellsE( "W PCA", results.Select( ( r ) => String.Join( CS, r.PCAWeights.Components ) ) );
-                        var avgWeightsPreResultPerComponent = new List<object>();
-                        foreach( var result in results )
-                        {
-                            for( var component = 0; component < results[0].Parameters.ComponentCount; component++ )
-                            {
-                                avgWeightsPreResultPerComponent.Add( result.DEResults.Select( ( der ) => der.DEWeights[component] ).Average() );
-                            }
-                        }
-                        d.CellsE( "W DE (avg)", avgWeightsPreResultPerComponent );
+                        PrintDistances( d, sorted );
+                        PrintWeights( d, sorted );
                     } );
                 }
             }
+        }
+
+        private static void PrintDistances( CSVDumper.CSVParticularResultDumper d, IEnumerable<ExperimentResult> results )
+        {
+            d.Cell( "distances" );
+            d.CellsE( "D plain", results.Select( ( r ) => r.PlainDistances.First().Value.ToString() ) );
+            d.CellsE( "D PCA", results.Select( ( r ) => r.PCADistances.First().Value.ToString() ) );
+            d.CellsE( "D DE (avg)", results.Select( ( r ) => r.DEResults.Select( ( der ) => der.DEDistance ).Average().ToString() ) );
+            d.CellsE( "D PCA ratio", results.Select( ( r ) => ( r.PCADistances.First().Value / r.PlainDistances.First().Value ).ToString() ) );
+            d.CellsE( "D DE (avg) ratio", results.Select( ( r ) => ( r.DEResults.Select( ( der ) => der.DEDistance ).Average() / r.PlainDistances.First().Value ).ToString() ) );
+        }
+
+        private static void PrintWeights( CSVDumper.CSVParticularResultDumper d, IEnumerable<ExperimentResult> results )
+        {
+            int index;
+            var CS = d.CellSeparator;
+
+            d.CellsE( "weights", results.Select( ( r ) =>
+            {
+                index = 1;
+                return String.Join( CS, r.Parameters.Components.Select( ( c ) => c.Type.ToString() + " (" + ( index++ ).ToString() + ")" ) );
+            } ) );
+            d.CellsE( "W PCA", results.Select( ( r ) => String.Join( CS, r.PCAWeights.Components ) ) );
+            var avgWeightsPreResultPerComponent = new List<object>();
+            foreach( var result in results )
+            {
+                for( var component = 0; component < results.First().Parameters.ComponentCount; component++ )
+                {
+                    avgWeightsPreResultPerComponent.Add( result.DEResults.Select( ( der ) => der.DEWeights[component] ).Average() );
+                }
+            }
+            d.CellsE( "W DE (avg)", avgWeightsPreResultPerComponent );
         }
     }
 }

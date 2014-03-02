@@ -18,6 +18,11 @@ namespace TemplateOptimizer
                 this.dumper = dumper;
             }
 
+            public string CellSeparator
+            {
+                get { return dumper.CellSeparator; }
+            }
+
             public void DumpParameters( ExperimentResult result )
             {
                 dumper.DumpParameters( result );
@@ -145,7 +150,7 @@ namespace TemplateOptimizer
 
         private void CreateFile( string fileMark, ExperimentType type )
         {
-            string name = DateTime.Now.ToString( "EXP[" + fileMark + "]yyyyMMdd" ) + ( (int)type ).ToString( "D2" );
+            string name = "EXP[" + fileMark + "][" + ( (int)type ).ToString( "D2" ) + "]" + DateTime.Now.ToString( "yyyyMMdd" );
             string path;
 
             lock( fileLock )
@@ -202,6 +207,9 @@ namespace TemplateOptimizer
                 CellsE( "DE" + run.ToString( "D2" ), p.DistanceTypes.Join( r.DEResults.Where( ( item ) => item.Run == run ), ( distance ) => distance, ( item ) => item.Distance, ( distance, item ) => (object)item.DEDistance ) );
             }
 
+            CellsVA( "PCA weights" );
+            CellsE( "weights", r.PCAWeights.Components.Cast<object>() );
+
             Cell( "differential evolutions parameters" );
             CellsVA( "type", "parentWeight", "crossover", "population", "iterations", "distance" );
             foreach( var de in r.DEResults )
@@ -217,9 +225,6 @@ namespace TemplateOptimizer
             }
 
             /*
-             * public PrincipalComponentCollection PCAComponents { get; set; }
-        public Weights PCAWeights { get; set; }
-
         public Population Population { get; private set; }
         public Population NormalizedPopulation { get; private set; }
              * */

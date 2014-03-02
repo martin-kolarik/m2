@@ -17,6 +17,20 @@ namespace TemplateOptimizer
             MinimumTimesMedian
         }
 
+        public static string DistanceProcessingAbbreviation( DistanceProcessing dp )
+        {
+            switch( dp )
+            {
+                case Population.DistanceProcessing.Average: return "a";
+                case Population.DistanceProcessing.GeometricAverage: return "g";
+                case Population.DistanceProcessing.Median: return "x";
+                case Population.DistanceProcessing.Minimum: return "m";
+                case Population.DistanceProcessing.MinimumTimesMedian: return "t";
+                case Population.DistanceProcessing.Summation: return "s";
+            }
+            return String.Empty;
+        }
+
         public enum NormalizationType
         {
             None,

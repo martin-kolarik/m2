@@ -54,7 +54,9 @@
     <Compile Include="Executor.cs" />
     <Compile Include="Experiment.cs" />
     <Compile Include="ExperimentParameters.cs" />
-    <Compile Include="Experiments\FewRandomVariables.cs" />
+    <Compile Include="Experiments\DEExamination.cs" />
+    <Compile Include="Experiments\ManyRandomVariables.cs" />
+    <Compile Include="Experiments\RandomVariablesComparison.cs" />
     <Compile Include="ExperimentType.cs" />
     <Compile Include="PCAAdapter.cs" />
     <Compile Include="Program.cs" />

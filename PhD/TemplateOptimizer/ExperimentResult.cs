@@ -58,7 +58,10 @@ namespace TemplateOptimizer
         public Dictionary<Distance, double> PlainDistances { get; private set; }
         public void AddPlainDistance( Distance distance, double value )
         {
-            PlainDistances[distance] = value;
+            lock( this )
+            {
+                PlainDistances[distance] = value;
+            }
         }
 
         // PCA
@@ -67,21 +70,30 @@ namespace TemplateOptimizer
         public Dictionary<Distance, double> PCADistances { get; private set; }
         public void AddPCADistance( Distance distance, double value )
         {
-            PCADistances[distance] = value;
+            lock( this )
+            {
+                PCADistances[distance] = value;
+            }
         }
 
         // DE
         public List<DEResult> DEResults { get; private set; }
         public void AddDEResult( DEResult result )
         {
-            DEResults.Add( result );
+            lock( this )
+            {
+                DEResults.Add( result );
+            }
         }
 
         // user data
         private Dictionary<string, object> auxiliaryData = new Dictionary<string, object>();
         public void SetAuxiliaryData( string key, object value )
         {
-            auxiliaryData[key] = value;
+            lock( this )
+            {
+                auxiliaryData[key] = value;
+            }
         }
 
         public object GetAuxiliaryData( string key )

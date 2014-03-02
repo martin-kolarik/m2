@@ -130,9 +130,10 @@ namespace TemplateOptimizer
             {
                 return new ComponentDefinition( ComponentType.RandomNormal, 0, 1 );
             }
-            else if( index >= Parameters.ComponentCount )
+            var lastDefined = Parameters.Components.Length-1;
+            if( index > lastDefined )
             {
-                return Parameters.Components[Parameters.ComponentCount-1];
+                return Parameters.Components[lastDefined];
             }
             else
             {

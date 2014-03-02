@@ -25,32 +25,28 @@ namespace TemplateOptimizer
         static void Experiments()
         {
             ExperimentsFewRandomVariables();
+            ExperimentsManyRandomVariables();
         }
 
         static void ExperimentsFewRandomVariables()
         {
-            foreach( Template.DistanceType dt in typeof( Template.DistanceType ).GetEnumValues() )
+            foreach( var distance in Distance.Permutation )
             {
-                string sdt = dt == Template.DistanceType.Euclidean ? "e" : "m";
-
-                foreach( Population.DistanceProcessing dp in typeof( Population.DistanceProcessing ).GetEnumValues() )
+                string sdt = distance.Type == Template.DistanceType.Euclidean ? "e" : "m";
+                string sdp = Population.DistanceProcessingAbbreviation( distance.Processing );
+                for( var count = 2; count <= 4; count++ )
                 {
-                    string sdp = "";
-                    switch( dp )
-                    {
-                        case Population.DistanceProcessing.Average: sdp = "a"; break;
-                        case Population.DistanceProcessing.GeometricAverage: sdp = "g"; break;
-                        case Population.DistanceProcessing.Median: sdp = "x"; break;
-                        case Population.DistanceProcessing.Minimum: sdp = "m"; break;
-                        case Population.DistanceProcessing.MinimumTimesMedian: sdp = "t"; break;
-                        case Population.DistanceProcessing.Summation: sdp = "s"; break;
-                    }
-
-                    for( var count = 2; count <= 4; count++ )
-                    {
-                        FewRandomVariables.Execute( count.ToString() + sdt + sdp, count, 10, new Distance( dt, dp ), false );
-                    }
+                    RandomVariablesComparison.Execute( count.ToString() + sdt + sdp, count, 10, distance, false );
                 }
+            }
+        }
+
+        static void ExperimentsManyRandomVariables()
+        {
+            var counts = new int[] { 2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86, 90 };
+            foreach( var count in counts )
+            {
+                ManyRandomVariables.Execute( count.ToString() + "many", count, 10, false );
             }
         }
 

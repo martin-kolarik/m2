@@ -44,7 +44,7 @@ namespace TemplateOptimizer
 
         public int PopulationCount { get; set; }
 
-        public int ComponentCount { get { return Components == null ? 0 : Components.Length; } }
+        public int ComponentCount { get; set; }
 
         public Population.NormalizationType Normalization { get; set; }
 

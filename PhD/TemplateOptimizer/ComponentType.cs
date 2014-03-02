@@ -34,5 +34,10 @@ namespace TemplateOptimizer
                     new Tuple<ComponentType, ComponentType>( ComponentType.RandomWeibull, ComponentType.RandomWeibull )
                 };
         }
+
+        public static string ToString( this Tuple<ComponentType, ComponentType> permutation )
+        {
+            return permutation.Item1.ToString() + "×" + permutation.Item2.ToString();
+        }
     }
 }
