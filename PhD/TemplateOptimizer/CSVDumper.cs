@@ -50,7 +50,7 @@ namespace TemplateOptimizer
         }
 
         private ExperimentResult result;
-        private object fileLock = new Object();
+        private static object fileLock = new Object();
         private int counter = 1;
         private StreamWriter writer;
 
@@ -181,54 +181,64 @@ namespace TemplateOptimizer
 
         private void DumpParameters( ExperimentResult result )
         {
+            var CS = CellSeparator;
+            var CS8 = CS + CS + CS + CS + CS + CS + CS + CS;
             var p = result.Parameters;
 
             Cell( "normalization", p.Normalization );
             Cell( "pcaRecompositionThreshold", p.PCARecompositionThreshold );
 
             int index = 1;
-            CellsE( "component", p.Components.Select( ( definition ) => (object)index++ ) );
-            CellsE( "type", p.Components.Select( ( definition ) => definition.Type.ToString() ) );
-            CellsE( "p1", p.Components.Select( ( definition ) => definition.Item2.ToString() ) );
-            CellsE( "p2", p.Components.Select( ( definition ) => definition.Item3.ToString() ) );
+            CellsE( "component" + CS8, p.Components.Select( ( definition ) => (object)index++ ) );
+            CellsE( "type" + CS8, p.Components.Select( ( definition ) => definition.Type.ToString() ) );
+            CellsE( "p1" + CS8, p.Components.Select( ( definition ) => definition.Item2.ToString() ) );
+            CellsE( "p2" + CS8, p.Components.Select( ( definition ) => definition.Item3.ToString() ) );
         }
 
         private void DumpCommon()
         {
+            var CS = CellSeparator;
+            var CS8 = CS + CS + CS + CS + CS + CS + CS + CS;
             var r = result;
             var p = r.Parameters;
 
             Cell( "distance" );
             CellsE( "which", p.DistanceTypes.Select( ( distance ) => distance ) );
-            CellsE( "plain", p.DistanceTypes.Select( ( distance ) => (object)r.PlainDistances[distance] ) );
-            CellsE( "PCA", p.DistanceTypes.Select( ( distance ) => (object)r.PCADistances[distance] ) );
-            for( var run = 0; run < p.DERuns; run++ )
-            {
-                CellsE( "DE" + run.ToString( "D2" ), p.DistanceTypes.Join( r.DEResults.Where( ( item ) => item.Run == run ), ( distance ) => distance, ( item ) => item.Distance, ( distance, item ) => (object)item.DEDistance ) );
-            }
+            CellsE( "plain", p.DistanceTypes.Select( ( distance ) => r.PlainDistances[distance].ToString( "G5" ) ) );
+            CellsE( "PCA", p.DistanceTypes.Select( ( distance ) => r.PCADistances[distance].ToString( "G5" ) ) );
 
-            CellsVA( "PCA weights" );
-            CellsE( "weights", r.PCAWeights.Components.Cast<object>() );
+            CellsVA( "PCA" );
+            CellsE( "weights" + CS8, r.PCAWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
 
-            Cell( "differential evolutions parameters" );
-            CellsVA( "type", "parentWeight", "crossover", "population", "iterations", "distance" );
-            foreach( var de in r.DEResults )
-            {
-                CellsVA( de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance );
-            }
-            CellsVA( "differential evolutions component weights" );
+            Cell( "differential evolutions parameters, by distance type" );
+            CellsVA( "i", "dDE / dP", "distance", "type", "parentWeight", "crossover", "population", "iterations", "distance", "weights ->" );
             int index = 1;
-            foreach( var de in r.DEResults )
+            foreach( var de in r.DEResults.OrderBy( ( der ) => 100 * ( (int)der.Distance.Type ) + ( (int)der.Distance.Processing ) ) )
             {
-                CellsE( index.ToString(), de.DEWeights.Components.Cast<object>() );
-                index++;
+                CellsE( String.Join( CS, index++, ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
+                        de.DEWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
+            }
+            Cell( "differential evolutions parameters, by distance" );
+            CellsVA( "i", "dDE / dP", "distance", "type", "parentWeight", "crossover", "population", "iterations", "distance",  "weights ->" );
+            index = 1;
+            foreach( var de in r.DEResults.OrderBy( ( der ) => der.DEDistance / r.PlainDistances[der.Distance] ) )
+            {
+                CellsE( String.Join( CS, index++, ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
+                        de.DEWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
             }
 
-            /*
-        public Population Population { get; private set; }
-        public Population NormalizedPopulation { get; private set; }
-             * */
-
+            Cell( "population" );
+            index = 1;
+            foreach( var ind in r.Population.Templates )
+            {
+                CellsE( ( index++ ).ToString(), ind.Components.Select( ( i ) => i.ToString( "G5" ) ) );
+            }
+            Cell( "normalized population" );
+            index = 1;
+            foreach( var ind in r.NormalizedPopulation.Templates )
+            {
+                CellsE( ( index++ ).ToString(), ind.Components.Select( ( i ) => i.ToString( "G5" ) ) );
+            }
         }
     }
 }

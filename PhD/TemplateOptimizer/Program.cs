@@ -26,6 +26,7 @@ namespace TemplateOptimizer
         {
             ExperimentsFewRandomVariables();
             ExperimentsManyRandomVariables();
+            ExperimentsDEVariants();
         }
 
         static void ExperimentsFewRandomVariables()
@@ -43,10 +44,23 @@ namespace TemplateOptimizer
 
         static void ExperimentsManyRandomVariables()
         {
-            var counts = new int[] { 2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86, 90 };
+            var counts = new int[] { 2, 6, 12, 24, 48, 72, 96 };
             foreach( var count in counts )
             {
-                ManyRandomVariables.Execute( count.ToString() + "many", count, 10, false );
+                ManyRandomVariables.Execute( count.ToString() + "many", count, 1 );
+            }
+        }
+
+        static void ExperimentsDEVariants()
+        {
+            var components = new int[] { 15, 30, 90, 120 };
+            var populations = new int[] { 15, 30, 90 };
+            foreach( var c1 in components )
+            {
+                foreach( var c2 in populations )
+                {
+                    DEExamination.Execute( c1.ToString() + c2.ToString() + "de", c1, c2, DEExamination.Variant.BestAfterOmitBadsLinearyCombined, true, false );
+                }
             }
         }
 

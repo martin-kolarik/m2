@@ -9,12 +9,12 @@ namespace TemplateOptimizer
     {
         public enum DistanceProcessing
         {
-            Summation,
             Average,
             GeometricAverage,
             Minimum,
             Median,
-            MinimumTimesMedian
+            MinimumTimesMedian,
+            Summation
         }
 
         public static string DistanceProcessingAbbreviation( DistanceProcessing dp )

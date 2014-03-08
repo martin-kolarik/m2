@@ -11,14 +11,21 @@ namespace TemplateOptimizer
     class Experiment
     {
         // private
-        private Population Population;
-        private ExperimentParameters Parameters;
         private Population NormalizedPopulation;
 
         public Experiment( ExperimentParameters parameters = null, Population population = null )
         {
             Parameters = parameters != null ? parameters : new ExperimentParameters();
-            Population = population != null ? population : new PopulationCreator( Parameters.PopulationCount, Parameters.ComponentCount, ( i ) => GetComponent( i ) ).Populate();
+            Population = population != null ? population : Populate( Parameters );
+        }
+
+        public ExperimentParameters Parameters { get; private set; }
+
+        public Population Population { get; private set; }
+
+        public static Population Populate( ExperimentParameters parameters )
+        {
+            return new PopulationCreator( parameters.PopulationCount, parameters.ComponentCount, ( i ) => GetComponent( parameters, i ) ).Populate();
         }
 
         // executive methods
@@ -43,19 +50,19 @@ namespace TemplateOptimizer
 
         private void RunPlain( ExperimentResult result )
         {
-            var plainWeights = Weights.Uniform( Population.ComponentCount );
+            var plainWeights = Weights.Uniform( NormalizedPopulation.ComponentCount );
             foreach( var distanceType in Parameters.DistanceTypes )
             {
-                result.AddPlainDistance( distanceType, Population.Distance( distanceType, plainWeights ));
+                result.AddPlainDistance( distanceType, NormalizedPopulation.Distance( distanceType, plainWeights ) );
             }
         }
 
         private void RunPCA( ExperimentResult result )
         {
-            var pca = new PrincipalComponentAnalysis( new PCAAdapter( Population ).Table );
+            var pca = new PrincipalComponentAnalysis( new PCAAdapter( NormalizedPopulation ).Table );
             pca.Compute();
 
-            var weights = new Weights( Population.ComponentCount );
+            var weights = new Weights( NormalizedPopulation.ComponentCount );
             foreach( var component in pca.Components )
             {
                 for( var i = 0; i < component.Eigenvector.Count(); i++ )
@@ -71,7 +78,7 @@ namespace TemplateOptimizer
             result.PCAWeights = weights.Weigh();
             foreach( var distanceType in Parameters.DistanceTypes )
             {
-                result.AddPCADistance( distanceType, Population.Distance( distanceType, result.PCAWeights ) );
+                result.AddPCADistance( distanceType, NormalizedPopulation.Distance( distanceType, result.PCAWeights ) );
             }
         }
 
@@ -113,7 +120,7 @@ namespace TemplateOptimizer
 
         private void RunDE( ExperimentResult result, int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance, int run )
         {
-            var deAdapter = new DEAdapter( Population, deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distance );
+            var deAdapter = new DEAdapter( NormalizedPopulation, deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distance );
             var de = new DE.DifferentialEvolution( deAdapter.Objective );
 
             var deOutput = de.Optimizer( deAdapter.InputStructure );
@@ -124,20 +131,20 @@ namespace TemplateOptimizer
         }
 
         // helpers
-        private ComponentDefinition GetComponent( int index )
+        private static ComponentDefinition GetComponent( ExperimentParameters parameters, int index )
         {
-            if( Parameters.Components == null || Parameters.ComponentCount == 0 )
+            if( parameters.Components == null || parameters.ComponentCount == 0 )
             {
                 return new ComponentDefinition( ComponentType.RandomNormal, 0, 1 );
             }
-            var lastDefined = Parameters.Components.Length-1;
+            var lastDefined = parameters.Components.Length-1;
             if( index > lastDefined )
             {
-                return Parameters.Components[lastDefined];
+                return parameters.Components[lastDefined];
             }
             else
             {
-                return Parameters.Components[index];
+                return parameters.Components[index];
             }
         }
     }
