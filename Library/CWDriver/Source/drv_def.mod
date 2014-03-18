@@ -155,7 +155,7 @@ BEGIN
       IF l = 0 THEN
          DrvValue.ValDriverStringCharLength := 0;
       ELSIF ( l > DrvValue.ValDriverStringCharLength ) AND NOT TrimFlag THEN
-         DrvValue.ValDriverStringCharLength := l;
+         DrvValue.ValDriverStringCharLength := ((l >> 5) + 1) << 5; // it fixes bug in CW -- CW uses (l + 31) >> 5 << 5, which does not round value up for any multiple of 32 (so it loops infinitely)
          DrvValue.ValDriverStringAddress := NIL;
          RETURN FALSE;
       ELSIF DrvValueUFlag THEN
