@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{8995D229-D00F-4F29-B235-14249D391D21}</ProjectGuid>
+    <RootNamespace>m2rtl</RootNamespace>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>11.0.61030.0</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>~$(Configuration)\</OutDir>
+    <IntDir>~Build\</IntDir>
+    <NMakeBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
+    <NMakeOutput />
+    <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>..\$(Configuration)\</OutDir>
+    <IntDir>..\__interm\</IntDir>
+    <NMakeBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean</NMakeCleanCommandLine>
+    <NMakeOutput />
+    <NMakePreprocessorDefinitions>WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <BuildLog>
+      <Path>$(OutDir)BuildLog.htm</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="Source\debug.mod" />
+    <None Include="Source\delegate.mod" />
+    <None Include="Source\Exceptions.mod" />
+    <None Include="Source\FIO.mod" />
+    <None Include="Source\iobject.mod" />
+    <None Include="Source\languages.mod" />
+    <None Include="Source\log.mod" />
+    <None Include="Source\lrconv.mod" />
+    <None Include="Source\Storage.mod" />
+    <None Include="Source\Strings.mod" />
+    <None Include="Source\sync.mod" />
+    <None Include="Source\syncqueue.mod" />
+    <None Include="Source\time.mod" />
+    <None Include="Source\timeWin32.mod" />
+    <None Include="Source\debug.def" />
+    <None Include="Source\delegate.def" />
+    <None Include="Source\Exceptions.def" />
+    <None Include="Source\FIO.def" />
+    <None Include="Source\iobject.def" />
+    <None Include="Source\languages.def" />
+    <None Include="Source\log.def" />
+    <None Include="Source\lrconv.def" />
+    <None Include="Source\Storage.def" />
+    <None Include="Source\Strings.def" />
+    <None Include="Source\sync.def" />
+    <None Include="Source\syncqueue.def" />
+    <None Include="Source\time.def" />
+    <None Include="Source\timeWin32.def" />
+    <None Include="Test\lrconvround.mod" />
+    <None Include="Test\lrconvspeed.mod" />
+    <None Include="Test\Match.mod" />
+    <None Include="Test\Merge.mod" />
+    <None Include="Test\RingBuffer.mod" />
+    <None Include="Test\RingBufferPeek.mod" />
+    <None Include="Test\StringReplaceInsert.mod" />
+    <None Include="Test\StringsProc.mod" />
+    <None Include="Test\TASSERT.mod" />
+    <None Include="Test\TDatagramQueue.mod" />
+    <None Include="Test\timetest.mod" />
+    <None Include="Test\TIntegerQueue.mod" />
+    <None Include="Test\ToLONGREAL.mod" />
+    <None Include="Test\ToWStream.mod" />
+    <None Include="Test\TQuadwordQueue.mod" />
+    <None Include="Test\TRWLock.mod" />
+    <None Include="Test\TStringReplaceCharacters.mod" />
+    <None Include="m2rtl.proj" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
