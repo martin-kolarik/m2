@@ -18,7 +18,9 @@ namespace TemplateOptimizer.Experiments
             BruteForce,
             OmitBads,
             BestAfterOmitBadsRandom,
-            BestAfterOmitBadsLinearyCombined
+            BestAfterOmitBadsLinearyCombined,
+            BestAfterOmitBadsLinearyCombinedAllDistances,
+            BestAfterOmitBadsLinearyCombinedAllDistancesMoreDERuns
         }
 
         public static void Execute( string fileMark, int numberOfVariables, int populationSize, Variant variant, bool dumpIndividuals = true, bool dumpGrouped = true )
@@ -41,7 +43,18 @@ namespace TemplateOptimizer.Experiments
             parameters.ComponentCount = numberOfComponents;
             parameters.PopulationCount = populationSize;
 
-            if( variant == Variant.BestAfterOmitBadsLinearyCombined )
+            if( variant == Variant.BestAfterOmitBadsLinearyCombinedAllDistances ||
+                variant == Variant.BestAfterOmitBadsLinearyCombinedAllDistancesMoreDERuns )
+            {
+                parameters.DistanceTypes = Distance.Permutation;
+                parameters.DETypes = new int[] { 3 };
+                parameters.DECrossoverProbabilities = new double[] { numberOfComponents < 60 ? 0.25 : 0.5 };
+                parameters.DEWeights = new double[] { 1.0 };
+                parameters.DEPopulationCounts = new int[] { 150 };
+                parameters.DEIterationCounts = new int[] { 175 };
+                parameters.DERuns = variant == Variant.BestAfterOmitBadsLinearyCombinedAllDistancesMoreDERuns ? 10 : 3;
+            }
+            else if( variant == Variant.BestAfterOmitBadsLinearyCombined )
             {
                 parameters.DistanceTypes = new Distance[] { new Distance( Population.DistanceProcessing.MinimumTimesMedian ) };
                 parameters.DETypes = new int[] { 3 };
@@ -87,7 +100,9 @@ namespace TemplateOptimizer.Experiments
             }
 
             Population population = null;
-            if( variant == Variant.BestAfterOmitBadsLinearyCombined || variant == Variant.BestAfterOmitBadsRandom )
+            if( variant == Variant.BestAfterOmitBadsLinearyCombinedAllDistances ||
+                variant == Variant.BestAfterOmitBadsLinearyCombined ||
+                variant == Variant.BestAfterOmitBadsRandom )
             {
                 var cn15 = new ComponentDefinition( ComponentType.RandomNormal, 0.0, 15.0 );
                 var cn10 = new ComponentDefinition( ComponentType.RandomNormal, 0.0, 10.0 );
@@ -135,6 +150,8 @@ namespace TemplateOptimizer.Experiments
                 new ComponentDefinition( ComponentType.RandomNormal ) };
             }
 
+            var experimentType = variant == Variant.BestAfterOmitBadsLinearyCombinedAllDistances || variant == Variant.BestAfterOmitBadsLinearyCombinedAllDistancesMoreDERuns ? ExperimentType.DEVariantsOfDistances : ExperimentType.DEVariants;
+
             new Experiment( parameters, population ).Run( ( result ) =>
             {
                 results.Add( result );
@@ -143,7 +160,7 @@ namespace TemplateOptimizer.Experiments
                     result.SetAuxiliaryData( "id", id++ );
 
                     dumper = new CSVDumper( result );
-                    dumper.Dump( "i" + fileMark, "Differential evolution variants", "", ExperimentType.DEVariants, true, true, ( d ) => d.Cell( "id", id ) );
+                    dumper.Dump( "i" + fileMark, "Differential evolution variants", "", experimentType, true, true, ( d ) => d.Cell( "id", id ) );
                 }
             } );
             Experiment.Complete();
@@ -151,7 +168,7 @@ namespace TemplateOptimizer.Experiments
             if( dumpGrouped )
             {
                 dumper = new CSVDumper();
-                dumper.Dump( "g" + fileMark, "Ordered by maximal distances", "", ExperimentType.DEVariants, false, false, ( d ) =>
+                dumper.Dump( "g" + fileMark, "Ordered by maximal distances", "", experimentType, false, false, ( d ) =>
                 {
                     // sorted
                     d.CellsE( "by weight", results.OrderBy( ( r ) => r.DEResults.Max( ( der ) => der.DEDistance ) ).Select( ( r ) => r.GetAuxiliaryData( "id" ) ) );

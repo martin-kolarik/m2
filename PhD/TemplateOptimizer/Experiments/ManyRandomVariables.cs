@@ -13,18 +13,24 @@ namespace TemplateOptimizer.Experiments
             get { return true; }
         }
 
-        public static void Execute( string fileMark, int numberOfVariables, int repeatCount, bool dumpIndividuals = true, bool dumpGrouped = true )
+        public enum Variant
+        {
+            All,
+            Optimized
+        }
+
+        public static void Execute( string fileMark, Variant variant, int numberOfVariables, int repeatCount, bool dumpIndividuals = true, bool dumpGrouped = true )
         {
             if( HasRun )
             {
                 return;
             }
 
-            SingleAmongMany( fileMark, numberOfVariables, repeatCount, dumpIndividuals, dumpGrouped );
-            HalfOfType( fileMark, numberOfVariables, repeatCount, dumpIndividuals, dumpGrouped );
+            SingleAmongMany( fileMark, variant, numberOfVariables, repeatCount, dumpIndividuals, dumpGrouped );
+            HalfOfType( fileMark, variant, numberOfVariables, repeatCount, dumpIndividuals, dumpGrouped );
         }
 
-        private static void SingleAmongMany( string fileMark, int numberOfComponents, int repeatCount, bool dumpInvidivuals = true, bool dumpGrouped = true )
+        private static void SingleAmongMany( string fileMark, Variant variant, int numberOfComponents, int repeatCount, bool dumpInvidivuals = true, bool dumpGrouped = true )
         {
             // variables, permutted types, scaled values
             CSVDumper dumper;
@@ -36,13 +42,27 @@ namespace TemplateOptimizer.Experiments
                 for( var repeat = 0; repeat < repeatCount; repeat++ )
                 {
                     var gain = 1.0;
-                    while( gain <= 130.0 )
+                    while( gain <= (variant == Variant.All ? 130.0 : 10.0 ))
                     {
                         var parameters = new ExperimentParameters();
-                        parameters.DistanceTypes = Distance.Permutation;
-                        parameters.DERuns = 3;
                         parameters.ComponentCount = numberOfComponents;
-                        parameters.Normalization = Population.NormalizationType.Center; 
+                        parameters.Normalization = Population.NormalizationType.Center;
+
+                        if( variant == Variant.All )
+                        {
+                            parameters.DistanceTypes = Distance.Permutation;
+                            parameters.DERuns = 3;
+                        }
+                        else
+                        {
+                            parameters.DistanceTypes = new Distance[] { new Distance( Population.DistanceProcessing.MinimumTimesMedian ) };
+                            parameters.DETypes = new int[] { 3 };
+                            parameters.DECrossoverProbabilities = new double[] { numberOfComponents < 60 ? 0.25 : 0.5 };
+                            parameters.DEWeights = new double[] { 1.0 };
+                            parameters.DEPopulationCounts = new int[] { 150 };
+                            parameters.DEIterationCounts = new int[] { 175 };
+                            parameters.DERuns = 5;
+                        }
 
                         ComponentDefinition c1;
                         // adjust what is needed according to component type
@@ -84,29 +104,32 @@ namespace TemplateOptimizer.Experiments
                             }
                         } );
 
-                        parameters = new ExperimentParameters();
-                        parameters.DistanceTypes = Distance.Permutation;
-                        parameters.DERuns = 3;
-                        parameters.ComponentCount = numberOfComponents;
-                        parameters.Normalization = Population.NormalizationType.Standard;
-                        parameters.Components = definitions;
-                        new Experiment( parameters, experiment.Population ).Run( ( result ) =>
+                        if( variant == Variant.All )
                         {
-                            result.SetAuxiliaryData( "permutation", lpermutation );
-                            result.SetAuxiliaryData( "repeat", lrepeat );
-                            result.SetAuxiliaryData( "gain", lgain );
-                            results.Add( result );
-
-                            if( dumpInvidivuals )
+                            parameters = new ExperimentParameters();
+                            parameters.DistanceTypes = Distance.Permutation;
+                            parameters.DERuns = 3;
+                            parameters.ComponentCount = numberOfComponents;
+                            parameters.Normalization = Population.NormalizationType.Standard;
+                            parameters.Components = definitions;
+                            new Experiment( parameters, experiment.Population ).Run( ( result ) =>
                             {
-                                dumper = new CSVDumper( result );
-                                dumper.Dump( "i" + fileMark, numberOfComponents.ToString() + " random variables, variable gain", "", ExperimentType.SingleAmongManyVaryingGain, true, true, ( d ) =>
+                                result.SetAuxiliaryData( "permutation", lpermutation );
+                                result.SetAuxiliaryData( "repeat", lrepeat );
+                                result.SetAuxiliaryData( "gain", lgain );
+                                results.Add( result );
+
+                                if( dumpInvidivuals )
                                 {
-                                    d.Cell( "GAIN" );
-                                    d.Cell( lgain.ToString( "G2" ) );
-                                } );
-                            }
-                        } );
+                                    dumper = new CSVDumper( result );
+                                    dumper.Dump( "i" + fileMark, numberOfComponents.ToString() + " random variables, variable gain", "", ExperimentType.SingleAmongManyVaryingGain, true, true, ( d ) =>
+                                    {
+                                        d.Cell( "GAIN" );
+                                        d.Cell( lgain.ToString( "G2" ) );
+                                    } );
+                                }
+                            } );
+                        }
 
                         gain *= coefficient;
                     }
@@ -133,7 +156,7 @@ namespace TemplateOptimizer.Experiments
             }
         }
 
-        private static void HalfOfType( string fileMark, int numberOfComponents, int repeatCount, bool dumpInvidivuals = true, bool dumpGrouped = true )
+        private static void HalfOfType( string fileMark, Variant variant, int numberOfComponents, int repeatCount, bool dumpInvidivuals = true, bool dumpGrouped = true )
         {
             // variables, permutted types, scaled values
             CSVDumper dumper;
@@ -145,12 +168,27 @@ namespace TemplateOptimizer.Experiments
                 for( var repeat = 0; repeat < repeatCount; repeat++ )
                 {
                     var gain = 1.0;
-                    while( gain <= 130 )
+                    while( gain <= ( variant == Variant.All ? 130.0 : 10.0 ) )
                     {
                         var parameters = new ExperimentParameters();
-                        parameters.DistanceTypes = Distance.Permutation;
-                        parameters.DERuns = 3;
+                        parameters.Normalization = Population.NormalizationType.Center;
                         parameters.ComponentCount = numberOfComponents;
+
+                        if( variant == Variant.All )
+                        {
+                            parameters.DistanceTypes = Distance.Permutation;
+                            parameters.DERuns = 3;
+                        }
+                        else
+                        {
+                            parameters.DistanceTypes = new Distance[] { new Distance( Population.DistanceProcessing.MinimumTimesMedian ) };
+                            parameters.DETypes = new int[] { 3 };
+                            parameters.DECrossoverProbabilities = new double[] { numberOfComponents < 60 ? 0.25 : 0.5 };
+                            parameters.DEWeights = new double[] { 1.0 };
+                            parameters.DEPopulationCounts = new int[] { 150 };
+                            parameters.DEIterationCounts = new int[] { 175 };
+                            parameters.DERuns = 5;
+                        }
 
                         // first half is filled with the same definition, second half is filled only once and then mechanism using the last defined
                         // component (when populating a population) is left to work
@@ -200,29 +238,32 @@ namespace TemplateOptimizer.Experiments
                             }
                         } );
 
-                        parameters = new ExperimentParameters();
-                        parameters.DistanceTypes = Distance.Permutation;
-                        parameters.DERuns = 3;
-                        parameters.ComponentCount = numberOfComponents;
-                        parameters.Normalization = Population.NormalizationType.Standard;
-                        parameters.Components = definitions;
-                        new Experiment( parameters, experiment.Population ).Run( ( result ) =>
+                        if( variant == Variant.All )
                         {
-                            result.SetAuxiliaryData( "permutation", lpermutation );
-                            result.SetAuxiliaryData( "repeat", lrepeat );
-                            result.SetAuxiliaryData( "gain", lgain );
-                            results.Add( result );
-
-                            if( dumpInvidivuals )
+                            parameters = new ExperimentParameters();
+                            parameters.DistanceTypes = Distance.Permutation;
+                            parameters.DERuns = 3;
+                            parameters.ComponentCount = numberOfComponents;
+                            parameters.Normalization = Population.NormalizationType.Standard;
+                            parameters.Components = definitions;
+                            new Experiment( parameters, experiment.Population ).Run( ( result ) =>
                             {
-                                dumper = new CSVDumper( result );
-                                dumper.Dump( "i" + fileMark, numberOfComponents.ToString() + " random variables, variable gain", "", ExperimentType.SingleAmongManyVaryingGain, true, true, ( d ) =>
+                                result.SetAuxiliaryData( "permutation", lpermutation );
+                                result.SetAuxiliaryData( "repeat", lrepeat );
+                                result.SetAuxiliaryData( "gain", lgain );
+                                results.Add( result );
+
+                                if( dumpInvidivuals )
                                 {
-                                    d.Cell( "GAIN" );
-                                    d.Cell( lgain.ToString( "G2" ) );
-                                } );
-                            }
-                        } );
+                                    dumper = new CSVDumper( result );
+                                    dumper.Dump( "i" + fileMark, numberOfComponents.ToString() + " random variables, variable gain", "", ExperimentType.SingleAmongManyVaryingGain, true, true, ( d ) =>
+                                    {
+                                        d.Cell( "GAIN" );
+                                        d.Cell( lgain.ToString( "G2" ) );
+                                    } );
+                                }
+                            } );
+                        }
 
                         gain *= coefficient;
                     }
@@ -264,11 +305,18 @@ namespace TemplateOptimizer.Experiments
                 foreach( var distance in results.First().Parameters.DistanceTypes )
                 {
                     d.CellsE( "D plain [C] " + distance.ToString(), centered.Select( ( r ) => r.PlainDistances[distance].ToString( "G5" ) ) );
-                    d.CellsE( "D plain [S] " + distance.ToString(), standardized.Select( ( r ) => r.PlainDistances[distance].ToString( "G5" ) ) );
+                    if (standardized.Count() > 0 ) d.CellsE( "D plain [S] " + distance.ToString(), standardized.Select( ( r ) => r.PlainDistances[distance].ToString( "G5" ) ) );
                     d.CellsE( "D PCA [C] " + distance.ToString(), centered.Select( ( r ) => r.PCADistances[distance].ToString( "G5" ) ) );
-                    d.CellsE( "D PCA [S] " + distance.ToString(), standardized.Select( ( r ) => r.PCADistances[distance].ToString( "G5" ) ) );
+                    if( standardized.Count() > 0 ) d.CellsE( "D PCA [S] " + distance.ToString(), standardized.Select( ( r ) => r.PCADistances[distance].ToString( "G5" ) ) );
+                    d.CellsE( "D DE (min)[C] " + distance.ToString(), centered.Select( ( r ) => r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Min().ToString( "G5" ) ) );
+                    if( standardized.Count() > 0 ) d.CellsE( "D DE (min)[S] " + distance.ToString(), standardized.Select( ( r ) => r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Min().ToString( "G5" ) ) );
                     d.CellsE( "D DE (avg)[C] " + distance.ToString(), centered.Select( ( r ) => r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Average().ToString( "G5" ) ) );
-                    d.CellsE( "D DE (avg)[S] " + distance.ToString(), standardized.Select( ( r ) => r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Average().ToString( "G5" ) ) );
+                    if( standardized.Count() > 0 ) d.CellsE( "D DE (avg)[S] " + distance.ToString(), standardized.Select( ( r ) => r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Average().ToString( "G5" ) ) );
+                    d.CellsE( "D DE (max)[C] " + distance.ToString(), centered.Select( ( r ) => r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Max().ToString( "G5" ) ) );
+                    if( standardized.Count() > 0 ) d.CellsE( "D DE (max)[S] " + distance.ToString(), standardized.Select( ( r ) => r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Max().ToString( "G5" ) ) );
+                    d.CellsE( "D PCA/D plain [C] " + distance.ToString(), centered.Select( ( r ) => ( r.PCADistances[distance] / r.PlainDistances[distance] ).ToString( "G5" ) ) );
+                    d.CellsE( "D DE (avg)/D plain[C] " + distance.ToString(), centered.Select( ( r ) => ( r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Average() / r.PlainDistances[distance] ).ToString( "G5" ) ) );
+                    d.CellsE( "D DE (avg)/D PCA[C] " + distance.ToString(), centered.Select( ( r ) => ( r.DEResults.Where( ( der ) => der.Distance.Equals( distance ) ).Select( ( der ) => der.DEDistance ).Average() / r.PCADistances[distance] ).ToString( "G5" ) ) );
                 }
             }
         }
@@ -285,7 +333,7 @@ namespace TemplateOptimizer.Experiments
                 int index = 1;
                 d.CellsE( "component" + CS + CS + CS + CS + CS, result.PCAWeights.Components.Select( (c) => (object)(index++) ) );
 
-                d.CellsE( "PCA", result.PCAWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
+                d.CellsE( "PCA" + CS + CS + CS + CS + CS, result.PCAWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
 
                 d.CellsVA( "distance", "dDE", "dDE/dP", "dPCA", "dPCA/dP", "dDE/dPCA", "weights ->" );
                 var sorted = result.DEResults.OrderBy( ( der ) => der.DEDistance / result.PlainDistances[der.Distance] );

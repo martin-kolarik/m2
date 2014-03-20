@@ -1,0 +1,592 @@
+TITLE;2 random variables, variable gain
+FOCUS ON;Comparison by gain, distance type and variable type
+EXPERIMENT TYPE;SingleAmongManyVaryingGain
+RESULTS
+PARTICULAR
+parameters
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomNormal
+p1;;;;;;;;;0;0
+p2;;;;;;;;;1;1
+distances;(RandomNormal, RandomNormal) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.033306;0.14566;0.20059
+D PCA [C] Euclidean(MinimumTimesMedian);0.032904;0.065841;0.1212
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.034893;0.15173;0.63684
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.034897;0.15173;0.63684
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.034898;0.15173;0.63685
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);0.98792;0.45203;0.60423
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.0478;1.0417;3.1748
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);1.0606;2.3044;5.2543
+distances;(RandomNormal, RandomPearson) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.010396;0.033153;0.27675
+D PCA [C] Euclidean(MinimumTimesMedian);0.0085691;0.024978;0.17875
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.017709;0.036151;0.61613
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.017709;0.036151;0.61615
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.017709;0.036151;0.61615
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);0.82428;0.75341;0.64589
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.7035;1.0904;2.2264
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);2.0666;1.4473;3.447
+distances;(RandomNormal, RandomUniform) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.0058036;0.016481;0.079342
+D PCA [C] Euclidean(MinimumTimesMedian);0.00458;0.0095456;0.0077957
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.0064746;0.045127;0.23705
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.0064747;0.045127;0.23705
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.0064747;0.045128;0.23705
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);0.78918;0.5792;0.098254
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.1156;2.7382;2.9877
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);1.4137;4.7276;30.408
+distances;(RandomNormal, RandomWeibull) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.011444;0.057539;0.20964
+D PCA [C] Euclidean(MinimumTimesMedian);0.0092262;0.077106;0.1039
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.011788;0.099122;0.50427
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.011788;0.099122;0.50434
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.011788;0.099122;0.50436
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);0.80622;1.3401;0.4956
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.03;1.7227;2.4058
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);1.2776;1.2855;4.8543
+distances;(RandomPearson, RandomPearson) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.0068273;0.064657;0.12064
+D PCA [C] Euclidean(MinimumTimesMedian);0.0067691;0.050445;0.083942
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.0077474;0.069323;0.12626
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.0077474;0.069323;0.12626
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.0077474;0.069323;0.12626
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);0.99148;0.7802;0.69583
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.1348;1.0722;1.0466
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);1.1445;1.3742;1.5041
+distances;(RandomPearson, RandomUniform) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.0017389;0.01494;0.1062
+D PCA [C] Euclidean(MinimumTimesMedian);0.0013088;0.00036116;0.019058
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.0035327;0.027028;0.13069
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.0035332;0.027028;0.13071
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.0035333;0.027028;0.13071
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);0.75271;0.024174;0.17945
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);2.0319;1.8091;1.2307
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);2.6995;74.837;6.8585
+distances;(RandomPearson, RandomWeibull) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.0050288;0.031313;0.024429
+D PCA [C] Euclidean(MinimumTimesMedian);0.0042798;0.0088878;0.036441
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.0062784;0.03786;0.038117
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.0062786;0.037863;0.038122
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.0062786;0.037863;0.038123
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);0.85106;0.28384;1.4917
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.2485;1.2092;1.5605
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);1.467;4.2601;1.0461
+distances;(RandomUniform, RandomUniform) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.0022261;0.0020682;0.044659
+D PCA [C] Euclidean(MinimumTimesMedian);0.0023275;0.0024713;0.0057441
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.0023431;0.0036547;0.063519
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.0023435;0.0036547;0.06353
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.0023436;0.0036547;0.063533
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);1.0456;1.1949;0.12862
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.0527;1.7671;1.4226
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);1.0068;1.4789;11.06
+distances;(RandomUniform, RandomWeibull) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.0019602;0.020937;0.040244
+D PCA [C] Euclidean(MinimumTimesMedian);0.0030096;0.01936;0.088842
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.0033958;0.025591;0.094689
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.0033962;0.025591;0.09469
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.0033962;0.025591;0.09469
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);1.5354;0.9247;2.2076
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.7325;1.2223;2.3529
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);1.1284;1.3219;1.0658
+distances;(RandomWeibull, RandomWeibull) (many)
+gain;1;3;9;27;81
+D plain [C] Euclidean(MinimumTimesMedian);0.0027699;0.0034409;0.0025921
+D PCA [C] Euclidean(MinimumTimesMedian);0.0027956;0.0039865;0.00033326
+D DE (min)[C] Euclidean(MinimumTimesMedian);0.0034217;0.0048251;0.0041255
+D DE (avg)[C] Euclidean(MinimumTimesMedian);0.0034217;0.0048258;0.004126
+D DE (max)[C] Euclidean(MinimumTimesMedian);0.0034217;0.004826;0.0041261
+D PCA/D plain [C] Euclidean(MinimumTimesMedian);1.0093;1.1586;0.12857
+D DE (avg)/D plain[C] Euclidean(MinimumTimesMedian);1.2353;1.4025;1.5918
+D DE (avg)/D PCA[C] Euclidean(MinimumTimesMedian);1.224;1.2106;12.381
+weights;(RandomNormal, RandomNormal)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.50699;0.49301
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.034893;1.0476;0.0329041881790208;0.98792;1.0604;0.46987;0.53013
+DE Euclidean(MinimumTimesMedian);0.034898;1.0478;0.0329041881790208;0.98792;1.0606;0.47018;0.52982
+DE Euclidean(MinimumTimesMedian);0.034898;1.0478;0.0329041881790208;0.98792;1.0606;0.47018;0.52982
+DE Euclidean(MinimumTimesMedian);0.034898;1.0478;0.0329041881790208;0.98792;1.0606;0.47018;0.52982
+DE Euclidean(MinimumTimesMedian);0.034898;1.0478;0.0329041881790208;0.98792;1.0606;0.47018;0.52982
+weights;(RandomNormal, RandomPearson)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.30149;0.69851
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.017709;1.7035;0.0085691343963924;0.82428;2.0666;0.9499;0.050095
+DE Euclidean(MinimumTimesMedian);0.017709;1.7035;0.0085691343963924;0.82428;2.0666;0.9499;0.050095
+DE Euclidean(MinimumTimesMedian);0.017709;1.7035;0.0085691343963924;0.82428;2.0666;0.9499;0.050095
+DE Euclidean(MinimumTimesMedian);0.017709;1.7035;0.0085691343963924;0.82428;2.0666;0.9499;0.050095
+DE Euclidean(MinimumTimesMedian);0.017709;1.7035;0.0085691343963924;0.82428;2.0666;0.9499;0.050095
+weights;(RandomNormal, RandomUniform)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.91493;0.085074
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0064746;1.1156;0.00458001814031648;0.78918;1.4137;0.81081;0.18919
+DE Euclidean(MinimumTimesMedian);0.0064747;1.1156;0.00458001814031648;0.78918;1.4137;0.8108;0.1892
+DE Euclidean(MinimumTimesMedian);0.0064747;1.1156;0.00458001814031648;0.78918;1.4137;0.8108;0.1892
+DE Euclidean(MinimumTimesMedian);0.0064747;1.1156;0.00458001814031648;0.78918;1.4137;0.8108;0.1892
+DE Euclidean(MinimumTimesMedian);0.0064747;1.1156;0.00458001814031648;0.78918;1.4137;0.8108;0.1892
+weights;(RandomNormal, RandomWeibull)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.35708;0.64292
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.011788;1.03;0.00922623199932659;0.80622;1.2776;0.52528;0.47472
+DE Euclidean(MinimumTimesMedian);0.011788;1.03;0.00922623199932659;0.80622;1.2776;0.52528;0.47472
+DE Euclidean(MinimumTimesMedian);0.011788;1.03;0.00922623199932659;0.80622;1.2776;0.52528;0.47472
+DE Euclidean(MinimumTimesMedian);0.011788;1.03;0.00922623199932659;0.80622;1.2776;0.52528;0.47472
+DE Euclidean(MinimumTimesMedian);0.011788;1.03;0.00922623199932659;0.80622;1.2776;0.52528;0.47472
+weights;(RandomPearson, RandomNormal)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.75178;0.24822
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.028426;1.2578;0.0116024475585958;0.51341;2.45;0.3829;0.6171
+DE Euclidean(MinimumTimesMedian);0.028426;1.2579;0.0116024475585958;0.51341;2.45;0.3829;0.6171
+DE Euclidean(MinimumTimesMedian);0.028426;1.2579;0.0116024475585958;0.51341;2.45;0.3829;0.6171
+DE Euclidean(MinimumTimesMedian);0.028426;1.2579;0.0116024475585958;0.51341;2.45;0.3829;0.6171
+DE Euclidean(MinimumTimesMedian);0.028426;1.2579;0.0116024475585958;0.51341;2.45;0.3829;0.6171
+weights;(RandomPearson, RandomPearson)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.50242;0.49758
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0077474;1.1348;0.00676912271440412;0.99148;1.1445;0.40908;0.59092
+DE Euclidean(MinimumTimesMedian);0.0077474;1.1348;0.00676912271440412;0.99148;1.1445;0.40908;0.59092
+DE Euclidean(MinimumTimesMedian);0.0077474;1.1348;0.00676912271440412;0.99148;1.1445;0.40908;0.59092
+DE Euclidean(MinimumTimesMedian);0.0077474;1.1348;0.00676912271440412;0.99148;1.1445;0.40908;0.59092
+DE Euclidean(MinimumTimesMedian);0.0077474;1.1348;0.00676912271440412;0.99148;1.1445;0.40908;0.59092
+weights;(RandomPearson, RandomUniform)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.99694;0.0030643
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0035327;2.0316;0.0013088487934601;0.75271;2.6991;0.94395;0.05605
+DE Euclidean(MinimumTimesMedian);0.0035332;2.0319;0.0013088487934601;0.75271;2.6995;0.94402;0.055979
+DE Euclidean(MinimumTimesMedian);0.0035333;2.032;0.0013088487934601;0.75271;2.6996;0.94403;0.055967
+DE Euclidean(MinimumTimesMedian);0.0035333;2.032;0.0013088487934601;0.75271;2.6996;0.94404;0.055963
+DE Euclidean(MinimumTimesMedian);0.0035333;2.032;0.0013088487934601;0.75271;2.6996;0.94404;0.055963
+weights;(RandomPearson, RandomWeibull)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.597;0.403
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0062784;1.2485;0.00427979943511036;0.85106;1.467;0.02369;0.97631
+DE Euclidean(MinimumTimesMedian);0.0062786;1.2485;0.00427979943511036;0.85106;1.467;0.023675;0.97633
+DE Euclidean(MinimumTimesMedian);0.0062786;1.2485;0.00427979943511036;0.85106;1.467;0.023675;0.97633
+DE Euclidean(MinimumTimesMedian);0.0062786;1.2485;0.00427979943511036;0.85106;1.467;0.023675;0.97633
+DE Euclidean(MinimumTimesMedian);0.0062786;1.2485;0.00427979943511036;0.85106;1.467;0.023675;0.97633
+weights;(RandomUniform, RandomNormal)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.085826;0.91417
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.023643;1.99;0.0192728775758902;1.6222;1.2267;0.11505;0.88495
+DE Euclidean(MinimumTimesMedian);0.023643;1.99;0.0192728775758902;1.6222;1.2267;0.11505;0.88495
+DE Euclidean(MinimumTimesMedian);0.023643;1.99;0.0192728775758902;1.6222;1.2267;0.11505;0.88495
+DE Euclidean(MinimumTimesMedian);0.023643;1.99;0.0192728775758902;1.6222;1.2267;0.11505;0.88495
+DE Euclidean(MinimumTimesMedian);0.023643;1.99;0.0192728775758902;1.6222;1.2267;0.11505;0.88495
+weights;(RandomUniform, RandomPearson)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.00035099;0.99965
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0053519;1.0786;6.49280477046832E-05;0.013085;82.429;0.57641;0.42359
+DE Euclidean(MinimumTimesMedian);0.0053519;1.0786;6.49280477046832E-05;0.013085;82.429;0.57641;0.42359
+DE Euclidean(MinimumTimesMedian);0.0053519;1.0786;6.49280477046832E-05;0.013085;82.429;0.57641;0.42359
+DE Euclidean(MinimumTimesMedian);0.0053519;1.0786;6.49280477046832E-05;0.013085;82.429;0.57641;0.42359
+DE Euclidean(MinimumTimesMedian);0.0053519;1.0786;6.49280477046832E-05;0.013085;82.429;0.57641;0.42359
+weights;(RandomUniform, RandomUniform)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.51896;0.48104
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0023431;1.0526;0.00232754234567508;1.0456;1.0067;0.52169;0.47831
+DE Euclidean(MinimumTimesMedian);0.0023435;1.0527;0.00232754234567508;1.0456;1.0069;0.5218;0.4782
+DE Euclidean(MinimumTimesMedian);0.0023436;1.0528;0.00232754234567508;1.0456;1.0069;0.52183;0.47817
+DE Euclidean(MinimumTimesMedian);0.0023436;1.0528;0.00232754234567508;1.0456;1.0069;0.52183;0.47817
+DE Euclidean(MinimumTimesMedian);0.0023436;1.0528;0.00232754234567508;1.0456;1.0069;0.52183;0.47817
+weights;(RandomUniform, RandomWeibull)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.09637;0.90363
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0033958;1.7324;0.00300964040502299;1.5354;1.1283;0.033123;0.96688
+DE Euclidean(MinimumTimesMedian);0.0033962;1.7326;0.00300964040502299;1.5354;1.1285;0.033134;0.96687
+DE Euclidean(MinimumTimesMedian);0.0033962;1.7326;0.00300964040502299;1.5354;1.1285;0.033134;0.96687
+DE Euclidean(MinimumTimesMedian);0.0033962;1.7326;0.00300964040502299;1.5354;1.1285;0.033134;0.96687
+DE Euclidean(MinimumTimesMedian);0.0033962;1.7326;0.00300964040502299;1.5354;1.1285;0.033134;0.96687
+weights;(RandomWeibull, RandomNormal)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.47432;0.52568
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.017144;1.2226;0.0143215766942715;1.0213;1.1971;0.20969;0.79031
+DE Euclidean(MinimumTimesMedian);0.017145;1.2226;0.0143215766942715;1.0213;1.1971;0.20969;0.79031
+DE Euclidean(MinimumTimesMedian);0.017145;1.2226;0.0143215766942715;1.0213;1.1971;0.20969;0.79031
+DE Euclidean(MinimumTimesMedian);0.017145;1.2226;0.0143215766942715;1.0213;1.1971;0.20969;0.79031
+DE Euclidean(MinimumTimesMedian);0.017145;1.2226;0.0143215766942715;1.0213;1.1971;0.20969;0.79031
+weights;(RandomWeibull, RandomPearson)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.76166;0.23834
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0048854;1.155;0.00477350895429331;1.1286;1.0234;0.81327;0.18673
+DE Euclidean(MinimumTimesMedian);0.0048868;1.1554;0.00477350895429331;1.1286;1.0237;0.8132;0.1868
+DE Euclidean(MinimumTimesMedian);0.0048868;1.1554;0.00477350895429331;1.1286;1.0237;0.8132;0.1868
+DE Euclidean(MinimumTimesMedian);0.0048868;1.1554;0.00477350895429331;1.1286;1.0237;0.8132;0.1868
+DE Euclidean(MinimumTimesMedian);0.0048868;1.1554;0.00477350895429331;1.1286;1.0237;0.8132;0.1868
+weights;(RandomWeibull, RandomUniform)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.86615;0.13385
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0035744;1.1834;0.00157099410307797;0.52012;2.2753;0.56589;0.43411
+DE Euclidean(MinimumTimesMedian);0.0035746;1.1835;0.00157099410307797;0.52012;2.2753;0.56582;0.43418
+DE Euclidean(MinimumTimesMedian);0.0035746;1.1835;0.00157099410307797;0.52012;2.2754;0.56582;0.43418
+DE Euclidean(MinimumTimesMedian);0.0035746;1.1835;0.00157099410307797;0.52012;2.2754;0.56582;0.43418
+DE Euclidean(MinimumTimesMedian);0.0035746;1.1835;0.00157099410307797;0.52012;2.2754;0.56582;0.43418
+weights;(RandomWeibull, RandomWeibull)
+gain;1;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.58281;0.41719
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0034217;1.2353;0.0027956000915503;1.0093;1.224;0.90739;0.092613
+DE Euclidean(MinimumTimesMedian);0.0034217;1.2353;0.0027956000915503;1.0093;1.224;0.90739;0.092613
+DE Euclidean(MinimumTimesMedian);0.0034217;1.2353;0.0027956000915503;1.0093;1.224;0.90739;0.092613
+DE Euclidean(MinimumTimesMedian);0.0034217;1.2353;0.0027956000915503;1.0093;1.224;0.90739;0.092613
+DE Euclidean(MinimumTimesMedian);0.0034217;1.2353;0.0027956000915503;1.0093;1.224;0.90739;0.092613
+weights;(RandomNormal, RandomNormal)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.87951;0.12049
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.15173;1.0417;0.0658412985340229;0.45203;2.3044;0.63024;0.36976
+DE Euclidean(MinimumTimesMedian);0.15173;1.0417;0.0658412985340229;0.45203;2.3044;0.63024;0.36976
+DE Euclidean(MinimumTimesMedian);0.15173;1.0417;0.0658412985340229;0.45203;2.3044;0.63024;0.36976
+DE Euclidean(MinimumTimesMedian);0.15173;1.0417;0.0658412985340229;0.45203;2.3044;0.63024;0.36976
+DE Euclidean(MinimumTimesMedian);0.15173;1.0417;0.0658412985340229;0.45203;2.3044;0.63024;0.36976
+weights;(RandomNormal, RandomPearson)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.89378;0.10622
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.036151;1.0904;0.02497820085766;0.75341;1.4473;0.42356;0.57644
+DE Euclidean(MinimumTimesMedian);0.036151;1.0904;0.02497820085766;0.75341;1.4473;0.42356;0.57644
+DE Euclidean(MinimumTimesMedian);0.036151;1.0904;0.02497820085766;0.75341;1.4473;0.42356;0.57644
+DE Euclidean(MinimumTimesMedian);0.036151;1.0904;0.02497820085766;0.75341;1.4473;0.42356;0.57644
+DE Euclidean(MinimumTimesMedian);0.036151;1.0904;0.02497820085766;0.75341;1.4473;0.42356;0.57644
+weights;(RandomNormal, RandomUniform)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.99983;0.00017399
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.045127;2.7382;0.00954561866441099;0.5792;4.7275;0.83525;0.16475
+DE Euclidean(MinimumTimesMedian);0.045128;2.7382;0.00954561866441099;0.5792;4.7276;0.83524;0.16476
+DE Euclidean(MinimumTimesMedian);0.045128;2.7382;0.00954561866441099;0.5792;4.7276;0.83524;0.16476
+DE Euclidean(MinimumTimesMedian);0.045128;2.7382;0.00954561866441099;0.5792;4.7276;0.83524;0.16476
+DE Euclidean(MinimumTimesMedian);0.045128;2.7382;0.00954561866441099;0.5792;4.7276;0.83524;0.16476
+weights;(RandomNormal, RandomWeibull)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.83108;0.16892
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.099122;1.7227;0.0771058198023196;1.3401;1.2855;0.70629;0.29371
+DE Euclidean(MinimumTimesMedian);0.099122;1.7227;0.0771058198023196;1.3401;1.2855;0.70629;0.29371
+DE Euclidean(MinimumTimesMedian);0.099122;1.7227;0.0771058198023196;1.3401;1.2855;0.70629;0.29371
+DE Euclidean(MinimumTimesMedian);0.099122;1.7227;0.0771058198023196;1.3401;1.2855;0.70629;0.29371
+DE Euclidean(MinimumTimesMedian);0.099122;1.7227;0.0771058198023196;1.3401;1.2855;0.70629;0.29371
+weights;(RandomPearson, RandomNormal)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.85752;0.14248
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.060464;1.0823;0.0417362278625188;0.74705;1.4487;0.43238;0.56762
+DE Euclidean(MinimumTimesMedian);0.060482;1.0826;0.0417362278625188;0.74705;1.4492;0.43178;0.56822
+DE Euclidean(MinimumTimesMedian);0.060489;1.0827;0.0417362278625188;0.74705;1.4493;0.43184;0.56816
+DE Euclidean(MinimumTimesMedian);0.06049;1.0827;0.0417362278625188;0.74705;1.4493;0.43183;0.56817
+DE Euclidean(MinimumTimesMedian);0.06049;1.0827;0.0417362278625188;0.74705;1.4493;0.43183;0.56817
+weights;(RandomPearson, RandomPearson)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.73736;0.26264
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.069323;1.0722;0.0504447975807663;0.7802;1.3742;0.54268;0.45732
+DE Euclidean(MinimumTimesMedian);0.069323;1.0722;0.0504447975807663;0.7802;1.3742;0.54259;0.45741
+DE Euclidean(MinimumTimesMedian);0.069323;1.0722;0.0504447975807663;0.7802;1.3742;0.54259;0.45741
+DE Euclidean(MinimumTimesMedian);0.069323;1.0722;0.0504447975807663;0.7802;1.3742;0.54259;0.45741
+DE Euclidean(MinimumTimesMedian);0.069323;1.0722;0.0504447975807663;0.7802;1.3742;0.54259;0.45741
+weights;(RandomPearson, RandomUniform)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.99995;5.1606E-05
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.027028;1.8091;0.000361158377058573;0.024174;74.837;0.80084;0.19916
+DE Euclidean(MinimumTimesMedian);0.027028;1.8091;0.000361158377058573;0.024174;74.837;0.80084;0.19916
+DE Euclidean(MinimumTimesMedian);0.027028;1.8091;0.000361158377058573;0.024174;74.837;0.80084;0.19916
+DE Euclidean(MinimumTimesMedian);0.027028;1.8091;0.000361158377058573;0.024174;74.837;0.80084;0.19916
+DE Euclidean(MinimumTimesMedian);0.027028;1.8091;0.000361158377058573;0.024174;74.837;0.80084;0.19916
+weights;(RandomPearson, RandomWeibull)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.90463;0.095368
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.03786;1.2091;0.00888778346414465;0.28384;4.2598;0.26003;0.73997
+DE Euclidean(MinimumTimesMedian);0.037863;1.2092;0.00888778346414465;0.28384;4.2602;0.26;0.74
+DE Euclidean(MinimumTimesMedian);0.037863;1.2092;0.00888778346414465;0.28384;4.2602;0.26;0.74
+DE Euclidean(MinimumTimesMedian);0.037863;1.2092;0.00888778346414465;0.28384;4.2602;0.26;0.74
+DE Euclidean(MinimumTimesMedian);0.037863;1.2092;0.00888778346414465;0.28384;4.2602;0.26;0.74
+weights;(RandomUniform, RandomNormal)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.44301;0.55699
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.024561;1.8941;0.0120684408788348;0.93068;2.0351;0.94426;0.055744
+DE Euclidean(MinimumTimesMedian);0.024562;1.8942;0.0120684408788348;0.93068;2.0352;0.94428;0.055721
+DE Euclidean(MinimumTimesMedian);0.024562;1.8942;0.0120684408788348;0.93068;2.0352;0.94428;0.055721
+DE Euclidean(MinimumTimesMedian);0.024562;1.8942;0.0120684408788348;0.93068;2.0352;0.94428;0.055721
+DE Euclidean(MinimumTimesMedian);0.024562;1.8942;0.0120684408788348;0.93068;2.0352;0.94428;0.055721
+weights;(RandomUniform, RandomPearson)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.33889;0.66111
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.010424;1.1705;0.00902347034786128;1.0132;1.1552;0.10541;0.89459
+DE Euclidean(MinimumTimesMedian);0.010427;1.1708;0.00902347034786128;1.0132;1.1556;0.10528;0.89472
+DE Euclidean(MinimumTimesMedian);0.010427;1.1708;0.00902347034786128;1.0132;1.1556;0.10528;0.89472
+DE Euclidean(MinimumTimesMedian);0.010427;1.1708;0.00902347034786128;1.0132;1.1556;0.10528;0.89472
+DE Euclidean(MinimumTimesMedian);0.010427;1.1708;0.00902347034786128;1.0132;1.1556;0.10528;0.89472
+weights;(RandomUniform, RandomUniform)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.89761;0.10239
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0036547;1.7671;0.00247128618011181;1.1949;1.4789;0.83494;0.16506
+DE Euclidean(MinimumTimesMedian);0.0036547;1.7671;0.00247128618011181;1.1949;1.4789;0.83494;0.16506
+DE Euclidean(MinimumTimesMedian);0.0036547;1.7671;0.00247128618011181;1.1949;1.4789;0.83494;0.16506
+DE Euclidean(MinimumTimesMedian);0.0036547;1.7671;0.00247128618011181;1.1949;1.4789;0.83494;0.16506
+DE Euclidean(MinimumTimesMedian);0.0036547;1.7671;0.00247128618011181;1.1949;1.4789;0.83494;0.16506
+weights;(RandomUniform, RandomWeibull)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.54555;0.45445
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.025591;1.2223;0.0193600629650378;0.9247;1.3219;0.3137;0.6863
+DE Euclidean(MinimumTimesMedian);0.025591;1.2223;0.0193600629650378;0.9247;1.3219;0.3137;0.6863
+DE Euclidean(MinimumTimesMedian);0.025591;1.2223;0.0193600629650378;0.9247;1.3219;0.3137;0.6863
+DE Euclidean(MinimumTimesMedian);0.025591;1.2223;0.0193600629650378;0.9247;1.3219;0.3137;0.6863
+DE Euclidean(MinimumTimesMedian);0.025591;1.2223;0.0193600629650378;0.9247;1.3219;0.3137;0.6863
+weights;(RandomWeibull, RandomNormal)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.0008252;0.99917
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.001479;1.6191;0.000382949941747497;0.41922;3.862;0.023912;0.97609
+DE Euclidean(MinimumTimesMedian);0.001479;1.6191;0.000382949941747497;0.41922;3.862;0.023912;0.97609
+DE Euclidean(MinimumTimesMedian);0.001479;1.6191;0.000382949941747497;0.41922;3.862;0.023912;0.97609
+DE Euclidean(MinimumTimesMedian);0.001479;1.6191;0.000382949941747497;0.41922;3.862;0.023912;0.97609
+DE Euclidean(MinimumTimesMedian);0.001479;1.6191;0.000382949941747497;0.41922;3.862;0.023912;0.97609
+weights;(RandomWeibull, RandomPearson)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.053719;0.94628
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0049193;1.863;0.00186130661134964;0.7049;2.6429;0.25605;0.74395
+DE Euclidean(MinimumTimesMedian);0.0049193;1.863;0.00186130661134964;0.7049;2.6429;0.25605;0.74395
+DE Euclidean(MinimumTimesMedian);0.0049193;1.863;0.00186130661134964;0.7049;2.6429;0.25605;0.74395
+DE Euclidean(MinimumTimesMedian);0.0049193;1.863;0.00186130661134964;0.7049;2.6429;0.25605;0.74395
+DE Euclidean(MinimumTimesMedian);0.0049193;1.863;0.00186130661134964;0.7049;2.6429;0.25605;0.74395
+weights;(RandomWeibull, RandomUniform)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.53979;0.46021
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0014113;1.2786;0.00102182475105522;0.92575;1.3812;0.33854;0.66146
+DE Euclidean(MinimumTimesMedian);0.0014114;1.2787;0.00102182475105522;0.92575;1.3812;0.33876;0.66124
+DE Euclidean(MinimumTimesMedian);0.0014114;1.2787;0.00102182475105522;0.92575;1.3812;0.33876;0.66124
+DE Euclidean(MinimumTimesMedian);0.0014114;1.2787;0.00102182475105522;0.92575;1.3812;0.33876;0.66124
+DE Euclidean(MinimumTimesMedian);0.0014114;1.2787;0.00102182475105522;0.92575;1.3812;0.33876;0.66124
+weights;(RandomWeibull, RandomWeibull)
+gain;3;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.091254;0.90875
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0048251;1.4023;0.00398647646404798;1.1586;1.2104;0.36498;0.63502
+DE Euclidean(MinimumTimesMedian);0.004826;1.4026;0.00398647646404798;1.1586;1.2106;0.36491;0.63509
+DE Euclidean(MinimumTimesMedian);0.004826;1.4026;0.00398647646404798;1.1586;1.2106;0.36491;0.63509
+DE Euclidean(MinimumTimesMedian);0.004826;1.4026;0.00398647646404798;1.1586;1.2106;0.36491;0.63509
+DE Euclidean(MinimumTimesMedian);0.004826;1.4026;0.00398647646404798;1.1586;1.2106;0.36491;0.63509
+weights;(RandomNormal, RandomNormal)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.9998;0.00020019
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.63684;3.1747;0.12120418243596;0.60423;5.2542;0.9172;0.082802
+DE Euclidean(MinimumTimesMedian);0.63684;3.1748;0.12120418243596;0.60423;5.2542;0.9172;0.082801
+DE Euclidean(MinimumTimesMedian);0.63685;3.1748;0.12120418243596;0.60423;5.2543;0.91721;0.082794
+DE Euclidean(MinimumTimesMedian);0.63685;3.1748;0.12120418243596;0.60423;5.2543;0.91721;0.082793
+DE Euclidean(MinimumTimesMedian);0.63685;3.1748;0.12120418243596;0.60423;5.2543;0.91721;0.082793
+weights;(RandomNormal, RandomPearson)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.99997;3.158E-05
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.61613;2.2263;0.178748221481026;0.64589;3.4469;0.94769;0.052309
+DE Euclidean(MinimumTimesMedian);0.61615;2.2264;0.178748221481026;0.64589;3.447;0.94771;0.052295
+DE Euclidean(MinimumTimesMedian);0.61615;2.2264;0.178748221481026;0.64589;3.447;0.94771;0.052294
+DE Euclidean(MinimumTimesMedian);0.61615;2.2264;0.178748221481026;0.64589;3.447;0.94771;0.052294
+DE Euclidean(MinimumTimesMedian);0.61615;2.2264;0.178748221481026;0.64589;3.447;0.94771;0.052294
+weights;(RandomNormal, RandomUniform)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.99998;2.0762E-05
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.23705;2.9877;0.00779570158882349;0.098254;30.408;0.92163;0.078365
+DE Euclidean(MinimumTimesMedian);0.23705;2.9877;0.00779570158882349;0.098254;30.408;0.92163;0.078365
+DE Euclidean(MinimumTimesMedian);0.23705;2.9877;0.00779570158882349;0.098254;30.408;0.92163;0.078365
+DE Euclidean(MinimumTimesMedian);0.23705;2.9877;0.00779570158882349;0.098254;30.408;0.92163;0.078365
+DE Euclidean(MinimumTimesMedian);0.23705;2.9877;0.00779570158882349;0.098254;30.408;0.92163;0.078365
+weights;(RandomNormal, RandomWeibull)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.9998;0.00020266
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.50427;2.4055;0.10389601561653;0.4956;4.8536;0.78001;0.21999
+DE Euclidean(MinimumTimesMedian);0.50436;2.4059;0.10389601561653;0.4956;4.8545;0.78008;0.21992
+DE Euclidean(MinimumTimesMedian);0.50436;2.4059;0.10389601561653;0.4956;4.8545;0.78008;0.21992
+DE Euclidean(MinimumTimesMedian);0.50436;2.4059;0.10389601561653;0.4956;4.8545;0.78008;0.21992
+DE Euclidean(MinimumTimesMedian);0.50436;2.4059;0.10389601561653;0.4956;4.8545;0.78008;0.21992
+weights;(RandomPearson, RandomNormal)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.99925;0.00074617
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.18986;2.0033;0.0351275205955754;0.37066;5.4048;0.75251;0.24749
+DE Euclidean(MinimumTimesMedian);0.18989;2.0037;0.0351275205955754;0.37066;5.4057;0.75239;0.24761
+DE Euclidean(MinimumTimesMedian);0.18989;2.0037;0.0351275205955754;0.37066;5.4057;0.75239;0.24761
+DE Euclidean(MinimumTimesMedian);0.18989;2.0037;0.0351275205955754;0.37066;5.4057;0.75239;0.24761
+DE Euclidean(MinimumTimesMedian);0.18989;2.0037;0.0351275205955754;0.37066;5.4057;0.75239;0.24761
+weights;(RandomPearson, RandomPearson)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.82138;0.17862
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.12626;1.0466;0.0839415578292294;0.69583;1.5041;0.57755;0.42245
+DE Euclidean(MinimumTimesMedian);0.12626;1.0466;0.0839415578292294;0.69583;1.5041;0.57755;0.42245
+DE Euclidean(MinimumTimesMedian);0.12626;1.0466;0.0839415578292294;0.69583;1.5041;0.57755;0.42245
+DE Euclidean(MinimumTimesMedian);0.12626;1.0466;0.0839415578292294;0.69583;1.5041;0.57755;0.42245
+DE Euclidean(MinimumTimesMedian);0.12626;1.0466;0.0839415578292294;0.69583;1.5041;0.57755;0.42245
+weights;(RandomPearson, RandomUniform)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.99993;7.4265E-05
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.13069;1.2306;0.0190575500024617;0.17945;6.8578;0.56663;0.43337
+DE Euclidean(MinimumTimesMedian);0.13071;1.2308;0.0190575500024617;0.17945;6.8587;0.56639;0.43361
+DE Euclidean(MinimumTimesMedian);0.13071;1.2308;0.0190575500024617;0.17945;6.8587;0.56639;0.43361
+DE Euclidean(MinimumTimesMedian);0.13071;1.2308;0.0190575500024617;0.17945;6.8587;0.56639;0.43361
+DE Euclidean(MinimumTimesMedian);0.13071;1.2308;0.0190575500024617;0.17945;6.8587;0.56639;0.43361
+weights;(RandomPearson, RandomWeibull)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.91029;0.089713
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.038117;1.5603;0.0364413935840545;1.4917;1.046;0.90517;0.094826
+DE Euclidean(MinimumTimesMedian);0.038123;1.5605;0.0364413935840545;1.4917;1.0462;0.90526;0.094735
+DE Euclidean(MinimumTimesMedian);0.038123;1.5606;0.0364413935840545;1.4917;1.0462;0.90527;0.094734
+DE Euclidean(MinimumTimesMedian);0.038123;1.5606;0.0364413935840545;1.4917;1.0462;0.90527;0.094734
+DE Euclidean(MinimumTimesMedian);0.038123;1.5606;0.0364413935840545;1.4917;1.0462;0.90527;0.094734
+weights;(RandomUniform, RandomNormal)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.88002;0.11998
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.080867;3.1008;0.0685698155732137;2.6292;1.1793;0.95672;0.04328
+DE Euclidean(MinimumTimesMedian);0.08087;3.1009;0.0685698155732137;2.6292;1.1794;0.95674;0.043263
+DE Euclidean(MinimumTimesMedian);0.08087;3.1009;0.0685698155732137;2.6292;1.1794;0.95674;0.043263
+DE Euclidean(MinimumTimesMedian);0.08087;3.1009;0.0685698155732137;2.6292;1.1794;0.95674;0.043263
+DE Euclidean(MinimumTimesMedian);0.08087;3.1009;0.0685698155732137;2.6292;1.1794;0.95674;0.043263
+weights;(RandomUniform, RandomPearson)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.90174;0.098256
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.073613;1.0075;0.0425529734087098;0.58242;1.7299;0.4924;0.5076
+DE Euclidean(MinimumTimesMedian);0.073617;1.0076;0.0425529734087098;0.58242;1.73;0.49237;0.50763
+DE Euclidean(MinimumTimesMedian);0.073617;1.0076;0.0425529734087098;0.58242;1.73;0.49237;0.50763
+DE Euclidean(MinimumTimesMedian);0.073617;1.0076;0.0425529734087098;0.58242;1.73;0.49237;0.50763
+DE Euclidean(MinimumTimesMedian);0.073617;1.0076;0.0425529734087098;0.58242;1.73;0.49237;0.50763
+weights;(RandomUniform, RandomUniform)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.99824;0.0017565
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.063519;1.4223;0.00574411269139294;0.12862;11.058;0.88251;0.11749
+DE Euclidean(MinimumTimesMedian);0.063532;1.4226;0.00574411269139294;0.12862;11.06;0.88248;0.11752
+DE Euclidean(MinimumTimesMedian);0.063533;1.4226;0.00574411269139294;0.12862;11.061;0.88248;0.11752
+DE Euclidean(MinimumTimesMedian);0.063533;1.4226;0.00574411269139294;0.12862;11.061;0.88248;0.11752
+DE Euclidean(MinimumTimesMedian);0.063533;1.4226;0.00574411269139294;0.12862;11.061;0.88248;0.11752
+weights;(RandomUniform, RandomWeibull)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.9204;0.079599
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.094689;2.3529;0.0888419944583633;2.2076;1.0658;0.83809;0.16191
+DE Euclidean(MinimumTimesMedian);0.09469;2.3529;0.0888419944583633;2.2076;1.0658;0.83809;0.16191
+DE Euclidean(MinimumTimesMedian);0.09469;2.3529;0.0888419944583633;2.2076;1.0658;0.83809;0.16191
+DE Euclidean(MinimumTimesMedian);0.09469;2.3529;0.0888419944583633;2.2076;1.0658;0.83809;0.16191
+DE Euclidean(MinimumTimesMedian);0.09469;2.3529;0.0888419944583633;2.2076;1.0658;0.83809;0.16191
+weights;(RandomWeibull, RandomNormal)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;1.1109E-05;0.99999
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0060548;1.9285;0.00238919928158611;0.761;2.5342;0.15442;0.84558
+DE Euclidean(MinimumTimesMedian);0.0060548;1.9285;0.00238919928158611;0.761;2.5342;0.15442;0.84558
+DE Euclidean(MinimumTimesMedian);0.0060548;1.9285;0.00238919928158611;0.761;2.5342;0.15442;0.84558
+DE Euclidean(MinimumTimesMedian);0.0060548;1.9285;0.00238919928158611;0.761;2.5342;0.15442;0.84558
+DE Euclidean(MinimumTimesMedian);0.0060548;1.9285;0.00238919928158611;0.761;2.5342;0.15442;0.84558
+weights;(RandomWeibull, RandomPearson)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.00014052;0.99986
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0016719;2.0215;0.000384658265957031;0.4651;4.3463;0.21766;0.78234
+DE Euclidean(MinimumTimesMedian);0.001672;2.0217;0.000384658265957031;0.4651;4.3467;0.21792;0.78208
+DE Euclidean(MinimumTimesMedian);0.001672;2.0217;0.000384658265957031;0.4651;4.3467;0.21792;0.78208
+DE Euclidean(MinimumTimesMedian);0.001672;2.0217;0.000384658265957031;0.4651;4.3467;0.21792;0.78208
+DE Euclidean(MinimumTimesMedian);0.001672;2.0217;0.000384658265957031;0.4651;4.3467;0.21792;0.78208
+weights;(RandomWeibull, RandomUniform)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;0.13147;0.86853
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0016903;1.0337;0.000717801257839123;0.43895;2.3549;0.55137;0.44863
+DE Euclidean(MinimumTimesMedian);0.0016904;1.0337;0.000717801257839123;0.43895;2.355;0.55513;0.44487
+DE Euclidean(MinimumTimesMedian);0.0016904;1.0337;0.000717801257839123;0.43895;2.355;0.55509;0.44491
+DE Euclidean(MinimumTimesMedian);0.0016904;1.0337;0.000717801257839123;0.43895;2.355;0.55509;0.44491
+DE Euclidean(MinimumTimesMedian);0.0016904;1.0337;0.000717801257839123;0.43895;2.355;0.55509;0.44491
+weights;(RandomWeibull, RandomWeibull)
+gain;9;normalization;Center
+component;;;;;;1;2
+PCA;;;;;;3.4334E-05;0.99997
+distance;dDE;dDE/dP;dPCA;dPCA/dP;dDE/dPCA;weights ->
+DE Euclidean(MinimumTimesMedian);0.0041255;1.5916;0.000333263507757556;0.12857;12.379;0.16799;0.83201
+DE Euclidean(MinimumTimesMedian);0.0041261;1.5918;0.000333263507757556;0.12857;12.381;0.16781;0.83219
+DE Euclidean(MinimumTimesMedian);0.0041261;1.5918;0.000333263507757556;0.12857;12.381;0.16781;0.83219
+DE Euclidean(MinimumTimesMedian);0.0041261;1.5918;0.000333263507757556;0.12857;12.381;0.16781;0.83219
+DE Euclidean(MinimumTimesMedian);0.0041261;1.5918;0.000333263507757556;0.12857;12.381;0.16781;0.83219

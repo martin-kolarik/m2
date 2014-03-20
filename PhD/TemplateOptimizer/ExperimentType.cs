@@ -14,6 +14,7 @@ namespace TemplateOptimizer
 
         SingleAmongManyVaryingGain = 4,
 
-        DEVariants = 5
+        DEVariants = 5,
+        DEVariantsOfDistances = 6
     }
 }

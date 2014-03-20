@@ -20,7 +20,7 @@ namespace TemplateOptimizer.Experiments
                 return;
             }
             VariablesUnitGainAndVariance( fileMark, numberOfVariables, repeatCount, distance, dumpIndividuals, dumpGrouped );
-            VariablesVaryingGain( fileMark, numberOfVariables, repeatCount, distance, dumpIndividuals, dumpGrouped );
+            // VariablesVaryingGain( fileMark, numberOfVariables, repeatCount, distance, dumpIndividuals, dumpGrouped );
             VariablesVaryingVariance( fileMark, numberOfVariables, repeatCount, distance, dumpIndividuals, dumpGrouped );
         }
 
@@ -36,10 +36,16 @@ namespace TemplateOptimizer.Experiments
                 for( var repeat = 0; repeat < repeatCount; repeat++ )
                 {
                     var parameters = new ExperimentParameters();
-                    parameters.DistanceTypes = new Distance[] { distance };
-                    parameters.DERuns = 5;
                     parameters.ComponentCount = numberOfComponents;
                     parameters.Components = new ComponentDefinition[] { new ComponentDefinition( permutation.Item1 ), new ComponentDefinition( permutation.Item2 ) };
+
+                    parameters.DistanceTypes = new Distance[] { distance };
+                    parameters.DETypes = new int[] { 3 };
+                    parameters.DECrossoverProbabilities = new double[] { numberOfComponents < 60 ? 0.25 : 0.5 };
+                    parameters.DEWeights = new double[] { 1.0 };
+                    parameters.DEPopulationCounts = new int[] { 150 };
+                    parameters.DEIterationCounts = new int[] { 175 };
+                    parameters.DERuns = 3;
 
                     var lrepeat = repeat; // prepare closure
                     new Experiment( parameters ).Run( ( result ) =>
@@ -101,9 +107,16 @@ namespace TemplateOptimizer.Experiments
                     while( gain <= 130 )
                     {
                         var parameters = new ExperimentParameters();
-                        parameters.DistanceTypes = new Distance[] { distance };
-                        parameters.DERuns = 5;
                         parameters.ComponentCount = numberOfComponents;
+
+                        parameters.DistanceTypes = new Distance[] { distance };
+                        parameters.DETypes = new int[] { 3 };
+                        parameters.DECrossoverProbabilities = new double[] { numberOfComponents < 60 ? 0.25 : 0.5 };
+                        parameters.DEWeights = new double[] { 1.0 };
+                        parameters.DEPopulationCounts = new int[] { 150 };
+                        parameters.DEIterationCounts = new int[] { 175 };
+                        parameters.DERuns = 3;
+
                         if( permutation.Item1 == ComponentType.RandomWeibull ) // for Weibull/Exponential, E(x) = 1/Lambda so let's invert gain
                         {
                             parameters.Components = new ComponentDefinition[] { new ComponentDefinition( permutation.Item1 ), new ComponentDefinition( permutation.Item2, 1.0 / gain ) };
@@ -186,9 +199,16 @@ namespace TemplateOptimizer.Experiments
                     while( variance <= 130 )
                     {
                         var parameters = new ExperimentParameters();
-                        parameters.DistanceTypes = new Distance[] { distance };
-                        parameters.DERuns = 5;
                         parameters.ComponentCount = numberOfComponents;
+
+                        parameters.DistanceTypes = new Distance[] { distance };
+                        parameters.DETypes = new int[] { 3 };
+                        parameters.DECrossoverProbabilities = new double[] { numberOfComponents < 60 ? 0.25 : 0.5 };
+                        parameters.DEWeights = new double[] { 1.0 };
+                        parameters.DEPopulationCounts = new int[] { 150 };
+                        parameters.DEIterationCounts = new int[] { 175 };
+                        parameters.DERuns = 3;
+
                         parameters.Components = new ComponentDefinition[] { new ComponentDefinition( permutation.Item1 ), new ComponentDefinition( permutation.Item2, 1.0, variance ) };
 
                         var lrepeat = repeat; // prepare closure

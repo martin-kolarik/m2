@@ -1,0 +1,156 @@
+TITLE;3 random variables, unit gain, comparison
+FOCUS ON;
+EXPERIMENT TYPE;FewRandomVariablesUnitGainAndVariance
+RESULTS
+PARTICULAR
+parameters
+result 1
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomNormal
+p1;;;;;;;;;0;0
+p2;;;;;;;;;1;1
+result 2
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomNormal
+p1;;;;;;;;;0;0
+p2;;;;;;;;;1;1
+result 3
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomPearson
+p1;;;;;;;;;0;1
+p2;;;;;;;;;1;0
+result 4
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomPearson
+p1;;;;;;;;;0;1
+p2;;;;;;;;;1;0
+result 5
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomUniform
+p1;;;;;;;;;0;0
+p2;;;;;;;;;1;1
+result 6
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomUniform
+p1;;;;;;;;;0;0
+p2;;;;;;;;;1;1
+result 7
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomWeibull
+p1;;;;;;;;;0;1
+p2;;;;;;;;;1;1
+result 8
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomNormal;RandomWeibull
+p1;;;;;;;;;0;1
+p2;;;;;;;;;1;1
+result 9
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomPearson;RandomPearson
+p1;;;;;;;;;1;1
+p2;;;;;;;;;0;0
+result 10
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomPearson;RandomPearson
+p1;;;;;;;;;1;1
+p2;;;;;;;;;0;0
+result 11
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomPearson;RandomUniform
+p1;;;;;;;;;1;0
+p2;;;;;;;;;0;1
+result 12
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomPearson;RandomUniform
+p1;;;;;;;;;1;0
+p2;;;;;;;;;0;1
+result 13
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomPearson;RandomWeibull
+p1;;;;;;;;;1;1
+p2;;;;;;;;;0;1
+result 14
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomPearson;RandomWeibull
+p1;;;;;;;;;1;1
+p2;;;;;;;;;0;1
+result 15
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomUniform;RandomUniform
+p1;;;;;;;;;0;0
+p2;;;;;;;;;1;1
+result 16
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomUniform;RandomUniform
+p1;;;;;;;;;0;0
+p2;;;;;;;;;1;1
+result 17
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomUniform;RandomWeibull
+p1;;;;;;;;;0;1
+p2;;;;;;;;;1;1
+result 18
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomUniform;RandomWeibull
+p1;;;;;;;;;0;1
+p2;;;;;;;;;1;1
+result 19
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomWeibull;RandomWeibull
+p1;;;;;;;;;1;1
+p2;;;;;;;;;1;1
+result 20
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;;;;;;;;;1;2
+type;;;;;;;;;RandomWeibull;RandomWeibull
+p1;;;;;;;;;1;1
+p2;;;;;;;;;1;1
+result;1 RandomNormal, RandomNormal;2 RandomNormal, RandomNormal;3 RandomNormal, RandomPearson;4 RandomNormal, RandomPearson;5 RandomNormal, RandomUniform;6 RandomNormal, RandomUniform;7 RandomNormal, RandomWeibull;8 RandomNormal, RandomWeibull;9 RandomPearson, RandomPearson;10 RandomPearson, RandomPearson;11 RandomPearson, RandomUniform;12 RandomPearson, RandomUniform;13 RandomPearson, RandomWeibull;14 RandomPearson, RandomWeibull;15 RandomUniform, RandomUniform;16 RandomUniform, RandomUniform;17 RandomUniform, RandomWeibull;18 RandomUniform, RandomWeibull;19 RandomWeibull, RandomWeibull;20 RandomWeibull, RandomWeibull
+distances
+D plain;0.0307318206831794;0.041190536343388;0.0176159144219696;0.0316190270766519;0.00702184304316546;0.00491631466346588;0.0244046349665426;0.0297277277383861;0.0071004548441945;0.0138324188300233;0.00315883432559326;0.00553246391860665;0.0220366777076998;0.0103592445571474;0.00610833042133671;0.00509529448637366;0.00935170226240148;0.0202104261429843;0.0179822834069638;0.024205083358149
+D PCA;0.0326356033126563;0.0346991460045021;0.014722753020052;0.0182991080881836;0.00533658309362677;0.0137851964938967;0.022809352790497;0.0362578121711587;0.00749757697082814;0.00860871686661904;0.00210639680525971;0.00415200396375234;0.0192844724706635;0.00794431946093301;0.00633054829516812;0.0049907159697432;0.00836595212942614;0.00536837526418048;0.0184498113805365;0.0264820801333021
+D DE (avg);0.051894698150966;0.0647571743840493;0.0192388005175705;0.0518203051931962;0.0127323350046118;0.0186397201694146;0.0276638478525123;0.0524884865284599;0.0120706554274528;0.0178267823815535;0.00445732341850905;0.00829039516679248;0.0268234449254209;0.0162140724517113;0.00727491443665955;0.00608688729761706;0.020270692214277;0.0212193361546676;0.023398322251993;0.0430071957357248
+D PCA ratio;1.061948253867;0.842405782610599;0.83576433600805;0.578737228182966;0.759997490804213;2.80396952545314;0.934632000100286;1.21966308660519;1.05592911092989;0.622358025187451;0.666827249594393;0.750480079913115;0.875107978001843;0.766882123219283;1.0363794782704;0.979475471553189;0.894591369002567;0.265624050982419;1.02599936632028;1.09407101564005
+D DE (avg) ratio;1.6886307741399;1.57213719783098;1.09212613417201;1.63889625912814;1.81324688209949;3.79140096705568;1.13354892996506;1.76564071732546;1.69998340843222;1.28876826248641;1.41106590567137;1.49849963574284;1.21721818874941;1.56517904006082;1.19098246736095;1.19460951940957;2.16759383965584;1.04992027404793;1.3011874922921;1.77678362430616
+weights;RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomPearson (2);RandomNormal (1);RandomPearson (2);RandomNormal (1);RandomUniform (2);RandomNormal (1);RandomUniform (2);RandomNormal (1);RandomWeibull (2);RandomNormal (1);RandomWeibull (2);RandomPearson (1);RandomPearson (2);RandomPearson (1);RandomPearson (2);RandomPearson (1);RandomUniform (2);RandomPearson (1);RandomUniform (2);RandomPearson (1);RandomWeibull (2);RandomPearson (1);RandomWeibull (2);RandomUniform (1);RandomUniform (2);RandomUniform (1);RandomUniform (2);RandomUniform (1);RandomWeibull (2);RandomUniform (1);RandomWeibull (2);RandomWeibull (1);RandomWeibull (2);RandomWeibull (1);RandomWeibull (2)
+W PCA;0.239170312895593;0.42193946133633;0.338890225768077;0.237724895741555;0.374439805126853;0.387835299131592;0.15693093382262;0.434693718708869;0.40837534746851;0.188619027752549;0.613459339946746;0.197921632300705;0.939802706845677;0.0376722962001812;0.0225249969541415;0.92655783770842;0.0294835262485423;0.0439586360430377;0.352498391275095;0.355147233070679;0.292354375654226;0.487976545896185;0.158051815814478;0.353971638289337;0.6742428576997;0.110255705929423;0.215501436370877;0.544034628401081;0.349125190206186;0.106840181392733;0.93613527746793;0.0201015302993968;0.043763192232673;0.855391098865685;0.0773386064752555;0.0672702946590598;0.428069270036075;0.296245488478386;0.275685241485539;0.424394705308502;0.2242243803393;0.351380914352197;0.352562881063546;0.284981753383142;0.362455365553312;0.328809257762222;0.312907173064336;0.358283569173442;0.0015251427108066;0.49762316532444;0.500851691964754;0.00108768280557206;0.29370849449228;0.705203822702148;0.387006680580276;0.317872373334849;0.295120946084875;0.380323107688946;0.270208142765019;0.349468749546035
+W DE (avg);0.179634670885988;0.679617601404691;0.140747727709321;0.567924248273158;0.137683344856077;0.294392406870765;0.0663136414702693;0.382358853028234;0.551327505501497;0.473539662145923;0.526460337854077;3.03796060629992E-17;0.647223080376492;0.283316104821849;0.0694608148016589;0.722957761928012;0.0480434034350333;0.228998834636955;0.250788143928227;0.350880394358017;0.398331461713756;0.549737980178832;0.33065726869961;0.119604751121558;0.749263469359744;0.212304145425802;0.0384323852144541;0.552388209768647;0.205569949133869;0.242041841097484;0.1394240691857;0.303605776280236;0.556970154534064;0.192063900159242;0.748678625038243;0.0592574748025144;0.159245341305082;0.461377791045472;0.379376867649446;0.154291367862976;0.642940863028749;0.202767769108276;0.546712562865949;0.175512324719042;0.277775112415009;0.403978011511687;0.227309328417981;0.368712660070332;0.0322199705989672;0.239428803664233;0.728351225736799;0.398623297927942;0.424923380560984;0.176453321511074;0.270098014996974;0.0607487186175284;0.669153266385498;0.58840776159834;0.235819373063619;0.175772865338042

@@ -44,7 +44,7 @@ namespace TemplateOptimizer
                     distance += wi * wi * di * di;
                 }
             }
-            return Math.Sqrt( distance );
+            return distanceType == DistanceType.Manhattan ? distance : Math.Sqrt( distance );
         }
     }
 }

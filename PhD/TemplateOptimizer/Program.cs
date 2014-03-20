@@ -26,7 +26,8 @@ namespace TemplateOptimizer
         {
             ExperimentsFewRandomVariables();
             ExperimentsManyRandomVariables();
-            ExperimentsDEVariants();
+            // ExperimentsDEVariants();
+            ExperimentsDEVariantsMoreDERuns();
         }
 
         static void ExperimentsFewRandomVariables()
@@ -37,17 +38,17 @@ namespace TemplateOptimizer
                 string sdp = Population.DistanceProcessingAbbreviation( distance.Processing );
                 for( var count = 2; count <= 4; count++ )
                 {
-                    RandomVariablesComparison.Execute( count.ToString() + sdt + sdp, count, 10, distance, false );
+                    RandomVariablesComparison.Execute( count.ToString() + sdt + sdp, count, 2, distance, false );
                 }
             }
         }
 
         static void ExperimentsManyRandomVariables()
         {
-            var counts = new int[] { 2, 6, 12, 24, 48, 72, 96 };
+            var counts = new int[] { 2, 6, 15, 30, 90 };
             foreach( var count in counts )
             {
-                ManyRandomVariables.Execute( count.ToString() + "many", count, 1 );
+                ManyRandomVariables.Execute( count.ToString() + "many", ManyRandomVariables.Variant.Optimized, count, 1 );
             }
         }
 
@@ -59,7 +60,20 @@ namespace TemplateOptimizer
             {
                 foreach( var c2 in populations )
                 {
-                    DEExamination.Execute( c1.ToString() + c2.ToString() + "de", c1, c2, DEExamination.Variant.BestAfterOmitBadsLinearyCombined, true, false );
+                    DEExamination.Execute( c1.ToString() + c2.ToString() + "de", c1, c2, DEExamination.Variant.BestAfterOmitBadsLinearyCombinedAllDistances, true, false );
+                }
+            }
+        }
+
+        static void ExperimentsDEVariantsMoreDERuns()
+        {
+            var components = new int[] { 15, 30, 60 };
+            var populations = new int[] { 15, 30, 45 };
+            foreach( var c1 in components )
+            {
+                foreach( var c2 in populations )
+                {
+                    DEExamination.Execute( c1.ToString() + c2.ToString() + "de", c1, c2, DEExamination.Variant.BestAfterOmitBadsLinearyCombinedAllDistancesMoreDERuns, true, false );
                 }
             }
         }
