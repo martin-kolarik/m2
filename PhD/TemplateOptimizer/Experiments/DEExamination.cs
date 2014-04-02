@@ -86,7 +86,8 @@ namespace TemplateOptimizer.Experiments
             }
             else if( variant == Variant.BruteForce )
             {
-                parameters.DistanceTypes = new Distance[] { new Distance(), new Distance( Population.DistanceProcessing.MinimumTimesMedian ), new Distance( Population.DistanceProcessing.Median ) };
+                // parameters.DistanceTypes = new Distance[] { new Distance(), new Distance( Population.DistanceProcessing.MinimumTimesMedian ), new Distance( Population.DistanceProcessing.Median ) };
+                parameters.DistanceTypes = new Distance[] { new Distance( Population.DistanceProcessing.Minimum ) };
                 parameters.DETypes = new int[] { 1, 2, 3, 4, 5, 6 };
                 parameters.DECrossoverProbabilities = new double[] { 0.25, 0.5, 0.75, 1.0 };
                 parameters.DEWeights = new double[] { 0.5, 0.85, 1.0, 1.2, 1.5 };
