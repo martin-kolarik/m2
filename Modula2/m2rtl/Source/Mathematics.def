@@ -1,10 +1,10 @@
 DEFINITION MODULE Mathematics;
-
-#save, option( dll_export => on )
-
 // LONGREAL mathematics
-PROCEDURE Power( base, exponent : LONGREAL ) : LONGREAL;
 
-#restore
+IMPORT
+   MathYep;
+
+CONST
+   Power ::= MathYep.Power;
 
 END Mathematics.

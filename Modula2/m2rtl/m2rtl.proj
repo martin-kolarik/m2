@@ -15,8 +15,8 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32;API\yeppp"/>
-        <Definitions Include="Rtti"/>
-        <Modules Include="Exceptions;Storage;lrconv;Strings;FIO;datetime;Mathematics;Languages;Sync;SyncQueue;iLog;Log;iPlugin;Folders;Debug;Tls;baseobject;basecompletion;collection;delegate;Request"/>
+        <Definitions Include="Rtti;Mathematics"/>
+        <Modules Include="Exceptions;Storage;lrconv;Strings;FIO;datetime;MathYepp;Languages;Sync;SyncQueue;iLog;Log;iPlugin;Folders;Debug;Tls;baseobject;basecompletion;collection;delegate;Request"/>
         <!-- Messages Include="XX1;XX2"/ -->
         <Library Include="advapi32.lib"/><!-- needed for Log -->
     </ItemGroup>

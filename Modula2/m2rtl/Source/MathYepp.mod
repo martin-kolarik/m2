@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE Mathematics;
+IMPLEMENTATION MODULE MathYep;
 // LONGREAL mathematics
 // now based on yeppp! (http://www.yeppp.info/) to avoid using of MSVCRT's functions
 
@@ -36,4 +36,4 @@ BEGIN
    yepLibrary_Init();
 FINALLY
    yepLibrary_Release();
-END Mathematics.
+END MathYep.
