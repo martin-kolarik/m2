@@ -21,6 +21,9 @@
   <ItemGroup>
     <None Include="Source\yepLibrary.def" />
     <None Include="Source\yepMath.def" />
+    <None Include="yeppp.proj">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\yepAtomic.h" />

@@ -79,6 +79,7 @@
         <!-- Message Importance="high" Text="@(GrabProcessFile)" / -->
         
         <!-- Message Importance="high" Text="  $(ComponentName): $(ComponentType), $(PublishExports), $(GrabbingPublishExports), $(Result), $(ResultTest), $(ResultTestX), @(SelfInterface)" / -->
+        <!-- Message Importance="high" Text="  $(ComponentName): $(ComponentType), $(PropagateComponents), $(PropagateSources), $(PropagateDeliverables), $(EncloseComponents)" / -->
         
         <PropertyGroup>
             <PublishAcrossDefinitions>off</PublishAcrossDefinitions>
@@ -93,8 +94,7 @@
         
         <ItemGroup>
             <!-- 1. add self to components -->
-            <Grabbed Condition="$(PropagateComponents)=='on'"
-                     Include="$(ComponentName)">
+            <Grabbed Include="$(ComponentName)">
                 <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <DefinitionPath>$(ComponentDefinitionsPath)</DefinitionPath>
@@ -191,9 +191,17 @@
                 <EnclosedExported>on</EnclosedExported>
             </Grabbed>
 
-            <!-- 6. components which are not built must offer their runtimes -->
-            <Grabbed Condition="$(PropagateDeliverables)=='on'"
+            <!-- 6a. components which are not built (now) must offer their runtimes. Runtimes are grabbed only if they are not overriden by defining Deliverable item. -->
+            <Grabbed Condition="$(PropagateDeliverables)=='on' And @(Deliverable)==''"
                      Include="$(OutputFilePath);$(OutputPDBFilePath);$(OutputMAPFilePath)">
+                <OfComponent>$(ComponentName)</OfComponent>
+                <Definition>$(ComponentDefinitionsSource)</Definition>
+                <Type>Runtime</Type>
+                <LibraryName>$(LibraryNameToGrab)</LibraryName>
+            </Grabbed>
+            <!-- 6b. components which have prepared runtimes offer them in Deliverables item -->
+            <Grabbed Condition="$(PropagateDeliverables)=='on' And @(Deliverable)!=''"
+                     Include="@(Deliverable)">
                 <OfComponent>$(ComponentName)</OfComponent>
                 <Definition>$(ComponentDefinitionsSource)</Definition>
                 <Type>Runtime</Type>

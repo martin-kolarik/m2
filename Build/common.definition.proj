@@ -39,7 +39,7 @@
     <!--   PropagateSources = component's DEF/H files will be available for descendant components -->
     <!--   PropagateDeliverables = component's binaries will be available for descendant components -->
     <!--   EncloseComponents = component XX is able to grab all childs YY and offer them as being XX -->
-    <!--   Shared = component is shared among others upper components, it build only once in dependency tree -->
+    <!--   Shared = component is shared among others upper components, it builds independently and only once in dependency tree -->
     <Choose>
         <When Condition="$(ComponentType)=='Generic'">
             <PropertyGroup>
@@ -61,13 +61,23 @@
                 <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>
-        <When Condition="$(ComponentType)=='SupportLibrary'"><!--library intended to be independent, usually not a part of product, e.g. for debug purposes -->
+        <When Condition="$(ComponentType)=='SupportLibrary'"><!--SupportLibrary = library intended to be independent, usually not a part of product, e.g. for debug purposes -->
             <PropertyGroup>
                 <PropagateComponents>off</PropagateComponents>
                 <PropagateSources>on</PropagateSources>
                 <PropagateDeliverables>on</PropagateDeliverables>
                 <EncloseComponents>off</EncloseComponents>
                 <Shared>on</Shared>
+                <ProductFlag>off</ProductFlag>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='COTS'"><!--COTS = foreign components, not built (that is why Shared == false, Shared == true means independent build) -->
+            <PropertyGroup>
+                <PropagateComponents>off</PropagateComponents>
+                <PropagateSources>on</PropagateSources>
+                <PropagateDeliverables>on</PropagateDeliverables>
+                <EncloseComponents>off</EncloseComponents>
+                <Shared>off</Shared>
                 <ProductFlag>off</ProductFlag>
             </PropertyGroup>
         </When>

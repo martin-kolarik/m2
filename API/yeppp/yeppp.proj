@@ -3,16 +3,21 @@
     xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
 
     <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType Condition="$(ComponentType)==''">COTS</ComponentType>
+    </PropertyGroup>
+
+    <!-- 2 -->
     <Import Project="..\..\Build\common.rootdir.proj"/>
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
-    <!-- 2 -->
+    <!-- 3 -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>
 
-    <!-- 3 -->
+    <!-- 4 -->
     <ItemGroup>
         <Interface Include="..\$(ComponentRelativePath)\Library\$(Platform)\yeppp"/>
-        <Library Include="..\$(ComponentRelativePath)\Library\$(Platform)\yeppp"/>
+        <Deliverable Include="$(ComponentRelativePath)\Library\$(Platform)\yeppp.dll;$(ComponentRelativePath)\Library\$(Platform)\yeppp.pdb"/>
     </ItemGroup>
 
 </Project>

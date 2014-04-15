@@ -13,6 +13,7 @@
     <None Include="Source\yepMath.def">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="yeppp.proj" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\yepAtomic.h">
