@@ -1,0 +1,27 @@
+DEFINITION MODULE yepMath;
+
+(*# name(   decoration => c ) *)
+
+(*# module( header     => off ) *)
+
+(*# call(   o_a_size   => off,
+            o_a_copy   => off,
+            c_arrays   => on,
+            convention => cdecl ) *)
+
+FROM yepLibrary IMPORT
+   Yep64f,
+   YepSize,
+   YepStatus;
+
+PROCEDURE yepMath_Log_V64f_V64f(
+   CONST n      : ARRAY OF Yep64f;
+     OUT log    : ARRAY OF Yep64f;
+         length : YepSize ) : YepStatus;
+
+PROCEDURE yepMath_Exp_V64f_V64f(
+    CONST log    : ARRAY OF Yep64f;
+      OUT n      : ARRAY OF Yep64f;
+          length : YepSize ) : YepStatus;
+
+END yepMath.

@@ -1,0 +1,37 @@
+DEFINITION MODULE yepLibrary;
+
+(*# name(   decoration => c ) *)
+
+(*# module( header     => off ) *)
+
+(*# call(   o_a_size   => off,
+            o_a_copy   => off,
+            c_arrays   => on,
+            convention => cdecl ) *)
+
+TYPE
+   Yep64f = LONGREAL;
+
+TYPE
+   YepSize = TSIZE;
+
+TYPE
+   YepStatus = (
+      	YepStatusOk,
+      YepStatusNullPointer,
+      YepStatusMisalignedPointer,
+      YepStatusInvalidArgument,
+      YepStatusInvalidData,
+      YepStatusInvalidState,
+      YepStatusUnsupportedHardware,
+      YepStatusUnsupportedSoftware,
+      YepStatusInsufficientBuffer,
+      YepStatusOutOfMemory,
+      YepStatusSystemError,
+      YepStatusAccessDenied
+   );
+
+PROCEDURE yepLibrary_Init();
+PROCEDURE yepLibrary_Release();
+
+END yepLibrary.

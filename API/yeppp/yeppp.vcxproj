@@ -1,0 +1,134 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\yepLibrary.def" />
+    <None Include="Source\yepMath.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Header\yepAtomic.h" />
+    <ClInclude Include="Header\yepBuiltin.h" />
+    <ClInclude Include="Header\yepCore.h" />
+    <ClInclude Include="Header\yepLibrary.h" />
+    <ClInclude Include="Header\yepMath.h" />
+    <ClInclude Include="Header\yepPredefines.h" />
+    <ClInclude Include="Header\yepRandom.h" />
+    <ClInclude Include="Header\yepTypes.h" />
+    <ClInclude Include="Header\yepVersion.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5B18C1AA-EFE3-4BAC-9F12-2AA113920B7A}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <OutDir>!$(Configuration).x86\</OutDir>
+    <IntDir>!Build.$(Configuration).x86\</IntDir>
+    <NMakeBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=x86</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=x86</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=x86</NMakeCleanCommandLine>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <OutDir>!$(Configuration).$(Platform)\</OutDir>
+    <IntDir>!Build.$(Configuration).$(Platform)\</IntDir>
+    <NMakeBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeCleanCommandLine>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <NMakePreprocessorDefinitions>WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <OutDir>!$(Configuration).x86\</OutDir>
+    <IntDir>!Build.$(Configuration).x86\</IntDir>
+    <NMakeBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=x86</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=x86</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=x86</NMakeCleanCommandLine>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakePreprocessorDefinitions>WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <OutDir>!$(Configuration).$(Platform)\</OutDir>
+    <IntDir>!Build.$(Configuration).$(Platform)\</IntDir>
+    <NMakeBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:Configuration=$(Configuration) /p:Platform=$(Platform)</NMakeCleanCommandLine>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <BuildLog>
+      <Path />
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <BuildLog>
+      <Path>
+      </Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <BuildLog>
+      <Path />
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <BuildLog>
+      <Path>
+      </Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
