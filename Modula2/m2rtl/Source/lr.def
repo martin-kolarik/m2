@@ -1,0 +1,30 @@
+DEFINITION MODULE lr;
+
+(*================================================================================*)
+
+// !!!!!
+// MODULE MUST NOT BE USED DIRECTLY,
+// module supports mathematics and conversion module
+
+// exponents
+CONST
+   expBias = 03FFH;
+   expShift = 52;
+   expShiftHi = expShift-32;
+
+PROCEDURE TwoExponent( CONST lr : LONGREAL ) : INTEGER;
+PROCEDURE TenExponent( CONST lr : LONGREAL ) : INTEGER;
+PROCEDURE Pow10( exp : INTEGER ) : LONGREAL;
+
+// numbers
+PROCEDURE IsNaN( CONST lr : LONGREAL ) : BOOLEAN;
+PROCEDURE NaN() : LONGREAL;
+
+CONST
+   DEFAULT_EQUALS_ULPS = 4;
+
+PROCEDURE Equals( CONST lr1, lr2 : LONGREAL; ulps : CARDINAL ) : BOOLEAN;
+
+(*================================================================================*)
+
+END lr.

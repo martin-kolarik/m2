@@ -216,11 +216,20 @@
     <None Include="Test\TMathematics.mod">
       <Filter>Test</Filter>
     </None>
-    <None Include="Source\MathYepp.def">
+    <None Include="Source\Mathematics.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\lr.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\lr.def">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="Source\MathYepp.mod">
+    <None Include="Source\MathYep.mod">
       <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\MathYep.def">
+      <Filter>Header Files</Filter>
     </None>
   </ItemGroup>
 </Project>

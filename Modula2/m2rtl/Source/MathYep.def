@@ -3,7 +3,7 @@ DEFINITION MODULE MathYep;
 
 #save, option( dll_export => on )
 
-PROCEDURE Power( base, exponent : LONGREAL ) : LONGREAL;
+PROCEDURE Power( base, exponent, fallback : LONGREAL ) : LONGREAL;
 
 #restore
 
