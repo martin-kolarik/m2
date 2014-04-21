@@ -8,12 +8,22 @@ namespace MouseAnalyzer
 {
     class Event
     {
-        public static enum Attribute
+        public enum Button
         {
-            enLeft = 1,
-            enMiddle = 2,
-            enRight = 4,
-            enDoubleClick = 8
+            Left = 0,
+            Middle = 1,
+            Right = 2,
+            B4 = 3,
+            B5 = 4
+        }
+
+        public enum ButtonState
+        {
+            Release,
+            Released,
+            Press,
+            Pressed,
+            DoublePress
         };
 
         public static Event Null()
@@ -23,8 +33,7 @@ namespace MouseAnalyzer
 
         private int x;
         private int y;
-        private uint attributes;
-        private double dTDoubleClick;
+        private ButtonState[] state;
 
         private int dx;
         private int dy;
@@ -34,8 +43,14 @@ namespace MouseAnalyzer
         {
         }
 
-        public Event()
+        public Event( int dx, int dy, double dt, int x, int y, ButtonState[] state )
         {
+            this.dx = dx;
+            this.dy = dy;
+            this.dt = dt;
+            this.x = x;
+            this.y = y;
+            this.state = state;
         }
 
         public int X
@@ -61,6 +76,27 @@ namespace MouseAnalyzer
         public double dT
         {
             get { return dt; }
+        }
+
+        public ButtonState this[ Button button ]
+        {
+            get
+            {
+                return state[(uint)button];
+            }
+        }
+    }
+
+    static class EnumExtensions
+    {
+        public static bool IsPressed( this Event.ButtonState state )
+        {
+            return state == Event.ButtonState.Press || state == Event.ButtonState.Pressed || state == Event.ButtonState.DoublePress;
+        }
+
+        public static bool IsReleased( this Event.ButtonState state )
+        {
+            return state == Event.ButtonState.Release || state == Event.ButtonState.Released;
         }
     }
 }

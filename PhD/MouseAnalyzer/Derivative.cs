@@ -6,18 +6,13 @@ using System.Threading.Tasks;
 
 namespace MouseAnalyzer
 {
-    class Derivative
+    class DerivativeItem : IFeatureItem
     {
-        public static enum CoordinateSystem
+        public enum CoordinateSystem
         {
             World,
             AlongPath
         };
-
-        public static Derivative Null( CoordinateSystem coordinateSystem )
-        {
-            return new Derivative( coordinateSystem );
-        }
 
         private CoordinateSystem cs = CoordinateSystem.World;
         private double v;
@@ -30,27 +25,27 @@ namespace MouseAnalyzer
         private double j1;
         private double j2;
 
-        private Derivative( CoordinateSystem coordinateSystem )
+        public static DerivativeItem Null( CoordinateSystem coordinateSystem )
         {
-            cs = coordinateSystem;
+            return new DerivativeItem( coordinateSystem );
         }
 
-        public Derivative( Derivative previousDerivative, Event currentEvent )
+        public DerivativeItem( Event input, DerivativeItem previous )
         {
-            var dt = currentEvent.dT;
+            var dt = input.dT;
             if( dt == 0.0 ) // the same time, the same position, presumably, shall be filtered by caller
             {
                 throw new ArgumentOutOfRangeException( "currentEvent.dT" );
             }
 
-            if( previousDerivative.cs == CoordinateSystem.World )
+            if( previous.cs == CoordinateSystem.World )
             {
-                v1 = currentEvent.dX  / dt;
-                v2 = currentEvent.dY  / dt;
-                a1 = ( v1 - previousDerivative.v1 ) / dt;
-                a2 = ( v2 - previousDerivative.v2 ) / dt;
-                j1 = ( a1 - previousDerivative.a1 ) / dt;
-                j2 = ( a2 - previousDerivative.a2 ) / dt;
+                v1 = input.dX  / dt;
+                v2 = input.dY  / dt;
+                a1 = ( v1 - previous.v1 ) / dt;
+                a2 = ( v2 - previous.v2 ) / dt;
+                j1 = ( a1 - previous.a1 ) / dt;
+                j2 = ( a2 - previous.a2 ) / dt;
             }
             else
             {
@@ -62,69 +57,104 @@ namespace MouseAnalyzer
             j = Math.Sqrt( j1 * j1 + j2 * j2 );
         }
 
-        public double V 
+        private DerivativeItem( CoordinateSystem coordinateSystem )
         {
-            get { return v; }
-        }
-        public double A
-        {
-            get { return a; }
-        }
-        public double J
-        {
-            get { return j; }
+            cs = coordinateSystem;
         }
 
-        public double VX
+        public double V { get { return v; } }
+        public double A { get { return a; } }
+        public double J { get { return j; } }
+
+        public double VX { get { return v1; } }
+        public double AX { get { return a1; } }
+        public double JX { get { return j1; } }
+
+        public double VY { get { return v2; } }
+        public double AY { get { return a2; } }
+        public double JY { get { return j2; } }
+
+        public double VR { get { return v1; } }
+        public double AR { get { return a1; } }
+        public double JR { get { return j1; } }
+
+        public double VT { get { return v2; } }
+        public double AT { get { return a2; } }
+        public double JT { get { return j2; } }
+    }
+
+    class DerivativeExtractor : IFeatureExtractor<DerivativeItem>
+    {
+        #region IFeatureExtractor Members
+
+        public DerivativeItem AddEvent( Event input, IEnumerable<DerivativeItem> previousItems )
         {
-            get { return v1; }
-        }
-        public double AX
-        {
-            get { return a1; }
-        }
-        public double JX
-        {
-            get { return j1; }
+            if( previousItems == null )
+            {
+                return DerivativeItem.Null( coordinateSystem );
+            }
+            var previous = previousItems.LastOrDefault<DerivativeItem>();
+            if( previous == null )
+            {
+                return DerivativeItem.Null( coordinateSystem );
+            }
+            else
+            {
+                return new DerivativeItem( input, previous );
+            }
         }
 
-        public double VY
+        #endregion
+
+        private DerivativeItem.CoordinateSystem coordinateSystem;
+
+        public DerivativeExtractor( DerivativeItem.CoordinateSystem coordinateSystem )
         {
-            get { return v2; }
-        }
-        public double AY
-        {
-            get { return a2; }
-        }
-        public double JY
-        {
-            get { return j2; }
+            this.coordinateSystem = coordinateSystem;
         }
 
-        public double VR
+    }
+
+    class Derivative : IFeature<DerivativeItem>
+    {
+        #region IFeature Members
+
+        public string Name
         {
-            get { return v1; }
-        }
-        public double AR
-        {
-            get { return a1; }
-        }
-        public double JR
-        {
-            get { return j1; }
+            get { return "Derivative"; }
         }
 
-        public double VT
+        public void AddItem( DerivativeItem item )
         {
-            get { return v2; }
+            if( item == null )
+            {
+                return;
+            }
+            items.Add( item );
         }
-        public double AT
+
+        public IEnumerable<DerivativeItem> Items
         {
-            get { return a2; }
+            get { return items; }
         }
-        public double JT
+
+        public IEnumerable<IMarker> Markers
         {
-            get { return j2; }
+            get { return markers; }
         }
+
+        public void ComputeMarkers()
+        {
+            if( markers.Count == 0 )
+            {
+                markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, f => ( (DerivativeItem)f ).V ) );
+            }
+        }
+
+        #endregion
+
+        private List<DerivativeItem> items = new List<DerivativeItem>();
+        private List<IMarker> markers = new List<IMarker>();
+
     }
 }
