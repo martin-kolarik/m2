@@ -136,6 +136,7 @@ BEGIN
    | knx_def.eitScaling,
      knx_def.eitScaling255 : RETURN drv_def.vtShortCard;
    | knx_def.eitMove :       RETURN drv_def.vtBoolean;
+   | knx_def.eitPriority :   RETURN drv_def.vtShortCard;
    | knx_def.eitFloat :      RETURN drv_def.vtLongReal;
    | knx_def.eit16bit :      RETURN drv_def.vtLongCard;
    | knx_def.eit32bit :      RETURN drv_def.vtLongCard;
