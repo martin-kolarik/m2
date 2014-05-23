@@ -4,7 +4,7 @@
     <Upgrade Id="$(var.UpgradeGUID)">
         <UpgradeVersion OnlyDetect="yes" Property="SELFFOUND" Minimum="$(var.ProductVersion)" IncludeMinimum="yes" Maximum="$(var.ProductVersion)" IncludeMaximum="yes" />
         <UpgradeVersion OnlyDetect="yes" Property="NEWERFOUND" Minimum="$(var.ProductVersion)" IncludeMinimum="no" />
-        <UpgradeVersion OnlyDetect="yes" Property="OLDERFOUND" Maximum="$(var.ProductVersion)" IncludeMaximum="no" />
+        <UpgradeVersion OnlyDetect="no" Property="OLDERFOUND" Maximum="$(var.ProductVersion)" IncludeMaximum="no" />
     </Upgrade>
     
     <CustomAction Id="AlreadyUpdated" Error="$(loc.UpgradeErrorSelfInstalled)" />
