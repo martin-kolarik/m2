@@ -11,6 +11,7 @@
     
     <ItemGroup>
         <GrabProcessFile Include="$(GrabProcessFile)"/>
+        <GrabProcessDir Include="@(GrabProcessFile -> '%(RootDir)%(Directory)')"/>
     </ItemGroup>
 
     <PropertyGroup>
@@ -21,8 +22,8 @@
         <BuildDependenciesFile Condition="$(InheritedBuildDependenciesFile)!=''">$(InheritedBuildDependenciesFile)</BuildDependenciesFile>
     </PropertyGroup>
     
-    <Target Name="GrabDirectories"><!-- Duplicate to Directories task, it exists to avoid skipping Directories task as being already done -->
-        <MakeDir Directories="@(TemporaryDirectories);$(OutputDir)" />
+    <Target Name="GrabDirectories">
+        <MakeDir Directories="@(GrabProcessDir)" />
     </Target>
 
     <!-- out of recursion, (new) grab file is created always, because each component needs grab self dependencies -->
@@ -217,9 +218,7 @@
                  Text="##1 $(ComponentType)|$(ComponentName) [%(Grabbed.Definition)|%(Grabbed.Type)] @(Grabbed)"/ -->
         
         <!-- mark me as parsed as soon as I know it -->
-        <!-- ?? MakeDir Condition="!Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
-                 Directories="@(GrabProcessFile -> '%(RootDir)%(Directory)')" / -->
-        <WriteLinesToFile File="$(GrabProcessFile)"
+        <WriteLinesToFile File="@(GrabProcessFile)"
                           Lines="$(ComponentName)"/>
     </Target>
     
@@ -232,7 +231,7 @@
             Returns="@(Grabbed)">
 
         <!-- prepare filter for already grabbed components -->
-        <ReadLinesFromFile File="$(GrabProcessFile)">
+        <ReadLinesFromFile File="@(GrabProcessFile)">
             <Output TaskParameter="Lines" ItemName="ComponentsParsed"/>
         </ReadLinesFromFile>
 
@@ -243,11 +242,9 @@
         <ItemGroup Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And @(Components)!=''">
             <InternalComponents Include="$(LeakDetectorComponent)" />
         </ItemGroup>
-        <!-- ?? -->
-        <!-- ?? MakeDir Condition="@(InternalComponents)!='' And !Exists( @(GrabProcessFile -> '%(RootDir)%(Directory)'))"
-                 Directories="@(GrabProcessFile -> '%(RootDir)%(Directory)')" / -->
+
         <WriteLinesToFile Condition="@(InternalComponents)!=''"
-                          File="$(GrabProcessFile)"
+                          File="@(GrabProcessFile)"
                           Lines="$(ComponentName)"/>
 
         <!-- create new not-yet-grabbed components list -->
@@ -286,7 +283,7 @@
             <PublishExportsValueToGrab Condition="$(PublishExports)=='on' And $(EncloseComponents)=='on' And $(PropagateSources)=='on'">on</PublishExportsValueToGrab>
             
             <InheritedDefinitionsProperties>InheritedComponentDefinitionsSource=$(ComponentDefinitionsSource);InheritedComponentDefinitionsPath=$(InheritedPath1Value);Inherited2ComponentDefinitionsPath=$(InheritedPath2Value);Inherited3ComponentDefinitionsPath=$(InheritedPath3Value);Inherited4ComponentDefinitionsPath=$(InheritedPath4Value)</InheritedDefinitionsProperties>
-            <InheritedGrabbingProperties>GrabbingGrabProcessFile=$(GrabProcessFile);GrabbingLibraryName=$(LibraryNameToGrab);GrabbingPublishExports=$(PublishExportsValueToGrab)</InheritedGrabbingProperties>
+            <InheritedGrabbingProperties>GrabbingGrabProcessFile=@(GrabProcessFile);GrabbingLibraryName=$(LibraryNameToGrab);GrabbingPublishExports=$(PublishExportsValueToGrab)</InheritedGrabbingProperties>
         </PropertyGroup>
 
         <!-- Message Importance="high"
