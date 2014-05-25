@@ -563,12 +563,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
    BEGIN
-      IF CARDINAL( EnumerateState ) >= oobCache.Count THEN
-         EXCL( RStatus, knxcore.rsProcessingOOB );
-         oobCache.Dispose();
-         RETURN FALSE;
-
-      ELSIF LicenceResult.Counted OR LicenceResult.Expired THEN
+      IF LicenceResult.Counted OR LicenceResult.Expired THEN
          EXCL( RStatus, knxcore.rsProcessingOOB );
          QueueLock.Lock();
          oobData.Dispose();
@@ -576,11 +571,18 @@ CLASS IMPLEMENTATION CEIBDriver;
          QueueLock.Unlock();
          RETURN FALSE;
 
-      ELSIF knxcore.rsProcessingOOB NOT IN RStatus THEN
+      ELSIF knxcore.rsProcessingOOB IN RStatus THEN
+         IF CARDINAL( EnumerateState ) >= oobCache.Count THEN
+            EXCL( RStatus, knxcore.rsProcessingOOB );
+            oobCache.Dispose();
+            RETURN FALSE;
+         END;
+
+      ELSE // not rsProcessingOOB
          INCL( RStatus, knxcore.rsProcessingOOB );
 
          QueueLock.Lock();
-         oobCache.AppendList( REF oobData );
+         oobCache.AppendList( REF oobData ); // oobData gets cleared
          QueueLock.Unlock();
 
          oobIterator.Init( oobCache, collection.dirForward );
@@ -1097,9 +1099,6 @@ CLASS IMPLEMENTATION CEIBDriver;
       IF PromiscuousQueue THEN
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
       ELSIF OOBQueue THEN
-         
-         // copy the queue to own queue to allow source queue filling independently on dequeueing
-
          CallbackProc( CallbackId, drv_def.dcfOOBDataAdvise, NIL );
       END;
    END OnInputQueueAdd;
@@ -1108,6 +1107,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
    BEGIN
+      CallbackProc( CallbackId, drv_def.dcfOOBDataAdvise, NIL );
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnInputQueueOverflow;
 
