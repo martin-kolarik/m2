@@ -54,9 +54,8 @@
         <PropertyGroup>
             <LibraryNameToGrab>$(GrabbingLibraryName)</LibraryNameToGrab><!-- default -->
             <LibraryNameToGrab Condition="$(LibraryNameToGrab)==''">$(ResultName)</LibraryNameToGrab><!-- initialization if compilation started with me  -->
-            <LibraryNameToGrab Condition="$(PublishExports)=='on' And $(PropagateSources)=='on'">$(ResultName)</LibraryNameToGrab><!-- overwrite for Library type components -->
+            <LibraryNameToGrab Condition="$(Result)!='Static'">$(ResultName)</LibraryNameToGrab><!-- overwrite for Library type components -->
         </PropertyGroup>
-
     </Target>
     
     <Target Name="GrabComponent"
@@ -227,7 +226,7 @@
     <Target Condition="($(PropagateComponents)=='on' Or ($(ComponentDefinitionsSource)==$(ComponentName) And $(InheritedComponentDefinitionsSource)=='')) And
                        (@(Components)!='' Or ($(ClientLicensing)=='on' And $(LicensingComponent)!=''))"
             Name="GrabComponentsRecursion"
-            DependsOnTargets="DeleteGrabProcessFileIfAllowed;PrepareLibraryName"
+            DependsOnTargets="DeleteGrabProcessFileIfAllowed;GrabDirectories;PrepareLibraryName"
             Returns="@(Grabbed)">
 
         <!-- prepare filter for already grabbed components -->
@@ -380,7 +379,7 @@
     </Target>
     
     <Target Name="GrabComponents"
-            DependsOnTargets="GrabEntryMessage;CheckUnexpectedCall;DeleteGrabProcessFile;GrabDirectories;GrabComponentsRecursion;DebugDisplayGrabbedComponent;WriteGrabbedComponentsToBuildDependeciesFile"
+            DependsOnTargets="GrabEntryMessage;CheckUnexpectedCall;DeleteGrabProcessFile;GrabComponentsRecursion;DebugDisplayGrabbedComponent;WriteGrabbedComponentsToBuildDependeciesFile"
             Returns="@(Grabbed)">
         <!-- Grabbed is returned as a whole, even if it is duplicate to the build dependencies file. Grabbed may be used, for example, for cleaning etc. -->
         <Message Importance="high"

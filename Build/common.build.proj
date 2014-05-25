@@ -439,7 +439,6 @@
 
         <Message Condition="$(ComponentDefinitionsSource)==''" Importance="high" Text="Built (for no def file): $(MSBuildProjectName)" />
         <Message Condition="$(ComponentDefinitionsSource)!=''" Importance="high" Text="Built (for $(ComponentDefinitionsSource)): $(MSBuildProjectName)" />
-        <Message Importance="high" Text=" " />
     </Target>
     
     <Target Name="OnErrorHandler">
@@ -485,7 +484,7 @@
             DependsOnTargets="GrabComponents"
             Outputs="@(Compiled)">
         <!-- Use msbuild with properties to load dependencies file!!, also properties normally coming from Grabbed must be supplied.
-             If Properties were not specified, MSBuild would not to reload file/dependecies, what is innapropriate!! -->
+             If Properties were not specified, MSBuild would not reload file/dependecies, what is innapropriate!! -->
         <MSBuild Projects="$(MSBuildProjectFile)"
                  Targets="BuildWithPreparedDependencies"
                  Properties="Root=true;CompilePublishExports=$(PublishExports);CompileLibraryName=$(ResultName)"

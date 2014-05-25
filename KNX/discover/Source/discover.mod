@@ -98,7 +98,7 @@ PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 LABEL
    Error, Stop;
 VAR
-   Browser : browser.CBrowser;  
+   Browser : POINTER TO browser.CBrowser;  
    ConfigFile : StringsO.CString;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    First : BOOLEAN := TRUE;
@@ -133,7 +133,8 @@ BEGIN
       INC( i );
    END; // WHILE
 
-   CASE Browser.Browse( ADR( Result ), 0 ) OF
+   NEW( Browser );
+   CASE Browser^.Browse( ADR( Result ), 0 ) OF
    | Sync.arCompleted, Sync.arPending : // OK
    ELSE
       TextWriter.errout()^.WriteOA( OAsz( R[Texts._UnableToStartDiscovery] ), TRUE );
@@ -151,6 +152,7 @@ BEGIN
    WHILE NOT Result.InfoDone.State DO
       Sync.Sleep( 10 );
    END;
+   DISPOSE( Browser );
    
    IF NOT ConfigFile.Empty THEN
       TS.LoadPath( OA( ConfigFile.Length-1, ConfigFile.Data ));
