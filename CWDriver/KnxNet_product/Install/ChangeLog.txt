@@ -1,5 +1,8 @@
-Version 1.0.1914 V1.0 23.5.2014 (without documentation)
+Version 1.0.1918 V1.0 25.5.2014 (without documentation)
 - BUG: #341: EIS8 did not propagate as known type to ControlWeb
+- BUG: #342: discover and checkcfg tools displayed "?unknown" instead of correct texts
+- BUG: #344: fix of regression from #277, driver did not deliver notifications about newly
+       arrived data, data_driven mode depended on timing only
 
 Version 1.0.1870 V1.0 31.10.2012 (without documentation)
 - CHG: KnxNet.dll (and all EXEs) is no more dependent on SCCore.dll. This avoids conflicts
