@@ -1,3 +1,7 @@
+Version 1.0.1920 V1.0 4.6.2014 (without documentation)
+- BUG: #346: asynchronously processed data were badly processed during passing to ControlWeb,
+       what caused application/process crash.
+
 Version 1.0.1918 V1.0 25.5.2014 (without documentation)
 - BUG: #341: EIS8 did not propagate as known type to ControlWeb
 - BUG: #342: discover and checkcfg tools displayed "?unknown" instead of correct texts
