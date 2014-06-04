@@ -562,6 +562,8 @@ CLASS IMPLEMENTATION CEIBDriver;
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
+   VAR
+      newDataLoaded : BOOLEAN := FALSE;
    BEGIN
       IF LicenceResult.Counted OR LicenceResult.Expired THEN
          EXCL( RStatus, knxcore.rsProcessingOOB );
@@ -570,29 +572,35 @@ CLASS IMPLEMENTATION CEIBDriver;
          oobCache.Dispose();
          QueueLock.Unlock();
          RETURN FALSE;
+      END;
 
-      ELSIF knxcore.rsProcessingOOB IN RStatus THEN
-         IF CARDINAL( EnumerateState ) >= oobCache.Count THEN
+      LOOP
+         IF knxcore.rsProcessingOOB NOT IN RStatus THEN // copy data, start new iterating
+            QueueLock.Lock();
+            oobCache.AppendList( REF oobData ); // oobData gets cleared
+            QueueLock.Unlock();
+
+            newDataLoaded := TRUE;
+            oobIterator.Init( oobCache, collection.dirForward );
+         // ELSE iteration is pending
+         END;
+      
+         IF oobIterator.MoveNext() THEN
+            INCL( RStatus, knxcore.rsProcessingOOB );
+            DriverIndex := knxcore.TPObject( oobIterator.Data )^.LogNumber();
+            EnumerateState := CARDINAL( EnumerateState ) + 1;
+            RETURN TRUE;
+
+         ELSIF newDataLoaded THEN // we have already tried to get new data and there is still nothing
+            RETURN FALSE;
+
+         ELSE
             EXCL( RStatus, knxcore.rsProcessingOOB );
             oobCache.Dispose();
-            RETURN FALSE;
+
+            // continue with loading new data
          END;
-
-      ELSE // not rsProcessingOOB
-         INCL( RStatus, knxcore.rsProcessingOOB );
-
-         QueueLock.Lock();
-         oobCache.AppendList( REF oobData ); // oobData gets cleared
-         QueueLock.Unlock();
-
-         oobIterator.Init( oobCache, collection.dirForward );
-      END;
-      oobIterator.MoveNext();
-
-      DriverIndex := knxcore.TPObject( oobIterator.Data )^.LogNumber();
-      EnumerateState := CARDINAL( EnumerateState ) + 1;
-
-      RETURN TRUE;
+      END; // LOOP
    END InputOOBDataQuery;
 
 //--------------------------------------------------------------------------------
