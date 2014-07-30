@@ -83,6 +83,8 @@ namespace DifferentialEvolution
             double[] FVr_bestmemit = new double[I_dimensionspara];    // best population memeber in iteration
             int I_nfeval = 0;                            // number of function evaluations
 
+            double[] S_bestvalits = new double[I_itermax];
+
             ////////Evaluate the best member after initialization//////////////
 
             int I_best_index = 0;                           // start with first population member
@@ -397,6 +399,9 @@ namespace DifferentialEvolution
                 Copy1DArrayL2R(FVr_bestmem, ref FVr_bestmemit); // freeze the best member of this iteration for the coming 
                 // iteration. This is needed for some of the strategies.
 
+                // remember criterion function value of the best member for the iteration
+                S_bestvalits[I_iter] = S_bestval.FVr_oa[0];
+
                 //if (I_refresh > 0)
                 //{
                 //    int temp1;
@@ -411,7 +416,7 @@ namespace DifferentialEvolution
 
             //fwrite1.sw.Close();
 
-            OptimizerOutput S_outMain1 = new OptimizerOutput(FVr_bestmem, S_bestval, I_nfeval);
+            OptimizerOutput S_outMain1 = new OptimizerOutput(FVr_bestmem, S_bestval, I_nfeval, S_bestvalits);
             return S_outMain1;
 
         }
@@ -692,14 +697,17 @@ namespace DifferentialEvolution
         public double[] FVr_bestmem;
         public OutputFunction S_bestval;
         public int I_nfeval;
+        public double[] S_bestvalit;
 
-        public OptimizerOutput(double[] FVr_bestmem_, OutputFunction S_bestval_, int I_nfeval_)
+        public OptimizerOutput(double[] FVr_bestmem_, OutputFunction S_bestval_, int I_nfeval_, double[] S_bestvalit_)
         {
             FVr_bestmem = new double[FVr_bestmem_.Length];
             DifferentialEvolution.Copy1DArrayL2R(FVr_bestmem_, ref FVr_bestmem);
             S_bestval = new OutputFunction(0, 1);
             DifferentialEvolution.Copy_outfunL2R(S_bestval_, ref S_bestval);
             I_nfeval = I_nfeval_;
+            S_bestvalit = new double[S_bestvalit_.Length];
+            DifferentialEvolution.Copy1DArrayL2R( S_bestvalit_, ref S_bestvalit );
         }
 
     }
