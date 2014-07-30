@@ -11,17 +11,21 @@ namespace TemplateOptimizer
     class Experiment
     {
         // private
-        private Population NormalizedPopulation;
+        private Population normalizedPopulation;
+        private Population normalizedPopulationToCompare;
 
-        public Experiment( ExperimentParameters parameters = null, Population population = null )
+        public Experiment( ExperimentParameters parameters = null, Population population = null, Population populationToCompare = null )
         {
             Parameters = parameters != null ? parameters : new ExperimentParameters();
             Population = population != null ? population : Populate( Parameters );
+            PopulationToCompare = populationToCompare != null ? populationToCompare : null;
         }
 
         public ExperimentParameters Parameters { get; private set; }
 
         public Population Population { get; private set; }
+
+        public Population PopulationToCompare { get; private set; }
 
         public static Population Populate( ExperimentParameters parameters )
         {
@@ -31,9 +35,13 @@ namespace TemplateOptimizer
         // executive methods
         public void Run( Action<ExperimentResult> completionHandler )
         {
-            NormalizedPopulation = Population.Normalize( Parameters.Normalization );
+            normalizedPopulation = Population.Normalize( Parameters.Normalization );
+            if( PopulationToCompare != null )
+            {
+                normalizedPopulationToCompare = PopulationToCompare.Normalize( Parameters.Normalization );
+            }
 
-            var result = new ExperimentResult( Parameters, Population, NormalizedPopulation );
+            var result = new ExperimentResult( Parameters, Population, normalizedPopulation );
             RunPlain( result );
             RunPCA( result );
             RunDEs( result );
@@ -50,19 +58,19 @@ namespace TemplateOptimizer
 
         private void RunPlain( ExperimentResult result )
         {
-            var plainWeights = Weights.Uniform( NormalizedPopulation.ComponentCount );
+            var plainWeights = Weights.Uniform( normalizedPopulation.ComponentCount );
             foreach( var distanceType in Parameters.DistanceTypes )
             {
-                result.AddPlainDistance( distanceType, NormalizedPopulation.Distance( distanceType, plainWeights ) );
+                result.AddPlainDistance( distanceType, normalizedPopulation.Distance( distanceType, plainWeights ) );
             }
         }
 
         private void RunPCA( ExperimentResult result )
         {
-            var pca = new PrincipalComponentAnalysis( new PCAAdapter( NormalizedPopulation ).Table );
+            var pca = new PrincipalComponentAnalysis( new PCAAdapter( normalizedPopulation ).Table );
             pca.Compute();
 
-            var weights = new Weights( NormalizedPopulation.ComponentCount );
+            var weights = new Weights( normalizedPopulation.ComponentCount );
             foreach( var component in pca.Components )
             {
                 for( var i = 0; i < component.Eigenvector.Count(); i++ )
@@ -78,7 +86,7 @@ namespace TemplateOptimizer
             result.PCAWeights = weights.Weigh();
             foreach( var distanceType in Parameters.DistanceTypes )
             {
-                result.AddPCADistance( distanceType, NormalizedPopulation.Distance( distanceType, result.PCAWeights ) );
+                result.AddPCADistance( distanceType, normalizedPopulation.Distance( distanceType, result.PCAWeights ) );
             }
         }
 
@@ -107,8 +115,15 @@ namespace TemplateOptimizer
                                         var lrun = run;
                                         Executor.Queue( this, () =>
                                         {
-                                            RunDE( result, ldeType, ldeWeight, ldeCrossover, ldePopulationCount, ldeIterationCount, ldistanceType, lrun );
+                                            RunDE( false, result, ldeType, ldeWeight, ldeCrossover, ldePopulationCount, ldeIterationCount, ldistanceType, lrun );
                                         } );
+                                        if( normalizedPopulationToCompare != null )
+                                        {
+                                            Executor.Queue( this, () =>
+                                            {
+                                                RunDE( true, result, ldeType, ldeWeight, ldeCrossover, ldePopulationCount, ldeIterationCount, ldistanceType, lrun );
+                                            } );
+                                        }
                                     }
                                 }
                             }
@@ -118,16 +133,16 @@ namespace TemplateOptimizer
             }
         }
 
-        private void RunDE( ExperimentResult result, int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance, int run )
+        private void RunDE( bool toCompare, ExperimentResult result, int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance, int run )
         {
-            var deAdapter = new DEAdapter( NormalizedPopulation, deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distance );
+            var deAdapter = new DEAdapter( toCompare ? normalizedPopulationToCompare : normalizedPopulation, deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distance );
             var de = new DE.DifferentialEvolution( deAdapter.Objective );
 
             var deOutput = de.Optimizer( deAdapter.InputStructure );
             var bestObjective = -deOutput.S_bestval.FVr_oa[0];
             var bestWeights = new Weights( deOutput.FVr_bestmem, Weights.NormalizationMode.Weigh );
 
-            result.AddDEResult( new ExperimentResult.DEResult( deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distance, run, bestObjective, bestWeights ));
+            result.AddDEResult( new ExperimentResult.DEResult( toCompare, deType, deWeight, deCrossover, dePopulationCount, deIterationCount, distance, run, bestObjective, bestWeights, deOutput.S_bestvalit ));
         }
 
         // helpers

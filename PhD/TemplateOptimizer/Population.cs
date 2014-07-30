@@ -10,6 +10,7 @@ namespace TemplateOptimizer
         public enum DistanceProcessing
         {
             Average,
+            LimitedAverage,
             GeometricAverage,
             Minimum,
             Median,
@@ -22,6 +23,7 @@ namespace TemplateOptimizer
             switch( dp )
             {
                 case Population.DistanceProcessing.Average: return "a";
+                case Population.DistanceProcessing.LimitedAverage: return "l";
                 case Population.DistanceProcessing.GeometricAverage: return "g";
                 case Population.DistanceProcessing.Median: return "x";
                 case Population.DistanceProcessing.Minimum: return "m";
@@ -107,6 +109,7 @@ namespace TemplateOptimizer
                 case DistanceProcessing.Minimum:
                     distance = Double.MaxValue;
                     break;
+                case DistanceProcessing.LimitedAverage:
                 case DistanceProcessing.Median:
                     distances = new List<double>();
                     break;
@@ -138,6 +141,7 @@ namespace TemplateOptimizer
                         case DistanceProcessing.Minimum:
                             distance = dij < distance ? dij : distance;
                             break;
+                        case DistanceProcessing.LimitedAverage:
                         case DistanceProcessing.Median:
                             distances.Add( dij );
                             break;
@@ -155,6 +159,10 @@ namespace TemplateOptimizer
             {
                 case DistanceProcessing.GeometricAverage:
                     return Math.Exp( distance );
+                case DistanceProcessing.LimitedAverage:
+                    distances.Sort();
+                    var lacount = distances.Count;
+                    return distances.Skip( lacount/10 ).Take( 8*lacount/10 ).Average();
                 case DistanceProcessing.Median:
                 case DistanceProcessing.MinimumTimesMedian:
                     distances.Sort();

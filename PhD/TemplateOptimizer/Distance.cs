@@ -11,6 +11,7 @@ namespace TemplateOptimizer
     {
         private static Distance[] permutation = new Distance[] {
             new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.Average ),
+            new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.LimitedAverage ),
             new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.GeometricAverage ),
             new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.Median ),
             new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.Minimum ),
@@ -18,6 +19,7 @@ namespace TemplateOptimizer
             new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.Summation ),
 
             new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.Average ),
+            new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.LimitedAverage ),
             new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.GeometricAverage ),
             new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.Median ),
             new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.Minimum ),

@@ -215,16 +215,56 @@ namespace TemplateOptimizer
             int index = 1;
             foreach( var de in r.DEResults.OrderBy( ( der ) => 100 * ( (int)der.Distance.Type ) + ( (int)der.Distance.Processing ) ) )
             {
-                CellsE( String.Join( CS, index++, ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
-                        de.DEWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
+                var components = de.DEWeights.Components.ToList();
+                if( de.ToCompare )
+                {
+                    var spread = new double[30];
+                    int si = 0;
+                    for( int i = 0; i < spread.Length; i++ )
+                    {
+                        switch( i%3 )
+                        {
+                            case 0: spread[i] = components[si++]; break;
+                            case 1: spread[i] = 0.0; break;
+                            case 2: spread[i] = components[si++]; break;
+                        }
+                    }
+                    components = spread.ToList<double>();
+                }
+
+                CellsE( String.Join( CS, (index++).ToString() + (de.ToCompare ? "co" : "ex"), ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
+                        components.Select( ( i ) => i.ToString( "G5" ) ) );
+
+                // CellsE( String.Join( CS, ( index++ ).ToString() + ( de.ToCompare ? "coX" : "exX" ), ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
+                //         de.DEWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
             }
             Cell( "differential evolutions parameters, by distance" );
             CellsVA( "i", "dDE / dP", "distance", "type", "parentWeight", "crossover", "population", "iterations", "distance",  "weights ->" );
             index = 1;
             foreach( var de in r.DEResults.OrderBy( ( der ) => der.DEDistance / r.PlainDistances[der.Distance] ) )
             {
-                CellsE( String.Join( CS, index++, ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
-                        de.DEWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
+                var components = de.DEWeights.Components.ToList();
+                if( de.ToCompare )
+                {
+                    var spread = new double[30];
+                    int si = 0;
+                    for( int i = 0; i < spread.Length; i++ )
+                    {
+                        switch( i%3 )
+                        {
+                            case 0: spread[i] = components[si++]; break;
+                            case 1: spread[i] = 0.0; break;
+                            case 2: spread[i] = components[si++]; break;
+                        }
+                    }
+                    components = spread.ToList<double>();
+                }
+
+                CellsE( String.Join( CS, ( index++ ).ToString() + ( de.ToCompare ? "co" : "ex" ), ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
+                        components.Select( ( i ) => i.ToString( "G5" ) ) );
+
+                // CellsE( String.Join( CS, ( index++ ).ToString() + ( de.ToCompare ? "coX" : "exX" ), ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
+                //         de.DEWeights.Components.Select( ( i ) => i.ToString( "G5" ) ) );
             }
 
             Cell( "population" );
@@ -238,6 +278,15 @@ namespace TemplateOptimizer
             foreach( var ind in r.NormalizedPopulation.Templates )
             {
                 CellsE( ( index++ ).ToString(), ind.Components.Select( ( i ) => i.ToString( "G5" ) ) );
+            }
+
+            Cell( "differential evolutions criterion development, by distance" );
+            CellsVA( "i", "dDE / dP", "distance", "type", "parentWeight", "crossover", "population", "iterations", "distance", "develop ->" );
+            index = 1;
+            foreach( var de in r.DEResults.OrderBy( ( der ) => der.DEDistance / r.PlainDistances[der.Distance] ) )
+            {
+                CellsE( String.Join( CS, ( index++ ).ToString() + ( de.ToCompare ? "co" : "ex" ), ( de.DEDistance / r.PlainDistances[de.Distance] ).ToString( "G5" ), de.DEDistance.ToString( "G5" ), de.Type, de.Weight, de.Crossover, de.PopulationCount, de.IterationCount, de.Distance ),
+                        de.DEDistanceDevelop.Select( ( i ) => i.ToString( "G5" ) ) );
             }
         }
     }

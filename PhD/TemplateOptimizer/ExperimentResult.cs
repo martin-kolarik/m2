@@ -11,8 +11,9 @@ namespace TemplateOptimizer
     {
         public class DEResult
         {
-            public DEResult( int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance, int run, double bestDistance, Weights bestWeights )
+            public DEResult( bool toCompare, int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance, int run, double bestDistance, Weights bestWeights, double[] bestDistanceDevelop )
             {
+                ToCompare = toCompare;
                 Type = deType;
                 Weight = deWeight;
                 Crossover = deCrossover;
@@ -22,8 +23,10 @@ namespace TemplateOptimizer
                 Run = run;
                 DEDistance = bestDistance;
                 DEWeights = bestWeights;
+                DEDistanceDevelop = bestDistanceDevelop;
             }
 
+            public bool ToCompare { get; private set; }
             public int Type { get; private set; }
             public double Weight { get; private set; }
             public double Crossover { get; private set; }
@@ -34,6 +37,7 @@ namespace TemplateOptimizer
 
             public double DEDistance { get; private set; }
             public Weights DEWeights { get; private set; }
+            public double[] DEDistanceDevelop { get; private set; }
         }
 
         // parameters, inputs

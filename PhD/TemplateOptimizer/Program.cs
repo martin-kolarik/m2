@@ -24,10 +24,11 @@ namespace TemplateOptimizer
 
         static void Experiments()
         {
-            ExperimentsFewRandomVariables();
-            ExperimentsManyRandomVariables();
-            ExperimentsDEVariants();
-            ExperimentsDEVariantsMoreDERuns();
+            // ExperimentsFewRandomVariables();
+            // ExperimentsManyRandomVariables();
+            // ExperimentsDEVariants();
+            // ExperimentsDEVariantsMoreDERuns();
+            ExperimentsCombination();
         }
 
         static void ExperimentsFewRandomVariables()
@@ -76,9 +77,15 @@ namespace TemplateOptimizer
             {
                 foreach( var c2 in populations )
                 {
-                    DEExamination.Execute( c1.ToString() + c2.ToString() + "de", c1, c2, DEExamination.Variant.BestAfterOmitBadsLinearyCombinedAllDistancesMoreDERuns, true, false );
+                    DEExamination.Execute( c1.ToString() + c2.ToString() + "de25to150", c1, c2, DEExamination.Variant.BestAfterOmitBadsLinearyCombinedAllDistancesMoreDERuns, true, false );
                 }
             }
+        }
+
+        static void ExperimentsCombination()
+        {
+            DEExamination.Execute( "Duplication", 0, 0, DEExamination.Variant.RedundantDuplicatedComponents, true, false );
+            DEExamination.Execute( "Combination", 0, 0, DEExamination.Variant.RedundantCombinedComponents, true, false );
         }
 
         static void Tests()
