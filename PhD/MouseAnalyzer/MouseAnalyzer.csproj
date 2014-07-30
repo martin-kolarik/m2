@@ -41,7 +41,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Derivative.cs" />
+    <Compile Include="CSVDumper.cs" />
+    <Compile Include="Kinematics.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="Event.cs" />
     <Compile Include="IFeature.cs" />
@@ -50,6 +51,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StatisticsMarker.cs" />
+    <Compile Include="Stroke.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
