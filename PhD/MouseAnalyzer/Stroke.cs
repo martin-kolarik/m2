@@ -16,16 +16,16 @@ namespace MouseAnalyzer
     {
         #region IFeature<StrokeItem> Members
 
-        public void AddItem( StrokeItem item )
+        public void AddItems( IEnumerable<StrokeItem> items )
         {
-            if( item == null )
+            if( items == null )
             {
                 return;
             }
-            items.Add( item );
+            this.items.AddRange( items );
         }
 
-        public IEnumerable<StrokeItem> Items
+        public IList<StrokeItem> Items
         {
             get { return items; }
         }
@@ -58,7 +58,7 @@ namespace MouseAnalyzer
     {
         #region IFeatureExtractor<StrokeItem> Members
 
-        public StrokeItem AddEvent( Event input, IEnumerable<StrokeItem> previousItems )
+        public IEnumerable<StrokeItem> AddEvent( Event input, IList<StrokeItem> previousItems )
         {
             throw new NotImplementedException();
         }

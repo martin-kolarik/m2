@@ -12,7 +12,7 @@ namespace MouseAnalyzer
 
     interface IFeatureExtractor<F> where F : IFeatureItem
     {
-        F AddEvent( Event input, IEnumerable<F> previousItems );
+        IEnumerable<F> AddEvent( Event input, IList<F> previousItems );
     }
 
     interface IFeature
@@ -25,7 +25,7 @@ namespace MouseAnalyzer
 
     interface IFeature<F> : IFeature where F : IFeatureItem
     {
-        void AddItem( F item );
-        IEnumerable<F> Items { get; }
+        void AddItems( IEnumerable<F> items );
+        IList<F> Items { get; } // IList chosen to allow both forward and backward traversing
     }
 }

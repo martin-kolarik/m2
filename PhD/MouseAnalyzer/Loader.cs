@@ -60,6 +60,7 @@ namespace MouseAnalyzer
         public List<Event> CreateEvents( string expectedItem )
         {
             var list = new List<Event>();
+            var time = 0.0;
 
             var buttonState = new Event.ButtonState[BUTTONS];
             var lastDownDistance = new double[BUTTONS];
@@ -84,6 +85,7 @@ namespace MouseAnalyzer
                 var dT = double.Parse( items[1] );
 
                 // detect flags
+                var anyRecordable = false;
                 var chararray = items[2].ToCharArray();
                 for( int i = 0; i < buttonState.Length; i++ )
                 {
@@ -95,6 +97,7 @@ namespace MouseAnalyzer
 
                     if( chararray[i] == 'U' )
                     {
+                        anyRecordable = true;
                         buttonState[i] = Event.ButtonState.Release;
                         if( doubleClickState[i] == 3 )
                         {
@@ -107,6 +110,7 @@ namespace MouseAnalyzer
                     }
                     else if( chararray[i] == 'D' )
                     {
+                        anyRecordable = true;
                         buttonState[i] = Event.ButtonState.Press;
                         if( doubleClickState[i] == 2 )
                         {
@@ -136,7 +140,7 @@ namespace MouseAnalyzer
                     }
                 }
 
-                if( dT == 0.0 ) // ignore events having the same time, but do not do it before button states are updated
+                if( dT == 0.0 && !anyRecordable ) // ignore events having the same time, but do not do it before button states are updated
                 {
                     continue;
                 }
@@ -151,7 +155,10 @@ namespace MouseAnalyzer
                 var dy = int.Parse( diffabs[0] );
                 var y = int.Parse( diffabs[1] );
 
-                list.Add( new Event( dx, dy, dT, x, y, buttonState ) );
+                list.Add( new Event( dx, dy, dT, x, y, time, buttonState.ToArray() ) );
+
+                // move time on
+                time += dT;
             }
 
             return list;

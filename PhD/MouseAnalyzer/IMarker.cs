@@ -9,7 +9,9 @@ namespace MouseAnalyzer
     interface IMarker
     {
         string Name { get; }
+        string MarkerTypeName { get; }
         IFeature Feature { get; } // of feature
+        IEstimate Estimate { get; } // if available
     }
 
     interface IValueMarker : IMarker
@@ -25,6 +27,6 @@ namespace MouseAnalyzer
 
     interface IMarkerExtractor
     {
-        IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, int bins );
+        IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition );
     }
 }

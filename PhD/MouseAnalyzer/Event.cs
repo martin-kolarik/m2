@@ -33,6 +33,7 @@ namespace MouseAnalyzer
 
         private int x;
         private int y;
+        private double time;
         private ButtonState[] state;
 
         private int dx;
@@ -43,13 +44,14 @@ namespace MouseAnalyzer
         {
         }
 
-        public Event( int dx, int dy, double dt, int x, int y, ButtonState[] state )
+        public Event( int dx, int dy, double dt, int x, int y, double time, ButtonState[] state )
         {
             this.dx = dx;
             this.dy = dy;
             this.dt = dt;
             this.x = x;
             this.y = y;
+            this.time = time;
             this.state = state;
         }
 
@@ -61,6 +63,11 @@ namespace MouseAnalyzer
         public int Y
         {
             get { return y; }
+        }
+
+        public double Time
+        {
+            get { return time; }
         }
 
         public int dX

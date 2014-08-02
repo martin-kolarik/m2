@@ -8,142 +8,278 @@ namespace MouseAnalyzer
 {
     class StatisticsMarker : IValueMarker
     {
-        public enum Type
-        {
-            Minimum,
-            Average,
-            Maximum,
-            Median,
-            Deviation,
-            Variance,
-            MdfMinimum,
-            MdfAverage,
-            MdfMaximum,
-            MdfDeviation,
-            MdfVariance
-        }
-
         #region IMarker Members
 
-        public string Name { get { return ( featureName == null ? "" : featureName + "." ) + type.ToString(); } }
-        public IFeature Feature { get { return feature; } }
+        public string Name { get { return ( featureName == null ? "" : featureName + "." ) + MarkerTypeName; } }
+        public string MarkerTypeName { get; private set; }
+        public IFeature Feature { get; private set; }
+        public IEstimate Estimate { get; private set; }
 
         #endregion
 
         #region IValueMarker Members
 
-        public double Value { get { return value; } }
+        public double Value { get; private set; }
 
         #endregion
 
-        private IFeature feature;
         private string featureName;
-        private Type type;
-        private double value;
 
-        public StatisticsMarker( IFeature feature, string featureName, Type type, double value )
+        public StatisticsMarker( IFeature feature, string featureName, IEstimate estimate, string markerName, double value )
         {
-            this.feature = feature;
+            Feature = feature;
             this.featureName = featureName;
-            this.type = type;
-            this.value = value;
+            Estimate = estimate;
+            MarkerTypeName = markerName;
+            Value = value;
         }
     }
 
     class HistogramMarker : IHistogramMarker
     {
-        public enum Type
+        public class HistogramDefinition
         {
-            Head,
-            Body,
-            Tail
+            public enum BinCreationStrategy
+            {
+                Auto,
+                Sparse,
+                Predefined
+            }
+
+            public BinCreationStrategy Strategy { get; private set; }
+            public int Bins { get; private set; }
+            public double[] BinMidpoints { get; private set; }
+            public double BinWidth { get; private set; }
+
+            public HistogramDefinition( int bins )
+            {
+                Strategy = HistogramDefinition.BinCreationStrategy.Auto;
+                Bins = bins;
+            }
+
+            public HistogramDefinition( double firstBinMidpoint, double binMidpointSpread, double binWidth, double stopBinMidpoint = double.MaxValue )
+            {
+                Strategy = HistogramDefinition.BinCreationStrategy.Sparse;
+                BinWidth = binWidth;
+                BinMidpoints = new double[] { firstBinMidpoint, binMidpointSpread, stopBinMidpoint }; // ugly
+            }
+
+            public HistogramDefinition( IEnumerable<double> binMidpoints, double binWidth )
+            {
+                Strategy = HistogramDefinition.BinCreationStrategy.Predefined;
+                Bins = binMidpoints.Count();
+                BinWidth = binWidth;
+                BinMidpoints = binMidpoints.ToArray();
+            }
+
+            public void SupplyRange( double from, double to )
+            {
+                if( Strategy == HistogramDefinition.BinCreationStrategy.Auto )
+                {
+                    BinWidth = ( from - to ) / Bins;
+                    BinMidpoints = new double[Bins];
+                    for( var bin = 0; bin < Bins; ++bin )
+                    {
+                        BinMidpoints[bin] = from + ( bin+0.5 ) * BinWidth;
+                    }
+                }
+                else if( Strategy == HistogramDefinition.BinCreationStrategy.Sparse )
+                {
+                    var firstBinMidpoint = BinMidpoints[0]; // ugly
+                    var binMidpointSpread = BinMidpoints[1];
+                    var stopBinMidpoint = BinMidpoints[2];
+                    Bins = (int)( ( ( stopBinMidpoint > to ? to : stopBinMidpoint ) - firstBinMidpoint ) / binMidpointSpread ) + 1;
+                    BinMidpoints = new double[Bins];
+                    for( var bin = 0; bin < Bins; bin++ )
+                    {
+                        BinMidpoints[bin] = firstBinMidpoint + binMidpointSpread * bin;
+                    }
+                }
+            }
         }
 
         #region IMarker Members
 
-        public string Name { get { return ( featureName == null ? "" : featureName + "." ) + "Histogram"; } }
-        public IFeature Feature { get { return feature; } }
+        public string Name { get { return ( featureName == null ? "" : featureName + "." ) + MarkerTypeName; } }
+        public string MarkerTypeName { get { return "Histogram"; } }
+        public IFeature Feature { get; private set; }
+        public IEstimate Estimate { get; private set; }
 
         #endregion
 
         #region IHistogramMarker Members
 
         public int[] Frequencies { get { return frequencies; } }
-        public double[] BinMidpoints { get { return binMidpoints; } }
+        public double[] BinMidpoints { get { return definition.BinMidpoints; } }
 
         #endregion
 
-        private IFeature feature;
         private string featureName;
-        private Type type;
+        private HistogramDefinition definition;
         private int[] frequencies;
-        private double[] binMidpoints;
 
-        public HistogramMarker( IFeature feature, string featureName, Type type, IEnumerable<double> ordered, int bins )
+        public HistogramMarker( IFeature feature, string featureName, IEstimate estimate, HistogramDefinition definition, IEnumerable<double> ordered )
         {
-            this.feature = feature;
+            Feature = feature;
             this.featureName = featureName;
-            this.type = type;
-            this.frequencies = new int[bins];
-            this.binMidpoints = new double[bins];
+            Estimate = estimate;
+            this.definition = definition;
+            this.frequencies = new int[definition.Bins];
 
             var from = ordered.First();
             var to = ordered.Last();
-            var range = to - from;
-            foreach( var item in ordered )
-            {
-                var bin = range==0.0 ? bins : (int)( bins*( item-from )/range );
-                ++frequencies[bin==bins ? --bin : bin];
-            }
 
-            for( var bin = 0; bin < bins; ++bin )
+            if( definition.Strategy == HistogramDefinition.BinCreationStrategy.Auto )
             {
-                binMidpoints[bin] = from + ( bin+0.5 ) * range / bins;
+                var range = to - from;
+                foreach( var item in ordered )
+                {
+                    var bin = range==0.0 ? definition.Bins : (int)( definition.Bins*( item-from )/range );
+                    ++frequencies[bin==definition.Bins ? --bin : bin];
+                }
+            }
+            else
+            {
+                var halfWidth = definition.BinWidth / 2.0;
+                foreach( var item in ordered )
+                {
+                    var bin = 0;
+                    foreach( var midpoint in definition.BinMidpoints )
+                    {
+                        if( item >= midpoint - halfWidth && item <= midpoint + halfWidth )
+                        {
+                            ++frequencies[bin];
+                            break;
+                        }
+                        ++bin;
+                    }
+                }
             }
         }
     }
 
-    class StatisticsMarkerExtractor : IMarkerExtractor
+    class GaussianMarkerExtractor : IMarkerExtractor
     {
         #region IMarkerExtractor Members
 
-        public IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName = null, Func<IFeatureItem, double> valueExtractor = null, int bins = 1000 )
+        public IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
         {
             var markers = new List<IMarker>();
             var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
-            var count = input.Count();
-            var doubles = input.OrderBy( d => d );
-            var average = doubles.Average();
+            if( input.Count() == 0 )
+            {
+                return markers;
+            }
 
-            var head = doubles.Skip( count / 100 ).Take( count * 9 / 100 );
-            var modified = doubles.Skip( count / 10 ).Take( count * 8 / 10 );
-            var modifiedAverage = modified.Average();
-            var tail = doubles.Skip( count * 9 / 10 ).Take( count * 9 / 100 );
+            var estimate = (GaussianEstimate)new Estimator().Estimate( DistributionType.Gaussian, input, 0.1, 0.1 );
 
             // plain values
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.Minimum, doubles.First() ) );
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.MdfMinimum, modified.First() ) );
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.Average, average ) );
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.MdfAverage, modifiedAverage ) );
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.Maximum, doubles.Last() ) );
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.MdfMaximum, modified.Last() ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "MdfMinimum", estimate.MdfMinimum ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Average", estimate.Average ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "MdfAverage", estimate.MdfAverage ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "MdfMaximum", estimate.MdfMaximum ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Median", estimate.Median ) );
 
-            // median
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.Median, 0.5 * doubles.Skip( ( count-1 ) / 2 ).First() + 0.5 * doubles.Skip( count / 2 ).First() ) );
-
-            // variance and deviation
-            var squares = doubles.Select<double, double>( d => d * d ).Average();
-            var variance = squares - average * average;
-            var modifiedSquares = modified.Select<double, double>( d => d * d ).Average();
-            var modifiedVariance = modifiedSquares - modifiedAverage * modifiedAverage;
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.Variance, variance ) );
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.MdfVariance, modifiedVariance ) );
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.Deviation, Math.Sqrt( variance ) ) );
-            markers.Add( new StatisticsMarker( feature, featureName, StatisticsMarker.Type.MdfDeviation, Math.Sqrt( modifiedVariance ) ) );
+            // variance
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Variance", estimate.Variance ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "MdfVariance", estimate.MdfVariance ) );
 
             // histograms
-            markers.Add( new HistogramMarker( feature, featureName, HistogramMarker.Type.Body, modified, bins ));
-            markers.Add( new HistogramMarker( feature, featureName, HistogramMarker.Type.Tail, tail, bins / 11 ) );
+            if( definition != null )
+            {
+                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
+                markers.Add( new HistogramMarker( feature, featureName, estimate, definition, input ) );
+            }
+
+            return markers;
+        }
+
+        #endregion
+    }
+
+    class InverseGaussianMarkerExtractor : IMarkerExtractor
+    {
+        #region IMarkerExtractor Members
+
+        public IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
+        {
+            var markers = new List<IMarker>();
+            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
+            if( input.Count() == 0 )
+            {
+                return markers;
+            }
+
+            var estimate = (InverseGaussianEstimate)new Estimator().Estimate( DistributionType.InverseGaussian, input );
+
+            // plain values
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Average", estimate.Average ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Median", estimate.Median ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eMean", estimate.Mean ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eLambda1", estimate.Lambda1 ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eLambda2", estimate.Lambda2 ) );
+
+            // histograms
+            if( definition != null )
+            {
+                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
+                var histogram = new HistogramMarker( feature, featureName, estimate, definition, input );
+                // markers.Add( histogram );
+
+                var fit = (InverseGaussianFit)new Estimator().Fit( DistributionType.InverseGaussian, histogram );
+
+                // characteristics
+                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fMean", fit.Mean ) );
+                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fLambda1", fit.Lambda1 ) );
+                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fLambda2", fit.Lambda2 ) );
+            }
+
+            return markers;
+        }
+
+        #endregion
+    }
+
+    class LognormalMarkerExtractor : IMarkerExtractor
+    {
+        #region IMarkerExtractor Members
+
+        public IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
+        {
+            var markers = new List<IMarker>();
+            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
+            if( input.Count() == 0 )
+            {
+                return markers;
+            }
+
+            var estimate = (LognormalEstimate)new Estimator().Estimate( DistributionType.Lognormal, input );
+
+            // plain values
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Average", estimate.Average ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Median", estimate.Median ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eMu", estimate.Mu ) );
+            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eSigma", estimate.Sigma ) );
+
+            // histograms
+            if( definition != null )
+            {
+                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
+                var histogram = new HistogramMarker( feature, featureName, estimate, definition, input );
+                // markers.Add( histogram );
+
+                var fit = (LognormalFit)new Estimator().Fit( DistributionType.Lognormal, histogram );
+
+                // characteristics
+                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fMu", fit.Mu ) );
+                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fSigma", fit.Sigma ) );
+            }
 
             return markers;
         }
