@@ -103,51 +103,43 @@ namespace MouseAnalyzer
         private Dictionary<Event.Button, double> clickedOn = new Dictionary<Event.Button, double>();
     }
 
-    class Timing : IFeature<TimingItem>
+    class Timing : Feature, IFeature<TimingItem>
     {
         #region IFeature Members
 
-        public string Name
+        public bool AddItems( IEnumerable<TimingItem> items )
         {
-            get { return "Timing"; }
-        }
-
-        public void AddItems( IEnumerable<TimingItem> items )
-        {
-            if( items == null )
+            if( items == null || items.Count() == 0 )
             {
-                return;
+                return false;
             }
-            this.items.AddRange( items );
+            _Items.AddRange( items );
+            return true;
         }
 
-        public IList<TimingItem> Items
-        {
-            get { return items; }
+        public IList<TimingItem> Items { get { return _Items; }
         }
 
-        public IEnumerable<IMarker> Markers
+        public void ComputeMarkers( string computeId )
         {
-            get { return markers; }
-        }
+            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, Items.Where( i => i.Type == TimingItem.TimingType.BeforeClick ), "Before", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
+            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, Items.Where( i => i.Type == TimingItem.TimingType.InClick ), "In", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
+            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, Items.Where( i => i.Type == TimingItem.TimingType.DoubleClick ), "Double", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 200 ) ) );
 
-        public void ComputeMarkers()
-        {
-            if( markers.Count == 0 )
-            {
-                markers.AddRange( new InverseGaussianMarkerExtractor().Extract( this, items.Where( i => i.Type == TimingItem.TimingType.BeforeClick ), "Before", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
-                markers.AddRange( new InverseGaussianMarkerExtractor().Extract( this, items.Where( i => i.Type == TimingItem.TimingType.InClick ), "In", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
-                markers.AddRange( new InverseGaussianMarkerExtractor().Extract( this, items.Where( i => i.Type == TimingItem.TimingType.DoubleClick ), "Double", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 200 ) ) );
-
-                markers.AddRange( new LognormalMarkerExtractor().Extract( this, items.Where( i => i.Type == TimingItem.TimingType.BeforeClick ), "Before", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
-                markers.AddRange( new LognormalMarkerExtractor().Extract( this, items.Where( i => i.Type == TimingItem.TimingType.InClick ), "In", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
-                markers.AddRange( new LognormalMarkerExtractor().Extract( this, items.Where( i => i.Type == TimingItem.TimingType.DoubleClick ), "Double", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 200 ) ) );
-            }
+            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, Items.Where( i => i.Type == TimingItem.TimingType.BeforeClick ), "Before", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
+            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, Items.Where( i => i.Type == TimingItem.TimingType.InClick ), "In", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
+            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, Items.Where( i => i.Type == TimingItem.TimingType.DoubleClick ), "Double", f => ( (TimingItem)f ).Value, new HistogramMarker.HistogramDefinition( 8, 8, 2, 200 ) ) );
         }
 
         #endregion
 
-        private List<TimingItem> items = new List<TimingItem>();
-        private List<IMarker> markers = new List<IMarker>();
+        public Timing( Entity entity ) :
+            base( NAME, entity )
+        {
+            _Items = new List<TimingItem>();
+        }
+
+        private static string NAME = "Timing";
+        private List<TimingItem> _Items { get; set; }
     }
 }

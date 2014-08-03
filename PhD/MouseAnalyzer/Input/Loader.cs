@@ -7,57 +7,45 @@ using System.Threading.Tasks;
 
 namespace MouseAnalyzer
 {
-    class Loader : IDisposable
+    class Loader
     {
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            if( reader != null )
-            {
-                reader.Close();
-            }
-        }
-
-        #endregion
-
         private const int BUTTONS = 5;
         private double doubleClickDelay;
-        private StreamReader reader;
+        private string filePath;
         private List<Event> rawEvents;
         private List<Event> uefEvents;
 
         public Loader( string filePath, double doubleClickDelay )
         {
             this.doubleClickDelay = doubleClickDelay;
-            reader = new StreamReader( filePath );
+            this.filePath = filePath;
         }
 
-        public IEnumerable<Event> RawEvents
+        public IList<Event> RawEvents
         {
             get
             {
                 if( rawEvents == null )
                 {
-                    rawEvents = CreateEvents( "trk/R:" );
+                    rawEvents = CreateEvents( Event.SourceType.RAW, "trk/R:" );
                 }
                 return rawEvents;
             }
         }
 
-        public IEnumerable<Event> UEFEvents
+        public IList<Event> UEFEvents
         {
             get
             {
                 if( uefEvents == null )
                 {
-                    uefEvents = CreateEvents( "trk/H:" );
+                    uefEvents = CreateEvents( Event.SourceType.UEF, "trk/H:" );
                 }
                 return uefEvents;
             }
         }
 
-        public List<Event> CreateEvents( string expectedItem )
+        public List<Event> CreateEvents( Event.SourceType source, string expectedItem )
         {
             var list = new List<Event>();
             var time = 0.0;
@@ -71,6 +59,7 @@ namespace MouseAnalyzer
                 buttonState[i] = Event.ButtonState.Released;
             }
 
+            var reader = new StreamReader( filePath );
             while( !reader.EndOfStream )
             {
                 var items = reader.ReadLine().Split( new char[] { ' ' } );
@@ -155,11 +144,12 @@ namespace MouseAnalyzer
                 var dy = int.Parse( diffabs[0] );
                 var y = int.Parse( diffabs[1] );
 
-                list.Add( new Event( dx, dy, dT, x, y, time, buttonState.ToArray() ) );
+                list.Add( new Event( source, dx, dy, dT, x, y, time, buttonState.ToArray() ) );
 
                 // move time on
                 time += dT;
             }
+            reader.Close();
 
             return list;
         }

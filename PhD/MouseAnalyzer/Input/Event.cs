@@ -8,6 +8,12 @@ namespace MouseAnalyzer
 {
     class Event
     {
+        public enum SourceType
+        {
+            RAW,
+            UEF
+        }
+
         public enum Button
         {
             Left = 0,
@@ -31,59 +37,32 @@ namespace MouseAnalyzer
             return new Event();
         }
 
-        private int x;
-        private int y;
-        private double time;
         private ButtonState[] state;
-
-        private int dx;
-        private int dy;
-        private double dt;
 
         private Event()
         {
         }
 
-        public Event( int dx, int dy, double dt, int x, int y, double time, ButtonState[] state )
+        public Event( SourceType source, int dx, int dy, double dt, int x, int y, double time, ButtonState[] state )
         {
-            this.dx = dx;
-            this.dy = dy;
-            this.dt = dt;
-            this.x = x;
-            this.y = y;
-            this.time = time;
+            Source = source;
+            X = x;
+            Y = y;
+            Time = time;
+            dX = dx;
+            dY = dy;
+            dT = dt;
             this.state = state;
         }
 
-        public int X
-        {
-            get { return x; }
-        }
+        public SourceType Source { get; private set; }
+        public int X { get; private set; }
+        public int Y { get; private set; }
+        public double Time { get; private set; }
 
-        public int Y
-        {
-            get { return y; }
-        }
-
-        public double Time
-        {
-            get { return time; }
-        }
-
-        public int dX
-        {
-            get { return dx; }
-        }
-
-        public int dY
-        {
-            get { return dy; }
-        }
-
-        public double dT
-        {
-            get { return dt; }
-        }
+        public int dX { get; private set; }
+        public int dY { get; private set; }
+        public double dT { get; private set; }
 
         public ButtonState this[ Button button ]
         {

@@ -12,6 +12,7 @@ namespace MouseAnalyzer
 
         public string Name { get { return ( featureName == null ? "" : featureName + "." ) + MarkerTypeName; } }
         public string MarkerTypeName { get; private set; }
+        public string ComputeId { get; private set; }
         public IFeature Feature { get; private set; }
         public IEstimate Estimate { get; private set; }
 
@@ -25,10 +26,11 @@ namespace MouseAnalyzer
 
         private string featureName;
 
-        public StatisticsMarker( IFeature feature, string featureName, IEstimate estimate, string markerName, double value )
+        public StatisticsMarker( string computeId, IFeature feature, string featureName, IEstimate estimate, string markerName, double value )
         {
             Feature = feature;
             this.featureName = featureName;
+            ComputeId = computeId;
             Estimate = estimate;
             MarkerTypeName = markerName;
             Value = value;
@@ -102,6 +104,7 @@ namespace MouseAnalyzer
 
         public string Name { get { return ( featureName == null ? "" : featureName + "." ) + MarkerTypeName; } }
         public string MarkerTypeName { get { return "Histogram"; } }
+        public string ComputeId { get; private set; }
         public IFeature Feature { get; private set; }
         public IEstimate Estimate { get; private set; }
 
@@ -118,10 +121,11 @@ namespace MouseAnalyzer
         private HistogramDefinition definition;
         private int[] frequencies;
 
-        public HistogramMarker( IFeature feature, string featureName, IEstimate estimate, HistogramDefinition definition, IEnumerable<double> ordered )
+        public HistogramMarker( string computeId, IFeature feature, string featureName, IEstimate estimate, HistogramDefinition definition, IEnumerable<double> ordered )
         {
             Feature = feature;
             this.featureName = featureName;
+            ComputeId = computeId;
             Estimate = estimate;
             this.definition = definition;
             this.frequencies = new int[definition.Bins];
@@ -162,7 +166,7 @@ namespace MouseAnalyzer
     {
         #region IMarkerExtractor Members
 
-        public IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
+        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
         {
             var markers = new List<IMarker>();
             var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
@@ -174,23 +178,23 @@ namespace MouseAnalyzer
             var estimate = (GaussianEstimate)new Estimator().Estimate( DistributionType.Gaussian, input, 0.1, 0.1 );
 
             // plain values
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "MdfMinimum", estimate.MdfMinimum ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Average", estimate.Average ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "MdfAverage", estimate.MdfAverage ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "MdfMaximum", estimate.MdfMaximum ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Median", estimate.Median ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfMinimum", estimate.MdfMinimum ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfAverage", estimate.MdfAverage ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfMaximum", estimate.MdfMaximum ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Median", estimate.Median ) );
 
             // variance
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Variance", estimate.Variance ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "MdfVariance", estimate.MdfVariance ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Variance", estimate.Variance ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfVariance", estimate.MdfVariance ) );
 
             // histograms
             if( definition != null )
             {
                 definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                markers.Add( new HistogramMarker( feature, featureName, estimate, definition, input ) );
+                markers.Add( new HistogramMarker( computeId, feature, featureName, estimate, definition, input ) );
             }
 
             return markers;
@@ -203,7 +207,7 @@ namespace MouseAnalyzer
     {
         #region IMarkerExtractor Members
 
-        public IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
+        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
         {
             var markers = new List<IMarker>();
             var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
@@ -215,27 +219,27 @@ namespace MouseAnalyzer
             var estimate = (InverseGaussianEstimate)new Estimator().Estimate( DistributionType.InverseGaussian, input );
 
             // plain values
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Average", estimate.Average ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Median", estimate.Median ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eMean", estimate.Mean ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eLambda1", estimate.Lambda1 ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eLambda2", estimate.Lambda2 ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Median", estimate.Median ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eMean", estimate.Mean ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eLambda1", estimate.Lambda1 ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eLambda2", estimate.Lambda2 ) );
 
             // histograms
             if( definition != null )
             {
                 definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( feature, featureName, estimate, definition, input );
+                var histogram = new HistogramMarker( computeId, feature, featureName, estimate, definition, input );
                 // markers.Add( histogram );
 
                 var fit = (InverseGaussianFit)new Estimator().Fit( DistributionType.InverseGaussian, histogram );
 
                 // characteristics
-                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fMean", fit.Mean ) );
-                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fLambda1", fit.Lambda1 ) );
-                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fLambda2", fit.Lambda2 ) );
+                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fMean", fit.Mean ) );
+                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fLambda1", fit.Lambda1 ) );
+                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fLambda2", fit.Lambda2 ) );
             }
 
             return markers;
@@ -248,7 +252,7 @@ namespace MouseAnalyzer
     {
         #region IMarkerExtractor Members
 
-        public IEnumerable<IMarker> Extract( IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
+        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string featureName, Func<IFeatureItem, double> valueExtractor, HistogramMarker.HistogramDefinition definition )
         {
             var markers = new List<IMarker>();
             var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
@@ -260,25 +264,25 @@ namespace MouseAnalyzer
             var estimate = (LognormalEstimate)new Estimator().Estimate( DistributionType.Lognormal, input );
 
             // plain values
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Average", estimate.Average ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "Median", estimate.Median ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eMu", estimate.Mu ) );
-            markers.Add( new StatisticsMarker( feature, featureName, estimate, "eSigma", estimate.Sigma ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Median", estimate.Median ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eMu", estimate.Mu ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eSigma", estimate.Sigma ) );
 
             // histograms
             if( definition != null )
             {
                 definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( feature, featureName, estimate, definition, input );
+                var histogram = new HistogramMarker( computeId, feature, featureName, estimate, definition, input );
                 // markers.Add( histogram );
 
                 var fit = (LognormalFit)new Estimator().Fit( DistributionType.Lognormal, histogram );
 
                 // characteristics
-                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fMu", fit.Mu ) );
-                markers.Add( new StatisticsMarker( feature, featureName, estimate, "fSigma", fit.Sigma ) );
+                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fMu", fit.Mu ) );
+                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fSigma", fit.Sigma ) );
             }
 
             return markers;

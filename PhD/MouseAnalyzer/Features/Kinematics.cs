@@ -207,41 +207,29 @@ namespace MouseAnalyzer
 
     }
 
-    class Kinematics : IFeature<KinematicsItem>
+    class Kinematics : Feature, IFeature<KinematicsItem>
     {
         #region IFeature Members
 
-        public string Name
+        public bool AddItems( IEnumerable<KinematicsItem> items )
         {
-            get { return "Kinematics"; }
-        }
-
-        public void AddItems( IEnumerable<KinematicsItem> items )
-        {
-            if( items == null )
+            if( items == null || items.Count() == 0 )
             {
-                return;
+                return false;
             }
-            this.items.AddRange( items );
+            _Items.AddRange( items );
+            return true;
         }
 
-        public IList<KinematicsItem> Items
-        {
-            get { return items; }
-        }
+        public IList<KinematicsItem> Items { get { return _Items; } }
 
-        public IEnumerable<IMarker> Markers
+        public void ComputeMarkers( string computeId )
         {
-            get { return markers; }
-        }
-
-        public void ComputeMarkers()
-        {
-            if( markers.Count == 0 )
+            if( _Markers.Count == 0 )
             {
-                markers.AddRange( new GaussianMarkerExtractor().Extract( this, items, "t", f => ( (KinematicsItem)f ).T, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "t", f => ( (KinematicsItem)f ).T, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
 
-                markers.AddRange( new GaussianMarkerExtractor().Extract( this, items, "s", f => ( (KinematicsItem)f ).S, new HistogramMarker.HistogramDefinition( new double[] {
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "s", f => ( (KinematicsItem)f ).S, new HistogramMarker.HistogramDefinition( new double[] {
                     Math.Sqrt(01), Math.Sqrt(02), Math.Sqrt(04), Math.Sqrt(05), Math.Sqrt(08), Math.Sqrt(09),
                     Math.Sqrt(10), Math.Sqrt(13), Math.Sqrt(17), Math.Sqrt(18), Math.Sqrt(20), Math.Sqrt(25),
                     Math.Sqrt(26), Math.Sqrt(29), Math.Sqrt(32), Math.Sqrt(34), Math.Sqrt(37) 
@@ -251,17 +239,17 @@ namespace MouseAnalyzer
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "sN", f => ( (KinematicsItem)f ).SN, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "c", f => ( (KinematicsItem)f ).C, null ) );
 
-                markers.AddRange( new GaussianMarkerExtractor().Extract( this, items, "v", f => ( (KinematicsItem)f ).V, null ) );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "v", f => ( (KinematicsItem)f ).V, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "vfitn", f => ( (KinematicsItem)f ).Vfitn, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "vT", f => ( (KinematicsItem)f ).VT, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "vN", f => ( (KinematicsItem)f ).VN, null ) );
 
-                markers.AddRange( new GaussianMarkerExtractor().Extract( this, items, "a", f => ( (KinematicsItem)f ).A, null ) );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "a", f => ( (KinematicsItem)f ).A, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "afitn", f => ( (KinematicsItem)f ).Afitn, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "aT", f => ( (KinematicsItem)f ).AT, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "aN", f => ( (KinematicsItem)f ).AN, null ) );
 
-                markers.AddRange( new GaussianMarkerExtractor().Extract( this, items, "j", f => ( (KinematicsItem)f ).J, null ) );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "j", f => ( (KinematicsItem)f ).J, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "jfitn", f => ( (KinematicsItem)f ).Jfitn, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "jT", f => ( (KinematicsItem)f ).JT, null ) );
                 // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "jN", f => ( (KinematicsItem)f ).JN, null ) );
@@ -270,8 +258,13 @@ namespace MouseAnalyzer
 
         #endregion
 
-        private List<KinematicsItem> items = new List<KinematicsItem>();
-        private List<IMarker> markers = new List<IMarker>();
+        public Kinematics( Entity entity ) :
+            base( NAME, entity )
+        {
+            _Items = new List<KinematicsItem>();
+        }
 
+        private static string NAME = "Kinematics";
+        private List<KinematicsItem> _Items { get; set; }
     }
 }

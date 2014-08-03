@@ -41,24 +41,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analysis\IAnalysis.cs" />
+    <Compile Include="Analysis\TimeDevelopment.cs" />
+    <Compile Include="Analysis\TimeGeometry.cs" />
     <Compile Include="CSVDumper.cs" />
-    <Compile Include="Estimations.cs" />
-    <Compile Include="IEstimator.cs" />
-    <Compile Include="Kinematics.cs" />
-    <Compile Include="Entity.cs" />
-    <Compile Include="Event.cs" />
-    <Compile Include="IFeature.cs" />
-    <Compile Include="IMarker.cs" />
-    <Compile Include="Loader.cs" />
+    <Compile Include="Statistics\Estimations.cs" />
+    <Compile Include="Statistics\IEstimator.cs" />
+    <Compile Include="Features\Kinematics.cs" />
+    <Compile Include="Entity\Entity.cs" />
+    <Compile Include="Input\Event.cs" />
+    <Compile Include="Features\IFeature.cs" />
+    <Compile Include="Statistics\IMarker.cs" />
+    <Compile Include="Input\Loader.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StatisticsMarker.cs" />
-    <Compile Include="Stroke.cs" />
-    <Compile Include="Timing.cs" />
+    <Compile Include="Statistics\StatisticsMarker.cs" />
+    <Compile Include="Features\Stroke.cs" />
+    <Compile Include="Features\Timing.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
