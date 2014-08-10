@@ -52,7 +52,7 @@ namespace MouseAnalyzer
         }
     }
 
-    class GaussianEstimate : Estimate
+    class GaussianDatasetEstimate : Estimate
     {
         public double MdfMinimum { get; private set; }
         public double MdfMaximum { get; private set; }
@@ -64,7 +64,7 @@ namespace MouseAnalyzer
         public double MdfMean { get; private set; }
         public double MdfVariance { get; private set; }
 
-        public GaussianEstimate( IEnumerable<double> values, double leftModifier, double rightModifier ) : // values are unordered
+        public GaussianDatasetEstimate( IEnumerable<double> values, double leftModifier, double rightModifier ) : // values are unordered
             base( DistributionType.Gaussian )
         {
             var ordered = Order( values );
@@ -95,30 +95,61 @@ namespace MouseAnalyzer
         }
     }
 
-    class LognormalEstimate : Estimate
+    class GaussianHistogramEstimate : Estimate
+    {
+        public double Mean { get; private set; }
+        public double Variance { get; private set; }
+
+        public GaussianHistogramEstimate( IHistogramMarker histogram ) :
+            base( DistributionType.Gaussian )
+        {
+            var count = histogram.BinMidpoints.Length;
+            var sumf = histogram.Frequencies.Sum();
+            var M2 = 0.0;
+
+            Mean = 0.0;
+            for( var bin = 0; bin < count; bin++ )
+            {
+                var value = histogram.Frequencies[bin] * histogram.BinMidpoints[bin];
+                Mean += value;
+                M2 += value * histogram.BinMidpoints[bin];
+            }
+            Mean = Mean / sumf;
+            M2 = M2 / sumf;
+
+            Variance = Math.Sqrt( M2 - Mean * Mean );
+        }
+    }
+
+    class LognormalDatasetEstimate : Estimate
     {
         public double Mu { get; private set; }
         public double Sigma { get; private set; }
 
-        public LognormalEstimate( IEnumerable<double> values ) : // values are unordered
+        public LognormalDatasetEstimate( IEnumerable<double> values ) : // values are unordered
             base( DistributionType.Lognormal )
         {
             var ordered = Order( values );
             Populate( ordered );
 
             var logordered = SkipZeros( ordered ).Select<double, double>( d => Math.Log( d ) );
+            if( logordered.Count() == 0 )
+            {
+                return;
+            }
+
             Mu = logordered.Average();
             var squares = logordered.Select<double, double>( d => d * d ).Average();
             Sigma = Math.Sqrt( squares - Mu * Mu );
         }
     }
 
-    class LognormalFit : Estimate
+    class LognormalHistogramEstimate : Estimate
     {
         public double Mu { get; private set; }
         public double Sigma { get; private set; }
 
-        public LognormalFit( IHistogramMarker histogram ) :
+        public LognormalHistogramEstimate( IHistogramMarker histogram ) :
             base( DistributionType.InverseGaussian )
         {
             var count = histogram.BinMidpoints.Length;
@@ -139,36 +170,49 @@ namespace MouseAnalyzer
         }
     }
 
-    class InverseGaussianEstimate : Estimate
+    class InverseGaussianDatasetEstimate : Estimate
     {
         public double Mean { get; private set; }
-        public double Lambda1 { get; private set; }
-        public double Lambda2 { get; private set; }
+        public double Lambda { get; private set; }
 
-        public InverseGaussianEstimate( IEnumerable<double> values ) : // values are unordered
+        public InverseGaussianDatasetEstimate( IEnumerable<double> values ) : // values are unordered
             base( DistributionType.InverseGaussian )
         {
             var ordered = Order( values );
             Populate( ordered );
 
             var filtered = SkipZeros( ordered );
-            Mean = filtered.Average();
-            Lambda1 = filtered.Select<double, double>( d => ( 1 / d - 1 / Mean )).Average();
-            Lambda1 = Count / Lambda1;
+            if( filtered.Count() == 0 )
+            {
+                return;
+            }
 
+            Mean = filtered.Average();
+
+            /* MLE method gives less acceptable results if low values (close 0], then momentum metod is more robust.
+             * EasyFit uses Momentum for InverseGaussian as well.
+             * Momentum method also gives the same results for Estimate (this class) and Histogram approach.
+             * Differences were always caused by limiting histogram and not limiting data and vice versa.
+             * 
+            Lambda1 = filtered.Select<double, double>( d => ( 1 / d - 1 / Mean ) ).Average();
+            Lambda1 = 1.0 / Lambda1;
+             * */
+
+            // Momentum estimation of Lambda
+            // http://is.muni.cz/th/357381/prif_b/bp.pdf
+            // EasyFit
             var M2 = filtered.Select( d => d * d ).Average();
             var meanSquare = Mean * Mean;
-            Lambda2 = meanSquare * Mean / ( M2 - meanSquare );
+            Lambda = meanSquare * Mean / ( M2 - meanSquare );
         }
     }
 
-    class InverseGaussianFit : Estimate
+    class InverseGaussianHistogramEstimate : Estimate
     {
         public double Mean { get; private set; }
-        public double Lambda1 { get; private set; }
-        public double Lambda2 { get; private set; }
+        public double Lambda { get; private set; }
 
-        public InverseGaussianFit( IHistogramMarker histogram ) :
+        public InverseGaussianHistogramEstimate( IHistogramMarker histogram ) :
             base( DistributionType.InverseGaussian )
         {
             var count = histogram.BinMidpoints.Length;
@@ -187,6 +231,11 @@ namespace MouseAnalyzer
             M2 = M2 / sumf;
 
             // MLE estimation of Lambda
+            /* MLE method gives less acceptable results if low values (close 0], then momentum metod is more robust.
+             * EasyFit uses Momentum for InverseGaussian as well.
+             * Momentum method also gives the same results for Estimate (this class) and Histogram approach.
+             * Differences were always caused by limiting histogram and not limiting data and vice versa.
+             * *
             var invMean = 1.0 / Mean;
             Lambda1 = 0.0;
             for( var bin = 0; bin < count; bin++ )
@@ -194,11 +243,13 @@ namespace MouseAnalyzer
                 Lambda1 += histogram.Frequencies[bin] * ( 1 / histogram.BinMidpoints[bin] - invMean );
             }
             Lambda1 = sumf / Lambda1;
+             * */
 
             // Momentum estimation of Lambda
             // http://is.muni.cz/th/357381/prif_b/bp.pdf
+            // EasyFit
             var meanSquare = Mean * Mean;
-            Lambda2 = meanSquare * Mean / ( M2 - meanSquare );
+            Lambda = meanSquare * Mean / ( M2 - meanSquare );
         }
     }
 
@@ -211,26 +262,26 @@ namespace MouseAnalyzer
             switch( distribution )
             {
                 case DistributionType.Gaussian :
-                    return new GaussianEstimate( values, leftModifier, rightModifier );
+                    return new GaussianDatasetEstimate( values, leftModifier, rightModifier );
                 case DistributionType.Lognormal :
-                    return new LognormalEstimate( values );
+                    return new LognormalDatasetEstimate( values );
                 case DistributionType.InverseGaussian:
-                    return new InverseGaussianEstimate( values );
+                    return new InverseGaussianDatasetEstimate( values );
                 default:
                     return null;
             }
         }
 
-        public IEstimate Fit( DistributionType distribution, IHistogramMarker histogram )
+        public IEstimate Estimate( DistributionType distribution, IHistogramMarker histogram )
         {
             switch( distribution )
             {
                 case DistributionType.Gaussian:
-                    // return new GaussianFit( histogram );
+                    return new GaussianHistogramEstimate( histogram );
                 case DistributionType.Lognormal:
-                    return new LognormalFit( histogram );
+                    return new LognormalHistogramEstimate( histogram );
                 case DistributionType.InverseGaussian:
-                    return new InverseGaussianFit( histogram );
+                    return new InverseGaussianHistogramEstimate( histogram );
                 default:
                     return null;
             }

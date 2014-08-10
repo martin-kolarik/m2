@@ -3,59 +3,59 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MouseAnalyzer.Lookup;
+using MouseAnalyzer.Optimizer;
 
-namespace MouseAnalyzer
+namespace MouseAnalyzer.Analysis
 {
-    class TimeGeometry : IAnalysis
+    class TimeAnalysis : AnalysisBase, IAnalysis
     {
         #region IAnalysis Members
 
-        public void Analyze( IEnumerable<Entity> entities )
+        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null )
         {
             foreach( var entity in entities )
             {
-                // timing
-                var timing = new Timing( entity );
-                var timingExtractor = new TimingExtractor();
-                foreach( var input in entity.Events )
+                Executor.Queue( () =>
                 {
-                    timing.AddItems( timingExtractor.AddEvent( input, timing.Items ) );
-                }
-                timing.ComputeMarkers( "0" );
-                entity.AddFeature( timing );
+                    var events = SplitDefinition.Split( split, entity.Events );
 
-                // kinematics
-                var kinematics = new Kinematics( entity );
-                var kinematicsExtractor = new KinematicsExtractor();
-                foreach( var input in entity.Events )
-                {
-                    kinematics.AddItems( kinematicsExtractor.AddEvent( input, kinematics.Items ) );
-                }
-                kinematics.ComputeMarkers( "0" );
-                entity.AddFeature( kinematics );
+                    // timing
+                    var timing = new TimingFeature( entity );
+                    var timingExtractor = new TimingFeatureExtractor();
+                    foreach( var input in events )
+                    {
+                        timing.AddItems( timingExtractor.AddEvent( input, timing.Items ) );
+                    }
+                    timing.ComputeMarkers( "0" );
+                    entity.AddFeature( timing );
+                } );
             }
 
+            Executor.Complete();
         }
 
-        public void Dump( CSVDumper dumper, IEnumerable<Entity> entities )
+        public void PushDumpedContent( CSVDumper dumper, IEnumerable<Entity> entities, string extendedSpecification = null )
         {
-            dumper.Dump( "tg", d =>
+            dumper.AddContent( "t" + extendedSpecification, d =>
             {
                 // estimates
                 var printHeader = true;
+                Entity firstEntity = null;
                 foreach( var entity in entities )
                 {
-                    var estimates = entity.Markers.Where( m =>
-                        m is IValueMarker &&
-                        ( m.Estimate is InverseGaussianEstimate || m.Estimate is LognormalEstimate ) &&
-                        ( m.MarkerTypeName.EndsWith( "Mean" ) || m.MarkerTypeName.Contains( "Lambda" ) || m.MarkerTypeName.EndsWith( "Mu" ) || m.MarkerTypeName.EndsWith( "Sigma" ) ) );
+                    firstEntity = firstEntity==null ? entity : firstEntity;
+                    var estimates = entity.Markers.Where( m => m is IValueMarker );
                     if( printHeader )
                     {
                         d.CellsE( "", false, estimates.Select( e => e.Feature.Source.ToString() + " " + e.Name ) );
                         printHeader = false;
                     }
-                    d.CellsE( entity.Id, false, estimates.Select( e => ((IValueMarker)e).Value.ToString( "G5" ) ) );
+                    d.CellsE( entity.Id + entity.Source.ToString(), false, estimates.Select( e => ((IValueMarker)e).Value.ToString( "G5" ) ) );
                 }
+
+                d.CellsE( "WEIGHTS", false, firstEntity.Markers.Where( m1 => m1 is IValueMarker ).Select( m2 => m2.Name ) );
+                d.CellsE( "WEIGHTS", false, Population.Weights.Components.Select( w => w.ToString( "G5" ) ) );
 
                 // histograms
                 var column = 1;

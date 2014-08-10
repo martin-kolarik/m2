@@ -52,6 +52,7 @@ namespace MouseAnalyzer
         private static object fileLock = new Object();
         private int counter = 1;
         private StreamWriter writer;
+        private List<Tuple<string, Action<CSVParticularResultDumper>>> contents = new List<Tuple<string, Action<CSVParticularResultDumper>>>();
 
         public string CellSeparator
         {
@@ -71,13 +72,20 @@ namespace MouseAnalyzer
             Directory = @".\res";
         }
 
-        public void Dump( string fileMark, Action<CSVParticularResultDumper> particularResultDumper = null )
+        public void AddContent( string specification, Action<CSVParticularResultDumper> contentToDump )
+        {
+            contents.Add( new Tuple<string, Action<CSVParticularResultDumper>>( specification, contentToDump ) );
+        }
+
+        public void Dump( string fileMark )
         {
             CreateFile( fileMark );
 
-            if( particularResultDumper != null )
+            var innerDumper = new CSVParticularResultDumper( this );
+            foreach( var content in contents )
             {
-                particularResultDumper( new CSVParticularResultDumper( this ) );
+                Cell( content.Item1 );
+                content.Item2( innerDumper ); 
             }
 
             CloseFile();

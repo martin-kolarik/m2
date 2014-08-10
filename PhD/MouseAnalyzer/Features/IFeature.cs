@@ -18,10 +18,10 @@ namespace MouseAnalyzer
     interface IFeature
     {
         string Name { get; }
-        MouseAnalyzer.Event.SourceType Source { get; }
+        DataSource.SourceType Source { get; }
         Entity Entity { get; }
 
-        void ComputeMarkers( string computeId );
+        void ComputeMarkers( string computeId, bool cleanupProcessData = true );
         IEnumerable<IMarker> Markers { get; }
     }
 
@@ -34,7 +34,7 @@ namespace MouseAnalyzer
     abstract class Feature
     {
         public string Name { get; private set; }
-        public MouseAnalyzer.Event.SourceType Source { get { return Entity.Source; } }
+        public DataSource.SourceType Source { get { return Entity.Source; } }
         public Entity Entity { get; private set; }
         public IEnumerable<IMarker> Markers { get { return _Markers; } }
 

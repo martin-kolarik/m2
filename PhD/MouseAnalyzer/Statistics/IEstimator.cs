@@ -27,6 +27,6 @@ namespace MouseAnalyzer
     interface IEstimator
     {
         IEstimate Estimate( DistributionType distribution, IEnumerable<double> values, double leftModifier = 0.1, double rightModifier = 0.1 );
-        IEstimate Fit( DistributionType distribution, IHistogramMarker histogram );
+        IEstimate Estimate( DistributionType distribution, IHistogramMarker histogram );
     }
 }

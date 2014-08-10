@@ -12,8 +12,6 @@ namespace MouseAnalyzer
         private const int BUTTONS = 5;
         private double doubleClickDelay;
         private string filePath;
-        private List<Event> rawEvents;
-        private List<Event> uefEvents;
 
         public Loader( string filePath, double doubleClickDelay )
         {
@@ -21,31 +19,24 @@ namespace MouseAnalyzer
             this.filePath = filePath;
         }
 
-        public IList<Event> RawEvents
+        public IList<Event> GetEvents( DataSource.SourceType sourceType )
         {
-            get
+            string recordFilter;
+            switch ( sourceType )
             {
-                if( rawEvents == null )
-                {
-                    rawEvents = CreateEvents( Event.SourceType.RAW, "trk/R:" );
-                }
-                return rawEvents;
+                case DataSource.SourceType.RAW:
+                    recordFilter = "trk/R:";
+                    break;
+                case DataSource.SourceType.UEF:
+                    recordFilter = "trk/H:";
+                    break;
+                default:
+                    return null;
             }
+            return CreateEvents( sourceType, recordFilter );
         }
 
-        public IList<Event> UEFEvents
-        {
-            get
-            {
-                if( uefEvents == null )
-                {
-                    uefEvents = CreateEvents( Event.SourceType.UEF, "trk/H:" );
-                }
-                return uefEvents;
-            }
-        }
-
-        public List<Event> CreateEvents( Event.SourceType source, string expectedItem )
+        public List<Event> CreateEvents( DataSource.SourceType source, string expectedItem )
         {
             var list = new List<Event>();
             var time = 0.0;
@@ -150,6 +141,7 @@ namespace MouseAnalyzer
                 time += dT;
             }
             reader.Close();
+            reader.Dispose();
 
             return list;
         }

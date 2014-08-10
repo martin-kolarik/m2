@@ -437,6 +437,8 @@ VAR
    rid : windows.RAWINPUTDEVICE;
    start : CARD32;
 BEGIN
+   path := "C:\Mouse.log";
+
    wincon.AttachConsole( -1 );
 
    IF argc < 2 THEN

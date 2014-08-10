@@ -10,7 +10,7 @@ namespace MouseAnalyzer
     {
         private List<IFeature> features = new List<IFeature>();
 
-        public Entity( string id, MouseAnalyzer.Event.SourceType source, IList<Event> events )
+        public Entity( string id, DataSource.SourceType source, IList<Event> events )
         {
             Id = id;
             Source = source;
@@ -18,7 +18,7 @@ namespace MouseAnalyzer
         }
 
         public string Id { get; private set; }
-        public MouseAnalyzer.Event.SourceType Source { get; private set; }
+        public DataSource.SourceType Source { get; private set; }
         public IList<Event> Events { get; private set; }
 
         public IEnumerable<IFeature> Features

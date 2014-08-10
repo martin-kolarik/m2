@@ -21,6 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,6 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="DifferentialEvolution">
+      <HintPath>..\DifferentialEvolution\bin\Debug\DifferentialEvolution.exe</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -41,13 +45,29 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analysis\Executor.cs" />
     <Compile Include="Analysis\IAnalysis.cs" />
-    <Compile Include="Analysis\TimeDevelopment.cs" />
-    <Compile Include="Analysis\TimeGeometry.cs" />
+    <Compile Include="Analysis\KinematicsAnalysis.cs" />
+    <Compile Include="Analysis\TimeAnalysis.cs" />
+    <Compile Include="Analysis\TimeDevelopmentAnalysis.cs" />
+    <Compile Include="Analysis\TimeKinematicsAnalysis.cs" />
     <Compile Include="CSVDumper.cs" />
-    <Compile Include="Statistics\Estimations.cs" />
+    <Compile Include="Experiment\K_HistogramExperiment.cs" />
+    <Compile Include="Input\DataSource.cs" />
+    <Compile Include="Experiment\IExperiment.cs" />
+    <Compile Include="Experiment\TK_FARExperiment.cs" />
+    <Compile Include="Lookup\OptimizedPopulation.cs" />
+    <Compile Include="Lookup\ProbeEntity.cs" />
+    <Compile Include="Optimizer\DEAdapter.cs" />
+    <Compile Include="Optimizer\Distance.cs" />
+    <Compile Include="Optimizer\Optimizer.cs" />
+    <Compile Include="Lookup\Population.cs" />
+    <Compile Include="Lookup\Template.cs" />
+    <Compile Include="Optimizer\Vector.cs" />
+    <Compile Include="Optimizer\Weights.cs" />
+    <Compile Include="Statistics\Estimator.cs" />
     <Compile Include="Statistics\IEstimator.cs" />
-    <Compile Include="Features\Kinematics.cs" />
+    <Compile Include="Features\KinematicsFeature.cs" />
     <Compile Include="Entity\Entity.cs" />
     <Compile Include="Input\Event.cs" />
     <Compile Include="Features\IFeature.cs" />
@@ -56,8 +76,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Statistics\StatisticsMarker.cs" />
-    <Compile Include="Features\Stroke.cs" />
-    <Compile Include="Features\Timing.cs" />
+    <Compile Include="Features\StrokeFeature.cs" />
+    <Compile Include="Features\TimingFeature.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

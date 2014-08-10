@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MouseAnalyzer
 {
-    class KinematicsItem : IFeatureItem
+    class KinematicsFeatureItem : IFeatureItem
     {
         private double t = 0.0;
         private double s = 0.0;
@@ -37,14 +37,14 @@ namespace MouseAnalyzer
         private double jfixy = double.NaN;
         private double jfitn = double.NaN;
 
-        private static KinematicsItem tiNull = new KinematicsItem();
+        private static KinematicsFeatureItem tiNull = new KinematicsFeatureItem();
 
-        public static KinematicsItem Null()
+        public static KinematicsFeatureItem Null()
         {
             return tiNull;
         }
 
-        public KinematicsItem( Event input, KinematicsItem previous )
+        public KinematicsFeatureItem( Event input, KinematicsFeatureItem previous )
         {
             var dt = input.dT;
             if( dt == 0.0 ) // the same time, the same position, presumably, shall be filtered by caller
@@ -115,7 +115,7 @@ namespace MouseAnalyzer
             c = sfitn / s; // gamboa
         }
 
-        private KinematicsItem()
+        private KinematicsFeatureItem()
         {
         }
 
@@ -178,40 +178,40 @@ namespace MouseAnalyzer
         }
     }
 
-    class KinematicsExtractor : IFeatureExtractor<KinematicsItem>
+    class KinematicsFeatureExtractor : IFeatureExtractor<KinematicsFeatureItem>
     {
         #region IFeatureExtractor Members
 
-        public IEnumerable<KinematicsItem> AddEvent( Event input, IList<KinematicsItem> previousItems )
+        public IEnumerable<KinematicsFeatureItem> AddEvent( Event input, IList<KinematicsFeatureItem> previousItems )
         {
             if( previousItems == null )
             {
-                return new List<KinematicsItem>{ KinematicsItem.Null() };
+                return new List<KinematicsFeatureItem>{ KinematicsFeatureItem.Null() };
             }
-            var previous = previousItems.LastOrDefault<KinematicsItem>();
+            var previous = previousItems.LastOrDefault<KinematicsFeatureItem>();
             if( previous == null )
             {
-                return new List<KinematicsItem> { KinematicsItem.Null() };
+                return new List<KinematicsFeatureItem> { KinematicsFeatureItem.Null() };
             }
             else
             {
-                return new List<KinematicsItem> { new KinematicsItem( input, previous ) };
+                return new List<KinematicsFeatureItem> { new KinematicsFeatureItem( input, previous ) };
             }
         }
 
         #endregion
 
-        public KinematicsExtractor()
+        public KinematicsFeatureExtractor()
         {
         }
 
     }
 
-    class Kinematics : Feature, IFeature<KinematicsItem>
+    class KinematicsFeature : Feature, IFeature<KinematicsFeatureItem>
     {
         #region IFeature Members
 
-        public bool AddItems( IEnumerable<KinematicsItem> items )
+        public bool AddItems( IEnumerable<KinematicsFeatureItem> items )
         {
             if( items == null || items.Count() == 0 )
             {
@@ -221,50 +221,73 @@ namespace MouseAnalyzer
             return true;
         }
 
-        public IList<KinematicsItem> Items { get { return _Items; } }
+        public IList<KinematicsFeatureItem> Items { get { return _Items; } }
 
-        public void ComputeMarkers( string computeId )
+        public void ComputeMarkers( string computeId, bool cleanupProcessData = true )
         {
             if( _Markers.Count == 0 )
             {
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "t", f => ( (KinematicsItem)f ).T, new HistogramMarker.HistogramDefinition( 8, 8, 2, 1500 ) ) );
+                // _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this,
+                //     Items.Where( i => ( (KinematicsFeatureItem)i ).T <= 250 ),
+                //     "t", f => ( (KinematicsFeatureItem)f ).T, new HistogramMarker.HistogramDefinition( 8, 8, 2, 250 ) ) );
 
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "s", f => ( (KinematicsItem)f ).S, new HistogramMarker.HistogramDefinition( new double[] {
-                    Math.Sqrt(01), Math.Sqrt(02), Math.Sqrt(04), Math.Sqrt(05), Math.Sqrt(08), Math.Sqrt(09),
-                    Math.Sqrt(10), Math.Sqrt(13), Math.Sqrt(17), Math.Sqrt(18), Math.Sqrt(20), Math.Sqrt(25),
-                    Math.Sqrt(26), Math.Sqrt(29), Math.Sqrt(32), Math.Sqrt(34), Math.Sqrt(37) 
-                }, 0.05 ) ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "sfitn", f => ( (KinematicsItem)f ).Sfitn, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "sT", f => ( (KinematicsItem)f ).ST, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "sN", f => ( (KinematicsItem)f ).SN, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "c", f => ( (KinematicsItem)f ).C, null ) );
+                // var sHistogramDefinition = new HistogramMarker.HistogramDefinition( new double[] {
+                //     Math.Sqrt(01), Math.Sqrt(02), Math.Sqrt(04), Math.Sqrt(05), Math.Sqrt(08), Math.Sqrt(09), Math.Sqrt(10),
+                //     Math.Sqrt(13), Math.Sqrt(17), Math.Sqrt(18), Math.Sqrt(20), Math.Sqrt(25), Math.Sqrt(26), Math.Sqrt(29),
+                //     Math.Sqrt(32), Math.Sqrt(34), Math.Sqrt(37), Math.Sqrt(40), Math.Sqrt(41), Math.Sqrt(45) 
+                // }, 0.05 );
+                HistogramMarker.HistogramDefinition sHistogramDefinition = null;
 
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "v", f => ( (KinematicsItem)f ).V, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "vfitn", f => ( (KinematicsItem)f ).Vfitn, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "vT", f => ( (KinematicsItem)f ).VT, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "vN", f => ( (KinematicsItem)f ).VN, null ) );
+                // _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this,
+                //     Items,
+                //     "s", f => ( (KinematicsFeatureItem)f ).S, sHistogramDefinition ) );
+                _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
+                    Items.Where( i => i.T <= 31 ),
+                    "sTl", f => ( (KinematicsFeatureItem)f ).S, sHistogramDefinition ) );
+                // _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this,
+                //     Items.Where( i => i.T > 31 ),
+                //     "sTh", f => ( (KinematicsFeatureItem)f ).S, sHistogramDefinition ) );
 
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "a", f => ( (KinematicsItem)f ).A, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "afitn", f => ( (KinematicsItem)f ).Afitn, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "aT", f => ( (KinematicsItem)f ).AT, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "aN", f => ( (KinematicsItem)f ).AN, null ) );
+                sHistogramDefinition = new HistogramMarker.HistogramDefinition( -4.0, 8.0/100, 8.0/200, +4.0 );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "sfitn", f => ( (KinematicsFeatureItem)f ).Sfitn, null ) );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "sT", f => ( (KinematicsFeatureItem)f ).ST, null ) );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "sN", f => ( (KinematicsFeatureItem)f ).SN, sHistogramDefinition ) );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "c", f => ( (KinematicsFeatureItem)f ).C, null ) );
 
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "j", f => ( (KinematicsItem)f ).J, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "jfitn", f => ( (KinematicsItem)f ).Jfitn, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "jT", f => ( (KinematicsItem)f ).JT, null ) );
-                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "jN", f => ( (KinematicsItem)f ).JN, null ) );
+                sHistogramDefinition = new HistogramMarker.HistogramDefinition( -0.5, 1.0/100, 1.0/200, +0.5 );
+                // _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "v", f => ( (KinematicsFeatureItem)f ).V, null ) );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "vfitn", f => ( (KinematicsFeatureItem)f ).Vfitn, null ) );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "vT", f => ( (KinematicsFeatureItem)f ).VT, null ) );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "vN", f => ( (KinematicsFeatureItem)f ).VN, sHistogramDefinition ) );
+
+                sHistogramDefinition = new HistogramMarker.HistogramDefinition( -0.2, 0.4/100, 0.4/200, +0.2 );
+                // _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "a", f => ( (KinematicsFeatureItem)f ).A, null ) );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "afitn", f => ( (KinematicsFeatureItem)f ).Afitn, null ) );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "aT", f => ( (KinematicsFeatureItem)f ).AT, null ) );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "aN", f => ( (KinematicsFeatureItem)f ).AN, sHistogramDefinition ) );
+
+                sHistogramDefinition = new HistogramMarker.HistogramDefinition( -0.05, 0.1/100, 0.1/200, +0.05 );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "j", f => ( (KinematicsFeatureItem)f ).J, null ) );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "jfitn", f => ( (KinematicsFeatureItem)f ).Jfitn, null ) );
+                // markers.AddRange( new StatisticsMarkerExtractor().Extract( this, items, "jT", f => ( (KinematicsFeatureItem)f ).JT, null ) );
+                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, Items, "jN", f => ( (KinematicsFeatureItem)f ).JN, sHistogramDefinition ) );
+            }
+
+            if( cleanupProcessData )
+            {
+                _Items.Clear();
             }
         }
 
         #endregion
 
-        public Kinematics( Entity entity ) :
+        public KinematicsFeature( Entity entity ) :
             base( NAME, entity )
         {
-            _Items = new List<KinematicsItem>();
+            _Items = new List<KinematicsFeatureItem>();
         }
 
-        private static string NAME = "Kinematics";
-        private List<KinematicsItem> _Items { get; set; }
+        private static string NAME = "KinematicsFeature";
+        private List<KinematicsFeatureItem> _Items { get; set; }
     }
 }

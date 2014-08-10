@@ -8,12 +8,6 @@ namespace MouseAnalyzer
 {
     class Event
     {
-        public enum SourceType
-        {
-            RAW,
-            UEF
-        }
-
         public enum Button
         {
             Left = 0,
@@ -43,7 +37,7 @@ namespace MouseAnalyzer
         {
         }
 
-        public Event( SourceType source, int dx, int dy, double dt, int x, int y, double time, ButtonState[] state )
+        public Event( DataSource.SourceType source, int dx, int dy, double dt, int x, int y, double time, ButtonState[] state )
         {
             Source = source;
             X = x;
@@ -55,7 +49,7 @@ namespace MouseAnalyzer
             this.state = state;
         }
 
-        public SourceType Source { get; private set; }
+        public DataSource.SourceType Source { get; private set; }
         public int X { get; private set; }
         public int Y { get; private set; }
         public double Time { get; private set; }

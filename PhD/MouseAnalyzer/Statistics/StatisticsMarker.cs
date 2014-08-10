@@ -78,7 +78,7 @@ namespace MouseAnalyzer
             {
                 if( Strategy == HistogramDefinition.BinCreationStrategy.Auto )
                 {
-                    BinWidth = ( from - to ) / Bins;
+                    BinWidth = ( to - from ) / Bins;
                     BinMidpoints = new double[Bins];
                     for( var bin = 0; bin < Bins; ++bin )
                     {
@@ -121,7 +121,7 @@ namespace MouseAnalyzer
         private HistogramDefinition definition;
         private int[] frequencies;
 
-        public HistogramMarker( string computeId, IFeature feature, string featureName, IEstimate estimate, HistogramDefinition definition, IEnumerable<double> ordered )
+        public HistogramMarker( string computeId, IFeature feature, string featureName, IEstimate estimate, HistogramDefinition definition, IEnumerable<double> values )
         {
             Feature = feature;
             this.featureName = featureName;
@@ -130,13 +130,13 @@ namespace MouseAnalyzer
             this.definition = definition;
             this.frequencies = new int[definition.Bins];
 
-            var from = ordered.First();
-            var to = ordered.Last();
+            var from = values.Min();
+            var to = values.Max();
 
             if( definition.Strategy == HistogramDefinition.BinCreationStrategy.Auto )
             {
                 var range = to - from;
-                foreach( var item in ordered )
+                foreach( var item in values )
                 {
                     var bin = range==0.0 ? definition.Bins : (int)( definition.Bins*( item-from )/range );
                     ++frequencies[bin==definition.Bins ? --bin : bin];
@@ -145,7 +145,7 @@ namespace MouseAnalyzer
             else
             {
                 var halfWidth = definition.BinWidth / 2.0;
-                foreach( var item in ordered )
+                foreach( var item in values )
                 {
                     var bin = 0;
                     foreach( var midpoint in definition.BinMidpoints )
@@ -175,26 +175,33 @@ namespace MouseAnalyzer
                 return markers;
             }
 
-            var estimate = (GaussianEstimate)new Estimator().Estimate( DistributionType.Gaussian, input, 0.1, 0.1 );
+            var estimate = (GaussianDatasetEstimate)new Estimator().Estimate( DistributionType.Gaussian, input, 0.1, 0.1 );
 
             // plain values
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfMinimum", estimate.MdfMinimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfMinimum", estimate.MdfMinimum ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
             markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfAverage", estimate.MdfAverage ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfMaximum", estimate.MdfMaximum ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfMaximum", estimate.MdfMaximum ) );
             markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Median", estimate.Median ) );
 
             // variance
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Variance", estimate.Variance ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Variance", estimate.Variance ) );
             markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "MdfVariance", estimate.MdfVariance ) );
 
             // histograms
             if( definition != null )
             {
                 definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                markers.Add( new HistogramMarker( computeId, feature, featureName, estimate, definition, input ) );
+                var histogram = new HistogramMarker( computeId, feature, featureName, estimate, definition, input );
+                markers.Add( histogram );
+
+                var fit = (GaussianHistogramEstimate)new Estimator().Estimate( DistributionType.Gaussian, histogram );
+
+                // characteristics
+                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fMean", fit.Mean ) );
+                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fSigma", fit.Variance ) );
             }
 
             return markers;
@@ -216,30 +223,28 @@ namespace MouseAnalyzer
                 return markers;
             }
 
-            var estimate = (InverseGaussianEstimate)new Estimator().Estimate( DistributionType.InverseGaussian, input );
+            var estimate = (InverseGaussianDatasetEstimate)new Estimator().Estimate( DistributionType.InverseGaussian, input );
 
             // plain values
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Median", estimate.Median ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Median", estimate.Median ) );
             markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eMean", estimate.Mean ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eLambda1", estimate.Lambda1 ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eLambda2", estimate.Lambda2 ) );
+            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eLambda", estimate.Lambda ) );
 
             // histograms
             if( definition != null )
             {
                 definition.SupplyRange( estimate.Minimum, estimate.Maximum );
                 var histogram = new HistogramMarker( computeId, feature, featureName, estimate, definition, input );
-                // markers.Add( histogram );
+                markers.Add( histogram );
 
-                var fit = (InverseGaussianFit)new Estimator().Fit( DistributionType.InverseGaussian, histogram );
+                var fit = (InverseGaussianHistogramEstimate)new Estimator().Estimate( DistributionType.InverseGaussian, histogram );
 
                 // characteristics
                 markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fMean", fit.Mean ) );
-                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fLambda1", fit.Lambda1 ) );
-                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fLambda2", fit.Lambda2 ) );
+                markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fLambda", fit.Lambda ) );
             }
 
             return markers;
@@ -261,13 +266,13 @@ namespace MouseAnalyzer
                 return markers;
             }
 
-            var estimate = (LognormalEstimate)new Estimator().Estimate( DistributionType.Lognormal, input );
+            var estimate = (LognormalDatasetEstimate)new Estimator().Estimate( DistributionType.Lognormal, input );
 
             // plain values
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Median", estimate.Median ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Minimum", estimate.Minimum ) );
+            //  markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Average", estimate.Average ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Maximum", estimate.Maximum ) );
+            // markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "Median", estimate.Median ) );
             markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eMu", estimate.Mu ) );
             markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "eSigma", estimate.Sigma ) );
 
@@ -276,9 +281,9 @@ namespace MouseAnalyzer
             {
                 definition.SupplyRange( estimate.Minimum, estimate.Maximum );
                 var histogram = new HistogramMarker( computeId, feature, featureName, estimate, definition, input );
-                // markers.Add( histogram );
+                markers.Add( histogram );
 
-                var fit = (LognormalFit)new Estimator().Fit( DistributionType.Lognormal, histogram );
+                var fit = (LognormalHistogramEstimate)new Estimator().Estimate( DistributionType.Lognormal, histogram );
 
                 // characteristics
                 markers.Add( new StatisticsMarker( computeId, feature, featureName, estimate, "fMu", fit.Mu ) );
