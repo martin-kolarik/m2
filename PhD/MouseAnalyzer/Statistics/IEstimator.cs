@@ -10,7 +10,8 @@ namespace MouseAnalyzer
     {
         Gaussian,
         Lognormal,
-        InverseGaussian
+        InverseGaussian,
+        Logistic
     }
 
     interface IEstimate
@@ -22,11 +23,13 @@ namespace MouseAnalyzer
         double Maximum { get; }
         double Average { get; }
         double Median { get; }
+
+        double f( double x );
     }
 
     interface IEstimator
     {
-        IEstimate Estimate( DistributionType distribution, IEnumerable<double> values, double leftModifier = 0.1, double rightModifier = 0.1 );
+        IEstimate Estimate( DistributionType distribution, IEnumerable<double> values, bool computeMedian, double leftModifier = 0.1, double rightModifier = 0.1 );
         IEstimate Estimate( DistributionType distribution, IHistogramMarker histogram );
     }
 }

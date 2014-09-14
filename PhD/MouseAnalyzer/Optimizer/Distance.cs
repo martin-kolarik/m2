@@ -8,24 +8,24 @@ using MouseAnalyzer.Lookup;
 namespace MouseAnalyzer.Optimizer
 {
     class Distance :
-        Tuple<Template.DistanceType, Population.DistanceProcessing>
+        Tuple<Template.DistanceType, Population.DistanceMeasureType>
     {
         private static Distance[] permutation = new Distance[] {
-            new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.Average ),
-            new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.LimitedAverage ),
-            new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.GeometricAverage ),
-            new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.Median ),
-            new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.Minimum ),
-            new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.MinimumTimesMedian ),
-            new Distance( Template.DistanceType.Manhattan, Population.DistanceProcessing.Summation ),
+            new Distance( Template.DistanceType.Manhattan, Population.DistanceMeasureType.Average ),
+            new Distance( Template.DistanceType.Manhattan, Population.DistanceMeasureType.LimitedAverage ),
+            new Distance( Template.DistanceType.Manhattan, Population.DistanceMeasureType.GeometricAverage ),
+            new Distance( Template.DistanceType.Manhattan, Population.DistanceMeasureType.Median ),
+            new Distance( Template.DistanceType.Manhattan, Population.DistanceMeasureType.Minimum ),
+            new Distance( Template.DistanceType.Manhattan, Population.DistanceMeasureType.MinimumTimesMedian ),
+            new Distance( Template.DistanceType.Manhattan, Population.DistanceMeasureType.Summation ),
 
-            new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.Average ),
-            new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.LimitedAverage ),
-            new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.GeometricAverage ),
-            new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.Median ),
-            new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.Minimum ),
-            new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.MinimumTimesMedian ),
-            new Distance( Template.DistanceType.Euclidean, Population.DistanceProcessing.Summation )
+            new Distance( Template.DistanceType.Euclidean, Population.DistanceMeasureType.Average ),
+            new Distance( Template.DistanceType.Euclidean, Population.DistanceMeasureType.LimitedAverage ),
+            new Distance( Template.DistanceType.Euclidean, Population.DistanceMeasureType.GeometricAverage ),
+            new Distance( Template.DistanceType.Euclidean, Population.DistanceMeasureType.Median ),
+            new Distance( Template.DistanceType.Euclidean, Population.DistanceMeasureType.Minimum ),
+            new Distance( Template.DistanceType.Euclidean, Population.DistanceMeasureType.MinimumTimesMedian ),
+            new Distance( Template.DistanceType.Euclidean, Population.DistanceMeasureType.Summation )
         };
 
         public static Distance[] Permutation
@@ -33,23 +33,23 @@ namespace MouseAnalyzer.Optimizer
             get { return permutation; }
         }
 
-        public Distance( Template.DistanceType type, Population.DistanceProcessing processing ) :
+        public Distance( Template.DistanceType type, Population.DistanceMeasureType processing ) :
             base( type, processing )
         {
         }
 
         public Distance( Template.DistanceType type ) :
-            base( type, Population.DistanceProcessing.Average )
+            base( type, Population.DistanceMeasureType.Average )
         {
         }
 
-        public Distance( Population.DistanceProcessing processing ) :
+        public Distance( Population.DistanceMeasureType processing ) :
             base( Template.DistanceType.Euclidean, processing )
         {
         }
 
         public Distance() :
-            base( Template.DistanceType.Euclidean, Population.DistanceProcessing.Average )
+            base( Template.DistanceType.Euclidean, Population.DistanceMeasureType.Average )
         {
         }
 
@@ -58,7 +58,7 @@ namespace MouseAnalyzer.Optimizer
             get { return Item1; }
         }
 
-        public Population.DistanceProcessing Processing
+        public Population.DistanceMeasureType Processing
         {
             get { return Item2; }
         }

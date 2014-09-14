@@ -16,7 +16,7 @@ namespace MouseAnalyzer
         {
             foreach( var entity in entities )
             {
-                var timing = new TimingFeature( entity );
+                var timing = new TimingFeature( entity, false );
                 var timingExtractor = new TimingFeatureExtractor();
                 var count = 0;
                 foreach( var input in SplitDefinition.Split( split, entity.Events ) )
@@ -29,6 +29,12 @@ namespace MouseAnalyzer
                 entity.AddFeature( timing );
             }
 
+        }
+
+        public IPopulationOptimizer PopulationOptimizer { get; private set; }
+
+        public void Optimize( IEnumerable<Entity> entities, int repeatCount = 1, IEnumerable<ProbeEntity> probes = null )
+        {
         }
 
         public void PushDumpedContent( CSVDumper dumper, IEnumerable<Entity> entities, string extendedSpecification = null )

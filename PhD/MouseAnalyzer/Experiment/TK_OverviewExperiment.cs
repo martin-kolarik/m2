@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MouseAnalyzer.Experiment
 {
-    class TK_FARExperiment : IExperiment
+    class TK_OverviewExperiment : IExperiment
     {
 
         #region IExperiment Members
@@ -14,8 +14,8 @@ namespace MouseAnalyzer.Experiment
         public void Perform( string outputFileNameHint = "" )
         {
             var fractions = 1;
-            var probeAttempts = 20;
-            var probeFractions = 10;
+            var probeAttempts = 5;
+            var probeFractions = 20;
 
             var entities = DataSources.Get( DataSource.EnvironmentType.ControlledPlain, DataSource.SourceType.API );
             var probes = new List<Lookup.ProbeEntity>();
@@ -33,7 +33,6 @@ namespace MouseAnalyzer.Experiment
             {
                 Fractions = probeFractions
             };
-            // var probesAnalyzer = new Analysis.TimeKinematicsAnalysis();
             var probesAnalyzer = new Analysis.Kinematics2Analysis();
             probesAnalyzer.Analyze( probes, probesSplit );
 
@@ -41,10 +40,9 @@ namespace MouseAnalyzer.Experiment
             {
                 Fractions = fractions
             };
-            // var analyzer = new Analysis.TimeKinematicsAnalysis();
             var analyzer = new Analysis.Kinematics2Analysis();
             analyzer.Analyze( entities, split );
-            analyzer.Optimize( entities, 10, probes );
+            analyzer.Optimize( entities, 5, probes );
             analyzer.PushDumpedContent( dumper, entities );
 
             foreach( var probe in probes )
@@ -88,7 +86,7 @@ namespace MouseAnalyzer.Experiment
             }
             );
 
-            dumper.Dump( outputFileNameHint == "" ? "tk-f" : outputFileNameHint );
+            dumper.Dump( outputFileNameHint == "" ? "tk-o" : outputFileNameHint );
         }
 
         #endregion

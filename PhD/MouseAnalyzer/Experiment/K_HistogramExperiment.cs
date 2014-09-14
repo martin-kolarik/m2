@@ -15,9 +15,9 @@ namespace MouseAnalyzer.Experiment
         {
             var dumper = new CSVDumper();
 
-            var entities = DataSources.Get( DataSource.EnvironmentType.ControlledPlain, DataSource.SourceType.UEF );
+            var entities = DataSources.Get( DataSource.EnvironmentType.ControlledPlain, DataSource.SourceType.API );
 
-            var analyzer = new Analysis.KinematicsAnalysis();
+            var analyzer = new Analysis.Kinematics2Analysis();
             analyzer.Analyze( entities, null );
             analyzer.PushDumpedContent( dumper, entities );
 

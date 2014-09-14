@@ -45,6 +45,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analysis\StrokeAnalysis.cs" />
+    <Compile Include="Analysis\Kinematics2Analysis.cs" />
     <Compile Include="Analysis\Executor.cs" />
     <Compile Include="Analysis\IAnalysis.cs" />
     <Compile Include="Analysis\KinematicsAnalysis.cs" />
@@ -52,20 +54,30 @@
     <Compile Include="Analysis\TimeDevelopmentAnalysis.cs" />
     <Compile Include="Analysis\TimeKinematicsAnalysis.cs" />
     <Compile Include="CSVDumper.cs" />
+    <Compile Include="Experiment\StatisticsTestExperiment.cs" />
+    <Compile Include="Experiment\S_OverviewExperiment.cs" />
+    <Compile Include="Experiment\TK_OverviewExperiment.cs" />
     <Compile Include="Experiment\K_HistogramExperiment.cs" />
+    <Compile Include="Features\KinematicsFeature2.cs" />
+    <Compile Include="Features\Markers.cs" />
     <Compile Include="Input\DataSource.cs" />
     <Compile Include="Experiment\IExperiment.cs" />
     <Compile Include="Experiment\TK_FARExperiment.cs" />
-    <Compile Include="Lookup\OptimizedPopulation.cs" />
+    <Compile Include="Lookup\AveragePopulationOptimizer.cs" />
+    <Compile Include="Lookup\IterateOverBestPopulationOptimizer.cs" />
+    <Compile Include="Lookup\IPopulationOptimizer.cs" />
+    <Compile Include="Lookup\ThresholdPopulationOptimizer.cs" />
     <Compile Include="Lookup\ProbeEntity.cs" />
     <Compile Include="Optimizer\DEAdapter.cs" />
     <Compile Include="Optimizer\Distance.cs" />
-    <Compile Include="Optimizer\Optimizer.cs" />
+    <Compile Include="Optimizer\IVectorSetOptimizer.cs" />
+    <Compile Include="Optimizer\DEOptimizer.cs" />
     <Compile Include="Lookup\Population.cs" />
     <Compile Include="Lookup\Template.cs" />
     <Compile Include="Optimizer\Vector.cs" />
     <Compile Include="Optimizer\Weights.cs" />
     <Compile Include="Statistics\Estimator.cs" />
+    <Compile Include="Statistics\Extension.cs" />
     <Compile Include="Statistics\IEstimator.cs" />
     <Compile Include="Features\KinematicsFeature.cs" />
     <Compile Include="Entity\Entity.cs" />

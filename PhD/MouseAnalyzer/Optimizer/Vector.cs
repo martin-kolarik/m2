@@ -19,15 +19,6 @@ namespace MouseAnalyzer.Optimizer
             components = source.ToArray<double>();
         }
 
-        public Vector( IEnumerable<double> source, bool normalize = false ) :
-            this( source )
-        {
-            if( normalize )
-            {
-                PerformNormalization();
-            }
-        }
-
         public IEnumerable<double> Components
         {
             get { return components; }
@@ -53,20 +44,6 @@ namespace MouseAnalyzer.Optimizer
                     d += component * component;
                 }
                 return Math.Sqrt( d );
-            }
-        }
-
-        public Vector Normalize()
-        {
-            return new Vector( components, true );
-        }
-
-        protected void PerformNormalization()
-        {
-            var length = Length;
-            for( var i = 0; i < ComponentCount; i++ )
-            {
-                components[i] /= length;
             }
         }
 

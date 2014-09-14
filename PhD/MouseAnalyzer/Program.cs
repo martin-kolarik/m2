@@ -15,8 +15,12 @@ namespace MouseAnalyzer
             System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             // experiments
-            new Experiment.TK_FARExperiment().Perform();
+            // new Experiment.TK_FARExperiment().Perform();
             // new Experiment.K_HistogramExperiment().Perform();
+            // new Experiment.TK_OverviewExperiment().Perform();
+            // new Experiment.S_OverviewExperiment().Perform();
+
+            new Experiment.StatisticsTestExperiment().Perform();
 
             // cleanup statics
             Executor.Stop();

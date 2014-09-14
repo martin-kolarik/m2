@@ -48,28 +48,27 @@ namespace MouseAnalyzer
     interface IAnalysis
     {
         void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null );
-        void Optimize( IEnumerable<Entity> entities, int repeatCount = 1, bool reweight = false );
-        OptimizedPopulation Population { get; }
+        IPopulationOptimizer PopulationOptimizer { get; }
+        void Optimize( IEnumerable<Entity> entities, int repeatCount, IEnumerable<ProbeEntity> probes );
         void PushDumpedContent( CSVDumper dumper, IEnumerable<Entity> entities, string extendedSpecification = null );
     }
 
     abstract class AnalysisBase
     {
-        public void Optimize( IEnumerable<Entity> entities, int repeatCount = 1, bool reweight = false )
+        internal void Prepare( IEnumerable<Entity> entities, Lookup.Population.NormalizationType normalization, out Features.Markers markers, out Population population )
         {
-            var distance = new Distance( Lookup.Population.DistanceProcessing.MinimumTimesMedian );
+            population = new Population( new Population( entities ), normalization );
 
-            var denormalized = new Population( entities );
-            Population = new OptimizedPopulation( denormalized, Lookup.Population.NormalizationType.Unite );
-            Population.Optimize( distance, repeatCount );
-            Population.ComputeMask( reweight );
+            var valueMarkers = entities.First().Markers.Where( m1 => m1 is IValueMarker ).Select( m2 => (IValueMarker)m2 );
+            markers = new Features.Markers();
+            markers.AddMarkers( valueMarkers );
 
-            if( reweight )
+            var constants = population.DetermineConstantComponents();
+            foreach( var constant in constants )
             {
-                Population.Optimize( distance );
+                markers.SetConstant( constant, true );
+                markers.SetActive( constant, false );
             }
         }
-
-        public OptimizedPopulation Population { get; private set; }
     }
 }

@@ -34,22 +34,28 @@ namespace MouseAnalyzer.Lookup
 
         public Entity Entity { get; private set; }
 
-        public double Distance( Template from, Distance distance, Weights weights, Weights mask = null )
+        public double Distance( Template from, Distance distance, Weights weights )
         {
-            return Distance( from, distance.Type, weights, mask );
+            return Distance( from, distance.Type, weights );
         }
 
-        public double Distance( Template from, DistanceType distanceType, Weights weights, Weights mask = null )
+        public double Distance( Template from, DistanceType distanceType, Weights weights )
         {
             var distance = 0.0;
             for( var i = 0; i < ComponentCount; i++ )
             {
-                if( mask != null && mask[i] == 0.0 )
+                var wi = weights[i];
+                if( wi == 0.0 )
                 {
                     continue;
                 }
-                var wi = weights[i];
+
                 var di = from[i] - this[i];
+                if( di == 0.0 )
+                {
+                    continue;
+                }
+
                 if( distanceType == DistanceType.Manhattan )
                 {
                     distance += wi * Math.Abs( di );

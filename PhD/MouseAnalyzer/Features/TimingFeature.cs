@@ -136,23 +136,29 @@ namespace MouseAnalyzer
                 Items.Where( i => i.Type == TimingFeatureItem.TimingType.InClick && i.Value <= InClickLimit && i.Value >= 7.0 ),
                 "In", f => ( (TimingFeatureItem)f ).Value,
                 InvGaussHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, InClickLimit ) : null ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this,
-                Items.Where( i => i.Type == TimingFeatureItem.TimingType.DoubleClick && i.Value <= DoubleClickLimit && i.Value >= 7.0 ),
-                "Double", f => ( (TimingFeatureItem)f ).Value,
-                InvGaussHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, DoubleClickLimit ) : null ) );
+            if( useDoubleClick )
+            {
+                _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this,
+                    Items.Where( i => i.Type == TimingFeatureItem.TimingType.DoubleClick && i.Value <= DoubleClickLimit && i.Value >= 7.0 ),
+                    "Double", f => ( (TimingFeatureItem)f ).Value,
+                    InvGaussHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, DoubleClickLimit ) : null ) );
+            }
 
             _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
                 Items.Where( i => i.Type == TimingFeatureItem.TimingType.BeforeClick && i.Value <= BeforeClickLimit && i.Value >= 7.0 ),
                 "Before", f => ( (TimingFeatureItem)f ).Value,
                 LognormalHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, BeforeClickLimit ) : null ) );
-            // _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
-            //    Items.Where( i => i.Type == TimingFeatureItem.TimingType.InClick && i.Value <= InClickLimit && i.Value >= 7.0 ),
-            //    "In", f => ( (TimingFeatureItem)f ).Value,
-            //    LognormalHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, InClickLimit ) : null ) );
             _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
-                Items.Where( i => i.Type == TimingFeatureItem.TimingType.DoubleClick && i.Value <= DoubleClickLimit && i.Value >= 7.0 ),
-                "Double", f => ( (TimingFeatureItem)f ).Value,
-                LognormalHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, DoubleClickLimit ) : null ) );
+                Items.Where( i => i.Type == TimingFeatureItem.TimingType.InClick && i.Value <= InClickLimit && i.Value >= 7.0 ),
+                "In", f => ( (TimingFeatureItem)f ).Value,
+                LognormalHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, InClickLimit ) : null ) );
+            if( useDoubleClick )
+            {
+                _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
+                    Items.Where( i => i.Type == TimingFeatureItem.TimingType.DoubleClick && i.Value <= DoubleClickLimit && i.Value >= 7.0 ),
+                    "Double", f => ( (TimingFeatureItem)f ).Value,
+                    LognormalHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, DoubleClickLimit ) : null ) );
+            }
 
             if( cleanupProcessData )
             {
@@ -162,13 +168,15 @@ namespace MouseAnalyzer
 
         #endregion
 
-        public TimingFeature( Entity entity ) :
+        public TimingFeature( Entity entity, bool useDoubleClick ) :
             base( NAME, entity )
         {
             _Items = new List<TimingFeatureItem>();
+            this.useDoubleClick = useDoubleClick;
         }
 
         private static string NAME = "TimingFeature";
         private List<TimingFeatureItem> _Items { get; set; }
+        private bool useDoubleClick;
     }
 }

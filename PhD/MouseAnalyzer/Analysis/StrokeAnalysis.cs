@@ -8,7 +8,7 @@ using MouseAnalyzer.Optimizer;
 
 namespace MouseAnalyzer.Analysis
 {
-    class TimeKinematicsAnalysis : AnalysisBase, IAnalysis
+    class StrokeAnalysis : AnalysisBase, IAnalysis
     {
         #region IAnalysis Members
 
@@ -20,33 +20,16 @@ namespace MouseAnalyzer.Analysis
                 {
                     var events = SplitDefinition.Split( split, entity.Events );
 
-                    // timing
-                    var timing = new TimingFeature( entity, false );
-                    var timingExtractor = new TimingFeatureExtractor();
+                    // stroke
+                    var stroke = new StrokeFeature( entity );
+                    var strokeExtractor = new StrokeFeatureExtractor();
                     foreach( var input in events )
                     {
-                        timing.AddItems( timingExtractor.AddEvent( input, timing.Items ) );
+                        stroke.AddItems( strokeExtractor.AddEvent( input, stroke.Items ) );
                     }
-                    timing.ComputeMarkers( "0" );
-                    entity.AddFeature( timing );
-                    var c1 = entity.Markers.Where( m => m is IValueMarker ).Count();
+                    stroke.ComputeMarkers( "0" );
 
-                    // kinematics
-                    var kinematics = new KinematicsFeature( entity );
-                    var kinematicsExtractor = new KinematicsFeatureExtractor();
-                    foreach( var input in events )
-                    {
-                        kinematics.AddItems( kinematicsExtractor.AddEvent( input, kinematics.Items ) );
-                    }
-                    kinematics.ComputeMarkers( "0" );
-                    entity.AddFeature( kinematics );
-                    var c2 = entity.Markers.Where( m => m is IValueMarker ).Count();
-
-                    var markers = entity.Markers.Where( m => m is IValueMarker ).ToList();
-                    if( markers.Count() == 29 )
-                    {
-                        markers = null;
-                    }
+                    entity.AddFeature( stroke );
                 } );
             }
 
@@ -60,14 +43,14 @@ namespace MouseAnalyzer.Analysis
             Features.Markers markers;
             Population population;
             Prepare( entities, Population.NormalizationType.Desquare, out markers, out population );
-            // PopulationOptimizer = new AveragePopulationOptimizer( new Distance(), population );
-            PopulationOptimizer = new IterateOverBestPopulationOptimizer( markers, new Distance(), population );
+            PopulationOptimizer = new IterateOverBestPopulationOptimizer( markers, new Distance( Population.DistanceMeasureType.AverageWithLeastVariance ), population );
+            // PopulationOptimizer = new AveragePopulationOptimizer( new Distance( Population.DistanceMeasureType.AverageWithLeastVariance ), population );
             PopulationOptimizer.Optimize( repeatCount, probes );
         }
 
         public void PushDumpedContent( CSVDumper dumper, IEnumerable<Entity> entities, string extendedSpecification = null )
         {
-            dumper.AddContent( "tk" + extendedSpecification, d =>
+            dumper.AddContent( "s" + extendedSpecification, d =>
             {
                 // estimates
                 var printHeader = true;
@@ -81,7 +64,7 @@ namespace MouseAnalyzer.Analysis
                         d.CellsE( "", false, estimates.Select( e => e.Feature.Source.ToString() + " " + e.Name ) );
                         printHeader = false;
                     }
-                    d.CellsE( entity.Id + entity.Source.ToString(), false, estimates.Select( e => ((IValueMarker)e).Value.ToString( "G4" ) ) );
+                    d.CellsE( entity.Id + entity.Source.ToString(), false, estimates.Select( e => ( (IValueMarker)e ).Value.ToString( "G4" ) ) );
                 }
                 foreach( var template in PopulationOptimizer.Population.Templates )
                 {
@@ -118,7 +101,21 @@ namespace MouseAnalyzer.Analysis
 
                     d.Columns( headers, columns );
                 }
-             } );
+
+                // population distances histogram
+                var population = PopulationOptimizer.Population;
+                var distances = population.Distances( new Distance(), Weights.Uniform( population.ComponentCount ) );
+                var populationHistogramDefinition = new HistogramMarker.HistogramDefinition( 8 );
+                populationHistogramDefinition.SupplyRange( distances.Min(), distances.Max() );
+                var populationHistogram = new HistogramMarker( null, null, null, null, populationHistogramDefinition, distances );
+                var pheaders = new List<string>();
+                var pcolumns = new List<IEnumerable<object>>();
+                pheaders.Add( "01B" );
+                pheaders.Add( "02B" );
+                pcolumns.Add( ( populationHistogram ).BinMidpoints.Select( hi => (object)hi ) );
+                pcolumns.Add( ( populationHistogram ).Frequencies.Select( hi => (object)hi ) );
+                d.Columns( pheaders, pcolumns );
+            } );
         }
 
         #endregion

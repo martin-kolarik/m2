@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MouseAnalyzer.Features;
 using MouseAnalyzer.Lookup;
 using DE = DifferentialEvolution;
 
@@ -10,6 +11,7 @@ namespace MouseAnalyzer.Optimizer
 {
     class DEAdapter
     {
+        private Markers Markers;
         private Population Population;
         private int DEType;
         private double DEWeight;
@@ -18,8 +20,9 @@ namespace MouseAnalyzer.Optimizer
         private int DEIterationCount;
         private Distance Distance;
 
-        public DEAdapter( Population population, int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance )
+        public DEAdapter( Markers markers, Population population, int deType, double deWeight, double deCrossover, int dePopulationCount, int deIterationCount, Distance distance )
         {
+            this.Markers = markers;
             this.Population = population;
             DEType = deType;
             DEWeight = deWeight;
@@ -33,7 +36,7 @@ namespace MouseAnalyzer.Optimizer
         {
             get
             {
-                var count = this.Population.ComponentCount;
+                var count = this.Markers.ActiveCount;
                 var inputStructure = new DE.InputStructure();
 
                 inputStructure.F_VTR = double.MinValue; // Lower bound on the objective function
@@ -45,7 +48,7 @@ namespace MouseAnalyzer.Optimizer
                 for( int i = 0; i < count; i++ )
                 {
                     inputStructure.FVr_minbound[i] = 0.0;
-                    inputStructure.FVr_maxbound[i] = Population.Mask == null || Population.Mask[i] > 0.0 ? 1.0 : 0.0;
+                    inputStructure.FVr_maxbound[i] = 1.0;
                 }
 
                 inputStructure.I_NP = DEPopulationCount;
@@ -72,10 +75,10 @@ namespace MouseAnalyzer.Optimizer
 
         private DE.OutputFunction ObjectiveFunction( double[] parameters, DE.InputStructure S_In )
         {
-            var weights = new Weights( parameters, Weights.NormalizationMode.Weigh );
+            var weights = this.Markers.ExpandFromActive( new Weights( parameters ));
 
             DE.OutputFunction result = new DE.OutputFunction( 0, 1 );
-            result.FVr_oa = new double[1] { -this.Population.Distance( Distance, weights ) }; // it is a minimizer
+            result.FVr_oa = new double[1] { -this.Population.DistanceMeasure( Distance, weights ) }; // it is a minimizer
 
             return result;
         }

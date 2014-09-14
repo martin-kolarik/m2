@@ -24,10 +24,10 @@ namespace MouseAnalyzer
             string recordFilter;
             switch ( sourceType )
             {
-                case DataSource.SourceType.RAW:
+                case DataSource.SourceType.DRV:
                     recordFilter = "trk/R:";
                     break;
-                case DataSource.SourceType.UEF:
+                case DataSource.SourceType.API:
                     recordFilter = "trk/H:";
                     break;
                 default:
@@ -50,6 +50,7 @@ namespace MouseAnalyzer
                 buttonState[i] = Event.ButtonState.Released;
             }
 
+            Event previousEvent = null;
             var reader = new StreamReader( filePath );
             while( !reader.EndOfStream )
             {
@@ -120,11 +121,6 @@ namespace MouseAnalyzer
                     }
                 }
 
-                if( dT == 0.0 && !anyRecordable ) // ignore events having the same time, but do not do it before button states are updated
-                {
-                    continue;
-                }
-
                 // x coordinate
                 var diffabs = items[3].Split( '>' );
                 var dx = int.Parse( diffabs[0] );
@@ -135,7 +131,14 @@ namespace MouseAnalyzer
                 var dy = int.Parse( diffabs[0] );
                 var y = int.Parse( diffabs[1] );
 
-                list.Add( new Event( source, dx, dy, dT, x, y, time, buttonState.ToArray() ) );
+                if( dT == 0.0 && dx == 0 && dy == 0 && !anyRecordable ) // ignore events having the same time and no change in position, but do not do it before button states are updated
+                {
+                    continue;
+                }
+
+                var currentEvent = new Event( source, dx, dy, dT, x, y, time, buttonState.ToArray(), previousEvent );
+                list.Add( currentEvent );
+                previousEvent = currentEvent;
 
                 // move time on
                 time += dT;

@@ -21,7 +21,7 @@ namespace MouseAnalyzer.Analysis
                     var events = SplitDefinition.Split( split, entity.Events );
 
                     // timing
-                    var timing = new TimingFeature( entity );
+                    var timing = new TimingFeature( entity, false );
                     var timingExtractor = new TimingFeatureExtractor();
                     foreach( var input in events )
                     {
@@ -33,6 +33,17 @@ namespace MouseAnalyzer.Analysis
             }
 
             Executor.Complete();
+        }
+
+        public IPopulationOptimizer PopulationOptimizer { get; private set; }
+
+        public void Optimize( IEnumerable<Entity> entities, int repeatCount = 1, IEnumerable<ProbeEntity> probes = null )
+        {
+            Features.Markers markers;
+            Population population;
+            Prepare( entities, Population.NormalizationType.Desquare, out markers, out population );
+            PopulationOptimizer = new AveragePopulationOptimizer( markers, new Distance(), population );
+            PopulationOptimizer.Optimize( repeatCount, probes );
         }
 
         public void PushDumpedContent( CSVDumper dumper, IEnumerable<Entity> entities, string extendedSpecification = null )
@@ -51,11 +62,11 @@ namespace MouseAnalyzer.Analysis
                         d.CellsE( "", false, estimates.Select( e => e.Feature.Source.ToString() + " " + e.Name ) );
                         printHeader = false;
                     }
-                    d.CellsE( entity.Id + entity.Source.ToString(), false, estimates.Select( e => ((IValueMarker)e).Value.ToString( "G5" ) ) );
+                    d.CellsE( entity.Id + entity.Source.ToString(), false, estimates.Select( e => ((IValueMarker)e).Value.ToString( "G4" ) ) );
                 }
 
                 d.CellsE( "WEIGHTS", false, firstEntity.Markers.Where( m1 => m1 is IValueMarker ).Select( m2 => m2.Name ) );
-                d.CellsE( "WEIGHTS", false, Population.Weights.Components.Select( w => w.ToString( "G5" ) ) );
+                d.CellsE( "WEIGHTS", false, PopulationOptimizer.Weights.Components.Select( w => w.ToString( "G4" ) ) );
 
                 // histograms
                 var column = 1;

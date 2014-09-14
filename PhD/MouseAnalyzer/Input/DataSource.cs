@@ -17,14 +17,14 @@ namespace MouseAnalyzer
 
         public enum SourceType
         {
-            RAW,
-            UEF
+            DRV,
+            API
         }
 
         public DataSource( string person, EnvironmentType environment, string filePath )
         {
-            events[SourceType.RAW] = null;
-            events[SourceType.UEF] = null;
+            events[SourceType.DRV] = null;
+            events[SourceType.API] = null;
 
             Person = person;
             Environment = environment;
@@ -78,8 +78,14 @@ namespace MouseAnalyzer
                 new DataSource( "PeK", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\petrkucera.dtrk.201407061751.log" ),
                 new DataSource( "PeK", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\petrkucera.trk.201407061854.log" ),
 
-                new DataSource( "HoM", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\michalhladik.dtrk.201408041600.log" ),
-                new DataSource( "HoM", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\michalhladik.trk.201408041701.log" )
+                new DataSource( "MiH", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\michalhladik.dtrk.201408041600.log" ),
+                new DataSource( "MiH", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\michalhladik.trk.201408041701.log" ),
+
+                new DataSource( "HoM", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\michna.dtrk.201408061833.log" ),
+                new DataSource( "HoM", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\michna.trk.201408061938.log" ),
+
+                new DataSource( "RuD", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\ruda.dtrk.201408111639.log" ),
+                new DataSource( "RuD", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\ruda.trk.201408111733.log" )
             };
         }
 

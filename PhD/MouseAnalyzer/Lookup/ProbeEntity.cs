@@ -24,10 +24,10 @@ namespace MouseAnalyzer.Lookup
         public Entity ClosestOptimized { get { return OptimizedCandidates.First().Item1; } }
         public double DistanceOptimized { get { return OptimizedCandidates.First().Item2; } }
 
-        public void TestMatch( OptimizedPopulation population )
+        public void TestMatch( IPopulationOptimizer populationOptimizer )
         {
-            UnoptimizedCandidates = population.Lookup( new Lookup.Template( this ), true );
-            OptimizedCandidates = population.Lookup( new Lookup.Template( this ) );
+            UnoptimizedCandidates = populationOptimizer.Lookup( new Lookup.Template( this ), true );
+            OptimizedCandidates = populationOptimizer.Lookup( new Lookup.Template( this ) );
         }
     }
 }

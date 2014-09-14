@@ -37,7 +37,7 @@ namespace MouseAnalyzer
         {
         }
 
-        public Event( DataSource.SourceType source, int dx, int dy, double dt, int x, int y, double time, ButtonState[] state )
+        public Event( DataSource.SourceType source, int dx, int dy, double dt, int x, int y, double time, ButtonState[] state, Event previous )
         {
             Source = source;
             X = x;
@@ -46,7 +46,12 @@ namespace MouseAnalyzer
             dX = dx;
             dY = dy;
             dT = dt;
+            FiXY = Math.Atan2( dY, dX );
             this.state = state;
+            if( previous != null )
+            {
+                FiTN = fitn( previous.FiXY, FiXY );
+            }
         }
 
         public DataSource.SourceType Source { get; private set; }
@@ -57,6 +62,10 @@ namespace MouseAnalyzer
         public int dX { get; private set; }
         public int dY { get; private set; }
         public double dT { get; private set; }
+        public double FiXY { get; private set; }
+        public double FiXYdeg { get { return FiXY * 180 / Math.PI; } }
+        public double FiTN { get; private set; }
+        public double FiTNdeg { get { return FiTN * 180 / Math.PI; } }
 
         public ButtonState this[ Button button ]
         {
@@ -64,6 +73,32 @@ namespace MouseAnalyzer
             {
                 return state[(uint)button];
             }
+        }
+
+        static public double fitn( double previousfixy, double fixy )
+        {
+            double fitn = double.NaN;
+            if( !double.IsNaN( previousfixy ) )
+            {
+                fitn = fixy - previousfixy;
+            }
+            if( double.IsNaN( fitn ) )
+            {
+                return 0.0;
+            }
+            while( fitn < 0.0 )
+            {
+                fitn = fitn + 2.0 * Math.PI;
+            }
+            while( fitn > 2 * Math.PI )
+            {
+                fitn = fitn - 2 * Math.PI;
+            }
+            if( fitn > Math.PI )
+            {
+                fitn = fitn - 2 * Math.PI;
+            }
+            return fitn;
         }
     }
 
