@@ -7,6 +7,510 @@ using MouseAnalyzer.Statistics;
 
 namespace MouseAnalyzer
 {
+    static class StrokeFeatureDefinition
+    {
+        public static bool SINGLESIDED = true;
+        public static bool LOGARITHMIC = true;
+
+        public class MarkerGroupDefinition
+        {
+            public string Name { get; private set; }
+            public bool Singlesided { get; private set; }
+            public bool Logarithmic { get; private set; }
+
+            public MarkerGroupDefinition( string name, bool singlesided = false, bool logarithmic = false )
+            {
+                Name = name;
+                Singlesided = SINGLESIDED && singlesided;
+                Logarithmic = LOGARITHMIC && logarithmic;
+            }
+
+            public double Transform( double input )
+            {
+                double side;
+                if( Singlesided )
+                {
+                    side = Math.Abs( input );
+                }
+                else
+                {
+                    side = input;
+                }
+                if( !Logarithmic )
+                {
+                    return side;
+                }
+                else if( side > 0.0 )
+                {
+                    return Math.Log( side );
+                }
+                else
+                {
+                    return double.NaN;
+                }
+            }
+
+            public IEnumerable<double> Transform( IEnumerable<double> input )
+            {
+                IEnumerable<double> side = null;
+                if( Singlesided )
+                {
+                    side = input.Select( d => Math.Abs( d ) );
+                }
+                else
+                {
+                    side = input;
+                }
+                if( Logarithmic )
+                {
+                    return side.Where( d => d > 0 ).Select( d => Math.Log( d ) );
+                }
+                else
+                {
+                    return side;
+                }
+            }
+        }
+
+        public class MarkerDefinition
+        {
+            public MarkerDefinition( MarkerGroupDefinition of, string name, DistributionType distribution, bool histogram = false ) :
+                this( of, name, distribution, distribution, distribution, histogram )
+            {
+            }
+
+            public MarkerDefinition( MarkerGroupDefinition of, string name, DistributionType distribution, DistributionType forSinglesidedAndLogarithmic, bool histogram = false ) :
+                this( of, name, distribution, forSinglesidedAndLogarithmic, forSinglesidedAndLogarithmic, histogram )
+            {
+            }
+
+            public MarkerDefinition( MarkerGroupDefinition of, string name, DistributionType distribution, DistributionType forSinglesided, DistributionType forLogarithmic, bool histogram = false )
+            {
+                this.of = of;
+                Name = of.Name + (name=="" ? "" : "." + name);
+                this.distribution = distribution;
+                distributionForSinglesided = forSinglesided;
+                distributionForLogarithmic = forLogarithmic;
+                this.histogram = histogram;
+            }
+
+            public string Name { get; private set; }
+            public bool Singlesided { get { return of.Singlesided; } }
+            public bool Logarithmic { get { return of.Logarithmic; } }
+            public HistogramMarker.HistogramDefinition HistogramDefinition
+            {
+                get
+                {
+                    return histogram ? new HistogramMarker.HistogramDefinition( 200 ) : null;;
+                }
+            }
+
+            public DistributionType Distribution
+            {
+                get
+                {
+                    if( Logarithmic )
+                    {
+                        return distributionForLogarithmic;
+                    }
+                    else if( Singlesided )
+                    {
+                        return distributionForSinglesided;
+                    }
+                    else
+                    {
+                        return distribution;
+                    }
+                }
+            }
+
+            private MarkerGroupDefinition of;
+            private DistributionType distribution;
+            private DistributionType distributionForSinglesided;
+            private DistributionType distributionForLogarithmic;
+            private bool histogram = false;
+        }
+
+        public static MarkerGroupDefinition Group( string name )
+        {
+            MarkerGroupDefinition value;
+            return groups.TryGetValue( name, out value ) ? value : null;
+        }
+
+        public static MarkerDefinition Marker( string name )
+        {
+            {
+                return markers[name];
+            }
+        }
+
+        public static IEnumerable<MarkerDefinition> Markers
+        {
+            get
+            {
+                return markers.Values;
+            }
+        }
+
+        static StrokeFeatureDefinition()
+        {
+            MarkerGroupDefinition grp;
+
+            //*****
+            Add( new MarkerDefinition( Add( new MarkerGroupDefinition("Si") ), "", DistributionType.Lognormal ) );
+
+            //*****
+            grp = Add( new MarkerGroupDefinition("rSi") );
+            Add( new MarkerDefinition( grp, "A0", DistributionType.Lognormal ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "AD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "AS", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "L0", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Gamma ) );
+            Add( new MarkerDefinition( grp, "L4", DistributionType.Gamma ) );
+            Add( new MarkerDefinition( grp, "LD", DistributionType.Gamma ) );
+            // Add( new MarkerDefinition( grp, "LS", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "M0", DistributionType.Gamma ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma ) );
+            Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "H0", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Weibull ) );
+            // Add( new MarkerDefinition( grp, "H4", DistributionType.Logistic, true ) );
+            Add( new MarkerDefinition( grp, "HD", DistributionType.Gamma ) );
+            // Add( new MarkerDefinition( grp, "HS", DistributionType.Gaussian, true ) );
+
+            //*****
+            Add( new MarkerDefinition( Add( new MarkerGroupDefinition("Ti") ), "", DistributionType.Lognormal ) );
+            Add( new MarkerDefinition( Add( new MarkerGroupDefinition("CSi") ), "", DistributionType.Logistic ) );
+
+            //*****
+            Add( new MarkerDefinition( Add( new MarkerGroupDefinition("Sd") ), "", DistributionType.Lognormal ) );
+            Add( new MarkerDefinition( Add( new MarkerGroupDefinition("Vd") ), "", DistributionType.Lognormal ) );
+            // Add( new MarkerDefinition( Add( new MarkerGroupDefinition("CSd") ), "", DistributionType.Weibull ) );
+
+            //*****
+            Add( new MarkerDefinition( Add( new MarkerGroupDefinition("St", false, true ) ), "", DistributionType.Lognormal, DistributionType.Logistic ) ); //****FRED
+
+            grp = Add( new MarkerGroupDefinition("X") ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Lognormal ) );
+            Add( new MarkerDefinition( grp, "A4", DistributionType.Lognormal ) );
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal ) );
+            Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal ) );
+
+            grp = Add( new MarkerGroupDefinition("Y") ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "A4", DistributionType.Lognormal ) );
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal ) );
+            Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal ) );
+
+            grp = Add( new MarkerGroupDefinition("Cs") ); //*****
+            // new MarkerDefinition( grp, "A0", DistributionType.Gaussian ),
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "A4", DistributionType.Gaussian ),
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Gamma ) );
+            // Add( new MarkerDefinition( grp, "AS", DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "L0", DistributionType.Gaussian ),
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "CSL4", DistributionType.Gaussian ),
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "CSLS", DistributionType.Gaussian ),
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.Logistic, true ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "MD", DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "CSMS", DistributionType.Gaussian ),
+            // new MarkerDefinition( grp, "CSH0", DistributionType.Logistic ),
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "CSH4", DistributionType.Gaussian ),
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "CSHS", DistributionType.Gaussian ),
+
+            grp = Add( new MarkerGroupDefinition("dCs") ); //*****
+            // new MarkerDefinition( grp, "dCSA0", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "dCSA4", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Gamma ) );
+            // Add( new MarkerDefinition( grp, "AS", DistributionType.Gamma, true ) );
+            // new MarkerDefinition( grp, "dCSL0", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "dCSL4", DistributionType.InverseGaussian ),
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gamma, true ) );
+            // new MarkerDefinition( grp, "dCSLS", DistributionType.Gamma ),
+            // new MarkerDefinition( grp, "dCSM0", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "dCSM4", DistributionType.InverseGaussian ),
+            // Add( new MarkerDefinition( grp, "MD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "MS", DistributionType.Gamma, true ) );
+            // new MarkerDefinition( grp, "dCSH0", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "dCSH4", DistributionType.Gaussian ),
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "dCSHS", DistributionType.Gamma ),
+
+            //*****
+            grp = Add( new MarkerGroupDefinition( "V", false, true ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Lognormal, DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.Lognormal, DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal, DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal, DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "VL0", DistributionType.Gaussian ),
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Lognormal, DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "L4", DistributionType.Lognormal, DistributionType.Gaussian, true  ) );
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.Lognormal, DistributionType.Gaussian, true  ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Lognormal, DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Lognormal, DistributionType.Gaussian, true  ) );
+            Add( new MarkerDefinition( grp, "MD", DistributionType.Lognormal, DistributionType.Gaussian ) );
+            // new MarkerDefinition( grp, "VMV", DistributionType.Gaussian ),
+            // new MarkerDefinition( grp, "VH0", DistributionType.Gaussian ),
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Lognormal, DistributionType.Gaussian ) );
+            // new MarkerDefinition( grp, "VH4", DistributionType.Gaussian ),
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) );
+
+            //*****
+            grp = Add( new MarkerGroupDefinition( "dV" ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Logistic, true ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "AD", DistributionType.Gaussian, true ) ); // Lognormal, DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "AS", DistributionType.Weibull, DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "L0", DistributionType.Logistic, true ) );
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "L4", DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, true ) ); // Lognormal, DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LS", DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull, DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull ) );
+            // Add( new MarkerDefinition( grp, "H0", DistributionType.Logistic, true ) );
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "H4", DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) ); // DistributionType.Weibull, DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull, DistributionType.Gaussian, true ) );
+
+            //*****
+            grp = Add( new MarkerGroupDefinition( "d2V" ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Logistic, true ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.Logistic, true ) );
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Weibull ) ); // DistributionType.Weibull, DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "AS", DistributionType.Weibull, DistributionType.Logistic, true ) );
+            // new MarkerDefinition( grp, "d2VL0", DistributionType.Gaussian ),
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian ) );
+            // new MarkerDefinition( grp, "d2VL4", DistributionType.Gaussian ),
+            // new MarkerDefinition( grp, "d2VLD", DistributionType.Gaussian ),
+            // new MarkerDefinition( grp, "d2VLS", DistributionType.Gaussian ),
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull ) );
+            // Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "d2VH0", DistributionType.Gaussian ),
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Gaussian ) );
+            // new MarkerDefinition( grp, "d2VH4", DistributionType.Gaussian ),
+            // new MarkerDefinition( grp, "d2VHD", DistributionType.Gaussian ),
+            // new MarkerDefinition( grp, "d2VHS", DistributionType.Gaussian ),
+
+            grp = Add( new MarkerGroupDefinition( "Vn" ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Rayleigh ) );
+            Add( new MarkerDefinition( grp, "AS", DistributionType.InverseGaussian ) );
+            Add( new MarkerDefinition( grp, "L0", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "L4", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Rayleigh, true ) );
+            // Add( new MarkerDefinition( grp, "LS", DistributionType.InverseGaussian, true ) );
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "MD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "H0", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "H4", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Rayleigh, true ) );
+            // Add( new MarkerDefinition( grp, "HS", DistributionType.InverseGaussian, true ) );
+
+            grp = Add( new MarkerGroupDefinition( "Vfi" ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "AD", DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "AS", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LS", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "MD", DistributionType.Rayleigh ) );
+            // Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "H2", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "H4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) );
+            //  Add( new MarkerDefinition( grp, "HS", DistributionType.Gaussian, true ) );
+
+            grp = Add( new MarkerGroupDefinition( "W" ) ); //*****
+            // new MarkerDefinition( grp, "WA0", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "WA4", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Gamma ) );
+            // new MarkerDefinition( grp, "WAS", DistributionType.Gamma ),
+            // new MarkerDefinition( grp, "WL0", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "WL4", DistributionType.InverseGaussian ),
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "WLS", DistributionType.Gaussian ),
+            // new MarkerDefinition( grp, "WM0", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "WM4", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma ) );
+            // new MarkerDefinition( grp, "WMS", DistributionType.Gamma ),
+            // new MarkerDefinition( grp, "WH0", DistributionType.InverseGaussian ),
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) );
+            // new MarkerDefinition( grp, "WH4", DistributionType.InverseGaussian ),
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) );
+            // new MarkerDefinition( grp, "WHS", DistributionType.Gamma ),
+
+            grp = Add( new MarkerGroupDefinition( "dW" ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.InverseGaussian, true ) );
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Rayleigh ) );
+            Add( new MarkerDefinition( grp, "AS", DistributionType.Rayleigh ) );
+            // Add( new MarkerDefinition( grp, "L0", DistributionType.InverseGaussian, true ) );
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "L4", DistributionType.InverseGaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LS", DistributionType.Gamma, true ) );
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.InverseGaussian, true ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.InverseGaussian, true ) );
+            // Add( new MarkerDefinition( grp, "MD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "H0", DistributionType.Logistic, true ) );
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "H4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "HS", DistributionType.Gamma, true ) );
+
+            grp = Add( new MarkerGroupDefinition( "Ca" ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Gamma ) );
+            Add( new MarkerDefinition( grp, "AS", DistributionType.Gamma ) );
+            Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "LD", DistributionType.Gamma ) );
+            // Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull, true ) );
+            Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma ) );
+            // Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "H4", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "HD", DistributionType.Gamma ) );
+            // Add( new MarkerDefinition( grp, "HS", DistributionType.InverseGaussian, true ) );
+
+            grp = Add( new MarkerGroupDefinition( "A", false, true ) ); //*****
+            Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Lognormal, DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "A4", DistributionType.Lognormal, DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal, true ) );
+            Add( new MarkerDefinition( grp, "AS", DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LS", DistributionType.Lognormal, true ) );
+            Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian ) ); // !! unclear shape
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) ); // !! unclear shape
+            Add( new MarkerDefinition( grp, "M4", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "MD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "MS", DistributionType.Lognormal, true ) );
+            // Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) ); // !! unclear shape
+            // Add( new MarkerDefinition( grp, "H4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "HS", DistributionType.Lognormal, true ) );
+
+            grp = Add( new MarkerGroupDefinition( "An" ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "A4", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "AD", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "AS", DistributionType.Weibull ) );
+            // Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "L4", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull ) );
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull ) );
+            // Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) );
+            Add( new MarkerDefinition( grp, "H4", DistributionType.Logistic ) ); // !! unclear shape, diracs
+            Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull ) );
+            Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) );
+
+            grp = Add( new MarkerGroupDefinition( "Afi" ) ); //*****
+            // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "A2", DistributionType.Gaussian ) );
+            // Add( new MarkerDefinition( grp, "A4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "AD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "AS", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "LS", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian, true ) );
+            Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+            // Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "MD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "H4", DistributionType.Logistic, true ) );
+            // Add( new MarkerDefinition( grp, "HD", DistributionType.Gaussian, true ) );
+            // Add( new MarkerDefinition( grp, "HS", DistributionType.Gaussian, true ) );
+        }
+
+        private static void Add( MarkerDefinition definition )
+        {
+            markers.Add( definition.Name, definition );
+        }
+
+        private static MarkerGroupDefinition Add( MarkerGroupDefinition group )
+        {
+            groups.Add( group.Name, group );
+            return group;
+        }
+
+        private static Dictionary<string, MarkerGroupDefinition> groups = new Dictionary<string, MarkerGroupDefinition>();
+        private static Dictionary<string, MarkerDefinition> markers = new Dictionary<string, MarkerDefinition>();
+    }
+
     class StrokeFeatureItem : IFeatureItem
     {
         public enum ItemType
@@ -26,24 +530,30 @@ namespace MouseAnalyzer
 
         public StrokeFeatureItem( StrokeFeatureItem.ItemType type, Event.Button? button, List<Event> input )
         {
+            values["."] = 0.0;
+
             Type = type;
             Button = button;
             Input = input;
 
             var f = Input.First();
             var l = Input.Last();
+            Event p = null;
 
             var vxPrev = double.NaN; // needed for ax
             var vyPrev = double.NaN; // needed for ay
-            var vPrev = double.NaN; // needed for dv
-            var dvPrev = double.NaN; // needed for d2v
             var afixyPrev = double.NaN; // needed for at, an
-            var csPrev = double.NaN; // needed for dc
 
             var si = 0.0;
             var ti = 0.0;
-            var csList = new List<double>();
-            var dcsList = new List<double>();
+
+            var siList = new List<double>();
+            var xList = new List<double>();
+            var yList = new List<double>();
+            var FcsList = new List<double>();
+            var FdcsList = new List<double>();
+            var wList = new List<double>();
+            var dwList = new List<double>();
             var vList = new List<double>();
             var vfiList = new List<double>();
             var vtList = new List<double>();
@@ -61,15 +571,38 @@ namespace MouseAnalyzer
                 var dt = i == f ? 0.0 : i.dT;
                 si += ds;
                 ti += dt;
+                siList.Add( si );
 
                 if( dt > 1.0 && ds > 0.0 && i != f )
                 {
-                    // path curvature
-                    var cs = i.FiTN / ds;
-                    var dcs = double.IsNaN( csPrev ) ? 0.0 : ( cs - csPrev ) / ds;
-                    csList.Add( cs ); //****
-                    dcsList.Add( dcs ); //****
-                    csPrev = cs;
+                    // coordinates
+                    xList.Add( i.X ); //**** FRED
+                    yList.Add( i.Y ); //**** FRED
+
+                    // path curvature -- USED
+                    // angular velocity
+                    if( p != null )
+                    {
+                        var dFiTN = i.FiTN - p.FiTN;
+
+                        var fcs = dFiTN / ds;
+                        if( FcsList.Count > 0 )
+                        {
+                            var fpcs = FcsList.Last();
+                            FdcsList.Add( ( fcs - fpcs ) / ds ); //**** FRED
+                        }
+                        // if( Math.Abs( fcs ) > 0.0 )
+                        // FcsList.Add( -Math.Log( Math.Abs( fcs ) ) ); //**** FRED
+                        FcsList.Add( fcs ); //**** FRED
+
+                        var w = dFiTN / dt;
+                        if( wList.Count > 0 )
+                        {
+                            var wp = wList.Last();
+                            dwList.Add( ( w - wp ) / dt ); //****
+                        }
+                        wList.Add( w ); //**** FRED
+                    }
 
                     // velocity as vector
                     var vx = i.dX / dt;
@@ -77,36 +610,49 @@ namespace MouseAnalyzer
                     var v = Math.Sqrt( vx*vx + vy*vy );
                     var vn = v * Math.Sin( i.FiTN );
                     var vt = v * Math.Cos( i.FiTN );
-                    vList.Add( v ); //****
-                    vfiList.Add( i.FiTN ); //****
+                    vfiList.Add( i.FiTN ); //**** FRED
                     vtList.Add( vt ); //****
                     vnList.Add( vn ); //****
 
                     // velocity as scalar
-                    var dv = double.IsNaN( vPrev ) ? 0.0 : ( v - vPrev ) / dt;
-                    var d2v = double.IsNaN( dvPrev ) ? 0.0 : ( dv - dvPrev ) / dt;
-                    dvList.Add( dv ); //****
-                    d2vList.Add( d2v ); //****
-                    vPrev = v;
-                    dvPrev = dv;
+                    if( vList.Count > 0 )
+                    {
+                        var dv = ( v - vList.Last() ) / dt;
+                        if( dvList.Count > 0 )
+                        {
+                            d2vList.Add( ( dv - dvList.Last() ) / dt ); //**** FRED
+                        }
+                        dvList.Add( dv ); //**** FRED
+                    }
+                    vList.Add( v ); //**** FRED
 
                     // acceleration as vector
-                    var ax = double.IsNaN( vxPrev ) ? 0.0 : ( vx - vxPrev ) / dt;
-                    var ay = double.IsNaN( vyPrev ) ? 0.0 : ( vy - vyPrev ) / dt;
+                    if( !double.IsNaN( vxPrev ) && !double.IsNaN( vyPrev ) )
+                    {
+                        var ax = ( vx - vxPrev ) / dt;
+                        var ay = ( vy - vyPrev ) / dt;
+                        var afixy = Math.Atan2( ay, ax );
+                        var afi = Event.fitn( afixyPrev, afixy );
+                        afixyPrev = afixy;
+
+                        var a = Math.Sqrt( ax*ax + ay*ay );
+                        var an = a * Math.Sin( afi );
+                        var at = a * Math.Cos( afi );
+                        aList.Add( a ); //****
+                        atList.Add( at ); //****
+                        anList.Add( an ); //****
+
+                        if( v > 0.0 && afiList.Count > 0 )
+                        {
+                            caList.Add( ( afi - afiList.Last() ) / v ); //****
+                        }
+                        afiList.Add( afi ); //****
+                    }
                     vxPrev = vx;
                     vyPrev = vy;
-                    var afixy = Math.Atan2( ay, ax );
-                    var afi = Event.fitn( afixyPrev, afixy );
-                    afixyPrev = afixy;
-                    var a = Math.Sqrt( ax*ax + ay*ay );
-                    var an = a * Math.Sin( afi );
-                    var at = a * Math.Cos( afi );
-                    aList.Add( a ); //****
-                    afiList.Add( afi ); //****
-                    atList.Add( at ); //****
-                    anList.Add( an ); //****
-                    caList.Add( afi / ds ); //****
                 }
+
+                p = i;
             }
 
             if( si == 0.0 ) // data is unusable
@@ -115,288 +661,255 @@ namespace MouseAnalyzer
             }
             var count = input.Count();
 
-            // determine boundaries of acceleration and decceleration
-            /*
-            var indexEndOfAcc = 1;
-            var indexStartOfDecc = dvList.Count-1;
-            if( dvList.Count > 1 )
-            {
-                for( var index = 1; index < dvList.Count; index++ )
-                {
-                    if( dvList[index] <= 0.0 )
-                    {
-                        indexEndOfAcc = index-1;
-                        break;
-                    }
-                }
-                for( var index = dvList.Count-2; index >= 0; index-- )
-                {
-                    if( dvList[index] >= 0.0 )
-                    {
-                        indexStartOfDecc = index+1;
-                        break;
-                    }
-                }
-            }
-            */
-            var indexEndOfAcc = count * 100 / 25;
-            var indexStartOfDecc = count * 100 / 75;
-
             var dx = l.X-f.X;
             var dy = l.Y-f.Y;
+            var sd = Math.Sqrt( dx*dx+dy*dy );
 
-            _Si = si;
-            _Ti = ti;
-            _CSi = csList.Sum();
+            values["."] = 1.0;
 
-            _Sd = Math.Sqrt(dx*dx+dy*dy);
-            _Vd = Sd / Ti;
-            _CSd = ( Si - Sd ) / ( 1.0 + Sd ) / Si;
+            var grp = StrokeFeatureDefinition.Group( "Si" ); if( grp != null ) {
+                values["Si"] = grp.Transform( si );
+            }
+            AnalyzeList( "rSi", siList.Select( sii => sii /si ).ToList<double>(), true );
 
-            _RL = (double)indexEndOfAcc / count;
-            _RH = 1.0 - (double)indexStartOfDecc / count;
+            grp = StrokeFeatureDefinition.Group( "Ti" ); if( grp != null )
+            {
+                values["Ti"] = grp.Transform( ti );
+            }
+            grp = StrokeFeatureDefinition.Group( "CSi" ); if( grp != null )
+            {
+                values["CSi"] = grp.Transform( FcsList.Sum() );
+            }
 
-            AnalyzeList( csList, indexEndOfAcc, indexStartOfDecc,
-                         out _CSA0, out _CSA2, out _CSA4, out _CSAV,
-                         out _CSL0, out _CSL2, out _CSL4, out _CSLV,
-                         out _CSM0, out _CSM2, out _CSM4, out _CSMV,
-                         out _CSH0, out _CSH2, out _CSH4, out _CSHV );
+            grp = StrokeFeatureDefinition.Group( "Sd" ); if( grp != null )
+            {
+                values["Sd"] = grp.Transform( sd );
+            }
+            grp = StrokeFeatureDefinition.Group( "Vd" ); if( grp != null )
+            {
+                values["Vd"] = grp.Transform( sd / ti );
+            }
+            // values["CSd"] = StrokeFeatureDefinition.Group( "CSd" ).Transform( ( si - sd ) / ( 1.0 + sd ) / si ); // TODO separate group
 
-            AnalyzeList( caList, indexEndOfAcc, indexStartOfDecc,
-                         out _CAA0, out _CAA2, out _CAA4, out _CAAV,
-                         out _CAL0, out _CAL2, out _CAL4, out _CALV,
-                         out _CAM0, out _CAM2, out _CAM4, out _CAMV,
-                         out _CAH0, out _CAH2, out _CAH4, out _CAHV );
+            grp = StrokeFeatureDefinition.Group( "St" ); if( grp != null )
+            {
+                values["St"] = grp.Transform( 1.0 - sd / si + 0.000001 );
+            }
 
-            AnalyzeList( vList, indexEndOfAcc, indexStartOfDecc,
-                         out _VA0, out _VA2, out _VA4, out _VAV,
-                         out _VL0, out _VL2, out _VL4, out _VLV,
-                         out _VM0, out _VM2, out _VM4, out _VMV,
-                         out _VH0, out _VH2, out _VH4, out _VHV );
+            var xmin = xList.Min();
+            AnalyzeList( "X", xList.Select( x => x - xmin == 0 ? 0.000001 : x - xmin ) );
 
-            AnalyzeList( aList, indexEndOfAcc, indexStartOfDecc,
-                         out _AA0, out _AA2, out _AA4, out _AAV,
-                         out _AL0, out _AL2, out _AL4, out _ALV,
-                         out _AM0, out _AM2, out _AM4, out _AMV,
-                         out _AH0, out _AH2, out _AH4, out _AHV );
+            var ymin = yList.Min();
+            AnalyzeList( "Y", yList.Select( y => y - ymin == 0 ? 0.000001 : y - ymin ) );
+
+            AnalyzeList( "Cs", FcsList );
+
+            AnalyzeList( "dCs", FdcsList );
+
+            AnalyzeList( "W", wList );
+
+            AnalyzeList( "dW", dwList );
+
+            AnalyzeList( "Ca", caList );
+
+            AnalyzeList( "V", vList );
+
+            AnalyzeList( "dV", dvList );
+
+            AnalyzeList( "d2V", d2vList );
+
+            AnalyzeList( "Vn", vnList );
+
+            AnalyzeList( "Vfi", vfiList );
+
+            AnalyzeList( "A", aList );
+
+            AnalyzeList( "An", anList );
+
+            AnalyzeList( "Afi", afiList, true );
 
             /*
-            var dcsList 
-
-            var vfiList = new List<double>();
             var vtList = new List<double>();
-            var vnList = new List<double>();
-            var dvList = new List<double>();
-            var d2vList = new List<double>();
 
-            var afiList = new List<double>(); -- ca
             var atList = new List<double>();
-            var anList = new List<double>();
             */
+        }
+
+        public bool IsValid
+        {
+            get { return values["."] == 1.0; }
+        }
+
+        public double Value( string name )
+        {
+            if( values["."] == 0.0 ) // I am a stub and I have no values
+            {
+                return 0.0;
+            }
+            else
+            {
+                return values[name];
+            }
         }
 
         private StrokeFeatureItem()
         {
+            values["."] = 0.0;
         }
 
-        private void AnalyzeList( List<double> list, int endOfL, int startOfH,
-                                  out double a0, out double a2, out double a4, out double av,
-                                  out double l0, out double l2, out double l4, out double lv,
-                                  out double m0, out double m2, out double m4, out double mv,
-                                  out double h0, out double h2, out double h4, out double hv )
+        private void AnalyzeList( string name, IEnumerable<double> inputlist, bool skipBoundaries = false )
         {
-            var c = list.Count;
-            var l = list.Take( endOfL );
-            var m = list.Skip( endOfL ).Take( c - endOfL-1 - startOfH );
+            var def = StrokeFeatureDefinition.Group( name );
+            var c = inputlist.Count();
+            if( def == null || c == 0 )
+            {
+                StoreNaNMarkers( name );
+                return;
+            }
+
+            var transformed = def.Transform( inputlist );
+            IEnumerable<double> list = transformed;
+            if( skipBoundaries )
+            {
+                var lbound = transformed.Min();
+                var hbound = transformed.Max();
+                list = transformed.Where( i => i != lbound && i != hbound );
+            }
+
+            c = list.Count();
+            if( c < 2 )
+            {
+                list = transformed;
+                c = list.Count();
+            }
+
+            var startOfM = c * 25 / 100;
+            var startOfH = c * 75 / 100;
+
+            var lowSize = startOfM;
+            if( lowSize < 2 )
+            {
+                lowSize = 2;
+            }
+            var midSize = c - startOfH + startOfM;
+            if( midSize < 2 )
+            {
+                midSize = c;
+                startOfM = 0;
+            }
+            var hiSize = c - startOfH;
+            if( hiSize < 2 )
+            {
+                hiSize = 2;
+            };
+            startOfH = c - hiSize; // adjust if needed
+
+            var l = list.Take( lowSize );
+            var m = list.Skip( startOfM ).Take( midSize );
             var h = list.Skip( startOfH );
-            a0 = list.Min(); a2 = list.Average(); a4 = list.Max(); av = list.Variance();
-            if( l.Count() == 0 )
+
+            var a0 = list.Min();
+            values[name + ".A2"] = list.Average();
+            var a4 = list.Max();
+            values[name + ".A0"] = a0;
+            values[name + ".A4"] = a4;
+            values[name + ".AD"] = Math.Sqrt( list.Variance() );
+            values[name + ".AS"] = a4 - a0;
+
+            double l0;
+            double l4;
+            double m0;
+            double m4;
+            double h0;
+            double h4;
+            double ld;
+            double hd;
+
+            c = l.Count();
+            if( c == 0 )
             {
-                l0 = a0; l2 = l0; l4 = l0; lv = 0.0;
+                l0 = double.NaN; values[name + ".L2"] = double.NaN; l4 = double.NaN;
+                ld = double.NaN;
             }
             else
             {
-                l0 = l.Min(); l2 = l.Average(); l4 = l.Max(); lv = l.Variance();
+                l0 = l.Min(); values[name + ".L2"] = l.Average(); l4 = l.Max();
+                ld = Math.Sqrt( l.Variance() );
             }
-            if( h.Count() == 0 )
+            values[name + ".L0"] = l0;
+            values[name + ".L4"] = l4;
+            values[name + ".LD"] = ld;
+            values[name + ".LS"] = l4 - l0;
+
+            c = h.Count();
+            if( c == 0 )
             {
-                h0 = a4; h2 = h0; h4 = h0; hv = 0.0;
+                h0 = double.NaN; values[name + ".H2"] = double.NaN; h4 = double.NaN; hd = double.NaN;
             }
             else
             {
-                h0 = h.Min(); h2 = h.Average(); h4 = h.Max(); hv = h.Variance();
+                h0 = h.Min(); values[name + ".H2"] = h.Average(); h4 = h.Max();
+                hd = Math.Sqrt( h.Variance() );
             }
-            if( m.Count() == 0 )
+            values[name + ".H0"] = h0;
+            values[name + ".H4"] = h4;
+            values[name + ".HD"] = hd;
+            values[name + ".HS"] = h4 - h0;
+
+            c = m.Count();
+            if( c == 0 )
             {
-                m0 = 0.5 * ( l4 + h0 ); m2 = m0; m4 = m0; mv = 0.5 * ( lv + hv );
+                m0 = 0.5 * ( l4 + h0 );
+                values[name + ".M2"] = m0;
+                m4 = m0;
+                values[name + ".MD"] = 0.5 * ( ld + hd );
             }
             else
             {
-                m0 = m.Min(); m2 = m.Average(); m4 = m.Max(); mv = m.Variance();
+                m0 = m.Min();
+                values[name + ".M2"] = m.Average();
+                m4 = m.Max();
+                values[name + ".MD"] = Math.Sqrt( m.Variance() );
             }
+            values[name + ".M0"] = m0;
+            values[name + ".M4"] = m4;
+            values[name + ".MS"] = m4 - m0;
+        }
+
+        private void StoreNaNMarkers( string name )
+        {
+            values[name + ".A0"] = double.NaN; values[name + ".A2"] = double.NaN; values[name + ".A4"] = double.NaN; values[name + ".AD"] = double.NaN; values[name + ".AS"] = double.NaN;
+            values[name + ".L0"] = double.NaN; values[name + ".L2"] = double.NaN; values[name + ".L4"] = double.NaN; values[name + ".LD"] = double.NaN; values[name + ".LS"] = double.NaN;
+            values[name + ".M0"] = double.NaN; values[name + ".M2"] = double.NaN; values[name + ".M4"] = double.NaN; values[name + ".MD"] = double.NaN; values[name + ".MS"] = double.NaN;
+            values[name + ".H0"] = double.NaN; values[name + ".H2"] = double.NaN; values[name + ".H4"] = double.NaN; values[name + ".HD"] = double.NaN; values[name + ".HS"] = double.NaN;
         }
 
         public ItemType Type { get; private set; }
         public Event.Button? Button { get; private set; }
         public List<Event> Input { get; private set; }
 
-        public double Si { get { return _Si; } } // path integrated
-        public double Ti { get { return _Ti; } } // time integrated
-        public double CSi { get { return _CSi; } } // path excess interated
+        Storage values = new Storage();
 
-        public double Sd { get { return _Sd; } } // path direct
-        public double Vd { get { return _Vd; } } // velocity direct
-        public double CSd { get { return _CSd; } } // path excess direct
+        private class Storage
+        {
+            public double this[string name]
+            {
+                get
+                {
+                    return values[name];
+                }
+                set
+                {
+                    if( double.IsNaN( value ) )
+                    {
+                        throw new Exception();
+                    }
+                    values[name] = value;
+                }
+            }
 
-        public double RL { get { return _RL; } } // ratio of start acc part
-        public double RH { get { return _RH; } } // ratio of start decc part
-
-        public double CSA0 { get { return _CSA0; } } // curvature all minimum
-        public double CSA2 { get { return _CSA2; } } // curvature all average
-        public double CSA4 { get { return _CSA4; } } // curvature all maximum
-        public double CSAV { get { return _CSAV; } } // curvature all variance
-        public double CSL0 { get { return _CSL0; } } // curvature low minimum
-        public double CSL2 { get { return _CSL2; } } // curvature low average
-        public double CSL4 { get { return _CSL4; } } // curvature low maximum
-        public double CSLV { get { return _CSLV; } } // curvature low variance
-        public double CSM0 { get { return _CSM0; } } // curvature central minimum
-        public double CSM2 { get { return _CSM2; } } // curvature central average
-        public double CSM4 { get { return _CSM4; } } // curvature central maximum
-        public double CSMV { get { return _CSMV; } } // curvature central variance
-        public double CSH0 { get { return _CSH0; } } // curvature high minimum
-        public double CSH2 { get { return _CSH2; } } // curvature high average
-        public double CSH4 { get { return _CSH4; } } // curvature high maximum
-        public double CSHV { get { return _CSHV; } } // curvature high variance
-
-        public double CAA0 { get { return _CAA0; } } // curvature acc all minimum
-        public double CAA2 { get { return _CAA2; } } // curvature acc all average
-        public double CAA4 { get { return _CAA4; } } // curvature acc all maximum
-        public double CAAV { get { return _CAAV; } } // curvature acc all variance
-        public double CAL0 { get { return _CAL0; } } // curvature acc low minimum
-        public double CAL2 { get { return _CAL2; } } // curvature acc low average
-        public double CAL4 { get { return _CAL4; } } // curvature acc low maximum
-        public double CALV { get { return _CALV; } } // curvature acc low variance
-        public double CAM0 { get { return _CAM0; } } // curvature acc central minimum
-        public double CAM2 { get { return _CAM2; } } // curvature acc central average
-        public double CAM4 { get { return _CAM4; } } // curvature acc central maximum
-        public double CAMV { get { return _CAMV; } } // curvature acc central variance
-        public double CAH0 { get { return _CAH0; } } // curvature acc high minimum
-        public double CAH2 { get { return _CAH2; } } // curvature acc high average
-        public double CAH4 { get { return _CAH4; } } // curvature acc high maximum
-        public double CAHV { get { return _CAHV; } } // curvature acc high variance
-
-        public double VA0 { get { return _VA0; } } // velocity all minimum
-        public double VA2 { get { return _VA2; } } // velocity all average
-        public double VA4 { get { return _VA4; } } // velocity all maximum
-        public double VAV { get { return _VAV; } } // velocity all variance
-        public double VL0 { get { return _VL0; } } // velocity low minimum
-        public double VL2 { get { return _VL2; } } // velocity low average
-        public double VL4 { get { return _VL4; } } // velocity low maximum
-        public double VLV { get { return _VLV; } } // velocity low variance
-        public double VM0 { get { return _VM0; } } // velocity central minimum
-        public double VM2 { get { return _VM2; } } // velocity central average
-        public double VM4 { get { return _VM4; } } // velocity central maximum
-        public double VMV { get { return _VMV; } } // velocity central variance
-        public double VH0 { get { return _VH0; } } // velocity high minimum
-        public double VH2 { get { return _VH2; } } // velocity high average
-        public double VH4 { get { return _VH4; } } // velocity high maximum
-        public double VHV { get { return _VHV; } } // velocity high variance
-
-        public double AA0 { get { return _AA0; } } // velocity acc all minimum
-        public double AA2 { get { return _AA2; } } // velocity acc all average
-        public double AA4 { get { return _AA4; } } // velocity acc all maximum
-        public double AAV { get { return _AAV; } } // velocity acc all variance
-        public double AL0 { get { return _AL0; } } // velocity acc low minimum
-        public double AL2 { get { return _AL2; } } // velocity acc low average
-        public double AL4 { get { return _AL4; } } // velocity acc low maximum
-        public double ALV { get { return _ALV; } } // velocity acc low variance
-        public double AM0 { get { return _AM0; } } // velocity acc central minimum
-        public double AM2 { get { return _AM2; } } // velocity acc central average
-        public double AM4 { get { return _AM4; } } // velocity acc central maximum
-        public double AMV { get { return _AMV; } } // velocity acc central variance
-        public double AH0 { get { return _AH0; } } // velocity acc high minimum
-        public double AH2 { get { return _AH2; } } // velocity acc high average
-        public double AH4 { get { return _AH4; } } // velocity acc high maximum
-        public double AHV { get { return _AHV; } } // velocity acc high variance
-
-        private double _Si;
-        private double _Ti;
-        private double _CSi;
-
-        private double _Sd;
-        private double _Vd;
-        private double _CSd;
-
-        private double _RL;
-        private double _RH;
-
-        private double _CSA0;
-        private double _CSA2;
-        private double _CSA4;
-        private double _CSAV;
-        private double _CSL0;
-        private double _CSL2;
-        private double _CSL4;
-        private double _CSLV;
-        private double _CSM0;
-        private double _CSM2;
-        private double _CSM4;
-        private double _CSMV;
-        private double _CSH0;
-        private double _CSH2;
-        private double _CSH4;
-        private double _CSHV;
-
-        private double _CAA0;
-        private double _CAA2;
-        private double _CAA4;
-        private double _CAAV;
-        private double _CAL0;
-        private double _CAL2;
-        private double _CAL4;
-        private double _CALV;
-        private double _CAM0;
-        private double _CAM2;
-        private double _CAM4;
-        private double _CAMV;
-        private double _CAH0;
-        private double _CAH2;
-        private double _CAH4;
-        private double _CAHV;
-
-        private double _VA0;
-        private double _VA2;
-        private double _VA4;
-        private double _VAV;
-        private double _VL0;
-        private double _VL2;
-        private double _VL4;
-        private double _VLV;
-        private double _VM0;
-        private double _VM2;
-        private double _VM4;
-        private double _VMV;
-        private double _VH0;
-        private double _VH2;
-        private double _VH4;
-        private double _VHV;
-
-        private double _AA0;
-        private double _AA2;
-        private double _AA4;
-        private double _AAV;
-        private double _AL0;
-        private double _AL2;
-        private double _AL4;
-        private double _ALV;
-        private double _AM0;
-        private double _AM2;
-        private double _AM4;
-        private double _AMV;
-        private double _AH0;
-        private double _AH2;
-        private double _AH4;
-        private double _AHV;
+            private Dictionary<string, double> values = new Dictionary<string, double>();
+        }
     }
 
     class StrokeFeature : Feature, IFeature<StrokeFeatureItem>
@@ -407,9 +920,9 @@ namespace MouseAnalyzer
         {
             if( _Markers.Count == 0 )
             {
-                // ComputeMarkersForItems( computeId, Items.Where( i => i.Si > 0.0 && i.Type == StrokeFeatureItem.ItemType.Drag ), "d" );
-                ComputeMarkersForItems( computeId, Items.Where( i => i.Si > 0.0 && i.Type == StrokeFeatureItem.ItemType.MoveEnded ), "m" );
-                // ComputeMarkersForItems( computeId, Items.Where( i => i.Si > 0.0 && i.Type == StrokeFeatureItem.ItemType.ToClick ), "c" );
+                // ComputeMarkersForItems( computeId, TypedItems.Where( i => i.Si > 0.0 && i.Type == StrokeFeatureItem.ItemType.Drag ), "d" );
+                ComputeMarkersForItems( computeId, TypedItems.Where( i => i.IsValid && i.Type == StrokeFeatureItem.ItemType.MoveEnded ), "m" );
+                // ComputeMarkersForItems( computeId, TypedItems.Where( i => i.IsValid && i.Type == StrokeFeatureItem.ItemType.ToClick ), "c" );
             }
 
             if( cleanupProcessData )
@@ -422,7 +935,15 @@ namespace MouseAnalyzer
 
         #region IFeature<StrokeFeatureItem> Members
 
-        public IList<StrokeFeatureItem> Items { get { return _Items; } }
+        public IEnumerable<IFeatureItem> Items
+        {
+            get { return _Items; }
+        }
+
+        public IList<StrokeFeatureItem> TypedItems
+        {
+            get { return _Items; }
+        }
 
         public bool AddItems( IEnumerable<StrokeFeatureItem> items )
         {
@@ -447,156 +968,45 @@ namespace MouseAnalyzer
 
         private void ComputeMarkersForItems( string computeId, IEnumerable<StrokeFeatureItem> items, string namePrefix )
         {
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "Si", f => ( (StrokeFeatureItem)f ).Si, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "Ti", f => ( (StrokeFeatureItem)f ).Ti, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSi", f => ( (StrokeFeatureItem)f ).CSi, new HistogramMarker.HistogramDefinition( 200 ) ) );
+            var nonNull = items.Where( i => i != StrokeFeatureItem.Null() );
+            if( nonNull.Count() == 0 )
+            {
+                return;
+            }
 
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "Sd", f => ( (StrokeFeatureItem)f ).Sd, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "Vd", f => ( (StrokeFeatureItem)f ).Vd, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSd", f => ( (StrokeFeatureItem)f ).CSd, new HistogramMarker.HistogramDefinition( 200 ) ) );
+            foreach( var def in StrokeFeatureDefinition.Markers )
+            {
+                IMarkerExtractor extractor = null;
+                switch( def.Distribution )
+                {
+                    case DistributionType.Gamma:
+                        extractor = new GammaMarkerExtractor();
+                        break;
+                    case DistributionType.Gaussian:
+                        extractor = new GaussianMarkerExtractor();
+                        break;
+                    case DistributionType.InverseGaussian:
+                        extractor = new InverseGaussianMarkerExtractor();
+                        break;
+                    case DistributionType.Logistic:
+                        extractor = new LogisticMarkerExtractor();
+                        break;
+                    case DistributionType.Lognormal:
+                        extractor = new LognormalMarkerExtractor();
+                        break;
+                    case DistributionType.Rayleigh:
+                        extractor = new RayleighMarkerExtractor();
+                        break;
+                    case DistributionType.Weibull:
+                        extractor = new WeibullMarkerExtractor();
+                        break;
+                }
 
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "RL", f => ( (StrokeFeatureItem)f ).RL, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "RH", f => ( (StrokeFeatureItem)f ).RH, new HistogramMarker.HistogramDefinition( 200 ) ) );
-
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSA0", f => ( (StrokeFeatureItem)f ).CSA0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSA2", f => ( (StrokeFeatureItem)f ).CSA2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSA4", f => ( (StrokeFeatureItem)f ).CSA4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSAV", f => ( (StrokeFeatureItem)f ).CSAV, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSL0", f => ( (StrokeFeatureItem)f ).CSL0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSL2", f => ( (StrokeFeatureItem)f ).CSL2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSL4", f => ( (StrokeFeatureItem)f ).CSL4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSLV", f => ( (StrokeFeatureItem)f ).CSLV, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSM0", f => ( (StrokeFeatureItem)f ).CSM0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSM2", f => ( (StrokeFeatureItem)f ).CSM2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSM4", f => ( (StrokeFeatureItem)f ).CSM4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSMV", f => ( (StrokeFeatureItem)f ).CSMV, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSH0", f => ( (StrokeFeatureItem)f ).CSH0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSH2", f => ( (StrokeFeatureItem)f ).CSH2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSH4", f => ( (StrokeFeatureItem)f ).CSH4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CSHV", f => ( (StrokeFeatureItem)f ).CSHV, new HistogramMarker.HistogramDefinition( 200 ) ) );
-
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAA0", f => ( (StrokeFeatureItem)f ).CAA0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAA2", f => ( (StrokeFeatureItem)f ).CAA2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAA4", f => ( (StrokeFeatureItem)f ).CAA4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAAV", f => ( (StrokeFeatureItem)f ).CAAV, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAL0", f => ( (StrokeFeatureItem)f ).CAL0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAL2", f => ( (StrokeFeatureItem)f ).CAL2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAL4", f => ( (StrokeFeatureItem)f ).CAL4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CALV", f => ( (StrokeFeatureItem)f ).CALV, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAM0", f => ( (StrokeFeatureItem)f ).CAM0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAM2", f => ( (StrokeFeatureItem)f ).CAM2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAM4", f => ( (StrokeFeatureItem)f ).CAM4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAMV", f => ( (StrokeFeatureItem)f ).CAMV, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAH0", f => ( (StrokeFeatureItem)f ).CAH0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAH2", f => ( (StrokeFeatureItem)f ).CAH2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAH4", f => ( (StrokeFeatureItem)f ).CAH4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "CAHV", f => ( (StrokeFeatureItem)f ).CAHV, new HistogramMarker.HistogramDefinition( 200 ) ) );
-
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VA0", f => ( (StrokeFeatureItem)f ).VA0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VA2", f => ( (StrokeFeatureItem)f ).VA2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VA4", f => ( (StrokeFeatureItem)f ).VA4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VAV", f => ( (StrokeFeatureItem)f ).VAV, new HistogramMarker.HistogramDefinition( 0, 0.1/200, 0.1/200, 0.1 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VL0", f => ( (StrokeFeatureItem)f ).VL0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VL2", f => ( (StrokeFeatureItem)f ).VL2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VL4", f => ( (StrokeFeatureItem)f ).VL4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VLV", f => ( (StrokeFeatureItem)f ).VLV, new HistogramMarker.HistogramDefinition( 0, 0.001/200, 0.001/200, 0.001 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VM0", f => ( (StrokeFeatureItem)f ).VM0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VM2", f => ( (StrokeFeatureItem)f ).VM2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VM4", f => ( (StrokeFeatureItem)f ).VM4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VMV", f => ( (StrokeFeatureItem)f ).VMV, new HistogramMarker.HistogramDefinition( 0, 0.001/200, 0.001/200, 0.001 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VH0", f => ( (StrokeFeatureItem)f ).VH0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VH2", f => ( (StrokeFeatureItem)f ).VH2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VH4", f => ( (StrokeFeatureItem)f ).VH4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "VHV", f => ( (StrokeFeatureItem)f ).VHV, new HistogramMarker.HistogramDefinition( 0, 0.001/200, 0.001/200, 0.001 ) ) );
-
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AA0", f => ( (StrokeFeatureItem)f ).AA0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AA2", f => ( (StrokeFeatureItem)f ).AA2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AA4", f => ( (StrokeFeatureItem)f ).AA4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AAV", f => ( (StrokeFeatureItem)f ).AAV, new HistogramMarker.HistogramDefinition( 0, 0.005/200, 0.005/200, 0.005 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AL0", f => ( (StrokeFeatureItem)f ).AL0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AL2", f => ( (StrokeFeatureItem)f ).AL2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AL4", f => ( (StrokeFeatureItem)f ).AL4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "ALV", f => ( (StrokeFeatureItem)f ).ALV, new HistogramMarker.HistogramDefinition( 0, 0.0001/200, 0.0001/200, 0.0001 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AM0", f => ( (StrokeFeatureItem)f ).AM0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AM2", f => ( (StrokeFeatureItem)f ).AM2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AM4", f => ( (StrokeFeatureItem)f ).AM4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AMV", f => ( (StrokeFeatureItem)f ).AMV, new HistogramMarker.HistogramDefinition( 0, 0.0001/200, 0.0001/200, 0.0001 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AH0", f => ( (StrokeFeatureItem)f ).AH0, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AH2", f => ( (StrokeFeatureItem)f ).AH2, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AH4", f => ( (StrokeFeatureItem)f ).AH4, new HistogramMarker.HistogramDefinition( 200 ) ) );
-            _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this, items, namePrefix +
-                "AHV", f => ( (StrokeFeatureItem)f ).AHV, new HistogramMarker.HistogramDefinition( 0, 0.0001/200, 0.0001/200, 0.0001 ) ) );
+                _Markers.AddRange( extractor.Extract( computeId, this, nonNull,
+                    namePrefix + def.Name,
+                    f => ( (StrokeFeatureItem)f ).Value( def.Name ),
+                    def.HistogramDefinition ) );
+            }
         }
     }
 
@@ -697,7 +1107,7 @@ namespace MouseAnalyzer
         }
 
         private static double DRAG_MOVEMENT_THRESHOLD = 3;
-        private static double LENGTH_THRESHOLD = 3;
+        private static double LENGTH_THRESHOLD = 4;
         private static double TIME_THRESHOLD = 32;
         private static double ANGLE_THRESHOLD = Math.PI / 2;
         private Dictionary<Event.Button, Event> clickedInput = new Dictionary<Event.Button, Event>();
