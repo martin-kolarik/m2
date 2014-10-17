@@ -530,22 +530,42 @@ namespace MouseAnalyzer
 
         public StrokeFeatureItem( StrokeFeatureItem.ItemType type, Event.Button? button, List<Event> input )
         {
+            const bool SMOOTHED = false;
+
             values["."] = 0.0;
 
             Type = type;
             Button = button;
             Input = input;
 
-            var f = Input.First();
-            var l = Input.Last();
-            Event p = null;
+            var count = 0;
+            var sd = 0.0;
+            var si = 0.0;
+            var ti = 0.0;
+
+            SmootherOutput smoothed = null;
+            if( SMOOTHED )
+            {
+                smoothed = Smoother.Smooth( input );
+                count = smoothed.X.Count;
+
+                var dx = smoothed.X[count-1] - smoothed.X[0];
+                var dy = smoothed.Y[count-1] - smoothed.Y[0];
+                sd = Math.Sqrt( dx*dx+dy*dy );
+            }
+            else
+            {
+                count = input.Count;
+
+                var dx = input[count-1].X - input[0].X;
+                var dy = input[count-1].Y - input[0].Y;
+                sd = Math.Sqrt( dx*dx+dy*dy );
+            }
 
             var vxPrev = double.NaN; // needed for ax
             var vyPrev = double.NaN; // needed for ay
+            var vfixyPrev = double.NaN; // needed for curvature
             var afixyPrev = double.NaN; // needed for at, an
-
-            var si = 0.0;
-            var ti = 0.0;
 
             var siList = new List<double>();
             var xList = new List<double>();
@@ -565,25 +585,50 @@ namespace MouseAnalyzer
             var atList = new List<double>();
             var anList = new List<double>();
             var caList = new List<double>();
-            foreach( var i in Input )
+            for( var i = 1; i < count; i++ )
             {
-                var ds = i == f ? 0.0 : Math.Sqrt( i.dX*i.dX + i.dY*i.dY );
-                var dt = i == f ? 0.0 : i.dT;
+                double X;
+                double Y;
+                double dX;
+                double dY;
+                double dT;
+                if( SMOOTHED )
+                {
+                    X = smoothed.X[i];
+                    Y = smoothed.Y[i];
+                    dX = smoothed.dX[i];
+                    dY = smoothed.dY[i];
+                    dT = smoothed.dT[i];
+                }
+                else
+                {
+                    X = input[i].X;
+                    Y = input[i].Y;
+                    dX = input[i].dX;
+                    dY = input[i].dY;
+                    dT = input[i].dT;
+                }
+
+                var ds = Math.Sqrt( dX*dX + dY*dY );
+                var dt = dT;
                 si += ds;
                 ti += dt;
                 siList.Add( si );
 
-                if( dt > 1.0 && ds > 0.0 && i != f )
+                if( dt > 0.0 && ds > 0.0 )
                 {
                     // coordinates
-                    xList.Add( i.X ); //**** FRED
-                    yList.Add( i.Y ); //**** FRED
+                    xList.Add( X ); //**** FRED
+                    yList.Add( Y ); //**** FRED
 
                     // path curvature -- USED
                     // angular velocity
-                    if( p != null )
+                    double vfixy = Math.Atan2( dY, dX );
+                    double vfitn = double.IsNaN( vfixyPrev ) ? 0.0 : Event.fitn( vfixyPrev, vfixy );
+                    vfixyPrev = vfixy;
+                    if( vfiList.Count > 0 )
                     {
-                        var dFiTN = i.FiTN - p.FiTN;
+                        var dFiTN = vfitn - vfiList.Last();
 
                         var fcs = dFiTN / ds;
                         if( FcsList.Count > 0 )
@@ -603,14 +648,14 @@ namespace MouseAnalyzer
                         }
                         wList.Add( w ); //**** FRED
                     }
+                    vfiList.Add( vfitn ); //**** FRED
 
                     // velocity as vector
-                    var vx = i.dX / dt;
-                    var vy = i.dY / dt;
+                    var vx = dX / dt;
+                    var vy = dY / dt;
                     var v = Math.Sqrt( vx*vx + vy*vy );
-                    var vn = v * Math.Sin( i.FiTN );
-                    var vt = v * Math.Cos( i.FiTN );
-                    vfiList.Add( i.FiTN ); //**** FRED
+                    var vn = v * Math.Sin( vfitn );
+                    var vt = v * Math.Cos( vfitn );
                     vtList.Add( vt ); //****
                     vnList.Add( vn ); //****
 
@@ -651,21 +696,13 @@ namespace MouseAnalyzer
                     vxPrev = vx;
                     vyPrev = vy;
                 }
-
-                p = i;
             }
 
             if( si == 0.0 ) // data is unusable
             {
                 return; 
             }
-            var count = input.Count();
-
-            var dx = l.X-f.X;
-            var dy = l.Y-f.Y;
-            var sd = Math.Sqrt( dx*dx+dy*dy );
-
-            values["."] = 1.0;
+            values["."] = 1.0; // signal data is ok
 
             var grp = StrokeFeatureDefinition.Group( "Si" ); if( grp != null ) {
                 values["Si"] = grp.Transform( si );
@@ -1013,7 +1050,6 @@ namespace MouseAnalyzer
     class StrokeFeatureExtractor : IFeatureExtractor<StrokeFeatureItem>
     {
         private int ends = 0;
-        private int sharps = 0;
         private int totals = 0;
 
         #region IFeatureExtractor<StrokeFeatureItem> Members
@@ -1040,13 +1076,9 @@ namespace MouseAnalyzer
                 {
                     ends++;
                 }
-                if( Math.Abs( input.FiTN ) >= ANGLE_THRESHOLD )
-                {
-                    sharps++;
-                }
 
                 if( list.Count == 0 && // no button caught,
-                    ( input.dT >= TIME_THRESHOLD || Math.Abs( input.FiTN ) >= ANGLE_THRESHOLD ) ) // so try time or angle criterion
+                    input.dT >= TIME_THRESHOLD ) // so try time criterion
                 {
                     if( buffer.Count > LENGTH_THRESHOLD ) // but only we have anything
                     {
@@ -1109,7 +1141,6 @@ namespace MouseAnalyzer
         private static double DRAG_MOVEMENT_THRESHOLD = 3;
         private static double LENGTH_THRESHOLD = 4;
         private static double TIME_THRESHOLD = 32;
-        private static double ANGLE_THRESHOLD = Math.PI / 2;
         private Dictionary<Event.Button, Event> clickedInput = new Dictionary<Event.Button, Event>();
         private List<Event> buffer;
     }
