@@ -131,14 +131,13 @@ namespace MouseAnalyzer
                 var dy = int.Parse( diffabs[0] );
                 var y = int.Parse( diffabs[1] );
 
-                if( dT == 0.0 && dx == 0 && dy == 0 && !anyRecordable ) // ignore events having the same time and no change in position, but do not do it before button states are updated
+                if( anyRecordable || ( dT > 0 && ( dx != 0 || dy != 0 ) ) ) // ignore events having the same time and no change in position, but do not do it before button states are updated
                 {
-                    continue;
+                    var dt = previousEvent == null ? 0 : time - previousEvent.Time;
+                    var currentEvent = new Event( source, dx, dy, dt, x, y, time, buttonState.ToArray(), previousEvent );
+                    list.Add( currentEvent );
+                    previousEvent = currentEvent;
                 }
-
-                var currentEvent = new Event( source, dx, dy, dT, x, y, time, buttonState.ToArray(), previousEvent );
-                list.Add( currentEvent );
-                previousEvent = currentEvent;
 
                 // move time on
                 time += dT;

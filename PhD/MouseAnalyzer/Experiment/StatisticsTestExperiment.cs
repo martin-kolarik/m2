@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MouseAnalyzer.Statistics;
 
 namespace MouseAnalyzer.Experiment
 {
@@ -75,9 +76,9 @@ namespace MouseAnalyzer.Experiment
             spread = max - min + bw;
             bw = spread / 200;
 
-            var histogramDefinition = new HistogramMarker.HistogramDefinition( 200 );
+            var histogramDefinition = new HistogramDefinition( 200 );
             histogramDefinition.SupplyRange( min - bw / 2, max + bw / 2 );
-            var histogram = new HistogramMarker( null, null, null, null, histogramDefinition, data );
+            var histogram = new HistogramMarker( null, null, null, null, null, histogramDefinition, data );
 
             var nde = new GaussianDatasetEstimate( data, false, 0.0, 0.0 );
             var nhe = new GaussianHistogramEstimate( histogram );
@@ -91,6 +92,15 @@ namespace MouseAnalyzer.Experiment
             var igde = new InverseGaussianDatasetEstimate( data, false );
             var ighe = new InverseGaussianHistogramEstimate( histogram );
 
+            var wde = new WeibullDatasetEstimate( data, false );
+            var whe = new WeibullHistogramEstimate( histogram );
+
+            var gde = new GammaDatasetEstimate( data, false );
+            var ghe = new GammaHistogramEstimate( histogram );
+
+            var rde = new RayleighDatasetEstimate( data, false );
+            var rhe = new RayleighHistogramEstimate( histogram );
+
             double[] samples = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 };
             double[] ndf = new double[samples.Length];
             double[] nhf = new double[samples.Length];
@@ -100,6 +110,12 @@ namespace MouseAnalyzer.Experiment
             double[] lnhf = new double[samples.Length];
             double[] igdf = new double[samples.Length];
             double[] ighf = new double[samples.Length];
+            double[] wdf = new double[samples.Length];
+            double[] whf = new double[samples.Length];
+            double[] gdf = new double[samples.Length];
+            double[] ghf = new double[samples.Length];
+            double[] rdf = new double[samples.Length];
+            double[] rhf = new double[samples.Length];
 
             for( int i = 0; i < samples.Length; i++ )
             {
@@ -114,9 +130,18 @@ namespace MouseAnalyzer.Experiment
 
                 igdf[i] = igde.f( samples[i] );
                 ighf[i] = ighe.f( samples[i] );
+
+                wdf[i] = wde.f( samples[i] );
+                whf[i] = whe.f( samples[i] );
+
+                gdf[i] = gde.f( samples[i] );
+                ghf[i] = ghe.f( samples[i] );
+
+                rdf[i] = rde.f( samples[i] );
+                rhf[i] = rhe.f( samples[i] );
             }
 
-            var b = false;
+            return;
         }
 
         #endregion

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MouseAnalyzer.Statistics;
 
 namespace MouseAnalyzer
 {
@@ -114,7 +115,14 @@ namespace MouseAnalyzer
             return true;
         }
 
-        public IList<TimingFeatureItem> Items { get { return _Items; }
+        public IEnumerable<IFeatureItem> Items
+        {
+            get { return _Items; }
+        }
+
+        public IList<TimingFeatureItem> TypedItems
+        {
+            get { return _Items; }
         }
 
         public void ComputeMarkers( string computeId, bool cleanupProcessData = true )
@@ -129,35 +137,35 @@ namespace MouseAnalyzer
                                              // as histogram uses. After such limiting of input set both Fit and Est. give identical values.
 
             _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this,
-                Items.Where( i => i.Type == TimingFeatureItem.TimingType.BeforeClick && i.Value <= BeforeClickLimit && i.Value >= 7.0 ),
+                TypedItems.Where( i => i.Type == TimingFeatureItem.TimingType.BeforeClick && i.Value <= BeforeClickLimit && i.Value >= 7.0 ),
                 "Before", f => ( (TimingFeatureItem)f ).Value,
-                InvGaussHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, BeforeClickLimit ) : null ) );
+                InvGaussHistograms ? new HistogramDefinition( 8, 8, 2, BeforeClickLimit ) : null ) );
             _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this,
-                Items.Where( i => i.Type == TimingFeatureItem.TimingType.InClick && i.Value <= InClickLimit && i.Value >= 7.0 ),
+                TypedItems.Where( i => i.Type == TimingFeatureItem.TimingType.InClick && i.Value <= InClickLimit && i.Value >= 7.0 ),
                 "In", f => ( (TimingFeatureItem)f ).Value,
-                InvGaussHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, InClickLimit ) : null ) );
+                InvGaussHistograms ? new HistogramDefinition( 8, 8, 2, InClickLimit ) : null ) );
             if( useDoubleClick )
             {
                 _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this,
-                    Items.Where( i => i.Type == TimingFeatureItem.TimingType.DoubleClick && i.Value <= DoubleClickLimit && i.Value >= 7.0 ),
+                    TypedItems.Where( i => i.Type == TimingFeatureItem.TimingType.DoubleClick && i.Value <= DoubleClickLimit && i.Value >= 7.0 ),
                     "Double", f => ( (TimingFeatureItem)f ).Value,
-                    InvGaussHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, DoubleClickLimit ) : null ) );
+                    InvGaussHistograms ? new HistogramDefinition( 8, 8, 2, DoubleClickLimit ) : null ) );
             }
 
             _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
-                Items.Where( i => i.Type == TimingFeatureItem.TimingType.BeforeClick && i.Value <= BeforeClickLimit && i.Value >= 7.0 ),
+                TypedItems.Where( i => i.Type == TimingFeatureItem.TimingType.BeforeClick && i.Value <= BeforeClickLimit && i.Value >= 7.0 ),
                 "Before", f => ( (TimingFeatureItem)f ).Value,
-                LognormalHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, BeforeClickLimit ) : null ) );
+                LognormalHistograms ? new HistogramDefinition( 8, 8, 2, BeforeClickLimit ) : null ) );
             _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
-                Items.Where( i => i.Type == TimingFeatureItem.TimingType.InClick && i.Value <= InClickLimit && i.Value >= 7.0 ),
+                TypedItems.Where( i => i.Type == TimingFeatureItem.TimingType.InClick && i.Value <= InClickLimit && i.Value >= 7.0 ),
                 "In", f => ( (TimingFeatureItem)f ).Value,
-                LognormalHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, InClickLimit ) : null ) );
+                LognormalHistograms ? new HistogramDefinition( 8, 8, 2, InClickLimit ) : null ) );
             if( useDoubleClick )
             {
                 _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
-                    Items.Where( i => i.Type == TimingFeatureItem.TimingType.DoubleClick && i.Value <= DoubleClickLimit && i.Value >= 7.0 ),
+                    TypedItems.Where( i => i.Type == TimingFeatureItem.TimingType.DoubleClick && i.Value <= DoubleClickLimit && i.Value >= 7.0 ),
                     "Double", f => ( (TimingFeatureItem)f ).Value,
-                    LognormalHistograms ? new HistogramMarker.HistogramDefinition( 8, 8, 2, DoubleClickLimit ) : null ) );
+                    LognormalHistograms ? new HistogramDefinition( 8, 8, 2, DoubleClickLimit ) : null ) );
             }
 
             if( cleanupProcessData )

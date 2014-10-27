@@ -46,12 +46,7 @@ namespace MouseAnalyzer
             dX = dx;
             dY = dy;
             dT = dt;
-            FiXY = Math.Atan2( dY, dX );
             this.state = state;
-            if( previous != null )
-            {
-                FiTN = fitn( previous.FiXY, FiXY );
-            }
         }
 
         public DataSource.SourceType Source { get; private set; }
@@ -62,10 +57,6 @@ namespace MouseAnalyzer
         public int dX { get; private set; }
         public int dY { get; private set; }
         public double dT { get; private set; }
-        public double FiXY { get; private set; }
-        public double FiXYdeg { get { return FiXY * 180 / Math.PI; } }
-        public double FiTN { get; private set; }
-        public double FiTNdeg { get { return FiTN * 180 / Math.PI; } }
 
         public ButtonState this[ Button button ]
         {

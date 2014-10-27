@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ namespace MouseAnalyzer.Features
             public double Weight;
         }
 
-        public void AddMarkers( IEnumerable<IValueMarker> markers )
+        public void AddMarkers( IEnumerable<IMarker> markers )
         {
             foreach( var marker in markers )
             {
@@ -130,6 +131,12 @@ namespace MouseAnalyzer.Features
             }
         }
 
+        public bool IsActive( string name )
+        {
+            MarkerData data;
+            return map.TryGetValue( name, out data ) && active.Contains( data.Index );
+        }
+
         public bool IsActive( int index )
         {
             return active.Contains( index );
@@ -145,6 +152,12 @@ namespace MouseAnalyzer.Features
             {
                 active.Remove( index );
             }
+        }
+
+        public bool IsConstant( string name )
+        {
+            MarkerData data;
+            return map.TryGetValue( name, out data ) && constant.Contains( data.Index );
         }
 
         public bool IsConstant( int index )
@@ -208,6 +221,20 @@ namespace MouseAnalyzer.Features
                 }
             }
             return weights;
+        }
+
+        public string Serialize()
+        {
+            return string.Join( ",", active.Select( a => list[a].Name ) );
+        }
+
+        public void Deserialize( string input )
+        {
+            active.Clear();
+            foreach( var s in input.Split( ' ', ',' ) )
+            {
+                active.Add( map[s].Index );
+            }
         }
 
         private Dictionary<string, MarkerData> map = new Dictionary<string, MarkerData>();

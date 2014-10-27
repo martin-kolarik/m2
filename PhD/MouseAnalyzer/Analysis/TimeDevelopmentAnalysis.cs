@@ -12,7 +12,7 @@ namespace MouseAnalyzer
     {
         #region IAnalysis Members
 
-        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null )
+        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null, bool leaveFeatureItems = false )
         {
             foreach( var entity in entities )
             {
@@ -21,9 +21,9 @@ namespace MouseAnalyzer
                 var count = 0;
                 foreach( var input in SplitDefinition.Split( split, entity.Events ) )
                 {
-                    if( timing.AddItems( timingExtractor.AddEvent( input, timing.Items ) ) )
+                    if( timing.AddItems( timingExtractor.AddEvent( input, timing.TypedItems ) ) )
                     {
-                        timing.ComputeMarkers( ( ++count ).ToString( "D5" ) );
+                        timing.ComputeMarkers( ( ++count ).ToString( "D5" ), !leaveFeatureItems );
                     }
                 }
                 entity.AddFeature( timing );

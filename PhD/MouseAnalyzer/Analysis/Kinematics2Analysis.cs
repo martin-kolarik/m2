@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MouseAnalyzer.Lookup;
 using MouseAnalyzer.Optimizer;
+using MouseAnalyzer.Statistics;
 
 namespace MouseAnalyzer.Analysis
 {
@@ -12,7 +13,7 @@ namespace MouseAnalyzer.Analysis
     {
         #region IAnalysis Members
 
-        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null )
+        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null, bool leaveFeatureItems = false )
         {
             foreach( var entity in entities )
             {
@@ -25,9 +26,9 @@ namespace MouseAnalyzer.Analysis
                     var kinematicsExtractor2 = new Kinematics2FeatureExtractor();
                     foreach( var input in events )
                     {
-                        kinematics2.AddItems( kinematicsExtractor2.AddEvent( input, kinematics2.Items ) );
+                        kinematics2.AddItems( kinematicsExtractor2.AddEvent( input, kinematics2.TypedItems ) );
                     }
-                    kinematics2.ComputeMarkers( "0" );
+                    kinematics2.ComputeMarkers( "0", !leaveFeatureItems );
 
                     entity.AddFeature( kinematics2 );
                 } );
@@ -42,7 +43,7 @@ namespace MouseAnalyzer.Analysis
         {
             Features.Markers markers;
             Population population;
-            Prepare( entities, Population.NormalizationType.Desquare, out markers, out population );
+            PrepareValueMarkers( entities, Population.NormalizationType.Desquare, out markers, out population );
             // PopulationOptimizer = new ThresholdPopulationOptimizer( new Distance(), population );
             PopulationOptimizer = new IterateOverBestPopulationOptimizer( markers, new Distance( Population.DistanceMeasureType.AverageWithLeastVariance ), population );
             PopulationOptimizer.Optimize( repeatCount, probes );
@@ -105,9 +106,9 @@ namespace MouseAnalyzer.Analysis
                 // population distances histogram
                 var population = PopulationOptimizer.Population;
                 var distances = population.Distances( new Distance(), Weights.Uniform( population.ComponentCount ) );
-                var populationHistogramDefinition = new HistogramMarker.HistogramDefinition( 8 );
+                var populationHistogramDefinition = new HistogramDefinition( 8 );
                 populationHistogramDefinition.SupplyRange( distances.Min(), distances.Max() );
-                var populationHistogram = new HistogramMarker( null, null, null, null, populationHistogramDefinition, distances );
+                var populationHistogram = new HistogramMarker( null, null, null, null, null, populationHistogramDefinition, distances );
                 var pheaders = new List<string>();
                 var pcolumns = new List<IEnumerable<object>>();
                 pheaders.Add( "01B" );

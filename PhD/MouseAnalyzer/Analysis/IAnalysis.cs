@@ -32,9 +32,9 @@ namespace MouseAnalyzer
             if( split != null )
             {
                 length = length / split.Fractions;
-                from = from == SplitDefinition.RANDOM ?
+                from = split.Fraction == SplitDefinition.RANDOM ?
                         random.Next( eventsCount - length ) :
-                        split.Fraction * length;
+                        ( split.Fraction - 1 ) * length;
             }
 
             return from == 0 && length == eventsCount ?
@@ -47,7 +47,7 @@ namespace MouseAnalyzer
 
     interface IAnalysis
     {
-        void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null );
+        void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null, bool leaveFeatureItems = false );
         IPopulationOptimizer PopulationOptimizer { get; }
         void Optimize( IEnumerable<Entity> entities, int repeatCount, IEnumerable<ProbeEntity> probes );
         void PushDumpedContent( CSVDumper dumper, IEnumerable<Entity> entities, string extendedSpecification = null );
@@ -55,7 +55,7 @@ namespace MouseAnalyzer
 
     abstract class AnalysisBase
     {
-        internal void Prepare( IEnumerable<Entity> entities, Lookup.Population.NormalizationType normalization, out Features.Markers markers, out Population population )
+        internal void PrepareValueMarkers( IEnumerable<Entity> entities, Lookup.Population.NormalizationType normalization, out Features.Markers markers, out Population population )
         {
             population = new Population( new Population( entities ), normalization );
 
@@ -69,6 +69,15 @@ namespace MouseAnalyzer
                 markers.SetConstant( constant, true );
                 markers.SetActive( constant, false );
             }
+        }
+
+        internal void PrepareDistributionMarkers( IEnumerable<Entity> entities, Lookup.Population.NormalizationType normalization, out Features.Markers markers, out Population population )
+        {
+            population = new Population( new Population( entities ), normalization );
+
+            var distributionMarkers = entities.First().Markers.Where( m1 => m1 is IDistributionMarker ).Select( m2 => (IDistributionMarker)m2 );
+            markers = new Features.Markers();
+            markers.AddMarkers( distributionMarkers );
         }
     }
 }

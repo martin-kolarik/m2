@@ -12,7 +12,7 @@ namespace MouseAnalyzer.Analysis
     {
         #region IAnalysis Members
 
-        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null )
+        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null, bool leaveFeatureItems = false )
         {
             foreach( var entity in entities )
             {
@@ -25,9 +25,9 @@ namespace MouseAnalyzer.Analysis
                     var timingExtractor = new TimingFeatureExtractor();
                     foreach( var input in events )
                     {
-                        timing.AddItems( timingExtractor.AddEvent( input, timing.Items ) );
+                        timing.AddItems( timingExtractor.AddEvent( input, timing.TypedItems ) );
                     }
-                    timing.ComputeMarkers( "0" );
+                    timing.ComputeMarkers( "0", !leaveFeatureItems );
                     entity.AddFeature( timing );
                     var c1 = entity.Markers.Where( m => m is IValueMarker ).Count();
 
@@ -36,9 +36,9 @@ namespace MouseAnalyzer.Analysis
                     var kinematicsExtractor = new KinematicsFeatureExtractor();
                     foreach( var input in events )
                     {
-                        kinematics.AddItems( kinematicsExtractor.AddEvent( input, kinematics.Items ) );
+                        kinematics.AddItems( kinematicsExtractor.AddEvent( input, kinematics.TypedItems ) );
                     }
-                    kinematics.ComputeMarkers( "0" );
+                    kinematics.ComputeMarkers( "0", !leaveFeatureItems );
                     entity.AddFeature( kinematics );
                     var c2 = entity.Markers.Where( m => m is IValueMarker ).Count();
 
@@ -59,7 +59,7 @@ namespace MouseAnalyzer.Analysis
         {
             Features.Markers markers;
             Population population;
-            Prepare( entities, Population.NormalizationType.Desquare, out markers, out population );
+            PrepareValueMarkers( entities, Population.NormalizationType.Desquare, out markers, out population );
             // PopulationOptimizer = new AveragePopulationOptimizer( new Distance(), population );
             PopulationOptimizer = new IterateOverBestPopulationOptimizer( markers, new Distance(), population );
             PopulationOptimizer.Optimize( repeatCount, probes );

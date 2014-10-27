@@ -22,6 +22,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -45,7 +46,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Analysis\StrokeAnalysis.cs" />
+    <Compile Include="Analysis\StrokeMatchingAnalysis.cs" />
+    <Compile Include="Analysis\StrokePopulationAnalysis.cs" />
     <Compile Include="Analysis\Kinematics2Analysis.cs" />
     <Compile Include="Analysis\Executor.cs" />
     <Compile Include="Analysis\IAnalysis.cs" />
@@ -54,6 +56,11 @@
     <Compile Include="Analysis\TimeDevelopmentAnalysis.cs" />
     <Compile Include="Analysis\TimeKinematicsAnalysis.cs" />
     <Compile Include="CSVDumper.cs" />
+    <Compile Include="Experiment\RootFinderExperiment.cs" />
+    <Compile Include="Experiment\SmoothingExperiment.cs" />
+    <Compile Include="Experiment\SplineDistributionExperiment.cs" />
+    <Compile Include="Experiment\S_FARExperiment.cs" />
+    <Compile Include="Experiment\S_MatchingExperiment.cs" />
     <Compile Include="Experiment\StatisticsTestExperiment.cs" />
     <Compile Include="Experiment\S_OverviewExperiment.cs" />
     <Compile Include="Experiment\TK_OverviewExperiment.cs" />
@@ -78,6 +85,9 @@
     <Compile Include="Optimizer\Weights.cs" />
     <Compile Include="Statistics\Estimator.cs" />
     <Compile Include="Statistics\Extension.cs" />
+    <Compile Include="Statistics\Gamma.cs" />
+    <Compile Include="Statistics\Histogram.cs" />
+    <Compile Include="Statistics\HyperLog.cs" />
     <Compile Include="Statistics\IEstimator.cs" />
     <Compile Include="Features\KinematicsFeature.cs" />
     <Compile Include="Entity\Entity.cs" />
@@ -87,6 +97,10 @@
     <Compile Include="Input\Loader.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Statistics\Integrator.cs" />
+    <Compile Include="Statistics\Rootfinder.cs" />
+    <Compile Include="Statistics\Smoother.cs" />
+    <Compile Include="Statistics\SmoothingSpline.cs" />
     <Compile Include="Statistics\StatisticsMarker.cs" />
     <Compile Include="Features\StrokeFeature.cs" />
     <Compile Include="Features\TimingFeature.cs" />

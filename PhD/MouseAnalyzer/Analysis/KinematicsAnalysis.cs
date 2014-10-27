@@ -12,7 +12,7 @@ namespace MouseAnalyzer.Analysis
     {
         #region IAnalysis Members
 
-        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null )
+        public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null, bool leaveFeatureItems = false )
         {
             foreach( var entity in entities )
             {
@@ -25,9 +25,9 @@ namespace MouseAnalyzer.Analysis
                     var kinematicsExtractor = new KinematicsFeatureExtractor();
                     foreach( var input in events )
                     {
-                        kinematics.AddItems( kinematicsExtractor.AddEvent( input, kinematics.Items ) );
+                        kinematics.AddItems( kinematicsExtractor.AddEvent( input, kinematics.TypedItems ) );
                     }
-                    kinematics.ComputeMarkers( "0" );
+                    kinematics.ComputeMarkers( "0", !leaveFeatureItems );
 
                     entity.AddFeature( kinematics );
                 } );
@@ -42,7 +42,7 @@ namespace MouseAnalyzer.Analysis
         {
             Features.Markers markers;
             Population population;
-            Prepare( entities, Population.NormalizationType.Center, out markers, out population );
+            PrepareValueMarkers( entities, Population.NormalizationType.Center, out markers, out population );
             PopulationOptimizer = new AveragePopulationOptimizer( markers, new Distance(), population );
             PopulationOptimizer.Optimize( repeatCount, probes );
         }

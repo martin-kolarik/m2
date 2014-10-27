@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MouseAnalyzer.Experiment
 {
-    class S_OverviewExperiment : IExperiment
+    class S_MatchingExperiment : IExperiment
     {
 
         #region IExperiment Members
@@ -14,19 +14,14 @@ namespace MouseAnalyzer.Experiment
         public void Perform( string outputFileNameHint = "" )
         {
             var entities = DataSources.Get( DataSource.EnvironmentType.ControlledPlain, DataSource.SourceType.API );
-
             var dumper = new CSVDumper();
 
-            var split = new SplitDefinition()
-            {
-                Fractions = 1
-            };
-            var analyzer = new Analysis.StrokePopulationAnalysis();
-            analyzer.Analyze( entities, split );
+            var analyzer = new Analysis.StrokeMatchingAnalysis();
+            analyzer.Analyze( entities, null );
             analyzer.Optimize( entities );
             analyzer.PushDumpedContent( dumper, entities );
 
-            dumper.Dump( outputFileNameHint == "" ? "s-o" : outputFileNameHint );
+            // dumper.Dump( outputFileNameHint == "" ? "s-m" : outputFileNameHint );
         }
 
         #endregion

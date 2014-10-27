@@ -498,6 +498,7 @@ BEGIN
    END;
 
    // run main thread loop, max for 2 hours
+   LOOP
    start := datetime.UptimeMS32();
    LOOP
       windows.MsgWaitForMultipleObjectsEx( 0, NIL, 60 * 1000, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE );
@@ -516,6 +517,7 @@ BEGIN
          EXIT;
       END;
    END; // LOOP
+   END; // outer LOOP
 
    windows.UnhookWindowsHookEx( hook );
 

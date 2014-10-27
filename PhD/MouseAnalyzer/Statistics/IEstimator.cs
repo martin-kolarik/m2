@@ -8,28 +8,50 @@ namespace MouseAnalyzer
 {
     public enum DistributionType
     {
+        None,
         Gaussian,
         Lognormal,
         InverseGaussian,
-        Logistic
+        Logistic,
+        Weibull,
+        Gamma,
+        Rayleigh,
+        Spline
     }
 
-    interface IEstimate
+    interface IPDF
     {
-        DistributionType Distribution { get; }
+        double f( double x );
+        double p( double x, double sigma ); // x-sigmax/2..x+sigmax/2 probability is taken
+        double p( double x ); // x-Deviation/2..x+Deviation/2 probability is taken
+    }
+
+    interface IDistribution : IPDF
+    {
+        DistributionType Type { get; }
+
+        double Deviation { get; }
+        double Mean { get; }
+        double Variance { get; }
+
+        IList<string> ParameterNames { get; }
+        IList<double> ParameterValues { get; }
+
+        void SetParameterValue( string name, double value );
+    }
+
+    interface IEstimate : IDistribution
+    {
         int Count { get; }
 
         double Minimum { get; }
         double Maximum { get; }
         double Average { get; }
-        double Median { get; }
-
-        double f( double x );
     }
 
     interface IEstimator
     {
-        IEstimate Estimate( DistributionType distribution, IEnumerable<double> values, bool computeMedian, double leftModifier = 0.1, double rightModifier = 0.1 );
+        IEstimate Estimate( DistributionType distribution, IEnumerable<double> values, bool computeMedian, double leftModifier, double rightModifier );
         IEstimate Estimate( DistributionType distribution, IHistogramMarker histogram );
     }
 }

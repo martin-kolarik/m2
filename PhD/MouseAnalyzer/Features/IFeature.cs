@@ -21,6 +21,8 @@ namespace MouseAnalyzer
         DataSource.SourceType Source { get; }
         Entity Entity { get; }
 
+        IEnumerable<IFeatureItem> Items { get; }
+
         void ComputeMarkers( string computeId, bool cleanupProcessData = true );
         IEnumerable<IMarker> Markers { get; }
     }
@@ -28,7 +30,7 @@ namespace MouseAnalyzer
     interface IFeature<F> : IFeature where F : IFeatureItem
     {
         bool AddItems( IEnumerable<F> items ); // returns if any new added
-        IList<F> Items { get; } // IList chosen to allow both forward and backward traversing
+        IList<F> TypedItems { get; } // IList chosen to allow both forward and backward traversing
     }
 
     abstract class Feature

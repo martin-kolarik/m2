@@ -8,6 +8,19 @@ namespace MouseAnalyzer.Statistics
 {
     static class Extension
     {
+        public static double Product( this IEnumerable<double> source ) // expects source[i] > 0.0
+        {
+            var product = 1.0;
+            source.Select( value => product *= value ).Count();
+            return product;
+        }
+
+        public static double GeometricAverage( this IEnumerable<double> source ) // expects source[i] > 0.0
+        {
+            var logs = source.Select( value => Math.Log( value ) );
+            return Math.Exp( logs.Average() );
+        }
+
         public static double Variance( this IEnumerable<double> source, bool isSample = false )
         {
             int count = 0;
