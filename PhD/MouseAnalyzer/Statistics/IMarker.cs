@@ -7,28 +7,55 @@ using MouseAnalyzer.Statistics;
 
 namespace MouseAnalyzer
 {
+    class Triple<T>
+    {
+        public T Value { get { return Positive; } }
+        public T Positive { get; private set; }
+        public T Negative { get; private set; }
+        public T Zero { get; private set; }
+
+        public Triple( T positiveOrSingle, T negative = default(T), T zero = default(T) )
+        {
+            Positive = positiveOrSingle;
+            Negative = negative;
+            Zero = zero;
+        }
+    }
+
     interface IMarker
     {
         string Name { get; }
         string MarkerTypeName { get; }
         string ComputeId { get; }
         IFeature Feature { get; } // of feature
-        IPDF PDF { get; } // if available
+    }
+
+    interface ISingleDistribution
+    {
+        IDistribution Distribution { get; } // if available
         Func<IFeatureItem, double> Extractor { get; } // to get value from given IFeatureItem
     }
 
-    interface IValueMarker : IMarker
+    interface ITripleDistribution
+    {
+        Triple<IDistribution> Distribution { get; } // if available
+        Func<IFeatureItem, Triple<double>> Extractor { get; } // to get value from given IFeatureItem
+    }
+
+    interface IValueMarker : IMarker, ISingleDistribution
     {
         double Value { get; }
     }
 
-    interface IDistributionMarker : IMarker
+    interface IDistributionMarker : IMarker, ITripleDistribution
     {
         IList<string> ParameterNames { get; }
         IList<double> ParameterValues { get; }
+
+        string Serialized { get; set; }
     }
 
-    interface IHistogramMarker : IMarker
+    interface IHistogramMarker : IMarker, ISingleDistribution
     {
         HistogramDefinition Definition { get; }
         double[] BinMidpoints { get; }
@@ -37,7 +64,9 @@ namespace MouseAnalyzer
 
     interface IMarkerExtractor
     {
-        IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition );
+        IEnumerable<IMarker> Extract(
+            string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, DistributionType distributionType,
+            Func<IFeatureItem, Triple<double>> valueExtractor, Triple<HistogramDefinition> definition );
     }
 
     public enum MatchType
@@ -49,7 +78,7 @@ namespace MouseAnalyzer
         ItemD2Distance,
         DistributionArithmeticAverage,
         DistributionProduct,
-        DistributionProductPercent,
+        DistributionLogProduct,
         DistributionGeometricAverage,
         DistributionSum
     }

@@ -47,10 +47,11 @@ namespace MouseAnalyzer
 
                 foreach( var entity in entities )
                 {
-                    var estimates = entity.Markers.Where( m =>
-                        m is IValueMarker &&
-                        ( m.Estimate is InverseGaussianDatasetEstimate || m.Estimate is LognormalDatasetEstimate ) &&
-                        ( m.MarkerTypeName.EndsWith( "Mean" ) || m.MarkerTypeName.Contains( "Lambda" ) || m.MarkerTypeName.EndsWith( "Mu" ) || m.MarkerTypeName.EndsWith( "Sigma" ) ) );
+                    var estimates = entity.Markers.
+                        Where( m => m is IValueMarker ).
+                        Select( m => (IValueMarker)m ).
+                        Where( m => ( m.Distribution is InverseGaussianDatasetEstimate || m.Distribution is LognormalDatasetEstimate ) &&
+                                    ( m.MarkerTypeName.EndsWith( "Mean" ) || m.MarkerTypeName.Contains( "Lambda" ) || m.MarkerTypeName.EndsWith( "Mu" ) || m.MarkerTypeName.EndsWith( "Sigma" ) ) );
 
                     var markerNames = estimates.Select( e => e.Name ).Distinct();
                     foreach( var markerName in markerNames )

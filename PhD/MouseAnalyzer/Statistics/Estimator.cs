@@ -40,7 +40,12 @@ namespace MouseAnalyzer
         public double p( double x, double sigma )
         {
             sigma *= 0.5;
-            return Integrator.Integrate( i => f( i ), x - sigma, x + sigma );
+            var r = Integrator.Integrate( i => f( i ), x - sigma, x + sigma );
+            if( double.IsInfinity( r ) )
+            {
+                var rr = r;
+            }
+            return r;
         }
 
         public double p( double x )
@@ -427,7 +432,12 @@ namespace MouseAnalyzer
             else
             {
                 var xreduced = x / Beta;
-                return Alpha / Beta * Math.Pow( xreduced, Alpha - 1 ) * Math.Exp( -Math.Pow( xreduced, Alpha ) );
+                var r = Alpha / Beta * Math.Pow( xreduced, Alpha - 1 ) * Math.Exp( -Math.Pow( xreduced, Alpha ) );
+                if( double.IsInfinity( r ) )
+                {
+                    var rr = r;
+                }
+                return r;
             }
         }
 
@@ -640,37 +650,6 @@ namespace MouseAnalyzer
         }
 
         private static List<string> NAMES = new List<string> { "X", "Y", "Z" };
-    }
-
-    class CombinedDistribution : IPDF
-    {
-        IEnumerable<IDistribution> Distributions { get; private set; }
-
-        public CombinedDistribution( IEnumerable<IDistribution> distributions, Func<double, IDistribution> selector )
-        {
-            Distributions = distributions;
-            this.selector = selector;
-        }
-
-        public double f( double x )
-        {
-            return selector( x ).f( x );
-        }
-
-        public double p( double x, double sigma )
-        {
-            sigma *= 0.5;
-            var distribution = selector( x );
-            return Integrator.Integrate( i => distribution.f( i ), x - sigma, x + sigma );
-        }
-
-        public double p( double x )
-        {
-            var distribution = selector( x );
-            return distribution.p( x );
-        }
-
-        private Func<double, IDistribution> selector;
     }
 
     class GaussianDatasetEstimate : Estimate
@@ -1332,7 +1311,7 @@ namespace MouseAnalyzer
     {
         #region IEstimator Members
 
-        public IEstimate Estimate( DistributionType distribution, IEnumerable<double> values, bool computeMedian, double leftModifier = 0.0, double rightModifier = 0.0 )
+        public IEstimate Estimate( DistributionType distribution, IEnumerable<double> values, bool computeMedian = false, double leftModifier = 0.0, double rightModifier = 0.0 )
         {
             switch( distribution )
             {

@@ -5,11 +5,19 @@ using System.Text;
 using System.Threading.Tasks;
 using MouseAnalyzer.Lookup;
 using MouseAnalyzer.Optimizer;
+using MouseAnalyzer.Statistics;
 
 namespace MouseAnalyzer.Analysis
 {
     class StrokePopulationAnalysis : AnalysisBase, IAnalysis
     {
+        public StrokePopulationAnalysis( int endGapThreshold )
+        {
+            EndGapThreshold = endGapThreshold;
+        }
+
+        private int EndGapThreshold;
+
         #region IAnalysis Members
 
         public void Analyze( IEnumerable<Entity> entities, SplitDefinition split = null, bool leaveFeatureItems = false )
@@ -22,12 +30,28 @@ namespace MouseAnalyzer.Analysis
 
                     // stroke
                     var stroke = new StrokeFeature( entity );
-                    var strokeExtractor = new StrokeFeatureExtractor();
+                    var strokeExtractor = new StrokeFeatureExtractor( EndGapThreshold );
                     foreach( var input in events )
                     {
                         stroke.AddItems( strokeExtractor.AddEvent( input, stroke.TypedItems ) );
                     }
                     stroke.ComputeMarkers( "0", !leaveFeatureItems );
+
+                    /*
+                    var dTs = events.Select( e => e.dT );
+                    var definition = new HistogramDefinition( 200 );
+                    var min = dTs.Min();
+                    var max = dTs.Max();
+                    definition.SupplyRange( min, max );
+                    var histogram1 = new Histogram( definition, dTs, min, max );
+
+                    dTs = events.Select( e => e.dT ).Where( dT => dT <= 500.0 && dT >= 12.0 );
+                    definition = new HistogramDefinition( 200 );
+                    min = 12;
+                    max = 500;
+                    definition.SupplyRange( min, max );
+                    var histogram2 = new Histogram( definition, dTs, min, max );
+                    */
 
                     entity.AddFeature( stroke );
                 } );
@@ -40,8 +64,8 @@ namespace MouseAnalyzer.Analysis
 
         public void Optimize( IEnumerable<Entity> entities, int repeatCount = 1, IEnumerable<ProbeEntity> probes = null )
         {
-            Features.Markers markers;
-            Population population;
+            // Features.Markers markers;
+            // Population population;
             // PrepareValueMarkers( entities, Population.NormalizationType.Desquare, out markers, out population );
             // PopulationOptimizer = new IterateOverBestPopulationOptimizer( markers, new Distance( Population.DistanceMeasureType.AverageWithLeastVariance ), population );
             // PopulationOptimizer = new AveragePopulationOptimizer( markers, new Distance( Population.DistanceMeasureType.AverageWithLeastVariance ), population );
@@ -56,12 +80,12 @@ namespace MouseAnalyzer.Analysis
                 var columns = new List<IEnumerable<object>>();
 
                 // estimates
-                headers.Add( "marker" );
+                headers.Add( "marker;" );
                 var row = 1;
                 columns.Add( entities.First().Markers.
                     Where( m => m is IDistributionMarker ).
                     Cast<IDistributionMarker>().
-                    SelectMany( m => m.ParameterNames.Select( pn => (row++).ToString( "D2" ) + " " + m.Feature.Source.ToString() + "." + m.Name + "." + pn ) ) );
+                    SelectMany( m => m.ParameterNames.Select( pn => (row++).ToString( "D2" ) + " " + m.Feature.Source.ToString() + "." + m.Name + "." + pn + ";" + m.Distribution.Positive.Type.ToString() ) ) );
 
                 foreach( var entity in entities )
                 {

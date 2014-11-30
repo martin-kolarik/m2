@@ -39,7 +39,9 @@ namespace MouseAnalyzer
         public List<Event> CreateEvents( DataSource.SourceType source, string expectedItem )
         {
             var list = new List<Event>();
-            var time = 0.0;
+            var T = 0.0;
+            var X = 0;
+            var Y = 0;
 
             var buttonState = new Event.ButtonState[BUTTONS];
             var lastDownDistance = new double[BUTTONS];
@@ -123,24 +125,26 @@ namespace MouseAnalyzer
 
                 // x coordinate
                 var diffabs = items[3].Split( '>' );
-                var dx = int.Parse( diffabs[0] );
-                var x = int.Parse( diffabs[1] );
+                var dX = int.Parse( diffabs[0] );
+                X += dX;
 
                 // y coordinate
                 diffabs = items[4].Split( '>' );
-                var dy = int.Parse( diffabs[0] );
-                var y = int.Parse( diffabs[1] );
+                var dY = int.Parse( diffabs[0] );
+                Y += dY;
 
-                if( anyRecordable || ( dT > 0 && ( dx != 0 || dy != 0 ) ) ) // ignore events having the same time and no change in position, but do not do it before button states are updated
+                if( anyRecordable || ( dT > 0.5 && ( dX != 0 || dY != 0 ) ) ) // ignore events having the same time and no change in position, but do not do it before button states are updated
                 {
-                    var dt = previousEvent == null ? 0 : time - previousEvent.Time;
-                    var currentEvent = new Event( source, dx, dy, dt, x, y, time, buttonState.ToArray(), previousEvent );
+                    var dt = previousEvent == null ? 0 : T - previousEvent.Time;
+                    var dx = previousEvent == null ? 0 : X - previousEvent.X;
+                    var dy = previousEvent == null ? 0 : Y - previousEvent.Y;
+                    var currentEvent = new Event( source, dx, dy, dt, X, Y, T, buttonState.ToArray(), previousEvent );
                     list.Add( currentEvent );
                     previousEvent = currentEvent;
                 }
 
                 // move time on
-                time += dT;
+                T += dT;
             }
             reader.Close();
             reader.Dispose();

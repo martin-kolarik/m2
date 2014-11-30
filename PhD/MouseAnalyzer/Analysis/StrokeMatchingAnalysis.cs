@@ -23,7 +23,7 @@ namespace MouseAnalyzer.Analysis
 
                     // stroke
                     var stroke = new StrokeFeature( entity );
-                    var strokeExtractor = new StrokeFeatureExtractor();
+                    var strokeExtractor = new StrokeFeatureExtractor( 32 );
                     foreach( var input in events )
                     {
                         stroke.AddItems( strokeExtractor.AddEvent( input, stroke.TypedItems ) );

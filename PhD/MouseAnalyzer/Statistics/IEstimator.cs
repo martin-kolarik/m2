@@ -19,20 +19,17 @@ namespace MouseAnalyzer
         Spline
     }
 
-    interface IPDF
-    {
-        double f( double x );
-        double p( double x, double sigma ); // x-sigmax/2..x+sigmax/2 probability is taken
-        double p( double x ); // x-Deviation/2..x+Deviation/2 probability is taken
-    }
-
-    interface IDistribution : IPDF
+    interface IDistribution
     {
         DistributionType Type { get; }
 
         double Deviation { get; }
         double Mean { get; }
         double Variance { get; }
+
+        double f( double x );
+        double p( double x, double sigma ); // x-sigmax/2..x+sigmax/2 probability is taken
+        double p( double x ); // x-Deviation/2..x+Deviation/2 probability is taken
 
         IList<string> ParameterNames { get; }
         IList<double> ParameterValues { get; }

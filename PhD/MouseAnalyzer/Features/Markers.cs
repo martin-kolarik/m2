@@ -58,6 +58,29 @@ namespace MouseAnalyzer.Features
             }
         }
 
+        public void Or( Markers with )
+        {
+            for( var i = 0; i < list.Count; i++ )
+            {
+                if( with.active.Contains( i ))
+                {
+                    active.Add( i );
+                }
+            }
+        }
+
+        public HashSet<int> Snapshot
+        {
+            get
+            {
+                return new HashSet<int>( active );
+            }
+            set
+            {
+                active = new HashSet<int>( value );
+            }
+        }
+
         public Weights Weights
         {
             get

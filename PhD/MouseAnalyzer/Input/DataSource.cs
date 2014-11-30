@@ -93,11 +93,23 @@ namespace MouseAnalyzer
                 new DataSource( "ZdV", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\zdenkavymetalova.dtrk.201409271547.log" ),
                 new DataSource( "ZdV", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\zdenkavymetalova.trk.201409271648.log" ),
 
-                // new DataSource( "MaZ", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\XXX.log" ),
+                new DataSource( "MaZ", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\martinzachar.dtrk.201410161917.log" ),
                 new DataSource( "MaZ", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\martinzachar.trk.201410051708.log" ),
 
                 new DataSource( "MiB", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\michaelabrychtova.dtrk.201410051236.log" ),
-                new DataSource( "MiB", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\michaela.brychtova.trk.201410051457.log" )
+                new DataSource( "MiB", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\michaelabrychtova.trk.201410051457.log" ),
+
+                new DataSource( "PeD", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\petrdolezel.dtrk.201410081845.log" ),
+                new DataSource( "PeD", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\petrdolezel.trk.201410191717.log" ),
+
+                new DataSource( "DaB", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\davidbeneda.dtrk.201410221749 (3).log" ),
+                new DataSource( "DaB", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\davidbeneda.trk.201410231716 (1).log" ),
+
+                new DataSource( "MiP", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\misapatakova.dtrk.201410251724.log" ),
+                new DataSource( "MiP", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\misapatakova.trk.201410261717.log" ),
+
+                new DataSource( "ToH", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\tomhnilica.dtrk.201410260956.log" ),
+                new DataSource( "ToH", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\tomhnilica.trk.201410281018.log" )
             };
         }
 

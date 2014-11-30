@@ -16,7 +16,7 @@ namespace MouseAnalyzer
         public string ComputeId { get; private set; }
         public IFeature Feature { get; private set; }
         public Func<IFeatureItem, double> Extractor { get; private set; }
-        public IDistribution Estimate { get; private set; }
+        public IDistribution Distribution { get; private set; }
 
         #endregion
 
@@ -28,12 +28,12 @@ namespace MouseAnalyzer
 
         private string markerName;
 
-        public StatisticsMarker( string computeId, IFeature feature, string markerName, Func<IFeatureItem, double> extractor, IDistribution estimate, string markerTypeName, double value )
+        public StatisticsMarker( string computeId, IFeature feature, string markerName, Func<IFeatureItem, double> extractor, IDistribution distribution, string markerTypeName, double value )
         {
             Feature = feature;
             this.markerName = markerName;
             ComputeId = computeId;
-            Estimate = estimate;
+            Distribution = distribution;
             MarkerTypeName = markerTypeName;
             Value = value;
             Extractor = extractor;
@@ -53,8 +53,8 @@ namespace MouseAnalyzer
         public string MarkerTypeName { get; private set; }
         public string ComputeId { get; private set; }
         public IFeature Feature { get; private set; }
-        public Func<IFeatureItem, double> Extractor { get; private set; }
-        public IDistribution Estimate { get; private set; }
+        public Func<IFeatureItem, Triple<double>> Extractor { get; private set; }
+        public Triple<IDistribution> Distribution { get; private set; }
 
         #endregion
 
@@ -62,24 +62,90 @@ namespace MouseAnalyzer
 
         public IList<string> ParameterNames
         {
-            get { return Estimate.ParameterNames; }
+            get
+            {
+                var output = new List<string>();
+                if( Distribution.Positive != null )
+                {
+                    output.AddRange( Distribution.Positive.ParameterNames.Select( n => n + "+" ) );
+                }
+                if( Distribution.Negative != null )
+                {
+                    output.AddRange( Distribution.Negative.ParameterNames.Select( n => n + "-" ) );
+                }
+                if( Distribution.Zero != null )
+                {
+                    output.AddRange( Distribution.Zero.ParameterNames.Select( n => n + "0" ) );
+                }
+                return output;
+            }
         }
 
         public IList<double> ParameterValues
         {
-            get { return Estimate.ParameterValues; }
+            get
+            {
+                var output = new List<double>();
+                if( Distribution.Positive != null )
+                {
+                    output.AddRange( Distribution.Positive.ParameterValues );
+                }
+                if( Distribution.Negative != null )
+                {
+                    output.AddRange( Distribution.Negative.ParameterValues );
+                }
+                if( Distribution.Zero != null )
+                {
+                    output.AddRange( Distribution.Zero.ParameterValues );
+                }
+                return output;
+            }
+        }
+
+        public string Serialized
+        {
+            get
+            {
+                string s = "";
+                if( Distribution.Positive != null )
+                {
+                    s += "+:" +
+                         Distribution.Positive.Type.ToString() + ":" +
+                         string.Join( " ", Distribution.Positive.ParameterNames ) + ":" +
+                         string.Join( " ", Distribution.Positive.ParameterValues ) + ":+|";
+                }
+                if( Distribution.Negative != null )
+                {
+                    s += "-:" +
+                         Distribution.Negative.Type.ToString() + ":" +
+                         string.Join( " ", Distribution.Negative.ParameterNames ) + ":" +
+                         string.Join( " ", Distribution.Negative.ParameterValues ) + ":-|";
+                }
+                if( Distribution.Zero != null )
+                {
+                    s += "0:" +
+                         Distribution.Zero.Type.ToString() + ":" +
+                         string.Join( " ", Distribution.Zero.ParameterNames ) + ":" +
+                         string.Join( " ", Distribution.Zero.ParameterValues ) + ":0|";
+                }
+                return s;
+            }
+            set
+            {
+                throw new Exception( "Set is unsupported for computed marker" );
+            }
         }
 
         #endregion
 
         private string markerName;
 
-        public DistributionMarker( string computeId, IFeature feature, string markerName, Func<IFeatureItem, double> extractor, IDistribution estimate )
+        public DistributionMarker( string computeId, IFeature feature, string markerName, Func<IFeatureItem, Triple<double>> extractor, Triple<IDistribution> estimate )
         {
             Feature = feature;
             this.markerName = markerName;
             ComputeId = computeId;
-            Estimate = estimate;
+            Distribution = estimate;
             MarkerTypeName = "PD";
             Extractor = extractor;
         }
@@ -96,8 +162,8 @@ namespace MouseAnalyzer
         public string MarkerTypeName { get; private set; }
         public string ComputeId { get; private set; }
         public IFeature Feature { get; private set; }
-        public Func<IFeatureItem, double> Extractor { get; private set; }
-        public IDistribution Estimate { get; private set; }
+        public Func<IFeatureItem, Triple<double>> Extractor { get; set; }
+        public Triple<IDistribution> Distribution { get; private set; }
 
         #endregion
 
@@ -105,28 +171,123 @@ namespace MouseAnalyzer
 
         public IList<string> ParameterNames
         {
-            get { return Estimate.ParameterNames; }
+            get
+            {
+                var output = new List<string>();
+                if( Distribution.Positive != null )
+                {
+                    output.AddRange( Distribution.Positive.ParameterNames.Select( n => n + "+" ) );
+                }
+                if( Distribution.Negative != null )
+                {
+                    output.AddRange( Distribution.Negative.ParameterNames.Select( n => n + "-" ) );
+                }
+                if( Distribution.Zero != null )
+                {
+                    output.AddRange( Distribution.Zero.ParameterNames.Select( n => n + "0" ) );
+                }
+                return output;
+            }
         }
 
         public IList<double> ParameterValues
         {
-            get { return Estimate.ParameterValues; }
+            get
+            {
+                var output = new List<double>();
+                if( Distribution.Positive != null )
+                {
+                    output.AddRange( Distribution.Positive.ParameterValues );
+                }
+                if( Distribution.Negative != null )
+                {
+                    output.AddRange( Distribution.Negative.ParameterValues );
+                }
+                if( Distribution.Zero != null )
+                {
+                    output.AddRange( Distribution.Zero.ParameterValues );
+                }
+                return output;
+            }
+        }
+
+        public string Serialized
+        {
+            get
+            {
+                string s = "";
+                if( Distribution.Positive != null )
+                {
+                    s += "+:" +
+                         Distribution.Positive.Type.ToString() + ":" +
+                         string.Join( " ", Distribution.Positive.ParameterNames ) + ":" +
+                         string.Join( " ", Distribution.Positive.ParameterValues ) + ":+|";
+                }
+                if( Distribution.Negative != null )
+                {
+                    s += "-:" +
+                         Distribution.Negative.Type.ToString() + ":" +
+                         string.Join( " ", Distribution.Negative.ParameterNames ) + ":" +
+                         string.Join( " ", Distribution.Negative.ParameterValues ) + ":-|";
+                }
+                if( Distribution.Zero != null )
+                {
+                    s += "0:" +
+                         Distribution.Zero.Type.ToString() + ":" +
+                         string.Join( " ", Distribution.Zero.ParameterNames ) + ":" +
+                         string.Join( " ", Distribution.Zero.ParameterValues ) + ":0|";
+                }
+                return s;
+            }
+            set
+            {
+                IDistribution positive = null;
+                IDistribution negative = null;
+                IDistribution zero = null;
+
+                var signparts = value.Split( '|' );
+                foreach( var signpart in signparts )
+                {
+                    if( signpart == string.Empty )
+                    {
+                        continue;
+                    }
+
+                    var dataparts = signpart.Split( ':' );
+                    var type = (DistributionType)Enum.Parse( typeof( DistributionType ), dataparts[1] );
+                    var distribution = DistributionClass.CreateDistribution( type );
+                    var names = dataparts[2].Split( ' ' );
+                    var values = dataparts[3].Split( ' ' );
+                    for( var i = 0; i < names.Length; i++ )
+                    {
+                        distribution.SetParameterValue( names[i], double.Parse( values[i] ) );
+                    }
+
+                    if( dataparts[0] == "+" )
+                    {
+                        positive = distribution;
+                    }
+                    else if( dataparts[0] == "-" )
+                    {
+                        negative = distribution;
+                    }
+                    else if( dataparts[0] == "0" )
+                    {
+                        zero = distribution;
+                    }
+                }
+
+                Distribution = new Triple<IDistribution>( positive, negative, zero );
+            }
         }
 
         #endregion
 
         private string markerName;
 
-        public DistributionStandaloneMarker( string markerName, Func<IFeatureItem, double> extractor, DistributionType type, List<string> parameterNames, List<string> parameterValues )
+        public DistributionStandaloneMarker( string markerName )
         {
             this.markerName = markerName;
-            Extractor = extractor;
-
-            Estimate = DistributionClass.CreateDistribution( type );
-            for( var i = 0; i < parameterNames.Count; i++ )
-            {
-                Estimate.SetParameterValue( parameterNames[i], double.Parse( parameterValues[i] ) );
-            }
         }
     }
 
@@ -139,7 +300,7 @@ namespace MouseAnalyzer
         public string ComputeId { get; private set; }
         public IFeature Feature { get; private set; }
         public Func<IFeatureItem, double> Extractor { get; private set; }
-        public IDistribution Estimate { get; private set; }
+        public IDistribution Distribution { get; private set; }
 
         #endregion
 
@@ -155,13 +316,13 @@ namespace MouseAnalyzer
         private HistogramDefinition definition;
         private Histogram histogram;
 
-        public HistogramMarker( string computeId, IFeature feature, string markerName, Func<IFeatureItem, double> extractor, IDistribution estimate, HistogramDefinition definition, IEnumerable<double> values )
+        public HistogramMarker( string computeId, IFeature feature, string markerName, Func<IFeatureItem, double> extractor, IDistribution distribution, HistogramDefinition definition, IEnumerable<double> values )
         {
             Feature = feature;
             this.markerName = markerName;
             ComputeId = computeId;
             Extractor = extractor;
-            Estimate = estimate;
+            Distribution = distribution;
             this.definition = definition;
 
             var from = values.Where( v => !double.IsNegativeInfinity( v ) ).Min();
@@ -170,304 +331,121 @@ namespace MouseAnalyzer
         }
     }
 
-    class GaussianMarkerExtractor : IMarkerExtractor
+    abstract class MarkerExtractorBase : IMarkerExtractor
     {
-        #region IMarkerExtractor Members
+        abstract public IEnumerable<IMarker> Extract(
+            string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, DistributionType distributionType,
+            Func<IFeatureItem, Triple<double>> valueExtractor, Triple<HistogramDefinition> definition );
 
-        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
+        public IEnumerable<IMarker> Extract(
+            string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, DistributionType distributionType,
+            Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
         {
-            var markers = new List<IMarker>();
-            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
-
-            // data sets
-            var estimate = (GaussianDatasetEstimate)new Estimator().Estimate( DistributionType.Gaussian, input, true );
-
-            markers.Add( new DistributionMarker( computeId, feature, markerName, valueExtractor, estimate ) );
-
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Minimum", estimate.MdfMinimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Maximum", estimate.MdfMaximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Mean", estimate.MdfMean ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Sigma", estimate.MdfSigma ) );
-
-            // histograms
-            if( definition != null )
-            {
-                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( computeId, feature, markerName, valueExtractor, estimate, definition, input );
-                markers.Add( histogram );
-
-                var fit = (GaussianHistogramEstimate)new Estimator().Estimate( DistributionType.Gaussian, histogram );
-
-                markers.Add( new DistributionMarker( computeId, feature, "h" + markerName, valueExtractor, fit ) );
-
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hMean", fit.Mean ) );
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hSigma", fit.Sigma ) );
-            }
-
-            return markers;
+            return Extract( computeId, feature, items, markerName, distributionType,
+                            ( i ) => new Triple<double>( valueExtractor( i ) ), new Triple<HistogramDefinition>( definition ) );
         }
-
-        #endregion
     }
 
-    class LogisticMarkerExtractor : IMarkerExtractor
+    class MarkerExtractor : MarkerExtractorBase
     {
         #region IMarkerExtractor Members
 
-        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
+        public override IEnumerable<IMarker> Extract(
+            string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName,
+            DistributionType distributionType, Func<IFeatureItem, Triple<double>> valueExtractor, Triple<HistogramDefinition> definitions )
         {
             var markers = new List<IMarker>();
-            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
+
+            var input = items.Select<IFeatureItem, Triple<double>>( i => valueExtractor( i ) );
+            var positives = input.Select( i => i.Positive ).Where( v => !double.IsNaN( v ) );
+            var negatives = input.Select( i => i.Negative ).Where( v => !double.IsNaN( v ) );
+            var zeros = input.Select( i => i.Zero ).Where( v => !double.IsNaN( v ) );
+
+            var havePositives = positives.Count() > 0;
+            var haveNegatives = negatives.Count() > 0;
+            var haveZeros = zeros.Count() > 0;
 
             // data sets
-            var estimate = (LogisticDatasetEstimate)new Estimator().Estimate( DistributionType.Logistic, input, false );
-
-            markers.Add( new DistributionMarker( computeId, feature, markerName, valueExtractor, estimate ) );
-
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Mean", estimate.Mean ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Sigma", estimate.Sigma ) );
-
-            // histograms
-            if( definition != null )
+            IEstimate positiveEstimate = null;
+            IEstimate negativeEstimate = null;
+            IEstimate zeroEstimate = null;
+            if( havePositives )
             {
-                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( computeId, feature, markerName, valueExtractor, estimate, definition, input );
-                markers.Add( histogram );
-
-                var fit = (LogisticHistogramEstimate)new Estimator().Estimate( DistributionType.Logistic, histogram );
-
-                markers.Add( new DistributionMarker( computeId, feature, "h" + markerName, valueExtractor, fit ) );
-
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hMean", fit.Mean ) );
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hSigma", fit.Sigma ) );
+                positiveEstimate = new Estimator().Estimate( distributionType, positives );
+            }
+            if( haveNegatives )
+            {
+                negativeEstimate = new Estimator().Estimate( distributionType, negatives );
+            }
+            if( haveZeros )
+            {
+                zeroEstimate = new Estimator().Estimate( distributionType, zeros );
             }
 
-            return markers;
-        }
+            markers.Add( new DistributionMarker(
+                computeId, feature, markerName, valueExtractor,
+                new Triple<IDistribution>( positiveEstimate, negativeEstimate, zeroEstimate ) )
+            );
 
-        #endregion
-    }
-
-    class LognormalMarkerExtractor : IMarkerExtractor
-    {
-        #region IMarkerExtractor Members
-
-        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
-        {
-            var markers = new List<IMarker>();
-            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
-
-            // data sets
-            var estimate = (LognormalDatasetEstimate)new Estimator().Estimate( DistributionType.Lognormal, input, false );
-
-            markers.Add( new DistributionMarker( computeId, feature, markerName, valueExtractor, estimate ) );
-
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Mu", estimate.Mu ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Sigma", estimate.Sigma ) );
-
-            // histograms
-            if( definition != null )
+            if( havePositives )
             {
-                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( computeId, feature, markerName, valueExtractor, estimate, definition, input );
-                markers.Add( histogram );
+                Func<IFeatureItem, double> extractor = ( i ) => valueExtractor( i ).Positive;
+                markers.Add( new StatisticsMarker( computeId, feature, markerName + "+", extractor, positiveEstimate, "Minimum", positiveEstimate.Minimum ) );
+                markers.Add( new StatisticsMarker( computeId, feature, markerName + "+", extractor, positiveEstimate, "Maximum", positiveEstimate.Maximum ) );
+                // TODO other specific parameters
+                // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, positiveEstimate, "Mean", positiveEstimate.MdfMean ) );
+                // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, positiveEstimate, "Sigma", positiveEstimate.MdfSigma ) );
 
-                var fit = (LognormalHistogramEstimate)new Estimator().Estimate( DistributionType.Lognormal, histogram );
-
-                markers.Add( new DistributionMarker( computeId, feature, "h" + markerName, valueExtractor, fit ) );
-
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hMu", fit.Mu ) );
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hSigma", fit.Sigma ) );
+                if( definitions.Positive != null )
+                {
+                    definitions.Positive.SupplyRange( positiveEstimate.Minimum, positiveEstimate.Maximum );
+                    var histogram = new HistogramMarker( computeId, feature, markerName, extractor, positiveEstimate, definitions.Positive, positives );
+                    markers.Add( histogram );
+                    // TODO specific parameters
+                    // var fit = new Estimator().Estimate( DistributionType.Gaussian, histogram );
+                    // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, fit, "hMean", fit.Mean ) );
+                    // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, fit, "hSigma", fit.Sigma ) );
+                }
             }
-
-            return markers;
-        }
-
-        #endregion
-    }
-
-    class InverseGaussianMarkerExtractor : IMarkerExtractor
-    {
-        #region IMarkerExtractor Members
-
-        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
-        {
-            var markers = new List<IMarker>();
-            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
-
-            // data sets
-            var estimate = (InverseGaussianDatasetEstimate)new Estimator().Estimate( DistributionType.InverseGaussian, input, false ); // Median is not computed
-
-            markers.Add( new DistributionMarker( computeId, feature, markerName, valueExtractor, estimate ) );
-
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Mean", estimate.Mean ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Lambda", estimate.Lambda ) );
-
-            // histograms
-            if( definition != null )
+            if( haveNegatives )
             {
-                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( computeId, feature, markerName, valueExtractor, estimate, definition, input );
-                markers.Add( histogram );
+                Func<IFeatureItem, double> extractor = ( i ) => valueExtractor( i ).Negative;
+                markers.Add( new StatisticsMarker( computeId, feature, markerName + "-", extractor, negativeEstimate, "Minimum", negativeEstimate.Minimum ) );
+                markers.Add( new StatisticsMarker( computeId, feature, markerName + "-", extractor, negativeEstimate, "Maximum", negativeEstimate.Maximum ) );
+                // TODO other specific parameters
+                // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, negativeEstimate, "Mean", negativeEstimate.MdfMean ) );
+                // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, negativeEstimate, "Sigma", negativeEstimate.MdfSigma ) );
 
-                var fit = (InverseGaussianHistogramEstimate)new Estimator().Estimate( DistributionType.InverseGaussian, histogram );
-
-                markers.Add( new DistributionMarker( computeId, feature, "h" + markerName, valueExtractor, fit ) );
-
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hMean", fit.Mean ) );
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hLambda", fit.Lambda ) );
+                if( definitions.Negative != null )
+                {
+                    definitions.Negative.SupplyRange( negativeEstimate.Minimum, negativeEstimate.Maximum );
+                    var histogram = new HistogramMarker( computeId, feature, markerName, extractor, negativeEstimate, definitions.Negative, negatives );
+                    markers.Add( histogram );
+                    // TODO specific parameters
+                    // var fit = new Estimator().Estimate( DistributionType.Gaussian, histogram );
+                    // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, fit, "hMean", fit.Mean ) );
+                    // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, fit, "hSigma", fit.Sigma ) );
+                }
             }
-
-            return markers;
-        }
-
-        #endregion
-    }
-
-    class WeibullMarkerExtractor : IMarkerExtractor
-    {
-        #region IMarkerExtractor Members
-
-        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
-        {
-            var markers = new List<IMarker>();
-            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
-
-            // data sets
-            var estimate = (WeibullDatasetEstimate)new Estimator().Estimate( DistributionType.Weibull, input, false );
-
-            markers.Add( new DistributionMarker( computeId, feature, markerName, valueExtractor, estimate ) );
-
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Alpha", estimate.Alpha ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Beta", estimate.Beta ) );
-
-            // histograms
-            if( definition != null )
+            if( haveZeros )
             {
-                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( computeId, feature, markerName, valueExtractor, estimate, definition, input );
-                markers.Add( histogram );
+                Func<IFeatureItem, double> extractor = ( i ) => valueExtractor( i ).Negative;
+                markers.Add( new StatisticsMarker( computeId, feature, markerName + "0", extractor, zeroEstimate, "Minimum", zeroEstimate.Minimum ) );
+                markers.Add( new StatisticsMarker( computeId, feature, markerName + "0", extractor, zeroEstimate, "Maximum", zeroEstimate.Maximum ) );
+                // TODO other specific parameters
+                // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, zeroEstimate, "Mean", zeroEstimate.MdfMean ) );
+                // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, zeroEstimate, "Sigma", zeroEstimate.MdfSigma ) );
 
-                var fit = (WeibullHistogramEstimate)new Estimator().Estimate( DistributionType.Weibull, histogram );
-
-                markers.Add( new DistributionMarker( computeId, feature, "h" + markerName, valueExtractor, fit ) );
-
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hMean", fit.Alpha ) );
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hSigma", fit.Beta ) );
-            }
-
-            return markers;
-        }
-
-        #endregion
-    }
-
-    class GammaMarkerExtractor : IMarkerExtractor
-    {
-        #region IMarkerExtractor Members
-
-        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
-        {
-            var markers = new List<IMarker>();
-            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
-
-            // data sets
-            var estimate = (GammaDatasetEstimate)new Estimator().Estimate( DistributionType.Gamma, input, false );
-
-            markers.Add( new DistributionMarker( computeId, feature, markerName, valueExtractor, estimate ) );
-
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Alpha", estimate.Alpha ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Theta", estimate.Theta ) );
-
-            // histograms
-            if( definition != null )
-            {
-                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( computeId, feature, markerName, valueExtractor, estimate, definition, input );
-                markers.Add( histogram );
-
-                var fit = (GammaHistogramEstimate)new Estimator().Estimate( DistributionType.Gamma, histogram );
-
-                markers.Add( new DistributionMarker( computeId, feature, "h" + markerName, valueExtractor, fit ) );
-
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hMean", fit.Alpha ) );
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hTheta", fit.Theta ) );
-            }
-
-            return markers;
-        }
-
-        #endregion
-    }
-
-    class RayleighMarkerExtractor : IMarkerExtractor
-    {
-        #region IMarkerExtractor Members
-
-        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
-        {
-            var markers = new List<IMarker>();
-            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
-
-            // data sets
-            var estimate = (RayleighDatasetEstimate)new Estimator().Estimate( DistributionType.Rayleigh, input, false );
-
-            markers.Add( new DistributionMarker( computeId, feature, markerName, valueExtractor, estimate ) );
-
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Minimum", estimate.Minimum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Maximum", estimate.Maximum ) );
-            markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, estimate, "Sigma", estimate.Sigma ) );
-
-            // histograms
-            if( definition != null )
-            {
-                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( computeId, feature, markerName, valueExtractor, estimate, definition, input );
-                markers.Add( histogram );
-
-                var fit = (RayleighHistogramEstimate)new Estimator().Estimate( DistributionType.Rayleigh, histogram );
-
-                markers.Add( new DistributionMarker( computeId, feature, "h" + markerName, valueExtractor, fit ) );
-
-                markers.Add( new StatisticsMarker( computeId, feature, markerName, valueExtractor, fit, "hSigma", fit.Sigma ) );
-            }
-
-            return markers;
-        }
-
-        #endregion
-    }
-
-    class SplineMarkerExtractor : IMarkerExtractor
-    {
-        #region IMarkerExtractor Members
-
-        public IEnumerable<IMarker> Extract( string computeId, IFeature feature, IEnumerable<IFeatureItem> items, string markerName, Func<IFeatureItem, double> valueExtractor, HistogramDefinition definition )
-        {
-            var markers = new List<IMarker>();
-            var input = items.Select<IFeatureItem, double>( d => valueExtractor( d ) ).Where( d => !double.IsNaN( d ) );
-
-            // data sets
-            var estimate = (SplineDatasetEstimate)new Estimator().Estimate( DistributionType.Spline, input, false );
-
-            markers.Add( new DistributionMarker( computeId, feature, markerName, valueExtractor, estimate ) );
-
-            // histograms
-            if( definition != null )
-            {
-                definition.SupplyRange( estimate.Minimum, estimate.Maximum );
-                var histogram = new HistogramMarker( computeId, feature, markerName, valueExtractor, estimate, definition, input );
-                markers.Add( histogram );
+                if( definitions.Zero != null )
+                {
+                    definitions.Zero.SupplyRange( zeroEstimate.Minimum, zeroEstimate.Maximum );
+                    var histogram = new HistogramMarker( computeId, feature, markerName, extractor, zeroEstimate, definitions.Zero, zeros );
+                    markers.Add( histogram );
+                    // TODO specific parameters
+                    // var fit = new Estimator().Estimate( DistributionType.Gaussian, histogram );
+                    // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, fit, "hMean", fit.Mean ) );
+                    // markers.Add( new StatisticsMarker( computeId, feature, markerName, extractor, fit, "hSigma", fit.Sigma ) );
+                }
             }
 
             return markers;

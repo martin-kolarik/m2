@@ -182,7 +182,7 @@ namespace MouseAnalyzer
         {
             if( _Markers.Count == 0 )
             {
-                // _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this,
+                // _Markers.AddRange( new MarkerExtractor().Extract( computeId, this,
                 //     Items.Where( i => ( (KinematicsFeatureItem)i ).T <= 250 ),
                 //     "t", f => ( (KinematicsFeatureItem)f ).T, new HistogramMarker.HistogramDefinition( 8, 8, 2, 250 ) ) );
 
@@ -193,58 +193,60 @@ namespace MouseAnalyzer
                 // }, 0.05 );
                 HistogramDefinition sHistogramDefinition = null;
 
-                // _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this,
+                // _Markers.AddRange( new MarkerExtractor().Extract( computeId, this,
                 //      Items,
                 //      "s", f => ( (KinematicsFeatureItem)f ).S, sHistogramDefinition ) );
-                _Markers.AddRange( new LognormalMarkerExtractor().Extract( computeId, this,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this,
                     TypedItems.Where( i => i.T <= 31 ),
-                    "sTl", f => ( (Kinematics2FeatureItem)f ).S, sHistogramDefinition ) );
-                _Markers.AddRange( new InverseGaussianMarkerExtractor().Extract( computeId, this,
+                    "sTl", DistributionType.Lognormal,
+                    f => ( (Kinematics2FeatureItem)f ).S, sHistogramDefinition ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this,
                     TypedItems.Where( i => i.T > 31 ),
-                    "sTh", f => ( (Kinematics2FeatureItem)f ).S, sHistogramDefinition ) );
+                    "sTh", DistributionType.InverseGaussian,
+                    f => ( (Kinematics2FeatureItem)f ).S, sHistogramDefinition ) );
 
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "sfi", f => ( (Kinematics2FeatureItem)f ).Sfi,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "sfi", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Sfi,
                     new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "sfid1", f => ( (Kinematics2FeatureItem)f ).Sfid1,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "sfid1", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Sfid1,
                     new HistogramDefinition( -0.5, 1.0/100, 1.0/200, +0.5 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "sfid2", f => ( (Kinematics2FeatureItem)f ).Sfid2,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "sfid2", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Sfid2,
                     new HistogramDefinition( -0.2, 0.4/100, 0.4/200, +0.2 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "sfid3", f => ( (Kinematics2FeatureItem)f ).Sfid3,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "sfid3", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Sfid3,
                     new HistogramDefinition( -0.05, 0.1/100, 0.1/200, +0.05 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "sfid4", f => ( (Kinematics2FeatureItem)f ).Sfid4,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "sfid4", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Sfid4,
                     new HistogramDefinition( -0.01, 0.02/100, 0.02/200, +0.01 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "sT", f => ( (Kinematics2FeatureItem)f ).ST, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "sN", f => ( (Kinematics2FeatureItem)f ).SN, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "sT", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).ST, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "sN", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).SN, new HistogramDefinition( 1000 ) ) );
 
                 // sHistogramDefinition = new HistogramMarker.HistogramDefinition( -0.5, 1.0/100, 1.0/200, +0.5 );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "v", f => ( (Kinematics2FeatureItem)f ).V, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "vfi", f => ( (Kinematics2FeatureItem)f ).Vfi, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "vfid1", f => ( (Kinematics2FeatureItem)f ).Vfid1,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "v", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).V, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "vfi", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Vfi, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "vfid1", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Vfid1,
                     new HistogramDefinition( -1.5, 3.0/100, 3.0/200, +1.5 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "vfid2", f => ( (Kinematics2FeatureItem)f ).Vfid2,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "vfid2", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Vfid2,
                     new HistogramDefinition( -0.5, 1.0/100, 1.0/200, +0.5 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "vfid3", f => ( (Kinematics2FeatureItem)f ).Vfid3,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "vfid3", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Vfid3,
                     new HistogramDefinition( -0.1, 0.2/100, 0.2/200, +0.1 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "vT", f => ( (Kinematics2FeatureItem)f ).VT, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "vN", f => ( (Kinematics2FeatureItem)f ).VN, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "vT", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).VT, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "vN", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).VN, new HistogramDefinition( 1000 ) ) );
 
                 // sHistogramDefinition = new HistogramMarker.HistogramDefinition( -0.2, 0.4/100, 0.4/200, +0.2 );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "a", f => ( (Kinematics2FeatureItem)f ).A, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "afi", f => ( (Kinematics2FeatureItem)f ).Afi, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "afid1", f => ( (Kinematics2FeatureItem)f ).Afid1,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "a", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).A, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "afi", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Afi, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "afid1", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Afid1,
                     new HistogramDefinition( -1.5, 3.0/100, 3.0/200, +1.5 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "afid2", f => ( (Kinematics2FeatureItem)f ).Afid2,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "afid2", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Afid2,
                     new HistogramDefinition( -0.3, 0.6/100, 0.6/200, +0.3 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "aT", f => ( (Kinematics2FeatureItem)f ).AT, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "aN", f => ( (Kinematics2FeatureItem)f ).AN, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "aT", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).AT, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "aN", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).AN, new HistogramDefinition( 1000 ) ) );
 
                 // sHistogramDefinition = new HistogramMarker.HistogramDefinition( -0.05, 0.1/100, 0.1/200, +0.05 );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "j", f => ( (Kinematics2FeatureItem)f ).J, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "jfi", f => ( (Kinematics2FeatureItem)f ).Jfi, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "jfid1", f => ( (Kinematics2FeatureItem)f ).Jfid1,
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "j", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).J, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "jfi", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Jfi, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "jfid1", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).Jfid1,
                     new HistogramDefinition( -2.0, 4.0/100, 4.0/200, +2.0 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "jT", f => ( (Kinematics2FeatureItem)f ).JT, new HistogramDefinition( 1000 ) ) );
-                _Markers.AddRange( new GaussianMarkerExtractor().Extract( computeId, this, TypedItems, "jN", f => ( (Kinematics2FeatureItem)f ).JN, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "jT", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).JT, new HistogramDefinition( 1000 ) ) );
+                _Markers.AddRange( new MarkerExtractor().Extract( computeId, this, TypedItems, "jN", DistributionType.Gaussian, f => ( (Kinematics2FeatureItem)f ).JN, new HistogramDefinition( 1000 ) ) );
             }
 
             if( cleanupProcessData )

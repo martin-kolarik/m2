@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using MouseAnalyzer.Statistics;
 
+#pragma warning disable 162
+
 namespace MouseAnalyzer
 {
     static class StrokeFeatureDefinition
@@ -83,6 +85,9 @@ namespace MouseAnalyzer
 
         public class MarkerDefinition
         {
+            public const bool LMH = true;
+            public const bool SPLINE = false;
+
             public MarkerDefinition( MarkerGroupDefinition of, string name, DistributionType distribution, bool histogram = false ) :
                 this( of, name, distribution, distribution, distribution, histogram )
             {
@@ -97,16 +102,17 @@ namespace MouseAnalyzer
             {
                 this.of = of;
                 HasPositives = true;
+                PlainName = of.Name + ( name=="" ? "" : "." + name );
                 if( of.SplitSigns )
                 {
                     HasNegatives = true;
-                    PositiveName = of.Name + "+" + ( name=="" ? "" : "." + name );
-                    NegativeName = of.Name + "-" + ( name=="" ? "" : "." + name );
+                    PositiveName = of.Name + ( name=="" ? "" : "." + name ) + "+";
+                    NegativeName = of.Name + ( name=="" ? "" : "." + name ) + "-";
                 }
                 else
                 {
                     HasNegatives = false;
-                    PositiveName = of.Name + ( name=="" ? "" : "." + name );
+                    PositiveName = PlainName;
                 }
 
                 this.distribution = distribution;
@@ -120,7 +126,8 @@ namespace MouseAnalyzer
                 this.of = of;
                 HasPositives = true;
                 HasNegatives = false;
-                PositiveName = of.Name + ".0";
+                PlainName = of.Name + ".0";
+                PositiveName = PlainName;
 
                 this.distribution = distribution;
                 this.distributionForSplitted = distribution;
@@ -130,6 +137,7 @@ namespace MouseAnalyzer
 
             public bool HasPositives { get; private set; }
             public bool HasNegatives { get; private set; }
+            public string PlainName { get; private set; }
             public string PositiveName { get; private set; }
             public string NegativeName { get; private set; }
             public DataTransform DataTransform { get { return of.DataTransform; } }
@@ -190,11 +198,9 @@ namespace MouseAnalyzer
 
         static StrokeFeatureDefinition()
         {
-            const bool SPLINE = false;
-
             MarkerGroupDefinition grp;
 
-            if( SPLINE )
+            if( MarkerDefinition.SPLINE )
             {
 
             }
@@ -204,29 +210,30 @@ namespace MouseAnalyzer
                 Add( new MarkerDefinition( Add( new MarkerGroupDefinition( "Si", DataTransform.Log ) ), "", DistributionType.None ) ); //**S!!
 
                 grp = Add( new MarkerGroupDefinition( "rSi" ) ); //+@@@@@
-                Add( new MarkerDefinition( grp, "A0", DistributionType.Lognormal ) ); //S**-
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A4", DistributionType.None ) ); // always 1
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.Lognormal ) ); //S**-
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.None ) ); // always 1
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Weibull ) );
                 Add( new MarkerDefinition( grp, "AS", DistributionType.None ) ); // shall always be 1
-                Add( new MarkerDefinition( grp, "L0", DistributionType.Lognormal ) ); //S**-
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Gamma ) );
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Gamma ) ); //S**-
-                Add( new MarkerDefinition( grp, "LD", DistributionType.Gamma ) ); //S**-
-                Add( new MarkerDefinition( grp, "LS", DistributionType.Gamma ) );
-                Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian ) ); //S**-
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) ); //S**-
-                Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Weibull ) ); //**S
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None ) ); // always 1
-                Add( new MarkerDefinition( grp, "HD", DistributionType.Gamma ) ); //**S
-                Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) ); //**S
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Gamma ) );
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Gamma ) ); //S**-
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.Gamma ) ); //S**-
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.Gamma ) );
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian ) ); //S**-
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) ); //S**-
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Weibull ) ); //**S
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.Gamma ) ); //**S
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) ); //**S
+                }
 
                 //+@@@@@
-                Add( new MarkerDefinition( Add( new MarkerGroupDefinition( "Ti", DataTransform.Log ) ), "", DistributionType.None ) ); //**S!!
+                Add( new MarkerDefinition( Add( new MarkerGroupDefinition( "Ti", DataTransform.Log ) ), "", DistributionType.Gaussian ) ); //**S!!
 
                 grp = Add( new MarkerGroupDefinition( "CSi", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
@@ -243,314 +250,336 @@ namespace MouseAnalyzer
                 Add( new MarkerDefinition( Add( new MarkerGroupDefinition( "Ji", DataTransform.Log ) ), "", DistributionType.Weibull ) ); //**S
 
                 grp = Add( new MarkerGroupDefinition( "X", DataTransform.Log ) ); //+@@@@@
-                // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, true ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "A4", DistributionType.Lognormal, DistributionType.Logistic ) ); //**S!
+                // Add( new MarkerDefinition( grp, "Q0", DistributionType.Gaussian, true ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Lognormal, DistributionType.Logistic ) ); //**S!
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal, DistributionType.None ) ); //**S!!
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S!
 
                 grp = Add( new MarkerGroupDefinition( "Y", DataTransform.Log ) ); //+@@@@@
-                // Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "A4", DistributionType.Lognormal, DistributionType.Gaussian ) );
+                // Add( new MarkerDefinition( grp, "Q0", DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Lognormal, DistributionType.Gaussian ) );
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal, DistributionType.None ) ); //**S!!
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal, DistributionType.Gaussian ) );
 
+                /*
+                grp = Add( new MarkerGroupDefinition( "T", DataTransform.Log ) ); //??
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.Gaussian, true ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Lognormal, DistributionType.Gaussian, true ) );
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Lognormal, DistributionType.Gaussian, true ) );
+                Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal, DistributionType.Gaussian, true ) );
+                Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal, DistributionType.Gaussian ) );
+                */
+
                 grp = Add( new MarkerGroupDefinition( "Cs", DataTransform.Log, true, true ) ); //X@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "A4", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.None, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.None, DistributionType.Gaussian ) ); //**S
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Gamma, DistributionType.Logistic ) );
                 Add( new MarkerDefinition( grp, "AS", DistributionType.None, DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "L0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.Weibull ) );
-                Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.Weibull ) );
-                Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S (rud)
-                Add( new MarkerDefinition( grp, "MD", DistributionType.None, DistributionType.Rayleigh ) ); //**S
-                Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.Weibull ) ); //**S!
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.Gamma ) ); //**S-
-                Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.Weibull ) ); //**S-
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.Weibull ) );
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.Weibull ) );
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S (rud)
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.None, DistributionType.Rayleigh ) ); //**S
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.Weibull ) ); //**S!
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.Gamma ) ); //**S-
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.Weibull ) ); //**S-
+                }
 
                 grp = Add( new MarkerGroupDefinition( "dCs", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "A4", DistributionType.None, DistributionType.Logistic ) ); //**S
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S-
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.None, DistributionType.Gaussian ) ); //**S
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Gamma, DistributionType.None ) ); //**S!!
                 Add( new MarkerDefinition( grp, "AS", DistributionType.None, DistributionType.Logistic ) ); //**S
-                Add( new MarkerDefinition( grp, "L0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) ); //**S!
-                Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**S (rud)
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S! (rud)
-                Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "MD", DistributionType.None, DistributionType.Rayleigh ) );
-                Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.Rayleigh ) ); //**S
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.None ) ); //**S!!
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) ); //**S!
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**S (rud)
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S! (rud)
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.None, DistributionType.Rayleigh ) );
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.Rayleigh ) ); //**S
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.None ) ); //**S!!
+                }
 
                 grp = Add( new MarkerGroupDefinition( "V", DataTransform.Log ) ); //+@@@@@
-                Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian, DistributionType.Logistic ) ); //**S?
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Lognormal, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A4", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.Gaussian, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Lognormal, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal, DistributionType.Gamma ) );
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal, DistributionType.Gamma ) ); //S**?
-                Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian ) ); //S**
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Lognormal, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, DistributionType.Weibull ) ); //**S
-                Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.Gamma ) ); //**S
-                Add( new MarkerDefinition( grp, "M0", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "M4", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Lognormal, DistributionType.Gamma ) ); //**S?
-                Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian, DistributionType.Gamma ) ); //**S?
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Logistic ) ); //**S
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Lognormal, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None, DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.Weibull ) ); //**S
-                Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.Gamma ) ); //**S!
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Lognormal, DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, DistributionType.Weibull ) ); //**S
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.Gamma ) ); //**S
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S!
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S!
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Lognormal, DistributionType.Gamma ) ); //**S?
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.Gaussian, DistributionType.Gamma ) ); //**S?
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Logistic ) ); //**S
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Lognormal, DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.Weibull ) ); //**S
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.Gamma ) ); //**S!
+                }
 
                 grp = Add( new MarkerGroupDefinition( "dV", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.Logistic, DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic, DistributionType.Logistic ) ); //S**-
-                Add( new MarkerDefinition( grp, "A4", DistributionType.Gaussian, DistributionType.Logistic ) ); //S**-
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.Logistic, DistributionType.Logistic ) ); //S**
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic, DistributionType.Logistic ) ); //S**-
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Gaussian, DistributionType.Logistic ) ); //S**-
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Gaussian, DistributionType.None ) ); //S**!!
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Weibull, DistributionType.None ) ); //S**!!
-                Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "LS", DistributionType.Logistic, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "MD", DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "MS", DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None, DistributionType.Logistic ) ); //**S
-                Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.Gamma ) ); //**S
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.Gaussian, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.Logistic, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S!
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Logistic ) );
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.Gamma ) ); //**S
+                }
 
                 grp = Add( new MarkerGroupDefinition( "d2V", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.None, DistributionType.Gaussian ) ); //**S-
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Weibull, DistributionType.Logistic ) ); //**S-
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Gamma ) ); //**S
-                Add( new MarkerDefinition( grp, "L0", DistributionType.None, DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.Weibull ) ); //**S
-                Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.Weibull ) ); //**S
-                Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**s
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull, DistributionType.Rayleigh ) ); //**S!
-                Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.None ) );  //**S!!
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
-                Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.Weibull ) ); //**S!
-                Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.None ) ); //**S!!
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.Weibull ) ); //**S
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.Weibull ) ); //**S
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**s
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Gaussian ) ); //**S-
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S-
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull, DistributionType.Rayleigh ) ); //**S!
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.None ) );  //**S!!
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Gaussian ) ); //**S-
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.None, DistributionType.Weibull ) ); //**S!
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.None ) ); //**S!!
+                }
 
                 grp = Add( new MarkerGroupDefinition( "Vn", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "A4", DistributionType.Logistic ) ); //S**
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.Logistic ) ); //S**
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic ) ); //S**
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Logistic ) ); //S**
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Rayleigh ) ); //S**
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Rayleigh ) ); //S**
-                Add( new MarkerDefinition( grp, "L0", DistributionType.Logistic ) ); //S**-
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) ); //S**-
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Logistic ) ); //S**-
-                Add( new MarkerDefinition( grp, "LD", DistributionType.Rayleigh ) ); //S**
-                Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull ) ); //S**
-                Add( new MarkerDefinition( grp, "M0", DistributionType.Logistic ) ); //S**!
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) ); //S**!
-                Add( new MarkerDefinition( grp, "M4", DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull ) ); //S**
-                Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull ) ); //S**
-                Add( new MarkerDefinition( grp, "H0", DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "H4", DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull ) ); //S**!
-                Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) ); //S**!
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) ); //S**-
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Logistic ) ); //S**-
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.Rayleigh ) ); //S**
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull ) ); //S**
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.Logistic ) ); //S**!
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) ); //S**!
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.Logistic ) ); //S**
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull ) ); //S**
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull ) ); //S**
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.Logistic ) ); //S**
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) ); //S**
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull ) ); //S**!
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) ); //S**!
+                }
 
                 grp = Add( new MarkerGroupDefinition( "Vfi", DataTransform.Log, true ) ); //+@@@@@
-                Add( new MarkerDefinition( grp, "A0", DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "A4", DistributionType.Logistic ) );
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.Logistic ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic ) );
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Logistic ) );
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Rayleigh ) );
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Rayleigh ) );
-                Add( new MarkerDefinition( grp, "L0", DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull ) ); //S**!
-                Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull ) );
-                Add( new MarkerDefinition( grp, "M0", DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "M4", DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull ) ); //S**
-                Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull ) ); //S**-
-                Add( new MarkerDefinition( grp, "H0", DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) ); //S**-
-                Add( new MarkerDefinition( grp, "H4", DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull ) ); //S**
-                Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) ); //S**-
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic ) );
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Logistic ) );
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull ) ); //S**!
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull ) );
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.Logistic ) ); //S**
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic ) );
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.Logistic ) );
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull ) ); //S**
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull ) ); //S**-
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.Logistic ) );
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic ) ); //S**-
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull ) ); //S**
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) ); //S**-
+                }
 
                 grp = Add( new MarkerGroupDefinition( "W", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "A4", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.None, DistributionType.Gaussian ) ); //**S
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal, DistributionType.Logistic ) ); //**S
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "L0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull, DistributionType.Weibull ) ); //**S-
-                Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull, DistributionType.Weibull ) );
-                Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma, DistributionType.Rayleigh ) ); //**S
-                Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull, DistributionType.Weibull ) ); //**S
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "HD", DistributionType.Lognormal, DistributionType.Weibull ) ); //**S
-                Add( new MarkerDefinition( grp, "HS", DistributionType.Lognormal, DistributionType.Weibull ) );
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull, DistributionType.Weibull ) ); //**S-
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull, DistributionType.Weibull ) );
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma, DistributionType.Rayleigh ) ); //**S
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull, DistributionType.Weibull ) ); //**S
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.Lognormal, DistributionType.Weibull ) ); //**S
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.Lognormal, DistributionType.Weibull ) );
+                }
 
                 grp = Add( new MarkerGroupDefinition( "dW", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A4", DistributionType.None, DistributionType.None ) ); //**S!!
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.None, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.None, DistributionType.Gaussian ) ); //**S!
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal, DistributionType.Logistic ) ); //**S (unclear shape)
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Lognormal, DistributionType.Logistic ) ); //**S! (unclear shape)
-                Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.Rayleigh ) ); //**S!
-                Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Lognormal, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "MS", DistributionType.Lognormal, DistributionType.Rayleigh ) );
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "HD", DistributionType.Lognormal, DistributionType.Rayleigh ) ); //**S
-                Add( new MarkerDefinition( grp, "HS", DistributionType.Lognormal, DistributionType.None ) ); //**S!!
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.Rayleigh ) ); //**S!
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //**S!
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Lognormal, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.Lognormal, DistributionType.Rayleigh ) );
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.Lognormal, DistributionType.Rayleigh ) ); //**S
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.Lognormal, DistributionType.None ) ); //**S!!
+                }
 
                 grp = Add( new MarkerGroupDefinition( "Ca", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "A4", DistributionType.None, DistributionType.None ) ); //**S!!
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.None, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.None, DistributionType.Gaussian ) ); //**S!
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Gamma, DistributionType.Logistic ) ); //**S-
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Gamma, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma, DistributionType.Logistic ) ); //**S
-                Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.Rayleigh ) ); //**S
-                Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "H4", DistributionType.Gaussian ) ); //**S!
-                Add( new MarkerDefinition( grp, "HD", DistributionType.Gamma, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.None ) ); //**S!!
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian ) ); //**S!
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian ) ); //**S!
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma, DistributionType.Logistic ) ); //**S
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.Rayleigh ) ); //**S
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian ) ); //**S!
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Gaussian ) ); //**S
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.Gamma, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.None, DistributionType.None ) ); //**S!!
+                }
 
                 grp = Add( new MarkerGroupDefinition( "A", DataTransform.Log ) ); //+@@@@@
-                Add( new MarkerDefinition( grp, "A0", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Lognormal, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A4", DistributionType.Lognormal, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Lognormal, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Lognormal, DistributionType.Gaussian ) );
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Lognormal ) );
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Gamma ) );
-                Add( new MarkerDefinition( grp, "L0", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "LD", DistributionType.None ) ); //S**!!
-                Add( new MarkerDefinition( grp, "LS", DistributionType.Lognormal, DistributionType.None ) ); //S**!!
-                Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian ) ); //S**- some 
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma ) ); //S**
-                Add( new MarkerDefinition( grp, "MS", DistributionType.Gamma ) );
-                Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "H4", DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "HD", DistributionType.None ) ); //S**!!
-                Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) ); //S**
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.None ) ); //S**!!
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.Lognormal, DistributionType.None ) ); //S**!!
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.Gaussian ) ); //S**- some 
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Gamma ) ); //S**
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.Gamma ) );
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Gaussian ) );
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.None ) ); //S**!!
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull ) ); //S**
+                }
 
                 grp = Add( new MarkerGroupDefinition( "An", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.None, DistributionType.Logistic ) ); //S** positives
-                Add( new MarkerDefinition( grp, "A2", DistributionType.Logistic, DistributionType.Logistic ) ); //S** positives
-                Add( new MarkerDefinition( grp, "A4", DistributionType.Weibull, DistributionType.Logistic ) ); //S** positive
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.None, DistributionType.Logistic ) ); //S** positives
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.Logistic, DistributionType.Logistic ) ); //S** positives
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.Weibull, DistributionType.Logistic ) ); //S** positive
                 Add( new MarkerDefinition( grp, "AD", DistributionType.Weibull, DistributionType.Gamma ) ); //S**!
                 Add( new MarkerDefinition( grp, "AS", DistributionType.Weibull, DistributionType.Gamma ) ); //S**!
-                Add( new MarkerDefinition( grp, "L0", DistributionType.None, DistributionType.Gaussian ) ); //S**!
-                Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, DistributionType.Logistic ) ); //S**! positives
-                Add( new MarkerDefinition( grp, "L4", DistributionType.Weibull, DistributionType.Logistic ) ); //S**! positives
-                Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull, DistributionType.None ) ); //S**!!
-                Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull, DistributionType.None ) ); //S**!!
-                Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Logistic ) ); //S** positives
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Logistic ) ); //S** positives
-                Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Logistic ) ); //S** positives
-                Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull, DistributionType.Rayleigh ) ); //S**
-                Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull, DistributionType.Weibull ) ); //S**
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Logistic ) ); //S**
-                Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Logistic ) ); //S**!
-                Add( new MarkerDefinition( grp, "H4", DistributionType.Logistic, DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull, DistributionType.Logistic ) ); //S**!
-                Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull, DistributionType.None ) ); //S**!!
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.Logistic, DistributionType.Logistic ) ); //S**! positives
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.Weibull, DistributionType.Logistic ) ); //S**! positives
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull, DistributionType.None ) ); //S**!!
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull, DistributionType.None ) ); //S**!!
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Logistic ) ); //S** positives
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Logistic ) ); //S** positives
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.Logistic ) ); //S** positives
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.Weibull, DistributionType.Rayleigh ) ); //S**
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.Weibull, DistributionType.Weibull ) ); //S**
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Logistic ) ); //S**
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.Logistic, DistributionType.Logistic ) ); //S**!
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull, DistributionType.Logistic ) ); //S**!
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull, DistributionType.None ) ); //S**!!
+                }
 
                 grp = Add( new MarkerGroupDefinition( "Afi", DataTransform.Log, true, true ) ); //+@@@@@
                 Add( new MarkerDefinition( grp, DistributionType.None ) );
-                Add( new MarkerDefinition( grp, "A0", DistributionType.None, DistributionType.Gaussian ) );
-                Add( new MarkerDefinition( grp, "A2", DistributionType.None, DistributionType.Gaussian ) ); //S**-
-                Add( new MarkerDefinition( grp, "A4", DistributionType.None, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q0", DistributionType.None, DistributionType.Gaussian ) );
+                Add( new MarkerDefinition( grp, "Q2", DistributionType.None, DistributionType.Gaussian ) ); //S**-
+                Add( new MarkerDefinition( grp, "Q4", DistributionType.None, DistributionType.Gaussian ) );
                 Add( new MarkerDefinition( grp, "AD", DistributionType.None, DistributionType.Logistic ) ); //S**!
                 Add( new MarkerDefinition( grp, "AS", DistributionType.None, DistributionType.Gaussian ) ); //S**!
-                Add( new MarkerDefinition( grp, "L0", DistributionType.None, DistributionType.Gaussian ) ); //S**-
-                Add( new MarkerDefinition( grp, "L2", DistributionType.None, DistributionType.Gaussian ) ); //S** positives
-                Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //S**
-                Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull, DistributionType.None ) ); //S**!!
-                Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull, DistributionType.None ) ); //S**!!
-                Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //S**-
-                Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Logistic ) );
-                Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.None ) ); //**S!!
-                Add( new MarkerDefinition( grp, "MD", DistributionType.None, DistributionType.Rayleigh ) ); //**S
-                Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.Weibull ) );
-                Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Logistic ) ); //**S-
-                Add( new MarkerDefinition( grp, "H2", DistributionType.None, DistributionType.Logistic ) ); //**S-
-                Add( new MarkerDefinition( grp, "H4", DistributionType.None, DistributionType.Gaussian ) ); //**S
-                Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull, DistributionType.Rayleigh ) ); //**S!!
-                Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull, DistributionType.None ) ); //**S!!
+                if( MarkerDefinition.LMH )
+                {
+                    Add( new MarkerDefinition( grp, "L2", DistributionType.None, DistributionType.Gaussian ) ); //S** positives
+                    Add( new MarkerDefinition( grp, "L4", DistributionType.None, DistributionType.Gaussian ) ); //S**
+                    Add( new MarkerDefinition( grp, "LD", DistributionType.Weibull, DistributionType.None ) ); //S**!!
+                    Add( new MarkerDefinition( grp, "LS", DistributionType.Weibull, DistributionType.None ) ); //S**!!
+                    Add( new MarkerDefinition( grp, "M0", DistributionType.None, DistributionType.Gaussian ) ); //S**-
+                    Add( new MarkerDefinition( grp, "M2", DistributionType.Logistic, DistributionType.Logistic ) );
+                    Add( new MarkerDefinition( grp, "M4", DistributionType.None, DistributionType.None ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "MD", DistributionType.None, DistributionType.Rayleigh ) ); //**S
+                    Add( new MarkerDefinition( grp, "MS", DistributionType.None, DistributionType.Weibull ) );
+                    Add( new MarkerDefinition( grp, "H0", DistributionType.None, DistributionType.Logistic ) ); //**S-
+                    Add( new MarkerDefinition( grp, "H2", DistributionType.None, DistributionType.Logistic ) ); //**S-
+                    Add( new MarkerDefinition( grp, "HD", DistributionType.Weibull, DistributionType.Rayleigh ) ); //**S!!
+                    Add( new MarkerDefinition( grp, "HS", DistributionType.Weibull, DistributionType.None ) ); //**S!!
+                }
             }
         }
 
@@ -637,6 +666,7 @@ namespace MouseAnalyzer
             var tiList = new List<double>();
             var xList = new List<double>();
             var yList = new List<double>();
+            var tList = new List<double>();
             var FcsList = new List<double>();
             var FdcsList = new List<double>();
             var wList = new List<double>();
@@ -686,6 +716,7 @@ namespace MouseAnalyzer
                     // coordinates
                     xList.Add( X ); //**** FRED
                     yList.Add( Y ); //**** FRED
+                    tList.Add( dT );
 
                     // path curvature -- USED
                     // angular velocity
@@ -776,7 +807,7 @@ namespace MouseAnalyzer
             }
             values["."] = 1.0; // signal data is ok
 
-            IsStraight = vfiList.Select( fi => fi*fi ).Sum() == 0.0;
+            IsStraight = !vfiList.Any( fi => Math.Abs( fi ) > 1e-9 && Math.Abs( fi - Math.PI ) > 1e-9 );
 
             var grp = StrokeFeatureDefinition.Group( "Si" ); if( grp != null ) {
                 values["Si"] = grp.Transform( si );
@@ -829,6 +860,8 @@ namespace MouseAnalyzer
 
             var ymin = yList.Min();
             AnalyzeList( "Y", yList.Select( y => y - ymin == 0 ? 0.000001 : y - ymin ) );
+
+            // AnalyzeList( "T", tList );
 
             AnalyzeList( "Cs", FcsList );
 
@@ -885,6 +918,18 @@ namespace MouseAnalyzer
             }
         }
 
+        public string AllValues( string plainName )
+        {
+            if( values["."] == 0.0 ) // I am a stub and I have no values
+            {
+                return "0";
+            }
+            else
+            {
+                return values.Get( plainName );
+            }
+        }
+
         private StrokeFeatureItem()
         {
             values["."] = 0.0;
@@ -896,14 +941,19 @@ namespace MouseAnalyzer
             var c = inputlist.Count();
             if( def == null || c == 0 )
             {
-                StoreNaNMarkers( name );
+                StoreNaNMarkers( name, "" );
                 return;
             }
 
             IEnumerable<double> zeroSplitted = null;
             if( def.SplitZero )
             {
-                values[name + ".0"] = def.SplitZero ? inputlist.Where( i => i == 0.0 ).Count() / (double)c : 0.0;
+                var ratio = inputlist.Where( i => i == 0.0 ).Count() / (double)c;
+                if( ratio == 1.0 && !IsStraight )
+                {
+                    var xr = ratio;
+                }
+                values[name + ".0"] = ratio;
                 zeroSplitted = inputlist.Where( i => i != 0.0 );
             }
             else
@@ -922,17 +972,16 @@ namespace MouseAnalyzer
             }
         }
 
-        private void AnalyzeSplittedList( string groupName, string subgroupName, IEnumerable<double> inputlist )
+        private void AnalyzeSplittedList( string name, string sign, IEnumerable<double> inputlist )
         {
-            var def = StrokeFeatureDefinition.Group( groupName );
+            var def = StrokeFeatureDefinition.Group( name );
             var c = inputlist.Count();
-            if( def == null || c == 0 )
+            if( def == null || c <= 1 )
             {
-                StoreNaNMarkers( groupName + subgroupName );
+                StoreNaNMarkers( name, sign );
                 return;
             }
 
-            var name = groupName + subgroupName;
             var transformed = def.Transform( inputlist );
             IEnumerable<double> list = transformed;
 
@@ -969,79 +1018,87 @@ namespace MouseAnalyzer
             var h = list.Skip( startOfH );
 
             var a0 = list.Min();
-            values[name + ".A2"] = list.Average();
+            values[name + ".Q2" + sign] = list.Average();
             var a4 = list.Max();
-            values[name + ".A0"] = a0;
-            values[name + ".A4"] = a4;
-            values[name + ".AD"] = Math.Sqrt( list.Variance() );
-            values[name + ".AS"] = a4 - a0;
+            values[name + ".Q0" + sign] = a0;
+            values[name + ".Q4" + sign] = a4;
+            values[name + ".AD" + sign] = Math.Sqrt( list.Variance() );
+            values[name + ".AS" + sign] = a4 - a0;
 
-            double l0;
-            double l4;
-            double m0;
-            double m4;
-            double h0;
-            double h4;
-            double ld;
-            double hd;
+            if( StrokeFeatureDefinition.MarkerDefinition.LMH )
+            {
+                double l0;
+                double l4;
+                double m0;
+                double m4;
+                double h0;
+                double h4;
+                double ld;
+                double hd;
 
-            c = l.Count();
-            if( c == 0 )
-            {
-                l0 = double.NaN; values[name + ".L2"] = double.NaN; l4 = double.NaN;
-                ld = double.NaN;
-            }
-            else
-            {
-                l0 = l.Min(); values[name + ".L2"] = l.Average(); l4 = l.Max();
-                ld = Math.Sqrt( l.Variance() );
-            }
-            values[name + ".L0"] = l0;
-            values[name + ".L4"] = l4;
-            values[name + ".LD"] = ld;
-            values[name + ".LS"] = l4 - l0;
+                c = l.Count();
+                if( c == 0 )
+                {
+                    l0 = double.NaN; values[name + ".L2" + sign] = double.NaN; l4 = double.NaN;
+                    ld = double.NaN;
+                }
+                else
+                {
+                    l0 = l.Min(); values[name + ".L2" + sign] = l.Average(); l4 = l.Max();
+                    ld = Math.Sqrt( l.Variance() );
+                }
+                values[name + ".L4" + sign] = l4;
+                values[name + ".LD" + sign] = ld;
+                values[name + ".LS" + sign] = l4 - l0;
 
-            c = h.Count();
-            if( c == 0 )
-            {
-                h0 = double.NaN; values[name + ".H2"] = double.NaN; h4 = double.NaN; hd = double.NaN;
-            }
-            else
-            {
-                h0 = h.Min(); values[name + ".H2"] = h.Average(); h4 = h.Max();
-                hd = Math.Sqrt( h.Variance() );
-            }
-            values[name + ".H0"] = h0;
-            values[name + ".H4"] = h4;
-            values[name + ".HD"] = hd;
-            values[name + ".HS"] = h4 - h0;
+                c = h.Count();
+                if( c == 0 )
+                {
+                    h0 = double.NaN; values[name + ".H2" + sign] = double.NaN; h4 = double.NaN; hd = double.NaN;
+                }
+                else
+                {
+                    h0 = h.Min(); values[name + ".H2" + sign] = h.Average(); h4 = h.Max();
+                    hd = Math.Sqrt( h.Variance() );
+                }
+                values[name + ".H0" + sign] = h0;
+                values[name + ".HD" + sign] = hd;
+                values[name + ".HS" + sign] = h4 - h0;
 
-            c = m.Count();
-            if( c == 0 )
-            {
-                m0 = 0.5 * ( l4 + h0 );
-                values[name + ".M2"] = m0;
-                m4 = m0;
-                values[name + ".MD"] = 0.5 * ( ld + hd );
+                c = m.Count();
+                if( c == 0 )
+                {
+                    m0 = 0.5 * ( l4 + h0 );
+                    values[name + ".M2" + sign] = m0;
+                    m4 = m0;
+                    values[name + ".MD" + sign] = 0.5 * ( ld + hd );
+                }
+                else
+                {
+                    m0 = m.Min();
+                    values[name + ".M2" + sign] = m.Average();
+                    m4 = m.Max();
+                    values[name + ".MD" + sign] = Math.Sqrt( m.Variance() );
+                }
+                values[name + ".M0" + sign] = m0;
+                values[name + ".M4" + sign] = m4;
+                values[name + ".MS" + sign] = m4 - m0;
             }
-            else
-            {
-                m0 = m.Min();
-                values[name + ".M2"] = m.Average();
-                m4 = m.Max();
-                values[name + ".MD"] = Math.Sqrt( m.Variance() );
-            }
-            values[name + ".M0"] = m0;
-            values[name + ".M4"] = m4;
-            values[name + ".MS"] = m4 - m0;
         }
 
-        private void StoreNaNMarkers( string name )
+        private void StoreNaNMarkers( string name, string sign )
         {
-            values[name + ".A0"] = double.NaN; values[name + ".A2"] = double.NaN; values[name + ".A4"] = double.NaN; values[name + ".AD"] = double.NaN; values[name + ".AS"] = double.NaN;
-            values[name + ".L0"] = double.NaN; values[name + ".L2"] = double.NaN; values[name + ".L4"] = double.NaN; values[name + ".LD"] = double.NaN; values[name + ".LS"] = double.NaN;
-            values[name + ".M0"] = double.NaN; values[name + ".M2"] = double.NaN; values[name + ".M4"] = double.NaN; values[name + ".MD"] = double.NaN; values[name + ".MS"] = double.NaN;
-            values[name + ".H0"] = double.NaN; values[name + ".H2"] = double.NaN; values[name + ".H4"] = double.NaN; values[name + ".HD"] = double.NaN; values[name + ".HS"] = double.NaN;
+            values[name + ".Q0" + sign] = double.NaN; values[name + ".Q2" + sign] = double.NaN; values[name + ".Q4" + sign] = double.NaN;
+            values[name + ".AD" + sign] = double.NaN; values[name + ".AS" + sign] = double.NaN;
+
+                                                      values[name + ".L2" + sign] = double.NaN; values[name + ".L4" + sign] = double.NaN;
+            values[name + ".LD" + sign] = double.NaN; values[name + ".LS" + sign] = double.NaN;
+            
+            values[name + ".M0" + sign] = double.NaN; values[name + ".M2" + sign] = double.NaN; values[name + ".M4" + sign] = double.NaN;
+            values[name + ".MD" + sign] = double.NaN; values[name + ".MS" + sign] = double.NaN;
+            
+            values[name + ".H0" + sign] = double.NaN; values[name + ".H2" + sign] = double.NaN;
+            values[name + ".HD" + sign] = double.NaN; values[name + ".HS" + sign] = double.NaN;
         }
 
         public ItemType Type { get; private set; }
@@ -1064,6 +1121,25 @@ namespace MouseAnalyzer
                 }
             }
 
+            public string Get( string plainName )
+            {
+                double v;
+                if( values.TryGetValue( plainName, out v ))
+                {
+                    return v.ToString( "G5" );
+                }
+                string s = "";
+                if( values.TryGetValue( plainName + "+", out v ) )
+                {
+                    s += v.ToString( "G5" );
+                }
+                if( values.TryGetValue( plainName + "-", out v ) )
+                {
+                    s += " " + v.ToString( "G5" );
+                }
+                return s;
+            }
+
             private Dictionary<string, double> values = new Dictionary<string, double>();
         }
     }
@@ -1078,7 +1154,7 @@ namespace MouseAnalyzer
             {
                 // ComputeMarkersForItems( computeId, TypedItems.Where( i => i.Si > 0.0 && i.Type == StrokeFeatureItem.ItemType.Drag ), "d" );
                 ComputeMarkersForItems( computeId, TypedItems.Where( i => i.IsValid && !i.IsStraight && i.Type == StrokeFeatureItem.ItemType.MoveEnded ), "m" );
-                // ComputeMarkersForItems( computeId, TypedItems.Where( i => i.IsValid && i.Type == StrokeFeatureItem.ItemType.ToClick ), "c" );
+                // ComputeMarkersForItems( computeId, TypedItems.Where( i => i.IsValid && !i.IsStraight && i.Type == StrokeFeatureItem.ItemType.ToClick ), "c" );
             }
 
             if( cleanupProcessData )
@@ -1132,49 +1208,29 @@ namespace MouseAnalyzer
 
             foreach( var def in StrokeFeatureDefinition.Markers )
             {
-                IMarkerExtractor extractor = null;
-                switch( def.Distribution )
-                {
-                    case DistributionType.Gamma:
-                        extractor = new GammaMarkerExtractor();
-                        break;
-                    case DistributionType.Gaussian:
-                        extractor = new GaussianMarkerExtractor();
-                        break;
-                    case DistributionType.InverseGaussian:
-                        extractor = new InverseGaussianMarkerExtractor();
-                        break;
-                    case DistributionType.Logistic:
-                        extractor = new LogisticMarkerExtractor();
-                        break;
-                    case DistributionType.Lognormal:
-                        extractor = new LognormalMarkerExtractor();
-                        break;
-                    case DistributionType.Rayleigh:
-                        extractor = new RayleighMarkerExtractor();
-                        break;
-                    case DistributionType.Weibull:
-                        extractor = new WeibullMarkerExtractor();
-                        break;
-                    case DistributionType.Spline:
-                        extractor = new SplineMarkerExtractor();
-                        break;
-                }
+                IMarkerExtractor markerExtractor = new MarkerExtractor();
 
-                if( def.HasNegatives )
+                Func<IFeatureItem, Triple<double>> valueExtractor = ( i ) =>
                 {
-                    _Markers.AddRange( extractor.Extract( computeId, this, nonNull,
-                        namePrefix + def.NegativeName,
-                        f => ( (StrokeFeatureItem)f ).Value( def.NegativeName ),
-                        def.HistogramDefinition ) );
-                }
-                if( def.HasPositives )
-                {
-                    _Markers.AddRange( extractor.Extract( computeId, this, nonNull,
-                        namePrefix + def.PositiveName,
-                        f => ( (StrokeFeatureItem)f ).Value( def.PositiveName ),
-                        def.HistogramDefinition ) );
-                }
+                    var f = (StrokeFeatureItem)i;
+                    return new Triple<double>(
+                        def.HasPositives ? f.Value( def.PositiveName ) : double.NaN,
+                        def.HasNegatives ? f.Value( def.NegativeName ) : double.NaN,
+                        double.NaN
+                    );
+                };
+
+                var definitions = new Triple<HistogramDefinition>(
+                    def.HasPositives ? def.HistogramDefinition : null,
+                    def.HasNegatives ? def.HistogramDefinition : null,
+                    null
+                );
+
+                _Markers.AddRange( markerExtractor.Extract(
+                    computeId, this, nonNull,
+                    namePrefix + def.PlainName, def.Distribution,
+                    valueExtractor, definitions
+                ) );
             }
         }
     }
@@ -1204,13 +1260,13 @@ namespace MouseAnalyzer
                 HandleButton( ref list, Event.Button.B5, input );
 
                 totals++;
-                if( input.dT >= TIME_THRESHOLD )
+                if( input.dT >= EndGapThreshold )
                 {
                     ends++;
                 }
 
                 if( list.Count == 0 && // no button caught,
-                    input.dT >= TIME_THRESHOLD ) // so try time or angle criterion
+                    input.dT >= EndGapThreshold ) // so try time or angle criterion
                 {
                     if( buffer.Count > LENGTH_THRESHOLD ) // but only we have anything
                     {
@@ -1276,9 +1332,15 @@ namespace MouseAnalyzer
             }
         }
 
+        public StrokeFeatureExtractor( int endGapThreshold )
+        {
+            EndGapThreshold = endGapThreshold;
+        }
+
+        private int EndGapThreshold;
+
         private static double DRAG_MOVEMENT_THRESHOLD = 3;
         private static double LENGTH_THRESHOLD = 4; // bigger than
-        private static double TIME_THRESHOLD = 32;
         private Dictionary<Event.Button, Event> clickedInput = new Dictionary<Event.Button, Event>();
         private List<Event> buffer;
     }

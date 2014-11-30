@@ -57,7 +57,7 @@ namespace MouseAnalyzer
             {
                 case MatchType.DistributionArithmeticAverage:
                 case MatchType.DistributionProduct:
-                case MatchType.DistributionProductPercent:
+                case MatchType.DistributionLogProduct:
                 case MatchType.DistributionGeometricAverage:
                     return null;
             }
@@ -109,13 +109,11 @@ namespace MouseAnalyzer
 
         public IList<double> Match( Features.Markers drivingMarkers, IEnumerable<IFeatureItem> samples, MatchType matchType, bool adjustForInvalidSampleMarkers = true ) // intended to match self.Distributions to all samples.Values
         {
-            const double LOG100 = 4.6051701859880913680359829093687;
-
             switch( matchType )
             {
                 case MatchType.DistributionArithmeticAverage:
                 case MatchType.DistributionProduct:
-                case MatchType.DistributionProductPercent:
+                case MatchType.DistributionLogProduct:
                 case MatchType.DistributionGeometricAverage:
                     break;
                 default:
@@ -132,7 +130,38 @@ namespace MouseAnalyzer
                 var probabilities = markers.Select( m1 =>
                 {
                     var value = m1.Extractor( sample );
-                    return m1.Estimate.p( value );
+                    if( !double.IsNaN( value.Zero ) ) // evaluate only zero
+                    {
+                        return m1.Distribution.Zero.p( value.Zero );
+                    }
+                    else if( m1.Distribution.Negative == null ) // marker has no positive/negative split
+                    {
+                        return m1.Distribution.Positive.p( value.Positive );
+                    }
+                    else // marker has both negative and positive part
+                    {
+                        var havePositive = !double.IsNaN( value.Positive );
+                        var haveNegative = !double.IsNaN( value.Negative );
+                        if( havePositive && haveNegative )
+                        {
+                            return m1.Distribution.Positive.p( value.Positive ) *
+                                   m1.Distribution.Negative.p( value.Negative );
+                        }
+                        else if( havePositive )
+                        {
+                            var p = m1.Distribution.Positive.p( value.Positive );
+                            return p*p;
+                        }
+                        else if( haveNegative )
+                        {
+                            var p = m1.Distribution.Negative.p( value.Negative );
+                            return p*p;
+                        }
+                        else
+                        {
+                            return double.NaN;
+                        }
+                    }
                 } ).Where( p => !double.IsNaN( p ) );
                 var validCount = probabilities.Count();
 
@@ -151,14 +180,18 @@ namespace MouseAnalyzer
                             measure = probabilities.Product();
                             if( adjustForInvalidSampleMarkers && validCount < markersCount ) // inside if, adjustForInvalidSampleMarkers if always true
                             {
-                                measure = Math.Exp( markersCount / validCount * Math.Log( measure ) );
+                                measure = Math.Exp( markersCount / validCount * Math.Log( measure + 1E-300 ) );
                             }
                             break;
-                        case MatchType.DistributionProductPercent:
-                            measure = probabilities.Select( p => 100.0 * p ).Product();
+                        case MatchType.DistributionLogProduct:
+                            measure = probabilities.Select( p => Math.Log( p + 1E-300 )).Sum();
+                            if( double.IsInfinity( measure ) )
+                            {
+                                var xm = measure;
+                            }
                             if( adjustForInvalidSampleMarkers && validCount < markersCount ) // inside if, adjustForInvalidSampleMarkers if always true
                             {
-                                measure = Math.Exp( LOG100 * markersCount / validCount * Math.Log( measure ) );
+                                measure = markersCount / validCount * measure;
                             }
                             break;
                         case MatchType.DistributionGeometricAverage:
