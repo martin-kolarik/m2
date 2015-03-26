@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{6E3E682A-80DE-46E9-9B74-D83D8E3419AD}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MouseAnalyzer</RootNamespace>
+    <AssemblyName>MouseAnalyzer</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="DifferentialEvolution">
+      <HintPath>..\DifferentialEvolution\bin\Debug\DifferentialEvolution.exe</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Analysis\StrokeMatchingAnalysis.cs" />
+    <Compile Include="Analysis\StrokePopulationAnalysis.cs" />
+    <Compile Include="Analysis\Kinematics2Analysis.cs" />
+    <Compile Include="Analysis\Executor.cs" />
+    <Compile Include="Analysis\IAnalysis.cs" />
+    <Compile Include="Analysis\KinematicsAnalysis.cs" />
+    <Compile Include="Analysis\TimeAnalysis.cs" />
+    <Compile Include="Analysis\TimeDevelopmentAnalysis.cs" />
+    <Compile Include="Analysis\TimeKinematicsAnalysis.cs" />
+    <Compile Include="CSVDumper.cs" />
+    <Compile Include="Experiment\RootFinderExperiment.cs" />
+    <Compile Include="Experiment\SmoothingExperiment.cs" />
+    <Compile Include="Experiment\SplineDistributionExperiment.cs" />
+    <Compile Include="Experiment\S_FARExperiment.cs" />
+    <Compile Include="Experiment\S_MatchingExperiment.cs" />
+    <Compile Include="Experiment\StatisticsTestExperiment.cs" />
+    <Compile Include="Experiment\S_OverviewExperiment.cs" />
+    <Compile Include="Experiment\TK_OverviewExperiment.cs" />
+    <Compile Include="Experiment\K_HistogramExperiment.cs" />
+    <Compile Include="Features\KinematicsFeature2.cs" />
+    <Compile Include="Features\Markers.cs" />
+    <Compile Include="Input\DataSource.cs" />
+    <Compile Include="Experiment\IExperiment.cs" />
+    <Compile Include="Experiment\TK_FARExperiment.cs" />
+    <Compile Include="Lookup\AveragePopulationOptimizer.cs" />
+    <Compile Include="Lookup\IterateOverBestPopulationOptimizer.cs" />
+    <Compile Include="Lookup\IPopulationOptimizer.cs" />
+    <Compile Include="Lookup\ThresholdPopulationOptimizer.cs" />
+    <Compile Include="Lookup\ProbeEntity.cs" />
+    <Compile Include="Optimizer\DEAdapter.cs" />
+    <Compile Include="Optimizer\Distance.cs" />
+    <Compile Include="Optimizer\IVectorSetOptimizer.cs" />
+    <Compile Include="Optimizer\DEOptimizer.cs" />
+    <Compile Include="Lookup\Population.cs" />
+    <Compile Include="Lookup\Template.cs" />
+    <Compile Include="Optimizer\Vector.cs" />
+    <Compile Include="Optimizer\Weights.cs" />
+    <Compile Include="Statistics\Estimator.cs" />
+    <Compile Include="Statistics\Extension.cs" />
+    <Compile Include="Statistics\Gamma.cs" />
+    <Compile Include="Statistics\Histogram.cs" />
+    <Compile Include="Statistics\HyperLog.cs" />
+    <Compile Include="Statistics\IEstimator.cs" />
+    <Compile Include="Features\KinematicsFeature.cs" />
+    <Compile Include="Entity\Entity.cs" />
+    <Compile Include="Input\Event.cs" />
+    <Compile Include="Features\IFeature.cs" />
+    <Compile Include="Statistics\IMarker.cs" />
+    <Compile Include="Input\Loader.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Statistics\Integrator.cs" />
+    <Compile Include="Statistics\Rootfinder.cs" />
+    <Compile Include="Statistics\Smoother.cs" />
+    <Compile Include="Statistics\SmoothingSpline.cs" />
+    <Compile Include="Statistics\StatisticsMarker.cs" />
+    <Compile Include="Features\StrokeFeature.cs" />
+    <Compile Include="Features\TimingFeature.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

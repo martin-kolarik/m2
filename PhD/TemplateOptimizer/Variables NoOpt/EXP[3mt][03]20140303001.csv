@@ -1,0 +1,1557 @@
+TITLE;3 random variables, variable variance
+FOCUS ON;Comparison by variance
+EXPERIMENT TYPE;FewRandomVariablesVaryingVariance
+RESULTS
+PARTICULAR
+parameters
+result 1
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 2
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 3
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 4
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 5
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 6
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 7
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 8
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 9
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 10
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 11
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 12
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 13
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 14
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 15
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 16
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 17
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 18
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 19
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 20
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 21
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 22
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 23
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 24
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 25
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 26
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 27
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 28
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 29
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 30
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 31
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 32
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 33
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 34
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 35
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 36
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 37
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 38
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 39
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 40
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 41
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 42
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 43
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 44
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 45
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 46
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 47
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 48
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 49
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 50
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 51
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 52
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 53
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 54
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 55
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 56
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 57
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 58
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 59
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 60
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 61
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 62
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 63
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 64
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 65
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 66
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 67
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 68
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 69
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 70
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 71
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 72
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 73
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 74
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 75
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 76
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 77
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 78
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 79
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 80
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 81
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 82
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 83
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 84
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 85
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 86
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 87
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 88
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 89
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 90
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 91
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 92
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 93
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 94
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 95
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 96
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 97
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 98
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 99
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 100
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 101
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 102
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 103
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 104
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 105
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 106
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 107
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 108
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 109
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 110
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 111
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 112
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 113
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 114
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 115
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 116
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 117
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 118
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 119
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 120
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 121
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 122
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 123
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 124
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 125
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 126
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 127
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 128
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 129
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 130
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 131
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 132
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 133
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 134
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 135
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 136
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 137
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 138
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 139
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 140
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 141
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 142
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 143
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 144
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 145
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 146
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 147
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 148
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 149
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 150
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 151
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 152
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 153
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 154
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 155
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 156
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 157
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 158
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 159
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 160
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 161
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 162
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 163
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 164
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 165
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 166
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 167
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 168
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 169
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 170
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 171
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 172
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 173
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 174
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 175
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 176
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 177
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 178
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 179
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 180
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 181
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 182
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 183
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 184
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 185
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 186
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 187
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 188
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 189
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 190
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 191
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 192
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 193
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 194
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 195
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 196
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 197
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 198
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result 199
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1
+result 200
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.25992104989487
+result 201
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;1.5874010519682
+result 202
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2
+result 203
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;2.51984209978975
+result 204
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;3.1748021039364
+result 205
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;4
+result 206
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;5.03968419957949
+result 207
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;6.3496042078728
+result 208
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;8
+result 209
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;10.079368399159
+result 210
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;12.6992084157456
+result 211
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;16
+result 212
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;20.158736798318
+result 213
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;25.3984168314912
+result 214
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;32
+result 215
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;40.3174735966359
+result 216
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;50.7968336629824
+result 217
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;64
+result 218
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;80.6349471932719
+result 219
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;101.593667325965
+result 220
+normalization;Center
+pcaRecompositionThreshold;0.95
+component;1;2
+type;RandomNormal;RandomNormal
+p1;0;1
+p2;1;128
+result;1 RandomNormal, RandomNormal;2 RandomNormal, RandomNormal;3 RandomNormal, RandomNormal;4 RandomNormal, RandomNormal;5 RandomNormal, RandomNormal;6 RandomNormal, RandomNormal;7 RandomNormal, RandomNormal;8 RandomNormal, RandomNormal;9 RandomNormal, RandomNormal;10 RandomNormal, RandomNormal;11 RandomNormal, RandomNormal;12 RandomNormal, RandomNormal;13 RandomNormal, RandomNormal;14 RandomNormal, RandomNormal;15 RandomNormal, RandomNormal;16 RandomNormal, RandomNormal;17 RandomNormal, RandomNormal;18 RandomNormal, RandomNormal;19 RandomNormal, RandomNormal;20 RandomNormal, RandomNormal;21 RandomNormal, RandomNormal;22 RandomNormal, RandomNormal;23 RandomNormal, RandomNormal;24 RandomNormal, RandomNormal;25 RandomNormal, RandomNormal;26 RandomNormal, RandomNormal;27 RandomNormal, RandomNormal;28 RandomNormal, RandomNormal;29 RandomNormal, RandomNormal;30 RandomNormal, RandomNormal;31 RandomNormal, RandomNormal;32 RandomNormal, RandomNormal;33 RandomNormal, RandomNormal;34 RandomNormal, RandomNormal;35 RandomNormal, RandomNormal;36 RandomNormal, RandomNormal;37 RandomNormal, RandomNormal;38 RandomNormal, RandomNormal;39 RandomNormal, RandomNormal;40 RandomNormal, RandomNormal;41 RandomNormal, RandomNormal;42 RandomNormal, RandomNormal;43 RandomNormal, RandomNormal;44 RandomNormal, RandomNormal;45 RandomNormal, RandomNormal;46 RandomNormal, RandomNormal;47 RandomNormal, RandomNormal;48 RandomNormal, RandomNormal;49 RandomNormal, RandomNormal;50 RandomNormal, RandomNormal;51 RandomNormal, RandomNormal;52 RandomNormal, RandomNormal;53 RandomNormal, RandomNormal;54 RandomNormal, RandomNormal;55 RandomNormal, RandomNormal;56 RandomNormal, RandomNormal;57 RandomNormal, RandomNormal;58 RandomNormal, RandomNormal;59 RandomNormal, RandomNormal;60 RandomNormal, RandomNormal;61 RandomNormal, RandomNormal;62 RandomNormal, RandomNormal;63 RandomNormal, RandomNormal;64 RandomNormal, RandomNormal;65 RandomNormal, RandomNormal;66 RandomNormal, RandomNormal;67 RandomNormal, RandomNormal;68 RandomNormal, RandomNormal;69 RandomNormal, RandomNormal;70 RandomNormal, RandomNormal;71 RandomNormal, RandomNormal;72 RandomNormal, RandomNormal;73 RandomNormal, RandomNormal;74 RandomNormal, RandomNormal;75 RandomNormal, RandomNormal;76 RandomNormal, RandomNormal;77 RandomNormal, RandomNormal;78 RandomNormal, RandomNormal;79 RandomNormal, RandomNormal;80 RandomNormal, RandomNormal;81 RandomNormal, RandomNormal;82 RandomNormal, RandomNormal;83 RandomNormal, RandomNormal;84 RandomNormal, RandomNormal;85 RandomNormal, RandomNormal;86 RandomNormal, RandomNormal;87 RandomNormal, RandomNormal;88 RandomNormal, RandomNormal;89 RandomNormal, RandomNormal;90 RandomNormal, RandomNormal;91 RandomNormal, RandomNormal;92 RandomNormal, RandomNormal;93 RandomNormal, RandomNormal;94 RandomNormal, RandomNormal;95 RandomNormal, RandomNormal;96 RandomNormal, RandomNormal;97 RandomNormal, RandomNormal;98 RandomNormal, RandomNormal;99 RandomNormal, RandomNormal;100 RandomNormal, RandomNormal;101 RandomNormal, RandomNormal;102 RandomNormal, RandomNormal;103 RandomNormal, RandomNormal;104 RandomNormal, RandomNormal;105 RandomNormal, RandomNormal;106 RandomNormal, RandomNormal;107 RandomNormal, RandomNormal;108 RandomNormal, RandomNormal;109 RandomNormal, RandomNormal;110 RandomNormal, RandomNormal;111 RandomNormal, RandomNormal;112 RandomNormal, RandomNormal;113 RandomNormal, RandomNormal;114 RandomNormal, RandomNormal;115 RandomNormal, RandomNormal;116 RandomNormal, RandomNormal;117 RandomNormal, RandomNormal;118 RandomNormal, RandomNormal;119 RandomNormal, RandomNormal;120 RandomNormal, RandomNormal;121 RandomNormal, RandomNormal;122 RandomNormal, RandomNormal;123 RandomNormal, RandomNormal;124 RandomNormal, RandomNormal;125 RandomNormal, RandomNormal;126 RandomNormal, RandomNormal;127 RandomNormal, RandomNormal;128 RandomNormal, RandomNormal;129 RandomNormal, RandomNormal;130 RandomNormal, RandomNormal;131 RandomNormal, RandomNormal;132 RandomNormal, RandomNormal;133 RandomNormal, RandomNormal;134 RandomNormal, RandomNormal;135 RandomNormal, RandomNormal;136 RandomNormal, RandomNormal;137 RandomNormal, RandomNormal;138 RandomNormal, RandomNormal;139 RandomNormal, RandomNormal;140 RandomNormal, RandomNormal;141 RandomNormal, RandomNormal;142 RandomNormal, RandomNormal;143 RandomNormal, RandomNormal;144 RandomNormal, RandomNormal;145 RandomNormal, RandomNormal;146 RandomNormal, RandomNormal;147 RandomNormal, RandomNormal;148 RandomNormal, RandomNormal;149 RandomNormal, RandomNormal;150 RandomNormal, RandomNormal;151 RandomNormal, RandomNormal;152 RandomNormal, RandomNormal;153 RandomNormal, RandomNormal;154 RandomNormal, RandomNormal;155 RandomNormal, RandomNormal;156 RandomNormal, RandomNormal;157 RandomNormal, RandomNormal;158 RandomNormal, RandomNormal;159 RandomNormal, RandomNormal;160 RandomNormal, RandomNormal;161 RandomNormal, RandomNormal;162 RandomNormal, RandomNormal;163 RandomNormal, RandomNormal;164 RandomNormal, RandomNormal;165 RandomNormal, RandomNormal;166 RandomNormal, RandomNormal;167 RandomNormal, RandomNormal;168 RandomNormal, RandomNormal;169 RandomNormal, RandomNormal;170 RandomNormal, RandomNormal;171 RandomNormal, RandomNormal;172 RandomNormal, RandomNormal;173 RandomNormal, RandomNormal;174 RandomNormal, RandomNormal;175 RandomNormal, RandomNormal;176 RandomNormal, RandomNormal;177 RandomNormal, RandomNormal;178 RandomNormal, RandomNormal;179 RandomNormal, RandomNormal;180 RandomNormal, RandomNormal;181 RandomNormal, RandomNormal;182 RandomNormal, RandomNormal;183 RandomNormal, RandomNormal;184 RandomNormal, RandomNormal;185 RandomNormal, RandomNormal;186 RandomNormal, RandomNormal;187 RandomNormal, RandomNormal;188 RandomNormal, RandomNormal;189 RandomNormal, RandomNormal;190 RandomNormal, RandomNormal;191 RandomNormal, RandomNormal;192 RandomNormal, RandomNormal;193 RandomNormal, RandomNormal;194 RandomNormal, RandomNormal;195 RandomNormal, RandomNormal;196 RandomNormal, RandomNormal;197 RandomNormal, RandomNormal;198 RandomNormal, RandomNormal;199 RandomNormal, RandomNormal;200 RandomNormal, RandomNormal;201 RandomNormal, RandomNormal;202 RandomNormal, RandomNormal;203 RandomNormal, RandomNormal;204 RandomNormal, RandomNormal;205 RandomNormal, RandomNormal;206 RandomNormal, RandomNormal;207 RandomNormal, RandomNormal;208 RandomNormal, RandomNormal;209 RandomNormal, RandomNormal;210 RandomNormal, RandomNormal;211 RandomNormal, RandomNormal;212 RandomNormal, RandomNormal;213 RandomNormal, RandomNormal;214 RandomNormal, RandomNormal;215 RandomNormal, RandomNormal;216 RandomNormal, RandomNormal;217 RandomNormal, RandomNormal;218 RandomNormal, RandomNormal;219 RandomNormal, RandomNormal;220 RandomNormal, RandomNormal
+variance;1;1;1;1;1;1;1;1;1;1;1.25992104989487;1.25992104989487;1.25992104989487;1.25992104989487;1.25992104989487;1.25992104989487;1.25992104989487;1.25992104989487;1.25992104989487;1.25992104989487;1.5874010519682;1.5874010519682;1.5874010519682;1.5874010519682;1.5874010519682;1.5874010519682;1.5874010519682;1.5874010519682;1.5874010519682;1.5874010519682;2;2;2;2;2;2;2;2;2;2;2.51984209978975;2.51984209978975;2.51984209978975;2.51984209978975;2.51984209978975;2.51984209978975;2.51984209978975;2.51984209978975;2.51984209978975;2.51984209978975;3.1748021039364;3.1748021039364;3.1748021039364;3.1748021039364;3.1748021039364;3.1748021039364;3.1748021039364;3.1748021039364;3.1748021039364;3.1748021039364;4;4;4;4;4;4;4;4;4;4;5.03968419957949;5.03968419957949;5.03968419957949;5.03968419957949;5.03968419957949;5.03968419957949;5.03968419957949;5.03968419957949;5.03968419957949;5.03968419957949;6.3496042078728;6.3496042078728;6.3496042078728;6.3496042078728;6.3496042078728;6.3496042078728;6.3496042078728;6.3496042078728;6.3496042078728;6.3496042078728;8;8;8;8;8;8;8;8;8;8;10.079368399159;10.079368399159;10.079368399159;10.079368399159;10.079368399159;10.079368399159;10.079368399159;10.079368399159;10.079368399159;10.079368399159;12.6992084157456;12.6992084157456;12.6992084157456;12.6992084157456;12.6992084157456;12.6992084157456;12.6992084157456;12.6992084157456;12.6992084157456;12.6992084157456;16;16;16;16;16;16;16;16;16;16;20.158736798318;20.158736798318;20.158736798318;20.158736798318;20.158736798318;20.158736798318;20.158736798318;20.158736798318;20.158736798318;20.158736798318;25.3984168314912;25.3984168314912;25.3984168314912;25.3984168314912;25.3984168314912;25.3984168314912;25.3984168314912;25.3984168314912;25.3984168314912;25.3984168314912;32;32;32;32;32;32;32;32;32;32;40.3174735966359;40.3174735966359;40.3174735966359;40.3174735966359;40.3174735966359;40.3174735966359;40.3174735966359;40.3174735966359;40.3174735966359;40.3174735966359;50.7968336629824;50.7968336629824;50.7968336629824;50.7968336629824;50.7968336629824;50.7968336629824;50.7968336629824;50.7968336629824;50.7968336629824;50.7968336629824;64;64;64;64;64;64;64;64;64;64;80.6349471932719;80.6349471932719;80.6349471932719;80.6349471932719;80.6349471932719;80.6349471932719;80.6349471932719;80.6349471932719;80.6349471932719;80.6349471932719;101.593667325965;101.593667325965;101.593667325965;101.593667325965;101.593667325965;101.593667325965;101.593667325965;101.593667325965;101.593667325965;101.593667325965;128;128;128;128;128;128;128;128;128;128
+distances
+D plain;0.272298352000485;0.237707412524726;0.361754088067446;0.21188149544726;0.319825365476788;0.383520068934993;0.393566650365482;0.298434697161888;0.29295066964446;0.205037299646666;0.396285201613022;0.370149329769767;0.220436497307682;0.426426611953199;0.224822455247224;0.409634568466237;0.389435764865367;0.326498757999931;0.495451075525709;0.368471994762031;0.563631182538576;0.366881133673922;0.483653372876615;0.479322177954035;0.299674837950159;0.467867223538405;0.267602990865146;0.373765905451502;0.351877172955996;0.475413864941035;0.682423829203212;0.440793081520691;0.567593684979377;0.43076145499491;0.369858761105967;0.490020102698171;0.515364028442923;0.362676691095623;0.504895782660467;0.498621378917663;0.640904280244186;0.508729094839024;0.817591307645539;0.587072480425997;0.457040898752794;0.553167580677527;0.584435596694458;0.575805988473632;0.672697966569372;0.651337373873861;0.78364384699919;0.838331981405405;0.679943651839626;0.493185952522431;0.533173101853204;0.777970644834102;0.715397636269595;0.509652918019942;0.806945163854037;0.636401584859353;0.951778771591582;1.01386726005615;0.38959716727226;0.83843674801114;1.1153641965135;0.978959268907181;0.651480951412414;0.630965714984566;0.840080724770606;0.642234014603753;1.14456310889645;1.25821260321409;0.886471340016258;1.26215769357713;1.14575980110231;0.902263644770752;0.603462313918361;1.19017199124176;1.00553395367933;0.917754620257168;1.08180973360434;1.38326650717734;1.35908018891441;0.988335943160582;1.2558173698657;1.11509275625153;1.00507912788267;0.98715858342409;0.91095078131919;1.27422099979006;1.29096712079204;1.60527405018393;1.53237253818192;1.57173711866744;1.57977562147917;1.54971934996511;1.58426347670885;1.58218177939754;1.10633737414523;1.76747198557719;1.37022596356985;1.91111128983164;1.02244092764153;1.96391630350053;1.80271914534969;2.32583540254552;1.97745754219541;1.4570765685423;2.61022519801312;1.83219244158096;2.31899249338749;1.55213982902908;2.31049619454172;3.06401254243594;1.55060357353853;1.80611150694987;1.93362653815467;2.55533085054158;1.62886659874754;2.73804990650588;2.90830769803193;1.91288943448731;2.09880740692446;2.00408091149446;2.36710442644016;1.79734968555064;2.18021991005579;2.98241378112977;2.72834099969372;2.62598562898139;3.08863570877491;4.24997403276739;3.80175326907624;2.04470992202104;2.60934579940873;3.37271759865213;4.20082059567416;2.6490019151122;2.82926528703303;3.01779853136231;4.5610722065327;4.74854979349478;4.94786651075615;4.43261666706714;2.83205257281136;3.35750976119276;4.02278218163728;3.00957701862931;4.13499581302338;3.33320577277221;3.78706006182462;5.84296247000617;3.01307273784521;4.92528406669155;4.96110702153712;3.24239052859895;2.83171072667787;4.18561843881209;3.95184059199291;3.77957824774037;4.64446975936949;5.11380291835162;6.22557252700124;7.03555011629026;5.07996447646976;5.05230726187517;8.11227762170453;5.33469654313158;6.25444139305394;6.72453590228299;4.62307042861536;6.41565815620778;4.70691376815586;10.3990437127506;8.93747869707142;6.22411018786579;7.85547197291805;6.75447622110503;8.52303093279345;6.75331070462328;7.62844024236489;4.84871177708061;9.99168898518887;6.68951635652688;8.55210163097836;10.4136943809279;10.5935911380462;7.66712287699422;8.84787659944627;8.63978485036748;13.6455067828498;11.1401112744678;8.77734068979528;7.96745832938944;10.4208223628941;12.5758541226274;11.8087077062847;10.3215890298419;14.0250286867952;9.96364789358399;11.053138370594;13.733669050736;15.395226246884;13.4688084185772;8.44014215761167;11.9246108519724;9.85373486359087;5.44972401835969;16.097015642647;12.9672641379627;13.5292469554103;8.71969136471736;14.5727006392466;22.9939766092782;20.4102092431648;15.6055388913001;17.1975513090139;19.5878054669283;16.6902825487434;19.5015318689974
+D PCA;0.274288720980624;0.234001498786286;0.356579199115352;0.219487089948652;0.314955173245715;0.38364100084947;0.383537391684652;0.303059708117065;0.303748033233458;0.206613961906347;0.417013735710549;0.379956288147783;0.229285288568283;0.432876600748762;0.2504546625379;0.408050479989917;0.426470030097697;0.307891462350286;0.480872545193045;0.383657829589863;0.558229898338927;0.372535793437025;0.49469077601584;0.477682288781782;0.309240314395732;0.515013527549403;0.288566477119704;0.334109136176561;0.289624825933143;0.496143105012095;0.50048858456645;0.471044472675314;0.41559294098361;0.386707110796473;0.319293101084175;0.54242357106416;0.6147454427114;0.411872923501699;0.549637698297378;0.59858619611282;0.618624275974738;0.586156463598716;0.754809436960982;0.557196520378827;0.56336992726406;0.638312865278847;0.503933375922137;0.446885379088888;0.77928986494597;0.797794553533084;0.592921303946765;0.610419947598563;0.786345198342284;0.545202612143394;0.533070236614321;0.11917895636002;0.716975233066067;0.523535539558363;0.800963878802379;0.514964212779315;0.450149580056766;0.767237003937491;0.406898947069615;0.935135353635463;0.554459685391528;0.686353058541753;0.487693035994816;0.708259396398136;0.444202405668793;0.834691789771132;1.07725611318898;1.23386467851707;0.588681715968208;0.713996256645133;1.31805444045496;1.25825810082051;0.515258567526942;0.819801738073713;0.961903924323251;0.746811851662546;1.20235852130952;0.973091201688621;1.4946670080077;1.34073415931517;1.28515798568766;0.827502762750352;0.977364223574386;0.787916626558267;1.11130326143667;1.60790374873928;1.51488900819832;0.759081623567188;1.44919598040542;1.32790529122607;1.34863665985081;1.46501842932411;0.875888016210391;1.76467803252041;1.32420393758892;2.4455565559698;1.60472752579924;0.955339681732335;1.37894957070042;2.22914165006896;2.13531319803005;2.07191146959778;1.65394518991293;1.10963005116937;2.27360078694562;1.50660883482997;2.38794737299346;1.83993262327487;2.56973380861992;3.82095080058396;1.42712233914293;1.9572738767467;1.86434352864601;2.82748762297807;1.92409711540451;2.95061203608406;3.0080491463824;2.1825566326446;1.83365371590101;2.81186905344874;2.63617401192838;1.85158782371869;2.89115461371366;2.90043302642406;3.230415387689;2.38411930762911;2.38906068313582;5.08800184983736;5.47527159897971;2.88374213904694;2.02387816540498;3.58901226114535;5.010294900687;3.1002481159651;3.86476307617982;3.59893158693946;6.65249941488646;5.6088748807305;5.20272733048758;3.54700477708145;3.99330769356096;3.44423422137066;4.70887139850127;3.66003581552352;5.84297515483471;2.05419530683602;4.91022866637721;7.06674233214504;3.83950784360867;4.33962719664499;5.46129563755136;4.84048349176271;2.9124529755528;5.45120310291382;5.59965363878246;3.27107394600894;6.186532834499;4.86965885485434;8.97584959727742;9.69704922439529;6.73607194470692;6.29522993838357;11.3657966236957;7.70381128577644;7.30804430812798;9.81918649956149;6.80803689247345;6.76572489495168;3.73266940867786;14.9678668140178;12.4247409187963;6.93117081222942;10.869433603394;7.83672557412779;12.5925231324128;9.68950071075017;10.183663214669;7.06633835747007;13.0036557944839;7.27437317598249;11.6497274282402;14.3889370559704;12.5182797563896;11.5735529658527;11.7211862651846;10.6546909354619;20.1410301180955;14.128171069138;12.2863218508904;6.92690406054505;14.7434500940754;19.459927663773;14.9100902157289;14.8583976836399;19.6509741248386;14.1617901180557;14.4482839059964;18.5059584087049;20.4454026070722;17.5574019443797;10.2974960880617;15.4240613561875;14.6543735197246;6.19194071998729;23.0534145415359;15.4915902338438;18.2036992943317;13.2857165479814;19.9087907396565;30.4130830298169;29.0496324298835;22.0507882287567;22.9161415055323;28.1673441298669;24.6910259551284;27.6524737432959
+D DE (avg);0.306515654285142;0.262828871341195;0.37297349006469;0.270104582717908;0.339082136114263;0.390881733395742;0.412954656762031;0.351448766624092;0.31681291226553;0.223898383463705;0.428655949727402;0.392149940423989;0.28157361653585;0.453179250272408;0.279634383373795;0.425874869255367;0.44801626262498;0.34194304242183;0.547447481735193;0.401025733462629;0.606139778810328;0.460097430129624;0.609995159969129;0.51132691997108;0.369898491497633;0.519449841021077;0.341823956068598;0.393160221028932;0.410426695341365;0.541859576119685;0.733902252961242;0.557799834695167;0.599277139851042;0.475423324905199;0.384672561646304;0.548995736239318;0.640721533642344;0.454514996617475;0.58231906125349;0.655910226048797;0.723096621686469;0.673171907367109;0.847713348663487;0.659817474033803;0.618711471937074;0.651737613872095;0.614751785082565;0.601353107120709;0.809243821812168;0.79981468575245;0.870109570319497;0.937215790546828;0.971218672371817;0.62510459201961;0.602061142537873;0.839836106539262;0.824416658655873;0.657188951605631;0.844013786671619;0.690115911611582;1.06759207985185;1.13829524722884;0.57016872432134;1.06856916134015;1.1699739436424;1.06453367982998;0.708446857144073;0.86474881043585;0.925713559656743;0.930349917064766;1.26283419361923;1.53013442567348;0.943272361488319;1.29883726473164;1.34637347388004;1.27825699483419;0.648927465534265;1.32795234975199;1.2336286236834;1.03409194077254;1.25578503113102;1.47493291173721;1.85603082868869;1.48646346824641;1.53191592072459;1.15390661891332;1.2153745738227;1.19824965570584;1.15143599164386;1.72168021831202;1.57410153279782;1.7878532069074;1.98314432802168;1.58113278740903;1.59860711612475;1.90496464060992;1.67672703496777;1.9487088083797;1.62966888887297;2.4500379058824;1.70787612635806;2.13153634999181;1.39846007719567;2.46989869506554;2.2151395358508;2.4491371284161;2.14364580295672;1.53214976541197;2.74801791048865;1.83564531119427;2.90775736287067;1.88396022282284;2.65194637624622;4.45038718034774;1.55515266860641;2.25640405232569;2.26294993598438;3.23919897828057;1.99147538788915;3.46383868820685;3.51248952702691;2.19602314835056;2.1219329541724;2.84761321957368;3.2330145913458;1.89670885803475;3.5590023311209;3.36232888998119;3.51428211581997;2.64660228739889;3.29531229465627;5.22868405642366;5.53061286454462;3.12254301612187;2.85870264029521;4.11514983051212;5.57265360483141;3.99196940862441;3.87749366884963;3.74966250763944;6.81989369449435;5.69281561497952;5.32730905481155;4.62267618657786;4.09846160669177;4.2897251981538;4.81147626409817;4.03056160285829;6.33220495879231;3.43644836808183;5.04335965093562;7.172493836102;4.81349220530275;5.92072233084509;6.37808253910702;5.24484507610451;3.18797621558472;5.52961628066892;6.6529925998731;3.9135523495107;6.35423595194284;5.27990747557453;9.25686217299238;10.358855364133;7.00007625729056;6.32532250381439;11.6737808008441;8.19723080717235;7.72273792080008;10.1234889294009;6.94353750503914;7.24137418710855;4.8288014150099;15.1687390138473;13.2150363716233;9.43552896142996;10.9725274681569;8.9890111917039;12.6858307460226;10.286708642156;10.2164960461895;7.1753170611525;13.1501829837685;8.1253247190032;12.1596653223642;15.635673042047;13.4306063438531;11.7237699641135;12.0481843742335;11.1717238123558;20.9531376480461;15.2139142378161;12.3025400711056;8.10124852586574;14.9849373776871;19.4975042296717;17.2750293702654;15.5599220225633;19.8363990070939;15.5441372119833;14.8743355415057;19.4767241898981;20.4588900072367;20.4672204560093;13.1486323381767;17.6491310268674;14.8631984412336;7.20771937741273;25.2484348526681;16.8349483791983;18.7404834634245;17.07691141436;22.747693276723;34.0936180748768;33.712046422587;24.2071401254602;23.4866189732963;28.6275688720061;25.5670731689042;27.7510921859232
+D PCA ratio;1.00730951533683;0.984409767877751;0.985695009060603;1.03589551076812;0.984772339042549;1.00031532095521;0.974517000687135;1.01549756445602;1.03685727567069;1.00768963628763;1.05230711117436;1.02649459985276;1.04014213330677;1.01512567136938;1.11401088588989;0.996132922857923;1.09509723701195;0.943009597452592;0.970575237288171;1.04121299595004;0.990416988330344;1.01541278426197;1.02282089562113;0.996578732953162;1.03191951820514;1.10076855492128;1.0783380117942;0.893899446962566;0.823085008612826;1.04360251477653;0.733398458771308;1.06862945999574;0.732201488462139;0.897729140600666;0.863283865790853;1.10694146643667;1.1928373126249;1.13564762669875;1.08861614054518;1.20048241295258;0.965236611837014;1.15219764221308;0.923211181310926;0.949110269952544;1.23264663797359;1.15392312849758;0.862256472351038;0.77610408372707;1.15845431928417;1.22485609690745;0.756620888707594;0.728136300580156;1.15648582969307;1.10547068373485;0.999807069714272;0.153192099408114;1.00220520269636;1.0272393643744;0.992587742860876;0.809181223037218;0.4729561043939;0.756743051250121;1.04440940861683;1.11533202218737;0.497110887300044;0.701104816452612;0.748591397703179;1.12250060435607;0.528761573228677;1.29966923394134;0.941194159427023;0.980648799229304;0.664073038116959;0.565694968448492;1.1503758808669;1.39455702123541;0.853837191889084;0.688809469645122;0.956610088404843;0.813738046290934;1.11143252270762;0.703473406346176;1.09976366383619;1.35655711865306;1.02336376015017;0.74209320983491;0.972425151871703;0.798166211375354;1.21993776637125;1.26187195863527;1.17345281982775;0.472867311024068;0.945720406948049;0.844864752161542;0.853688740042753;0.945344348547429;0.55286764423173;1.11534468131238;1.19692597261484;1.38364657314281;1.17114079609063;0.49988699601921;1.34868385392323;1.13504921064899;1.18449576770642;0.890824633303876;0.836399849109628;0.76154546379088;0.871036257207332;0.822298357223845;1.02973484381799;1.18541679613093;1.11219997448627;1.24704150118989;0.920365697265988;1.08369492648442;0.964169394584962;1.10650549316493;1.18124904573768;1.07763267173221;1.03429535616811;1.1409737506494;0.873664591544398;1.40307162117118;1.11367034866851;1.03017673110808;1.32608394244032;0.972511944779622;1.18402186092268;0.907895032370724;0.773500311593377;1.19718422056435;1.44019645975345;1.41034290878609;0.775626659319582;1.06413067687009;1.192694328781;1.17034574353405;1.36599529704501;1.19256853946271;1.458538500083;1.18117638534912;1.05150923517791;0.800205621982724;1.4100401002079;1.02582999495051;1.17055092368554;1.21612963976926;1.41305467261465;0.616282176040862;1.29658061562706;1.20944510056687;1.27428315798127;0.881091757933881;1.10082197659571;1.49287491715389;1.02851359360765;1.30236503460667;1.41697356166853;0.865460041200247;1.33202134043798;0.952257827023186;1.44177094690453;1.37829296417668;1.32600768684667;1.24601090394631;1.40106110191376;1.44409550261956;1.16845675718445;1.46020285150502;1.47262236160925;1.05456443130549;0.793018438946311;1.43935031215085;1.39018411566873;1.11360027425962;1.38367670852453;1.16022698394306;1.47747007276032;1.43477786445051;1.3349600824181;1.45736407572667;1.30144721415567;1.08742886455236;1.36220638281955;1.38173222005852;1.18168424599955;1.50950404102432;1.32474567580634;1.23321253017183;1.47601920827225;1.268225309519;1.39977725430833;0.869399471471835;1.41480677634168;1.54740405494679;1.2626352168742;1.43954556228515;1.40113610914324;1.42134590355958;1.30716574981408;1.34748830340522;1.3280352155403;1.3035601516288;1.22006192499672;1.2934645455232;1.48718975318404;1.13619344743461;1.43215457158772;1.19466913521805;1.34550720777937;1.52364527507701;1.36617029557575;1.32265434320504;1.42328930016296;1.41301036653401;1.33252351417734;1.43800407745646;1.47936536622548;1.41796418502161
+D DE (avg) ratio;1.12566107004789;1.1056822694322;1.03101389139009;1.27479080770005;1.06021026696481;1.01919499149338;1.04926232031739;1.1776404351316;1.08145481507187;1.09198854964215;1.08168548303752;1.05943712141234;1.27734572076254;1.06273679355205;1.24380094980413;1.03964582591244;1.15042403149558;1.0473027355954;1.10494760992155;1.08834793190083;1.07541917052973;1.25407765049742;1.26122383131761;1.06677083491871;1.23433283230524;1.11025054735093;1.27735476708799;1.05188893715172;1.16639193129101;1.13976393218337;1.07543468084656;1.26544598379542;1.05582066134653;1.10368121240285;1.0400525879015;1.12035349818592;1.24324069644163;1.25322362251739;1.153345068927;1.31544745929778;1.12824433222847;1.32324239796059;1.03684241837733;1.12391143518603;1.35373327337982;1.17819199215152;1.05187259051224;1.04436758067556;1.20298241116909;1.22795761126912;1.11033803640699;1.11795304406215;1.42838111620592;1.26748255667558;1.12920389352956;1.07952158878482;1.15238940815454;1.28948334909742;1.04593697871679;1.08440319450823;1.12168091127585;1.12272611225832;1.46348272579429;1.27447796613747;1.0489613592579;1.0874136581988;1.08744063139246;1.37051632109203;1.10193405509872;1.44861514013514;1.10333295193902;1.21611754783315;1.06407541779187;1.02906100508769;1.17509225981286;1.41672226542938;1.07534049859832;1.1157650822941;1.22683935154;1.12676299083383;1.16081875779305;1.06626807204848;1.36565218434331;1.50400628301838;1.2198556553557;1.03480774352106;1.20923272616659;1.21383704282807;1.26399363747886;1.35116296042498;1.21931961507438;1.11373706358896;1.29416592806771;1.00597788817862;1.0119203603281;1.22923201588262;1.05836375048613;1.23165924026867;1.47303067487174;1.38618203053572;1.24641932919481;1.11533868348378;1.36776613630042;1.25763948833417;1.22877684056609;1.05301395177648;1.08404138001204;1.05152316528209;1.0527895878794;1.00188455619342;1.2538882170434;1.21378253916809;1.14778218744144;1.45247028813061;1.00293375763188;1.24931602707978;1.17031385913021;1.26762410338922;1.22261417197726;1.26507507404318;1.20774343423285;1.1480136325491;1.01101842273457;1.42090731129722;1.365809871011;1.05528093574828;1.63240520587202;1.12738511042807;1.28806557399331;1.00785101722948;1.06691517076429;1.23028611848223;1.45475323439084;1.52713252011585;1.09556297250559;1.22012878639963;1.32656310306846;1.50697112971144;1.37049490785498;1.2425158501044;1.49523914239428;1.19885351582041;1.07668811258965;1.04287749963194;1.44717002997697;1.27765084936935;1.19605686981041;1.33924520884798;1.53136913436495;1.03097396390975;1.33173479390388;1.22754405370918;1.59753601194013;1.20210778722093;1.285616801133;1.61758586137088;1.12581281186331;1.32109898728329;1.68351745091975;1.03544683903566;1.36812947035001;1.03248161101923;1.48690937786749;1.47235897590266;1.37797740313238;1.25196710650309;1.4390262938747;1.53658802162351;1.23476061817076;1.50545540636699;1.50193201947797;1.12870324615126;1.0258954493024;1.45866672290727;1.47860899248393;1.51596431885557;1.39680053674496;1.33082283473245;1.48841777602991;1.52320973994485;1.33926408565826;1.47983988140304;1.31611212111001;1.21463560083464;1.42183358512931;1.50145303579129;1.26780486133904;1.52909639667985;1.36170348205212;1.2930557885224;1.53553385605149;1.36568781612489;1.40162499165707;1.01679207985096;1.4379803105602;1.55039204809082;1.46290600122751;1.50751226168532;1.4143571075737;1.56008495864179;1.3457115113186;1.41817340420434;1.32891129231554;1.51960142426404;1.55786858712074;1.48005928629094;1.50838221719893;1.32258429108162;1.56851651344462;1.29826524701635;1.3851830427214;1.95843071733693;1.56097993363425;1.48271952495246;1.65172468449224;1.55118899091369;1.36569553137405;1.46149954982657;1.53185382537632;1.42302114379233
+weights;RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2);RandomNormal (1);RandomNormal (2)
+W PCA;0.339836997386432;0.364436878063095;0.295726124550472;0.346171164335898;0.350416878146725;0.303411957517377;0.386137119689355;0.30450117726733;0.309361703043315;0.362123574397921;0.336777844693131;0.301098580908948;0.303120533680015;0.392076701530553;0.304802764789432;0.317198284746087;0.35355087186623;0.329250843387683;0.275500597370726;0.354618817787417;0.369880584841857;0.417093241878093;0.293615987643386;0.289290770478522;0.40109303126172;0.364700969660072;0.234205999078208;0.264087514312711;0.269703309165499;0.46620917652179;0.205672629285448;0.358764764969961;0.435562605744591;0.264161209413262;0.374250238931413;0.361588551655325;0.263569396536512;0.323659642887848;0.41277096057564;0.302709280858875;0.351067588948319;0.346223130192806;0.175396113481434;0.473220939547434;0.351382946971132;0.262216586365308;0.373912934012592;0.3638704796221;0.175760033285814;0.365670634826495;0.458569331887691;0.252952543079345;0.333368921236377;0.413678535684278;0.179679778668653;0.497093192556113;0.323227028775233;0.121410290472291;0.388221636484914;0.490368073042796;0.158198251843997;0.495782498541497;0.346019249614505;0.213376350417915;0.448365607990981;0.338258041591104;0.224565724695973;0.316838671388242;0.458595603915785;0.173585555775257;0.376992714049502;0.449421730175241;0.269830397917228;0.321238676938204;0.408930925144567;0.132658809743208;0.459695154767364;0.407646035489428;0.133095883337567;0.493825585285286;0.373078531377148;0.100091295199779;0.466376862059484;0.433531842740736;0.153735310694724;0.384876213668921;0.461388475636355;0.17649544572174;0.40284765553777;0.42065689874049;0.139699578342861;0.384276989993604;0.476023431663535;0.14594191139324;0.486802391920491;0.367255696686269;0.111995180772725;0.499247789552389;0.388757029674886;0.111084436887018;0.41406914383147;0.474846419281512;0.10679167151504;0.42629484870827;0.46691347977669;0.092833046867586;0.419812936629159;0.487354016503255;0.133660457759217;0.469182124257966;0.397157417982817;0.12464447118273;0.499135906743547;0.376219622073723;0.176031291449157;0.460092232679617;0.363876475871226;0.0836723100335257;0.408469057696795;0.50785863226968;0.0610697536885427;0.450624624247945;0.488305622063513;0.0549064823886085;0.490412580730087;0.454680936881304;0.0691364867903527;0.48015551099029;0.450708002219357;0.0791567422670639;0.462781428728366;0.45806182900457;0.0933027498136245;0.425808988974511;0.480888261211864;0.0719938146444058;0.57340857724979;0.354597608105804;0.0698092405428715;0.470997120938259;0.45919363851887;0.0951606432804472;0.315071449469717;0.589767907249836;0.0924406822226589;0.355940361070944;0.551618956706397;0.0611278881285396;0.382528311834154;0.556343800037306;0.000318427888809023;0.479767760467787;0.519913811643404;0.000667746818031895;0.535437509354468;0.4638947438275;0.00213511452900439;0.482064790128154;0.515800095342841;0.000227972426455856;0.474381213622565;0.525390813950979;0.00092902215413981;0.547675556943334;0.451395420902526;0.00494386047362481;0.482320967038283;0.512735172488092;0.0573283466707792;0.452823242203831;0.48984841112539;0.00076058573330247;0.502502046834112;0.496737367432586;0.0565493714463585;0.498115567236694;0.445335061316948;0.0658274164834829;0.459591165133958;0.474581418382559;0.000579235700763961;0.505418923820982;0.494001840478254;0.000400869406032752;0.535577270764;0.464021859829968;0.00248489644706431;0.548651553759549;0.448863549793387;0.000879821878770762;0.55780146066438;0.441318717456849;0.00322479210279103;0.478369183132591;0.518406024764618;0.00100139935155203;0.488885477286296;0.510113123362152;0.000342632831502953;0.45406237879752;0.545594988370977;0.00225178490660147;0.538508489608702;0.459239725484696;7.9261397631823E-05;0.409370894583567;0.590549844018802;0.00136119551548185;0.526258346666188;0.47238045781833;0.00266371052573375;0.394964673238637;0.60237161623563;0.000821963493073587;0.433671693759116;0.56550634274781;0.000505348356986423;0.443744797808478;0.555749853834536;0.000570439245868379;0.663668208326267;0.335761352427865;0.000287468223497934;0.506354576082885;0.493357955693617;4.54083679102708E-05;0.602656454857815;0.397298136774275;0.00243309107314659;0.515367488445703;0.48219942048115;0.000492596241685714;0.450424769701956;0.549082634056359;0.000152251374407728;0.482335681937634;0.517512066687959;0.000485330136437409;0.57559398042089;0.423920689442673;0.00115418132623752;0.494754808878372;0.50409100979539;0.00171132886228167;0.537028093684402;0.461260577453316;4.51445970318432E-06;0.421523725824035;0.578471759716262;0.000764462590524513;0.433076240635441;0.566159296774034;0.000701399630579266;0.50950177896426;0.489796821405161;0.000103357538388657;0.574253447730423;0.425643194731188;5.54740176594246E-05;0.450609235167302;0.549335290815039;5.97431994354451E-05;0.47387373189689;0.526066524903674;0.000215236432282663;0.4420691521347;0.557715611433017;0.000236092267208977;0.420962637746894;0.578801269985897;0.000710520199407089;0.494975953414532;0.504313526386061;0.000156030837794832;0.402419530113285;0.59742443904892;0.000648722434229068;0.502923174275311;0.49642810329046;0.000231607939359834;0.517190035674709;0.482578356385931;0.000237667588925525;0.455805217556232;0.543957114854843;0.000218396724180769;0.6792953598254;0.320486243450419;0.000866431814851069;0.563587403978639;0.43554616420651;0.000347653985734707;0.442921523510797;0.556730822503468;5.49447398128845E-06;0.36464662087567;0.635347884650349;0.000262856684026348;0.647074051336296;0.352663091979677;0.000155753079324564;0.362715364665013;0.637128882255662;9.73656121852687E-05;0.402443286406519;0.597459347981296;6.63005017509781E-05;0.439009577732529;0.56092412176572;0.000135639042000567;0.349005017190129;0.65085934376787;1.37638898156386E-05;0.362097652729282;0.637888583380903;9.49619127199881E-05;0.459257302079463;0.540647736007817;2.96441519638079E-06;0.454796223648626;0.545200811936178;4.2379398186452E-05;0.442811613027873;0.55714600757394;8.01069206404892E-06;0.482995957718842;0.516996031589094;0.000300004646361964;0.709568321384819;0.290131673968819;0.00021632782483685;0.558210687150573;0.44157298502459;3.92832555645609E-05;0.465412854665604;0.534547862078831;0.000103115474810057;0.541754374869165;0.458142509656025;8.4362898189616E-05;0.512100429236386;0.487815207865424;1.03389420296291E-05;0.473686742502836;0.526302918555134;0.000101158669157158;0.426324759158371;0.573574082172472;0.000295958319383191;0.522675664833578;0.477028376847039;6.67032157939165E-05;0.480361005759104;0.519572291025103;0.000102799954272293;0.367913400716535;0.631983799329192;2.20563568285002E-05;0.489966693613724;0.510011250029447;0.000135369613678396;0.558255407302869;0.441609223083453;2.36931927133253E-05;0.504649999902127;0.49532630690516;1.66460297163134E-05;0.634553183325826;0.365430170644457;0.000174327748663605;0.431958481219465;0.567867191031871;1.46244284917442E-05;0.387716067845413;0.612269307726096;2.29915733216139E-06;0.566253843713248;0.433743857129419;0.000223667978773299;0.588814467268921;0.410961864752306;5.12644408041322E-05;0.426706166598402;0.573242568960794;0.000186624620446794;0.597939317261731;0.401874058117822;3.96722648841871E-05;0.400309242447882;0.599651085287234;9.32491703836188E-06;0.476431779423199;0.523558895659763;0.000125436606513271;0.587839079894255;0.412035483499232;1.04351712038979E-05;0.463017692670713;0.536971872158083;2.01183356119079E-05;0.598927452200288;0.401052429464101;3.92434756957858E-05;0.348168539501772;0.651792217022532;2.23832589896627E-05;0.531352245905316;0.468625370835694;1.52342346783064E-05;0.417609607527956;0.582375158237365;9.65674301471767E-06;0.518847378950385;0.4811429643066;3.20418881548947E-06;0.455417038405072;0.544579757406112;1.51527544506155E-05;0.620666700716477;0.379318146529073;5.36407402446421E-05;0.460064505114701;0.539881854145054;1.70593088121268E-05;0.49863636562393;0.501346575067257;2.67497613476538E-05;0.557983950502448;0.441989299736205;4.70079750529115E-06;0.578703271615296;0.421292027587199;1.74329685042921E-05;0.4112121043453;0.588770462686196;2.48902038500499E-05;0.438211561444395;0.561763548351754;6.74583792340228E-05;0.378572784234312;0.621359757386454;1.9086070303392E-06;0.48508037097413;0.51491772041884;4.86484572500119E-06;0.492429226907195;0.50756590824708;2.48482217324665E-05;0.48941509432043;0.510560057457838;2.53040104095288E-05;0.511390011819448;0.488584684170142;1.07329728053959E-05;0.49863952379801;0.501349743229185;3.20898604172213E-06;0.45109667170817;0.548900119305789;4.58677077785145E-05;0.365976145087891;0.63397798720433;0.000101019613928602;0.450924904745294;0.548974075640777;1.59107338143425E-05;0.465704426729311;0.534279662536875;9.22473052792788E-06;0.499062473096508;0.500928302172964;1.00434858789186E-05;0.438527586545789;0.561462369968332;8.54996798792822E-05;0.459652013439655;0.540262486880466;1.9287732121526E-06;0.450122523630818;0.54987554759597;1.59296976397389E-05;0.511394806006795;0.488589264295565;9.3344452937439E-06;0.409577987695266;0.590412677859441;1.01260798694175E-05;0.514666682944902;0.485323190975228;1.85408152477123E-07;0.496443397107395;0.503556417484452;2.9830775854354E-05;0.578956787428001;0.421013381796144;2.17940622853128E-05;0.475741432036709;0.524236773901005;1.15043181324724E-05;0.537376832986528;0.462611662695339;2.05575368944262E-05;0.49365390385262;0.506325538610486;2.38057077295075E-05;0.443826419322434;0.556149774969837;4.61437207334732E-06;0.46730736913942;0.532688016488506;2.36295758873201E-06;0.472020503526817;0.527977133515595;2.97647556077857E-06;0.471626115979978;0.528370907544461;4.33844487765572E-06;0.481316436422394;0.518679225132729;1.17988177421338E-06;0.487819967734898;0.512178852383328;1.09613674133472E-05;0.451892114357515;0.548096924275072;5.95551265922681E-06;0.655899791188778;0.344094253298563;4.9349937993946E-06;0.467969082386139;0.532025982620062;1.91924003498122E-05;0.437227375613862;0.562753431985789;1.55591250857943E-07;0.41790060974198;0.58209923466677;4.5192689662323E-06;0.502118389720705;0.497877091010329;2.20811156012161E-06;0.454627639056984;0.545370152831455;5.80725006805831E-06;0.587560570505999;0.412433622243933;4.20616100310945E-06;0.481007508284391;0.518988285554605;6.64203423516965E-06;0.524229665793745;0.475763692172019;8.16010017387877E-07;0.473162580868219;0.526836603121764;3.6913754164116E-06;0.544505856883628;0.455490451740956;8.94260857890957E-07;0.540682988743519;0.459316116995624;7.83577153000247E-07;0.604161187536696;0.395838028886151;1.06138028520656E-05;0.488007363644028;0.51198202255312;9.8990263227177E-06;0.423221660031968;0.576768440941709;7.22515664661467E-07;0.475762099428078;0.524237178056258;7.73502928512853E-07;0.594941778085528;0.405057448411544;2.15036684262682E-06;0.634310639664441;0.365687209968716;1.69335216361589E-06;0.63992135666922;0.360076949978617;1.24956957389622E-06;0.507253691989521;0.492745058440905;1.921814446355E-07;0.585258635308727;0.414741172509828;3.92192157974306E-06;0.573152589767544;0.426843488310876;4.93276094702551E-06;0.506723067030513;0.49327200020854;1.02694918670772E-07;0.456854632410249;0.543145264894832;2.54234345489191E-06;0.449711925806806;0.550285531849739;6.54167879210707E-07;0.445575785267768;0.554423560564353;6.65411047514761E-07;0.532572943441293;0.467426391147659;2.77814178846265E-06;0.499526833258757;0.500470388599454;1.47495184709644E-06;0.46907144623288;0.530927078815273;5.97090320039622E-08;0.430552390403046;0.569447549887922;8.61807719070549E-08;0.522954438877251;0.477045474941977;1.77899558187256E-06;0.610212820840702;0.389785400163716;1.26288718975315E-06;0.435888160866277;0.564110576246533;9.57926823214698E-07;0.52730734862685;0.472691693446327;8.79078719236374E-08;0.519607811106354;0.480392100985774;4.12071207541927E-07;0.445575893158488;0.554423694770305;2.29257465043695E-07;0.551179635421741;0.448820135320794;1.19281796770937E-06;0.533072415216271;0.466926391965762;2.12797491176531E-06;0.455915419456487;0.544082452568601;2.43845303630792E-06;0.469675085786388;0.530322475760575;3.54282201672288E-06;0.447067407537879;0.552929049640104;1.95487924067008E-06;0.461529451653342;0.538468593467417;3.97913898213514E-06;0.418450737940401;0.581545282920616;2.20686450637925E-06;0.461627037489714;0.53837075564578;4.03283952103386E-07;0.530888357405984;0.469111239310064
+W DE (avg);0.496262667824442;0.46301730523476;0.040720026940798;0.175627984119988;0.289374042708668;0.534997973171344;0.340481921773849;0.400051798360262;0.259466279865889;0.581306960322593;0.0528095281076237;0.365883511569783;0.574246809254624;0.0587417381560564;0.36701145258932;0.285025298853992;0.343315872734237;0.371658828411771;0.379322277061375;0.249790959622806;0.370886763315819;0.494647714810846;0.0440568238299575;0.461295461359197;0.496244309835045;0.408825868342059;0.0949298218228962;0.362589447701313;0.218732272724738;0.41867827957395;0.144308032528272;0.347382896401069;0.508309071070659;0.249236662079841;0.347163236611293;0.403600101308865;0.0889820374408948;0.0451191933824574;0.865898769176648;0.174095340616399;0.39101164977297;0.434893009610632;0.0701284206354928;0.37946090654456;0.550410672819947;0.308124644188927;0.447410893576865;0.244464462234207;0.045808503377516;0.419670419584854;0.53452107703763;0.417055254664238;0.385870930024138;0.197073815311624;0.425342783150629;0.415967064165998;0.158690152683373;0.255702960799026;0.287321881402859;0.456975157798114;0.208876460804208;0.444698871307813;0.346424667887979;0.163560313181409;0.119085737827693;0.717353948990898;0.132107181637413;0.61659474289342;0.251298075469167;0.212806858347101;0.266002199947059;0.521190941705841;1.45357680105816E-07;0.672268454942388;0.327731399699932;0.203597095716366;0.362166562523583;0.434236341760051;0.0795617101535243;0.0345917564075921;0.885846533438884;0.565614626386131;0.12672939424495;0.307655979368919;0.548536200562345;0.173726028140017;0.277737771297638;0.127844438449568;0.535125739482791;0.337029822067641;0.380491344150242;0.213023894306041;0.406484761543717;0.160792249877994;0.125243620258113;0.713964129863893;0.357372483270919;0.165008101103887;0.477619415625193;0.460470118515897;0.11837607065846;0.421153810825643;0.50496357728434;0.248795774407848;0.246240648307812;0.0615827850565193;0.415935796503954;0.522481418439527;0.15147138258135;0.579254549051379;0.269274068367272;0.15581042587438;0.0429687333116055;0.801220840814014;0.105785929463997;0.724305386416544;0.169908684119459;0.00151263358540125;0.525883507792462;0.472603858622137;0.23499222138206;0.450416858685235;0.314590919932705;0.0682386761648269;0.16945960942567;0.762301714409503;0.199677016817032;0.372793300510782;0.427529682672186;0.15486927643656;0.468010874529677;0.377119849033763;0.120476339440066;0.677743918851506;0.201779741708429;0.046686065477371;0.655259001865296;0.298054932657333;0.234702652778097;0.329094613534507;0.436202733687395;0.363118477630124;0.446419376400197;0.190462145969679;0.143141646678436;0.399494588579037;0.457363764742527;0.0601317604320937;0.374114946324442;0.565753293243465;0.19652701695406;0.330933047771096;0.472539935274844;0.144138812525568;0.441650213256182;0.41421097421825;0.109573079934703;0.654767737019446;0.235659183045851;0.0104606211795932;0.169337531816914;0.820201847003493;0.00013798698267214;0.34876340173206;0.651098611285268;0.414844977772622;0.356599112375393;0.228555909851985;0.157863851823249;0.647763607011298;0.194372541165453;0.0330755295402652;0.432630568728927;0.534293901730808;0.142645718840421;0.70709399176139;0.150260289398189;0.553630435736904;0.251427304771376;0.19494225949172;0.196013187360808;0.402178354743664;0.401808457895528;0.172383339955363;0.41748850475678;0.410128155287857;0.0498291116203293;0.913573713280986;0.0365971750986851;0.133327683650528;0.585670932058772;0.2810013842907;0.405500594772368;0.302697117069269;0.291802288158363;0.299060343434946;0.234271645845399;0.466668010719655;0.106564501032403;0.836897038526213;0.0565384604413835;0.0681078405875652;0.757910434230449;0.173981725181986;0.0760556291321769;0.472706046486017;0.451238324381807;0.0697829943679952;0.705172339960621;0.225044665671384;0.198129256933565;0.472830151552559;0.329040591513876;0.115321133674025;0.623370817690765;0.261308048635211;0.44936752921095;0.478979752544589;0.0716527182444608;0.313319464490609;0.284349878740811;0.40233065676858;0.140720888055577;0.326968327134105;0.532310784810318;9.92123245113873E-07;0.787768315525075;0.21223069235168;0.165307574602094;0.0110448888500707;0.823647536547836;0.333844257389844;0.504970474428643;0.161185268181513;0.0983175595317767;0.243169144924159;0.658513295544064;0.228834684490423;0.310182733980037;0.46098258152954;0.0199722376784645;0.427768356414517;0.552259405907019;0.26580759476846;0.306916949184958;0.427275456046582;0.0989062986936197;0.517224801469691;0.38386889983669;0.021884458036367;0.23903610170936;0.739079440254273;0.0934248663368165;0.553979996369637;0.352595137293547;0.473618243530013;0.13790855677864;0.388473199691347;0.00702728134616368;0.081895758072363;0.911076960581473;0.0577745361572965;0.822642989761175;0.119582474081528;0.048274589697105;0.603972942389765;0.34775246791313;2.34532301454664E-06;0.510055372017966;0.48994228265902;0.0249416349439523;0.425636574872858;0.54942179018319;0.218480134258309;0.559368637502252;0.222151228239438;0.129500237232642;0.696233825712487;0.174265937054871;0.389593059673297;0.300332374827124;0.310074565499579;0.342694503368344;0.357930460334481;0.299375036297175;0.238703428792874;0.570372724618813;0.190923846588313;0.511891276999681;0.203438390353386;0.284670332646934;0.103444363970986;0.347460026458633;0.549095609570381;0.00557052960241148;0.756666686468503;0.237762783929086;1.67019112907861E-06;0.539773664579957;0.460224665228914;3.77887473164355E-07;0.639817766748508;0.360181855364018;0.260451483044332;0.529330147471833;0.210218369483835;0.000478914079216246;0.425679561994153;0.57384152392663;1.95806399184548E-07;0.472781901080783;0.527217903112818;0.164167675280656;0.428475593875505;0.407356730843839;0.243391744435317;0.366340982755971;0.390267272808712;0.267848870460675;0.0995400188517637;0.632611110687561;0.301903692532749;0.270148121615553;0.427948185851697;0.174740201824067;0.34633731570397;0.478922482471963;0.379109451157286;0.280541982514963;0.340348566327751;0.165583792195137;0.350055926612496;0.484360281192367;2.81291209082178E-06;0.618208754939456;0.381788432148454;5.21226335083955E-07;0.5902500297349;0.409749449038765;3.3708546294644E-06;0.324979796885429;0.675016832259941;0.283832482513443;0.355596898978449;0.360570618508108;0.0267814479472149;0.814046725658791;0.159171826393994;0.0703224302778514;0.858141531924633;0.0715360377975155;2.55306661811367E-06;0.682187670955392;0.31780977597799;7.17789099583577E-08;0.630181922141435;0.369818006079655;0.117594823288428;0.334669244249946;0.547735932461626;0.199953782018907;0.336280611415563;0.46376560656553;0.0489102662058853;0.482097951277235;0.468991782516879;0.362351510471667;0.555773995858455;0.0818744936698782;2.48386575708674E-07;0.517532014974984;0.48246773663844;8.61672814303013E-08;0.872564622731222;0.127435291101496;0.00322559173867344;0.337546188209958;0.659228220051369;5.84329204564962E-06;0.201401626016252;0.798592530691702;0.0171437464207911;0.108930350457423;0.873925903121786;0.0717405436618054;0.864360705463726;0.0638987508744681;0.287659703307462;0.370663983259891;0.341676313432647;0.314548517574749;0.112796270636444;0.572655211788807;2.39297400514851E-06;0.712016973308533;0.287980633717462;3.90794478586122E-07;0.40448383310417;0.595515776101351;1.58932811383173E-07;0.864592542628445;0.135407298438744;0.310388941024826;0.138873475747862;0.550737583227312;7.54137318873242E-07;0.225807734434102;0.774191511428579;1.38318404531196E-06;0.80059132165826;0.199407295157694;3.40397542712027E-07;0.125003304185522;0.874996355416935;6.83774597430532E-06;0.485687019240653;0.514306143013373;8.85256049470158E-05;0.706639067365467;0.293272407029586;6.53006599185566E-07;0.43163511668873;0.568364230304671;1.76855455963544E-06;0.424171479636622;0.575826751808818;4.52981824095998E-06;0.385968253740903;0.614027216440856;0.345554932447962;0.534881006626534;0.119564060925504;4.85381499814114E-07;0.658551303996022;0.341448210622478;9.50900904369332E-07;0.0912167266374637;0.908782322461632;2.95887789162838E-06;0.626420588270215;0.373576452851894;1.22679803556393E-06;0.158170902078371;0.841827871123593;3.29287662360993E-07;0.68043022235327;0.319569448359068;0.459950761379718;0.279041055325237;0.261008183295045;2.1499493243411E-07;0.127576786981793;0.872422998023275;2.41542441776575E-07;0.424169472504451;0.575830285953107;7.47265560051491E-07;0.0498696813747353;0.950129571359705;8.309341316118E-07;0.783804047849456;0.216195121216412;1.88479087438854E-06;0.758796835475103;0.241201279734022;3.74318315916726E-07;0.127120631362634;0.87287899431905;4.51142768949659E-06;0.979661302364773;0.0203341862075378;2.75915805640743E-06;0.708593738621646;0.291403502220298;1.05364264511544E-06;0.678496463476042;0.321502482881313;0.280040736753542;0.248715022501261;0.471244240745197;6.40100265788207E-08;0.127576098963447;0.872423837026526;0.137988421791772;0.590566180598397;0.271445397609831;3.43194447356048E-07;0.573043910791894;0.426955746013659;7.57555925583906E-07;0.586091930841726;0.413907311602348;2.48185789942528E-07;0.723508605343789;0.276491146470421;2.21561450527784E-07;0.502222282847221;0.497777495591328;1.86791056502085E-06;0.291497262337419;0.708500869752016;4.4139636922E-08;0.748233758789292;0.251766197071071;8.02879323839903E-07;0.531024300734759;0.468974896385917;4.52015011861851E-07;0.704656530311929;0.295343017673059;1.32397580619748E-06;0.346795454347311;0.653203221676882;1.26579504210606E-06;0.837928054545644;0.162070679659314;0.354002808798728;0.46096673382065;0.185030457380622;5.14197776686649E-08;0.452928410217642;0.547071538362581;1.12948886126142E-06;0.290207667664673;0.709791202846466;1.0817137504857E-07;0.199097488396429;0.800902403432196;3.61145440167245E-06;0.399598856661215;0.600397531884383;2.08134277065885E-06;0.238901107210161;0.761096811447068;2.79974640043655E-07;0.390059187788793;0.609940532236567;4.35826538576145E-07;0.603519537802145;0.396480026371316;2.08602256324323E-07;0.51808290369918;0.481916887698564;1.26498538526346E-07;0.409317528463822;0.59068234503764;6.00258164548183E-06;0.563346224412494;0.436647773005861;4.27109280216581E-07;0.682366868097563;0.317632704793157;2.43117037842542E-07;0.206165426841078;0.793834330041884;1.51979410824572E-06;0.667310919873319;0.332687560332573;2.2956208395724E-06;0.787227884916452;0.212769819462708;5.1223143253554E-08;0.923141446661825;0.0768585021150321;2.69582881275747E-07;0.0866818434000789;0.91331788701704;1.62157137038429E-07;0.27187900685093;0.728120830991933;5.05286951686351E-07;0.247870915591388;0.75212857912166;5.88648326132772E-07;0.510459293524183;0.489540117827491;1.03536386576812E-06;0.646839119297429;0.353159845338705;0.355944426698957;0.547719075498762;0.0963364978022817;1.05346450269154E-07;0.468912232989097;0.531087661664452;3.60094950679057E-07;0.590687651228333;0.409311988676717;1.45833131527587E-07;0.287608097325319;0.712391756841549;1.34073854228357E-07;0.217019370396257;0.782980495529889;2.41385061627031E-07;0.397391658627441;0.602608099987498;4.81837338226154E-07;0.643700675223468;0.356298842939194;4.32740072102812E-07;0.338509588274502;0.661489978985426;1.75172002782176E-06;0.235042496366884;0.764955751913088;2.82270261909257E-07;0.537059430253797;0.462940287475941;2.89882438460906E-07;0.147096889659253;0.852902820458308;3.88203625227998E-07;0.95345028584202;0.0465493259543552;6.93581754244864E-07;0.197896922225386;0.80210238419286;3.2905950787466E-07;0.727334971430287;0.272664699510205;1.66636657309863E-07;0.0203233326834185;0.979676500679924;8.63657002331927E-07;0.777521966518857;0.222477169824141;3.81772061458719E-07;0.148807318829918;0.851192299398021;6.07889095207459E-07;0.338509837129846;0.661489554981059;3.68738372746739E-07;0.941761184019026;0.0582384472426011;3.50947256120077E-07;0.301025278044172;0.698974371008572;6.41763683100532E-07;0.72280082083514;0.277198537401177;1.47964884392123E-06;0.756058816729863;0.243939703621293;9.45047147911604E-08;0.682324816054288;0.317675089440997;4.3728217673295E-07;0.55692232883288;0.443077233884944;7.12120921084897E-08;0.398934508389608;0.6010654203983;4.52388621989863E-07;0.170236007252382;0.829763540358996;2.56280768713667E-07;0.396913339932255;0.603086403786977
