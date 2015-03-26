@@ -44,6 +44,8 @@ namespace MouseAnalyzer.Statistics
             }
             else
             {
+                // extra for print
+                // var icc = SmoothCatmullClark( input, startFrom, 8, 0.0001 );
                 return SmoothSpline( input, startFrom );
             }
         }
@@ -178,6 +180,11 @@ namespace MouseAnalyzer.Statistics
             var ys = skipped.Select( i => (double)i.Y ).ToList();
             var ts = skipped.Select( i => i.Time ).ToList();
 
+            // extra for print
+            // var oxs = xs;
+            // var oys = ys;
+            // var ots = ts;
+
             var ps = new List<double>();
             for( var i = 0; i < count; i++ )
             {
@@ -209,6 +216,33 @@ namespace MouseAnalyzer.Statistics
                 ys.Add( yspline.Evaluate( point ) );
                 ts.Add( tspline.Evaluate( point ) );
             }
+
+            // extra for print
+            /*
+            samplesPerPoint = 10;
+            var pxs = new List<double>();
+            var pys = new List<double>();
+            var pts = new List<double>();
+
+            pxs.Add( xspline.Evaluate( ps[0] ) );
+            pys.Add( yspline.Evaluate( ps[0] ) );
+            pts.Add( tspline.Evaluate( ps[0] ) );
+            for( var i = 1; i < count; i++ )
+            {
+                var pointWidth = ps[i] - ps[i-1];
+                for( int s = 1; s < samplesPerPoint; s++ )
+                {
+                    var samplepoint = ps[i-1] + ((double)s) * pointWidth / (double)samplesPerPoint;
+                    pxs.Add( xspline.Evaluate( samplepoint ) );
+                    pys.Add( yspline.Evaluate( samplepoint ) );
+                    pts.Add( tspline.Evaluate( samplepoint ) );
+                }
+                var point = ps[i];
+                pxs.Add( xspline.Evaluate( point ) );
+                pys.Add( yspline.Evaluate( point ) );
+                pts.Add( tspline.Evaluate( point ) );
+            }
+            */
 
             List<double> dxs = new List<double>() { 0.0 };
             List<double> dys = new List<double>() { 0.0 };

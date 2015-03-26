@@ -23,7 +23,7 @@ namespace MouseAnalyzer.Experiment
             {
                 for( var probeAttempt = 0; probeAttempt < probeAttempts; probeAttempt++ )
                 {
-                    probes.Add( new Lookup.ProbeEntity( entity, DataSource.SourceType.API, entity.Events ) );
+                    probes.Add( new Lookup.ProbeEntity( entity, DataSource.EnvironmentType.ControlledPlain, DataSource.SourceType.API, entity.Events ) );
                 }
             }
 

@@ -13,73 +13,169 @@ namespace MouseAnalyzer.Experiment
 
         #region IExperiment Members
 
+        private bool CFG_USE_DEER_INSTEAD_OF_EER = true;
+
         const double CFG_EER_MID_WEIGHT = 1e-3;
-        private string DESCRIPTION_STRING;
-        private string DESCRIPTION_FILE;
+        private string TRAIN_DESCRIPTION_STRING;
+        private string TEST_DESCRIPTION_STRING;
+        private string TEMPLATE_FILE;
+
+        private bool __CFG_TRAIN = false;
+        private bool __CFG_DEVELOPMENT = false;
+        private bool __CFG_TEST = false;
+
+        public S_FARExperiment( bool train, bool development, bool test )
+        {
+            if( !train && !development && !test )
+            {
+                throw new Exception();
+            }
+            __CFG_TRAIN = train;
+            __CFG_DEVELOPMENT = development;
+            __CFG_TEST = test;
+        }
 
         public void Perform( string outputFileNameHint = "" )
         {
-            var CFG_TRAIN = true;
-            var CFG_TEST = !CFG_TRAIN;
+            var CFG_TRAIN = __CFG_TRAIN;
+            var CFG_DEVELOPMENT = CFG_TRAIN && __CFG_DEVELOPMENT;
+            var CFG_TEST = __CFG_TEST && !CFG_TRAIN && !CFG_DEVELOPMENT;
 
-            var CFG_ENV = DataSource.EnvironmentType.ControlledAccelerated;
-            var CFG_SOURCE = DataSource.SourceType.DRV;
-            var CFG_RANDOM = false;
+            var CFG_TRAIN_ENV = DataSource.EnvironmentType.ControlledAccelerated;
+            var CFG_TRAIN_SOURCE = DataSource.SourceType.API;
+            var CFG_TEST_ENV = DataSource.EnvironmentType.Uncontrolled;
+            var CFG_TEST_SOURCE = DataSource.SourceType.API;
+
+            var CFG_RANDOM = true;
             var CFG_SFFS = true;
             var CFG_SFFS_K = 15;
             var CFG_BAYESES = false;
             var CFG_SAMPLES_PER_ENTITY = 1; // 3;
-            var CFG_ITEMS_PER_SAMPLE = 50; // 9;
-            var CFG_END_STROKE_GAP = 32;
+            var CFG_ITEMS_PER_SAMPLE = 60; // 9;
+            var CFG_STROKE_KIND = StrokeFeatureItem.ItemType.MoveEnded;
+            var CFG_END_STROKE_GAP = 1000;
+            var CFG_FILTEREDENTITIES = false;
 
             var CFG_EER = !CFG_BAYESES;
-            var CFG_RELTARGET = CFG_BAYESES ? 1E-24 : 1E-12;
-            var CFG_ABSTARGET = CFG_BAYESES ? 1E-24 : 1E-12;
+            var CFG_RELTARGET = CFG_BAYESES ? 1E-6 : 1E-6;
+            var CFG_ABSTARGET = CFG_BAYESES ? 1E-6 : 1E-6;
+            var CFG_TRACK = CFG_TRAIN && !CFG_DEVELOPMENT;
+            int[] CFG_TRAIN_LENGTHS = { CFG_ITEMS_PER_SAMPLE };
+            int[] CFG_DEVELOPMENT_LENGTHS = { 1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
 
-            DESCRIPTION_STRING =
-                ( CFG_SFFS ? "SFFS-3m" : "SFS" ) + " " + ( CFG_BAYESES ? "BAYESES " : "EER" ) +
-                ", samples/entity: " + CFG_SAMPLES_PER_ENTITY.ToString() +
-                ", items/sample: " + CFG_ITEMS_PER_SAMPLE.ToString() + 
-                ", random: " + CFG_RANDOM.ToString() + 
-                ", env: " + CFG_ENV.ToString() + 
-                ", source: " + CFG_SOURCE.ToString() + 
-                ", endgap: " + CFG_END_STROKE_GAP.ToString(); // ", without L/M/H",
+            TRAIN_DESCRIPTION_STRING =
+                ( CFG_SFFS ? "SFFS-3m" : "SFS" ) + " " + ( CFG_BAYESES ? "BAYESES " : ( CFG_USE_DEER_INSTEAD_OF_EER ? "dEER" : "EER/p" ) ) +
+                ", filtered entities: " + CFG_FILTEREDENTITIES.ToString() +
+                "; samples/entity: " + CFG_SAMPLES_PER_ENTITY.ToString() +
+                ", items/sample: " + ( CFG_DEVELOPMENT ? "n\a" : CFG_ITEMS_PER_SAMPLE.ToString() ) + 
+                "; random: " + CFG_RANDOM.ToString() + 
+                ", env: " + CFG_TRAIN_ENV.ToString() + 
+                ", source: " + CFG_TRAIN_SOURCE.ToString() +
+                "; kind: " + CFG_STROKE_KIND.ToString() +
+                ", feat/lmh: " + StrokeFeatureDefinition.MarkerDefinition.LMH.ToString() +
+                ", feat/sims: " + StrokeFeatureDefinition.MarkerDefinition.SIMILARS.ToString() +
+                ", endgap: " + CFG_END_STROKE_GAP.ToString() +
+                ", abstargetlog: " + (-(int)Math.Log10( CFG_ABSTARGET )).ToString(); // ", without L/M/H",
 
-            DESCRIPTION_FILE =
-                ( CFG_SFFS ? "SFFS(" : "SFS(" ) + ( CFG_BAYESES ? "B" : "E" ) +
+            TEST_DESCRIPTION_STRING =
+                ( CFG_SFFS ? "SFFS-3m" : "SFS" ) + " " + ( CFG_BAYESES ? "BAYESES " : ( CFG_USE_DEER_INSTEAD_OF_EER ? "dEER" : "EER/p" ) ) +
+                ", filtered entities: " + CFG_FILTEREDENTITIES.ToString() +
+                "; samples/entity: " + CFG_SAMPLES_PER_ENTITY.ToString() +
+                ", items/sample: " + ( CFG_DEVELOPMENT ? "n\a" : CFG_ITEMS_PER_SAMPLE.ToString() ) + 
+                "; random: " + CFG_RANDOM.ToString() + 
+                ", env: " + CFG_TEST_ENV.ToString() + 
+                ", source: " + CFG_TEST_SOURCE.ToString() +
+                "; kind: " + CFG_STROKE_KIND.ToString() +
+                ", feat/lmh: " + StrokeFeatureDefinition.MarkerDefinition.LMH.ToString() +
+                ", feat/sims: " + StrokeFeatureDefinition.MarkerDefinition.SIMILARS.ToString() +
+                ", endgap: " + CFG_END_STROKE_GAP.ToString() +
+                ", abstargetlog: " + (-(int)Math.Log10( CFG_ABSTARGET )).ToString(); // ", without L/M/H",
+
+            TEMPLATE_FILE =
+                ( CFG_SFFS ? "SFFS(" : "SFS(" ) + ( CFG_BAYESES ? "B" : ( CFG_USE_DEER_INSTEAD_OF_EER ? "D" : "E" ) ) +
+                ")-FE(" + CFG_FILTEREDENTITIES.ToString() +
                 ")-SE(" + CFG_SAMPLES_PER_ENTITY.ToString() +
                 ")-IE(" + CFG_ITEMS_PER_SAMPLE.ToString() + 
                 ")-R(" + (CFG_RANDOM ? "1" : "0") + 
-                ")-E(" + CFG_ENV.ToString() + 
-                ")-S(" + CFG_SOURCE.ToString() + 
+                ")-E(" + CFG_TRAIN_ENV.ToString() + 
+                ")-S(" + CFG_TRAIN_SOURCE.ToString() + 
+                ")-K(" + CFG_STROKE_KIND.ToString() +
+                ")-FL(" + (StrokeFeatureDefinition.MarkerDefinition.LMH ? "1" : "0") +
+                ")-FS(" + (StrokeFeatureDefinition.MarkerDefinition.SIMILARS ? "1" : "0") +
                 ")-G(" + CFG_END_STROKE_GAP.ToString() +
+                ")-T(" + (-(int)Math.Log10( CFG_ABSTARGET )).ToString() +
                 ")"; // ", without L/M/H",
 
             var dumper = new CSVDumper();
             
-            var entities = DataSources.Get( CFG_ENV, CFG_SOURCE );
-            entities.Sort( ( e1, e2 ) => e1.Id.CompareTo( e2.Id ) );
+            var allTrainEntities = DataSources.Get( CFG_TRAIN_ENV, CFG_TRAIN_SOURCE );
 
-            // probing needs separate entities
-            var probeEntities = new List<Lookup.ProbeEntity>();
-            foreach( var entity in entities )
+            List<Entity> allTestEntities = null;
+            if( CFG_TEST )
             {
-                probeEntities.Add( new Lookup.ProbeEntity( entity, DataSource.SourceType.API, entity.Events ) );
+                allTestEntities = DataSources.Get( CFG_TEST_ENV, CFG_TEST_SOURCE );
             }
 
+            // !! filter
+            var trainEntities = CFG_FILTEREDENTITIES ? allTrainEntities.Where( e =>
+                e.Id.StartsWith( "ElK" ) ||
+                e.Id.StartsWith( "MaZ" ) ||
+                e.Id.StartsWith( "MiB" ) ||
+                e.Id.StartsWith( "MiH" ) ||
+                e.Id.StartsWith( "PeK" ) ||
+                e.Id.StartsWith( "RuD" ) ||
+                e.Id.StartsWith( "ZdV" )
+            ).ToList() : allTrainEntities;
+            trainEntities.Sort( ( e1, e2 ) => e1.Id.CompareTo( e2.Id ) );
+
+            var eventsCount = trainEntities.Select( e => e.Events.Count ).Sum();
+
+            // probing needs separate entities
+            var tuneProbeEntities = new List<Lookup.ProbeEntity>();
+            foreach( var entity in trainEntities )
+            {
+                tuneProbeEntities.Add( new Lookup.ProbeEntity( entity, entity.OfEnvironment, entity.Source, entity.Events ) );
+            }
+
+            List<Entity> testEntities = null;
+            List<Lookup.ProbeEntity> testProbeEntities = null;
+            if( CFG_TEST )
+            {
+                testEntities = CFG_FILTEREDENTITIES ? allTestEntities.Where( e =>
+                    e.Id.StartsWith( "ElK" ) ||
+                    e.Id.StartsWith( "MaZ" ) ||
+                    e.Id.StartsWith( "MiB" ) ||
+                    e.Id.StartsWith( "MiH" ) ||
+                    e.Id.StartsWith( "PeK" ) ||
+                    e.Id.StartsWith( "RuD" ) ||
+                    e.Id.StartsWith( "ZdV" )
+                ).ToList() : allTestEntities;
+                testEntities.Sort( ( e1, e2 ) => e1.Id.CompareTo( e2.Id ) );
+
+                // probing needs separate entities
+                testProbeEntities = new List<Lookup.ProbeEntity>();
+                foreach( var entity in testEntities )
+                {
+                    var ofEntity = trainEntities.Where( te => te.Id.Substring( 0, 3 ) == entity.Id.Substring( 0, 3 ) ).FirstOrDefault();
+                    if( ofEntity != null )
+                    {
+                        testProbeEntities.Add( new Lookup.ProbeEntity( ofEntity, entity.OfEnvironment, entity.Source, entity.Events ) );
+                    }
+                }
+            }
+
+            var probeEntities = CFG_TEST ? testProbeEntities : tuneProbeEntities;
             var farSplit = new SplitDefinition()
             {
                 Fractions = 2,
                 Fraction = 2
             };
-            var farAnalyzer = new Analysis.StrokePopulationAnalysis( CFG_END_STROKE_GAP );
+            var farAnalyzer = new Analysis.StrokePopulationAnalysis( CFG_STROKE_KIND, CFG_END_STROKE_GAP );
             farAnalyzer.Analyze( probeEntities, farSplit, true );
 
             // create markers from first probe
             var distributionMarkers = probeEntities.First().Markers.Where( m1 => m1 is IDistributionMarker && !m1.Name.StartsWith( "h" ) ).Select( m2 => (IDistributionMarker)m2 );
-
-            // test input data
-            var entitiesTrained = new List<Tuple<Entity, Features.Markers>>();
+            var dcount = distributionMarkers.Count();
 
             // training pass
             if( CFG_TRAIN )
@@ -90,33 +186,36 @@ namespace MouseAnalyzer.Experiment
                     Fractions = 2,
                     Fraction = 1
                 };
-                var trainingAnalyzer = new Analysis.StrokePopulationAnalysis( CFG_END_STROKE_GAP );
-                trainingAnalyzer.Analyze( entities, trainingSplit );
+                var trainingAnalyzer = new Analysis.StrokePopulationAnalysis( CFG_STROKE_KIND, CFG_END_STROKE_GAP );
+                trainingAnalyzer.Analyze( trainEntities, trainingSplit );
 
                 // try to determine best markers for each entity
-                var results = new List<Tuple<Entity, Features.Markers, IList<EERProgress>>>();
+                var results = new List<Tuple<Entity, Features.Markers, Tuple<int, List<EERProgress>>>>();
                 var selectionRepeatCount = 1;
                 for( var s = 0; s < selectionRepeatCount; s++ )
                 {
-                    foreach( var entity in entities ) // .Where( e => e.Id == "HoMcp" ))
+                    foreach( var entity in trainEntities ) // .Where( e => e.Id == "MaZca" || e.Id == "MiBca" ))
                     {
-                        Executor.Queue( () =>
+                        foreach( var itemsPerSample in CFG_DEVELOPMENT ? CFG_DEVELOPMENT_LENGTHS : CFG_TRAIN_LENGTHS )
                         {
-                            var markers = new Features.Markers();
-                            markers.AddMarkers( distributionMarkers );
-
-                            var result = new Tuple<Entity, Features.Markers, IList<EERProgress>>
-                            (
-                                entity,
-                                markers,
-                                SelectMarkers( CFG_RANDOM, CFG_SFFS, CFG_SFFS_K, CFG_BAYESES, CFG_EER, markers, entity, probeEntities, CFG_SAMPLES_PER_ENTITY, CFG_ITEMS_PER_SAMPLE, CFG_ABSTARGET, CFG_RELTARGET ) // probeEntities.Where( p => p.Related == entity ).First() )
-                            );
-
-                            lock( results )
+                            Executor.Queue( () =>
                             {
-                                results.Add( result );
-                            }
-                        } );
+                                var markers = new Features.Markers();
+                                markers.AddMarkers( distributionMarkers );
+
+                                var result = new Tuple<Entity, Features.Markers, Tuple<int, List<EERProgress>>>
+                                (
+                                    entity,
+                                    markers,
+                                    SelectMarkers( CFG_RANDOM, CFG_SFFS, CFG_SFFS_K, CFG_BAYESES, CFG_EER, markers, entity, tuneProbeEntities, CFG_STROKE_KIND, CFG_SAMPLES_PER_ENTITY, itemsPerSample, CFG_ABSTARGET, CFG_RELTARGET ) // tuneProbeEntities.Where( p => p.Related == entity ).First() )
+                                );
+
+                                lock( results )
+                                {
+                                    results.Add( result );
+                                }
+                            } );
+                        }
                     }
                 }
                 Executor.Complete();
@@ -125,7 +224,7 @@ namespace MouseAnalyzer.Experiment
                 // prepare grabbing and remembering of best markers
                 Dictionary<Entity, Features.Markers> sumMarkers = new Dictionary<Entity, Features.Markers>();
                 Dictionary<Entity, Features.Markers> bestMarkers = new Dictionary<Entity, Features.Markers>();
-                foreach( var entity in entities )
+                foreach( var entity in trainEntities )
                 {
                     var markers = new Features.Markers();
                     markers.AddMarkers( distributionMarkers );
@@ -140,16 +239,17 @@ namespace MouseAnalyzer.Experiment
                     sumMarkers[result.Item1].Or( result.Item2 );
                 }
 
-                var CFGDUMP_DEVELOPMENT = true;
-                var CFGDUMP_DETAILS = true;
-                var CFGDUMP_DETAILS_BAYESES = true && CFG_BAYESES;
-                var CFGDUMP_DETAILS_EER = true && !CFG_BAYESES;
-                var CFGDUMP_DETAILS_MATRIX = true;
-                var CFGDUMP_DETAILS_GROUP = true;
-                var CFGDUMP_ONLY_USED = false;
+                var CFGDUMP_DEVELOPMENT = !CFG_DEVELOPMENT;
+                var CFGDUMP_DETAILS = !CFG_DEVELOPMENT;
+                var CFGDUMP_DETAILS_BAYESES = CFG_BAYESES;
+                var CFGDUMP_DETAILS_EER = !CFG_BAYESES;
+                var CFGDUMP_DETAILS_MATRIX = !CFG_DEVELOPMENT;
+                var CFGDUMP_DETAILS_GROUP = !CFG_DEVELOPMENT;
+                var CFGDUMP_ONLY_USED = CFG_DEVELOPMENT;
+                var CFGDUMP_SETSCOMPARISON = CFG_DEVELOPMENT;
 
                 dumper.AddContent(
-                    "TRAIN " + DESCRIPTION_STRING,
+                    ( CFG_DEVELOPMENT ? "DEVELOPMENT " : "TRAIN " ) + TRAIN_DESCRIPTION_STRING,
                     d =>
                     {
                         if( CFGDUMP_DEVELOPMENT )
@@ -157,9 +257,9 @@ namespace MouseAnalyzer.Experiment
                             d.Cell( "development" );
                             foreach( var result in results )
                             {
-                                d.CellsE( result.Item1.Id + ".name", false, result.Item3.Select( r => (object)( r.name + (result.Item2.IsActive( r.index ) ? "*" : "") ) ) );
-                                d.CellsE( result.Item1.Id + ".eer", false, result.Item3.Select( r => r.eer == null ? "n/a" : r.eer.Item2.ToString( "G5" ) ) );
-                                d.CellsE( result.Item1.Id + ".pby", false, result.Item3.Select( r => r.p.ToString( "G5" ) ) );
+                                d.CellsE( result.Item1.Id + ".name", false, result.Item3.Item2.Select( r => (object)( r.name + (result.Item2.IsActive( r.index ) ? "*" : "") ) ) );
+                                d.CellsE( result.Item1.Id + ".eer", false, result.Item3.Item2.Select( r => r.eer == null ? "n/a" : r.eer.Item2.ToString( "G5" ) ) );
+                                d.CellsE( result.Item1.Id + ".pby", false, result.Item3.Item2.Select( r => r.p.ToString( "G5" ) ) );
                             }
                         }
 
@@ -174,11 +274,11 @@ namespace MouseAnalyzer.Experiment
                                 IList<EERProgress> dumped;
                                 if( CFGDUMP_ONLY_USED )
                                 {
-                                    dumped = result.Item3.Where( i => result.Item2.IsActive( i.index ) && i.name.StartsWith( "+" ) ).ToList();
+                                    dumped = result.Item3.Item2.Where( i => result.Item2.IsActive( i.index ) && i.name.StartsWith( "+" ) ).ToList();
                                 }
                                 else
                                 {
-                                    dumped = result.Item3;
+                                    dumped = result.Item3.Item2;
                                 }
 
                                 if( !CFGDUMP_DETAILS_GROUP || result.Item1.Id != previousId )
@@ -191,11 +291,13 @@ namespace MouseAnalyzer.Experiment
                                     columns = new List<IEnumerable<object>>();
 
                                     d.Cell( "" );
-                                    d.Cell( result.Item1.Id + " detail" );
+                                    d.Cell( result.Item1.Id + " detail, iterations = " + result.Item3.Item1.ToString() );
                                 }
 
                                 headers.Add( "ord *****" );
                                 columns.Add( dumped.Select( i => (object)i.order ) );
+                                headers.Add( "steps" );
+                                columns.Add( dumped.Select( i => (object)i.step ) );
                                 headers.Add( "marker" );
                                 columns.Add( dumped.Select( i => i.name + (result.Item2.IsActive( i.index ) ? "*" : "") ) );
                                 headers.Add( "markerX" );
@@ -229,7 +331,7 @@ namespace MouseAnalyzer.Experiment
                                         headers.Add( i.ToString( "D2" ) + ".bayeses p" );
                                         headers.Add( "-" );
                                         columns.Add( resultItem.bayeses.Select( b => b.Item1.Id ) );
-                                        columns.Add( resultItem.samples.Where( p => p.Item3 == 0 ).SelectMany( p => p.Item2 ).Take( entities.Count ).Select( fi =>
+                                        columns.Add( resultItem.samples.Where( p => p.Item3 == 0 ).SelectMany( p => p.Item2 ).Take( trainEntities.Count ).Select( fi =>
                                         {
                                             return ( (StrokeFeatureItem)fi ).AllValues( strokeMarkerName );
                                         } ) );
@@ -294,33 +396,73 @@ namespace MouseAnalyzer.Experiment
                                 d.Columns( headers, columns );
                             }
                         }
+
+                        if( CFGDUMP_SETSCOMPARISON )
+                        {
+                            List<string> headers = null;
+                            List<IEnumerable<object>> columns = null;
+
+                            foreach( var entity in trainEntities )
+                            {
+                                headers = new List<string>();
+                                columns = new List<IEnumerable<object>>();
+                                var usedMarkers = sumMarkers[entity].Names.Where( n => sumMarkers[entity].IsActive( n ) );
+
+                                d.Cell( "" );
+                                d.Cell( entity.Id + " feature sets development" );
+
+                                headers.Add( "all" );
+                                columns.Add( usedMarkers );
+
+                                var ofentityResults = results.Where( r => r.Item1 == entity ).OrderBy( r => r.Item3.Item2.First().itemsPerSample );
+                                foreach( var result in ofentityResults )
+                                {
+                                    headers.Add( result.Item3.Item2.First().itemsPerSample.ToString() );
+                                    columns.Add( usedMarkers.Select( n => result.Item2.IsActive( n ) ? "1" : "0" ) );
+                                }
+
+                                d.Columns( headers, columns );
+                            }
+                        }
                     } );
 
                 // store values
-                foreach( var entity in entities )
+                if( CFG_TRACK )
                 {
-                    entitiesTrained.Add( new Tuple<Entity, Features.Markers>( entity, bestMarkers[entity] ) );
+                    var templates = new List<Tuple<Entity, Features.Markers>>();
+                    foreach( var entity in trainEntities )
+                    {
+                        templates.Add( new Tuple<Entity, Features.Markers>( entity, bestMarkers[entity] ) );
+                    }
+                    Serialize( "Markers-" + TEMPLATE_FILE + ".txt", templates );
                 }
-                Serialize( "Markers-" + DESCRIPTION_FILE + ".txt", entitiesTrained );
             }
 
             if( CFG_TEST )
             {
-                var CFG_TEST_REPEATSPERENTITY = 10;
+                // var CFG_TEST_STROKE_KIND = StrokeFeatureItem.ItemType.MoveEnded;
+                var CFG_TEST_STROKE_KIND = CFG_STROKE_KIND;
+                var CFG_TEST_REPEATSPERENTITY = 100;
                 var CFG_TEST_SAMPLESPERENTITYUPTO = 1;
                 var CFG_TEST_ITEMSPERSAMPLEUPTO = 200;
+                var CFG_TEST_RANDOM = true;
 
-                foreach( var entity in entities )
+                // to load features from the disk
+                var templates = new List<Tuple<Entity, Features.Markers>>();
+
+                foreach( var entity in trainEntities )
                 {
                     var markers = new Features.Markers();
                     markers.AddMarkers( distributionMarkers );
-                    entitiesTrained.Add( new Tuple<Entity, Features.Markers>( entity, markers ) );
+                    templates.Add( new Tuple<Entity, Features.Markers>( entity, markers ) );
                 }
-                Deserialize( "Markers-" + DESCRIPTION_FILE + ".txt", ref entitiesTrained );
+                Deserialize( "Markers-" + TEMPLATE_FILE + ".txt", ref templates );
 
-                var testResults = Test( entitiesTrained, probeEntities, CFG_TEST_REPEATSPERENTITY, CFG_TEST_SAMPLESPERENTITYUPTO, CFG_TEST_ITEMSPERSAMPLEUPTO );
+                var testResults = Test( templates, testProbeEntities, CFG_TEST_RANDOM, CFG_TEST_STROKE_KIND, CFG_TEST_REPEATSPERENTITY, CFG_TEST_SAMPLESPERENTITYUPTO, CFG_TEST_ITEMSPERSAMPLEUPTO );
 
-                dumper.AddContent( "TEST, TEMPLATE SET: " + DESCRIPTION_STRING + ", TEST SET:" + DESCRIPTION_STRING,
+                dumper.AddContent( "TEST, TEMPLATE SET: " + TRAIN_DESCRIPTION_STRING + ", TEST SET: " + TEST_DESCRIPTION_STRING + ", TEST PAR: " +
+                                   "R/E = " + CFG_TEST_REPEATSPERENTITY.ToString() +
+                                   ", RND = " + CFG_TEST_RANDOM.ToString(),
                     d =>
                     {
                         d.Cell( "i/s development overall" );
@@ -355,7 +497,7 @@ namespace MouseAnalyzer.Experiment
                         headers = new List<string>();
                         columns = new List<IEnumerable<object>>();
 
-                        foreach( var entity in entities )
+                        foreach( var entity in testEntities )
                         {
                             for( var i = 1; i <= CFG_TEST_SAMPLESPERENTITYUPTO; i++ )
                             {
@@ -365,7 +507,7 @@ namespace MouseAnalyzer.Experiment
                             }
                         }
 
-                        foreach( var entity in entities )
+                        foreach( var entity in testEntities )
                         {
                             for( var i = 1; i <= CFG_TEST_SAMPLESPERENTITYUPTO; i++ )
                             {
@@ -373,9 +515,13 @@ namespace MouseAnalyzer.Experiment
                                 var deviations = new List<double>();
                                 for( var j = 1; j <= CFG_TEST_ITEMSPERSAMPLEUPTO; j++ )
                                 {
-                                    var eers = testResults.Where( r => r.samplesPerEntity == i && r.itemsPerSample == j && r.entity == entity ).Select( r => r.eer.Item2 );
-                                    means.Add( eers.Average() );
-                                    deviations.Add( Math.Sqrt( eers.Variance() ) );
+                                    var ofEntity = trainEntities.Where( te => te.Id.Substring( 0, 3 ) == entity.Id.Substring( 0, 3 ) ).FirstOrDefault();
+                                    if( ofEntity != null )
+                                    {
+                                        var eers = testResults.Where( r => r.samplesPerEntity == i && r.itemsPerSample == j && r.entity == ofEntity ).Select( r => r.eer.Item2 );
+                                        means.Add( eers.Average() );
+                                        deviations.Add( Math.Sqrt( eers.Variance() ) );
+                                    }
                                 }
 
                                 columns.Add( means.Select( mean => mean.ToString( "G5" ) ) );
@@ -418,12 +564,12 @@ namespace MouseAnalyzer.Experiment
                 );
             }
 
-            dumper.Dump( outputFileNameHint == "" ? (CFG_TRAIN ? "s-f" : "s-ft") : outputFileNameHint );
+            dumper.Dump( outputFileNameHint == "" ? ( CFG_TRAIN ? ( CFG_DEVELOPMENT ? "s-d" : "s-f" ) : "s-ft" ) : outputFileNameHint );
         }
 
         #endregion
 
-        private List<EERProgress> SelectMarkers( bool RANDOM, bool _SFFS, int SFFS_K, bool BAYESES, bool EER, Features.Markers markers, Entity entity, IEnumerable<Lookup.ProbeEntity> probes, int samplesPerEntity, int itemsPerSample, double absTarget, double relTarget )
+        private Tuple<int, List<EERProgress>> SelectMarkers( bool RANDOM, bool _SFFS, int SFFS_K, bool BAYESES, bool EER, Features.Markers markers, Entity entity, IEnumerable<Lookup.ProbeEntity> probes, StrokeFeatureItem.ItemType strokeKind, int samplesPerEntity, int itemsPerSample, double absTarget, double relTarget )
         {
             bool LOGARITHMIC = true;
             bool POSTERIOR_LOGARITHMIC = LOGARITHMIC && BAYESES;
@@ -436,27 +582,27 @@ namespace MouseAnalyzer.Experiment
 
             if( POSTERIOR_LOGARITHMIC )
             {
-                absTarget = Math.Log( absTarget );
-                relTarget = Math.Log( relTarget );
+                absTarget = - Math.Log( 1 - absTarget );
+                relTarget = - Math.Log( 1 - relTarget );
             }
 
             // initialize -- prepare data
-            var samples = CreateSamples( entity, probes, genuineSamples, imposterSamples, itemsPerSample, RANDOM );
+            var samples = CreateSamples( entity, probes, strokeKind, genuineSamples, imposterSamples, itemsPerSample, RANDOM );
 
             if( _SFFS )
             {
-                return SFFS( BAYESES, EER, LOGARITHMIC, SFFS_K, markers, entity, samples, genuineSamples, imposterSamples, absTarget, relTarget );
+                return SFFS( BAYESES, EER, LOGARITHMIC, SFFS_K, markers, entity, samples, genuineSamples, imposterSamples, itemsPerSample, absTarget, relTarget );
             }
             else
             {
-                return SFS( BAYESES, EER, LOGARITHMIC, markers, entity, samples, genuineSamples, imposterSamples, absTarget, relTarget );
+                return SFS( BAYESES, EER, LOGARITHMIC, markers, entity, samples, genuineSamples, imposterSamples, itemsPerSample, absTarget, relTarget );
             }
         }
 
-        private List<EERProgress> SFS(
+        private Tuple<int, List<EERProgress>> SFS(
             bool BAYESES, bool EER, bool LOGARITHMIC,
             Features.Markers markers, Entity entity,
-            List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> samples, int genuineSamples, int imposterSamples,
+            List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> samples, int genuineSamples, int imposterSamples, int itemsPerSample,
             double absTarget, double relTarget )
         {
             // clear markers
@@ -469,6 +615,7 @@ namespace MouseAnalyzer.Experiment
             var targetTest1 = double.MaxValue;
             var targetTest2 = double.MaxValue;
             EERProgress bestStep = null; // global variant
+            int steps = 0;
 
             for( var j = 0; j < markers.Count; j++ )
             {
@@ -483,7 +630,8 @@ namespace MouseAnalyzer.Experiment
                     }
                     markers.SetActive( i, true );
 
-                    var newBestStep = Step( BAYESES, EER, LOGARITHMIC, markers, entity, samples, genuineSamples, imposterSamples, bestStep );
+                    steps++;
+                    var newBestStep = Step( BAYESES, EER, LOGARITHMIC, markers, entity, samples, genuineSamples, imposterSamples, itemsPerSample, bestStep );
                     if( newBestStep != bestStep )
                     {
                         besti = i;
@@ -503,6 +651,7 @@ namespace MouseAnalyzer.Experiment
                 // complete step information
                 bestStep.order = j;
                 bestStep.index = besti;
+                bestStep.step = steps;
                 bestStep.name = "+" + markers.IndexToName( besti );
 
                 // put it into progres
@@ -515,12 +664,12 @@ namespace MouseAnalyzer.Experiment
                 }
             }
 
-            return progress;
+            return new Tuple<int, List<EERProgress>>( steps, progress );
         }
 
-        private List<EERProgress> SFFS(
+        private Tuple<int, List<EERProgress>> SFFS(
             bool BAYESES, bool EER, bool LOGARITHMIC, int SFFS_K, Features.Markers markers, Entity entity,
-            List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> samples, int genuineSamples, int imposterSamples,
+            List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> samples, int genuineSamples, int imposterSamples, int itemsPerSample,
             double absTarget, double relTarget )
         // by http://books.google.cz/books?id=x5hdbK8bIG0C&dq=sffs+algorithm&hl=cs&source=gbs_navlinks_s
         {
@@ -534,6 +683,7 @@ namespace MouseAnalyzer.Experiment
             HashSet<int>[] bestsets = new HashSet<int>[SFFS_K];
             EERProgress[] bestmeasures = new EERProgress[SFFS_K];
             int order = 1;
+            int steps = 0;
 
             var targetTest0 = double.MaxValue;
             var targetTest1 = double.MaxValue;
@@ -554,7 +704,8 @@ namespace MouseAnalyzer.Experiment
 
                     markers.SetActive( i, true );
 
-                    var newBestAdded = Step( BAYESES, EER, LOGARITHMIC, markers, entity, samples, genuineSamples, imposterSamples, bestAdded );
+                    steps++;
+                    var newBestAdded = Step( BAYESES, EER, LOGARITHMIC, markers, entity, samples, genuineSamples, imposterSamples, itemsPerSample, bestAdded );
                     if( newBestAdded != bestAdded )
                     {
                         besti = i;
@@ -581,12 +732,14 @@ namespace MouseAnalyzer.Experiment
                 // complete step information and put it into progress
                 bestAdded.order = order++;
                 bestAdded.index = besti;
+                bestAdded.step = steps;
                 bestAdded.name = "+" + markers.IndexToName( besti );
                 progress.Add( bestAdded );
 
                 // evaluate end
-                if( bestAdded.measureM == 0.0 &&
-                    TestEnd( bestAdded.measureP + CFG_EER_MID_WEIGHT * bestAdded.measureD, ref targetTest0, ref targetTest1, ref targetTest2, absTarget, relTarget ) )
+                if( // bestAdded.measureM <= 0.0 &&
+                    // TestEnd( bestAdded.measureP + CFG_EER_MID_WEIGHT * bestAdded.measureD, ref targetTest0, ref targetTest1, ref targetTest2, absTarget, relTarget ) )
+                    TestEnd( bestAdded.measureM, ref targetTest0, ref targetTest1, ref targetTest2, absTarget, relTarget ) )
                 {
                     break;
                 }
@@ -607,7 +760,8 @@ namespace MouseAnalyzer.Experiment
                         }
                         markers.SetActive( i, false );
 
-                        var newBestStep = Step( BAYESES, EER, LOGARITHMIC, markers, entity, samples, genuineSamples, imposterSamples, bestRemoved );
+                        steps++;
+                        var newBestStep = Step( BAYESES, EER, LOGARITHMIC, markers, entity, samples, genuineSamples, imposterSamples, itemsPerSample, bestRemoved );
                         if( newBestStep != bestRemoved )
                         {
                             worsti = i;
@@ -630,12 +784,14 @@ namespace MouseAnalyzer.Experiment
                     // complete step information and put it into progress
                     bestRemoved.order = order++;
                     bestRemoved.index = worsti;
+                    bestRemoved.step = steps;
                     bestRemoved.name = "-" + markers.IndexToName( worsti );
                     progress.Add( bestRemoved );
 
                     // evaluate end
-                    if( bestRemoved.measureM == 0.0 &&
-                        TestEnd( bestRemoved.measureP + CFG_EER_MID_WEIGHT * bestRemoved.measureD, ref targetTest0, ref targetTest1, ref targetTest2, absTarget, relTarget ) )
+                    if( // bestRemoved.measureM <= 0.0 &&
+                        // TestEnd( bestRemoved.measureP + CFG_EER_MID_WEIGHT * bestRemoved.measureD, ref targetTest0, ref targetTest1, ref targetTest2, absTarget, relTarget ) )
+                        TestEnd( bestAdded.measureM, ref targetTest0, ref targetTest1, ref targetTest2, absTarget, relTarget ) )
                     {
                         breakLoop = true;
                         break;
@@ -665,13 +821,13 @@ namespace MouseAnalyzer.Experiment
                 progress.Insert( 0, bestmeasure );
             }
 
-            return progress;
+            return new Tuple<int, List<EERProgress>>( steps, progress );
         }
         
 
         private EERProgress Step(
             bool BAYESES, bool EER, bool LOGARITHMIC, Features.Markers markers, Entity entity,
-            List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> samples, int genuineSamples, int imposterSamples,
+            List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> samples, int genuineSamples, int imposterSamples, int itemsPerSample,
             EERProgress previousBest )
         {
             if( markers.ActiveCount == 0 )
@@ -694,15 +850,16 @@ namespace MouseAnalyzer.Experiment
             var bayeses = ibayeses;
             if( BAYESES )
             {
-                var minemeasure = BAYESES ? - pmine : 1.0 - pmine; // BAYESES driver LOGARITHMIC_POSTERIORS
-                if( previousBest == null || previousBest.WorseThan( minemeasure  ) )
+                var minemeasure = POSTERIOR_LOGARITHMIC ? - pmine : 1.0 - pmine; // BAYESES drives LOGARITHMIC_POSTERIORS
+                if( previousBest == null || previousBest.WorseThan( minemeasure ) )
                 {
                     return new EERProgress()
                     {
                         measureM = minemeasure,
                         p = POSTERIOR_LOGARITHMIC ? Math.Exp( pmine ) : pmine,
                         bayeses = bayeses,
-                        samples = samples
+                        samples = samples,
+                        itemsPerSample = itemsPerSample
                     };
                 }
             }
@@ -712,30 +869,41 @@ namespace MouseAnalyzer.Experiment
             {
                 var pmines = ipmines.Average();
 
-                // var eer = ComputeEER( entity, posteriors );
-                // cdf EER evaluation
-                // var measureM = eer.Item2;
-                // var measureP = 1 - pmine;
-                // var measureD = Math.Abs( eer.Item1 - 0.5 );
+                double measureM;
+                double measureP;
+                double measureD;
 
-                // evaluate EER for BAYESES driven lookup
-                // measureM = measureP;
+                if( CFG_USE_DEER_INSTEAD_OF_EER )
+                {
+                    // compute mean and sigma of fmr/fnmr
+                    var genuines = posteriors.Where( i => i.Item1 == entity ).Select( i => i.Item2 );
+                    var gm = genuines.Average();
+                    var gd = Math.Sqrt( genuines.Variance());
+                    var impostors = posteriors.Where( i => i.Item1 != entity ).Select( i => i.Item2 );
+                    var im = impostors.Average();
+                    var id = Math.Sqrt( impostors.Variance());
 
-                // compute mean and sigma of fmr/fnmr
-                var genuines = posteriors.Where( i => i.Item1 == entity ).Select( i => i.Item2 );
-                var gm = genuines.Average();
-                var gd = Math.Sqrt( genuines.Variance());
-                var impostors = posteriors.Where( i => i.Item1 != entity ).Select( i => i.Item2 );
-                var im = impostors.Average();
-                var id = Math.Sqrt( impostors.Variance());
-                // pdf EER evaluation
-                var measureM = 2.0 - ((gm - gd) - (im + id));
-                var measureP = 1.0 - pmines;
-                var measureD = 0.0;
+                    // pdf EER evaluation
+                    measureM = 1.0 - ((gm - gd) - (im + id));
+                    measureP = 1.0 - pmines;
+                    measureD = 0.0;
 
-                // extremes separation
-                // measureM = 2.0 - ( genuines.Min() - impostors.Max() );
-                
+                    // extremes separation
+                    // measureM = 2.0 - ( genuines.Min() - impostors.Max() );
+                }
+                else
+                {
+                    var eer = ComputeEER( entity, posteriors );
+
+                    // cdf EER evaluation
+                    measureM = eer.Item2;
+                    measureP = 1 - pmines;
+                    measureD = Math.Abs( eer.Item1 - 0.5 );
+
+                    // evaluate EER for BAYESES driven lookup
+                    // measureM = measureP;
+                }
+
                 if( previousBest == null || previousBest.WorseThan( measureM, measureP, measureD ) )
                 {
                     var eer = ComputeEER( entity, posteriors );
@@ -748,7 +916,8 @@ namespace MouseAnalyzer.Experiment
                         eer = eer,
                         p = pmines,
                         bayeses = bayeses,
-                        samples = samples
+                        samples = samples,
+                        itemsPerSample = itemsPerSample
                     };
                 }
             }
@@ -776,7 +945,7 @@ namespace MouseAnalyzer.Experiment
             }
         }
 
-        private List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> CreateSamples( Entity genuine, IEnumerable<Lookup.ProbeEntity> probes, int genuineSamples, int imposterSamples, int itemsPerSample, bool random )
+        private List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> CreateSamples( Entity genuine, IEnumerable<Lookup.ProbeEntity> probes, StrokeFeatureItem.ItemType strokeKind, int genuineSamples, int imposterSamples, int itemsPerSample, bool random )
         {
             var rnd = new Random( genuine.GetHashCode() * (int)DateTime.Now.ToFileTime() );
             var inputs = new List<Tuple<Entity, IEnumerable<IFeatureItem>, int>>();
@@ -784,19 +953,26 @@ namespace MouseAnalyzer.Experiment
             foreach( var probe in probes )
             {
                 var items = probe.Features.Where( f1 => f1 is StrokeFeature ).Select( f2 => (StrokeFeature)f2 ).First().
-                            TypedItems.Where( i => i.IsValid && !i.IsStraight && i.Type == StrokeFeatureItem.ItemType.MoveEnded );
+                            TypedItems.Where( i => i.IsValid && !i.IsStraight && i.Type == strokeKind );
                 var count = items.Count();
                 for( var i = 0; i < (probe.Related == genuine ? genuineSamples : imposterSamples); i++ )
                 {
                     IEnumerable<IFeatureItem> selected;
                     if( random )
                     {
-                        var skip = rnd.Next( count - itemsPerSample );
-                        selected = items.Skip( skip ).Take( itemsPerSample );
+                        if( count > itemsPerSample )
+                        {
+                            var skip = rnd.Next( count - itemsPerSample );
+                            selected = items.Skip( skip ).Take( itemsPerSample );
+                        }
+                        else
+                        {
+                            selected = items;
+                        }
                     }
                     else
                     {
-                        selected = items.Skip( 7+i ).Take( itemsPerSample );
+                        selected = items.Skip( 3+3*i ).Take( itemsPerSample );
                     }
                     inputs.Add( new Tuple<Entity, IEnumerable<IFeatureItem>, int>( probe.Related, selected, i ) );
                 }
@@ -807,6 +983,8 @@ namespace MouseAnalyzer.Experiment
 
         private List<Tuple<Entity, double, int>> ComputePriors( Entity against, Features.Markers markers, List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> samples, bool logarithmic = false )
         {
+            var maximalItems = samples.Select( s => s.Item2.Count() ).Max(); // maximal items carry maximal information, others will be normalized to this value
+
             var priors = new List<Tuple<Entity, double, int>>();
             foreach( var sample in samples )
             {
@@ -817,6 +995,17 @@ namespace MouseAnalyzer.Experiment
                 }
 
                 var p = logarithmic ? ps.Sum() : ps.Product();
+                if( ps.Count == 0 ) // normalization applies
+                {
+                    p = 0.0;
+                }
+                else if( ps.Count < maximalItems ) // normalization applies
+                {
+                    p = logarithmic ? p : Math.Log( p );
+                    p = p * maximalItems / ps.Count;
+                    p = logarithmic ? p : Math.Exp( p );
+                }
+
                 if( double.IsPositiveInfinity( p ) )
                 {
                     var pp = p;
@@ -1065,13 +1254,13 @@ namespace MouseAnalyzer.Experiment
             );
         }
 
-        private List<EERTestItem> Test( List<Tuple<Entity, Features.Markers>> determined, IEnumerable<Lookup.ProbeEntity> probes, int runsPerEntity, int samplesPerEntityUpTo, int itemsPerSampleUpTo )
+        private List<EERTestItem> Test( List<Tuple<Entity, Features.Markers>> determined, IEnumerable<Lookup.ProbeEntity> probes, bool random, StrokeFeatureItem.ItemType strokeKind, int runsPerEntity, int samplesPerEntityUpTo, int itemsPerSampleUpTo )
         {
             var results = new List<EERTestItem>();
             var probesCount = probes.Count();
             var imposters = probesCount - 1;
 
-            foreach( var det in determined )
+            foreach( var probe in probes )
             {
                 for( var run = 0; run < runsPerEntity; run++ )
                 {
@@ -1082,7 +1271,7 @@ namespace MouseAnalyzer.Experiment
 
                         for( var itemsPerSample = 1; itemsPerSample <= itemsPerSampleUpTo; itemsPerSample++ )
                         {
-                            var localDet = det;
+                            var localTested = probe.Related;
                             var localSamplesPerEntity = samplesPerEntity;
                             var localImposterSamples = imposterSamples;
                             var localGenuineSamples = genuineSamples;
@@ -1090,22 +1279,22 @@ namespace MouseAnalyzer.Experiment
 
                             Executor.Queue( () =>
                             {
-                                var samples = CreateSamples( localDet.Item1, probes, localGenuineSamples, localImposterSamples, localItemsPerSample, true );
-                                var priors = ComputePriors( localDet.Item1, localDet.Item2, samples, true );
-                                var posteriors = ComputePosteriors( false, localDet.Item1, priors, localGenuineSamples, localImposterSamples, true, false );
+                                var samples = CreateSamples( localTested, probes, strokeKind, localGenuineSamples, localImposterSamples, localItemsPerSample, random );
+                                var priors = ComputePriors( localTested, determined.Where( d => d.Item1 == localTested ).First().Item2, samples, true );
+                                var posteriors = ComputePosteriors( false, localTested, priors, localGenuineSamples, localImposterSamples, true, false );
 
                                 // if( localDet.Item1.Id == "DaBcp" && localItemsPerSample == 7 )
                                 // {
                                 //     var stop = false;
                                 // }
 
-                                var eer = ComputeEER( localDet.Item1, posteriors );
+                                var eer = ComputeEER( localTested, posteriors );
 
                                 lock( results )
                                 {
                                     results.Add( new EERTestItem()
                                     {
-                                        entity = localDet.Item1,
+                                        entity = localTested,
                                         samplesPerEntity = localSamplesPerEntity,
                                         itemsPerSample = localItemsPerSample,
                                         eer = new Tuple<double, double>( eer.Item1, eer.Item2 )
@@ -1244,7 +1433,7 @@ namespace MouseAnalyzer.Experiment
         {
             using( var fileWriter = new StreamWriter( filePath ) )
             {
-                fileWriter.WriteLine( ";;info=" + DESCRIPTION_STRING );
+                fileWriter.WriteLine( ";;info=" + TRAIN_DESCRIPTION_STRING );
 
                 foreach( var et in entitiesTrained )
                 {
@@ -1325,10 +1514,12 @@ namespace MouseAnalyzer.Experiment
         private class EERProgress
         {
             public List<Tuple<Entity, IEnumerable<IFeatureItem>, int>> samples;
+            public int itemsPerSample;
 
             // common
             public int order;
             public int index;
+            public int step;
             public string name;
             public double measureM;
             public double measureP;

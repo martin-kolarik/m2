@@ -11,14 +11,16 @@ namespace MouseAnalyzer
     {
         private List<IFeature> features = new List<IFeature>();
 
-        public Entity( string id, DataSource.SourceType source, IList<Event> events )
+        public Entity( string id, DataSource.EnvironmentType environment, DataSource.SourceType source, IList<Event> events )
         {
             Id = id;
+            OfEnvironment = environment;
             Source = source;
             Events = events;
         }
 
         public string Id { get; private set; }
+        public DataSource.EnvironmentType OfEnvironment { get; private set; }
         public DataSource.SourceType Source { get; private set; }
         public IList<Event> Events { get; private set; }
 
