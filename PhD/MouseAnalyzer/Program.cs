@@ -24,8 +24,23 @@ namespace MouseAnalyzer
             // new Experiment.SplineDistributionExperiment().Perform();
             // new Experiment.RootFinderExperiment().Perform();
 
-            // new Experiment.S_OverviewExperiment().Perform();
-            new Experiment.S_FARExperiment().Perform();
+            new Experiment.S_OverviewExperiment().Perform();
+
+            // var exp0 = new Experiment.S_FARExperiment( true, false, false );
+            // exp0.Perform();
+
+            /*
+            var exp1 = new Experiment.S_FARExperiment( true, false, false );
+            exp1.Perform();
+            exp1 = null;
+            GC.Collect();
+            GC.Collect();
+            */
+
+            /*
+            var exp2 = new Experiment.S_FARExperiment( false, false, true );
+            exp2.Perform();
+             */
 
             // cleanup statics
             Executor.Stop();

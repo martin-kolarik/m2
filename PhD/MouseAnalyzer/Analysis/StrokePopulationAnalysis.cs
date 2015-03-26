@@ -11,11 +11,13 @@ namespace MouseAnalyzer.Analysis
 {
     class StrokePopulationAnalysis : AnalysisBase, IAnalysis
     {
-        public StrokePopulationAnalysis( int endGapThreshold )
+        public StrokePopulationAnalysis( StrokeFeatureItem.ItemType strokeKind, int endGapThreshold )
         {
+            StrokeKind = strokeKind;
             EndGapThreshold = endGapThreshold;
         }
 
+        StrokeFeatureItem.ItemType StrokeKind;
         private int EndGapThreshold;
 
         #region IAnalysis Members
@@ -29,8 +31,8 @@ namespace MouseAnalyzer.Analysis
                     var events = SplitDefinition.Split( split, entity.Events );
 
                     // stroke
-                    var stroke = new StrokeFeature( entity );
-                    var strokeExtractor = new StrokeFeatureExtractor( EndGapThreshold );
+                    var stroke = new StrokeFeature( entity, StrokeKind );
+                    var strokeExtractor = new StrokeFeatureExtractor( StrokeKind, EndGapThreshold );
                     foreach( var input in events )
                     {
                         stroke.AddItems( strokeExtractor.AddEvent( input, stroke.TypedItems ) );
@@ -51,6 +53,13 @@ namespace MouseAnalyzer.Analysis
                     max = 500;
                     definition.SupplyRange( min, max );
                     var histogram2 = new Histogram( definition, dTs, min, max );
+
+                    dTs = events.Select( e => e.dT ).Where( dT => dT <= 80 );
+                    definition = new HistogramDefinition( 201 );
+                    min = -0.2;
+                    max = 80.2;
+                    definition.SupplyRange( min, max );
+                    var histogram3 = new Histogram( definition, dTs, min, max );
                     */
 
                     entity.AddFeature( stroke );

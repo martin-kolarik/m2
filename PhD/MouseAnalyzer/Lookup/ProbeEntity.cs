@@ -8,8 +8,8 @@ namespace MouseAnalyzer.Lookup
 {
     class ProbeEntity : Entity
     {
-        public ProbeEntity( Entity related, DataSource.SourceType source, IList<Event> events ) :
-            base( related == null ? "unk" : related.Id, source, events )
+        public ProbeEntity( Entity related, DataSource.EnvironmentType environment, DataSource.SourceType source, IList<Event> events ) :
+            base( related == null ? "unk" : related.Id, environment, source, events )
         {
             Related = related;
         }

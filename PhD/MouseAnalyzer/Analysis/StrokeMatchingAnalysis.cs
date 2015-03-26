@@ -22,8 +22,8 @@ namespace MouseAnalyzer.Analysis
                     var events = SplitDefinition.Split( split, entity.Events );
 
                     // stroke
-                    var stroke = new StrokeFeature( entity );
-                    var strokeExtractor = new StrokeFeatureExtractor( 32 );
+                    var stroke = new StrokeFeature( entity, StrokeFeatureItem.ItemType.MoveEnded );
+                    var strokeExtractor = new StrokeFeatureExtractor( StrokeFeatureItem.ItemType.MoveEnded, 32 );
                     foreach( var input in events )
                     {
                         stroke.AddItems( strokeExtractor.AddEvent( input, stroke.TypedItems ) );

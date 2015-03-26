@@ -65,65 +65,81 @@ namespace MouseAnalyzer
             {
                 new DataSource( "ElK", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\eliska.dtrk.201403151156.log" ),
                 new DataSource( "ElK", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\eliska.trk.201403151257.log" ),
+                // new DataSource( "ElK", DataSource.EnvironmentType.Uncontrolled, @"" ),
 
                 new DataSource( "JiH", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\jirda.dtrk.201404011809 (1).log" ),
                 new DataSource( "JiH", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\jirda.trk.201404021756 (2).log" ),
+                new DataSource( "JiH", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\jirihajek.mousei.201503011502.log" ),
 
                 new DataSource( "MaK", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\marek.dtrk.201404211842.log" ),
                 new DataSource( "MaK", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\marek.trk.201404212002.log" ),
+                new DataSource( "MaK", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\marekkolarik.mousei.201412081945.log" ),
 
                 new DataSource( "ZuK", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\zuza.dtrk.201404271826.log" ),
                 new DataSource( "ZuK", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\zuza.trk.201404281740.log" ),
+                new DataSource( "ZuK", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\zuzkakolarikova.mousei.201501041909.log" ),
 
                 new DataSource( "PeK", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\petrkucera.dtrk.201407061751.log" ),
                 new DataSource( "PeK", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\petrkucera.trk.201407061854.log" ),
+                new DataSource( "PeK", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\petrkucera.mousei.201502201807.log" ),
 
                 new DataSource( "MiH", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\michalhladik.dtrk.201408041600.log" ),
                 new DataSource( "MiH", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\michalhladik.trk.201408041701.log" ),
+                new DataSource( "MiH", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\michalhladik.mousei.201501311404.log" ),
 
                 new DataSource( "HoM", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\michna.dtrk.201408061833.log" ),
                 new DataSource( "HoM", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\michna.trk.201408061938.log" ),
+                new DataSource( "HoM", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\honzamichna.mousei.201412141837.log" ),
 
                 new DataSource( "RuD", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\ruda.dtrk.201408111639.log" ),
                 new DataSource( "RuD", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\ruda.trk.201408111733.log" ),
+                new DataSource( "RuD", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\rudadvoracek.mousei.201501211035.log" ),
 
                 new DataSource( "JiB", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\jirkabaros.dtrk.201409261541.log" ),
                 new DataSource( "JiB", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\jirkabaros.trk.201409261643.log" ),
+                new DataSource( "JiB", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\jirkabaros.mousei.201501091949.log" ),
 
                 new DataSource( "ZdV", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\zdenkavymetalova.dtrk.201409271547.log" ),
                 new DataSource( "ZdV", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\zdenkavymetalova.trk.201409271648.log" ),
+                new DataSource( "ZdV", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\zdenkavymetalova.mousei.201501091845.log" ),
 
                 new DataSource( "MaZ", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\martinzachar.dtrk.201410161917.log" ),
                 new DataSource( "MaZ", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\martinzachar.trk.201410051708.log" ),
+                new DataSource( "MaZ", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\martinzachar.mousei.201412111954.log" ),
 
                 new DataSource( "MiB", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\michaelabrychtova.dtrk.201410051236.log" ),
                 new DataSource( "MiB", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\michaelabrychtova.trk.201410051457.log" ),
+                new DataSource( "MiB", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\michaelabrychtova.mousei.201412111957.log" ),
 
                 new DataSource( "PeD", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\petrdolezel.dtrk.201410081845.log" ),
                 new DataSource( "PeD", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\petrdolezel.trk.201410191717.log" ),
+                new DataSource( "PeD", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\petrdolezel.mousei.201412110819.log" ),
 
                 new DataSource( "DaB", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\davidbeneda.dtrk.201410221749 (3).log" ),
                 new DataSource( "DaB", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\davidbeneda.trk.201410231716 (1).log" ),
+                new DataSource( "DaB", DataSource.EnvironmentType.Uncontrolled, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse3\davidbeneda.mousei.201412131846.log" ),
 
-                new DataSource( "MiP", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\misapatakova.dtrk.201410251724.log" ),
+                new DataSource( "MiP", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\misapatakova.dtrk.201410260956.log" ),
                 new DataSource( "MiP", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\misapatakova.trk.201410261717.log" ),
+                // new DataSource( "MiP", DataSource.EnvironmentType.Uncontrolled, @"" ),
 
-                new DataSource( "ToH", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\tomhnilica.dtrk.201410260956.log" ),
-                new DataSource( "ToH", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\tomhnilica.trk.201410281018.log" )
+                new DataSource( "ToH", DataSource.EnvironmentType.ControlledPlain, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse1\tomhnilica.dtrk.201410251724.log" ),
+                new DataSource( "ToH", DataSource.EnvironmentType.ControlledAccelerated, @"D:\Private\Skola\Disertace\MouseMeasurement\Mouse2\tomhnilica.trk.201410281018.log" ),
+                // new DataSource( "ToH", DataSource.EnvironmentType.Uncontrolled, @"" )
             };
         }
 
         public static Entity Get( string person, DataSource.EnvironmentType environment, DataSource.SourceType sourceType )
         {
             var filtered = sources.Where( s => s.Person == person && s.Environment == environment ).First();
-            return new Entity( filtered.Id, sourceType, filtered.GetEvents( sourceType ) );
+            return new Entity( filtered.Id, environment, sourceType, filtered.GetEvents( sourceType ) );
         }
 
         public static List<Entity> Get( DataSource.EnvironmentType environment, DataSource.SourceType sourceType )
         {
             return sources.
                    Where( s => s.Environment == environment ).
-                   Select( f => new Entity( f.Id, sourceType, f.GetEvents( sourceType ) ) ).
+                   Select( f => new Entity( f.Id, environment, sourceType, f.GetEvents( sourceType ) ) ).
                    ToList<Entity>();
         }
 
